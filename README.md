@@ -22,6 +22,17 @@ To test with Cursor
   }
 }
 ```
+
+By default the MCP server uses the localhost Scratchpad server.  If you want to use the deployed version you can add the following environment variables to the configuration above:
+
+```
+  "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",
+  "SCRATCHPAD_API_TOKEN": "1234567890"
+```
+
+The API token is a placeholder for how we might do auth inside Scratchpad
+
+
 - Restart Cursor. Go back to the same config. You should see a green dot next to the server name and the tools should be listed (at the time of writing: get_records and update_record)
 
 
