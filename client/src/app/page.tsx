@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Card, Button, Group, LoadingOverlay, TextInput, Stack, Badge } from '@mantine/core';
+import { Container, Title, Text } from '@mantine/core';
 import { io } from 'socket.io-client';
+import RecordsGrid from './components/RecordsGrid';
 
 interface Record {
   id: string;
@@ -18,8 +19,6 @@ export default function Home() {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState<string>('');
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -40,7 +39,7 @@ export default function Home() {
 
   const updateRecord = async (id: string, title: string) => {
     try {
-      const response = await fetch(`/api/records/batch`, {
+      const response = await fetch(`/api/records`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -53,8 +52,6 @@ export default function Home() {
       }
       
       // The server will emit the update event, which will trigger a refresh
-      setEditingId(null);
-      setEditTitle('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -62,7 +59,7 @@ export default function Home() {
 
   const deleteRecord = async (id: string) => {
     try {
-      const response = await fetch(`/api/records/batch`, {
+      const response = await fetch(`/api/records`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -77,22 +74,6 @@ export default function Home() {
       // The server will emit the update event, which will trigger a refresh
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
-  const startEditing = (record: Record) => {
-    setEditingId(record.id);
-    setEditTitle(record.title);
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditTitle('');
-  };
-
-  const saveEdit = () => {
-    if (editingId && editTitle.trim()) {
-      updateRecord(editingId, editTitle.trim());
     }
   };
 
@@ -125,86 +106,27 @@ export default function Home() {
   }, []); // Empty dependency array since we want this to run once on mount
 
   return (
-    <Container size="md" py="xl">
+    <Container size="xl" py="xl">
       <Title order={1} ta="center" mb="xl">
-        Spinner Client - Records Management
+        Records Management
       </Title>
-      
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <LoadingOverlay visible={loading} />
-        
-        <Title order={2} mb="md">
-          Records List
-        </Title>
-        
-        <Text mb="lg">
-          Manage your records using the interface below.
+
+      {error && (
+        <Text color="red" size="sm" mb="md">
+          {error}
         </Text>
-        
-        {error && (
-          <Card withBorder p="md" mb="md" bg="red.0">
-            <Text fw={500} mb="xs" c="red">Error:</Text>
-            <Text c="red">{error}</Text>
-          </Card>
-        )}
-        
-        <Stack gap="md">
-          {records.map((record) => (
-            <Card key={record.id} withBorder p="md">
-              {editingId === record.id ? (
-                <Stack gap="sm">
-                  <Group>
-                    <Badge variant="light">ID: {record.id}</Badge>
-                  </Group>
-                  <TextInput
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Enter new title"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit();
-                      if (e.key === 'Escape') cancelEditing();
-                    }}
-                  />
-                  <Group>
-                    <Button size="sm" onClick={saveEdit}>
-                      Save
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={cancelEditing}>
-                      Cancel
-                    </Button>
-                  </Group>
-                </Stack>
-              ) : (
-                <Group justify="space-between" align="center">
-                  <div>
-                    <Badge variant="light" mb="xs">ID: {record.id}</Badge>
-                    <Text fw={500}>{record.title}</Text>
-                  </div>
-                  <Group gap="xs">
-                    <Button size="sm" variant="outline" onClick={() => startEditing(record)}>
-                      Edit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      color="red" 
-                      variant="outline" 
-                      onClick={() => deleteRecord(record.id)}
-                    >
-                      Delete
-                    </Button>
-                  </Group>
-                </Group>
-              )}
-            </Card>
-          ))}
-        </Stack>
-        
-        <Group mt="lg">
-          <Button onClick={fetchRecords} loading={loading}>
-            Refresh Records
-          </Button>
-        </Group>
-      </Card>
+      )}
+
+      <RecordsGrid
+        records={records}
+        onUpdate={updateRecord}
+        onDelete={deleteRecord}
+      />
+      {loading && (
+        <Text ta="center" mt="md">
+          Loading...
+        </Text>
+      )}
     </Container>
   );
 }

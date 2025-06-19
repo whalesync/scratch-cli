@@ -23,16 +23,19 @@ export class AppController {
     return this.appService.getRecords();
   }
 
-  @Put('records/:id')
-  updateRecord(@Param('id') id: string, @Body() record: Record): Record {
-    return this.appService.updateRecord(id, record);
+  @Post('records')
+  createRecords(@Body() records: Omit<Record, 'id'>[]): Record[] {
+    return this.appService.createRecordsBatch(records);
   }
 
-  @Put('records/batch')
-  updateRecordsBatch(
-    @Body() updates: { id: string; title: string }[],
-  ): Record[] {
+  @Put('records')
+  updateRecords(@Body() updates: { id: string; title: string }[]): Record[] {
     return this.appService.updateRecordsBatch(updates);
+  }
+
+  @Delete('records')
+  deleteRecords(@Body() ids: string[]): void {
+    return this.appService.deleteRecordsBatch(ids);
   }
 
   @Post('records')
@@ -40,18 +43,13 @@ export class AppController {
     return this.appService.createRecord(record);
   }
 
-  @Post('records/batch')
-  createRecordsBatch(@Body() records: Omit<Record, 'id'>[]): Record[] {
-    return this.appService.createRecordsBatch(records);
+  @Put('records/:id')
+  updateRecord(@Param('id') id: string, @Body() record: Record): Record {
+    return this.appService.updateRecord(id, record);
   }
 
   @Delete('records/:id')
   deleteRecord(@Param('id') id: string): void {
     return this.appService.deleteRecord(id);
-  }
-
-  @Delete('records/batch')
-  deleteRecordsBatch(@Body() ids: string[]): void {
-    return this.appService.deleteRecordsBatch(ids);
   }
 }

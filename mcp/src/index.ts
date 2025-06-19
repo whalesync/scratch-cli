@@ -94,6 +94,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["id"],
         },
       },
+      {
+        name: "delete_records_batch",
+        description: "Delete multiple records by their IDs",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ids: {
+              type: "array",
+              items: {
+                type: "string",
+                description: "The ID of a record to delete",
+              },
+              description: "Array of record IDs to delete",
+            },
+          },
+          required: ["ids"],
+        },
+      },
     ],
   };
 });
@@ -138,7 +156,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records/batch`, {
+      const response = await fetch(`http://localhost:3000/records`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +194,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch('http://localhost:3000/records/batch', {
+      const response = await fetch('http://localhost:3000/records', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +232,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const titles = args.titles as string[];
     
     try {
-      const response = await fetch('http://localhost:3000/records/batch', {
+      const response = await fetch('http://localhost:3000/records', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +270,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const id = args.id as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records/batch`, {
+      const response = await fetch(`http://localhost:3000/records`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -278,6 +296,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: "text",
             text: `Error deleting record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  }
+
+  if (name === "delete_records_batch") {
+    const ids = args.ids as string[];
+    
+    try {
+      const response = await fetch(`http://localhost:3000/records`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ids),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Records deleted successfully`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error deleting records: ${error instanceof Error ? error.message : 'Unknown error'}`,
           },
         ],
       };
