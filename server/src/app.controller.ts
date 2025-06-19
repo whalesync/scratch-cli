@@ -18,6 +18,11 @@ interface Record {
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get('health')
+  healthCheck(): string {
+    return 'OK';
+  }
+
   @Get('records')
   getRecords(): Record[] {
     return this.appService.getRecords();
