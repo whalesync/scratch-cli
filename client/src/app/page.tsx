@@ -3,12 +3,19 @@
 import { useState, useEffect } from 'react';
 import { Container, Title, Text } from '@mantine/core';
 import { io } from 'socket.io-client';
-import RecordsGrid from './components/RecordsGrid';
+import dynamic from 'next/dynamic';
 
 interface Record {
   id: string;
   title: string;
 }
+
+// This is a workaround to avoid the server-side rendering of the RecordsGrid component and allow Next.js to prerender the page
+const RecordsGridWithNoSSR = dynamic(
+  () => import('./components/RecordsGrid'),
+  { ssr: false }
+)
+
 
 // Create socket instance
 const socket = io('http://localhost:3000', {
@@ -117,11 +124,12 @@ export default function Home() {
         </Text>
       )}
 
-      <RecordsGrid
+      {!loading && !error && records && 
+      <RecordsGridWithNoSSR
         records={records}
         onUpdate={updateRecord}
         onDelete={deleteRecord}
-      />
+      />}
       {loading && (
         <Text ta="center" mt="md">
           Loading...
