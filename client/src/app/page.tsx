@@ -40,12 +40,12 @@ export default function Home() {
 
   const updateRecord = async (id: string, title: string) => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
+      const response = await fetch(`/api/records/batch`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, title }),
+        body: JSON.stringify([{ id, title }]),
       });
       
       if (!response.ok) {
@@ -62,8 +62,12 @@ export default function Home() {
 
   const deleteRecord = async (id: string) => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
+      const response = await fetch(`/api/records/batch`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([id]),
       });
       
       if (!response.ok) {

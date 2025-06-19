@@ -41,6 +41,22 @@ export class AppService {
     return this.records[index];
   }
 
+  updateRecordsBatch(updates: { id: string; title: string }[]): Record[] {
+    const updatedRecords = updates.map((update) => {
+      const index = this.records.findIndex((r) => r.id === update.id);
+      if (index === -1) {
+        throw new Error(`Record with id ${update.id} not found`);
+      }
+      this.records[index] = { ...this.records[index], title: update.title };
+      return this.records[index];
+    });
+
+    // Notify clients about the updates
+    this.recordsGateway.notifyRecordUpdate();
+
+    return updatedRecords;
+  }
+
   createRecord(record: Omit<Record, 'id'>): Record {
     const newId = (this.records.length + 1).toString();
     const newRecord = { ...record, id: newId };
@@ -52,6 +68,20 @@ export class AppService {
     return newRecord;
   }
 
+  createRecordsBatch(records: Omit<Record, 'id'>[]): Record[] {
+    const newRecords = records.map((record, index) => {
+      const newId = (this.records.length + index + 1).toString();
+      return { ...record, id: newId };
+    });
+
+    this.records.push(...newRecords);
+
+    // Notify clients about the updates
+    this.recordsGateway.notifyRecordUpdate();
+
+    return newRecords;
+  }
+
   deleteRecord(id: string): void {
     const index = this.records.findIndex((r) => r.id === id);
     if (index === -1) {
@@ -60,6 +90,18 @@ export class AppService {
     this.records.splice(index, 1);
 
     // Notify clients about the update
+    this.recordsGateway.notifyRecordUpdate();
+  }
+
+  deleteRecordsBatch(ids: string[]): void {
+    const initialLength = this.records.length;
+    this.records = this.records.filter((record) => !ids.includes(record.id));
+
+    if (this.records.length === initialLength) {
+      throw new Error('No records were deleted. Some IDs might not exist.');
+    }
+
+    // Notify clients about the updates
     this.recordsGateway.notifyRecordUpdate();
   }
 }

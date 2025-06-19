@@ -28,13 +28,30 @@ export class AppController {
     return this.appService.updateRecord(id, record);
   }
 
+  @Put('records/batch')
+  updateRecordsBatch(
+    @Body() updates: { id: string; title: string }[],
+  ): Record[] {
+    return this.appService.updateRecordsBatch(updates);
+  }
+
   @Post('records')
   createRecord(@Body() record: Omit<Record, 'id'>): Record {
     return this.appService.createRecord(record);
   }
 
+  @Post('records/batch')
+  createRecordsBatch(@Body() records: Omit<Record, 'id'>[]): Record[] {
+    return this.appService.createRecordsBatch(records);
+  }
+
   @Delete('records/:id')
   deleteRecord(@Param('id') id: string): void {
     return this.appService.deleteRecord(id);
+  }
+
+  @Delete('records/batch')
+  deleteRecordsBatch(@Body() ids: string[]): void {
+    return this.appService.deleteRecordsBatch(ids);
   }
 }

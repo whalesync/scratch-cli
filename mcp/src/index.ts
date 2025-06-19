@@ -63,6 +63,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "create_records_batch",
+        description: "Create multiple records at once",
+        inputSchema: {
+          type: "object",
+          properties: {
+            titles: {
+              type: "array",
+              items: {
+                type: "string",
+                description: "The title for a new record",
+              },
+              description: "Array of titles for the new records",
+            },
+          },
+          required: ["titles"],
+        },
+      },
+      {
         name: "delete_record",
         description: "Delete a record by ID",
         inputSchema: {
@@ -120,25 +138,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records/${id}`, {
+      const response = await fetch(`http://localhost:3000/records/batch`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, title }),
+        body: JSON.stringify([{ id, title }]),
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const updatedRecord = await response.json();
+      const updatedRecords = await response.json();
       
       return {
         content: [
           {
             type: "text",
-            text: `Record updated successfully:\n\n${JSON.stringify(updatedRecord, null, 2)}`,
+            text: `Record updated successfully:\n\n${JSON.stringify(updatedRecords[0], null, 2)}`,
           },
         ],
       };
@@ -158,25 +176,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch('http://localhost:3000/records', {
+      const response = await fetch('http://localhost:3000/records/batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify([{ title }]),
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const newRecord = await response.json();
+      const newRecords = await response.json();
       
       return {
         content: [
           {
             type: "text",
-            text: `Record created successfully:\n\n${JSON.stringify(newRecord, null, 2)}`,
+            text: `Record created successfully:\n\n${JSON.stringify(newRecords[0], null, 2)}`,
           },
         ],
       };
@@ -192,12 +210,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
   }
 
+  if (name === "create_records_batch") {
+    const titles = args.titles as string[];
+    
+    try {
+      const response = await fetch('http://localhost:3000/records/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(titles.map(title => ({ title }))),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const newRecords = await response.json();
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Records created successfully:\n\n${JSON.stringify(newRecords, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error creating records: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  }
+
   if (name === "delete_record") {
     const id = args.id as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records/${id}`, {
+      const response = await fetch(`http://localhost:3000/records/batch`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([id]),
       });
       
       if (!response.ok) {
