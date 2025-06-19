@@ -4,7 +4,8 @@ To test with Cursor
 2. Run client: `cd client & yarn run dev`
 2. Build the mcp server: `cd mcp & yarn install & yarn run build`
 3. 'Install' mcp server
-- Go to Cursor -> Settings -> Cursor Settings -> MCP Tools -> New MCP Server
+- Go to Cursor -> Settings -> Cursor Settings -> Tools & Integrations
+- Under MCP Tools click on Add Custom MCP button
 - Add the following config: 
 ```
 {
