@@ -24,10 +24,6 @@ export class AppService {
     },
   ];
 
-  getHello(): string {
-    return 'Hello World!';
-  }
-
   getRecords(): Record[] {
     return this.records;
   }
@@ -43,5 +39,27 @@ export class AppService {
     this.recordsGateway.notifyRecordUpdate();
 
     return this.records[index];
+  }
+
+  createRecord(record: Omit<Record, 'id'>): Record {
+    const newId = (this.records.length + 1).toString();
+    const newRecord = { ...record, id: newId };
+    this.records.push(newRecord);
+
+    // Notify clients about the update
+    this.recordsGateway.notifyRecordUpdate();
+
+    return newRecord;
+  }
+
+  deleteRecord(id: string): void {
+    const index = this.records.findIndex((r) => r.id === id);
+    if (index === -1) {
+      throw new Error(`Record with id ${id} not found`);
+    }
+    this.records.splice(index, 1);
+
+    // Notify clients about the update
+    this.recordsGateway.notifyRecordUpdate();
   }
 }

@@ -48,6 +48,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["id", "title"],
         },
       },
+      {
+        name: "create_record",
+        description: "Create a new record",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: {
+              type: "string",
+              description: "The title for the new record",
+            },
+          },
+          required: ["title"],
+        },
+      },
+      {
+        name: "delete_record",
+        description: "Delete a record by ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The ID of the record to delete",
+            },
+          },
+          required: ["id"],
+        },
+      },
     ],
   };
 });
@@ -120,6 +148,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: "text",
             text: `Error updating record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  }
+
+  if (name === "create_record") {
+    const title = args.title as string;
+    
+    try {
+      const response = await fetch('http://localhost:3000/records', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const newRecord = await response.json();
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Record created successfully:\n\n${JSON.stringify(newRecord, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error creating record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  }
+
+  if (name === "delete_record") {
+    const id = args.id as string;
+    
+    try {
+      const response = await fetch(`http://localhost:3000/records/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Record deleted successfully`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error deleting record: ${error instanceof Error ? error.message : 'Unknown error'}`,
           },
         ],
       };

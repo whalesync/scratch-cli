@@ -60,6 +60,22 @@ export default function Home() {
     }
   };
 
+  const deleteRecord = async (id: string) => {
+    try {
+      const response = await fetch(`/api/records/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // The server will emit the update event, which will trigger a refresh
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
   const startEditing = (record: Record) => {
     setEditingId(record.id);
     setEditTitle(record.title);
@@ -160,9 +176,19 @@ export default function Home() {
                     <Badge variant="light" mb="xs">ID: {record.id}</Badge>
                     <Text fw={500}>{record.title}</Text>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => startEditing(record)}>
-                    Edit
-                  </Button>
+                  <Group gap="xs">
+                    <Button size="sm" variant="outline" onClick={() => startEditing(record)}>
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      color="red" 
+                      variant="outline" 
+                      onClick={() => deleteRecord(record.id)}
+                    >
+                      Delete
+                    </Button>
+                  </Group>
                 </Group>
               )}
             </Card>
