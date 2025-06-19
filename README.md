@@ -9,7 +9,7 @@ To test with Cursor
 ```
 {
   "mcpServers": {
-    "search-tools": {
+    "spinner-mcp": {
       "command": "node",
       "args": [
         "{path to repo}/mcp/dist/index.js"

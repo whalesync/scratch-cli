@@ -36,7 +36,7 @@ export class AppService {
     this.records[index] = { ...record, id };
 
     // Notify clients about the update
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
 
     return this.records[index];
   }
@@ -52,7 +52,7 @@ export class AppService {
     });
 
     // Notify clients about the updates
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
 
     return updatedRecords;
   }
@@ -63,7 +63,7 @@ export class AppService {
     this.records.push(newRecord);
 
     // Notify clients about the update
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
 
     return newRecord;
   }
@@ -77,7 +77,7 @@ export class AppService {
     this.records.push(...newRecords);
 
     // Notify clients about the updates
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
 
     return newRecords;
   }
@@ -90,7 +90,7 @@ export class AppService {
     this.records.splice(index, 1);
 
     // Notify clients about the update
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
   }
 
   deleteRecordsBatch(ids: string[]): void {
@@ -102,6 +102,6 @@ export class AppService {
     }
 
     // Notify clients about the updates
-    this.recordsGateway.notifyRecordUpdate();
+    this.recordsGateway.notifyRecordUpdate(this.records);
   }
 }

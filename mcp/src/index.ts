@@ -4,6 +4,11 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { io, Socket } from "socket.io-client";
+
+const serverCapabilities = {
+  tools: {},
+};
 
 // Create a new MCP server
 const server = new Server(
@@ -12,11 +17,59 @@ const server = new Server(
     version: "1.0.0",
   },
   {
-    capabilities: {
-      tools: {},
-    },
+    capabilities: serverCapabilities,
   }
 );
+
+let socket: Socket | null = null;
+
+// Connect to NestJS WebSocket server
+function connectWebSocket() {
+  try {
+    socket = io('http://localhost:3000', {
+      transports: ['websocket'],
+      timeout: 5000, // 5 second timeout
+    });
+
+    socket.on('connect', () => {
+      console.error('Connected to NestJS WebSocket server');
+    });
+
+    socket.on('recordsUpdated', async (records) => {
+      console.error('Records updated, notifying Cursor...');
+      try {
+        await server.notification({
+          method: "context/update",
+          params: {
+            tool: "get_records",
+            content: [
+              {
+                type: "text",
+                text: `Records retrieved successfully:\n\n${JSON.stringify(records, null, 2)}`,
+              },
+            ]
+          }
+        });
+      } catch (error) {
+        console.error('Failed to send notification:', error);
+      }
+    });
+
+    socket.on('error', (error: Error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    socket.on('connect_error', (error: Error) => {
+      console.error('WebSocket connection error:', error);
+    });
+
+    socket.on('disconnect', (reason: string) => {
+      console.error('WebSocket disconnected:', reason);
+    });
+  } catch (error) {
+    console.error('Failed to initialize WebSocket connection:', error);
+  }
+}
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -346,6 +399,15 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("MCP Search Tools Server started");
+  
+  // Connect to WebSocket after server is ready (with a small delay)
+  setTimeout(() => {
+    try {
+      connectWebSocket();
+    } catch (error) {
+      console.error("Failed to connect WebSocket, but server is still functional:", error);
+    }
+  }, 1000);
 }
 
 main().catch((error) => {
