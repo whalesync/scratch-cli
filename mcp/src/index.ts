@@ -10,6 +10,9 @@ const serverCapabilities = {
   tools: {},
 };
 
+const SCRATCHPAD_SERVER = process.env.SCRATCHPAD_SERVER_URL ?? "http://localhost:3000";
+
+
 // Create a new MCP server
 const server = new Server(
   {
@@ -26,7 +29,7 @@ let socket: Socket | null = null;
 // Connect to NestJS WebSocket server
 function connectWebSocket() {
   try {
-    socket = io('http://localhost:3000', {
+    socket = io(SCRATCHPAD_SERVER, {
       transports: ['websocket'],
       timeout: 5000, // 5 second timeout
     });
@@ -178,7 +181,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === "get_records") {
     try {
-      const response = await fetch('http://localhost:3000/records');
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -209,7 +212,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records`, {
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +250,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch('http://localhost:3000/records', {
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +288,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const titles = args.titles as string[];
     
     try {
-      const response = await fetch('http://localhost:3000/records', {
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -323,7 +326,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const id = args.id as string;
     
     try {
-      const response = await fetch(`http://localhost:3000/records`, {
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -359,7 +362,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const ids = args.ids as string[];
     
     try {
-      const response = await fetch(`http://localhost:3000/records`, {
+      const response = await fetch(`${SCRATCHPAD_SERVER}/records`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
