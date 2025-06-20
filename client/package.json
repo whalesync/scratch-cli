@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
-    "@glideapps/glide-data-grid": "^6.0.3",
     "@mantine/core": "^8.1.1",
     "@mantine/form": "^8.1.1",
     "@mantine/hooks": "^8.1.1",
     "@mantine/notifications": "^8.1.1",
+    "@tanstack/react-table": "^8.21.3",
     "@types/react-window": "^1.8.8",
     "lodash": "^4.17.21",
     "marked": "^15.0.12",
