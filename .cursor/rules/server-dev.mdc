@@ -3,7 +3,10 @@ description:
 globs: 
 alwaysApply: false
 ---
+# Server development
 The source under /server is the backend for this project.
 
 - It is a NestJS project that serves REST.
-- The application database is Postgres, managed by prisma. The schema is defined at server/prisma/schema.prisma. If the schema is edited, you must run `yarn prisma generate`. The user will generate migrations  manually.
+- The application database is Postgres, managed by prisma. The schema is defined at server/prisma/schema.prisma. 
+- If schema.prisma is edited, you must run `yarn prisma generate` to generate the new types. 
+- DO NOT GENERATE A PRISMA MIGRATION. The user will generate those manually after verifying the schema changes. They are hard to undo. `yarn prisma generate` is always safe to run, though.

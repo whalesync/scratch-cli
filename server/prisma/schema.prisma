@@ -55,6 +55,7 @@ model Connection {
 
   service     Service
   displayName String
+  apiKey      String
 }
 
 enum Service {
