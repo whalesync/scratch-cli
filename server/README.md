@@ -38,7 +38,7 @@ yarn run test
 
 ## Environment Variables
 
-Create a `.env` file in the root directory by copying `example.env`.
+Create a `.env` file in the root directory by copying `.env.example`.
 
 Tweak the following values as necessary:
 
