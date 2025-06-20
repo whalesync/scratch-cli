@@ -5,16 +5,15 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 @Injectable()
 export class DbService implements OnModuleInit, OnApplicationShutdown {
   private _client: PrismaClient;
-  private databaseUrl: string;
 
-  constructor() {
-    this.databaseUrl = process.env.DATABASE_URL || '';
+  constructor(private readonly config: ScratchpadConfigService) {
     this._client = new PrismaClient({
-      datasources: { db: { url: this.databaseUrl } },
+      datasources: { db: { url: this.config.getDatabaseUrl() } },
     });
   }
 

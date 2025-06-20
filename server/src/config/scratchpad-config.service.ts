@@ -9,6 +9,10 @@ export class ScratchpadConfigService {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
   }
 
+  getDatabaseUrl(): string {
+    return this.databaseUrl;
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {
