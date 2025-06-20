@@ -200,7 +200,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `Error retrieving records: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error fetching records: ${error}`,
           },
         ],
       };
@@ -208,29 +208,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === "update_record") {
-    const id = args.id as string;
-    const title = args.title as string;
-    
+    const { id, title } = args as { id: string, title: string };
     try {
       const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ staged: false, data: { title } }),
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: false, data: { title } }),
       });
-      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
       }
-      
-      const updatedRecord = await response.json();
-      
+      const record = await response.json();
       return {
         content: [
           {
             type: "text",
-            text: `Record updated successfully:\n\n${JSON.stringify(updatedRecord, null, 2)}`,
+            text: `Record ${id} updated successfully: ${JSON.stringify(record, null, 2)}`,
           },
         ],
       };
@@ -239,7 +233,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `Error updating record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error updating record ${id}: ${error}`,
           },
         ],
       };
@@ -247,7 +241,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === "create_record") {
-    const title = args.title as string;
+    const { title } = args as { title: string };
     
     try {
       const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
@@ -323,26 +317,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === "delete_record") {
-    const id = args.id as string;
-    
+    const { id } = args as { id: string };
     try {
-      const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify([id]),
+      const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: false }),
       });
-      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
       }
-      
       return {
         content: [
           {
             type: "text",
-            text: `Record deleted successfully`,
+            text: `Record ${id} marked for deletion successfully.`,
           },
         ],
       };
@@ -351,7 +341,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `Error deleting record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error deleting record ${id}: ${error}`,
           },
         ],
       };

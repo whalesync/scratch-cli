@@ -8,8 +8,8 @@ import dynamic from 'next/dynamic';
 interface Record {
   id: string;
   remote: { title: string };
-  staged: { title: string };
-  suggested: { title: string | null };
+  staged: { title: string } | null | undefined;
+  suggested: { title: string } | null | undefined;
 }
 
 // This is a workaround to avoid the server-side rendering of the RecordsGrid component and allow Next.js to prerender the page
@@ -53,7 +53,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ staged: true, data: { title } }),
+        body: JSON.stringify({ stage: true, data: { title } }),
       });
       
       if (!response.ok) {
@@ -70,6 +70,10 @@ export default function Home() {
     try {
       const response = await fetch(`/api/records/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stage: true }),
       });
       
       if (!response.ok) {

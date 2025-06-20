@@ -12,8 +12,8 @@ import { Table, Button, Popover, TextInput, Group } from '@mantine/core';
 interface Record {
   id: string;
   remote: { title: string };
-  staged: { title: string };
-  suggested: { title: string | null };
+  staged: { title: string } | null | undefined;
+  suggested: { title: string } | null | undefined;
 }
 
 interface RecordsGridProps {
@@ -41,20 +41,41 @@ export default function RecordsGrid({
         header: () => 'Title',
         cell: (info) => {
           const { remote, staged, suggested } = info.row.original;
-          const isStagedDifferent = remote.title !== staged.title;
-          const isSuggestedDifferent = suggested.title && suggested.title !== staged.title;
 
-          return (
-            <div>
-              <div style={{ fontWeight: isStagedDifferent ? 'normal' : 'bold', color: 'black', textDecoration: isStagedDifferent ? 'line-through' : 'none' }}>
+          // Case 1: Staged is marked for deletion
+          if (staged === null) {
+            return (
+              <div style={{ color: 'red', textDecoration: 'line-through' }}>
                 {remote.title}
               </div>
-              {isStagedDifferent && (
+            );
+          }
+
+          const isStagedDifferent = staged && remote.title !== staged.title;
+          const isSuggestedDifferent = suggested && (!staged || suggested.title !== staged.title) && suggested.title !== remote.title;
+
+          // Case 2: Default rendering logic
+          return (
+            <div>
+              <div style={{ 
+                fontWeight: isStagedDifferent ? 'normal' : 'bold', 
+                color: 'black', 
+                textDecoration: isStagedDifferent ? 'line-through' : 'none' 
+              }}>
+                {remote.title}
+              </div>
+              {isStagedDifferent && staged && (
                 <div style={{ color: 'green' }}>
                   {staged.title}
                 </div>
               )}
-              {isSuggestedDifferent && (
+              {/* Also check if suggested is null (for deletion) */}
+              {suggested === null && (
+                 <div style={{ color: 'red', textDecoration: 'line-through', fontStyle: 'italic' }}>
+                   {staged?.title || remote.title}
+                 </div>
+              )}
+              {isSuggestedDifferent && suggested && (
                 <div style={{ color: 'gray', fontStyle: 'italic' }}>
                   {suggested.title}
                 </div>
@@ -94,7 +115,7 @@ export default function RecordsGrid({
                   <TextInput
                     label="Edit Title"
                     name="title"
-                    defaultValue={row.original.staged.title}
+                    defaultValue={row.original.staged?.title ?? row.original.remote.title}
                     autoFocus
                   />
                   <Button type="submit" mt="sm">

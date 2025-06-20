@@ -4,8 +4,8 @@ import { Server } from 'socket.io';
 interface Record {
   id: string;
   remote: { title: string };
-  staged: { title: string };
-  suggested: { title: string | null };
+  staged: { title: string } | null | undefined;
+  suggested: { title: string } | null | undefined;
 }
 
 @WebSocketGateway({

@@ -6,14 +6,15 @@ import {
   Param,
   Post,
   Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 
 interface Record {
   id: string;
   remote: { title: string };
-  staged: { title: string };
-  suggested: { title: string | null };
+  staged: { title: string } | null | undefined;
+  suggested: { title: string } | null | undefined;
 }
 
 @Controller()
@@ -30,21 +31,6 @@ export class AppController {
     return this.appService.getRecords();
   }
 
-  @Post('records/batch')
-  createRecords(@Body() records: { title: string }[]): Record[] {
-    return this.appService.createRecordsBatch(records);
-  }
-
-  @Put('records/batch')
-  updateRecords(@Body() updates: { id: string; title: string }[]): Record[] {
-    return this.appService.updateRecordsBatch(updates);
-  }
-
-  @Delete('records/batch')
-  deleteRecords(@Body() ids: string[]): void {
-    return this.appService.deleteRecordsBatch(ids);
-  }
-
   @Post('records')
   createRecord(@Body() record: { title: string }): Record {
     return this.appService.createRecord(record);
@@ -53,13 +39,17 @@ export class AppController {
   @Put('records/:id')
   updateRecord(
     @Param('id') id: string,
-    @Body() body: { staged: boolean; data: { title: string } },
+    @Body() body: { stage: boolean; data: { title: string } },
   ): Record {
-    return this.appService.updateRecord(id, body.staged, body.data);
+    return this.appService.updateRecord(id, body.stage, body.data);
   }
 
   @Delete('records/:id')
-  deleteRecord(@Param('id') id: string): void {
-    return this.appService.deleteRecord(id);
+  @HttpCode(204)
+  deleteRecord(
+    @Param('id') id: string,
+    @Body() body: { stage: boolean },
+  ): void {
+    return this.appService.deleteRecord(id, body.stage);
   }
 }
