@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scratchpad Client
 
-## Getting Started
+Data Studio Front-end for Scratchpad.
 
-First, run the development server:
+
+## Install Yarn
+
+If Yarn is not installed on your system, you can install it using Homebrew:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+brew install yarn
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Available Yarn Commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Install initial dependencies.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+brew yarn install
+```
 
-## Learn More
+### Run interactively
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Builds a optimized version for production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+yarn run build
+```
 
-## Deploy on Vercel
+### Starts the optimized version built with `yarn run build`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+yarn run start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+Create a `.env.local` file in the root directory by copying `sample.env.local`. 
+
+Tweak the following values as necessary:
+
+```
+# The URL to the backend server
+API_URL=http://localhost:3000
+```
+
+## Hosting
+
+The Scratchpad client is hosted on Vercel and is automatically deployed with every merge into master
+
+[Public URL - https://scratchpad-client.vercel.app/](https://scratchpad-client.vercel.app/)
+
+
+[Manage Vercel Project](https://vercel.com/whalesync-devs-projects/spinner)
+- Owned by team@whalesync.com (Credentials in 1password)
+
+
+## Stack
+
+### Next.js
+
+Scratchpad is built using [next.js](https://nextjs.org/docs).
+
+### Component Libraries
+
+- Mantine
+- Phosphor Icons
+
+### TRPC (TODO)
+
+### SWR (TODO)
+
+Data is fetched and cached with the [SWR](https://swr.vercel.app/docs/data-fetching) library. It handles refetching on
+an interval, caching results across calls and between different code locations, and more.
+Read the docs!
+
+### Authentication (TODO)
+
+Authentication is managed by Clerk, with only Google SSO enabled, using Clerk's SDK and Next.js components to sign-in. [docs here](https://clerk.com/docs/quickstarts/nextjs). Auth is provided by a combination of the ClerkProvider and the clerk middleware.
+
+Once a user signs in, we check if a Whalesync account exists, and create it if necessary.
+
+## Tips
+
+### React 'Strict Mode'
+
+In development environments, we have [Strict Mode](https://react.dev/reference/react/StrictMode) enabled (configured via next.config.js) to help catch bugs.
+
+Be warned that strict mode changes app behavior relative to the final production build:
+
+- Components will re-render an extra time (to find bugs caused by impure rendering).
+- Components will re-run Effects an extra time (to find bugs caused by missing Effect cleanup).
+  This can cause effects to run twice before the next render / state update.
+
+If you want to step through code in the debugger, you may find it helpful to temporarily disable Strict Mode so you don't see everything running twice.
+
+### React Developer Tools
+
+Be sure to install the [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en) to help you locate the code you're looking at, and to profile performance issues.
