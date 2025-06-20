@@ -10,6 +10,7 @@ import { ConnectorAccountModule } from './remote-service/connector-account/conne
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { UserModule } from './users/users.module';
+import { RestApiImportModule } from './api-import/api-import.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UserModule } from './users/users.module';
     ConnectorAccountModule,
     ConnectorsModule,
     SnapshotModule,
+    RestApiImportModule
   ],
   controllers: [AppController],
   providers: [AppService, RecordsGateway],

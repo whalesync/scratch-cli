@@ -1,0 +1,73 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { GenerateContentConfig, GoogleGenAI } from '@google/genai';
+import { Injectable } from '@nestjs/common';
+
+export enum AiModel {
+  GEMINI2_0_FLASH = 'gemini-2.0-flash',
+  GEMINI2_5_FLASH = 'gemini-2.5-flash-preview-04-17', // TODO: Update once in GA.
+}
+
+/**
+ * Configuration for AI generation.
+ * Try to keep this model/sdk agnostic for now until we have a solid pattern for swapping between AI providers and models
+ */
+export interface AiGenerationConfig {
+  /* Context depends on the model but tells the system how much thinking effort to put into content generation.*/
+  thinkingBudget?: number;
+  responseMimeType?: 'application/json' | 'text/plain';
+  responseSchema?: unknown;
+}
+
+@Injectable()
+export class AiService {
+  private ai: GoogleGenAI;
+
+  constructor() {
+    // const project = configService.getGcpProjectNumber();
+    // if (!project) {
+    //   throw new Error(
+    //     'Trying to instantiate AiService when GCP_PROJECT_NUMBER is not set.',
+    //   );
+    // }
+    this.ai = new GoogleGenAI({
+      vertexai: true,
+      project: '111544850301',
+      location: 'us-central1',
+    });
+  }
+
+  async generate(
+    prompt: string,
+    model = AiModel.GEMINI2_5_FLASH,
+    config?: AiGenerationConfig,
+  ): Promise<string> {
+    const aiConfig: GenerateContentConfig = {};
+
+    if (config?.thinkingBudget !== undefined) {
+      aiConfig.thinkingConfig = {
+        thinkingBudget: config.thinkingBudget,
+        includeThoughts: config.thinkingBudget > 0,
+      };
+    }
+    if (config?.responseMimeType !== undefined) {
+      aiConfig.responseMimeType = config.responseMimeType;
+    }
+
+    if (config?.responseSchema) {
+      aiConfig.responseSchema = config.responseSchema;
+    }
+
+    const response = await this.ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: aiConfig,
+    });
+    if (!response?.text) {
+      throw new Error('No response text found');
+    }
+    return response.text;
+  }
+}

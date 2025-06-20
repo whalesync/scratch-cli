@@ -2,11 +2,11 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } 
 import { AppService } from './app.service';
 import { ScratchpadAuthGuard } from './auth/scratchpad-auth.guard';
 
-interface Record {
+interface DataRecord {
   id: string;
-  remote: { title: string };
-  staged: { title: string } | null | undefined;
-  suggested: { title: string } | null | undefined;
+  remote: Record<string, unknown>;
+  staged: Record<string, unknown> | null | undefined;
+  suggested: Record<string, unknown> | null | undefined;
 }
 
 @Controller()
@@ -32,17 +32,24 @@ export class AppController {
   // TODO: Move all the record stuff into its own controller+module.
 
   @Get('records')
-  getRecords(): Record[] {
+  getRecords(): DataRecord[] {
     return this.appService.getRecords();
   }
 
   @Post('records')
-  createRecord(@Body() record: { title: string }): Record {
+  createRecord(@Body() record: Record<string, unknown>): DataRecord {
     return this.appService.createRecord(record);
   }
 
   @Put('records/:id')
+<<<<<<< HEAD
   updateRecord(@Param('id') id: string, @Body() body: { stage: boolean; data: { title: string } }): Record {
+=======
+  updateRecord(
+    @Param('id') id: string,
+    @Body() body: { stage: boolean; data: Record<string, unknown> },
+  ): DataRecord {
+>>>>>>> 1ac52b9 (multiple columns)
     return this.appService.updateRecord(id, body.stage, body.data);
   }
 

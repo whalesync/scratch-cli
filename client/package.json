@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
     "@emotion/react": "^11.14.0",
+    "@glideapps/glide-data-grid": "^6.0.3",
     "@mantine/core": "^8.1.1",
     "@mantine/form": "^8.1.1",
     "@mantine/hooks": "^8.1.1",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/lodash": "^4.17.18",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
