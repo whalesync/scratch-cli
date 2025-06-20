@@ -8,13 +8,14 @@ import {
   Item,
   EditableGridCell,
   GridCellKind,
-  TextCell,
 } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 
 interface Record {
   id: string;
-  title: string;
+  remote: { title: string };
+  staged: { title: string };
+  suggested: { title: string | null };
 }
 
 interface RecordsGridProps {
@@ -28,6 +29,16 @@ export default function RecordsGrid({ records, onUpdate, onDelete }: RecordsGrid
     const [col, row] = cell;
     const record = records[row];
 
+    if (!record) {
+      return {
+        kind: GridCellKind.Text,
+        allowOverlay: false,
+        readonly: true,
+        displayData: "",
+        data: "",
+      };
+    }
+
     if (col === 0) {
       return {
         kind: GridCellKind.Text,
@@ -35,15 +46,15 @@ export default function RecordsGrid({ records, onUpdate, onDelete }: RecordsGrid
         readonly: true,
         displayData: record.id,
         data: record.id,
-      } as TextCell;
+      };
     } else if (col === 1) {
       return {
         kind: GridCellKind.Text,
         allowOverlay: true,
         readonly: false,
-        displayData: record.title,
-        data: record.title,
-      } as TextCell;
+        displayData: record.staged.title,
+        data: record.staged.title,
+      };
     } else {
       return {
         kind: GridCellKind.Text,
@@ -51,9 +62,25 @@ export default function RecordsGrid({ records, onUpdate, onDelete }: RecordsGrid
         readonly: true,
         displayData: "🗑️ Delete",
         data: "delete",
-      } as TextCell;
+      };
     }
   }, [records]);
+
+  const onCellEdited = useCallback((cell: Item, newValue: EditableGridCell) => {
+    const [, row] = cell;
+    const record = records[row];
+    if (newValue.kind === GridCellKind.Text && record) {
+      onUpdate(record.id, newValue.data);
+    }
+  }, [records, onUpdate]);
+
+
+  const onCellClicked = useCallback((cell: Item) => {
+    const [col, row] = cell;
+    if (col === 2 && records[row]) {
+      onDelete(records[row].id);
+    }
+  }, [records, onDelete]);
 
   const columns = useMemo((): GridColumn[] => [
     { title: "ID", width: 70 },
@@ -61,20 +88,9 @@ export default function RecordsGrid({ records, onUpdate, onDelete }: RecordsGrid
     { title: "Actions", width: 100 },
   ], []);
 
-  const onCellEdited = useCallback((cell: Item, newValue: EditableGridCell) => {
-    const [, row] = cell;
-    const record = records[row];
-    if (newValue.kind === GridCellKind.Text) {
-      onUpdate(record.id, newValue.data);
-    }
-  }, [records, onUpdate]);
-
-  const onCellClicked = useCallback((cell: Item) => {
-    const [col, row] = cell;
-    if (col === 2) {
-      onDelete(records[row].id);
-    }
-  }, [records, onDelete]);
+  if (!records) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <DataEditor
@@ -83,13 +99,14 @@ export default function RecordsGrid({ records, onUpdate, onDelete }: RecordsGrid
       rows={records.length}
       columns={columns}
       getCellContent={getContent}
-      onCellEdited={onCellEdited}
       onCellClicked={onCellClicked}
+      onCellEdited={onCellEdited}
       isDraggable={false}
       rowMarkers="none"
       smoothScrollX
       smoothScrollY
       getCellsForSelection={true}
+      rowHeight={34}
     />
   );
 } 

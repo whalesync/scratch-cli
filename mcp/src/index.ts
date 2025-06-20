@@ -212,25 +212,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const title = args.title as string;
     
     try {
-      const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+      const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([{ id, title }]),
+        body: JSON.stringify({ staged: false, data: { title } }),
       });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const updatedRecords = await response.json();
+      const updatedRecord = await response.json();
       
       return {
         content: [
           {
             type: "text",
-            text: `Record updated successfully:\n\n${JSON.stringify(updatedRecords[0], null, 2)}`,
+            text: `Record updated successfully:\n\n${JSON.stringify(updatedRecord, null, 2)}`,
           },
         ],
       };

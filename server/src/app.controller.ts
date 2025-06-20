@@ -11,7 +11,9 @@ import { AppService } from './app.service';
 
 interface Record {
   id: string;
-  title: string;
+  remote: { title: string };
+  staged: { title: string };
+  suggested: { title: string | null };
 }
 
 @Controller()
@@ -28,29 +30,32 @@ export class AppController {
     return this.appService.getRecords();
   }
 
-  @Post('records')
-  createRecords(@Body() records: Omit<Record, 'id'>[]): Record[] {
+  @Post('records/batch')
+  createRecords(@Body() records: { title: string }[]): Record[] {
     return this.appService.createRecordsBatch(records);
   }
 
-  @Put('records')
+  @Put('records/batch')
   updateRecords(@Body() updates: { id: string; title: string }[]): Record[] {
     return this.appService.updateRecordsBatch(updates);
   }
 
-  @Delete('records')
+  @Delete('records/batch')
   deleteRecords(@Body() ids: string[]): void {
     return this.appService.deleteRecordsBatch(ids);
   }
 
   @Post('records')
-  createRecord(@Body() record: Omit<Record, 'id'>): Record {
+  createRecord(@Body() record: { title: string }): Record {
     return this.appService.createRecord(record);
   }
 
   @Put('records/:id')
-  updateRecord(@Param('id') id: string, @Body() record: Record): Record {
-    return this.appService.updateRecord(id, record);
+  updateRecord(
+    @Param('id') id: string,
+    @Body() body: { staged: boolean; data: { title: string } },
+  ): Record {
+    return this.appService.updateRecord(id, body.staged, body.data);
   }
 
   @Delete('records/:id')

@@ -3,7 +3,9 @@ import { Server } from 'socket.io';
 
 interface Record {
   id: string;
-  title: string;
+  remote: { title: string };
+  staged: { title: string };
+  suggested: { title: string | null };
 }
 
 @WebSocketGateway({
