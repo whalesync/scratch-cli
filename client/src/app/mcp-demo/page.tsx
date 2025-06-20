@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Container, Title, Text, Button, Group } from '@mantine/core';
-import { io } from 'socket.io-client';
-import dynamic from 'next/dynamic';
+import { useState, useEffect } from "react";
+import { Container, Title, Text, Button, Group } from "@mantine/core";
+import { io } from "socket.io-client";
+import dynamic from "next/dynamic";
 
 interface Record {
   id: string;
@@ -14,33 +14,34 @@ interface Record {
 
 // This is a workaround to avoid the server-side rendering of the RecordsGrid component and allow Next.js to prerender the page
 const RecordsGridWithNoSSR = dynamic(
-  () => import('./components/RecordsGrid'),
-  { ssr: false }
-)
-
+  () => import("../components/RecordsGrid"),
+  {
+    ssr: false,
+  }
+);
 
 // Create socket instance
-const socket = io('http://localhost:3000', {
-  transports: ['websocket'],
+const socket = io("http://localhost:3000", {
+  transports: ["websocket"],
 });
 
 export default function Home() {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   const fetchRecords = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const response = await fetch('/api/records');
+      const response = await fetch("/api/records");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       setRecords(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -49,56 +50,56 @@ export default function Home() {
   const updateRecord = async (id: string, title: string) => {
     try {
       const response = await fetch(`/api/records/${id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ stage: true, data: { title } }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // The server will emit the update event, which will trigger a refresh
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
   const deleteRecord = async (id: string) => {
     try {
       const response = await fetch(`/api/records/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ stage: true }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // The server will emit the update event, which will trigger a refresh
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
   const pushChanges = async () => {
     try {
-      const response = await fetch('/api/records/push', {
-        method: 'POST',
+      const response = await fetch("/api/records/push", {
+        method: "POST",
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // The server will emit the update event, which will trigger a refresh
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -107,25 +108,25 @@ export default function Home() {
     fetchRecords();
 
     // Set up WebSocket listeners
-    socket.on('connect', () => {
-      console.log('Connected to WebSocket server');
+    socket.on("connect", () => {
+      console.log("Connected to WebSocket server");
     });
 
-    socket.on('recordsUpdated', () => {
-      console.log('Records updated, refreshing...');
+    socket.on("recordsUpdated", () => {
+      console.log("Records updated, refreshing...");
       fetchRecords();
     });
 
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      setError('WebSocket connection error');
+    socket.on("error", (error) => {
+      console.error("WebSocket error:", error);
+      setError("WebSocket connection error");
     });
 
     // Cleanup function
     return () => {
-      socket.off('connect');
-      socket.off('recordsUpdated');
-      socket.off('error');
+      socket.off("connect");
+      socket.off("recordsUpdated");
+      socket.off("error");
       socket.close();
     };
   }, []); // Empty dependency array since we want this to run once on mount
@@ -133,9 +134,7 @@ export default function Home() {
   return (
     <Container size="xl" py="xl">
       <Group justify="space-between" mb="xl">
-        <Title order={1}>
-          Scratchpad
-        </Title>
+        <Title order={1}>Scratchpad</Title>
         <Button onClick={pushChanges}>Push Changes</Button>
       </Group>
 
@@ -145,12 +144,13 @@ export default function Home() {
         </Text>
       )}
 
-      {!loading && !error && records && 
-      <RecordsGridWithNoSSR
-        records={records}
-        onUpdate={updateRecord}
-        onDelete={deleteRecord}
-      />}
+      {!loading && !error && records && (
+        <RecordsGridWithNoSSR
+          records={records}
+          onUpdate={updateRecord}
+          onDelete={deleteRecord}
+        />
+      )}
       {loading && (
         <Text ta="center" mt="md">
           Loading...
