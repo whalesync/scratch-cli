@@ -13,6 +13,14 @@ export class ScratchpadConfigService {
     return this.databaseUrl;
   }
 
+  getClerkSecretKey(): string {
+    return this.getEnvVariable('CLERK_SECRET_KEY');
+  }
+
+  getClerkPublishableKey(): string {
+    return this.getEnvVariable('CLERK_PUBLISHABLE_KEY');
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

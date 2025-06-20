@@ -9,6 +9,8 @@ import {
   RocketLaunch,
   SpiralIcon,
 } from "@phosphor-icons/react";
+import { UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 
 const links = [
   { href: "/mcp-demo", label: "MCP Demo", icon: <RocketLaunch size={16} /> },
@@ -20,7 +22,7 @@ export function SideMenu() {
   const pathname = usePathname();
 
   return (
-    <Stack gap={0}>
+    <Stack gap={0} h="100%">
       <Center p="xs">
         <SpiralIcon size={100} color="#00A2E9" />
       </Center>
@@ -35,6 +37,14 @@ export function SideMenu() {
           leftSection={link.icon}
         />
       ))}
+      <Stack justify="center" mt="auto" p="xs">
+        <SignedOut>
+          <SignUpButton />
+        </SignedOut>
+        <SignedIn>
+          <UserButton showName />
+        </SignedIn>
+      </Stack>
     </Stack>
   );
 }
