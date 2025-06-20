@@ -12,6 +12,7 @@ import { customAlphabet } from 'nanoid';
 export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
+  CONNECTION = 'con_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -24,17 +25,14 @@ export const ID_RANDOM_LENGTH = 21;
 const ID_LENGTH = ID_RANDOM_LENGTH + 4; /* prefix with underscore */
 
 export function isId(id: unknown, prefix: IdPrefixes): boolean {
-  return (
-    typeof id === 'string' && id.length === ID_LENGTH && id.startsWith(prefix)
-  );
+  return typeof id === 'string' && id.length === ID_LENGTH && id.startsWith(prefix);
 }
 
 // Normal alphabet without - or _ so it can be selected in text editors more easily.
-const alphabet: string =
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const alphabet: string = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-const nanoid = customAlphabet('1234567890abcdef', 10)
-  
+const nanoid = customAlphabet(alphabet, 10);
+
 export function createId(prefix: IdPrefixes): string {
   return `${prefix}${nanoid()}`;
 }
@@ -54,7 +52,6 @@ export function createUserId(): UserId {
   return createId(IdPrefixes.USER) as UserId;
 }
 
-
 // ------- API Tokens -------
 export type ApiTokenId = PrefixedId<IdPrefixes.API_TOKEN>;
 
@@ -64,4 +61,15 @@ export function isApiTokenId(id: unknown): id is ApiTokenId {
 
 export function createApiTokenId(): ApiTokenId {
   return createId(IdPrefixes.API_TOKEN) as ApiTokenId;
+}
+
+// ------- Connections -------
+export type ConnectionId = PrefixedId<IdPrefixes.CONNECTION>;
+
+export function isConnectionId(id: unknown): id is ConnectionId {
+  return isId(id, IdPrefixes.CONNECTION);
+}
+
+export function createConnectionId(): ConnectionId {
+  return createId(IdPrefixes.CONNECTION) as ConnectionId;
 }

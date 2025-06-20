@@ -16,9 +16,7 @@ export class ScratchpadConfigService {
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {
-      throw new Error(
-        `${envVariable} is not defined. Please add this variable to the Docker file.`,
-      );
+      throw new Error(`${envVariable} is not defined. Please add this variable to the Docker file.`);
     }
     return returnedVar;
   }

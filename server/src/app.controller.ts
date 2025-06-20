@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  Param,
-  Post,
-  Delete,
-  HttpCode,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { AppService } from './app.service';
 
 interface Record {
@@ -37,19 +28,13 @@ export class AppController {
   }
 
   @Put('records/:id')
-  updateRecord(
-    @Param('id') id: string,
-    @Body() body: { stage: boolean; data: { title: string } },
-  ): Record {
+  updateRecord(@Param('id') id: string, @Body() body: { stage: boolean; data: { title: string } }): Record {
     return this.appService.updateRecord(id, body.stage, body.data);
   }
 
   @Delete('records/:id')
   @HttpCode(204)
-  deleteRecord(
-    @Param('id') id: string,
-    @Body() body: { stage: boolean },
-  ): void {
+  deleteRecord(@Param('id') id: string, @Body() body: { stage: boolean }): void {
     return this.appService.deleteRecord(id, body.stage);
   }
 
