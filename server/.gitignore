@@ -39,10 +39,10 @@ lerna-debug.log*
 
 # Package manager
 package-lock.json
-yarn.lock
 pnpm-lock.yaml
 
 # Temporary files
 *.swp
 *.swo
 *~ 
+/generated/prisma
