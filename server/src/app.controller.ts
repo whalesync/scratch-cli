@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ScratchpadAuthGuard } from './auth/scratchpad-auth.guard';
 
 interface Record {
   id: string;
@@ -20,6 +21,12 @@ export class AppController {
   @Get('health')
   healthCheck(): string {
     return 'OK';
+  }
+
+  @Get('example/secured')
+  @UseGuards(ScratchpadAuthGuard)
+  exampleSecuredEndpoint(@Req() req: Request): string {
+    return 'OK - Secured! ';
   }
 
   // TODO: Move all the record stuff into its own controller+module.
