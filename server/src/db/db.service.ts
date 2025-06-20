@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
-import { PrismaClient } from 'generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 @Injectable()

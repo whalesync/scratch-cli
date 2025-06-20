@@ -45,4 +45,3 @@ pnpm-lock.yaml
 *.swp
 *.swo
 *~ 
-/generated/prisma
