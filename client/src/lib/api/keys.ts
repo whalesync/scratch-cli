@@ -1,6 +1,6 @@
 export const SWR_KEYS = {
-  connections: {
-    list: () => ["connections"],
-    detail: (id: string) => ["connections", "detail", id],
+  connectorAccounts: {
+    list: () => ["connector-accounts"],
+    detail: (id: string) => ["connector-accounts", "detail", id],
   },
 };

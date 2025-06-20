@@ -3,8 +3,8 @@ export enum Service {
   AIRTABLE = "AIRTABLE",
 }
 
-export interface Connection {
-  id: string; // ConnectionId
+export interface ConnectorAccount {
+  id: string; // ConnectorAccountId
   createdAt: string; // DateTime
   updatedAt: string; // DateTime
   userId: string; // Uuid
@@ -13,12 +13,16 @@ export interface Connection {
   apiKey: string;
 }
 
-export interface CreateConnectionDto {
+export interface CreateConnectorAccountDto {
   service: Service;
   apiKey: string;
 }
 
-export interface UpdateConnectionDto {
+export interface UpdateConnectorAccountDto {
   displayName?: string;
   apiKey?: string;
 }
+
+export type TestConnectionResponse =
+  | { health: "ok" }
+  | { health: "error"; error: string };

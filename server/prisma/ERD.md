@@ -22,7 +22,7 @@ erDiagram
   DateTime createdAt
   DateTime expiresAt
 }
-"Connection" {
+"ConnectorAccount" {
   String id PK
   DateTime createdAt
   DateTime updatedAt
@@ -32,7 +32,7 @@ erDiagram
   String apiKey
 }
 "APIToken" }o--|| "User" : user
-"Connection" }o--|| "User" : user
+"ConnectorAccount" }o--|| "User" : user
 ```
 
 ### `User`
@@ -55,7 +55,7 @@ Properties as follows:
 - `createdAt`:
 - `expiresAt`:
 
-### `Connection`
+### `ConnectorAccount`
 
 Properties as follows:
 
