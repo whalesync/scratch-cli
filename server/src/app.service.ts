@@ -22,8 +22,7 @@ export class AppService {
     {
       id: '2',
       remote: {
-        title:
-          'How to connect Google Sheets and Airtable in 5 Minutes (2-way sync tutorial)',
+        title: 'How to connect Google Sheets and Airtable in 5 Minutes (2-way sync tutorial)',
       },
       staged: undefined,
       suggested: undefined,
@@ -31,8 +30,7 @@ export class AppService {
     {
       id: '3',
       remote: {
-        title:
-          'Create an Airtable to HubSpot integration in 10 minutes with Whalesync',
+        title: 'Create an Airtable to HubSpot integration in 10 minutes with Whalesync',
       },
       staged: undefined,
       suggested: undefined,
