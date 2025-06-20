@@ -1,9 +1,51 @@
-To test with Cursor
+# Project Structure
 
-1. Run server: `cd server & yarn install & yarn run start:dev`
-2. Run client: `cd client & yarn run dev`
-2. Build the mcp server: `cd mcp & yarn install & yarn run build`
-3. 'Install' mcp server
+The Scratchpad consists of 3 elements:
+
+### 1. MCP Server (`/mcp`)
+- Model Context Protocol server that bridges Cursor with our API service
+- Built with TypeScript and MCP SDK
+- Key files:
+  - `mcp/src/index.ts`: Main MCP server implementation
+
+
+### 2. API Server (`/server`)
+- NestJS application serving as the main backend
+- Provides scratchpad data functionality via REST API
+- Modelled after the Whalesync Bottlenose server
+
+
+### 3. Data Studio Client (`/client`)
+- The Data studio tool
+- Next.js / React
+- Thin client that mainly interacts with the server
+- Runs locally on port 3000
+
+
+# Testing with Cursor
+
+1. Run server: 
+```bash
+cd server
+yarn install
+yarn run start:dev
+```
+
+2. Run client:
+```bash
+cd client
+yarn install
+yarn run dev
+```
+
+3. Build the mcp server:
+```bash
+cd mcp
+yarn install
+yarn run build
+```
+
+4. 'Install' MCP server
 - Go to Cursor -> Settings -> Cursor Settings -> Tools & Integrations
 - Under MCP Tools click on Add Custom MCP button
 - Add the following config: 
