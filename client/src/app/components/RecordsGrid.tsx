@@ -77,7 +77,7 @@ export default function RecordsGrid({
               )}
               {isSuggestedDifferent && suggested && (
                 <div style={{ color: 'gray', fontStyle: 'italic' }}>
-                  {suggested.title}
+                  ✨ {suggested.title}
                 </div>
               )}
             </div>
@@ -124,6 +124,15 @@ export default function RecordsGrid({
                 </form>
               </Popover.Dropdown>
             </Popover>
+            {row.original.suggested && (
+              <Button 
+                size="xs" 
+                variant="light"
+                onClick={() => onUpdate(row.original.id, row.original.suggested!.title)}
+              >
+                ✨ Accept
+              </Button>
+            )}
             <Button size="xs" color="red" onClick={() => onDelete(row.original.id)}>
               Delete
             </Button>

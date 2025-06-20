@@ -52,4 +52,10 @@ export class AppController {
   ): void {
     return this.appService.deleteRecord(id, body.stage);
   }
+
+  @Post('records/push')
+  @HttpCode(204)
+  pushChanges(): void {
+    return this.appService.pushChanges();
+  }
 }

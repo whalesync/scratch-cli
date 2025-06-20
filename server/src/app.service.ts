@@ -51,17 +51,21 @@ export class AppService {
 
     const record = this.records[index];
 
-    // If the new title is the same as the remote title, set to undefined.
-    if (data.title === record.remote.title) {
-      if (stage) {
+    if (stage) {
+      // If the new staged title is the same as the remote, set staged to undefined.
+      if (data.title === record.remote.title) {
         record.staged = undefined;
       } else {
+        record.staged = { title: data.title };
+      }
+      // If the new staged title matches the suggestion, clear the suggestion.
+      if (record.suggested && data.title === record.suggested.title) {
         record.suggested = undefined;
       }
     } else {
-      // Otherwise, update the title.
-      if (stage) {
-        record.staged = { title: data.title };
+      // This is a suggestion update
+      if (data.title === record.remote.title) {
+        record.suggested = undefined;
       } else {
         record.suggested = { title: data.title };
       }
@@ -100,6 +104,27 @@ export class AppService {
     } else {
       this.records[index].suggested = null;
     }
+
+    // Notify clients about the update
+    this.recordsGateway.notifyRecordUpdate(this.records);
+  }
+
+  pushChanges(): void {
+    // Filter out records marked for deletion and update the ones that have a staged title
+    const updatedRecords = this.records
+      .filter((record) => record.staged !== null) // Remove records where staged is marked for deletion
+      .map((record) => {
+        if (record.staged && record.staged.title) {
+          // If there is a staged title, update the remote title
+          record.remote.title = record.staged.title;
+        }
+        // Reset staged and suggested for all remaining records
+        record.staged = undefined;
+        record.suggested = undefined;
+        return record;
+      });
+
+    this.records = updatedRecords;
 
     // Notify clients about the update
     this.recordsGateway.notifyRecordUpdate(this.records);

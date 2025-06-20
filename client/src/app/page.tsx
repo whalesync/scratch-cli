@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Container, Title, Text } from '@mantine/core';
+import { Container, Title, Text, Button, Group } from '@mantine/core';
 import { io } from 'socket.io-client';
 import dynamic from 'next/dynamic';
 
@@ -86,6 +86,22 @@ export default function Home() {
     }
   };
 
+  const pushChanges = async () => {
+    try {
+      const response = await fetch('/api/records/push', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // The server will emit the update event, which will trigger a refresh
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
   useEffect(() => {
     // Initial fetch
     fetchRecords();
@@ -116,9 +132,12 @@ export default function Home() {
 
   return (
     <Container size="xl" py="xl">
-      <Title order={1} ta="center" mb="xl">
-        Records Management
-      </Title>
+      <Group justify="space-between" mb="xl">
+        <Title order={1}>
+          Scratchpad
+        </Title>
+        <Button onClick={pushChanges}>Push Changes</Button>
+      </Group>
 
       {error && (
         <Text color="red" size="sm" mb="md">
