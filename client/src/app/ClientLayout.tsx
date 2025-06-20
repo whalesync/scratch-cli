@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { MantineProvider } from '@mantine/core';
-import '@mantine/core/styles.css';
+import { AppShell, MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
+import { SideMenu } from "./components/SideMenu";
 
 export default function ClientLayout({
   children,
@@ -10,7 +11,13 @@ export default function ClientLayout({
 }) {
   return (
     <MantineProvider>
-      {children}
+      <AppShell navbar={{ width: 200, breakpoint: "sm" }}>
+        <AppShell.Navbar p={0}>
+          <SideMenu />
+        </AppShell.Navbar>
+
+        <AppShell.Main>{children}</AppShell.Main>
+      </AppShell>
     </MantineProvider>
   );
-} 
+}

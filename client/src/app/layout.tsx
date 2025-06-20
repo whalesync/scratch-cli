@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "A modern search interface powered by MCP",
 };
 
-import ClientLayout from './ClientLayout';
+import ClientLayout from "./ClientLayout";
 
 export default function RootLayout({
   children,
@@ -19,9 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <ClientLayout>{children}</ClientLayout>
         <div id="portal" />
       </body>
     </html>
