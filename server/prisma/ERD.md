@@ -8,6 +8,14 @@
 
 ```mermaid
 erDiagram
+"Connection" {
+  String id PK
+  String service
+  String displayName
+  DateTime createdAt
+  DateTime updatedAt
+  String userId FK
+}
 "User" {
   String id PK
   DateTime createdAt
@@ -22,8 +30,20 @@ erDiagram
   DateTime createdAt
   DateTime expiresAt
 }
+"Connection" }o--|| "User" : user
 "APIToken" }o--|| "User" : user
 ```
+
+### `Connection`
+
+Properties as follows:
+
+- `id`:
+- `service`:
+- `displayName`:
+- `createdAt`:
+- `updatedAt`:
+- `userId`:
 
 ### `User`
 

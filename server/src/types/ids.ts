@@ -29,7 +29,8 @@ export function isId(id: unknown, prefix: IdPrefixes): boolean {
 }
 
 // Normal alphabet without - or _ so it can be selected in text editors more easily.
-const alphabet: string = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const alphabet: string =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 const nanoid = customAlphabet(alphabet, 10);
 

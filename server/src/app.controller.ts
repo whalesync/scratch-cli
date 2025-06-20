@@ -12,10 +12,17 @@ interface Record {
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get()
+  getRoot(): string {
+    return '🌪️🐋🌀🐳💫🐋🎡🐳🌊🐋⚡🐳🔄🐋🌟';
+  }
+
   @Get('health')
   healthCheck(): string {
     return 'OK';
   }
+
+  // TODO: Move all the record stuff into its own controller+module.
 
   @Get('records')
   getRecords(): Record[] {
