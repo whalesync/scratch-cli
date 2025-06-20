@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Client  development
+The source under /client is the web client for this project.
+
+## Technologies
+- Always use yarn.
+- This is a nextjs project. It uses App router.
+- Use standard Mantine for UI elements.
+- Do not use `<a>` for links, always use next/link.
+- Icons should come from the @phosphor-icons/react library.
+
+
+## Client/server communication
+
+This uses SWR library for fetching from the server. 
+Follow this pattern for any new REST endpoints, and always keep all of these elements updated and in sync with each other when you change one of them:
+```
+├── client/
+│   └── src/
+│       ├── hooks/
+│       │   └── use-[resource].ts # SWR hook for components
+│       ├── lib/
+│       │   └── api/
+│       │       ├── keys.ts       # SWR cache keys
+│       │       └── [resource].ts # API fetch methods. This matches server/src/[resource]/[resource].controller.ts and [resource]/dto/*.dto.ts
+│       └── types/
+│           └── server-entities/
+│               └── [resource].ts # TypeScript interfaces for entities & DTOs. This matches server/src/[resource]/entities/*.entities.ts
+└── server/
+    └── src/
+        └── [resource]/
+            ├── [resource].controller.ts # API endpoint definitions
+            ├── entities/
+            │   └── *.entity.ts 
+            └── dto/
+                └── *.dto.ts # Create & update DTOs.
+```

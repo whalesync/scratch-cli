@@ -9,6 +9,14 @@ import { UpdateConnectionDto } from './dto/update-connection.dto';
 export class ConnectionsService {
   constructor(private readonly db: DbService) {}
 
+  async ensureFakeUserExists(userId: string): Promise<void> {
+    await this.db.client.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: { id: userId },
+    });
+  }
+
   async create(createConnectionDto: CreateConnectionDto, userId: string): Promise<Connection> {
     return this.db.client.connection.create({
       data: {
