@@ -4,18 +4,26 @@ import { Center, NavLink, Stack } from "@mantine/core";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  TestTube,
-  Plugs,
-  RocketLaunch,
+  TestTubeIcon,
+  PlugsIcon,
+  RocketLaunchIcon,
   SpiralIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 
 const links = [
-  { href: "/mcp-demo", label: "MCP Demo", icon: <RocketLaunch size={16} /> },
-  { href: "/connections", label: "Connections", icon: <Plugs size={16} /> },
-  { href: "/health", label: "Health", icon: <TestTube size={16} /> },
+  {
+    href: "/mcp-demo",
+    label: "MCP Demo",
+    icon: <RocketLaunchIcon size={16} />,
+  },
+  {
+    href: "/connector-accounts",
+    label: "Connections",
+    icon: <PlugsIcon size={16} />,
+  },
+  { href: "/health", label: "Health", icon: <TestTubeIcon size={16} /> },
 ];
 
 export function SideMenu() {

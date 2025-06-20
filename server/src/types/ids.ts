@@ -12,7 +12,7 @@ import { customAlphabet } from 'nanoid';
 export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
-  CONNECTION = 'con_',
+  CONNECTOR_ACCOUNT = 'coa_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -29,8 +29,7 @@ export function isId(id: unknown, prefix: IdPrefixes): boolean {
 }
 
 // Normal alphabet without - or _ so it can be selected in text editors more easily.
-const alphabet: string =
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const alphabet: string = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 const nanoid = customAlphabet(alphabet, 10);
 
@@ -64,13 +63,13 @@ export function createApiTokenId(): ApiTokenId {
   return createId(IdPrefixes.API_TOKEN) as ApiTokenId;
 }
 
-// ------- Connections -------
-export type ConnectionId = PrefixedId<IdPrefixes.CONNECTION>;
+// ------- ConnectorAccount -------
+export type ConnectorAccountId = PrefixedId<IdPrefixes.CONNECTOR_ACCOUNT>;
 
-export function isConnectionId(id: unknown): id is ConnectionId {
-  return isId(id, IdPrefixes.CONNECTION);
+export function isConnectorAccountId(id: unknown): id is ConnectorAccountId {
+  return isId(id, IdPrefixes.CONNECTOR_ACCOUNT);
 }
 
-export function createConnectionId(): ConnectionId {
-  return createId(IdPrefixes.CONNECTION) as ConnectionId;
+export function createConnectorAccountId(): ConnectorAccountId {
+  return createId(IdPrefixes.CONNECTOR_ACCOUNT) as ConnectorAccountId;
 }

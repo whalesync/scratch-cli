@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class UpdateConnectionDto {
+export class UpdateConnectorAccountDto {
   @IsString()
   @IsNotEmpty()
   @IsOptional()
