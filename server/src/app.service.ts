@@ -93,19 +93,70 @@ export class AppService {
   }
 
   createRecord(record: Record<string, unknown>): DataRecord {
-    const newId = (this.records.length + 1).toString();
-    const newRecord: DataRecord = {
-      id: newId,
-      remote: record,
-      staged: undefined,
-      suggested: undefined,
-    };
-    this.records.push(newRecord);
+    const newRecords = this.createRecords([record]);
+    return newRecords[0];
+  }
+
+  createRecords(records: Record<string, unknown>[]): DataRecord[] {
+    // Find the highest existing ID to avoid conflicts.
+    const maxId =
+      this.records.length > 0
+        ? Math.max(...this.records.map((r) => parseInt(r.id, 10)))
+        : 0;
+    let nextId = maxId + 1;
+
+    const newRecords: DataRecord[] = records.map((record) => {
+      const newRecord: DataRecord = {
+        id: (nextId++).toString(),
+        remote: record,
+        staged: undefined,
+        suggested: undefined,
+      };
+      return newRecord;
+    });
+
+    this.records.push(...newRecords);
 
     // Notify clients about the update
     this.recordsGateway.notifyRecordUpdate(this.records);
 
-    return newRecord;
+    return newRecords;
+  }
+
+  importRecords(records: Record<string, unknown>[]): DataRecord[] {
+    const processedRecords: DataRecord[] = [];
+
+    for (const record of records) {
+      const id = record.id;
+      if (typeof id !== 'string' && typeof id !== 'number') {
+        continue; // Skip records without a string or number ID for import
+      }
+      const recordId = id.toString();
+
+      const existingRecord = this.records.find((r) => r.id === recordId);
+
+      if (existingRecord) {
+        // Update existing record
+        existingRecord.remote = record;
+        existingRecord.staged = undefined;
+        existingRecord.suggested = undefined;
+        processedRecords.push(existingRecord);
+      } else {
+        // Create new record with the given ID
+        const newRecord: DataRecord = {
+          id: recordId,
+          remote: record,
+          staged: undefined,
+          suggested: undefined,
+        };
+        this.records.push(newRecord);
+        processedRecords.push(newRecord);
+      }
+    }
+
+    this.recordsGateway.notifyRecordUpdate(this.records);
+
+    return processedRecords;
   }
 
   deleteRecord(id: string, stage: boolean): void {

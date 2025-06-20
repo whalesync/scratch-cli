@@ -19,6 +19,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-table": "^8.21.3",
     "@types/react-window": "^1.8.8",
+    "@types/uuid": "^10.0.0",
     "lodash": "^4.17.21",
     "marked": "^15.0.12",
     "next": "15.3.4",
@@ -27,7 +28,8 @@
     "react-responsive-carousel": "^3.2.23",
     "react-window": "^1.8.11",
     "socket.io-client": "^4.8.1",
-    "swr": "^2.3.3"
+    "swr": "^2.3.3",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

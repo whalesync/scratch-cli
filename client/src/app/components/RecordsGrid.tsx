@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +8,7 @@ import {
   createColumnHelper,
 } from '@tanstack/react-table';
 import { Table, Button, Popover, TextInput, Group, Stack } from '@mantine/core';
+import React from 'react';
 
 interface DataRecord {
   id: string;
@@ -22,6 +23,61 @@ interface RecordsGridProps {
   onDelete: (id: string) => void;
 }
 
+// Separate component for the edit form to prevent re-rendering issues
+const EditForm = React.memo(({ 
+  record, 
+  fields, 
+  onSave, 
+  onCancel 
+}: { 
+  record: DataRecord; 
+  fields: string[]; 
+  onSave: (data: Record<string, unknown>) => void; 
+  onCancel: () => void; 
+}) => {
+  const [formData, setFormData] = useState<Record<string, unknown>>(
+    record.staged || record.remote
+  );
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="sm">
+        {fields.map(field => (
+          <TextInput
+            key={`${record.id}-${field}`}
+            label={field}
+            name={field}
+            value={String(formData[field] || '')}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+          />
+        ))}
+        <Group gap="sm">
+          <Button type="submit" size="sm">
+            Save
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+});
+
+EditForm.displayName = 'EditForm';
+
 const columnHelper = createColumnHelper<DataRecord>();
 
 export default function RecordsGrid({
@@ -30,9 +86,8 @@ export default function RecordsGrid({
   onDelete,
 }: RecordsGridProps) {
   const [editingRow, setEditingRow] = useState<DataRecord | null>(null);
-  const [editingData, setEditingData] = useState<Record<string, unknown>>({});
 
-  // Get all unique field names from all records
+  // Get all unique field names from all records - memoized to prevent recreation
   const allFields = useMemo(() => {
     const fields = new Set<string>();
     records.forEach(record => {
@@ -46,6 +101,17 @@ export default function RecordsGrid({
     });
     return Array.from(fields).sort();
   }, [records]);
+
+  const handleSave = useCallback((data: Record<string, unknown>) => {
+    if (editingRow) {
+      onUpdate(editingRow.id, data);
+    }
+    setEditingRow(null);
+  }, [editingRow, onUpdate]);
+
+  const handleCancel = useCallback(() => {
+    setEditingRow(null);
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -67,7 +133,6 @@ export default function RecordsGrid({
               );
             }
 
-            const currentValue = staged ? staged[field] : remote[field];
             const isStagedDifferent = staged && remote[field] !== staged[field];
             const isSuggestedDifferent = suggested && 
               (!staged || suggested[field] !== staged[field]) && 
@@ -75,16 +140,24 @@ export default function RecordsGrid({
 
             return (
               <div>
+                {/* Show remote value (crossed out if staged is different) */}
                 <div style={{ 
-                  color: isStagedDifferent ? 'blue' : 'inherit',
-                  fontWeight: isStagedDifferent ? 'bold' : 'normal'
+                  fontWeight: 'normal', 
+                  color: 'black', 
+                  textDecoration: isStagedDifferent ? 'line-through' : 'none' 
                 }}>
-                  {String(currentValue || '')}
+                  {String(remote[field] || '')}
                 </div>
+                {/* Show staged value if different from remote */}
+                {isStagedDifferent && staged && (
+                  <div style={{ color: 'green' }}>
+                    {String(staged[field] || '')}
+                  </div>
+                )}
+                {/* Show suggested value if different */}
                 {isSuggestedDifferent && (
                   <div style={{ 
-                    color: 'orange', 
-                    fontSize: '0.8em',
+                    color: 'gray', 
                     fontStyle: 'italic'
                   }}>
                     ✨ {String(suggested[field] || '')}
@@ -113,44 +186,22 @@ export default function RecordsGrid({
               opened={editingRow?.id === row.original.id}
               onClose={() => {
                 setEditingRow(null);
-                setEditingData({});
               }}
             >
               <Popover.Target>
                 <Button size="xs" onClick={() => {
                   setEditingRow(row.original);
-                  setEditingData(row.original.staged || row.original.remote);
                 }}>
                   Edit
                 </Button>
               </Popover.Target>
               <Popover.Dropdown>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    onUpdate(row.original.id, editingData);
-                    setEditingRow(null);
-                    setEditingData({});
-                  }}
-                >
-                  <Stack gap="sm">
-                    {allFields.map(field => (
-                      <TextInput
-                        key={field}
-                        label={field}
-                        name={field}
-                        value={String(editingData[field] || '')}
-                        onChange={(e) => setEditingData(prev => ({
-                          ...prev,
-                          [field]: e.target.value
-                        }))}
-                      />
-                    ))}
-                    <Button type="submit" mt="sm">
-                      Save
-                    </Button>
-                  </Stack>
-                </form>
+                <EditForm
+                  record={row.original}
+                  fields={allFields}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                />
               </Popover.Dropdown>
             </Popover>
             {row.original.suggested && (
@@ -169,7 +220,7 @@ export default function RecordsGrid({
         ),
       }),
     ],
-    [editingRow, editingData, onUpdate, onDelete, allFields]
+    [allFields, editingRow?.id, handleSave, handleCancel, onUpdate, onDelete]
   );
 
   const table = useReactTable({

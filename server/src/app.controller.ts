@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ScratchpadAuthGuard } from './auth/scratchpad-auth.guard';
 
@@ -37,19 +37,25 @@ export class AppController {
   }
 
   @Post('records')
-  createRecord(@Body() record: Record<string, unknown>): DataRecord {
-    return this.appService.createRecord(record);
+  createRecord(
+    @Body() data: Record<string, unknown> | Record<string, unknown>[],
+  ): DataRecord | DataRecord[] {
+    if (Array.isArray(data)) {
+      return this.appService.createRecords(data);
+    }
+    return this.appService.createRecord(data);
+  }
+
+  @Post('import')
+  importRecords(@Body() records: Record<string, unknown>[]): DataRecord[] {
+    if (!Array.isArray(records)) {
+      throw new BadRequestException('Request body must be an array of records.');
+    }
+    return this.appService.importRecords(records);
   }
 
   @Put('records/:id')
-<<<<<<< HEAD
-  updateRecord(@Param('id') id: string, @Body() body: { stage: boolean; data: { title: string } }): Record {
-=======
-  updateRecord(
-    @Param('id') id: string,
-    @Body() body: { stage: boolean; data: Record<string, unknown> },
-  ): DataRecord {
->>>>>>> 1ac52b9 (multiple columns)
+  updateRecord(@Param('id') id: string, @Body() body: { stage: boolean; data: Record<string, unknown> }): DataRecord {
     return this.appService.updateRecord(id, body.stage, body.data);
   }
 
