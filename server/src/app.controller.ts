@@ -26,7 +26,7 @@ export class AppController {
   @Get('example/secured')
   @UseGuards(ScratchpadAuthGuard)
   exampleSecuredEndpoint(@Req() req: Request): string {
-    return 'OK - Secured! ';
+    return 'OK - Secured!';
   }
 
   // TODO: Move all the record stuff into its own controller+module.
