@@ -22,7 +22,17 @@ erDiagram
   DateTime createdAt
   DateTime expiresAt
 }
+"Connection" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String userId FK
+  Service service
+  String displayName
+  String apiKey
+}
 "APIToken" }o--|| "User" : user
+"Connection" }o--|| "User" : user
 ```
 
 ### `User`
@@ -44,3 +54,15 @@ Properties as follows:
 - `userId`:
 - `createdAt`:
 - `expiresAt`:
+
+### `Connection`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `userId`:
+- `service`:
+- `displayName`:
+- `apiKey`:
