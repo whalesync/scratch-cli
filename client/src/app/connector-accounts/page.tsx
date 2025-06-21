@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Service,
   ConnectorAccount,
-  ConnectorHealthStatus,
 } from "@/types/server-entities/connector-accounts";
 import {
   Container,
@@ -17,20 +16,13 @@ import {
   Button,
   Select,
   TextInput,
-  Text,
   Modal,
-  Badge,
-  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import {
-  WarningCircleIcon,
-  XCircleIcon,
-  CheckCircleIcon,
-  QuestionIcon,
-} from "@phosphor-icons/react";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import { useConnectorAccounts } from "../../hooks/use-connector-account";
+import { ConnectorAccountRow } from "./ConnectorAccountRow";
 
 export default function ConnectorAccountsPage() {
   const {
@@ -101,49 +93,6 @@ export default function ConnectorAccountsPage() {
     setTestingId(null);
   };
 
-  const HealthIcon = (c: ConnectorAccount) => {
-    const size = 36;
-    if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
-      return (
-        <Tooltip label="Connection status unknown" withArrow>
-          <QuestionIcon size={size} />
-        </Tooltip>
-      );
-    }
-
-    if (c.healthStatus === ConnectorHealthStatus.OK) {
-      return (
-        <Tooltip
-          label={`Connection tested successfully at ${new Date(
-            c.healthStatusLastCheckedAt
-          ).toLocaleString()}`}
-          withArrow
-        >
-          <CheckCircleIcon size={size} color="green" />
-        </Tooltip>
-      );
-    }
-
-    if (c.healthStatus === ConnectorHealthStatus.FAILED) {
-      return (
-        <Tooltip
-          label={`Connection test failed at ${new Date(
-            c.healthStatusLastCheckedAt
-          ).toLocaleString()}`}
-          withArrow
-        >
-          <XCircleIcon size={size} color="red" />
-        </Tooltip>
-      );
-    }
-
-    return (
-      <Tooltip label="Connection status unknown" withArrow>
-        <QuestionIcon size={size} />
-      </Tooltip>
-    );
-  };
-
   if (isLoading) {
     return (
       <Container>
@@ -198,38 +147,14 @@ export default function ConnectorAccountsPage() {
               <Title order={2}>Existing Connections</Title>
               <Stack>
                 {connectorAccounts?.map((conn) => (
-                  <Paper withBorder shadow="sm" p="md" key={conn.id}>
-                    <Group justify="space-between">
-                      <Group>
-                        <Badge variant="outline" color="yellow" radius="xs">
-                          {conn.service}
-                        </Badge>
-                        <Text>{conn.displayName}</Text>
-                      </Group>
-                      <Group>
-                        <HealthIcon {...conn} />
-                        <Button
-                          variant="outline"
-                          onClick={() => handleTest(conn.id)}
-                          loading={testingId === conn.id}
-                        >
-                          Test connection
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenUpdateModal(conn)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          color="red"
-                          onClick={() => deleteConnectorAccount(conn.id)}
-                        >
-                          Delete
-                        </Button>
-                      </Group>
-                    </Group>
-                  </Paper>
+                  <ConnectorAccountRow
+                    key={conn.id}
+                    connectorAccount={conn}
+                    onTest={handleTest}
+                    onUpdate={handleOpenUpdateModal}
+                    onDelete={deleteConnectorAccount}
+                    testingId={testingId}
+                  />
                 ))}
               </Stack>
             </>

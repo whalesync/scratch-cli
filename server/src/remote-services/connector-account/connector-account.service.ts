@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
+import { ensureFakeUserExists } from '../../db/fake_user';
 import { createConnectorAccountId } from '../../types/ids';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
+import { TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Injectable()
@@ -14,21 +16,15 @@ export class ConnectorAccountService {
     private readonly connectorsService: ConnectorsService,
   ) {}
 
-  async ensureFakeUserExists(userId: string): Promise<void> {
-    await this.db.client.user.upsert({
-      where: { id: userId },
-      update: {},
-      create: { id: userId },
-    });
-  }
-
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
+    await ensureFakeUserExists(this.db);
+
     const connectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),
         userId,
         service: createDto.service,
-        displayName: `New ${createDto.service.toLowerCase()} connection`,
+        displayName: `${createDto.service.toLowerCase()} base`,
         apiKey: createDto.apiKey,
       },
     });
@@ -63,6 +59,12 @@ export class ConnectorAccountService {
     await this.db.client.connectorAccount.delete({
       where: { id, userId },
     });
+  }
+
+  async listTables(id: string, userId: string): Promise<TableList> {
+    const account = await this.findOne(id, userId);
+    const connector = this.connectorsService.getConnector(account);
+    return await connector.listTables(account);
   }
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {

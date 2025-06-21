@@ -1,13 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser } from 'src/auth/types';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { FAKE_GLOBAL_USER_ID } from '../../db/fake_user';
 import { ConnectorAccountService } from './connector-account.service';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { ConnectorAccount } from './entities/connector-account.entity';
+import { TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('connector-accounts')
+// TODO: Apply auth guard and plumb real user.
+// @UseGuards(ScratchpadAuthGuard)
 export class ConnectorAccountController {
   constructor(private readonly service: ConnectorAccountService) {}
 
@@ -32,7 +34,11 @@ export class ConnectorAccountController {
     return this.service.findOne(id, req.user.id);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables')
+  async listTables(@Param('id') id: string): Promise<TableList> {
+    return this.service.listTables(id, FAKE_GLOBAL_USER_ID);
+  }
+
   @Post(':id/test')
   async testConnection(@Param('id') id: string, @Req() req: RequestWithUser): Promise<TestConnectionResponse> {
     await this.service.ensureFakeUserExists(req.user.id);

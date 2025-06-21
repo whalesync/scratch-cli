@@ -33,8 +33,16 @@ erDiagram
   ConnectorHealthStatus healthStatus "nullable"
   DateTime healthStatusLastCheckedAt "nullable"
 }
+"EditSession" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  EditSessionStatus status
+  String connectorAccountId FK
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
+"EditSession" }o--|| "ConnectorAccount" : connectorAccount
 ```
 
 ### `User`
@@ -70,3 +78,13 @@ Properties as follows:
 - `apiKey`:
 - `healthStatus`:
 - `healthStatusLastCheckedAt`:
+
+### `EditSession`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `status`:
+- `connectorAccountId`:

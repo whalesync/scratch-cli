@@ -57,6 +57,7 @@ model ConnectorAccount {
   apiKey        String
   healthStatus  ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
+  editSessions  EditSession[]
 }
 
 enum Service {
@@ -67,4 +68,24 @@ enum Service {
 enum ConnectorHealthStatus {
   OK
   FAILED
+}
+
+enum EditSessionStatus {
+  CREATING
+  EDITING
+  COMMITTING
+  DONE
+  CANCELLED
+}
+
+model EditSession {
+  id        String      @id // type: EditSessionId
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  status    EditSessionStatus @default(CREATING)
+
+  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  connectorAccountId String
+
+  @@index([connectorAccountId])
 }

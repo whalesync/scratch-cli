@@ -95,6 +95,18 @@ export const connectorAccountsApi = {
     }
   },
 
+  // POST to list tables for a connection
+  listTables: async (id: string): Promise<TableList> => {
+    const res = await fetch(`${API_URL}/connector-accounts/${id}/tables`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to list tables");
+    }
+    return res.json();
+  },
+
   // POST to test a connection
   test: async (id: string): Promise<TestConnectionResponse> => {
     const res = await fetch(
