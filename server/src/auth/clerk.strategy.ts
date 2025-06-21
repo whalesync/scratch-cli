@@ -1,9 +1,11 @@
-import { ClerkClient, User, verifyToken } from '@clerk/backend';
+import { ClerkClient, verifyToken } from '@clerk/backend';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import { User } from '@prisma/client';
 import { Request } from 'express';
 import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
@@ -11,6 +13,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     @Inject('ClerkClient')
     private readonly clerkClient: ClerkClient,
     private readonly configService: ScratchpadConfigService,
+    private readonly userService: UsersService,
   ) {
     super();
   }
@@ -27,9 +30,17 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         secretKey: this.configService.getClerkSecretKey(),
       });
 
-      const user = await this.clerkClient.users.getUser(tokenPayload.sub);
+      const clerkUser = await this.clerkClient.users.getUser(tokenPayload.sub);
 
-      // TODO - Utilize the clerk user entity to get the DB user entity
+      if (!clerkUser) {
+        throw new UnauthorizedException('Invalid token');
+      }
+
+      const user = await this.userService.getOrCreateUserFromClerk(clerkUser);
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid token');
+      }
 
       return user;
     } catch (error) {
