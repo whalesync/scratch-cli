@@ -1,4 +1,4 @@
-import { ConnectorAccount as PrismaConnectorAccount, Service } from '@prisma/client';
+import { ConnectorHealthStatus, ConnectorAccount as PrismaConnectorAccount, Service } from '@prisma/client';
 
 export class ConnectorAccount implements PrismaConnectorAccount {
   id: string;
@@ -8,4 +8,6 @@ export class ConnectorAccount implements PrismaConnectorAccount {
   service: Service;
   displayName: string;
   apiKey: string;
+  healthStatus: ConnectorHealthStatus | null;
+  healthStatusLastCheckedAt: Date | null;
 }

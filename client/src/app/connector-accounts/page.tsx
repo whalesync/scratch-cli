@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Service,
   ConnectorAccount,
+  ConnectorHealthStatus,
 } from "@/types/server-entities/connector-accounts";
 import {
   Container,
@@ -19,10 +20,16 @@ import {
   Text,
   Modal,
   Badge,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { WarningCircleIcon } from "@phosphor-icons/react";
+import {
+  WarningCircleIcon,
+  XCircleIcon,
+  CheckCircleIcon,
+  QuestionIcon,
+} from "@phosphor-icons/react";
 import { useConnectorAccounts } from "../../hooks/use-connector-account";
 
 export default function ConnectorAccountsPage() {
@@ -94,6 +101,49 @@ export default function ConnectorAccountsPage() {
     setTestingId(null);
   };
 
+  const HealthIcon = (c: ConnectorAccount) => {
+    const size = 36;
+    if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
+      return (
+        <Tooltip label="Connection status unknown" withArrow>
+          <QuestionIcon size={size} />
+        </Tooltip>
+      );
+    }
+
+    if (c.healthStatus === ConnectorHealthStatus.OK) {
+      return (
+        <Tooltip
+          label={`Connection tested successfully at ${new Date(
+            c.healthStatusLastCheckedAt
+          ).toLocaleString()}`}
+          withArrow
+        >
+          <CheckCircleIcon size={size} color="green" />
+        </Tooltip>
+      );
+    }
+
+    if (c.healthStatus === ConnectorHealthStatus.FAILED) {
+      return (
+        <Tooltip
+          label={`Connection test failed at ${new Date(
+            c.healthStatusLastCheckedAt
+          ).toLocaleString()}`}
+          withArrow
+        >
+          <XCircleIcon size={size} color="red" />
+        </Tooltip>
+      );
+    }
+
+    return (
+      <Tooltip label="Connection status unknown" withArrow>
+        <QuestionIcon size={size} />
+      </Tooltip>
+    );
+  };
+
   if (isLoading) {
     return (
       <Container>
@@ -157,18 +207,19 @@ export default function ConnectorAccountsPage() {
                         <Text>{conn.displayName}</Text>
                       </Group>
                       <Group>
+                        <HealthIcon {...conn} />
                         <Button
                           variant="outline"
                           onClick={() => handleTest(conn.id)}
                           loading={testingId === conn.id}
                         >
-                          Test
+                          Test connection
                         </Button>
                         <Button
                           variant="outline"
                           onClick={() => handleOpenUpdateModal(conn)}
                         >
-                          Update
+                          Edit
                         </Button>
                         <Button
                           color="red"

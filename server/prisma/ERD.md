@@ -30,6 +30,8 @@ erDiagram
   Service service
   String displayName
   String apiKey
+  ConnectorHealthStatus healthStatus "nullable"
+  DateTime healthStatusLastCheckedAt "nullable"
 }
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
@@ -66,3 +68,5 @@ Properties as follows:
 - `service`:
 - `displayName`:
 - `apiKey`:
+- `healthStatus`:
+- `healthStatusLastCheckedAt`:

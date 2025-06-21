@@ -54,7 +54,7 @@ export class ConnectorAccountService {
   async update(id: string, updateDto: UpdateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
     const account = await this.db.client.connectorAccount.update({
       where: { id, userId },
-      data: updateDto,
+      data: { ...updateDto, healthStatus: null, healthStatusLastCheckedAt: null },
     });
     return account;
   }
@@ -70,8 +70,25 @@ export class ConnectorAccountService {
     const connector = this.connectorsService.getConnector(account);
     try {
       await connector.testConnection();
+
+      await this.db.client.connectorAccount.update({
+        where: { id },
+        data: {
+          healthStatus: 'OK',
+          healthStatusLastCheckedAt: new Date(),
+        },
+      });
+
       return { health: 'ok' };
     } catch (error: unknown) {
+      await this.db.client.connectorAccount.update({
+        where: { id },
+        data: {
+          healthStatus: 'FAILED',
+          healthStatusLastCheckedAt: new Date(),
+        },
+      });
+
       if (error instanceof Error) {
         return { health: 'error', error: error.message };
       }

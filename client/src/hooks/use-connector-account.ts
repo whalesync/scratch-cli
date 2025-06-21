@@ -36,7 +36,10 @@ export const useConnectorAccounts = () => {
   const testConnection = async (
     id: string
   ): Promise<TestConnectionResponse> => {
-    return await connectorAccountsApi.test(id);
+    const r = await connectorAccountsApi.test(id);
+    mutate(SWR_KEYS.connectorAccounts.detail(id));
+    mutate(SWR_KEYS.connectorAccounts.list());
+    return r;
   };
 
   return {

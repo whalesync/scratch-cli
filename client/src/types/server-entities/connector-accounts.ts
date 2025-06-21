@@ -3,6 +3,11 @@ export enum Service {
   AIRTABLE = "AIRTABLE",
 }
 
+export enum ConnectorHealthStatus {
+  OK = "OK",
+  FAILED = "FAILED",
+}
+
 export interface ConnectorAccount {
   id: string; // ConnectorAccountId
   createdAt: string; // DateTime
@@ -11,6 +16,8 @@ export interface ConnectorAccount {
   service: Service;
   displayName: string;
   apiKey: string;
+  healthStatus: ConnectorHealthStatus | null;
+  healthStatusLastCheckedAt: string | null; // DateTime
 }
 
 export interface CreateConnectorAccountDto {
