@@ -26,7 +26,7 @@ enum UserRole {
 }
 
 model User {
-  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                  String               @id
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   clerkId             String?              @unique
@@ -37,9 +37,9 @@ model User {
 }
 
 model APIToken {
-  token       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token       String   @id
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String   @db.Uuid
+  userId      String  
   createdAt   DateTime @default(now())
   expiresAt   DateTime @updatedAt
 
