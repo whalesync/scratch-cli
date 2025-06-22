@@ -1,6 +1,6 @@
 "use client";
 
-import { Center, NavLink, Stack } from "@mantine/core";
+import { Center, NavLink, Stack, Text } from "@mantine/core";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
+import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 
 const links = [
   {
@@ -28,6 +29,7 @@ const links = [
 
 export function SideMenu() {
   const pathname = usePathname();
+  const { user } = useScratchPadUser();
 
   return (
     <Stack gap={0} h="100%">
@@ -51,6 +53,9 @@ export function SideMenu() {
         </SignedOut>
         <SignedIn>
           <UserButton showName />
+          <Text c="dimmed" size="xs">
+            {user?.id}
+          </Text>
         </SignedIn>
       </Stack>
     </Stack>

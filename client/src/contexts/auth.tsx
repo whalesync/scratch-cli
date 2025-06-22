@@ -1,0 +1,87 @@
+import { FullPageLoader } from "@/app/components/FullPageLoader";
+import { useScratchPadUser } from "@/hooks/useScratchpadUser";
+import { API_CONFIG } from "@/lib/api/config";
+import { RouteUrls } from "@/utils/route-urls";
+import { useAuth, useSession, useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import { JSX, ReactNode, useCallback, useEffect, useState } from "react";
+
+const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
+
+export const ScratchPadUserProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element => {
+  const { isLoading } = useScratchPadUser();
+  if (isLoading) {
+    return <FullPageLoader />;
+  }
+
+  return <>{children}</>;
+};
+
+export const ClerkAuthContextProvider = (props: {
+  children: ReactNode;
+}): JSX.Element => {
+  const { getToken } = useAuth();
+  const {} = useSession();
+  const { isLoaded, isSignedIn } = useUser();
+  const pathname = usePathname();
+
+  const [tokenLoaded, setToken] = useState(false);
+
+  const loadToken = useCallback(async () => {
+    /*
+     * Fetch a new JWT token from Clerk. This has to be done using an async function
+     */
+    const newToken = await getToken();
+
+    if (newToken) {
+      // todo -- set the token globally
+      setToken(true);
+      API_CONFIG.setAuthToken(newToken);
+    }
+  }, [getToken]);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      // load the token any time our auth state changes
+      loadToken().catch(console.error);
+    }
+  }, [isLoaded, isSignedIn, loadToken]);
+
+  /*
+   * Periodically refresh the JWT token so the version in authState is as recent as possible
+   * TODO: This is a temporary solution to keep the token fresh - ideally this is handled by clerk but we need to
+   * change how we are providing the token to all the pages. Instead of storing the token in state, the pages should
+   * use the Clerk API to get get the token.
+   */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadToken().catch(console.error);
+    }, JWT_TOKEN_REFRESH_MS);
+
+    return () => clearInterval(interval);
+  }, [loadToken]);
+
+  if (RouteUrls.isPublicRoute(pathname)) {
+    // Public pages just pass through and can get rendered w/o auth state initialized
+    // NOTE: these pages should not attempt to access any user or auth data
+    return <>{props.children}</>;
+  }
+
+  if (!tokenLoaded) {
+    /*
+     * Session not authorized and/or user is not yet identified, show a loading screen while we wait for that workflow
+     *  to complete
+     */
+    return <FullPageLoader />;
+  }
+
+  /*
+   * Session exist, we have a valid JWT, clerk user is loaded AND whalesync user identified
+   * AUTH is complete -- any dependant pages are safe to render and utilize user data
+   */
+  return <ScratchPadUserProvider>{props.children}</ScratchPadUserProvider>;
+};

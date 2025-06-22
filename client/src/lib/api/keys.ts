@@ -3,4 +3,7 @@ export const SWR_KEYS = {
     list: () => ["connector-accounts"],
     detail: (id: string) => ["connector-accounts", "detail", id],
   },
+  users: {
+    activeUser: () => ["users", "activeUser"],
+  },
 };
