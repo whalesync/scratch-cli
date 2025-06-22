@@ -4,15 +4,17 @@ import {
   TestConnectionResponse,
   UpdateConnectorAccountDto,
 } from "@/types/server-entities/connector-accounts";
-
-const API_URL = process.env.API_URL || "http://localhost:3000";
+import { API_CONFIG } from "./config";
 
 // TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const connectorAccountsApi = {
   list: async (): Promise<ConnectorAccount[]> => {
-    const res = await fetch(`${API_URL}/connector-accounts`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to fetch connections");
@@ -22,10 +24,16 @@ export const connectorAccountsApi = {
 
   // GET a single connection
   detail: async (id: string): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_URL}/connector-accounts/${id}`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}`,
+      {
+        method: "GET",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to fetch connection");
     }
@@ -34,9 +42,12 @@ export const connectorAccountsApi = {
 
   // POST a new connection
   create: async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_URL}/connector-accounts`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
@@ -50,11 +61,17 @@ export const connectorAccountsApi = {
     id: string,
     dto: UpdateConnectorAccountDto
   ): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_URL}/connector-accounts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...dto }),
-    });
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...dto }),
+      }
+    );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to update connection");
     }
@@ -63,10 +80,16 @@ export const connectorAccountsApi = {
 
   // DELETE a connection
   delete: async (id: string): Promise<void> => {
-    const res = await fetch(`${API_URL}/connector-accounts/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
     if (res.status !== 204) {
       throw new Error(res.statusText ?? "Failed to delete connection");
     }
@@ -74,10 +97,16 @@ export const connectorAccountsApi = {
 
   // POST to test a connection
   test: async (id: string): Promise<TestConnectionResponse> => {
-    const res = await fetch(`${API_URL}/connector-accounts/${id}/test`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}/test`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to test connection");
     }
