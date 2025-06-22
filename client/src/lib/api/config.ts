@@ -22,7 +22,7 @@ class ApiConfig {
     return this.authToken;
   }
 
-  getDefaultHeaders(): HeadersInit {
+  getAuthHeaders(): HeadersInit {
     return {
       Authorization: `Bearer ${this.authToken}`,
     };

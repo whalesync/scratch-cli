@@ -7,7 +7,7 @@ export const usersApi = {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/users/current`, {
       method: "GET",
       headers: {
-        ...API_CONFIG.getDefaultHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
         "Content-Type": "application/json",
       },
     });
