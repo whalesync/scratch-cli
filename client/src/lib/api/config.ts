@@ -1,3 +1,6 @@
+/**
+ * Provides base configuration values for all the API calls.
+ */
 class ApiConfig {
   private apiUrl: string;
   private authToken: string | null;

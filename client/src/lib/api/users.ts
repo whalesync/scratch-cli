@@ -1,5 +1,5 @@
 import { User } from "@/types/server-entities/users";
-import { API_CONFIG } from "./base";
+import { API_CONFIG } from "./config";
 
 // TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const usersApi = {

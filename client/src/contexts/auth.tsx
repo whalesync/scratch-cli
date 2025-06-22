@@ -1,6 +1,6 @@
 import { FullPageLoader } from "@/app/components/FullPageLoader";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
-import { API_CONFIG } from "@/lib/api/base";
+import { API_CONFIG } from "@/lib/api/config";
 import { RouteUrls } from "@/utils/route-urls";
 import { useAuth, useSession, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
