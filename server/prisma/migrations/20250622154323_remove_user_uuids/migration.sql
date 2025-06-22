@@ -9,7 +9,7 @@
 ALTER TABLE "APIToken" DROP CONSTRAINT "APIToken_userId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Connection" DROP CONSTRAINT "Connection_userId_fkey";
+ALTER TABLE "ConnectorAccount" DROP CONSTRAINT "ConnectorAccount_userId_fkey";
 
 -- AlterTable
 ALTER TABLE "APIToken" DROP CONSTRAINT "APIToken_pkey",
@@ -19,7 +19,7 @@ ALTER COLUMN "userId" SET DATA TYPE TEXT,
 ADD CONSTRAINT "APIToken_pkey" PRIMARY KEY ("token");
 
 -- AlterTable
-ALTER TABLE "Connection" ALTER COLUMN "userId" SET DATA TYPE TEXT;
+ALTER TABLE "ConnectorAccount" ALTER COLUMN "userId" SET DATA TYPE TEXT;
 
 -- AlterTable
 ALTER TABLE "User" DROP CONSTRAINT "User_pkey",
@@ -31,4 +31,4 @@ ADD CONSTRAINT "User_pkey" PRIMARY KEY ("id");
 ALTER TABLE "APIToken" ADD CONSTRAINT "APIToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Connection" ADD CONSTRAINT "Connection_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ConnectorAccount" ADD CONSTRAINT "ConnectorAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
