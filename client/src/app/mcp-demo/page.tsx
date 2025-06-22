@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Container, Title, Text, Button, Group } from "@mantine/core";
 import { io } from "socket.io-client";
 import dynamic from "next/dynamic";
+import { API_CONFIG } from "@/lib/api/config";
 
 interface Record {
   id: string;
@@ -21,7 +22,7 @@ const RecordsGridWithNoSSR = dynamic(
 );
 
 // Create socket instance
-const socket = io("http://localhost:3000", {
+const socket = io(API_CONFIG.getApiUrl(), {
   transports: ["websocket"],
 });
 
@@ -34,7 +35,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/records");
+      const response = await fetch(`${API_CONFIG.getApiUrl()}/records`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -49,7 +50,7 @@ export default function Home() {
 
   const updateRecord = async (id: string, title: string) => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
+      const response = await fetch(`${API_CONFIG.getApiUrl()}/records/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +70,7 @@ export default function Home() {
 
   const deleteRecord = async (id: string) => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
+      const response = await fetch(`${API_CONFIG.getApiUrl()}/records/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +90,7 @@ export default function Home() {
 
   const pushChanges = async () => {
     try {
-      const response = await fetch("/api/records/push", {
+      const response = await fetch(`${API_CONFIG.getApiUrl()}/records/push`, {
         method: "POST",
       });
 
