@@ -1,12 +1,12 @@
 "use client";
 
-import { useEditSessions } from "@/hooks/use-edit-session";
+import { useSnapshots } from "@/hooks/use-snapshot";
 import { connectorAccountsApi } from "@/lib/api/connector-accounts";
 import {
   ConnectorAccount,
   ConnectorHealthStatus,
 } from "@/types/server-entities/connector-accounts";
-import { EditSessionStatus } from "@/types/server-entities/edit-session";
+import { SnapshotStatus } from "@/types/server-entities/snapshot";
 import { Table } from "@/types/server-entities/table-list";
 import {
   Badge,
@@ -52,16 +52,15 @@ export function ConnectorAccountRow({
   const [error, setError] = useState<string | null>(null);
 
   const {
-    editSessions,
-    createEditSession,
-    updateEditSession,
-    isLoading: isLoadingSessions,
-  } = useEditSessions(connectorAccount.id);
+    snapshots,
+    createSnapshot,
+    updateSnapshot,
+    isLoading: isLoadingSnapshots,
+  } = useSnapshots(connectorAccount.id);
 
-  const activeSession = editSessions?.find(
+  const activeSnapshot = snapshots?.find(
     (s) =>
-      s.status !== EditSessionStatus.DONE &&
-      s.status !== EditSessionStatus.CANCELLED
+      s.status !== SnapshotStatus.DONE && s.status !== SnapshotStatus.CANCELLED
   );
 
   useEffect(() => {
@@ -82,15 +81,15 @@ export function ConnectorAccountRow({
   }, [opened, connectorAccount.id]);
 
   const handleCreateSession = () => {
-    createEditSession({ connectorAccountId: connectorAccount.id });
+    createSnapshot({ connectorAccountId: connectorAccount.id });
     close();
   };
 
   const handleUpdateSession = (
-    status: EditSessionStatus.COMMITTING | EditSessionStatus.CANCELLED
+    status: SnapshotStatus.COMMITTING | SnapshotStatus.CANCELLED
   ) => {
-    if (activeSession) {
-      updateEditSession(activeSession.id, { status });
+    if (activeSnapshot) {
+      updateSnapshot(activeSnapshot.id, { status });
     }
   };
 
@@ -224,15 +223,15 @@ export function ConnectorAccountRow({
             </Button>
           </Group>
           <Group justify="flex-end">
-            {isLoadingSessions ? (
+            {isLoadingSnapshots ? (
               <Loader size="sm" />
-            ) : activeSession ? (
+            ) : activeSnapshot ? (
               <>
-                {activeSession.status === EditSessionStatus.CREATING ? (
+                {activeSnapshot.status === SnapshotStatus.CREATING ? (
                   <Button disabled leftSection={<Loader size="sm" />}>
                     Downloading
                   </Button>
-                ) : activeSession.status === EditSessionStatus.COMMITTING ? (
+                ) : activeSnapshot.status === SnapshotStatus.COMMITTING ? (
                   <Button disabled leftSection={<Loader size="sm" />}>
                     Saving
                   </Button>
@@ -245,7 +244,7 @@ export function ConnectorAccountRow({
                     <Menu.Dropdown>
                       <Menu.Item
                         onClick={() =>
-                          handleUpdateSession(EditSessionStatus.COMMITTING)
+                          handleUpdateSession(SnapshotStatus.COMMITTING)
                         }
                       >
                         Commit
@@ -253,7 +252,7 @@ export function ConnectorAccountRow({
                       <Menu.Item
                         color="red"
                         onClick={() =>
-                          handleUpdateSession(EditSessionStatus.CANCELLED)
+                          handleUpdateSession(SnapshotStatus.CANCELLED)
                         }
                       >
                         Cancel
@@ -263,7 +262,7 @@ export function ConnectorAccountRow({
                 )}
               </>
             ) : (
-              <Button onClick={open}>Start Editing</Button>
+              <Button onClick={open}>Snapshot and edit</Button>
             )}
           </Group>
         </Stack>

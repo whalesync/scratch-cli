@@ -1,4 +1,4 @@
-export enum EditSessionStatus {
+export enum SnapshotStatus {
   CREATING = "CREATING",
   EDITING = "EDITING",
   COMMITTING = "COMMITTING",
@@ -6,18 +6,18 @@ export enum EditSessionStatus {
   CANCELLED = "CANCELLED",
 }
 
-export interface EditSession {
+export interface Snapshot {
   id: string;
   createdAt: string;
   updatedAt: string;
-  status: EditSessionStatus;
+  status: SnapshotStatus;
   connectorAccountId: string;
 }
 
-export interface CreateEditSessionDto {
+export interface CreateSnapshotDto {
   connectorAccountId: string;
 }
 
-export interface UpdateEditSessionDto {
-  status: EditSessionStatus.COMMITTING | EditSessionStatus.CANCELLED;
+export interface UpdateSnapshotDto {
+  status: SnapshotStatus.COMMITTING | SnapshotStatus.CANCELLED;
 }

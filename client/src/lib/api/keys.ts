@@ -7,11 +7,12 @@ export const SWR_KEYS = {
     activeUser: () => ["users", "activeUser"],
   },
   editSessions: {
+  snapshot: {
     list: (connectorAccountId: string) => [
-      "edit-sessions",
+      "snapshot",
       "list",
       connectorAccountId,
     ],
-    detail: (id: string) => ["edit-sessions", "detail", id],
+    detail: (id: string) => ["snapshot", "detail", id],
   },
 };

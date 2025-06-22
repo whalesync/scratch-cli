@@ -57,7 +57,7 @@ model ConnectorAccount {
   apiKey        String
   healthStatus  ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
-  editSessions  EditSession[]
+  snapshots  Snapshot[]
 }
 
 enum Service {
@@ -70,7 +70,7 @@ enum ConnectorHealthStatus {
   FAILED
 }
 
-enum EditSessionStatus {
+enum SnapshotStatus {
   CREATING
   EDITING
   COMMITTING
@@ -78,11 +78,11 @@ enum EditSessionStatus {
   CANCELLED
 }
 
-model EditSession {
-  id        String      @id // type: EditSessionId
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  status    EditSessionStatus @default(CREATING)
+model Snapshot {
+  id        String       @id // type: SnapshotId
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  status    SnapshotStatus @default(CREATING)
 
   connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
   connectorAccountId String

@@ -13,7 +13,7 @@ export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
-  EDIT_SESSION = 'ess_',
+  SNAPSHOT = 'ess_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -75,13 +75,13 @@ export function createConnectorAccountId(): ConnectorAccountId {
   return createId(IdPrefixes.CONNECTOR_ACCOUNT) as ConnectorAccountId;
 }
 
-// ------- EditSession -------
-export type EditSessionId = PrefixedId<IdPrefixes.EDIT_SESSION>;
+// ------- Snapshot -------
+export type SnapshotId = PrefixedId<IdPrefixes.SNAPSHOT>;
 
-export function isEditSessionId(id: unknown): id is EditSessionId {
-  return isId(id, IdPrefixes.EDIT_SESSION);
+export function isSnapshotId(id: unknown): id is SnapshotId {
+  return isId(id, IdPrefixes.SNAPSHOT);
 }
 
-export function createEditSessionId(): EditSessionId {
-  return createId(IdPrefixes.EDIT_SESSION) as EditSessionId;
+export function createSnapshotId(): SnapshotId {
+  return createId(IdPrefixes.SNAPSHOT) as SnapshotId;
 }
