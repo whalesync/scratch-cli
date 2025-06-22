@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Container, Title, Text, Code, Group, Badge } from '@mantine/core';
+import { useState, useEffect } from "react";
+import { Container, Title, Text, Code, Group, Badge } from "@mantine/core";
 
 interface HealthStatus {
   status: string;
@@ -14,19 +14,19 @@ interface HealthStatus {
 export default function HealthPage() {
   const [healthData, setHealthData] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchHealthData = async () => {
       try {
-        const response = await fetch('/api/health');
+        const response = await fetch("/api/health");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         setHealthData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);
       }
@@ -64,41 +64,55 @@ export default function HealthPage() {
       <Title order={1} ta="center" mb="xl">
         Health Check
       </Title>
-      
+
       {healthData && (
         <div>
           <Group mb="md">
-            <Badge 
-              color={healthData.status === 'healthy' ? 'green' : 'red'}
+            <Badge
+              color={healthData.status === "healthy" ? "green" : "red"}
               size="lg"
             >
               {healthData.status}
             </Badge>
           </Group>
-          
-          <div style={{ display: 'grid', gap: '1rem' }}>
+
+          <div style={{ display: "grid", gap: "1rem" }}>
             <div>
-              <Text size="sm" color="dimmed">Timestamp</Text>
+              <Text size="sm" color="dimmed">
+                Timestamp
+              </Text>
               <Code>{healthData.timestamp}</Code>
             </div>
-            
+
             <div>
-              <Text size="sm" color="dimmed">Uptime</Text>
+              <Text size="sm" color="dimmed">
+                Uptime
+              </Text>
               <Code>{Math.round(healthData.uptime)} seconds</Code>
             </div>
-            
+
             <div>
-              <Text size="sm" color="dimmed">Environment</Text>
+              <Text size="sm" color="dimmed">
+                Environment
+              </Text>
               <Code>{healthData.environment}</Code>
             </div>
-            
+
             <div>
-              <Text size="sm" color="dimmed">Version</Text>
+              <Text size="sm" color="dimmed">
+                Version
+              </Text>
               <Code>{healthData.version}</Code>
+            </div>
+            <div>
+              <Text size="sm" color="dimmed">
+                API URL
+              </Text>
+              <Code>{process.env.NEXT_PUBLIC_API_URL}</Code>
             </div>
           </div>
         </div>
       )}
     </Container>
   );
-} 
+}
