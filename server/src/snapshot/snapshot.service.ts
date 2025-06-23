@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Snapshot } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
-import { ConnectorAccount } from 'src/remote-services/connector-account/entities/connector-account.entity';
+import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
-import { TablePath } from '../remote-services/connector-account/entities/table-list.entity';
-import { ConnectorsService } from '../remote-services/connectors/connectors.service';
+import { TablePath } from '../remote-service/connector-account/entities/table-list.entity';
+import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 

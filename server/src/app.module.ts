@@ -6,8 +6,8 @@ import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { DbModule } from './db/db.module';
 import { RecordsGateway } from './records.gateway';
-import { ConnectorAccountModule } from './remote-services/connector-account/connector-account.module';
-import { ConnectorsModule } from './remote-services/connectors/connectors.module';
+import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
+import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { UserModule } from './users/users.module';
 
