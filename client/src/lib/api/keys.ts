@@ -3,10 +3,6 @@ export const SWR_KEYS = {
     list: () => ["connector-accounts"],
     detail: (id: string) => ["connector-accounts", "detail", id],
   },
-  users: {
-    activeUser: () => ["users", "activeUser"],
-  },
-  editSessions: {
   snapshot: {
     list: (connectorAccountId: string) => [
       "snapshot",
@@ -14,5 +10,8 @@ export const SWR_KEYS = {
       connectorAccountId,
     ],
     detail: (id: string) => ["snapshot", "detail", id],
+  },
+  users: {
+    activeUser: () => ["users", "activeUser"],
   },
 };

@@ -9,7 +9,7 @@ import { RecordsGateway } from './records.gateway';
 import { ConnectorAccountModule } from './remote-services/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-services/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
-import { UserModule } from './user/user.module';
+import { UserModule } from './users/users.module';
 
 @Module({
   imports: [

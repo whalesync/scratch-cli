@@ -5,6 +5,7 @@ import {
   UpdateConnectorAccountDto,
 } from "@/types/server-entities/connector-accounts";
 import { API_CONFIG } from "./config";
+import { TableList } from "../../types/server-entities/table-list";
 
 // TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const connectorAccountsApi = {
@@ -97,10 +98,16 @@ export const connectorAccountsApi = {
 
   // POST to list tables for a connection
   listTables: async (id: string): Promise<TableList> => {
-    const res = await fetch(`${API_URL}/connector-accounts/${id}/tables`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}/tables`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to list tables");
     }

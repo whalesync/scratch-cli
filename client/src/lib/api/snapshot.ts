@@ -1,14 +1,16 @@
 import { CreateSnapshotDto, Snapshot } from "@/types/server-entities/snapshot";
-
-const API_URL = process.env.API_URL || "http://localhost:3000";
+import { API_CONFIG } from "./config";
 
 export const snapshotApi = {
   list: async (connectorAccountId: string): Promise<Snapshot[]> => {
     const res = await fetch(
-      `${API_URL}/snapshot?connectorAccountId=${connectorAccountId}`,
+      `${API_CONFIG.getApiUrl()}/snapshot?connectorAccountId=${connectorAccountId}`,
       {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
       }
     );
     if (!res.ok) {
@@ -18,9 +20,12 @@ export const snapshotApi = {
   },
 
   detail: async (id: string): Promise<Snapshot> => {
-    const res = await fetch(`${API_URL}/snapshot/${id}`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to fetch snapshot");
@@ -29,9 +34,12 @@ export const snapshotApi = {
   },
 
   create: async (dto: CreateSnapshotDto): Promise<Snapshot> => {
-    const res = await fetch(`${API_URL}/snapshot`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
@@ -41,9 +49,12 @@ export const snapshotApi = {
   },
 
   update: async (id: string): Promise<Snapshot> => {
-    const res = await fetch(`${API_URL}/snapshot/${id}`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to update snapshot");

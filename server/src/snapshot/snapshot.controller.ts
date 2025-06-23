@@ -1,34 +1,44 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SnapshotId } from 'src/types/ids';
-import { FAKE_GLOBAL_USER_ID } from '../db/fake_user';
+import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { RequestWithUser } from '../auth/types';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotService } from './snapshot.service';
 
 @Controller('snapshot')
-// TODO: Apply auth guard and plumb real user.
-// @UseGuards(ScratchpadAuthGuard)
 export class SnapshotController {
   constructor(private readonly service: SnapshotService) {}
 
+  @UseGuards(ScratchpadAuthGuard)
   @Post()
-  async create(@Body() createSnapshotDto: CreateSnapshotDto): Promise<Snapshot> {
-    return this.service.create(createSnapshotDto, FAKE_GLOBAL_USER_ID);
+  async create(@Body() createSnapshotDto: CreateSnapshotDto, @Req() req: RequestWithUser): Promise<Snapshot> {
+    return this.service.create(createSnapshotDto, req.user.id);
   }
 
+  @UseGuards(ScratchpadAuthGuard)
   @Get()
-  async findAll(@Query('connectorAccountId') connectorAccountId: string): Promise<Snapshot[]> {
-    return this.service.findAll(connectorAccountId, FAKE_GLOBAL_USER_ID);
+  async findAll(
+    @Query('connectorAccountId') connectorAccountId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Snapshot[]> {
+    return this.service.findAll(connectorAccountId, req.user.id);
   }
 
+  @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
-  async findOne(@Param('id') id: SnapshotId): Promise<Snapshot | null> {
-    return this.service.findOne(id, FAKE_GLOBAL_USER_ID);
+  async findOne(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<Snapshot | null> {
+    return this.service.findOne(id, req.user.id);
   }
 
+  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: SnapshotId, @Body() updateSnapshotDto: UpdateSnapshotDto): Promise<Snapshot> {
-    return this.service.update(id, updateSnapshotDto, FAKE_GLOBAL_USER_ID);
+  async update(
+    @Param('id') id: SnapshotId,
+    @Body() updateSnapshotDto: UpdateSnapshotDto,
+    @Req() req: RequestWithUser,
+  ): Promise<Snapshot> {
+    return this.service.update(id, updateSnapshotDto, req.user.id);
   }
 }

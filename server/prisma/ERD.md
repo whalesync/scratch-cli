@@ -38,6 +38,7 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
   String connectorAccountId FK
+  Json tablePaths
 }
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
@@ -86,3 +87,4 @@ Properties as follows:
 - `createdAt`:
 - `updatedAt`:
 - `connectorAccountId`:
+- `tablePaths`:

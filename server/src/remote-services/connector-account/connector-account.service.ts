@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
-import { ensureFakeUserExists } from '../../db/fake_user';
 import { createConnectorAccountId } from '../../types/ids';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
@@ -17,8 +16,6 @@ export class ConnectorAccountService {
   ) {}
 
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
-    await ensureFakeUserExists(this.db);
-
     const connectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),

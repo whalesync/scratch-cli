@@ -78,5 +78,7 @@ model Snapshot {
   connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
   connectorAccountId String
 
+  tablePaths Json[]
+
   @@index([connectorAccountId])
 }
