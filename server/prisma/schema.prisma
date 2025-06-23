@@ -57,6 +57,7 @@ model ConnectorAccount {
   apiKey        String
   healthStatus  ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
+  snapshots  Snapshot[]
 }
 
 enum Service {
@@ -67,4 +68,17 @@ enum Service {
 enum ConnectorHealthStatus {
   OK
   FAILED
+}
+
+model Snapshot {
+  id        String       @id // type: SnapshotId
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  connectorAccountId String
+
+  tableSpecs Json[] // TableSpec[]
+
+  @@index([connectorAccountId])
 }

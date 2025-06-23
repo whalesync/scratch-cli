@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ScratchpadAuthGuard } from './auth/scratchpad-auth.guard';
 
@@ -25,7 +25,7 @@ export class AppController {
 
   @Get('example/secured')
   @UseGuards(ScratchpadAuthGuard)
-  exampleSecuredEndpoint(@Req() req: Request): string {
+  exampleSecuredEndpoint(): string {
     return 'OK - Secured!';
   }
 

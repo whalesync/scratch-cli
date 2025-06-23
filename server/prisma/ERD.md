@@ -33,8 +33,16 @@ erDiagram
   ConnectorHealthStatus healthStatus "nullable"
   DateTime healthStatusLastCheckedAt "nullable"
 }
+"Snapshot" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String connectorAccountId FK
+  Json tableSpecs
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
+"Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 ```
 
 ### `User`
@@ -70,3 +78,13 @@ Properties as follows:
 - `apiKey`:
 - `healthStatus`:
 - `healthStatusLastCheckedAt`:
+
+### `Snapshot`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `connectorAccountId`:
+- `tableSpecs`:

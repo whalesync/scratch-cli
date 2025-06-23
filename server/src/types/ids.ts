@@ -13,6 +13,7 @@ export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
+  SNAPSHOT = 'sna_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -21,7 +22,7 @@ export type IdType = keyof typeof IdPrefixes;
 
 export type AnyId = PrefixedId<IdPrefixes>;
 
-export const ID_RANDOM_LENGTH = 21;
+const ID_RANDOM_LENGTH = 10;
 const ID_LENGTH = ID_RANDOM_LENGTH + 4; /* prefix with underscore */
 
 export function isId(id: unknown, prefix: IdPrefixes): boolean {
@@ -31,7 +32,7 @@ export function isId(id: unknown, prefix: IdPrefixes): boolean {
 // Normal alphabet without - or _ so it can be selected in text editors more easily.
 const alphabet: string = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-const nanoid = customAlphabet(alphabet, 10);
+const nanoid = customAlphabet(alphabet, ID_RANDOM_LENGTH);
 
 export function createId(prefix: IdPrefixes): string {
   return `${prefix}${nanoid()}`;
@@ -72,4 +73,15 @@ export function isConnectorAccountId(id: unknown): id is ConnectorAccountId {
 
 export function createConnectorAccountId(): ConnectorAccountId {
   return createId(IdPrefixes.CONNECTOR_ACCOUNT) as ConnectorAccountId;
+}
+
+// ------- Snapshot -------
+export type SnapshotId = PrefixedId<IdPrefixes.SNAPSHOT>;
+
+export function isSnapshotId(id: unknown): id is SnapshotId {
+  return isId(id, IdPrefixes.SNAPSHOT);
+}
+
+export function createSnapshotId(): SnapshotId {
+  return createId(IdPrefixes.SNAPSHOT) as SnapshotId;
 }

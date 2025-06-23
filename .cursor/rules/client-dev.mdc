@@ -8,6 +8,7 @@ The source under /client is the web client for this project.
 
 ## Technologies
 - Always use yarn.
+- Before running any commands, change to the `/client` directory and run `nvm use` to activate the correct version.
 - This is a nextjs project. It uses App router.
 - Use standard Mantine for UI elements.
 - Do not use `<a>` for links, always use next/link.
