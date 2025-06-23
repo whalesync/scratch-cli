@@ -6,8 +6,8 @@ import "@mantine/notifications/styles.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Spinner - Search Interface",
-  description: "A modern search interface powered by MCP",
+  title: "ScratchPad - AI Data Studio",
+  description: "A data studio tool powered by Whalesync.ai",
 };
 
 import ClientLayout from "./ClientLayout";
