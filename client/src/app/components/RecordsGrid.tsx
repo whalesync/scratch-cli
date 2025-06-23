@@ -1,35 +1,117 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
   createColumnHelper,
 } from '@tanstack/react-table';
-import { Table, Button, Popover, TextInput, Group } from '@mantine/core';
+import { Table, Button, Popover, TextInput, Group, Stack } from '@mantine/core';
+import React from 'react';
 
-interface Record {
+interface DataRecord {
   id: string;
-  remote: { title: string };
-  staged: { title: string } | null | undefined;
-  suggested: { title: string } | null | undefined;
+  remote: Record<string, unknown>;
+  staged: Record<string, unknown> | null | undefined;
+  suggested: Record<string, unknown> | null | undefined;
 }
 
 interface RecordsGridProps {
-  records: Record[];
-  onUpdate: (id: string, title: string) => void;
+  records: DataRecord[];
+  onUpdate: (id: string, data: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
 }
 
-const columnHelper = createColumnHelper<Record>();
+// Separate component for the edit form to prevent re-rendering issues
+const EditForm = React.memo(({ 
+  record, 
+  fields, 
+  onSave, 
+  onCancel 
+}: { 
+  record: DataRecord; 
+  fields: string[]; 
+  onSave: (data: Record<string, unknown>) => void; 
+  onCancel: () => void; 
+}) => {
+  const [formData, setFormData] = useState<Record<string, unknown>>(
+    record.staged || record.remote
+  );
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="sm">
+        {fields.map(field => (
+          <TextInput
+            key={`${record.id}-${field}`}
+            label={field}
+            name={field}
+            value={String(formData[field] || '')}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+          />
+        ))}
+        <Group gap="sm">
+          <Button type="submit" size="sm">
+            Save
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+});
+
+EditForm.displayName = 'EditForm';
+
+const columnHelper = createColumnHelper<DataRecord>();
 
 export default function RecordsGrid({
   records,
   onUpdate,
   onDelete,
 }: RecordsGridProps) {
-  const [editingRow, setEditingRow] = useState<Record | null>(null);
+  const [editingRow, setEditingRow] = useState<DataRecord | null>(null);
+
+  // Get all unique field names from all records - memoized to prevent recreation
+  const allFields = useMemo(() => {
+    const fields = new Set<string>();
+    records.forEach(record => {
+      Object.keys(record.remote).forEach(field => fields.add(field));
+      if (record.staged) {
+        Object.keys(record.staged).forEach(field => fields.add(field));
+      }
+      if (record.suggested) {
+        Object.keys(record.suggested).forEach(field => fields.add(field));
+      }
+    });
+    return Array.from(fields).sort();
+  }, [records]);
+
+  const handleSave = useCallback((data: Record<string, unknown>) => {
+    if (editingRow) {
+      onUpdate(editingRow.id, data);
+    }
+    setEditingRow(null);
+  }, [editingRow, onUpdate]);
+
+  const handleCancel = useCallback(() => {
+    setEditingRow(null);
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -37,98 +119,96 @@ export default function RecordsGrid({
         header: () => 'ID',
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('staged.title', {
-        header: () => 'Title',
-        cell: (info) => {
-          const { remote, staged, suggested } = info.row.original;
+      ...allFields.map(field =>
+        columnHelper.accessor(
+          (row) => {
+            const { remote, staged, suggested } = row;
+            
+            // Case 1: Staged is marked for deletion
+            if (staged === null) {
+              return (
+                <div style={{ color: 'red', textDecoration: 'line-through' }}>
+                  {String(remote[field] || '')}
+                </div>
+              );
+            }
 
-          // Case 1: Staged is marked for deletion
-          if (staged === null) {
+            const isStagedDifferent = staged && remote[field] !== staged[field];
+            const isSuggestedDifferent = suggested && 
+              (!staged || suggested[field] !== staged[field]) && 
+              suggested[field] !== remote[field];
+
             return (
-              <div style={{ color: 'red', textDecoration: 'line-through' }}>
-                {remote.title}
+              <div>
+                {/* Show remote value (crossed out if staged is different) */}
+                <div style={{ 
+                  fontWeight: 'normal', 
+                  color: 'black', 
+                  textDecoration: isStagedDifferent ? 'line-through' : 'none' 
+                }}>
+                  {String(remote[field] || '')}
+                </div>
+                {/* Show staged value if different from remote */}
+                {isStagedDifferent && staged && (
+                  <div style={{ color: 'green' }}>
+                    {String(staged[field] || '')}
+                  </div>
+                )}
+                {/* Show suggested value if different */}
+                {isSuggestedDifferent && (
+                  <div style={{ 
+                    color: 'gray', 
+                    fontStyle: 'italic'
+                  }}>
+                    ✨ {String(suggested[field] || '')}
+                  </div>
+                )}
               </div>
             );
+          },
+          {
+            id: field,
+            header: () => field,
+            cell: (info) => info.getValue(),
           }
-
-          const isStagedDifferent = staged && remote.title !== staged.title;
-          const isSuggestedDifferent = suggested && (!staged || suggested.title !== staged.title) && suggested.title !== remote.title;
-
-          // Case 2: Default rendering logic
-          return (
-            <div>
-              <div style={{ 
-                fontWeight: isStagedDifferent ? 'normal' : 'bold', 
-                color: 'black', 
-                textDecoration: isStagedDifferent ? 'line-through' : 'none' 
-              }}>
-                {remote.title}
-              </div>
-              {isStagedDifferent && staged && (
-                <div style={{ color: 'green' }}>
-                  {staged.title}
-                </div>
-              )}
-              {/* Also check if suggested is null (for deletion) */}
-              {suggested === null && (
-                 <div style={{ color: 'red', textDecoration: 'line-through', fontStyle: 'italic' }}>
-                   {staged?.title || remote.title}
-                 </div>
-              )}
-              {isSuggestedDifferent && suggested && (
-                <div style={{ color: 'gray', fontStyle: 'italic' }}>
-                  ✨ {suggested.title}
-                </div>
-              )}
-            </div>
-          );
-        },
-      }),
+        )
+      ),
       columnHelper.display({
         id: 'actions',
         cell: ({ row }) => (
           <Group>
             <Popover
-              width={300}
+              width={400}
               trapFocus
               position="bottom"
               withArrow
               shadow="md"
               opened={editingRow?.id === row.original.id}
-              onClose={() => setEditingRow(null)}
+              onClose={() => {
+                setEditingRow(null);
+              }}
             >
               <Popover.Target>
-                <Button size="xs" onClick={() => setEditingRow(row.original)}>
+                <Button size="xs" onClick={() => {
+                  setEditingRow(row.original);
+                }}>
                   Edit
                 </Button>
               </Popover.Target>
               <Popover.Dropdown>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    const newTitle = formData.get('title') as string;
-                    onUpdate(row.original.id, newTitle);
-                    setEditingRow(null);
-                  }}
-                >
-                  <TextInput
-                    label="Edit Title"
-                    name="title"
-                    defaultValue={row.original.staged?.title ?? row.original.remote.title}
-                    autoFocus
-                  />
-                  <Button type="submit" mt="sm">
-                    Save
-                  </Button>
-                </form>
+                <EditForm
+                  record={row.original}
+                  fields={allFields}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                />
               </Popover.Dropdown>
             </Popover>
             {row.original.suggested && (
               <Button 
                 size="xs" 
                 variant="light"
-                onClick={() => onUpdate(row.original.id, row.original.suggested!.title)}
+                onClick={() => onUpdate(row.original.id, row.original.suggested!)}
               >
                 ✨ Accept
               </Button>
@@ -140,7 +220,7 @@ export default function RecordsGrid({
         ),
       }),
     ],
-    [editingRow, onUpdate, onDelete]
+    [allFields, editingRow?.id, handleSave, handleCancel, onUpdate, onDelete]
   );
 
   const table = useReactTable({
@@ -150,16 +230,18 @@ export default function RecordsGrid({
   });
 
   return (
-    <Table striped highlightOnHover withTableBorder withColumnBorders>
+    <Table>
       <Table.Thead>
         {table.getHeaderGroups().map((headerGroup) => (
           <Table.Tr key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
               <Table.Th key={header.id}>
-                {flexRender(
-                  header.column.columnDef.header,
-                  header.getContext()
-                )}
+                {header.isPlaceholder
+                  ? null
+                  : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
               </Table.Th>
             ))}
           </Table.Tr>

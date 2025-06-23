@@ -6,11 +6,11 @@ import { io, Socket } from "socket.io-client";
 import dynamic from "next/dynamic";
 import { API_CONFIG } from "@/lib/api/config";
 
-interface Record {
+interface DataRecord {
   id: string;
-  remote: { title: string };
-  staged: { title: string } | null | undefined;
-  suggested: { title: string } | null | undefined;
+  remote: Record<string, unknown>;
+  staged: Record<string, unknown> | null | undefined;
+  suggested: Record<string, unknown> | null | undefined;
 }
 
 // This is a workaround to avoid the server-side rendering of the RecordsGrid component and allow Next.js to prerender the page
@@ -22,7 +22,7 @@ const RecordsGridWithNoSSR = dynamic(
 );
 
 export default function Home() {
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<DataRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
@@ -45,14 +45,14 @@ export default function Home() {
     }
   };
 
-  const updateRecord = async (id: string, title: string) => {
+  const updateRecord = async (id: string, data: Record<string, unknown>) => {
     try {
       const response = await fetch(`${API_CONFIG.getApiUrl()}/records/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ stage: true, data: { title } }),
+        body: JSON.stringify({ stage: true, data }),
       });
 
       if (!response.ok) {

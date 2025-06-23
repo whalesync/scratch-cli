@@ -8,6 +8,7 @@ import {
   PlugsIcon,
   RocketLaunchIcon,
   SpiralIcon,
+  CloudArrowDownIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
@@ -18,6 +19,11 @@ const links = [
     href: "/mcp-demo",
     label: "MCP Demo",
     icon: <RocketLaunchIcon size={16} />,
+  },
+  {
+    href: "/api-import-demo",
+    label: "API Import Demo",
+    icon: <CloudArrowDownIcon size={16} />,
   },
   {
     href: "/connector-accounts",

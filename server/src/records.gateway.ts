@@ -1,11 +1,11 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 
-interface Record {
+interface DataRecord {
   id: string;
-  remote: { title: string };
-  staged: { title: string } | null | undefined;
-  suggested: { title: string } | null | undefined;
+  remote: Record<string, unknown>;
+  staged: Record<string, unknown> | null | undefined;
+  suggested: Record<string, unknown> | null | undefined;
 }
 
 @WebSocketGateway({
@@ -17,7 +17,7 @@ export class RecordsGateway {
   @WebSocketServer()
   server: Server;
 
-  notifyRecordUpdate(records: Record[]) {
+  notifyRecordUpdate(records: DataRecord[]): void {
     this.server.emit('recordsUpdated', records);
   }
 }

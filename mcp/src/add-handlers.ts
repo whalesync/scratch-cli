@@ -19,7 +19,7 @@ export const addHandlers = (server: Server) => {
             },
             {
               name: "update_record",
-              description: "Update a record by ID",
+              description: "Update a record by ID with field data",
               inputSchema: {
                 type: "object",
                 properties: {
@@ -27,26 +27,28 @@ export const addHandlers = (server: Server) => {
                     type: "string",
                     description: "The ID of the record to update",
                   },
-                  title: {
-                    type: "string",
-                    description: "The new title for the record",
+                  fields: {
+                    type: "object",
+                    description: "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
+                    additionalProperties: true,
                   },
                 },
-                required: ["id", "title"],
+                required: ["id", "fields"],
               },
             },
             {
               name: "create_record",
-              description: "Create a new record",
+              description: "Create a new record with field data",
               inputSchema: {
                 type: "object",
                 properties: {
-                  title: {
-                    type: "string",
-                    description: "The title for the new record",
+                  fields: {
+                    type: "object",
+                    description: "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
+                    additionalProperties: true,
                   },
                 },
-                required: ["title"],
+                required: ["fields"],
               },
             },
             {
@@ -55,16 +57,17 @@ export const addHandlers = (server: Server) => {
               inputSchema: {
                 type: "object",
                 properties: {
-                  titles: {
+                  records: {
                     type: "array",
                     items: {
-                      type: "string",
-                      description: "The title for a new record",
+                      type: "object",
+                      description: "Object containing field names and their values for each record",
+                      additionalProperties: true,
                     },
-                    description: "Array of titles for the new records",
+                    description: "Array of record objects, each containing field data",
                   },
                 },
-                required: ["titles"],
+                required: ["records"],
               },
             },
             {
@@ -139,12 +142,12 @@ export const addHandlers = (server: Server) => {
         }
       
         if (name === "update_record") {
-          const { id, title } = args as { id: string, title: string };
+          const { id, fields } = args as { id: string, fields: Record<string, unknown> };
           try {
             const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stage: false, data: { title } }),
+              body: JSON.stringify({ stage: false, data: fields }),
             });
             if (!response.ok) {
               const errorText = await response.text();
@@ -172,7 +175,7 @@ export const addHandlers = (server: Server) => {
         }
       
         if (name === "create_record") {
-          const { title } = args as { title: string };
+          const { fields } = args as { fields: Record<string, unknown> };
           
           try {
             const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
@@ -180,7 +183,7 @@ export const addHandlers = (server: Server) => {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify([{ title }]),
+              body: JSON.stringify(fields),
             });
             
             if (!response.ok) {
@@ -193,7 +196,7 @@ export const addHandlers = (server: Server) => {
               content: [
                 {
                   type: "text",
-                  text: `Record created successfully:\n\n${JSON.stringify(newRecords[0], null, 2)}`,
+                  text: `Record created successfully:\n\n${JSON.stringify(newRecords, null, 2)}`,
                 },
               ],
             };
@@ -210,7 +213,7 @@ export const addHandlers = (server: Server) => {
         }
       
         if (name === "create_records_batch") {
-          const titles = args.titles as string[];
+          const { records } = args as { records: Record<string, unknown>[] };
           
           try {
             const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
@@ -218,7 +221,7 @@ export const addHandlers = (server: Server) => {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify(titles.map(title => ({ title }))),
+              body: JSON.stringify(records),
             });
             
             if (!response.ok) {
