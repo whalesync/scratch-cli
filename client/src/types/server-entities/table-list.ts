@@ -1,6 +1,8 @@
+export type TablePath = string[];
+
 export interface Table {
-  name: string;
-  path: string[];
+  displayName: string;
+  connectorPath: TablePath;
 }
 
 export interface TableList {

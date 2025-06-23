@@ -1,5 +1,6 @@
 import { ArrayNotEmpty, IsArray, IsString } from 'class-validator';
 import { ConnectorAccountId } from 'src/types/ids';
+import { TablePath } from '../../remote-service/connectors/types';
 
 export class CreateSnapshotDto {
   @IsString()
@@ -7,6 +8,5 @@ export class CreateSnapshotDto {
 
   @IsArray()
   @ArrayNotEmpty()
-  @IsString({ each: true })
-  tablePaths: string[];
+  tablePaths: TablePath[];
 }

@@ -33,17 +33,17 @@ export const snapshotApi = {
     return res.json();
   },
 
-  create: async (dto: CreateSnapshotDto): Promise<Snapshot> => {
+  async create(dto: CreateSnapshotDto): Promise<Snapshot> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot`, {
       method: "POST",
       headers: {
-        ...API_CONFIG.getAuthHeaders(),
         "Content-Type": "application/json",
+        ...API_CONFIG.getAuthHeaders(),
       },
-      body: JSON.stringify({ ...dto }),
+      body: JSON.stringify(dto),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to create snapshot");
+      throw new Error("Failed to create snapshot");
     }
     return res.json();
   },
@@ -62,7 +62,7 @@ export const snapshotApi = {
     return res.json();
   },
 
-  download: async (id: string): Promise<void> => {
+  async download(id: string): Promise<void> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${id}/download`,
       {
@@ -74,6 +74,18 @@ export const snapshotApi = {
     );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to start download");
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+      method: "DELETE",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to delete snapshot");
     }
   },
 };

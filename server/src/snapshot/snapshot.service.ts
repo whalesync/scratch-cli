@@ -3,10 +3,11 @@ import { Snapshot } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
-import { TablePath } from '../remote-service/connector-account/entities/table-list.entity';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
+import { TableSpec } from '../remote-service/connectors/types';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
+import { SnapshotDbService } from './snapshot-db.service';
 
 type SnapshotWithConnectorAccount = Snapshot & { connectorAccount: ConnectorAccount };
 
@@ -15,6 +16,7 @@ export class SnapshotService {
   constructor(
     private readonly db: DbService,
     private readonly connectorService: ConnectorsService,
+    private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<Snapshot> {
@@ -30,13 +32,28 @@ export class SnapshotService {
       throw new NotFoundException('Connector account not found');
     }
 
-    return this.db.client.snapshot.create({
+    // Poll the connector for the set of columns.
+    // This probably could be something the user selects, which would mean we poll for it earlier and just take the
+    // results back here.
+    const connector = this.connectorService.getConnector(connectorAccount);
+    const tableSpecs: TableSpec[] = [];
+    for (const tablePath of tablePaths) {
+      tableSpecs.push(await connector.fetchTableSpec(tablePath));
+    }
+
+    // Create the entity in the DB.
+    const newSnapshot = await this.db.client.snapshot.create({
       data: {
         id: createSnapshotId(),
         connectorAccountId,
-        tablePaths,
+        tableSpecs,
       },
     });
+
+    // Make a new schema and create tables to store its data.
+    await this.snapshotDbService.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
+
+    return newSnapshot;
   }
 
   findAll(connectorAccountId: string, userId: string): Promise<Snapshot[]> {
@@ -83,12 +100,24 @@ export class SnapshotService {
 
   private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<void> {
     const connector = this.connectorService.getConnector(snapshot.connectorAccount);
-    const tablePaths = snapshot.tablePaths as TablePath[];
-    for (const tablePath of tablePaths) {
-      // TODO: Actually download the table.
-      console.log('Pretending to download table', tablePath, 'for connector', connector.service);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    const tableSpecs = snapshot.tableSpecs as TableSpec[];
+    for (const tableSpec of tableSpecs) {
+      await connector.downloadTableRecords(tableSpec, async (records) =>
+        this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
+      );
     }
     console.log('Done downloading snapshot', snapshot.id);
+  }
+
+  async delete(id: SnapshotId, userId: string): Promise<void> {
+    const snapshot = await this.findOne(id, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    await this.snapshotDbService.cleanUpSnapshot(id);
+    await this.db.client.snapshot.delete({
+      where: { id },
+    });
   }
 }

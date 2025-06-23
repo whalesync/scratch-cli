@@ -1,14 +1,20 @@
 "use client";
 
 import { snapshotApi } from "@/lib/api/snapshot";
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Center, Group, Stack, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { Table as TableIcon } from "@phosphor-icons/react";
-import { useParams } from "next/navigation";
+import {
+  DownloadSimpleIcon,
+  TableIcon,
+  TrashIcon,
+  UploadIcon,
+} from "@phosphor-icons/react";
+import { useParams, useRouter } from "next/navigation";
 
 export default function SnapshotPage() {
   const params = useParams();
   const id = params.id as string;
+  const router = useRouter();
 
   const handleDownload = async () => {
     try {
@@ -28,27 +34,56 @@ export default function SnapshotPage() {
     }
   };
 
+  const handleAbandon = async () => {
+    try {
+      await snapshotApi.delete(id);
+      notifications.show({
+        title: "Snapshot abandoned",
+        message: "The snapshot and its data have been deleted.",
+        color: "green",
+      });
+      router.back();
+    } catch (e) {
+      console.error(e);
+      notifications.show({
+        title: "Deletion failed",
+        message: "There was an error deleting the snapshot.",
+        color: "red",
+      });
+    }
+  };
+
   return (
-    <Stack h="100%">
-      <Group justify="space-between">
-        <Text>Snapshot: {id}</Text>
-        <Group>
-          <Button variant="outline" onClick={handleDownload}>
+    <Stack h="100vh">
+      <Group p="xs" bg="gray.0">
+        <Title order={2}>Snapshot: {id}</Title>
+        <Group ml="auto">
+          <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download from remote
           </Button>
-          <Button>Save to remote</Button>
+          <Button
+            variant="outline"
+            onClick={() => alert("NOT YET IMPLEMENTED")}
+            leftSection={<UploadIcon />}
+          >
+            Save to remote
+          </Button>
+          <Button
+            variant="outline"
+            color="red"
+            onClick={handleAbandon}
+            leftSection={<TrashIcon />}
+          >
+            Abandon snapshot
+          </Button>
         </Group>
       </Group>
-      <Stack
-        align="center"
-        justify="center"
-        h="100%"
-        bg="gray.1"
-        style={{ borderRadius: "var(--mantine-radius-md)" }}
-      >
-        <TableIcon size={64} />
-        <Text size="xl">TODO: spreadsheet view</Text>
-      </Stack>
+      <Center flex={1}>
+        <Stack align="center">
+          <TableIcon size={400} color="#55ff55" />
+          <Text size="md">TODO: spreadsheet view</Text>
+        </Stack>
+      </Center>
     </Stack>
   );
 }

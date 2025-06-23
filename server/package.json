@@ -34,11 +34,13 @@
     "axios": "^1.10.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "knex": "^3.1.0",
     "lodash": "^4.17.21",
     "nanoid": "^5.1.5",
     "passport": "^0.7.0",
     "passport-custom": "^1.1.1",
     "passport-headerapikey": "^1.2.2",
+    "pg": "^8.16.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1"

@@ -33,7 +33,8 @@ export class ConnectorAccountController {
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables')
   async listTables(@Param('id') id: string, @Req() req: RequestWithUser): Promise<TableList> {
-    return this.service.listTables(id, req.user.id);
+    const tables = await this.service.listTables(id, req.user.id);
+    return { tables };
   }
 
   @UseGuards(ScratchpadAuthGuard)

@@ -1,3 +1,5 @@
+import { TablePath } from "./table-list";
+
 export interface Snapshot {
   id: string;
   createdAt: string;
@@ -7,5 +9,5 @@ export interface Snapshot {
 
 export interface CreateSnapshotDto {
   connectorAccountId: string;
-  tablePaths: string[];
+  tablePaths: TablePath[];
 }

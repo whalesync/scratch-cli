@@ -32,4 +32,22 @@ export class AirtableApiClient {
     });
     return r.data;
   }
+
+  async *listRecords(
+    baseId: string,
+    tableId: string,
+  ): AsyncGenerator<{ id: string; fields: Record<string, unknown> }[], void> {
+    let offset: string | undefined;
+    do {
+      const r = await axios.get<{
+        records: { id: string; fields: Record<string, unknown> }[];
+        offset?: string;
+      }>(`${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`, {
+        headers: this.authHeaders,
+        params: { offset, returnFieldsByFieldId: true },
+      });
+      yield r.data.records;
+      offset = r.data.offset;
+    } while (offset);
+  }
 }

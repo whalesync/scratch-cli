@@ -1,10 +1,5 @@
-export class Table {
-  name: string;
-  path: TablePath;
-}
-
-export type TablePath = string[];
+import { TableListing } from '../../connectors/types';
 
 export class TableList {
-  tables: Table[];
+  tables: TableListing[];
 }

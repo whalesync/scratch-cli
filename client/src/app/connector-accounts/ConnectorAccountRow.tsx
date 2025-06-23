@@ -77,7 +77,7 @@ export function ConnectorAccountRow({
   const handleCreateSession = () => {
     createSnapshot({
       connectorAccountId: connectorAccount.id,
-      tablePaths: selectedTables,
+      tablePaths: selectedTables.map((p) => p.split(".")),
     });
     close();
   };
@@ -144,7 +144,9 @@ export function ConnectorAccountRow({
                   variant="subtle"
                   size="xs"
                   onClick={() =>
-                    setSelectedTables(tables.map((t) => t.path.join(".")))
+                    setSelectedTables(
+                      tables.map((t) => t.connectorPath.join("."))
+                    )
                   }
                 >
                   Select all
@@ -162,9 +164,9 @@ export function ConnectorAccountRow({
                 <Stack mt="xs">
                   {tables.map((table) => (
                     <Checkbox
-                      key={table.path.join(".")}
-                      value={table.path.join(".")}
-                      label={table.name}
+                      key={table.connectorPath.join(".")}
+                      value={table.connectorPath.join(".")}
+                      label={table.displayName}
                     />
                   ))}
                 </Stack>

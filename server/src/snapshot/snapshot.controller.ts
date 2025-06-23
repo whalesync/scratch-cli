@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
@@ -46,5 +46,12 @@ export class SnapshotController {
   @Post(':id/download')
   async download(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     return this.service.download(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Delete(':id')
+  @HttpCode(204)
+  async remove(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
+    await this.service.delete(id, req.user.id);
   }
 }
