@@ -27,6 +27,10 @@ class ApiConfig {
       Authorization: `Bearer ${this.authToken}`,
     };
   }
+
+  getApiServerHealthUrl() {
+    return `${this.apiUrl}/health`;
+  }
 }
 
 export const API_CONFIG = new ApiConfig();

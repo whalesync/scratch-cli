@@ -9,6 +9,7 @@ interface HealthStatus {
   uptime: number;
   environment: string;
   version: string;
+  serverHealth: string;
 }
 
 export default function HealthPage() {
@@ -108,7 +109,14 @@ export default function HealthPage() {
               <Text size="sm" color="dimmed">
                 API URL
               </Text>
-              <Code>{process.env.NEXT_PUBLIC_API_URL}</Code>
+              <Group>
+                <Code>{process.env.NEXT_PUBLIC_API_URL}</Code>
+                {healthData.serverHealth === "OK" ? (
+                  <Badge color="green">OK</Badge>
+                ) : (
+                  <Badge color="red">ERROR</Badge>
+                )}
+              </Group>
             </div>
           </div>
         </div>
