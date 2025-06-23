@@ -13,7 +13,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <MantineProvider>
+    <MantineProvider defaultColorScheme="light">
       <Notifications />
       <ClerkProvider>
         <ClerkAuthContextProvider>
