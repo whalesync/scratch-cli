@@ -376,8 +376,9 @@ export const ApiImport: FC = () => {
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Destination Field</Table.Th>
                 <Table.Th>API Response Path</Table.Th>
+                <Table.Th></Table.Th>
+                <Table.Th>Destination Field</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -385,15 +386,18 @@ export const ApiImport: FC = () => {
               {mappings.map((mapping) => (
                 <Table.Tr key={mapping.id}>
                   <Table.Td>
-                    <TextInput placeholder="e.g., title" value={mapping.destination} onChange={(e) => handleMappingChange(mapping.id, 'destination', e.target.value)} />
-                  </Table.Td>
-                  <Table.Td>
                     <Group gap="xs">
-                      <TextInput placeholder="e.g., user.name" value={mapping.source} onChange={(e) => handleMappingChange(mapping.id, 'source', e.target.value)} style={{ flex: 1 }} />
                       <ActionIcon variant="subtle" onClick={() => openPathModal(mapping.id)}>
                         <MagnifyingGlass size={16} />
                       </ActionIcon>
+                      <TextInput placeholder="e.g., user.name" value={mapping.source} onChange={(e) => handleMappingChange(mapping.id, 'source', e.target.value)} style={{ flex: 1 }} />
                     </Group>
+                  </Table.Td>
+                  <Table.Td style={{ textAlign: 'center', width: '50px' }}>
+                    <Text size="sm" c="dimmed">→</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <TextInput placeholder="e.g., title" value={mapping.destination} onChange={(e) => handleMappingChange(mapping.id, 'destination', e.target.value)} />
                   </Table.Td>
                   <Table.Td>
                     <ActionIcon color="red" onClick={() => removeMappingRow(mapping.id)}>
@@ -473,6 +477,9 @@ export const ApiImport: FC = () => {
                 onClick={() => {
                   if (currentMappingId) {
                     handleMappingChange(currentMappingId, 'source', path);
+                    // Auto-populate destination field by replacing dots with underscores
+                    const destinationField = path.replace(/\./g, '_');
+                    handleMappingChange(currentMappingId, 'destination', destinationField);
                   }
                   setPathModalOpened(false);
                 }}

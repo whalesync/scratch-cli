@@ -1,4 +1,15 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { ScratchpadAuthGuard } from './auth/scratchpad-auth.guard';
 
@@ -37,9 +48,7 @@ export class AppController {
   }
 
   @Post('records')
-  createRecord(
-    @Body() data: Record<string, unknown> | Record<string, unknown>[],
-  ): DataRecord | DataRecord[] {
+  createRecord(@Body() data: Record<string, unknown> | Record<string, unknown>[]): DataRecord | DataRecord[] {
     if (Array.isArray(data)) {
       return this.appService.createRecords(data);
     }

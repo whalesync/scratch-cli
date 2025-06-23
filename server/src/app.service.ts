@@ -17,8 +17,7 @@ export class AppService {
       id: '1',
       remote: {
         title: 'Create a HubSpot to Notion integration in 1 min',
-        description:
-          'Learn how to quickly set up data sync between HubSpot and Notion using our platform',
+        description: 'Learn how to quickly set up data sync between HubSpot and Notion using our platform',
       },
       staged: undefined,
       suggested: undefined,
@@ -26,8 +25,7 @@ export class AppService {
     {
       id: '2',
       remote: {
-        title:
-          'How to connect Google Sheets and Airtable in 5 Minutes (2-way sync tutorial)',
+        title: 'How to connect Google Sheets and Airtable in 5 Minutes (2-way sync tutorial)',
         description:
           'Step-by-step guide to create bidirectional data synchronization between Google Sheets and Airtable',
       },
@@ -37,8 +35,7 @@ export class AppService {
     {
       id: '3',
       remote: {
-        title:
-          'Create an Airtable to HubSpot integration in 10 minutes with Whalesync',
+        title: 'Create an Airtable to HubSpot integration in 10 minutes with Whalesync',
         description:
           'Complete tutorial for building a custom integration between Airtable and HubSpot using our sync platform',
       },
@@ -51,11 +48,7 @@ export class AppService {
     return this.records;
   }
 
-  updateRecord(
-    id: string,
-    stage: boolean,
-    data: Record<string, unknown>,
-  ): DataRecord {
+  updateRecord(id: string, stage: boolean, data: Record<string, unknown>): DataRecord {
     const index = this.records.findIndex((r) => r.id === id);
     if (index === -1) {
       throw new Error(`Record with id ${id} not found`);
@@ -71,10 +64,7 @@ export class AppService {
         record.staged = data;
       }
       // If the new staged data matches the suggestion, clear the suggestion.
-      if (
-        record.suggested &&
-        JSON.stringify(data) === JSON.stringify(record.suggested)
-      ) {
+      if (record.suggested && JSON.stringify(data) === JSON.stringify(record.suggested)) {
         record.suggested = undefined;
       }
     } else {
@@ -99,10 +89,7 @@ export class AppService {
 
   createRecords(records: Record<string, unknown>[]): DataRecord[] {
     // Find the highest existing ID to avoid conflicts.
-    const maxId =
-      this.records.length > 0
-        ? Math.max(...this.records.map((r) => parseInt(r.id, 10)))
-        : 0;
+    const maxId = this.records.length > 0 ? Math.max(...this.records.map((r) => parseInt(r.id, 10))) : 0;
     let nextId = maxId + 1;
 
     const newRecords: DataRecord[] = records.map((record) => {

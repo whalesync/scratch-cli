@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RestApiImportModule } from './api-import/api-import.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -10,7 +11,6 @@ import { ConnectorAccountModule } from './remote-service/connector-account/conne
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { UserModule } from './users/users.module';
-import { RestApiImportModule } from './api-import/api-import.module';
 
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { RestApiImportModule } from './api-import/api-import.module';
     ConnectorAccountModule,
     ConnectorsModule,
     SnapshotModule,
-    RestApiImportModule
+    RestApiImportModule,
   ],
   controllers: [AppController],
   providers: [AppService, RecordsGateway],
