@@ -55,24 +55,30 @@ export class AppService {
     }
 
     const record = this.records[index];
+    
+    // Determine the base data to merge with. If staging, use staged data if it exists, otherwise remote.
+    // For suggestions, the base is always the most current view of the data (staged or remote).
+    const baseData = record.staged ?? record.remote;
+    const newData = { ...baseData, ...data };
 
     if (stage) {
       // If the new staged data is the same as the remote, set staged to undefined.
-      if (JSON.stringify(data) === JSON.stringify(record.remote)) {
+      if (JSON.stringify(newData) === JSON.stringify(record.remote)) {
         record.staged = undefined;
       } else {
-        record.staged = data;
+        record.staged = newData;
       }
       // If the new staged data matches the suggestion, clear the suggestion.
-      if (record.suggested && JSON.stringify(data) === JSON.stringify(record.suggested)) {
+      if (record.suggested && JSON.stringify(newData) === JSON.stringify(record.suggested)) {
         record.suggested = undefined;
       }
     } else {
-      // This is a suggestion update
-      if (JSON.stringify(data) === JSON.stringify(record.remote)) {
+      // This is a suggestion update.
+      // If the new suggested data is the same as the remote, clear the suggestion.
+      if (JSON.stringify(newData) === JSON.stringify(record.remote)) {
         record.suggested = undefined;
       } else {
-        record.suggested = data;
+        record.suggested = newData;
       }
     }
 
@@ -120,11 +126,15 @@ export class AppService {
       }
       const recordId = id.toString();
 
+      // Remove the id from the record data since it's only used for matching
+      const recordData = { ...record };
+      delete recordData.id;
+
       const existingRecord = this.records.find((r) => r.id === recordId);
 
       if (existingRecord) {
         // Update existing record
-        existingRecord.remote = record;
+        existingRecord.remote = recordData;
         existingRecord.staged = undefined;
         existingRecord.suggested = undefined;
         processedRecords.push(existingRecord);
@@ -132,7 +142,7 @@ export class AppService {
         // Create new record with the given ID
         const newRecord: DataRecord = {
           id: recordId,
-          remote: record,
+          remote: recordData,
           staged: undefined,
           suggested: undefined,
         };
