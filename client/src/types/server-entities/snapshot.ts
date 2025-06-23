@@ -7,4 +7,5 @@ export interface Snapshot {
 
 export interface CreateSnapshotDto {
   connectorAccountId: string;
+  tablePaths: string[];
 }

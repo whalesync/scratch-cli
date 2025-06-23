@@ -21,13 +21,13 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckCircleIcon,
   QuestionIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
 
 interface ConnectorAccountRowProps {
   connectorAccount: ConnectorAccount;
@@ -49,6 +49,7 @@ export function ConnectorAccountRow({
   const [tables, setTables] = useState<Table[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     snapshots,
@@ -74,15 +75,15 @@ export function ConnectorAccountRow({
   }, [opened, connectorAccount.id]);
 
   const handleCreateSession = () => {
-    createSnapshot({ connectorAccountId: connectorAccount.id });
+    createSnapshot({
+      connectorAccountId: connectorAccount.id,
+      tablePaths: selectedTables,
+    });
     close();
   };
 
   const handleWorkWithSnapshot = (id: string) => {
-    notifications.show({
-      title: "TODO",
-      message: `Show viewer for snapshot ${id}`,
-    });
+    router.push(`/snapshots/${id}`);
   };
 
   const HealthIcon = (c: ConnectorAccount) => {

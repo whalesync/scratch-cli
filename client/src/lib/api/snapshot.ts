@@ -61,4 +61,19 @@ export const snapshotApi = {
     }
     return res.json();
   },
+
+  download: async (id: string): Promise<void> => {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${id}/download`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to start download");
+    }
+  },
 };
