@@ -6,7 +6,7 @@ class ApiConfig {
   private authToken: string | null;
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010";
     this.authToken = null;
   }
 

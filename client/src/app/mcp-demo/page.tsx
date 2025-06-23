@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Container, Title, Text, Button, Group } from "@mantine/core";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import dynamic from "next/dynamic";
 import { API_CONFIG } from "@/lib/api/config";
 
@@ -21,21 +21,18 @@ const RecordsGridWithNoSSR = dynamic(
   }
 );
 
-// Create socket instance
-const socket = io(API_CONFIG.getApiUrl(), {
-  transports: ["websocket"],
-});
-
 export default function Home() {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const socketRef = useRef<Socket | null>(null);
 
   const fetchRecords = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_CONFIG.getApiUrl()}/records`);
+      const url = `${API_CONFIG.getApiUrl()}/records`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -108,6 +105,14 @@ export default function Home() {
     // Initial fetch
     fetchRecords();
 
+    // Initialize WebSocket connection
+    console.log("Initializing WebSocket connection...");
+    socketRef.current = io(API_CONFIG.getApiUrl(), {
+      transports: ["websocket"],
+    });
+
+    const socket = socketRef.current;
+
     // Set up WebSocket listeners
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");
@@ -123,12 +128,26 @@ export default function Home() {
       setError("WebSocket connection error");
     });
 
+    socket.on("connect_error", (error) => {
+      console.error("WebSocket connection error:", error);
+      setError("WebSocket connection error");
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("WebSocket disconnected:", reason);
+    });
+
     // Cleanup function
     return () => {
-      socket.off("connect");
-      socket.off("recordsUpdated");
-      socket.off("error");
-      socket.close();
+      console.log("Cleaning up WebSocket connection...");
+      if (socket) {
+        socket.off("connect");
+        socket.off("recordsUpdated");
+        socket.off("error");
+        socket.off("connect_error");
+        socket.off("disconnect");
+        socket.close();
+      }
     };
   }, []); // Empty dependency array since we want this to run once on mount
 
