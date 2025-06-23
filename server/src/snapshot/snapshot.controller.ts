@@ -29,6 +29,6 @@ export class SnapshotController {
 
   @Patch(':id')
   async update(@Param('id') id: SnapshotId, @Body() updateSnapshotDto: UpdateSnapshotDto): Promise<Snapshot> {
-    return await this.service.update(id, updateSnapshotDto, FAKE_GLOBAL_USER_ID);
+    return this.service.update(id, updateSnapshotDto, FAKE_GLOBAL_USER_ID);
   }
 }

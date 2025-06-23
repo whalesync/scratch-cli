@@ -37,7 +37,6 @@ erDiagram
   String id PK
   DateTime createdAt
   DateTime updatedAt
-  SnapshotStatus status
   String connectorAccountId FK
 }
 "APIToken" }o--|| "User" : user
@@ -86,5 +85,4 @@ Properties as follows:
 - `id`:
 - `createdAt`:
 - `updatedAt`:
-- `status`:
 - `connectorAccountId`:

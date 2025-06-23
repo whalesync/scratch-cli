@@ -52,9 +52,15 @@ export default function ConnectorAccountsPage() {
       alert("Service and API key are required.");
       return;
     }
-    await createConnectorAccount({ service: newService, apiKey: newApiKey });
+    const newAccount = await createConnectorAccount({
+      service: newService,
+      apiKey: newApiKey,
+    });
     setNewApiKey("");
     setNewService(null);
+    if (newAccount && newAccount.id) {
+      await handleTest(newAccount.id);
+    }
   };
 
   const handleOpenUpdateModal = (conn: ConnectorAccount) => {

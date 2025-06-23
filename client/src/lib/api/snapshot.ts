@@ -1,8 +1,4 @@
-import {
-  CreateSnapshotDto,
-  Snapshot,
-  UpdateSnapshotDto,
-} from "@/types/server-entities/snapshot";
+import { CreateSnapshotDto, Snapshot } from "@/types/server-entities/snapshot";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -44,11 +40,10 @@ export const snapshotApi = {
     return res.json();
   },
 
-  update: async (id: string, dto: UpdateSnapshotDto): Promise<Snapshot> => {
+  update: async (id: string): Promise<Snapshot> => {
     const res = await fetch(`${API_URL}/snapshot/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to update snapshot");

@@ -6,7 +6,6 @@ import {
   ConnectorAccount,
   ConnectorHealthStatus,
 } from "@/types/server-entities/connector-accounts";
-import { SnapshotStatus } from "@/types/server-entities/snapshot";
 import { Table } from "@/types/server-entities/table-list";
 import {
   Badge,
@@ -15,7 +14,6 @@ import {
   Divider,
   Group,
   Loader,
-  Menu,
   Modal,
   Paper,
   Stack,
@@ -23,6 +21,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   CheckCircleIcon,
   QuestionIcon,
@@ -54,14 +53,8 @@ export function ConnectorAccountRow({
   const {
     snapshots,
     createSnapshot,
-    updateSnapshot,
     isLoading: isLoadingSnapshots,
   } = useSnapshots(connectorAccount.id);
-
-  const activeSnapshot = snapshots?.find(
-    (s) =>
-      s.status !== SnapshotStatus.DONE && s.status !== SnapshotStatus.CANCELLED
-  );
 
   useEffect(() => {
     if (opened) {
@@ -85,12 +78,11 @@ export function ConnectorAccountRow({
     close();
   };
 
-  const handleUpdateSession = (
-    status: SnapshotStatus.COMMITTING | SnapshotStatus.CANCELLED
-  ) => {
-    if (activeSnapshot) {
-      updateSnapshot(activeSnapshot.id, { status });
-    }
+  const handleWorkWithSnapshot = (id: string) => {
+    notifications.show({
+      title: "TODO",
+      message: `Show viewer for snapshot ${id}`,
+    });
   };
 
   const HealthIcon = (c: ConnectorAccount) => {
@@ -128,7 +120,7 @@ export function ConnectorAccountRow({
       <Modal
         opened={opened}
         onClose={close}
-        title="Start editing"
+        title="Start new snapshot"
         size="xl"
         centered
       >
@@ -144,7 +136,7 @@ export function ConnectorAccountRow({
             <Checkbox.Group
               value={selectedTables}
               onChange={setSelectedTables}
-              label="Select tables to edit"
+              label="Select tables to include in the snapshot"
             >
               <Group justify="flex-end">
                 <Button
@@ -187,7 +179,7 @@ export function ConnectorAccountRow({
             onClick={handleCreateSession}
             disabled={selectedTables.length === 0 || !!error}
           >
-            Download records
+            Create snapshot
           </Button>
         </Group>
       </Modal>
@@ -225,44 +217,21 @@ export function ConnectorAccountRow({
           <Group justify="flex-end">
             {isLoadingSnapshots ? (
               <Loader size="sm" />
-            ) : activeSnapshot ? (
-              <>
-                {activeSnapshot.status === SnapshotStatus.CREATING ? (
-                  <Button disabled leftSection={<Loader size="sm" />}>
-                    Downloading
-                  </Button>
-                ) : activeSnapshot.status === SnapshotStatus.COMMITTING ? (
-                  <Button disabled leftSection={<Loader size="sm" />}>
-                    Saving
-                  </Button>
-                ) : (
-                  <Menu shadow="md" width={200}>
-                    <Menu.Target>
-                      <Button>Session Active</Button>
-                    </Menu.Target>
-
-                    <Menu.Dropdown>
-                      <Menu.Item
-                        onClick={() =>
-                          handleUpdateSession(SnapshotStatus.COMMITTING)
-                        }
-                      >
-                        Commit
-                      </Menu.Item>
-                      <Menu.Item
-                        color="red"
-                        onClick={() =>
-                          handleUpdateSession(SnapshotStatus.CANCELLED)
-                        }
-                      >
-                        Cancel
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                )}
-              </>
             ) : (
-              <Button onClick={open}>Snapshot and edit</Button>
+              <Stack align="flex-end">
+                {snapshots?.map((snapshot) => (
+                  <Button
+                    key={snapshot.id}
+                    onClick={() => handleWorkWithSnapshot(snapshot.id)}
+                    variant="outline"
+                  >
+                    View & edit snapshot data
+                  </Button>
+                ))}
+                {(snapshots?.length ?? 0) === 0 && (
+                  <Button onClick={open}>Start new snapshot</Button>
+                )}
+              </Stack>
             )}
           </Group>
         </Stack>

@@ -1,5 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { SnapshotStatus } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
@@ -21,19 +20,6 @@ export class SnapshotService {
     });
     if (!connectorAccount) {
       throw new NotFoundException('Connector account not found');
-    }
-
-    const existingSession = await this.db.client.snapshot.findFirst({
-      where: {
-        connectorAccountId,
-        status: {
-          notIn: [SnapshotStatus.DONE, SnapshotStatus.CANCELLED],
-        },
-      },
-    });
-
-    if (existingSession) {
-      throw new ConflictException('An active edit session already exists for this connector account.');
     }
 
     return this.db.client.snapshot.create({
@@ -62,12 +48,11 @@ export class SnapshotService {
     });
   }
 
-  update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
-    return this.db.client.snapshot.update({
-      where: { id, connectorAccount: { userId } },
-      data: {
-        status: updateSnapshotDto.status,
-      },
-    });
+  async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
+    const snapshot = await this.findOne(id, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+    return snapshot;
   }
 }

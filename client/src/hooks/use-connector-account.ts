@@ -5,6 +5,7 @@ import {
   CreateConnectorAccountDto,
   TestConnectionResponse,
   UpdateConnectorAccountDto,
+  ConnectorAccount,
 } from "@/types/server-entities/connector-accounts";
 import { useSWRConfig } from "swr";
 
@@ -15,9 +16,12 @@ export const useConnectorAccounts = () => {
     connectorAccountsApi.list
   );
 
-  const createConnectorAccount = async (dto: CreateConnectorAccountDto) => {
-    await connectorAccountsApi.create(dto);
+  const createConnectorAccount = async (
+    dto: CreateConnectorAccountDto
+  ): Promise<ConnectorAccount> => {
+    const newAccount = await connectorAccountsApi.create(dto);
     mutate(SWR_KEYS.connectorAccounts.list());
+    return newAccount;
   };
 
   const updateConnectorAccount = async (

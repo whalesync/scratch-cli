@@ -2,10 +2,7 @@ import useSWR from "swr";
 import { useSWRConfig } from "swr";
 import { snapshotApi } from "@/lib/api/snapshot";
 import { SWR_KEYS } from "@/lib/api/keys";
-import {
-  CreateSnapshotDto,
-  UpdateSnapshotDto,
-} from "@/types/server-entities/snapshot";
+import { CreateSnapshotDto } from "@/types/server-entities/snapshot";
 
 export const useSnapshots = (connectorAccountId: string) => {
   const { mutate } = useSWRConfig();
@@ -19,8 +16,8 @@ export const useSnapshots = (connectorAccountId: string) => {
     mutate(SWR_KEYS.snapshot.list(connectorAccountId));
   };
 
-  const updateSnapshot = async (id: string, dto: UpdateSnapshotDto) => {
-    await snapshotApi.update(id, dto);
+  const updateSnapshot = async (id: string) => {
+    await snapshotApi.update(id);
     mutate(SWR_KEYS.snapshot.list(connectorAccountId));
     mutate(SWR_KEYS.snapshot.detail(id));
   };

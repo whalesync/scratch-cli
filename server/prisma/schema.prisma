@@ -70,19 +70,10 @@ enum ConnectorHealthStatus {
   FAILED
 }
 
-enum SnapshotStatus {
-  CREATING
-  EDITING
-  COMMITTING
-  DONE
-  CANCELLED
-}
-
 model Snapshot {
   id        String       @id // type: SnapshotId
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-  status    SnapshotStatus @default(CREATING)
 
   connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
   connectorAccountId String

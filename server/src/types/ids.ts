@@ -13,7 +13,7 @@ export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
-  SNAPSHOT = 'ess_',
+  SNAPSHOT = 'sna_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
