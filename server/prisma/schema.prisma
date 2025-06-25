@@ -30,20 +30,22 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   clerkId             String?              @unique
-  isAdmin             Boolean              @default(false)
+  isAdmin             Boolean              @default(false) // TODO: remove this
   role                UserRole             @default(USER)
   apiTokens           APIToken[]
   connectorAccounts   ConnectorAccount[]
 }
 
 model APIToken {
-  token       String   @id // type: APITokenId
+  id          String      @id // type: APITokenId
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String   
+  token       String
   createdAt   DateTime @default(now())
   expiresAt   DateTime @updatedAt
 
   @@index([userId])
+  @@unique([token])
 }
 
 model ConnectorAccount {
