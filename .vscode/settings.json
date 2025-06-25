@@ -1,7 +1,9 @@
 {
   "editor.formatOnSave": true,
+  "editor.formatOnType": false,
+  "workbench.editor.labelFormat": "short",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
-} 
+}
