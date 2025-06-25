@@ -19,9 +19,13 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   }
 
   async validate(req: Request): Promise<User> {
-    const token = req.headers.authorization?.split(' ').pop();
+    const parts = req.headers.authorization?.split(' ');
 
-    if (!token) {
+    const authType = parts?.[0];
+
+    const token = parts?.[1];
+
+    if (!token || authType !== 'Bearer') {
       throw new UnauthorizedException('No token provided');
     }
 
@@ -33,19 +37,19 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       const clerkUser = await this.clerkClient.users.getUser(tokenPayload.sub);
 
       if (!clerkUser) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('No clerk user found');
       }
 
       const user = await this.userService.getOrCreateUserFromClerk(clerkUser);
 
       if (!user) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('No Scratchpad user found');
       }
 
       return user;
     } catch (error) {
       console.error(error);
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException('Invalid JWT token');
     }
   }
 }
