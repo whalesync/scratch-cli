@@ -1,10 +1,13 @@
-export type TablePath = string[];
+export interface EntityId {
+  wsId: string;
+  remoteId: string[];
+}
 
-export interface Table {
+export interface TablePreview {
+  id: EntityId;
   displayName: string;
-  connectorPath: TablePath;
 }
 
 export interface TableList {
-  tables: Table[];
+  tables: TablePreview[];
 }

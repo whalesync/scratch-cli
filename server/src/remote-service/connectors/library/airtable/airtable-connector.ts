@@ -1,7 +1,7 @@
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
-import { toPgFriendlyName } from '../../pg-helpers';
-import { ConnectorRecord, TableListing, TablePath, TableSpec } from '../../types';
+import { sanitizeForWsId } from '../../ids';
+import { ColumnSpec, ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
 import { AirtableApiClient } from './airtable-api-client';
 
 export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
@@ -19,49 +19,87 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     await this.client.listBases();
   }
 
-  async listTables(): Promise<TableListing[]> {
+  async listTables(): Promise<TablePreview[]> {
     const bases = await this.client.listBases();
-    const tables: TableListing[] = [];
+    const tables: TablePreview[] = [];
     for (const base of bases.bases) {
       const baseSchema = await this.client.getBaseSchema(base.id);
       tables.push(
         ...baseSchema.tables.map((table) => ({
+          id: {
+            wsId: sanitizeForWsId(table.name),
+            remoteId: [base.id, table.id],
+          },
           displayName: `${base.name} - ${table.name}`,
-          connectorPath: [base.id, table.id],
         })),
       );
     }
     return tables;
   }
 
-  async fetchTableSpec(connectorPath: TablePath): Promise<TableSpec> {
-    const [baseId, tableId] = connectorPath;
+  async fetchTableSpec(id: EntityId): Promise<TableSpec> {
+    const [baseId, tableId] = id.remoteId;
     const baseSchema = await this.client.getBaseSchema(baseId);
     const table = baseSchema.tables.find((t) => t.id === tableId);
     if (!table) {
       throw new Error(`Table ${tableId} not found in base ${baseId}`);
     }
-    return {
-      pgName: toPgFriendlyName(table.name),
-      connectorPath,
-      columns: table.fields.map((field) => ({
-        pgName: toPgFriendlyName(field.name),
-        connectorId: field.id,
+    const columns: ColumnSpec[] = [
+      {
+        id: {
+          wsId: 'id',
+          remoteId: ['id'],
+        },
+        name: 'id',
+        type: 'text',
+      },
+    ];
+    for (const field of table.fields) {
+      columns.push({
+        id: {
+          wsId: sanitizeForWsId(field.name),
+          remoteId: [field.id],
+        },
+        name: field.name,
         type: 'text', // TODO: Pick a better type.
-      })),
+      });
+    }
+    return {
+      id,
+      name: sanitizeForWsId(table.name),
+      columns,
     };
   }
 
-  async downloadTableRecords(tableSpec: TableSpec, callback: (records: ConnectorRecord[]) => void): Promise<void> {
-    const [baseId, tableId] = tableSpec.connectorPath;
+  async downloadTableRecords(
+    tableSpec: TableSpec,
+    callback: (records: ConnectorRecord[]) => Promise<void>,
+  ): Promise<void> {
+    const [baseId, tableId] = tableSpec.id.remoteId;
 
     for await (const records of this.client.listRecords(baseId, tableId)) {
-      callback(
-        records.map((r) => ({
-          id: r.id,
-          ...r.fields,
-        })),
-      );
+      await callback(this.translateRecords(records, tableSpec));
     }
+  }
+
+  // Record fields need to be keyed by the wsId, not the remoteId.
+  private translateRecords(
+    records: {
+      id: string;
+      fields: Record<string, unknown>;
+    }[],
+    tableSpec: TableSpec,
+  ): ConnectorRecord[] {
+    return records.map((r) => {
+      const record: ConnectorRecord = {
+        id: r.id,
+      };
+      for (const column of tableSpec.columns) {
+        if (column.id.remoteId[0] in r.fields) {
+          record[column.id.wsId] = r.fields[column.id.remoteId[0]];
+        }
+      }
+      return record;
+    });
   }
 }

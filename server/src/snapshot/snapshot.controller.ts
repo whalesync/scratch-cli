@@ -14,7 +14,7 @@ export class SnapshotController {
   @UseGuards(ScratchpadAuthGuard)
   @Post()
   async create(@Body() createSnapshotDto: CreateSnapshotDto, @Req() req: RequestWithUser): Promise<Snapshot> {
-    return this.service.create(createSnapshotDto, req.user.id);
+    return new Snapshot(await this.service.create(createSnapshotDto, req.user.id));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -23,13 +23,17 @@ export class SnapshotController {
     @Query('connectorAccountId') connectorAccountId: string,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot[]> {
-    return this.service.findAll(connectorAccountId, req.user.id);
+    return (await this.service.findAll(connectorAccountId, req.user.id)).map((s) => new Snapshot(s));
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<Snapshot | null> {
-    return this.service.findOne(id, req.user.id);
+    const snapshot = await this.service.findOne(id, req.user.id);
+    if (!snapshot) {
+      return null;
+    }
+    return new Snapshot(snapshot);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -39,7 +43,7 @@ export class SnapshotController {
     @Body() updateSnapshotDto: UpdateSnapshotDto,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot> {
-    return this.service.update(id, updateSnapshotDto, req.user.id);
+    return new Snapshot(await this.service.update(id, updateSnapshotDto, req.user.id));
   }
 
   @UseGuards(ScratchpadAuthGuard)

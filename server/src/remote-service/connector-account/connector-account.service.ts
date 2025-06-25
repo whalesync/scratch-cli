@@ -3,7 +3,7 @@ import { ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
 import { createConnectorAccountId } from '../../types/ids';
 import { ConnectorsService } from '../connectors/connectors.service';
-import { TableListing } from '../connectors/types';
+import { TablePreview } from '../connectors/types';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { TestConnectionResponse } from './entities/test-connection.entity';
@@ -58,7 +58,7 @@ export class ConnectorAccountService {
     });
   }
 
-  async listTables(id: string, userId: string): Promise<TableListing[]> {
+  async listTables(id: string, userId: string): Promise<TablePreview[]> {
     const account = await this.findOne(id, userId);
     const connector = this.connectorsService.getConnector(account);
     return connector.listTables(account);
