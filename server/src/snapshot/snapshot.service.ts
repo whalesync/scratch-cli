@@ -5,8 +5,10 @@ import { ConnectorAccount } from 'src/remote-service/connector-account/entities/
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { TableSpec } from '../remote-service/connectors/types';
+import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
+import { SnapshotRecord } from './entities/snapshot-record.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 
 type SnapshotWithConnectorAccount = Snapshot & { connectorAccount: ConnectorAccount };
@@ -74,12 +76,59 @@ export class SnapshotService {
     });
   }
 
-  async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
+  private async findOneAsUser(id: SnapshotId, userId: string): Promise<Snapshot> {
     const snapshot = await this.findOne(id, userId);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
     return snapshot;
+  }
+
+  async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
+    const snapshot = await this.findOneAsUser(id, userId);
+    return snapshot;
+  }
+
+  async listRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    userId: string,
+    cursor: string | undefined,
+    take: number,
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+    const snapshot = await this.findOneAsUser(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1);
+
+    let nextCursor: string | undefined;
+    if (records.length === take + 1) {
+      const nextRecord = records.pop();
+      nextCursor = nextRecord!.id;
+    }
+
+    return {
+      records,
+      nextCursor,
+    };
+  }
+
+  async bulkUpdateRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    dto: BulkUpdateRecordsDto,
+    userId: string,
+  ): Promise<void> {
+    const snapshot = await this.findOneAsUser(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops);
   }
 
   async download(id: SnapshotId, userId: string): Promise<void> {
@@ -111,10 +160,7 @@ export class SnapshotService {
   }
 
   async delete(id: SnapshotId, userId: string): Promise<void> {
-    const snapshot = await this.findOne(id, userId);
-    if (!snapshot) {
-      throw new NotFoundException('Snapshot not found');
-    }
+    await this.findOneAsUser(id, userId);
 
     await this.snapshotDbService.cleanUpSnapshot(id);
     await this.db.client.snapshot.delete({

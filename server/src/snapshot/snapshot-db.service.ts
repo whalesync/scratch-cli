@@ -3,6 +3,23 @@ import knex, { Knex } from 'knex';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotId } from 'src/types/ids';
 import { ConnectorRecord, TableSpec } from '../remote-service/connectors/types';
+import { RecordOperation } from './dto/bulk-update-records.dto';
+
+// Design!
+// There isn't a system yet for tracking versions of edits that are made to the snapshot, so instead, we use a column
+// of metadata in each snapshotted table. It contains the fields that have been edited since last download, plus whether
+// the record was created or deleted.
+export const EDITED_FIELDS_COLUMN = '__edited_fields';
+
+export type EditedFieldsMetadata = {
+  /** Timestamps when the record was created locally. */
+  __created?: string;
+  /** Timestamps when the record was deleted locally. */
+  __deleted?: string;
+} & {
+  /** The fields that have been edited since last download */
+  [wsId: string]: string;
+};
 
 @Injectable()
 export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
@@ -19,9 +36,6 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
     this.knex.on('error', (err: Error) => {
       console.error('Unexpected error on idle client', err);
-      // We are re-throwing the error here so that the client knows that the request has failed.
-      // With this change, the server will no longer crash but the client will see an error.
-      // throw err;
     });
 
     await this.knex.raw('SELECT 1');
@@ -55,6 +69,8 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
                 break;
             }
           }
+          // The metadata column for edits.
+          t.jsonb(EDITED_FIELDS_COLUMN).nullable();
         });
       }
     }
@@ -69,6 +85,70 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     await this.knex(table.id.wsId).withSchema(snapshotId).insert(records).onConflict('id').merge();
   }
 
+  async listRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    cursor: string | undefined,
+    take: number,
+  ): Promise<ConnectorRecord[]> {
+    const query = this.knex(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
+
+    if (cursor) {
+      query.where('id', '>=', cursor);
+    }
+
+    return query;
+  }
+
+  async bulkUpdateRecords(snapshotId: SnapshotId, tableId: string, ops: RecordOperation[]): Promise<void> {
+    const now = new Date().toISOString();
+    await this.knex.transaction(async (trx) => {
+      for (const op of ops) {
+        switch (op.op) {
+          case 'create':
+            await trx(tableId)
+              .withSchema(snapshotId)
+              .insert({ ...op.data, [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }) });
+            break;
+          case 'update': {
+            const newFields = Object.keys(op.data || {}).reduce(
+              (acc, key) => {
+                acc[key] = now;
+                return acc;
+              },
+              {} as Record<string, string>,
+            );
+
+            const updatePayload: Record<string, any> = { ...op.data };
+
+            // Merge the new fields into the edited fields metadata.
+            if (Object.keys(newFields).length > 0) {
+              updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
+                EDITED_FIELDS_COLUMN,
+                JSON.stringify(newFields),
+              ]);
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
+              await trx(tableId).withSchema(snapshotId).where('id', op.id).update(updatePayload);
+            }
+            break;
+          }
+          case 'delete':
+            await trx(tableId)
+              .withSchema(snapshotId)
+              .where('id', op.id)
+              .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }) });
+            break;
+        }
+      }
+    });
+  }
+
+  /**
+   * Debug check to find connectors that are returning the wrong fields. I don't like my system for column names and
+   * record conversion, and it's easy to make mistakes.
+   */
   private ensureExpectedFields(table: TableSpec, records: ConnectorRecord[]) {
     let hasBad = false;
     const expectedFields = new Set(table.columns.map((c) => c.id.wsId));

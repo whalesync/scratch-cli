@@ -1,5 +1,9 @@
 import { CreateSnapshotDto, Snapshot } from "@/types/server-entities/snapshot";
 import { API_CONFIG } from "./config";
+import {
+  BulkUpdateRecordsDto,
+  ListRecordsResponse,
+} from "../../types/server-entities/records";
 
 export const snapshotApi = {
   list: async (connectorAccountId: string): Promise<Snapshot[]> => {
@@ -86,6 +90,54 @@ export const snapshotApi = {
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to delete snapshot");
+    }
+  },
+
+  async listRecords(
+    snapshotId: string,
+    tableId: string,
+    cursor?: string,
+    take?: number
+  ): Promise<ListRecordsResponse> {
+    const url = new URL(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
+    );
+    if (cursor) {
+      url.searchParams.append("cursor", cursor);
+    }
+    if (take) {
+      url.searchParams.append("take", take.toString());
+    }
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to list records");
+    }
+    return res.json();
+  },
+
+  async bulkUpdateRecords(
+    snapshotId: string,
+    tableId: string,
+    dto: BulkUpdateRecordsDto
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/bulk`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dto),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to bulk update records");
     }
   },
 };

@@ -1,7 +1,17 @@
 "use client";
 
+import { useSnapshot } from "@/hooks/use-snapshot";
 import { snapshotApi } from "@/lib/api/snapshot";
-import { Button, Center, Group, Stack, Text, Title } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Group,
+  Loader,
+  Stack,
+  Tabs,
+  Text,
+  Title,
+} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
   DownloadSimpleIcon,
@@ -10,11 +20,28 @@ import {
   UploadIcon,
 } from "@phosphor-icons/react";
 import { useParams, useRouter } from "next/navigation";
+import SnapshotTableGrid from "./SnapshotTableGrid";
+import { TableSpec } from "@/types/server-entities/snapshot";
+
+import "@glideapps/glide-data-grid/dist/index.css";
+import { useEffect, useState } from "react";
 
 export default function SnapshotPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
+
+  const { snapshot, isLoading } = useSnapshot(id);
+
+  const [selectedTable, setSelectedTable] = useState<TableSpec | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (!selectedTable) {
+      setSelectedTable(snapshot?.tables[0]);
+    }
+  }, [snapshot, selectedTable]);
 
   const handleDownload = async () => {
     try {
@@ -53,10 +80,62 @@ export default function SnapshotPage() {
     }
   };
 
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <Center flex={1}>
+          <Loader />
+        </Center>
+      );
+    }
+
+    if (!snapshot) {
+      return (
+        <Center flex={1}>
+          <Text>Snapshot not found.</Text>
+        </Center>
+      );
+    }
+
+    if (snapshot.tables.length === 0) {
+      return (
+        <Center flex={1}>
+          <Stack align="center">
+            <TableIcon size={400} color="#55ff55" />
+            <Text size="md">No tables in this snapshot.</Text>
+          </Stack>
+        </Center>
+      );
+    }
+
+    return (
+      <Stack h="100%" gap={0}>
+        <Tabs
+          value={selectedTable?.id?.wsId}
+          onChange={(value) =>
+            setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value))
+          }
+          variant="outline"
+        >
+          <Tabs.List px="sm">
+            {snapshot.tables.map((table: TableSpec) => (
+              <Tabs.Tab value={table.id.wsId} key={table.id.wsId}>
+                {table.name}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs>
+        {selectedTable && (
+          <SnapshotTableGrid snapshotId={id} table={selectedTable} />
+        )}
+      </Stack>
+    );
+  };
+
   return (
     <Stack h="100vh">
       <Group p="xs" bg="gray.0">
-        <Title order={2}>Snapshot: {id}</Title>
+        <Title order={2}>Editing snapshot</Title>
         <Group ml="auto">
           <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download from remote
@@ -78,12 +157,7 @@ export default function SnapshotPage() {
           </Button>
         </Group>
       </Group>
-      <Center flex={1}>
-        <Stack align="center">
-          <TableIcon size={400} color="#55ff55" />
-          <Text size="md">TODO: spreadsheet view</Text>
-        </Stack>
-      </Center>
+      {renderContent()}
     </Stack>
   );
 }

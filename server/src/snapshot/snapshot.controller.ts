@@ -1,9 +1,24 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
+import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
+import { SnapshotRecord } from './entities/snapshot-record.entity';
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotService } from './snapshot.service';
 
@@ -57,5 +72,29 @@ export class SnapshotController {
   @HttpCode(204)
   async remove(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     await this.service.delete(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/tables/:tableId/records')
+  async listRecords(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Query('cursor') cursor: string | undefined,
+    @Query('take', new ParseIntPipe({ optional: true })) take = 100,
+    @Req() req: RequestWithUser,
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+    return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/bulk')
+  @HttpCode(204)
+  async bulkUpdateRecords(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id);
   }
 }
