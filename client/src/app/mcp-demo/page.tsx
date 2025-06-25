@@ -120,9 +120,6 @@ export default function Home() {
     console.log("Initializing WebSocket connection...");
     socketRef.current = io(API_CONFIG.getApiUrl(), {
       transports: ["websocket"],
-      auth: {
-        headers: API_CONFIG.getAuthHeaders(),
-      },
     });
 
     const socket = socketRef.current;
