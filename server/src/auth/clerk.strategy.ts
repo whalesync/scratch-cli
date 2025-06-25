@@ -21,11 +21,11 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   async validate(req: Request): Promise<User> {
     const parts = req.headers.authorization?.split(' ');
 
-    const authType = parts?.[0];
+    const tokenPrefix = parts?.[0];
 
     const token = parts?.[1];
 
-    if (!token || authType !== 'Bearer') {
+    if (!token || tokenPrefix !== 'Bearer') {
       throw new UnauthorizedException('No token provided');
     }
 
