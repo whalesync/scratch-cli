@@ -2,10 +2,8 @@
 
 import {
   ActionIcon,
-  Button,
   Center,
   CopyButton,
-  Divider,
   Group,
   NavLink,
   Stack,
