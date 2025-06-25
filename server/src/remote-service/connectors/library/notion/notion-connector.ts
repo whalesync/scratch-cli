@@ -1,8 +1,8 @@
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
-import { toPgFriendlyName } from '../../pg-helpers';
-import { ConnectorRecord, TableListing, TablePath, TableSpec } from '../../types';
+import { sanitizeForWsId } from '../../ids';
+import { ColumnSpec, ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
 
 export class NotionConnector extends Connector<typeof Service.NOTION> {
   private readonly client: Client;
@@ -22,35 +22,57 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     });
   }
 
-  async listTables(): Promise<TableListing[]> {
+  async listTables(): Promise<TablePreview[]> {
     const response = await this.client.search({
       filter: { property: 'object', value: 'database' },
     });
 
     const databases = response.results.filter((r) => r.object === 'database');
     const tables = databases.map((db: DatabaseObjectResponse) => ({
+      id: {
+        wsId: db.id,
+        remoteId: [db.id],
+      },
       displayName: db.title[0].plain_text,
-      connectorPath: [db.id],
     }));
     return tables;
   }
 
-  async fetchTableSpec(connectorPath: TablePath): Promise<TableSpec> {
-    const [databaseId] = connectorPath;
+  async fetchTableSpec(id: EntityId): Promise<TableSpec> {
+    const [databaseId] = id.remoteId;
     const database = (await this.client.databases.retrieve({ database_id: databaseId })) as DatabaseObjectResponse;
-    return {
-      pgName: toPgFriendlyName(database.title.map((t) => t.plain_text).join(' ')),
-      connectorPath,
-      columns: Object.values(database.properties).map((p) => ({
-        pgName: toPgFriendlyName(p.name),
-        connectorId: p.id,
+    const columns: ColumnSpec[] = [
+      {
+        id: {
+          wsId: 'id',
+          remoteId: ['id'],
+        },
+        name: 'id',
+        type: 'text',
+      },
+    ];
+    for (const property of Object.values(database.properties)) {
+      columns.push({
+        id: {
+          wsId: sanitizeForWsId(property.name),
+          remoteId: [property.id],
+        },
+        name: property.name,
         type: 'text', // TODO: Richer types.
-      })),
+      });
+    }
+    return {
+      id,
+      name: sanitizeForWsId(database.title.map((t) => t.plain_text).join(' ')),
+      columns,
     };
   }
 
-  async downloadTableRecords(tableSpec: TableSpec, callback: (records: ConnectorRecord[]) => void): Promise<void> {
-    const [databaseId] = tableSpec.connectorPath;
+  async downloadTableRecords(
+    tableSpec: TableSpec,
+    callback: (records: ConnectorRecord[]) => Promise<void>,
+  ): Promise<void> {
+    const [databaseId] = tableSpec.id.remoteId;
 
     let hasMore = true;
     let nextCursor: string | undefined = undefined;
@@ -61,13 +83,20 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
       });
       const records = response.results
         .filter((r): r is PageObjectResponse => r.object === 'page')
-        .map((page) => ({
-          id: page.id,
-          ...Object.fromEntries(
-            Object.values(page.properties).map((value) => [value.id, this.extractPropertyValue(value)]),
-          ),
-        }));
-      callback(records);
+        .map((page) => {
+          const converted: ConnectorRecord = {
+            id: page.id,
+          };
+
+          for (const column of tableSpec.columns) {
+            const prop = Object.values(page.properties).find((p) => p.id === column.id.remoteId[0]);
+            if (prop) {
+              converted[column.id.wsId] = this.extractPropertyValue(prop);
+            }
+          }
+          return converted;
+        });
+      await callback(records);
 
       hasMore = response.has_more;
       nextCursor = response.next_cursor ?? undefined;

@@ -6,7 +6,7 @@ import {
   ConnectorAccount,
   ConnectorHealthStatus,
 } from "@/types/server-entities/connector-accounts";
-import { Table } from "@/types/server-entities/table-list";
+import { TablePreview } from "@/types/server-entities/table-list";
 import {
   Badge,
   Button,
@@ -46,7 +46,7 @@ export function ConnectorAccountRow({
 }: ConnectorAccountRowProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const [isLoadingTables, setIsLoadingTables] = useState(false);
-  const [tables, setTables] = useState<Table[]>([]);
+  const [tables, setTables] = useState<TablePreview[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -75,9 +75,14 @@ export function ConnectorAccountRow({
   }, [opened, connectorAccount.id]);
 
   const handleCreateSession = () => {
+    // We are storing the wsId in selectedTables. Find the full EntityId
+    const tableIds = tables
+      .filter((t) => selectedTables.includes(t.id.wsId))
+      .map((t) => t.id);
+
     createSnapshot({
       connectorAccountId: connectorAccount.id,
-      tablePaths: selectedTables.map((p) => p.split(".")),
+      tableIds: tableIds,
     });
     close();
   };
@@ -144,9 +149,7 @@ export function ConnectorAccountRow({
                   variant="subtle"
                   size="xs"
                   onClick={() =>
-                    setSelectedTables(
-                      tables.map((t) => t.connectorPath.join("."))
-                    )
+                    setSelectedTables(tables.map((t) => t.id.wsId))
                   }
                 >
                   Select all
@@ -164,8 +167,8 @@ export function ConnectorAccountRow({
                 <Stack mt="xs">
                   {tables.map((table) => (
                     <Checkbox
-                      key={table.connectorPath.join(".")}
-                      value={table.connectorPath.join(".")}
+                      key={table.id.wsId}
+                      value={table.id.wsId}
                       label={table.displayName}
                     />
                   ))}

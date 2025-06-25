@@ -20,7 +20,7 @@ export class SnapshotService {
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<Snapshot> {
-    const { connectorAccountId, tablePaths } = createSnapshotDto;
+    const { connectorAccountId, tableIds } = createSnapshotDto;
 
     const connectorAccount = await this.db.client.connectorAccount.findUnique({
       where: {
@@ -37,8 +37,8 @@ export class SnapshotService {
     // results back here.
     const connector = this.connectorService.getConnector(connectorAccount);
     const tableSpecs: TableSpec[] = [];
-    for (const tablePath of tablePaths) {
-      tableSpecs.push(await connector.fetchTableSpec(tablePath));
+    for (const tableId of tableIds) {
+      tableSpecs.push(await connector.fetchTableSpec(tableId));
     }
 
     // Create the entity in the DB.
@@ -102,8 +102,9 @@ export class SnapshotService {
     const connector = this.connectorService.getConnector(snapshot.connectorAccount);
     const tableSpecs = snapshot.tableSpecs as TableSpec[];
     for (const tableSpec of tableSpecs) {
-      await connector.downloadTableRecords(tableSpec, async (records) =>
-        this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
+      await connector.downloadTableRecords(
+        tableSpec,
+        async (records) => await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
       );
     }
     console.log('Done downloading snapshot', snapshot.id);

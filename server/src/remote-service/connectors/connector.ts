@@ -1,14 +1,14 @@
 import { ConnectorAccount, Service } from '@prisma/client';
-import { ConnectorRecord, TableListing, TablePath, TableSpec } from './types';
+import { ConnectorRecord, EntityId, TablePreview, TableSpec } from './types';
 
 export abstract class Connector<T extends Service> {
   abstract readonly service: T;
 
   abstract testConnection(): Promise<void>;
 
-  abstract listTables(account: ConnectorAccount): Promise<TableListing[]>;
+  abstract listTables(account: ConnectorAccount): Promise<TablePreview[]>;
 
-  abstract fetchTableSpec(connectorPath: TablePath): Promise<TableSpec>;
+  abstract fetchTableSpec(id: EntityId): Promise<TableSpec>;
 
   abstract downloadTableRecords(
     tableSpec: TableSpec,
