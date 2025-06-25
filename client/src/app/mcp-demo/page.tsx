@@ -32,7 +32,12 @@ export default function Home() {
     setError("");
     try {
       const url = `${API_CONFIG.getApiUrl()}/records`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -51,6 +56,7 @@ export default function Home() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          ...API_CONFIG.getAuthHeaders(),
         },
         body: JSON.stringify({ stage: true, data }),
       });
@@ -71,6 +77,7 @@ export default function Home() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          ...API_CONFIG.getAuthHeaders(),
         },
         body: JSON.stringify({ stage: true }),
       });
@@ -89,6 +96,10 @@ export default function Home() {
     try {
       const response = await fetch(`${API_CONFIG.getApiUrl()}/records/push`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...API_CONFIG.getAuthHeaders(),
+        },
       });
 
       if (!response.ok) {
@@ -109,6 +120,9 @@ export default function Home() {
     console.log("Initializing WebSocket connection...");
     socketRef.current = io(API_CONFIG.getApiUrl(), {
       transports: ["websocket"],
+      auth: {
+        headers: API_CONFIG.getAuthHeaders(),
+      },
     });
 
     const socket = socketRef.current;
