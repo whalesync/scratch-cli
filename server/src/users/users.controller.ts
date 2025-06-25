@@ -14,6 +14,6 @@ export class UsersController {
     if (!req.user) {
       throw new UnauthorizedException();
     }
-    return req.user;
+    return new User(req.user);
   }
 }

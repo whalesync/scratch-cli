@@ -1,10 +1,17 @@
-import { $Enums, User as PrismaUser } from '@prisma/client';
+import { User as PrismaUser, UserRole } from '@prisma/client';
 
-export class User implements PrismaUser {
+export class User {
   createdAt: Date;
   updatedAt: Date;
   clerkId: string | null;
   isAdmin: boolean;
-  role: $Enums.UserRole;
   id: string;
+
+  constructor(user: PrismaUser) {
+    this.id = user.id;
+    this.createdAt = user.createdAt;
+    this.updatedAt = user.updatedAt;
+    this.clerkId = user.clerkId;
+    this.isAdmin = user.role === UserRole.ADMIN;
+  }
 }

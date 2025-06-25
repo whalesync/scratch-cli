@@ -1,8 +1,9 @@
 import { User as ClerkUser } from '@clerk/backend';
 import { Injectable } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { nanoid } from 'nanoid';
 import { UserCluster } from 'src/db/cluster-types';
-import { createUserId } from 'src/types/ids';
+import { createApiTokenId, createUserId } from 'src/types/ids';
 import { DbService } from '../db/db.service';
 
 @Injectable()
@@ -30,14 +31,22 @@ export class UsersService {
     const user = await this.findByClerkId(clerkUser.id);
 
     if (user) {
-      // if (user.apiTokens.length === 0) {
-      //   const newToken = await this.db.client.aPIToken.create({
-      //     data: {
-      //       token: createApiToken(),
-      //       userId: user.id,
-      //     },
-      //   });
-      // }
+      // make sure the user has an api token
+      if (user.apiTokens.length === 0) {
+        const newToken = await this.db.client.aPIToken.create({
+          data: {
+            id: createApiTokenId(),
+            userId: user.id,
+            token: this.generateApiToken(),
+            expiresAt: this.generateTokenExpirationDate(),
+          },
+        });
+
+        return {
+          ...user,
+          apiTokens: [...user.apiTokens, newToken],
+        };
+      }
 
       return user;
     }
@@ -48,10 +57,27 @@ export class UsersService {
         clerkId: clerkUser.id,
         updatedAt: new Date(),
         role: UserRole.USER,
+        apiTokens: {
+          create: {
+            id: createApiTokenId(),
+            token: this.generateApiToken(),
+            expiresAt: this.generateTokenExpirationDate(),
+          },
+        },
       },
       include: UserCluster._validator.include,
     });
 
     return newUser;
+  }
+
+  private generateApiToken(): string {
+    // Generate a secure 32-character token using nanoid
+    return nanoid(32);
+  }
+
+  private generateTokenExpirationDate(): Date {
+    // set to 6 months from now
+    return new Date(Date.now() + 1000 * 60 * 60 * 24 * 180); // 6 months
   }
 }
