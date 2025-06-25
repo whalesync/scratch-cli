@@ -44,7 +44,7 @@ Tweak the following values as necessary:
 
 ```
 # The port the server will run on
-PORT=3001
+PORT=3010
 
 # The connection string for the PostgreSQL database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scratchpad?schema=public"
@@ -57,12 +57,11 @@ The Scratchpad server is hosted on Render.
 [Public URL - https://scratchpad-server.onrender.com/](https://scratchpad-server.onrender.com/)
 
 [Manage Render Project](https://dashboard.render.com/web/srv-d1a84295pdvs73aisifg)
-- Owned by team@whalesync.com (Credentials in 1password)
 
+- Owned by team@whalesync.com (Credentials in 1password)
 
 ## Stack
 
 ### Nest.js
 
 The server is built using [NestJS](https://nestjs.com/).
-

@@ -29,6 +29,7 @@ The Scratchpad consists of 3 elements:
 ```bash
 cd server
 yarn install
+yarn migrate # Only if there are DB migrations pending
 yarn run start:dev
 ```
 
@@ -60,21 +61,23 @@ yarn run build
     "spinner-mcp": {
       "command": "node",
       "args": [
-        "{path to repo}/mcp/dist/index.js"
+        "{path to repo}/mcp/dist/bin/stdio.js"
       ],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "SCRATCHPAD_SERVER_URL": "http://localhost:3010",
+        "SCRATCHPAD_API_TOKEN": "<Your API Token>"
+
       }
     }
   }
 }
 ```
 
-By default the MCP server uses the localhost Scratchpad server. If you want to use the deployed version you can add the following environment variables to the configuration above:
+By default the MCP server uses the localhost Scratchpad server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
 
 ```
   "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",
-  "SCRATCHPAD_API_TOKEN": "1234567890"
 ```
 
 The API token is a placeholder for how we might do auth inside Scratchpad
