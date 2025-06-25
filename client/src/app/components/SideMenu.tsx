@@ -1,6 +1,15 @@
 "use client";
 
-import { Center, NavLink, Stack, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Center,
+  CopyButton,
+  Group,
+  NavLink,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,6 +18,8 @@ import {
   RocketLaunchIcon,
   SpiralIcon,
   CloudArrowDownIcon,
+  CheckIcon,
+  CopyIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
@@ -58,10 +69,67 @@ export function SideMenu() {
           <SignUpButton />
         </SignedOut>
         <SignedIn>
+          {user && (
+            <Stack gap="xs" pl="xs">
+              <Group wrap="nowrap" gap="xs">
+                <Text c="dimmed" size="xs">
+                  User ID
+                </Text>
+                <CopyButton value={user.id} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Tooltip
+                      label={copied ? "Copied" : `${user.id}`}
+                      withArrow
+                      position="right"
+                    >
+                      <ActionIcon
+                        color={copied ? "teal" : "gray"}
+                        variant="subtle"
+                        onClick={copy}
+                      >
+                        {copied ? (
+                          <CheckIcon size={16} />
+                        ) : (
+                          <CopyIcon size={16} />
+                        )}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </CopyButton>
+              </Group>
+              {user.apiToken && (
+                <>
+                  <Group wrap="nowrap" gap="xs">
+                    <Text c="dimmed" size="xs">
+                      API Token
+                    </Text>
+                    <CopyButton value={user.apiToken} timeout={2000}>
+                      {({ copied, copy }) => (
+                        <Tooltip
+                          label={copied ? "Copied" : `${user.apiToken}`}
+                          withArrow
+                          position="right"
+                        >
+                          <ActionIcon
+                            color={copied ? "teal" : "gray"}
+                            variant="subtle"
+                            onClick={copy}
+                          >
+                            {copied ? (
+                              <CheckIcon size={16} />
+                            ) : (
+                              <CopyIcon size={16} />
+                            )}
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                    </CopyButton>
+                  </Group>
+                </>
+              )}
+            </Stack>
+          )}
           <UserButton showName />
-          <Text c="dimmed" size="xs">
-            {user?.id}
-          </Text>
         </SignedIn>
       </Stack>
     </Stack>
