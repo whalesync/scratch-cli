@@ -34,14 +34,13 @@ export class AppController {
     return 'OK';
   }
 
-  @Get('example/secured')
+  @Get('test/auth')
   @UseGuards(ScratchpadAuthGuard)
-  exampleSecuredEndpoint(): string {
-    return 'OK - Secured!';
+  exampleSecuredEndpoint(): { status: string } {
+    return { status: 'ok' };
   }
 
   // TODO: Move all the record stuff into its own controller+module.
-
   @Get('records')
   getRecords(): DataRecord[] {
     return this.appService.getRecords();

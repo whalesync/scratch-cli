@@ -1,323 +1,422 @@
-import {Server} from '@modelcontextprotocol/sdk/server/index.js';
-import {CallToolRequestSchema, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
-const SCRATCHPAD_API_SERVER = process.env.SCRATCHPAD_SERVER_URL ?? "http://localhost:3000";
+const SCRATCHPAD_API_SERVER =
+  process.env.SCRATCHPAD_SERVER_URL ?? "http://localhost:3000";
+export const SCRATCHPAD_API_TOKEN = process.env.SCRATCHPAD_API_TOKEN ?? "";
+
+const SCRATCHPAD_API_HEADERS: HeadersInit = {
+  "Content-Type": "application/json",
+};
+
+if (SCRATCHPAD_API_TOKEN) {
+  SCRATCHPAD_API_HEADERS.Authorization = `API-Token ${SCRATCHPAD_API_TOKEN}`;
+}
 
 export const addHandlers = (server: Server) => {
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: [
+        {
+          name: "test_auth",
+          description: "Test my API token",
+          inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
+        {
+          name: "get_records",
+          description: "Get all records from the backend server",
+          inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
+        {
+          name: "update_record",
+          description: "Update a record by ID with field data",
+          inputSchema: {
+            type: "object",
+            properties: {
+              id: {
+                type: "string",
+                description: "The ID of the record to update",
+              },
+              fields: {
+                type: "object",
+                description:
+                  "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
+                additionalProperties: true,
+              },
+            },
+            required: ["id", "fields"],
+          },
+        },
+        {
+          name: "create_record",
+          description: "Create a new record with field data",
+          inputSchema: {
+            type: "object",
+            properties: {
+              fields: {
+                type: "object",
+                description:
+                  "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
+                additionalProperties: true,
+              },
+            },
+            required: ["fields"],
+          },
+        },
+        {
+          name: "create_records_batch",
+          description: "Create multiple records at once",
+          inputSchema: {
+            type: "object",
+            properties: {
+              records: {
+                type: "array",
+                items: {
+                  type: "object",
+                  description:
+                    "Object containing field names and their values for each record",
+                  additionalProperties: true,
+                },
+                description:
+                  "Array of record objects, each containing field data",
+              },
+            },
+            required: ["records"],
+          },
+        },
+        {
+          name: "delete_record",
+          description: "Delete a record by ID",
+          inputSchema: {
+            type: "object",
+            properties: {
+              id: {
+                type: "string",
+                description: "The ID of the record to delete",
+              },
+            },
+            required: ["id"],
+          },
+        },
+        {
+          name: "delete_records_batch",
+          description: "Delete multiple records by their IDs",
+          inputSchema: {
+            type: "object",
+            properties: {
+              ids: {
+                type: "array",
+                items: {
+                  type: "string",
+                  description: "The ID of a record to delete",
+                },
+                description: "Array of record IDs to delete",
+              },
+            },
+            required: ["ids"],
+          },
+        },
+      ],
+    };
+  });
 
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    if (!args) {
+      throw new Error("Arguments are required");
+    }
+
+    if (name === "test_auth") {
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/test/auth`, {
+          method: "GET",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         return {
-          tools: [
+          content: [
             {
-              name: "get_records",
-              description: "Get all records from the backend server",
-              inputSchema: {
-                type: "object",
-                properties: {},
-                required: [],
-              },
-            },
-            {
-              name: "update_record",
-              description: "Update a record by ID with field data",
-              inputSchema: {
-                type: "object",
-                properties: {
-                  id: {
-                    type: "string",
-                    description: "The ID of the record to update",
-                  },
-                  fields: {
-                    type: "object",
-                    description: "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
-                    additionalProperties: true,
-                  },
-                },
-                required: ["id", "fields"],
-              },
-            },
-            {
-              name: "create_record",
-              description: "Create a new record with field data",
-              inputSchema: {
-                type: "object",
-                properties: {
-                  fields: {
-                    type: "object",
-                    description: "Object containing field names and their values (e.g., {title: 'New Title', description: 'New Description'})",
-                    additionalProperties: true,
-                  },
-                },
-                required: ["fields"],
-              },
-            },
-            {
-              name: "create_records_batch",
-              description: "Create multiple records at once",
-              inputSchema: {
-                type: "object",
-                properties: {
-                  records: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      description: "Object containing field names and their values for each record",
-                      additionalProperties: true,
-                    },
-                    description: "Array of record objects, each containing field data",
-                  },
-                },
-                required: ["records"],
-              },
-            },
-            {
-              name: "delete_record",
-              description: "Delete a record by ID",
-              inputSchema: {
-                type: "object",
-                properties: {
-                  id: {
-                    type: "string",
-                    description: "The ID of the record to delete",
-                  },
-                },
-                required: ["id"],
-              },
-            },
-            {
-              name: "delete_records_batch",
-              description: "Delete multiple records by their IDs",
-              inputSchema: {
-                type: "object",
-                properties: {
-                  ids: {
-                    type: "array",
-                    items: {
-                      type: "string",
-                      description: "The ID of a record to delete",
-                    },
-                    description: "Array of record IDs to delete",
-                  },
-                },
-                required: ["ids"],
-              },
+              type: "text",
+              text: `API key is valid:\n\n${JSON.stringify(
+                response.json(),
+                null,
+                2
+              )}`,
             },
           ],
         };
-      });
-      
-      server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        const { name, arguments: args } = request.params;
-      
-        if (!args) {
-          throw new Error("Arguments are required");
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error testing API token: ${error}`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "get_records") {
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+          method: "GET",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      
-        if (name === "get_records") {
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const records = await response.json();
-            
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Records retrieved successfully:\n\n${JSON.stringify(records, null, 2)}`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error fetching records: ${error}`,
-                },
-              ],
-            };
-          }
+        const records = await response.json();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Records retrieved successfully:\n\n${JSON.stringify(
+                records,
+                null,
+                2
+              )}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error fetching records: ${error}`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "update_record") {
+      const { id, fields } = args as {
+        id: string;
+        fields: Record<string, unknown>;
+      };
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
+          method: "PUT",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+          body: JSON.stringify({ stage: false, data: fields }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `HTTP error! status: ${response.status}, ${errorText}`
+          );
         }
-      
-        if (name === "update_record") {
-          const { id, fields } = args as { id: string, fields: Record<string, unknown> };
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stage: false, data: fields }),
-            });
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
-            }
-            const record = await response.json();
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Record ${id} updated successfully: ${JSON.stringify(record, null, 2)}`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error updating record ${id}: ${error}`,
-                },
-              ],
-            };
-          }
+        const record = await response.json();
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Record ${id} updated successfully: ${JSON.stringify(
+                record,
+                null,
+                2
+              )}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating record ${id}: ${error}`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "create_record") {
+      const { fields } = args as { fields: Record<string, unknown> };
+
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+          method: "POST",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+          body: JSON.stringify(fields),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      
-        if (name === "create_record") {
-          const { fields } = args as { fields: Record<string, unknown> };
-          
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(fields),
-            });
-            
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const newRecords = await response.json();
-            
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Record created successfully:\n\n${JSON.stringify(newRecords, null, 2)}`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error creating record: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                },
-              ],
-            };
-          }
+
+        const newRecords = await response.json();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Record created successfully:\n\n${JSON.stringify(
+                newRecords,
+                null,
+                2
+              )}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating record: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "create_records_batch") {
+      const { records } = args as { records: Record<string, unknown>[] };
+
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+          method: "POST",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+          body: JSON.stringify(records),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      
-        if (name === "create_records_batch") {
-          const { records } = args as { records: Record<string, unknown>[] };
-          
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(records),
-            });
-            
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const newRecords = await response.json();
-            
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Records created successfully:\n\n${JSON.stringify(newRecords, null, 2)}`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error creating records: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                },
-              ],
-            };
-          }
+
+        const newRecords = await response.json();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Records created successfully:\n\n${JSON.stringify(
+                newRecords,
+                null,
+                2
+              )}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating records: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "delete_record") {
+      const { id } = args as { id: string };
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
+          method: "DELETE",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+          body: JSON.stringify({ stage: false }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `HTTP error! status: ${response.status}, ${errorText}`
+          );
         }
-      
-        if (name === "delete_record") {
-          const { id } = args as { id: string };
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stage: false }),
-            });
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
-            }
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Record ${id} marked for deletion successfully.`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error deleting record ${id}: ${error}`,
-                },
-              ],
-            };
-          }
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Record ${id} marked for deletion successfully.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting record ${id}: ${error}`,
+            },
+          ],
+        };
+      }
+    }
+
+    if (name === "delete_records_batch") {
+      const ids = args.ids as string[];
+
+      try {
+        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+          method: "DELETE",
+          headers: {
+            ...SCRATCHPAD_API_HEADERS,
+          },
+          body: JSON.stringify(ids),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      
-        if (name === "delete_records_batch") {
-          const ids = args.ids as string[];
-          
-          try {
-            const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(ids),
-            });
-            
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Records deleted successfully`,
-                },
-              ],
-            };
-          } catch (error) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error deleting records: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                },
-              ],
-            };
-          }
-        }
-      
-        throw new Error(`Unknown tool: ${name}`);
-      });
-}
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Records deleted successfully`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting records: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            },
+          ],
+        };
+      }
+    }
+
+    throw new Error(`Unknown tool: ${name}`);
+  });
+};
