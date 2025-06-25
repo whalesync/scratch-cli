@@ -17,8 +17,9 @@ erDiagram
   UserRole role
 }
 "APIToken" {
-  String token PK
+  String id PK
   String userId FK
+  String token UK
   DateTime createdAt
   DateTime expiresAt
 }
@@ -60,8 +61,9 @@ Properties as follows:
 
 Properties as follows:
 
-- `token`:
+- `id`:
 - `userId`:
+- `token`:
 - `createdAt`:
 - `expiresAt`:
 

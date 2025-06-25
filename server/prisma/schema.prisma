@@ -37,13 +37,15 @@ model User {
 }
 
 model APIToken {
-  token       String   @id // type: APITokenId
+  id          String      @id // type: APITokenId
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String   
+  token       String
   createdAt   DateTime @default(now())
   expiresAt   DateTime @updatedAt
 
   @@index([userId])
+  @@unique([token])
 }
 
 model ConnectorAccount {
