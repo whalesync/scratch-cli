@@ -3,32 +3,22 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-
-const SCRATCHPAD_API_SERVER =
-  process.env.SCRATCHPAD_SERVER_URL ?? "http://localhost:3000";
-export const SCRATCHPAD_API_TOKEN = process.env.SCRATCHPAD_API_TOKEN ?? "";
-
-const SCRATCHPAD_API_HEADERS: HeadersInit = {
-  "Content-Type": "application/json",
-};
-
-if (SCRATCHPAD_API_TOKEN) {
-  SCRATCHPAD_API_HEADERS.Authorization = `API-Token ${SCRATCHPAD_API_TOKEN}`;
-}
+import { API_CONFIG } from "./lib/api/config.js";
+import {
+  CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION,
+  connectSnapshot,
+} from "./handlers/connect-snapshot.js";
+import {
+  TEST_AUTH_MCP_TOOL_DEFINITION,
+  testAuth,
+} from "./handlers/test-auth.js";
 
 export const addHandlers = (server: Server) => {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: [
-        {
-          name: "test_auth",
-          description: "Test my API token",
-          inputSchema: {
-            type: "object",
-            properties: {},
-            required: [],
-          },
-        },
+        TEST_AUTH_MCP_TOOL_DEFINITION,
+        CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION,
         {
           name: "get_records",
           description: "Get all records from the backend server",
@@ -138,48 +128,19 @@ export const addHandlers = (server: Server) => {
       throw new Error("Arguments are required");
     }
 
-    if (name === "test_auth") {
-      try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/test/auth`, {
-          method: "GET",
-          headers: {
-            ...SCRATCHPAD_API_HEADERS,
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `API key is valid:\n\n${JSON.stringify(
-                response.json(),
-                null,
-                2
-              )}`,
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error testing API token: ${error}`,
-            },
-          ],
-        };
-      }
+    if (name === CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION.name) {
+      return await connectSnapshot();
+    }
+    if (name === TEST_AUTH_MCP_TOOL_DEFINITION.name) {
+      return await testAuth();
     }
 
     if (name === "get_records") {
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+        const response = await fetch(`${API_CONFIG.getApiUrl()}/records`, {
           method: "GET",
           headers: {
-            ...SCRATCHPAD_API_HEADERS,
+            ...API_CONFIG.getApiHeaders(),
           },
         });
         if (!response.ok) {
@@ -217,13 +178,16 @@ export const addHandlers = (server: Server) => {
         fields: Record<string, unknown>;
       };
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
-          method: "PUT",
-          headers: {
-            ...SCRATCHPAD_API_HEADERS,
-          },
-          body: JSON.stringify({ stage: false, data: fields }),
-        });
+        const response = await fetch(
+          `${API_CONFIG.getApiUrl()}/records/${id}`,
+          {
+            method: "PUT",
+            headers: {
+              ...API_CONFIG.getApiHeaders(),
+            },
+            body: JSON.stringify({ stage: false, data: fields }),
+          }
+        );
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(
@@ -259,10 +223,10 @@ export const addHandlers = (server: Server) => {
       const { fields } = args as { fields: Record<string, unknown> };
 
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+        const response = await fetch(`${API_CONFIG.getApiUrl()}/records`, {
           method: "POST",
           headers: {
-            ...SCRATCHPAD_API_HEADERS,
+            ...API_CONFIG.getApiHeaders(),
           },
           body: JSON.stringify(fields),
         });
@@ -303,10 +267,10 @@ export const addHandlers = (server: Server) => {
       const { records } = args as { records: Record<string, unknown>[] };
 
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+        const response = await fetch(`${API_CONFIG.getApiUrl()}/records`, {
           method: "POST",
           headers: {
-            ...SCRATCHPAD_API_HEADERS,
+            ...API_CONFIG.getApiHeaders(),
           },
           body: JSON.stringify(records),
         });
@@ -346,13 +310,16 @@ export const addHandlers = (server: Server) => {
     if (name === "delete_record") {
       const { id } = args as { id: string };
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records/${id}`, {
-          method: "DELETE",
-          headers: {
-            ...SCRATCHPAD_API_HEADERS,
-          },
-          body: JSON.stringify({ stage: false }),
-        });
+        const response = await fetch(
+          `${API_CONFIG.getApiUrl()}/records/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              ...API_CONFIG.getApiHeaders(),
+            },
+            body: JSON.stringify({ stage: false }),
+          }
+        );
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(
@@ -383,10 +350,10 @@ export const addHandlers = (server: Server) => {
       const ids = args.ids as string[];
 
       try {
-        const response = await fetch(`${SCRATCHPAD_API_SERVER}/records`, {
+        const response = await fetch(`${API_CONFIG.getApiUrl()}/records`, {
           method: "DELETE",
           headers: {
-            ...SCRATCHPAD_API_HEADERS,
+            ...API_CONFIG.getApiHeaders(),
           },
           body: JSON.stringify(ids),
         });

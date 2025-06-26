@@ -1,0 +1,140 @@
+import { CreateSnapshotDto, Snapshot } from "./types/snapshot.js";
+import { API_CONFIG } from "./config.js";
+import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
+
+export const snapshotApi = {
+  list: async (connectorAccountId: string): Promise<Snapshot[]> => {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot?connectorAccountId=${connectorAccountId}`,
+      {
+        method: "GET",
+        headers: {
+          ...API_CONFIG.getApiHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to fetch snapshots");
+    }
+    return res.json();
+  },
+
+  detail: async (id: string): Promise<Snapshot> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+      method: "GET",
+      headers: {
+        ...API_CONFIG.getApiHeaders(),
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to fetch snapshot");
+    }
+    return res.json();
+  },
+
+  async create(dto: CreateSnapshotDto): Promise<Snapshot> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...API_CONFIG.getApiHeaders(),
+      },
+      body: JSON.stringify(dto),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to create snapshot");
+    }
+    return res.json();
+  },
+
+  update: async (id: string): Promise<Snapshot> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+      method: "PATCH",
+      headers: {
+        ...API_CONFIG.getApiHeaders(),
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to update snapshot");
+    }
+    return res.json();
+  },
+
+  async download(id: string): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${id}/download`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getApiHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to start download");
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+      method: "DELETE",
+      headers: {
+        ...API_CONFIG.getApiHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to delete snapshot");
+    }
+  },
+
+  async listRecords(
+    snapshotId: string,
+    tableId: string,
+    cursor?: string,
+    take?: number
+  ): Promise<ListRecordsResponse> {
+    const url = new URL(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
+    );
+    if (cursor) {
+      url.searchParams.append("cursor", cursor);
+    }
+    if (take) {
+      url.searchParams.append("take", take.toString());
+    }
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        ...API_CONFIG.getApiHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to list records");
+    }
+    return res.json();
+  },
+
+  async bulkUpdateRecords(
+    snapshotId: string,
+    tableId: string,
+    dto: BulkUpdateRecordsDto
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/bulk`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getApiHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dto),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to bulk update records");
+    }
+  },
+};
