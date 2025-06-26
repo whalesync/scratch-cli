@@ -12,10 +12,21 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useCallback, useMemo, useState } from "react";
 import { ColumnSpec, TableSpec } from "@/types/server-entities/snapshot";
-import { ActionIcon, Box, Center, Loader, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Box,
+  Center,
+  Loader,
+  Modal,
+  ScrollArea,
+  Text,
+} from "@mantine/core";
 import { useSnapshotRecords } from "../../../hooks/use-snapshot";
 import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
-import { Plus } from "@phosphor-icons/react";
+import { Bug, Plus } from "@phosphor-icons/react";
+import { useDisclosure } from "@mantine/hooks";
+import JsonTreeViewer from "../../components/JsonTreeViewer";
+import { notifications } from "@mantine/notifications";
 
 interface SnapshotTableGridProps {
   snapshotId: string;
@@ -33,6 +44,8 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
+  const [debugModalOpened, { open: openDebugModal, close: closeDebugModal }] =
+    useDisclosure(false);
 
   const { recordsResponse, isLoading, error, bulkUpdateRecords } =
     useSnapshotRecords(snapshotId, table.id.wsId);
@@ -83,9 +96,18 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         // Actions column
         const record = sortedRecords?.[row];
         if (!record) return;
-        bulkUpdateRecords({
-          ops: [{ op: "delete", id: record.id }],
-        });
+        try {
+          bulkUpdateRecords({
+            ops: [{ op: "delete", id: record.id }],
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: "Error deleting record",
+            message: error.message,
+            color: "red",
+          });
+        }
       }
     },
     [bulkUpdateRecords, sortedRecords]
@@ -124,7 +146,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
 
       const column = table.columns[col - 1]; // Adjust index
       const value = record?.[column.id.wsId];
-      const isIdColumn = column.id.wsId === "id";
+      const isReadonly = !!column.readonly;
 
       const themeOverride: Partial<Theme> = {};
       if (isDeleted) {
@@ -137,8 +159,8 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
 
       return {
         kind: GridCellKind.Text,
-        allowOverlay: !isIdColumn,
-        readonly: isIdColumn,
+        allowOverlay: !isReadonly,
+        readonly: isReadonly,
         displayData: value ? String(value) : "",
         data: value ? String(value) : "",
         themeOverride,
@@ -172,11 +194,20 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         },
       ],
     };
-    bulkUpdateRecords(dto);
+    try {
+      bulkUpdateRecords(dto);
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: "Error creating record",
+        message: error.message,
+        color: "red",
+      });
+    }
   }, [bulkUpdateRecords, table.columns, sortedRecords]);
 
   const onCellEdited = useCallback(
-    (cell: Item, newValue: EditableGridCell) => {
+    async (cell: Item, newValue: EditableGridCell) => {
       if (newValue.kind !== GridCellKind.Text) {
         return;
       }
@@ -201,7 +232,16 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
           },
         ],
       };
-      bulkUpdateRecords(dto);
+      try {
+        await bulkUpdateRecords(dto);
+      } catch (e) {
+        const error = e as Error;
+        notifications.show({
+          title: "Error updating record",
+          message: error.message,
+          color: "red",
+        });
+      }
     },
     [bulkUpdateRecords, sortedRecords, table.columns]
   );
@@ -240,7 +280,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
       title: titleWithSort(c, sort),
       id: c.id.wsId,
       width: columnWidths[c.id.wsId] ?? 150,
-      ...(c.id.wsId === "id" && {
+      ...(c.readonly && {
         themeOverride: {
           bgCell: "#F7F7F7",
         },
@@ -293,6 +333,30 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
           }
         }}
       />
+      <Modal
+        opened={debugModalOpened}
+        onClose={closeDebugModal}
+        title={`TableSpec for ${table.name}`}
+        size="lg"
+      >
+        <ScrollArea h={500}>
+          <JsonTreeViewer jsonData={table} />
+        </ScrollArea>
+      </Modal>
+      <ActionIcon
+        onClick={openDebugModal}
+        size="xl"
+        radius="xl"
+        variant="filled"
+        color="violet"
+        style={{
+          position: "absolute",
+          bottom: 16,
+          right: 80,
+        }}
+      >
+        <Bug size={24} />
+      </ActionIcon>
       <ActionIcon
         onClick={onAddRow}
         size="xl"

@@ -29,10 +29,23 @@ export type TableSpec = {
   columns: ColumnSpec[];
 };
 
+/** Types of columns we support. Add more if needed. */
+export enum PostgresColumnType {
+  TEXT = 'text',
+  TEXT_ARRAY = 'text[]',
+  NUMERIC = 'numeric',
+  NUMERIC_ARRAY = 'numeric[]',
+  BOOLEAN = 'boolean',
+  BOOLEAN_ARRAY = 'boolean[]',
+  JSONB = 'jsonb',
+}
+
 export type ColumnSpec = {
   id: EntityId;
   name: string;
-  type: 'text' | 'number' | 'json';
+
+  pgType: PostgresColumnType;
+  readonly?: boolean;
 
   // TODO custom connectordata.
 };

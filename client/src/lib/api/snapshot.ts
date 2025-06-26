@@ -137,6 +137,18 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
+      if (res.status === 400) {
+        const errorBody = await res.json();
+        const firstError = errorBody.errors?.[0];
+        if (firstError) {
+          throw new Error(
+            `Record ${firstError.id}, field ${firstError.field}: ${firstError.message}`
+          );
+        }
+        if (errorBody.message) {
+          throw new Error(errorBody.message);
+        }
+      }
       throw new Error(res.statusText ?? "Failed to bulk update records");
     }
   },

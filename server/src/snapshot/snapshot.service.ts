@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Snapshot } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
-import { TableSpec } from '../remote-service/connectors/types';
-import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
+import { PostgresColumnType, TableSpec } from '../remote-service/connectors/types';
+import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotRecord } from './entities/snapshot-record.entity';
@@ -50,10 +50,17 @@ export class SnapshotService {
         connectorAccountId,
         tableSpecs,
       },
+      include: { connectorAccount: true },
     });
 
     // Make a new schema and create tables to store its data.
     await this.snapshotDbService.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
+
+    // Start downloading in the background
+    // TODO: Do this work somewhere real.
+    this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
+      console.error(`Error downloading snapshot ${newSnapshot.id}:`, error);
+    });
 
     return newSnapshot;
   }
@@ -128,7 +135,52 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
+    this.validateBulkUpdateOps(dto.ops, tableSpec);
+
     return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops);
+  }
+
+  private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: TableSpec) {
+    const errors: { id: string; field: string; message: string }[] = [];
+    const numericRegex = /^-?\d+(\.\d+)?$/;
+
+    const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
+
+    for (const op of ops) {
+      if (op.op === 'create' || op.op === 'update') {
+        if (!op.data) {
+          continue;
+        }
+
+        for (const [field, value] of Object.entries(op.data)) {
+          const columnSpec = columnMap.get(field);
+          if (columnSpec?.pgType === PostgresColumnType.NUMERIC) {
+            if (value !== null && typeof value !== 'number' && typeof value !== 'string') {
+              errors.push({
+                id: op.id,
+                field,
+                message: `Invalid input for numeric field: complex object received.`,
+              });
+              continue;
+            }
+
+            if (value !== null && !numericRegex.test(String(value))) {
+              errors.push({
+                id: op.id,
+                field,
+                message: `Invalid input syntax for type numeric: "${value}"`,
+              });
+            }
+          }
+        }
+      }
+    }
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: 'Invalid input for one or more fields.',
+        errors,
+      });
+    }
   }
 
   async download(id: SnapshotId, userId: string): Promise<void> {

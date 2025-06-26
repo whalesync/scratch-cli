@@ -1,119 +1,48 @@
 /**
- * Our names for the data types that airtable uses. The original Airtable data type is the part of the string after
- * "airtable/" and before a colon. For example, the `DATETIME` Airtable type is "date", but our versions of it
- * are "airtable/date:dateOnly" and "airtable/date:dateTime" to disambiguate the same type with different options.
+ * The raw data types that airtable uses.
+ *
+ * See https://airtable.com/developers/web/api/field-model
  */
 export enum AirtableDataType {
-  AUTONUMBER = 'airtable/autoNumber',
-  BARCODE = 'airtable/barcode',
-  BUTTON = 'airtable/button',
-  CHECKBOX = 'airtable/checkbox',
-  COLLABORATOR = 'airtable/collaborator',
-  /** In the Airtable UI, these are "Created By" and "Last Modified By" fields. */
-  COMPUTATION = 'airtable/computation',
-  COUNT = 'airtable/count',
-  DATE_ONLY = 'airtable/date:dateOnly',
-  DATETIME = 'airtable/date:dateTime',
-  /** This is always an array, even though the UI lets you chose whether to allow multiple items or not. */
-  FOREIGN_KEY = 'airtable/foreignKey',
-  // The formula types correspond to both "formula" and "rollup" fields in the Airtable UI. We further subdivide
-  // them by data type.
-  FORMULA_DATE = 'airtable/formula:date',
-  FORMULA_NUMBER = 'airtable/formula:number',
-  FORMULA_TEXT = 'airtable/formula:text',
-
-  // Lookup fields are special because they can be any other result type.
-  // TODO: With the new data type design, these can all be collapsed down to one "LOOKUP" type.
-  //
-  // NOTE: The values in these lookup fields are **always** arrays. Single-lookup fields (lookup fields that reference
-  // single linked record fields) become a one-element array. Multi-lookup fields (lookup fields that reference
-  // multi linked record fields) are naturally arrays due to the multiple foreign records. Arrays of arrays, such as
-  // multi lookup fields of multi-select fields, get flattened to a single array.
-  // NOTE: If adding a new lookup type, you must also add it to LOOKUP_TYPES and AirtableLookupDataType below.
-  LOOKUP_BARCODE = 'airtable/lookup:barcode',
-  LOOKUP_BUTTON = 'airtable/lookup:button',
-  LOOKUP_CHECKBOX = 'airtable/lookup:checkbox',
-  LOOKUP_COLLABORATOR = 'airtable/lookup:collaborator',
-  LOOKUP_COMPUTATION = 'airtable/lookup:computation',
-  LOOKUP_DATE_ONLY = 'airtable/lookup:dateOnly',
-  LOOKUP_DATETIME = 'airtable/lookup:dateTime',
-  LOOKUP_FOREIGN_KEY = 'airtable/lookup:foreignKey',
-  LOOKUP_MULTILINE_TEXT = 'airtable/lookup:multilineText',
-  LOOKUP_MULTIPLE_ATTACHMENT = 'airtable/lookup:multipleAttachment',
-  LOOKUP_MULTIPLE_ATTACHMENT_V2 = 'airtable/lookup:multipleAttachmentV2',
-  LOOKUP_NUMBER = 'airtable/lookup:number',
-  LOOKUP_RICH_TEXT = 'airtable/lookup:richText',
-  LOOKUP_RICH_TEXT_V2 = 'airtable/lookup:richTextV2',
-  LOOKUP_TEXT = 'airtable/lookup:text',
-  LOOKUP_AI_MULTILINE_TEXT = 'airtable/lookup:aiText',
-
-  // TODO: Add multi-collaborator.
-  MULTICOLLABORATOR = 'airtable/multiCollaborator',
-  MULTILINE_TEXT = 'airtable/multilineText',
-  MULTIPLE_ATTACHMENT = 'airtable/multipleAttachment',
-  MULTIPLE_ATTACHMENT_V2 = 'airtable/multipleAttachmentV2',
-  MULTISELECT = 'airtable/multiSelect',
-  NUMBER = 'airtable/number',
-  PHONE = 'airtable/phone',
-  RATING = 'airtable/rating',
-  RICH_TEXT = 'airtable/richText',
-  RICH_TEXT_V2 = 'airtable/richTextV2',
-  SELECT = 'airtable/select',
-  TEXT = 'airtable/text',
-  URL = 'airtable/url',
-  // AI Fields
-  AI_MULTILINE_TEXT = 'airtable/aiText',
-
-  // None of the above.
-  UNKNOWN = 'airtable/unknown',
+  SINGLE_LINE_TEXT = 'singleLineText',
+  EMAIL = 'email',
+  URL = 'url',
+  MULTILINE_TEXT = 'multilineText',
+  NUMBER = 'number',
+  PERCENT = 'percent',
+  CURRENCY = 'currency',
+  SINGLE_SELECT = 'singleSelect',
+  MULTIPLE_SELECTS = 'multipleSelects',
+  SINGLE_COLLABORATOR = 'singleCollaborator',
+  MULTIPLE_COLLABORATORS = 'multipleCollaborators',
+  MULTIPLE_LOOKUP_VALUES = 'multipleLookupValues',
+  DATE = 'date',
+  DATE_TIME = 'dateTime',
+  PHONE_NUMBER = 'phoneNumber',
+  MULTIPLE_ATTACHMENTS = 'multipleAttachments',
+  CHECKBOX = 'checkbox',
+  RATING = 'rating',
+  FORMULA = 'formula',
+  ROLLUP = 'rollup',
+  COUNT = 'count',
+  LOOKUP = 'lookup',
+  MULTIPLE_RECORD_LINKS = 'multipleRecordLinks',
+  CREATED_TIME = 'createdTime',
+  LAST_MODIFIED_TIME = 'lastModifiedTime',
+  CREATED_BY = 'createdBy',
+  LAST_MODIFIED_BY = 'lastModifiedBy',
+  AUTO_NUMBER = 'autoNumber',
+  BARCODE = 'barcode',
+  RICH_TEXT = 'richText',
+  DURATION = 'duration',
+  BUTTON = 'button',
+  AI_TEXT = 'aiText',
+  EXTERNAL_SYNC_SOURCE = 'externalSyncSource',
+  UNKNOWN = 'unknown',
 }
 
 // Airtable-specific error messages.
 export const AIRTABLE_SYNC_TO_VIEW_DISALLOWED = 'Syncing records to an Airtable View is not supported.';
-
-// NOTE: If adding a new lookup type, you must also add it to AirtableLookupDataType below.
-const LOOKUP_TYPES = [
-  AirtableDataType.LOOKUP_BARCODE,
-  AirtableDataType.LOOKUP_BUTTON,
-  AirtableDataType.LOOKUP_CHECKBOX,
-  AirtableDataType.LOOKUP_COLLABORATOR,
-  AirtableDataType.LOOKUP_COMPUTATION,
-  AirtableDataType.LOOKUP_DATE_ONLY,
-  AirtableDataType.LOOKUP_DATETIME,
-  AirtableDataType.LOOKUP_FOREIGN_KEY,
-  AirtableDataType.LOOKUP_MULTILINE_TEXT,
-  AirtableDataType.LOOKUP_MULTIPLE_ATTACHMENT,
-  AirtableDataType.LOOKUP_MULTIPLE_ATTACHMENT_V2,
-  AirtableDataType.LOOKUP_NUMBER,
-  AirtableDataType.LOOKUP_RICH_TEXT,
-  AirtableDataType.LOOKUP_RICH_TEXT_V2,
-  AirtableDataType.LOOKUP_TEXT,
-  AirtableDataType.LOOKUP_AI_MULTILINE_TEXT,
-] as const;
-
-// NOTE: If adding a new lookup type, you must also add it to LOOKUP_TYPES above.
-export type AirtableLookupDataType =
-  | AirtableDataType.LOOKUP_BARCODE
-  | AirtableDataType.LOOKUP_BUTTON
-  | AirtableDataType.LOOKUP_CHECKBOX
-  | AirtableDataType.LOOKUP_COLLABORATOR
-  | AirtableDataType.LOOKUP_COMPUTATION
-  | AirtableDataType.LOOKUP_DATE_ONLY
-  | AirtableDataType.LOOKUP_DATETIME
-  | AirtableDataType.LOOKUP_FOREIGN_KEY
-  | AirtableDataType.LOOKUP_MULTILINE_TEXT
-  | AirtableDataType.LOOKUP_MULTIPLE_ATTACHMENT
-  | AirtableDataType.LOOKUP_MULTIPLE_ATTACHMENT_V2
-  | AirtableDataType.LOOKUP_NUMBER
-  | AirtableDataType.LOOKUP_RICH_TEXT
-  | AirtableDataType.LOOKUP_RICH_TEXT_V2
-  | AirtableDataType.LOOKUP_TEXT
-  | AirtableDataType.LOOKUP_AI_MULTILINE_TEXT;
-
-/** Returns true if the data type is one of the lookup column types. */
-export function isLookupColumn(dataType: AirtableDataType): dataType is AirtableLookupDataType {
-  return (LOOKUP_TYPES as unknown as AirtableDataType[]).includes(dataType);
-}
 
 /**
  * Format of the type options for a date field. It usually includes more keys than below, but we only care about is
@@ -227,7 +156,7 @@ export type ResolvedAirtableColumn = {
    * The type of the root column in the chain of references for `originalColumn`. This can never be a lookup type
    * because a lookup type is never a terminal node in the reference chain.
    */
-  rootType: Exclude<AirtableDataType, AirtableLookupDataType>;
+  rootType: AirtableDataType;
   /** The full column data from Airtable for the terminal node in the reference chain. */
   rootColumn: AirtableColumn;
 };
@@ -245,7 +174,7 @@ export type ResolvedAirtableColumnV2 = {
    * The type of the root column in the chain of references for `originalColumn`. This can never be a lookup type
    * because a lookup type is never a terminal node in the reference chain.
    */
-  rootType: Exclude<AirtableDataType, AirtableLookupDataType>;
+  rootType: AirtableDataType;
   /** The full column data from Airtable for the terminal node in the reference chain. */
   rootColumn: AirtableFieldsV2;
 };
@@ -414,7 +343,7 @@ export interface AirtableApiDeleteRecordResponse extends AirtableApiResponse {
 }
 
 /** https://airtable.com/developers/web/api/list-bases. */
-export type AirtableBases = {
+export type AirtableBase = {
   id: string;
   name: string;
   permissionLevel: 'none' | 'read' | 'comment' | 'edit' | 'create';
@@ -422,7 +351,7 @@ export type AirtableBases = {
 
 /** https://airtable.com/developers/web/api/list-bases. */
 export interface AirtableListBasesResponse extends AirtableApiResponse {
-  bases: AirtableBases[];
+  bases: AirtableBase[];
   offset?: string;
 }
 
@@ -604,7 +533,7 @@ export interface AirtableBaseBundle {
    * this should only contain bases we have permission level for.
    * https://airtable.com/developers/web/api/list-bases
    */
-  basesPreviews?: AirtableBases[];
+  basesPreviews?: AirtableBase[];
 }
 
 export interface AirtableWebhookStateBundle {

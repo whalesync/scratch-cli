@@ -3,9 +3,11 @@ import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
 import { sanitizeForWsId } from '../../ids';
 import { ColumnSpec, ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
+import { NotionSchemaParser } from './notion-schema-parser';
 
 export class NotionConnector extends Connector<typeof Service.NOTION> {
   private readonly client: Client;
+  private readonly schemaParser = new NotionSchemaParser();
 
   service = Service.NOTION;
 
@@ -27,43 +29,22 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
       filter: { property: 'object', value: 'database' },
     });
 
-    const databases = response.results.filter((r) => r.object === 'database');
-    const tables = databases.map((db: DatabaseObjectResponse) => ({
-      id: {
-        wsId: db.id,
-        remoteId: [db.id],
-      },
-      displayName: db.title[0].plain_text,
-    }));
+    const databases = response.results.filter((r): r is DatabaseObjectResponse => r.object === 'database');
+    const tables = databases.map((db) => this.schemaParser.parseTablePreview(db));
     return tables;
   }
 
   async fetchTableSpec(id: EntityId): Promise<TableSpec> {
     const [databaseId] = id.remoteId;
     const database = (await this.client.databases.retrieve({ database_id: databaseId })) as DatabaseObjectResponse;
-    const columns: ColumnSpec[] = [
-      {
-        id: {
-          wsId: 'id',
-          remoteId: ['id'],
-        },
-        name: 'id',
-        type: 'text',
-      },
-    ];
+    const columns: ColumnSpec[] = [this.schemaParser.idColumn()];
     for (const property of Object.values(database.properties)) {
-      columns.push({
-        id: {
-          wsId: sanitizeForWsId(property.name),
-          remoteId: [property.id],
-        },
-        name: property.name,
-        type: 'text', // TODO: Richer types.
-      });
+      columns.push(this.schemaParser.parseColumn(property));
     }
+    const tableTitle = database.title.map((t) => t.plain_text).join('');
     return {
       id,
-      name: sanitizeForWsId(database.title.map((t) => t.plain_text).join(' ')),
+      name: sanitizeForWsId(tableTitle),
       columns,
     };
   }

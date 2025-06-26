@@ -2,7 +2,8 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import knex, { Knex } from 'knex';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotId } from 'src/types/ids';
-import { ConnectorRecord, TableSpec } from '../remote-service/connectors/types';
+import { assertUnreachable } from 'src/utils/asserts';
+import { ConnectorRecord, PostgresColumnType, TableSpec } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Design!
@@ -56,17 +57,30 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
             if (col.id.wsId === 'id') {
               continue;
             }
-            switch (col.type) {
-              case 'number':
-                t.decimal(col.id.wsId);
-                break;
-              case 'json':
-                t.jsonb(col.id.wsId);
-                break;
-              case 'text':
-              default:
+            switch (col.pgType) {
+              case PostgresColumnType.TEXT:
                 t.text(col.id.wsId);
                 break;
+              case PostgresColumnType.TEXT_ARRAY:
+                t.specificType(col.id.wsId, 'text[]');
+                break;
+              case PostgresColumnType.NUMERIC:
+                t.specificType(col.id.wsId, 'numeric');
+                break;
+              case PostgresColumnType.NUMERIC_ARRAY:
+                t.specificType(col.id.wsId, 'numeric[]');
+                break;
+              case PostgresColumnType.BOOLEAN:
+                t.boolean(col.id.wsId);
+                break;
+              case PostgresColumnType.BOOLEAN_ARRAY:
+                t.specificType(col.id.wsId, 'boolean[]');
+                break;
+              case PostgresColumnType.JSONB:
+                t.jsonb(col.id.wsId);
+                break;
+              default:
+                assertUnreachable(col.pgType);
             }
           }
           // The metadata column for edits.

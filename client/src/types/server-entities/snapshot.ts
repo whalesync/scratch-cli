@@ -4,6 +4,7 @@ export interface ColumnSpec {
   id: EntityId;
   name: string;
   type: "text" | "number" | "json";
+  readonly?: boolean;
 }
 
 export interface TableSpec {

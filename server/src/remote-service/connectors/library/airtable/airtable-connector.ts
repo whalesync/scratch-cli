@@ -1,13 +1,14 @@
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
-import { sanitizeForWsId } from '../../ids';
 import { ColumnSpec, ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
 import { AirtableApiClient } from './airtable-api-client';
+import { AirtableSchemaParser } from './airtable-schema-parser';
 
 export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   service = Service.AIRTABLE;
 
   private readonly client: AirtableApiClient;
+  private readonly schemaParser = new AirtableSchemaParser();
 
   constructor(apiKey: string) {
     super();
@@ -24,15 +25,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     const tables: TablePreview[] = [];
     for (const base of bases.bases) {
       const baseSchema = await this.client.getBaseSchema(base.id);
-      tables.push(
-        ...baseSchema.tables.map((table) => ({
-          id: {
-            wsId: sanitizeForWsId(table.name),
-            remoteId: [base.id, table.id],
-          },
-          displayName: `${base.name} - ${table.name}`,
-        })),
-      );
+      tables.push(...baseSchema.tables.map((table) => this.schemaParser.parseTablePreview(base, table)));
     }
     return tables;
   }
@@ -44,29 +37,13 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     if (!table) {
       throw new Error(`Table ${tableId} not found in base ${baseId}`);
     }
-    const columns: ColumnSpec[] = [
-      {
-        id: {
-          wsId: 'id',
-          remoteId: ['id'],
-        },
-        name: 'id',
-        type: 'text',
-      },
-    ];
+    const columns: ColumnSpec[] = [this.schemaParser.idColumn()];
     for (const field of table.fields) {
-      columns.push({
-        id: {
-          wsId: sanitizeForWsId(field.name),
-          remoteId: [field.id],
-        },
-        name: field.name,
-        type: 'text', // TODO: Pick a better type.
-      });
+      columns.push(this.schemaParser.parseColumn(field));
     }
     return {
       id,
-      name: sanitizeForWsId(table.name),
+      name: table.name,
       columns,
     };
   }

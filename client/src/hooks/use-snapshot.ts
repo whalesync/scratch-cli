@@ -127,9 +127,16 @@ export const useSnapshotRecords = (
         return newData;
       };
 
-      await mutate(swrKey, optimisticData(data), { revalidate: false });
-      await snapshotApi.bulkUpdateRecords(snapshotId, tableId, dto);
-      await mutate(swrKey);
+      try {
+        await mutate(swrKey, optimisticData(data), { revalidate: false });
+        await snapshotApi.bulkUpdateRecords(snapshotId, tableId, dto);
+      } catch (e) {
+        // Re-throw the error so the calling component can handle it.
+        throw e;
+      } finally {
+        // Always revalidate to get the canonical state from the server.
+        await mutate(swrKey);
+      }
     },
     [snapshotId, tableId, mutate, swrKey, data]
   );
