@@ -16,6 +16,7 @@ import {
   Loader,
   Modal,
   Paper,
+  ScrollArea,
   Stack,
   Text,
   Title,
@@ -164,15 +165,21 @@ export function ConnectorAccountRow({
               </Group>
 
               <Paper withBorder p="md" mt="sm">
-                <Stack mt="xs">
-                  {tables.map((table) => (
-                    <Checkbox
-                      key={table.id.wsId}
-                      value={table.id.wsId}
-                      label={table.displayName}
-                    />
-                  ))}
-                </Stack>
+                <ScrollArea h={400}>
+                  <Stack mt="xs">
+                    {tables
+                      .sort((a, b) =>
+                        a.displayName.localeCompare(b.displayName)
+                      )
+                      .map((table) => (
+                        <Checkbox
+                          key={`${table.id.wsId}-${table.displayName}`}
+                          value={table.id.wsId}
+                          label={table.displayName}
+                        />
+                      ))}
+                  </Stack>
+                </ScrollArea>
               </Paper>
             </Checkbox.Group>
           </>

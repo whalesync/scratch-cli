@@ -55,6 +55,10 @@ export const connectSnapshot = async (
           snapshotManager.getActiveSnapshot()?.tables.length
         } table(s) found`,
       },
+      {
+        type: "text",
+        text: `${JSON.stringify(snapshotManager.getActiveSnapshot(), null, 2)}`,
+      },
     ],
   };
 };

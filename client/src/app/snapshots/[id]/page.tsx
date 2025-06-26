@@ -3,18 +3,23 @@
 import { useSnapshot } from "@/hooks/use-snapshot";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {
+  ActionIcon,
   Button,
   Center,
+  CheckIcon,
+  CopyButton,
   Group,
   Loader,
   Stack,
   Tabs,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
   DownloadSimpleIcon,
+  HeadCircuitIcon,
   TableIcon,
   TrashIcon,
   UploadIcon,
@@ -135,7 +140,30 @@ export default function SnapshotPage() {
   return (
     <Stack h="100vh">
       <Group p="xs" bg="gray.0">
-        <Title order={2}>Editing snapshot</Title>
+        <Group>
+          <Title order={2}>Editing snapshot</Title>
+          <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
+            {({ copied, copy }) => (
+              <Tooltip
+                label={copied ? "Copied" : `Copy prompt for Cursor`}
+                withArrow
+                position="right"
+              >
+                <ActionIcon
+                  color={copied ? "teal" : "gray"}
+                  variant="subtle"
+                  onClick={copy}
+                >
+                  {copied ? (
+                    <CheckIcon size={16} />
+                  ) : (
+                    <HeadCircuitIcon size={16} />
+                  )}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
         <Group ml="auto">
           <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download from remote
