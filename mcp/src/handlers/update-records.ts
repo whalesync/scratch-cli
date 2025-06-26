@@ -28,11 +28,12 @@ export const BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION = {
             id: {
               type: "string",
               description:
-                "The record ID (for create, this is the client-generated ID).",
+                "The record ID (for create, this is the generated short UUID) and this must also be added to the data object with the id key.",
             },
             data: {
               type: "object",
-              description: "Field data for create or update.",
+              description:
+                "Field data for create or update. For creates this must contain the generated id property",
               additionalProperties: true,
             },
           },

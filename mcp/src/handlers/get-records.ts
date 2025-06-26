@@ -11,6 +11,11 @@ export const GET_RECORDS_MCP_TOOL_DEFINITION = {
         type: "string",
         description: "The ID of the table to get records for",
       },
+      limit: {
+        type: "number",
+        description: "The maximum number of records to retrieve",
+        default: 500,
+      },
     },
     required: ["tableId"],
   },
@@ -19,6 +24,7 @@ export const GET_RECORDS_MCP_TOOL_DEFINITION = {
 export const getRecords = async (args: Record<string, unknown> | undefined) => {
   const snapshot = snapshotManager.getActiveSnapshot();
   const tableId = args?.tableId as string;
+  const limit = args?.limit ? parseInt(args.limit as string) : 100;
 
   if (!snapshot) {
     return {
@@ -42,7 +48,12 @@ export const getRecords = async (args: Record<string, unknown> | undefined) => {
   }
 
   try {
-    const result = await snapshotApi.listRecords(snapshot.id, tableId);
+    const result = await snapshotApi.listRecords(
+      snapshot.id,
+      tableId,
+      undefined,
+      limit
+    );
     return {
       content: [
         {
