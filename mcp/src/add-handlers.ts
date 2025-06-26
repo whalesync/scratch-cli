@@ -129,7 +129,7 @@ export const addHandlers = (server: Server) => {
     }
 
     if (name === CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION.name) {
-      return await connectSnapshot();
+      return await connectSnapshot(args);
     }
     if (name === TEST_AUTH_MCP_TOOL_DEFINITION.name) {
       return await testAuth();
