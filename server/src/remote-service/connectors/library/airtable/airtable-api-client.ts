@@ -1,5 +1,5 @@
 import axios, { RawAxiosRequestHeaders } from 'axios';
-import { AirtableBaseSchemaResponseV2, AirtableListBasesResponse } from './airtable-types';
+import { AirtableBaseSchemaResponseV2, AirtableListBasesResponse, AirtableRecord } from './airtable-types';
 
 const AIRTABLE_API_BASE_URL = 'https://api.airtable.com/v0';
 
@@ -33,14 +33,11 @@ export class AirtableApiClient {
     return r.data;
   }
 
-  async *listRecords(
-    baseId: string,
-    tableId: string,
-  ): AsyncGenerator<{ id: string; fields: Record<string, unknown> }[], void> {
+  async *listRecords(baseId: string, tableId: string): AsyncGenerator<AirtableRecord[], void> {
     let offset: string | undefined;
     do {
       const r = await axios.get<{
-        records: { id: string; fields: Record<string, unknown> }[];
+        records: AirtableRecord[];
         offset?: string;
       }>(`${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`, {
         headers: this.authHeaders,

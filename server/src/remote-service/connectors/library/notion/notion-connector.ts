@@ -67,12 +67,13 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
         .map((page) => {
           const converted: ConnectorRecord = {
             id: page.id,
+            fields: {},
           };
 
           for (const column of tableSpec.columns) {
             const prop = Object.values(page.properties).find((p) => p.id === column.id.remoteId[0]);
             if (prop) {
-              converted[column.id.wsId] = this.extractPropertyValue(prop);
+              converted.fields[column.id.wsId] = this.extractPropertyValue(prop);
             }
           }
           return converted;

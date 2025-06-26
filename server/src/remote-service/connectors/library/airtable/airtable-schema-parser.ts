@@ -13,15 +13,6 @@ export class AirtableSchemaParser {
     };
   }
 
-  idColumn(): ColumnSpec {
-    return {
-      id: { wsId: 'id', remoteId: ['id'] },
-      name: 'id',
-      pgType: PostgresColumnType.TEXT,
-      readonly: true,
-    };
-  }
-
   parseColumn(field: AirtableFieldsV2): ColumnSpec {
     const pgType = this.getPostgresType(field);
     const readonly = this.isColumnReadonly(field);

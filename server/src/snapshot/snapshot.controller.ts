@@ -15,10 +15,10 @@ import {
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
+import { SnapshotRecord } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
-import { SnapshotRecord } from './entities/snapshot-record.entity';
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotService } from './snapshot.service';
 

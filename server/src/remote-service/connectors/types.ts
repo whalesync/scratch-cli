@@ -1,3 +1,6 @@
+import { EditedFieldsMetadata } from '../../snapshot/snapshot-db.service';
+import { SnapshotRecordId } from '../../types/ids';
+
 export type TablePreview = {
   id: EntityId;
   displayName: string;
@@ -52,12 +55,43 @@ export type ColumnSpec = {
 
 /**
  * A record from the connector.
- * NOTE THE REQUIREMENTS:
- * 1. Must have a string `id` field.
- * 2. All other fields are indexed by the WHALESYNC ID, not the native one.
- *
- * TODO(ryder): I'm not sure about requirement #2. I would prefer a way for connectors to dump the rawest possible
- * records and be able to convert it to a usable postgres record later on, but that conversion is connector specific,
- * so for now lets just make the getrecord call handle it, i think.
+ * Everything uses connector IDs.
  */
-export type ConnectorRecord = { id: string; [wsId: string]: unknown };
+export type ConnectorRecord = {
+  // Remote ID from the connector.
+  id: string;
+  // Columns, indexed by the wsId NOT the connector's native ID.
+  fields: Record<string, unknown>;
+};
+
+export type SnapshotRecord = {
+  id: {
+    // Internal ID for the record.
+    wsId: SnapshotRecordId;
+    // Remote ID from the connector.
+    // Can be null if the record is new.
+    remoteId: string | null;
+  };
+
+  // Columns, indexed by the wsId NOT the connector's native ID.
+  fields: Record<string, unknown>;
+
+  __edited_fields: EditedFieldsMetadata;
+  __dirty: boolean;
+};
+
+export type CreateRecordInput = {
+  wsId: SnapshotRecordId;
+  fields: Record<string, unknown>;
+};
+
+export type UpdateRecordInput = {
+  wsId: SnapshotRecordId;
+  id: string;
+  fields: Record<string, unknown>;
+};
+
+export type DeleteRecordInput = {
+  wsId: SnapshotRecordId;
+  id: string;
+};

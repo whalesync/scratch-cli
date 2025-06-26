@@ -1,9 +1,9 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import knex, { Knex } from 'knex';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { SnapshotId } from 'src/types/ids';
+import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
-import { ConnectorRecord, PostgresColumnType, TableSpec } from '../remote-service/connectors/types';
+import { ConnectorRecord, PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Design!
@@ -11,6 +11,7 @@ import { RecordOperation } from './dto/bulk-update-records.dto';
 // of metadata in each snapshotted table. It contains the fields that have been edited since last download, plus whether
 // the record was created or deleted.
 export const EDITED_FIELDS_COLUMN = '__edited_fields';
+export const DIRTY_COLUMN = '__dirty';
 
 export type EditedFieldsMetadata = {
   /** Timestamps when the record was created locally. */
@@ -20,6 +21,14 @@ export type EditedFieldsMetadata = {
 } & {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
+};
+
+type DbRecord = {
+  wsId: SnapshotRecordId;
+  id: string | null;
+  [EDITED_FIELDS_COLUMN]: EditedFieldsMetadata;
+  [DIRTY_COLUMN]: boolean;
+  [key: string]: unknown;
 };
 
 @Injectable()
@@ -52,7 +61,8 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       const tableExists = await this.knex.schema.withSchema(snapshotId).hasTable(table.id.wsId);
       if (!tableExists) {
         await this.knex.schema.withSchema(snapshotId).createTable(table.id.wsId, (t) => {
-          t.text('id').primary();
+          t.text('wsId').primary();
+          t.text('id').nullable().unique();
           for (const col of table.columns) {
             if (col.id.wsId === 'id') {
               continue;
@@ -83,8 +93,8 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
                 assertUnreachable(col.pgType);
             }
           }
-          // The metadata column for edits.
-          t.jsonb(EDITED_FIELDS_COLUMN).nullable();
+          t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
+          t.boolean(DIRTY_COLUMN).defaultTo(false);
         });
       }
     }
@@ -96,7 +106,24 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     // Debug: Ensure the records have the right fields to catch bugs early.
     this.ensureExpectedFields(table, records);
 
-    await this.knex(table.id.wsId).withSchema(snapshotId).insert(records).onConflict('id').merge();
+    const upsertRecordsInput = records.map((r) => ({
+      wsId: createSnapshotRecordId(), // Will be ignored on merge.
+      id: r.id,
+      ...r.fields,
+    }));
+
+    if (upsertRecordsInput.length === 0) {
+      return;
+    }
+
+    // There might already be records in the DB. We want to pair by (remote) id and overwrite everything except the wsId.
+    const columnsToUpdateOnMerge = table.columns.map((c) => c.id.wsId);
+
+    await this.knex(table.id.wsId)
+      .withSchema(snapshotId)
+      .insert(upsertRecordsInput)
+      .onConflict('id')
+      .merge(columnsToUpdateOnMerge);
   }
 
   async listRecords(
@@ -104,14 +131,25 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     tableId: string,
     cursor: string | undefined,
     take: number,
-  ): Promise<ConnectorRecord[]> {
-    const query = this.knex(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
+  ): Promise<SnapshotRecord[]> {
+    const query = this.knex<DbRecord>(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
 
     if (cursor) {
       query.where('id', '>=', cursor);
     }
 
-    return query;
+    return (await query).map(
+      ({ wsId, id, __edited_fields, __dirty, ...fields }): SnapshotRecord => ({
+        // Need to move the id columns up one level.
+        id: {
+          wsId,
+          remoteId: id,
+        },
+        fields,
+        __edited_fields,
+        __dirty,
+      }),
+    );
   }
 
   async bulkUpdateRecords(snapshotId: SnapshotId, tableId: string, ops: RecordOperation[]): Promise<void> {
@@ -122,7 +160,13 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
           case 'create':
             await trx(tableId)
               .withSchema(snapshotId)
-              .insert({ ...op.data, [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }) });
+              .insert({
+                ...op.data,
+                wsId: createSnapshotRecordId(),
+                id: null,
+                [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
+                [DIRTY_COLUMN]: true,
+              });
             break;
           case 'update': {
             const newFields = Object.keys(op.data || {}).reduce(
@@ -133,7 +177,10 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
               {} as Record<string, string>,
             );
 
-            const updatePayload: Record<string, any> = { ...op.data };
+            const updatePayload: Record<string, any> = {
+              ...op.data,
+              [DIRTY_COLUMN]: true,
+            };
 
             // Merge the new fields into the edited fields metadata.
             if (Object.keys(newFields).length > 0) {
@@ -144,15 +191,18 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
             }
 
             if (Object.keys(updatePayload).length > 0) {
-              await trx(tableId).withSchema(snapshotId).where('id', op.id).update(updatePayload);
+              await trx(tableId).withSchema(snapshotId).where('wsId', op.wsId).update(updatePayload);
             }
             break;
           }
           case 'delete':
             await trx(tableId)
               .withSchema(snapshotId)
-              .where('id', op.id)
-              .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }) });
+              .where('wsId', op.wsId)
+              .update({
+                [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
+                [DIRTY_COLUMN]: true,
+              });
             break;
         }
       }
@@ -167,7 +217,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     let hasBad = false;
     const expectedFields = new Set(table.columns.map((c) => c.id.wsId));
     for (const record of records) {
-      for (const [key, value] of Object.entries(record)) {
+      for (const [key, value] of Object.entries(record.fields)) {
         if (!expectedFields.has(key)) {
           console.error(`Record ${record.id} has unexpected field ${key} with value ${JSON.stringify(value)}`);
           hasBad = true;

@@ -5,6 +5,7 @@ export interface ColumnSpec {
   name: string;
   type: "text" | "number" | "json";
   readonly?: boolean;
+  data_type: string; // Postgres data type
 }
 
 export interface TableSpec {
@@ -27,14 +28,14 @@ export interface CreateSnapshotDto {
 }
 
 export type SnapshotRecord = {
-  /** RemoteID, which we also use as the primary key. */
-  id: string;
+  id: {
+    wsId: string;
+    remoteId: string | null;
+  };
+  fields: Record<string, unknown>;
 
-  /** Which fields are dirty in the local copy of the record. */
   __edited_fields?: EditedFieldsMetadata;
-} & {
-  /** The actual data */
-  [wsId: string]: unknown;
+  __dirty: boolean;
 };
 
 export type EditedFieldsMetadata = {

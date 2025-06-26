@@ -7,7 +7,7 @@ export class RecordOperation {
 
   @IsString()
   @IsNotEmpty()
-  id: string;
+  wsId: string;
 
   @IsObject()
   data?: Record<string, unknown>;

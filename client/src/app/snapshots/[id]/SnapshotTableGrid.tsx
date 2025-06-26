@@ -1,5 +1,6 @@
 "use client";
 
+import { v4 as uuidv4 } from "uuid";
 import {
   DataEditor,
   EditableGridCell,
@@ -98,7 +99,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         if (!record) return;
         try {
           bulkUpdateRecords({
-            ops: [{ op: "delete", id: record.id }],
+            ops: [{ op: "delete", wsId: record.id.wsId }],
           });
         } catch (e) {
           const error = e as Error;
@@ -144,8 +145,18 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         };
       }
 
-      const column = table.columns[col - 1]; // Adjust index
-      const value = record?.[column.id.wsId];
+      if (col === 1) {
+        return {
+          kind: GridCellKind.Text,
+          data: record?.id.remoteId ?? "",
+          displayData: record?.id.remoteId ?? "",
+          readonly: true,
+          allowOverlay: false,
+        };
+      }
+
+      const column = table.columns[col - 2]; // Adjust index
+      const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
 
       const themeOverride: Partial<Theme> = {};
@@ -170,10 +181,9 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   );
 
   const onAddRow = useCallback(() => {
-    const newRecordsCount =
-      sortedRecords?.filter((r) => r.__edited_fields?.__created).length ?? 0;
-    const nextId = newRecordsCount + 1;
-    const newRecordId = `new-record-${String(nextId).padStart(5, "0")}`;
+    // This gets replaced when you save the record, but we need a way to reference it until then.
+    // Kind of hacky.
+    const newRecordId = uuidv4();
 
     const newRecordData: Record<string, unknown> = {
       id: newRecordId,
@@ -189,7 +199,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
       ops: [
         {
           op: "create",
-          id: newRecordId,
+          wsId: newRecordId,
           data: newRecordData,
         },
       ],
@@ -204,7 +214,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         color: "red",
       });
     }
-  }, [bulkUpdateRecords, table.columns, sortedRecords]);
+  }, [bulkUpdateRecords, table.columns]);
 
   const onCellEdited = useCallback(
     async (cell: Item, newValue: EditableGridCell) => {
@@ -217,15 +227,15 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
       if (!record) {
         return;
       }
-      const column = table.columns[col - 1];
+      const column = table.columns[col - 2];
       const columnId = column.id.wsId;
-      const recordId = record.id as string;
+      const recordId = record.id.wsId;
 
       const dto: BulkUpdateRecordsDto = {
         ops: [
           {
             op: "update",
-            id: recordId,
+            wsId: recordId,
             data: {
               [columnId]: newValue.data,
             },
@@ -292,6 +302,12 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         id: "actions",
         title: "",
         width: 35,
+      },
+      {
+        title: "ID",
+        id: "id",
+        width: 150,
+        themeOverride: { bgCell: "#F7F7F7" },
       },
       ...baseColumns,
     ];

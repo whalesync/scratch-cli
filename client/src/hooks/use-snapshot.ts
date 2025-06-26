@@ -75,7 +75,9 @@ export const useSnapshotRecords = (
         let newRecords = [...data.records];
 
         for (const op of dto.ops) {
-          const recordIndex = newRecords.findIndex((r) => r.id === op.id);
+          const recordIndex = newRecords.findIndex(
+            (r) => r.id.wsId === op.wsId
+          );
 
           if (op.op === "update") {
             if (recordIndex === -1) {
@@ -87,7 +89,7 @@ export const useSnapshotRecords = (
 
             // Update the data fields
             if (op.data) {
-              Object.assign(record, op.data);
+              Object.assign(record.fields, op.data);
             }
 
             // Update the edited fields metadata
@@ -112,9 +114,13 @@ export const useSnapshotRecords = (
               continue;
             }
             const newRecord: SnapshotRecord = {
-              id: op.id,
-              ...(op.data ?? {}),
+              id: {
+                wsId: op.wsId,
+                remoteId: null,
+              },
+              fields: op.data ?? {},
               __edited_fields: { __created: "NOW" },
+              __dirty: true,
             };
             newRecords = [newRecord, ...newRecords];
           }

@@ -4,11 +4,10 @@ import { DbService } from 'src/db/db.service';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
-import { PostgresColumnType, TableSpec } from '../remote-service/connectors/types';
+import { PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
-import { SnapshotRecord } from './entities/snapshot-record.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 
 type SnapshotWithConnectorAccount = Snapshot & { connectorAccount: ConnectorAccount };
@@ -114,7 +113,7 @@ export class SnapshotService {
     let nextCursor: string | undefined;
     if (records.length === take + 1) {
       const nextRecord = records.pop();
-      nextCursor = nextRecord!.id;
+      nextCursor = nextRecord!.id.wsId;
     }
 
     return {
@@ -141,7 +140,7 @@ export class SnapshotService {
   }
 
   private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: TableSpec) {
-    const errors: { id: string; field: string; message: string }[] = [];
+    const errors: { wsId: string; field: string; message: string }[] = [];
     const numericRegex = /^-?\d+(\.\d+)?$/;
 
     const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
@@ -157,7 +156,7 @@ export class SnapshotService {
           if (columnSpec?.pgType === PostgresColumnType.NUMERIC) {
             if (value !== null && typeof value !== 'number' && typeof value !== 'string') {
               errors.push({
-                id: op.id,
+                wsId: op.wsId,
                 field,
                 message: `Invalid input for numeric field: complex object received.`,
               });
@@ -166,7 +165,7 @@ export class SnapshotService {
 
             if (value !== null && !numericRegex.test(String(value))) {
               errors.push({
-                id: op.id,
+                wsId: op.wsId,
                 field,
                 message: `Invalid input syntax for type numeric: "${value}"`,
               });

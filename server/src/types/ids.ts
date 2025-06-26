@@ -14,6 +14,7 @@ export enum IdPrefixes {
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
   SNAPSHOT = 'sna_',
+  SNAPSHOT_RECORD = 'sre_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -84,4 +85,15 @@ export function isSnapshotId(id: unknown): id is SnapshotId {
 
 export function createSnapshotId(): SnapshotId {
   return createId(IdPrefixes.SNAPSHOT) as SnapshotId;
+}
+
+// ------- SnapshotRecord -------
+export type SnapshotRecordId = PrefixedId<IdPrefixes.SNAPSHOT_RECORD>;
+
+export function isSnapshotRecordId(id: unknown): id is SnapshotRecordId {
+  return isId(id, IdPrefixes.SNAPSHOT_RECORD);
+}
+
+export function createSnapshotRecordId(): SnapshotRecordId {
+  return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
 }
