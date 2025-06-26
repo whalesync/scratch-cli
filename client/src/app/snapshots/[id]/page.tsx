@@ -23,10 +23,12 @@ import {
   TableIcon,
   TrashIcon,
   UploadIcon,
+  RobotIcon,
 } from "@phosphor-icons/react";
 import { useParams, useRouter } from "next/navigation";
 import SnapshotTableGrid from "./SnapshotTableGrid";
 import { TableSpec } from "@/types/server-entities/snapshot";
+import AIChatPanel from "../../components/AIChatPanel";
 
 import "@glideapps/glide-data-grid/dist/index.css";
 import { useEffect, useState } from "react";
@@ -41,6 +43,7 @@ export default function SnapshotPage() {
   const [selectedTable, setSelectedTable] = useState<TableSpec | undefined>(
     undefined
   );
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     if (!selectedTable) {
@@ -83,6 +86,10 @@ export default function SnapshotPage() {
         color: "red",
       });
     }
+  };
+
+  const toggleChat = () => {
+    setShowChat(!showChat);
   };
 
   const renderContent = () => {
@@ -165,9 +172,17 @@ export default function SnapshotPage() {
           </CopyButton>
         </Group>
         <Group ml="auto">
-          <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
+        <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download from remote
           </Button>
+          <Button 
+            onClick={toggleChat} 
+            leftSection={<RobotIcon />}
+            variant={showChat ? "filled" : "light"}
+          >
+            {showChat ? "Close AI" : "AI Analysis"}
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => alert("NOT YET IMPLEMENTED")}
@@ -185,7 +200,23 @@ export default function SnapshotPage() {
           </Button>
         </Group>
       </Group>
-      {renderContent()}
+      
+      <Group h="calc(100vh - 80px)" gap={0}>
+        {/* Main content area */}
+        <div style={{ 
+          width: showChat ? "70%" : "100%", 
+          height: "100%",
+          transition: "width 0.3s ease"
+        }}>
+          {renderContent()}
+        </div>
+        
+        {/* AI Chat Panel */}
+        <AIChatPanel 
+          isOpen={showChat} 
+          onClose={() => setShowChat(false)}
+        />
+      </Group>
     </Stack>
   );
 }

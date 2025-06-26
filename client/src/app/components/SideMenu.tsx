@@ -20,12 +20,18 @@ import {
   CloudArrowDownIcon,
   CheckIcon,
   CopyIcon,
+  ChatCircleIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 
 const links = [
+  {
+    href: "/chat",
+    label: "Chat",
+    icon: <ChatCircleIcon size={16} />,
+  },
   {
     href: "/mcp-demo",
     label: "MCP Demo",
