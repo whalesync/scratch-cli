@@ -15,7 +15,6 @@ class ApiConfig {
   }
 
   public setAuthToken(token: string) {
-    console.log("Updating auth token", this.authToken, "=>", token);
     this.authToken = token;
   }
 

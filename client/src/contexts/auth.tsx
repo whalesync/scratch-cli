@@ -2,7 +2,7 @@ import { FullPageLoader } from "@/app/components/FullPageLoader";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 import { API_CONFIG } from "@/lib/api/config";
 import { RouteUrls } from "@/utils/route-urls";
-import { useAuth, useSession, useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { JSX, ReactNode, useCallback, useEffect, useState } from "react";
 
@@ -32,11 +32,9 @@ export const ClerkAuthContextProvider = (props: {
   children: ReactNode;
 }): JSX.Element => {
   const { getToken } = useAuth();
-  const {} = useSession();
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
-
-  const [tokenLoaded, setToken] = useState(false);
+  const [tokenLoaded, setTokenLoaded] = useState(false);
 
   const loadToken = useCallback(async () => {
     /*
@@ -45,11 +43,12 @@ export const ClerkAuthContextProvider = (props: {
     const newToken = await getToken();
 
     if (newToken) {
-      setToken(true);
       API_CONFIG.setAuthToken(newToken);
+      setTokenLoaded(true);
     }
   }, [getToken]);
 
+  // This sets the token when the first load of the page is complete
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       // load the token any time our auth state changes
