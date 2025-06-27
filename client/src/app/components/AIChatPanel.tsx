@@ -40,9 +40,14 @@ interface AIChatPanelProps {
   snapshotId?: string;
 }
 
-const CHAT_SERVER_URL = "http://localhost:8000";
+const AI_CHAT_SERVER_URL =
+  process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || "http://localhost:8000";
 
-export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanelProps) {
+export default function AIChatPanel({
+  isOpen,
+  onClose,
+  snapshotId,
+}: AIChatPanelProps) {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -51,7 +56,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
   // Get user data including API token
   const { user } = useScratchPadUser();
 
@@ -60,7 +65,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
     if (isOpen) {
       loadSessions();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Auto-scroll to bottom when new messages arrive
@@ -75,11 +80,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
 
   const loadSessions = async () => {
     if (isLoadingSessions) return; // Prevent multiple simultaneous loads
-    
+
     setIsLoadingSessions(true);
     try {
-      console.log("Loading sessions from:", `${CHAT_SERVER_URL}/sessions`);
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions`);
+      console.log("Loading sessions from:", `${AI_CHAT_SERVER_URL}/sessions`);
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`);
       const data = await response.json();
       console.log("Sessions response:", data);
       setSessions(data.sessions);
@@ -94,9 +99,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
 
   const loadSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${sessionId}`);
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`
+      );
       if (response.ok) {
-        const data = await response.json() as ChatSession;
+        const data = (await response.json()) as ChatSession;
         setSessionData(data);
       } else {
         setError("Failed to load session");
@@ -120,25 +127,27 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
     }
 
     try {
-      const url = new URL(`${CHAT_SERVER_URL}/sessions`);
-      url.searchParams.append('snapshot_id', snapshotId);
-      
+      const url = new URL(`${AI_CHAT_SERVER_URL}/sessions`);
+      url.searchParams.append("snapshot_id", snapshotId);
+
       const response = await fetch(url.toString(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        setSessions(prev => [...prev, data.session]);
+        setSessions((prev) => [...prev, data.session]);
         setCurrentSessionId(data.session.id);
         setError(null);
         console.log("Created new session with snapshot ID:", snapshotId);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(`Failed to create session: ${errorData.detail || response.statusText}`);
+        setError(
+          `Failed to create session: ${errorData.detail || response.statusText}`
+        );
       }
     } catch (error) {
       setError("Failed to create session");
@@ -148,12 +157,17 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${sessionId}`, {
-        method: "DELETE",
-      });
-      
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
       if (response.ok) {
-        setSessions(prev => prev.filter(session => session.id !== sessionId));
+        setSessions((prev) =>
+          prev.filter((session) => session.id !== sessionId)
+        );
         if (currentSessionId === sessionId) {
           setCurrentSessionId(null);
           setSessionData(null);
@@ -179,14 +193,14 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
       currentSessionId,
       historyLength: sessionData?.history.length || 0,
       hasApiToken: !!user?.apiToken,
-      snapshotId: snapshotId
+      snapshotId: snapshotId,
     });
 
     try {
       const messageData: { message: string; api_token?: string } = {
-        message: message.trim()
+        message: message.trim(),
       };
-      
+
       // Include API token if available
       if (user?.apiToken) {
         messageData.api_token = user.apiToken;
@@ -195,17 +209,20 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
         console.log("No API token available");
       }
 
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(messageData),
-      });
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
 
       if (response.ok) {
         setMessage("");
-        
+
         // Reload session to get updated history
         await loadSession(currentSessionId);
         console.log("Message sent successfully, reloaded session");
@@ -294,7 +311,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
             console.log("Select onChange called with:", value);
             setCurrentSessionId(value);
           }}
-          data={sessions.map(session => ({
+          data={sessions.map((session) => ({
             value: session.id,
             label: formatSessionLabel(session),
           }))}
@@ -330,10 +347,10 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
           </ActionIcon>
         )}
       </Group>
-      
+
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
-        Sessions: {sessions.length} | Current: {currentSessionId || 'none'}
+        Sessions: {sessions.length} | Current: {currentSessionId || "none"}
       </Text>
 
       {/* Messages */}
@@ -400,4 +417,4 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
       </Group>
     </Paper>
   );
-} 
+}

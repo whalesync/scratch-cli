@@ -14,7 +14,12 @@ import {
   Badge,
   Loader,
 } from "@mantine/core";
-import { ChatCircle, PaperPlaneRight, Trash, Plus } from "@phosphor-icons/react";
+import {
+  ChatCircle,
+  PaperPlaneRight,
+  Trash,
+  Plus,
+} from "@phosphor-icons/react";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 
 interface ChatMessage {
@@ -33,7 +38,8 @@ interface ChatSession {
   snapshot_id?: string;
 }
 
-const CHAT_SERVER_URL = "http://localhost:8000";
+const AI_CHAT_SERVER_URL =
+  process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || "http://localhost:8000";
 
 export default function ChatPage() {
   const [sessions, setSessions] = useState<string[]>([]);
@@ -42,14 +48,14 @@ export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
   // Get user data including API token
   const { user } = useScratchPadUser();
 
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-scroll to bottom when new messages arrive
@@ -64,10 +70,10 @@ export default function ChatPage() {
 
   const loadSessions = async () => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions`);
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`);
       const data = await response.json();
       setSessions(data.sessions);
-      
+
       // If no current session and sessions exist, select the first one
       if (!currentSession && data.sessions.length > 0) {
         setCurrentSession(data.sessions[0]);
@@ -79,7 +85,9 @@ export default function ChatPage() {
 
   const loadSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${sessionId}`);
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`
+      );
       if (response.ok) {
         const data = await response.json();
         setSessionData(data);
@@ -97,16 +105,16 @@ export default function ChatPage() {
 
   const createNewSession = async () => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions`, {
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        setSessions(prev => [...prev, data.session_id]);
+        setSessions((prev) => [...prev, data.session_id]);
         setCurrentSession(data.session_id);
         console.log("Created new standalone session (no snapshot ID)");
       }
@@ -117,12 +125,15 @@ export default function ChatPage() {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${sessionId}`, {
-        method: "DELETE",
-      });
-      
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
       if (response.ok) {
-        setSessions(prev => prev.filter(id => id !== sessionId));
+        setSessions((prev) => prev.filter((id) => id !== sessionId));
         if (currentSession === sessionId) {
           setCurrentSession(null);
           setSessionData(null);
@@ -143,14 +154,14 @@ export default function ChatPage() {
       currentSession,
       historyLength: sessionData?.history.length || 0,
       hasApiToken: !!user?.apiToken,
-      snapshotId: "standalone"
+      snapshotId: "standalone",
     });
 
     try {
       const messageData: { message: string; api_token?: string } = {
-        message: message.trim()
+        message: message.trim(),
       };
-      
+
       // Include API token if available
       if (user?.apiToken) {
         messageData.api_token = user.apiToken;
@@ -159,17 +170,20 @@ export default function ChatPage() {
         console.log("No API token available");
       }
 
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${currentSession}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(messageData),
-      });
+      const response = await fetch(
+        `${AI_CHAT_SERVER_URL}/sessions/${currentSession}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
 
       if (response.ok) {
         setMessage("");
-        
+
         // Reload session to get updated history
         await loadSession(currentSession);
       }
@@ -264,7 +278,8 @@ export default function ChatPage() {
                         p="md"
                         bg={msg.role === "user" ? "blue.0" : "gray.0"}
                         style={{
-                          alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                          alignSelf:
+                            msg.role === "user" ? "flex-end" : "flex-start",
                           maxWidth: "80%",
                         }}
                       >
@@ -301,7 +316,13 @@ export default function ChatPage() {
                   <Button
                     onClick={sendMessage}
                     disabled={!message.trim() || isLoading}
-                    leftSection={isLoading ? <Loader size={16} /> : <PaperPlaneRight size={16} />}
+                    leftSection={
+                      isLoading ? (
+                        <Loader size={16} />
+                      ) : (
+                        <PaperPlaneRight size={16} />
+                      )
+                    }
                   >
                     Send
                   </Button>
@@ -314,9 +335,13 @@ export default function ChatPage() {
                   Select a session or create a new one to start chatting
                 </Text>
                 <Text size="sm" c="dimmed">
-                  This is a standalone chat session (not associated with any snapshot)
+                  This is a standalone chat session (not associated with any
+                  snapshot)
                 </Text>
-                <Button onClick={createNewSession} leftSection={<Plus size={16} />}>
+                <Button
+                  onClick={createNewSession}
+                  leftSection={<Plus size={16} />}
+                >
                   Create New Chat
                 </Button>
               </Stack>
@@ -326,4 +351,4 @@ export default function ChatPage() {
       </Stack>
     </Container>
   );
-} 
+}
