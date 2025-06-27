@@ -1,10 +1,16 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import knex, { Knex } from 'knex';
+import { types } from 'pg';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
+
+// Knex returns numbers as strings by default, we'll need to parse them to get native types.
+types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
+types.setTypeParser(20, 'text', parseInt); // INT8
+types.setTypeParser(23, 'text', parseInt); // INT4
 
 // Design!
 // There isn't a system yet for tracking versions of edits that are made to the snapshot, so instead, we use a column
