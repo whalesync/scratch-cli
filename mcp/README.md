@@ -41,12 +41,12 @@ npm install -g @vercel/ncc
 ### NCC Build
 
 ```bash
-ncc build src/bin/stdio.ts -o dist_mcp
+ncc build src/bin/stdio.ts -o dist/ncc
 ```
 
-This will build just the Stdio MCP server used by Cursor and output it in a `dist_mcp` folder
+This will build just the Stdio MCP server used by Cursor and output it in a `dist/ncc` folder
 
-The compiled build file will be called `index.js`
+The bundled file will be output to `dist/ncc` and be called `index.js`
 
 ### Configure Cursor
 

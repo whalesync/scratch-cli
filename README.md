@@ -66,7 +66,7 @@ yarn run build
       "env": {
         "NODE_ENV": "production",
         "SCRATCHPAD_SERVER_URL": "http://localhost:3010",
-        "SCRATCHPAD_API_TOKEN": "<Your API Token>"
+        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratchpad>"
 
       }
     }
@@ -80,7 +80,7 @@ By default the MCP server uses the localhost Scratchpad server. If you want to u
   "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",
 ```
 
-The API token is a placeholder for how we might do auth inside Scratchpad
+You can have multiple instances of the MCP server configured, each using a different set of ENV variables
 
 - Restart Cursor. Go back to the same config. You should see a green dot next to the server name and the tools should be listed (at the time of writing: get_records and update_record)
 
