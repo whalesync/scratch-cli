@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   Paper,
   TextInput,
-  Button,
   Stack,
   Text,
   Group,
@@ -15,6 +14,7 @@ import {
   Select,
 } from "@mantine/core";
 import { ChatCircle, PaperPlaneRight, Plus, X } from "@phosphor-icons/react";
+import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -29,16 +29,18 @@ interface ChatSession {
   important_facts: string[];
   created_at: string;
   last_activity: string;
+  snapshot_id?: string;
 }
 
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  snapshotId?: string;
 }
 
 const CHAT_SERVER_URL = "http://localhost:8000";
 
-export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanelProps) {
   const [sessions, setSessions] = useState<string[]>([]);
   const [currentSession, setCurrentSession] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -46,12 +48,16 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Get user data including API token
+  const { user } = useScratchPadUser();
 
   // Load sessions on mount
   useEffect(() => {
     if (isOpen) {
       loadSessions();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Auto-scroll to bottom when new messages arrive
@@ -103,7 +109,12 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
 
   const createNewSession = async () => {
     try {
-      const response = await fetch(`${CHAT_SERVER_URL}/sessions`, {
+      const url = new URL(`${CHAT_SERVER_URL}/sessions`);
+      if (snapshotId) {
+        url.searchParams.append('snapshot_id', snapshotId);
+      }
+      
+      const response = await fetch(url.toString(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,6 +126,7 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
         setSessions(prev => [...prev, data.session_id]);
         setCurrentSession(data.session_id);
         setError(null);
+        console.log("Created new session with snapshot ID:", snapshotId);
       } else {
         setError("Failed to create session");
       }
@@ -124,19 +136,61 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
     }
   };
 
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`${CHAT_SERVER_URL}/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
+      
+      if (response.ok) {
+        setSessions(prev => prev.filter(id => id !== sessionId));
+        if (currentSession === sessionId) {
+          setCurrentSession(null);
+          setSessionData(null);
+        }
+        setError(null);
+      } else {
+        setError("Failed to delete session");
+      }
+    } catch (error) {
+      setError("Failed to delete session");
+      console.error("Error deleting session:", error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!message.trim() || !currentSession || isLoading) return;
 
     setIsLoading(true);
     setError(null);
 
+    console.log("Message data:", {
+      message: message.trim(),
+      currentSession,
+      historyLength: sessionData?.history.length || 0,
+      hasApiToken: !!user?.apiToken,
+      snapshotId: snapshotId
+    });
+
     try {
+      const messageData: { message: string; api_token?: string } = {
+        message: message.trim()
+      };
+      
+      // Include API token if available
+      if (user?.apiToken) {
+        messageData.api_token = user.apiToken;
+        console.log("Including API token in request");
+      } else {
+        console.log("No API token available");
+      }
+
       const response = await fetch(`${CHAT_SERVER_URL}/sessions/${currentSession}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: message.trim() }),
+        body: JSON.stringify(messageData),
       });
 
       if (response.ok) {
@@ -144,6 +198,7 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
         
         // Reload session to get updated history
         await loadSession(currentSession);
+        console.log("Message sent successfully, reloaded session");
       } else {
         setError("Failed to send message");
       }
@@ -183,69 +238,74 @@ export default function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <Paper 
-      w="30%" 
-      h="100%" 
-      p="md" 
-      style={{ 
-        borderLeft: "1px solid var(--mantine-color-gray-3)",
+    <Paper
+      shadow="md"
+      p="md"
+      style={{
+        position: "fixed",
+        right: 0,
+        top: 0,
+        width: "30%",
+        height: "100vh",
+        zIndex: 1000,
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
       }}
     >
       {/* Header */}
       <Group justify="space-between" mb="md">
-        <Group>
-          <ChatCircle size={20} color="#00A2E9" />
-          <Text fw={500} size="sm">
-            AI Chat
-          </Text>
-        </Group>
-        <ActionIcon 
-          size="sm" 
-          variant="subtle" 
-          onClick={onClose}
-        >
+        <Text fw={500} size="sm">
+          AI Chat
+          {snapshotId && (
+            <Text span size="xs" c="dimmed" ml="xs">
+              (Snapshot: {snapshotId.slice(0, 8)}...)
+            </Text>
+          )}
+        </Text>
+        <ActionIcon onClick={onClose} size="sm" variant="subtle">
           <X size={16} />
         </ActionIcon>
       </Group>
 
       {/* Error Alert */}
       {error && (
-        <Alert color="red" title="Error" onClose={() => setError(null)} mb="md">
+        <Alert color="red" mb="md">
           {error}
         </Alert>
       )}
 
-      {/* Sessions Select */}
-      <Stack gap="xs" mb="md">
-        <Text size="xs" fw={500}>
-          Sessions
-        </Text>
+      {/* Session Management */}
+      <Group mb="md" gap="xs">
         <Select
-          placeholder="Select a session"
+          placeholder="Select session"
           value={currentSession}
           onChange={setCurrentSession}
-          data={sessions.map(sessionId => ({
-            value: sessionId,
-            label: formatSessionLabel(sessionId)
-          }))}
+          data={sessions.map(id => ({ value: id, label: formatSessionLabel(id) }))}
           size="xs"
-          searchable
-          clearable
+          style={{ flex: 1 }}
         />
-        <Button
-          size="xs"
-          variant="light"
-          leftSection={<Plus size={12} />}
+        <ActionIcon
           onClick={createNewSession}
-          fullWidth
+          size="sm"
+          variant="subtle"
+          title="New chat"
         >
-          New Chat
-        </Button>
-      </Stack>
+          <Plus size={14} />
+        </ActionIcon>
+        {currentSession && (
+          <ActionIcon
+            onClick={() => deleteSession(currentSession!)}
+            size="sm"
+            variant="subtle"
+            color="red"
+            title="Delete session"
+          >
+            <X size={14} />
+          </ActionIcon>
+        )}
+      </Group>
 
-      {/* Messages Area */}
+      {/* Messages */}
       <ScrollArea flex={1} ref={scrollAreaRef} mb="md">
         {currentSession ? (
           <Stack gap="xs">

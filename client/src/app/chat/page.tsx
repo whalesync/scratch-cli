@@ -13,9 +13,9 @@ import {
   ActionIcon,
   Badge,
   Loader,
-  Alert,
 } from "@mantine/core";
 import { ChatCircle, PaperPlaneRight, Trash, Plus } from "@phosphor-icons/react";
+import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -30,6 +30,7 @@ interface ChatSession {
   important_facts: string[];
   created_at: string;
   last_activity: string;
+  snapshot_id?: string;
 }
 
 const CHAT_SERVER_URL = "http://localhost:8000";
@@ -40,12 +41,15 @@ export default function ChatPage() {
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Get user data including API token
+  const { user } = useScratchPadUser();
 
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-scroll to bottom when new messages arrive
@@ -69,7 +73,6 @@ export default function ChatPage() {
         setCurrentSession(data.sessions[0]);
       }
     } catch (error) {
-      setError("Failed to load sessions");
       console.error("Error loading sessions:", error);
     }
   };
@@ -80,11 +83,8 @@ export default function ChatPage() {
       if (response.ok) {
         const data = await response.json();
         setSessionData(data);
-      } else {
-        setError("Failed to load session");
       }
     } catch (error) {
-      setError("Failed to load session");
       console.error("Error loading session:", error);
     }
   };
@@ -108,12 +108,9 @@ export default function ChatPage() {
         const data = await response.json();
         setSessions(prev => [...prev, data.session_id]);
         setCurrentSession(data.session_id);
-        setError(null);
-      } else {
-        setError("Failed to create session");
+        console.log("Created new standalone session (no snapshot ID)");
       }
     } catch (error) {
-      setError("Failed to create session");
       console.error("Error creating session:", error);
     }
   };
@@ -130,12 +127,8 @@ export default function ChatPage() {
           setCurrentSession(null);
           setSessionData(null);
         }
-        setError(null);
-      } else {
-        setError("Failed to delete session");
       }
     } catch (error) {
-      setError("Failed to delete session");
       console.error("Error deleting session:", error);
     }
   };
@@ -144,15 +137,34 @@ export default function ChatPage() {
     if (!message.trim() || !currentSession || isLoading) return;
 
     setIsLoading(true);
-    setError(null);
+
+    console.log("Message data:", {
+      message: message.trim(),
+      currentSession,
+      historyLength: sessionData?.history.length || 0,
+      hasApiToken: !!user?.apiToken,
+      snapshotId: "standalone"
+    });
 
     try {
+      const messageData: { message: string; api_token?: string } = {
+        message: message.trim()
+      };
+      
+      // Include API token if available
+      if (user?.apiToken) {
+        messageData.api_token = user.apiToken;
+        console.log("Including API token in request");
+      } else {
+        console.log("No API token available");
+      }
+
       const response = await fetch(`${CHAT_SERVER_URL}/sessions/${currentSession}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: message.trim() }),
+        body: JSON.stringify(messageData),
       });
 
       if (response.ok) {
@@ -160,11 +172,8 @@ export default function ChatPage() {
         
         // Reload session to get updated history
         await loadSession(currentSession);
-      } else {
-        setError("Failed to send message");
       }
     } catch (error) {
-      setError("Failed to send message");
       console.error("Error sending message:", error);
     } finally {
       setIsLoading(false);
@@ -192,63 +201,57 @@ export default function ChatPage() {
   };
 
   return (
-    <Container size="xl" h="100vh" py="md">
-      <Stack h="100%">
-        {/* Header */}
-        <Group justify="space-between" align="center">
-          <Group>
-            <ChatCircle size={24} color="#00A2E9" />
-            <Text size="xl" fw={600}>
-              AI Chat
-            </Text>
-          </Group>
-          <Button
-            leftSection={<Plus size={16} />}
-            onClick={createNewSession}
-            variant="light"
-          >
-            New Chat
-          </Button>
-        </Group>
+    <Container size="xl" py="xl">
+      <Stack h="calc(100vh - 100px)">
+        <Group>
+          {/* Sessions Panel */}
+          <Paper p="md" w="25%" h="100%">
+            <Stack h="100%">
+              <Group justify="space-between">
+                <Text fw={500}>Sessions (Standalone)</Text>
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<Plus size={16} />}
+                  onClick={createNewSession}
+                >
+                  New Chat
+                </Button>
+              </Group>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert color="red" title="Error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        <Group align="flex-start" h="calc(100vh - 200px)">
-          {/* Sessions Sidebar */}
-          <Paper p="md" w={250} h="100%">
-            <Text size="sm" fw={500} mb="md">
-              Sessions
-            </Text>
-            <Stack gap="xs">
-              {sessions.map((sessionId) => (
-                <Group key={sessionId} justify="space-between">
-                  <Button
-                    variant={currentSession === sessionId ? "filled" : "light"}
-                    size="xs"
-                    onClick={() => setCurrentSession(sessionId)}
-                    style={{ flex: 1, justifyContent: "flex-start" }}
-                  >
-                    {sessionId.slice(0, 20)}...
-                  </Button>
-                  <ActionIcon
-                    size="xs"
-                    variant="subtle"
-                    color="red"
-                    onClick={() => deleteSession(sessionId)}
-                  >
-                    <Trash size={12} />
-                  </ActionIcon>
-                </Group>
-              ))}
+              <ScrollArea flex={1}>
+                <Stack gap="xs">
+                  {sessions.map((sessionId) => (
+                    <Paper
+                      key={sessionId}
+                      p="xs"
+                      bg={currentSession === sessionId ? "blue.0" : "gray.0"}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setCurrentSession(sessionId)}
+                    >
+                      <Group justify="space-between">
+                        <Text size="sm" truncate>
+                          Session {sessionId.split("_")[1]}
+                        </Text>
+                        <ActionIcon
+                          size="xs"
+                          variant="subtle"
+                          color="red"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSession(sessionId);
+                          }}
+                        >
+                          <Trash size={12} />
+                        </ActionIcon>
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              </ScrollArea>
             </Stack>
           </Paper>
 
-          {/* Chat Area */}
           <Paper p="md" style={{ flex: 1 }} h="100%">
             {currentSession ? (
               <Stack h="100%">
@@ -309,6 +312,9 @@ export default function ChatPage() {
                 <ChatCircle size={48} color="#00A2E9" />
                 <Text size="lg" fw={500}>
                   Select a session or create a new one to start chatting
+                </Text>
+                <Text size="sm" c="dimmed">
+                  This is a standalone chat session (not associated with any snapshot)
                 </Text>
                 <Button onClick={createNewSession} leftSection={<Plus size={16} />}>
                   Create New Chat

@@ -215,6 +215,7 @@ export default function SnapshotPage() {
         <AIChatPanel 
           isOpen={showChat} 
           onClose={() => setShowChat(false)}
+          snapshotId={id}
         />
       </Group>
     </Stack>
