@@ -140,7 +140,7 @@ export class SnapshotService {
   }
 
   private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: TableSpec) {
-    const errors: { wsId: string; field: string; message: string }[] = [];
+    const errors: { wsId?: string; field: string; message: string }[] = [];
     const numericRegex = /^-?\d+(\.\d+)?$/;
 
     const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
@@ -156,7 +156,7 @@ export class SnapshotService {
           if (columnSpec?.pgType === PostgresColumnType.NUMERIC) {
             if (value !== null && typeof value !== 'number' && typeof value !== 'string') {
               errors.push({
-                wsId: op.wsId,
+                wsId: 'wsId' in op ? op.wsId : undefined,
                 field,
                 message: `Invalid input for numeric field: complex object received.`,
               });
@@ -165,7 +165,7 @@ export class SnapshotService {
 
             if (value !== null && !numericRegex.test(String(value))) {
               errors.push({
-                wsId: op.wsId,
+                wsId: 'wsId' in op ? op.wsId : undefined,
                 field,
                 message: `Invalid input syntax for type numeric: "${value}"`,
               });
