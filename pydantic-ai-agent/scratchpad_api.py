@@ -36,6 +36,13 @@ class Snapshot:
     connectorAccountId: str
     tables: List[TableSpec]
 
+class Snapshot2:
+    id: str
+    createdAt: str
+    updatedAt: str
+    connectorAccountId: str
+    tables: List[TableSpec]
+
 @dataclass
 class CreateSnapshotDto:
     connectorAccountId: str

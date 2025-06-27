@@ -4,21 +4,18 @@ PydanticAI Agent for the Chat Server
 """
 
 import os
-import asyncio
 import traceback
-import time
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol
-from dotenv import load_dotenv
 
-from models import ChatResponse
-from tools import get_records, connect_snapshot, get_active_snapshot, set_api_token, set_session_data
+from models import ChatResponse, ChatRunContext
+from tools import get_records, connect_snapshot
 from logger import log_info, log_error
 
-load_dotenv()
+
 
 def extract_response(result):
     """Extract response from result object, trying different attributes"""
@@ -52,17 +49,15 @@ def create_agent():
         agent = Agent(
             name="ChatServerAgent",
             instructions="""You are a helpful AI assistant that can work with data from Scratchpad snapshots. 
-
-
-
 Always be helpful and provide clear explanations of what you're doing.""",
             output_type=ChatResponse,
-            model=model
+            model=model,
+            deps_type=ChatRunContext
         )
         
         # Add tools using @agent.tool decorator
         @agent.tool
-        async def connect_snapshot_tool(ctx: RunContext) -> str:  # type: ignore
+        async def connect_snapshot_tool(ctx: RunContext[ChatRunContext]) -> str:  # type: ignore
             """
             Connect to the snapshot associated with the current session.
             
@@ -72,7 +67,7 @@ Always be helpful and provide clear explanations of what you're doing.""",
             return await connect_snapshot(ctx)  # type: ignore
         
         @agent.tool
-        async def get_records_tool(ctx: RunContext, table_name: str, limit: int = 100) -> str:  # type: ignore
+        async def get_records_tool(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100) -> str:  # type: ignore
             """
             Get all records for a table from the active snapshot.
             
@@ -89,4 +84,4 @@ Always be helpful and provide clear explanations of what you're doing.""",
     except Exception as e:
         print(f"❌ Error creating agent: {e}")
         traceback.print_exc()
-        return None 
+        raise e

@@ -2,6 +2,7 @@
 """
 PydanticAI Tools for the Chat Server
 """
+from models import ChatRunContext, ChatSession
 
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
@@ -37,38 +38,38 @@ class GetRecordsInput(BaseModel):
     limit: Optional[int] = Field(default=100, description="The maximum number of records to retrieve")
 
 # Global snapshot storage (in a real app, this would be per-session)
-_active_snapshot: Optional[Snapshot] = None
-_current_api_token: Optional[str] = None
-_current_session_data: Optional[Dict[str, Any]] = None
+# _active_snapshot: Optional[Snapshot] = None
+# _current_api_token: Optional[str] = None
+# _current_session_data: Optional[Dict[str, Any]] = None
 
-def get_active_snapshot() -> Optional[Snapshot]:
-    """Get the currently active snapshot"""
-    return _active_snapshot
+# def get_active_snapshot() -> Optional[Snapshot]:
+#     """Get the currently active snapshot"""
+#     return _active_snapshot
 
-def set_active_snapshot(snapshot: Snapshot) -> None:
-    """Set the currently active snapshot"""
-    global _active_snapshot
-    _active_snapshot = snapshot
+# def set_active_snapshot(snapshot: Snapshot) -> None:
+#     """Set the currently active snapshot"""
+#     global _active_snapshot
+#     _active_snapshot = snapshot
 
-def set_api_token(api_token: str) -> None:
-    """Set the current API token for tools"""
-    global _current_api_token
-    _current_api_token = api_token
+# def set_api_token(api_token: str) -> None:
+#     """Set the current API token for tools"""
+#     global _current_api_token
+#     _current_api_token = api_token
 
-def get_api_token() -> Optional[str]:
-    """Get the current API token"""
-    return _current_api_token
+# def get_api_token() -> Optional[str]:
+#     """Get the current API token"""
+#     return _current_api_token
 
-def set_session_data(session_data: Dict[str, Any]) -> None:
-    """Set the current session data for tools"""
-    global _current_session_data
-    _current_session_data = session_data
+# def set_session_data(session_data: Dict[str, Any]) -> None:
+#     """Set the current session data for tools"""
+#     global _current_session_data
+#     _current_session_data = session_data
 
-def get_session_data() -> Optional[Dict[str, Any]]:
-    """Get the current session data"""
-    return _current_session_data
+# def get_session_data() -> Optional[Dict[str, Any]]:
+#     """Get the current session data"""
+#     return _current_session_data
 
-async def connect_snapshot(ctx: RunContext[Any]) -> str:
+async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
     """
     Connect to the snapshot associated with the current session.
     
@@ -80,24 +81,23 @@ async def connect_snapshot(ctx: RunContext[Any]) -> str:
     """
     try:
         # Get API token and session data from global state
-        api_token = get_api_token()
-        session_data = get_session_data()
+        chatRunContext: ChatRunContext = ctx.deps 
+        api_token = chatRunContext.api_token
+        chatSession = chatRunContext.session
+        # session_data = get_session_data()
         
         if not api_token:
             log_error("No API token available for connect_snapshot")
             return "Error: No API token available. Cannot authenticate with the server."
         
-        if not session_data:
-            log_error("No session data available for connect_snapshot")
-            return "Error: No session data available. Cannot determine which snapshot to connect to."
+        # if not session_data:
+        #     log_error("No session data available for connect_snapshot")
+        #     return "Error: No session data available. Cannot determine which snapshot to connect to."
         
-        snapshot_id = session_data.get('snapshot_id')
-        session_id = session_data.get('session_id')
+        snapshot_id = chatSession.snapshot_id
+        session_id = chatSession.id
         
-        if not snapshot_id:
-            log_error("No snapshot ID in session data", session_id=session_id)
-            return "Error: No snapshot ID associated with this session. Please create a session with a snapshot ID."
-        
+            
         # Set the API token for authentication
         API_CONFIG.set_api_token(api_token)
         
@@ -108,11 +108,10 @@ async def connect_snapshot(ctx: RunContext[Any]) -> str:
         
         # Convert to our Snapshot model
         print(f"🔍 Converting snapshot data...")
-        print(f"📊 Snapshot ID: {snapshot_data.id}")
-        print(f"📅 Created: {snapshot_data.createdAt}")
-        print(f"📅 Updated: {snapshot_data.updatedAt}")
-        print(f"🔗 Connector Account: {snapshot_data.connectorAccountId}")
-        print(f"📋 Tables count: {len(snapshot_data.tables)}")
+        print(f"📊 Snapshot ID: {snapshot_id}")
+        print(f"📅 Created: {chatSession.created_at}")
+        print(f"📅 Updated: {chatSession.last_activity}")
+        # print(f"📋 Tables count: {len(chatSession.)}")
         
         # Convert tables one by one
         converted_tables = []
@@ -151,7 +150,7 @@ async def connect_snapshot(ctx: RunContext[Any]) -> str:
         print(f"✅ Snapshot object created successfully")
         
         # Store the snapshot
-        set_active_snapshot(snapshot)
+        # set_active_snapshot(snapshot)
         
         # Log the connection
         print(f"📊 Connected to snapshot: {snapshot_id}")
@@ -169,15 +168,15 @@ async def connect_snapshot(ctx: RunContext[Any]) -> str:
         
     except Exception as e:
         error_msg = f"Failed to connect to snapshot: {str(e)}"
-        session_data = get_session_data()
-        session_id = session_data.get('session_id') if session_data else None
+        # session_data = get_session_data()
+        # session_id = session_data.get('session_id') if session_data else None
         log_error("Error connecting to snapshot", 
                   session_id=session_id,
                   error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
 
-async def get_records(ctx: RunContext[Any], table_name: str, limit: int = 100) -> str:
+async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100) -> str:
     """
     Get all records for a table from the active snapshot.
     
@@ -191,39 +190,42 @@ async def get_records(ctx: RunContext[Any], table_name: str, limit: int = 100) -
     """
     try:
         # Get the active snapshot
-        snapshot = get_active_snapshot()
-        if not snapshot:
+
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session  # ✅ your typed instance
+        # chatSession = ctx.deps;
+        if not chatSession.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in snapshot.tables:
+        for t in chatSession.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in snapshot.tables]
+            available_tables = [t.name for t in chatSession.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Get API token from global state
-        api_token = get_api_token()
+        # api_token = get_api_token()
         
-        if not api_token:
-            log_error("No API token available for get_records", table_name=table_name)
-            return "Error: No API token available. Cannot authenticate with the server."
+        # if not api_token:
+        #     log_error("No API token available for get_records", table_name=table_name)
+        #     return "Error: No API token available. Cannot authenticate with the server."
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(api_token)
+        API_CONFIG.set_api_token(chatRunContext.api_token)
         
         log_info("Getting records from Scratchpad server", 
                  table_name=table_name,
                  table_id=table.id.wsId,
                  limit=limit, 
-                 snapshot_id=snapshot.id)
+                 snapshot_id=chatRunContext.session.snapshot_id)
         
         # Get records from the server using the table ID
-        result = list_records(snapshot.id, table.id.wsId, take=limit)
+        result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, take=limit)
         
         # Log the records to console
         print(f"📊 Records for table '{table_name}' (ID: {table.id.wsId}, limit: {limit}):")
@@ -238,7 +240,7 @@ async def get_records(ctx: RunContext[Any], table_name: str, limit: int = 100) -
                  table_name=table_name,
                  table_id=table.id.wsId,
                  record_count=len(result.records), 
-                 snapshot_id=snapshot.id)
+                 snapshot_id=chatRunContext.session.snapshot_id)
         
         return f"Successfully retrieved {len(result.records)} records for table '{table_name}'. Records have been logged to console. Next cursor: {result.nextCursor}"
         

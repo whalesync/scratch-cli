@@ -5,6 +5,7 @@ Data models for the chat server
 
 from pydantic import BaseModel, Field
 from datetime import datetime
+from scratchpad_api import Snapshot
 from typing import List, Optional
 
 class ChatResponse(BaseModel):
@@ -18,6 +19,8 @@ class ChatMessage(BaseModel):
     role: str  # "user" or "assistant"
     timestamp: datetime
 
+
+
 class ChatSession(BaseModel):
     """Chat session with history and memory"""
     id: str
@@ -26,12 +29,24 @@ class ChatSession(BaseModel):
     important_facts: List[str] = []
     last_activity: datetime
     created_at: datetime
-    snapshot_id: Optional[str] = Field(default=None, description="Associated snapshot ID")
+    snapshot_id: str = Field(description="Associated snapshot ID")
+    snapshot: Optional[Snapshot] = Field(default=None, description="Associated snapshot")
+
+class ChatRunContext(BaseModel):
+    session: ChatSession
+    api_token: str
+
+class ChatSessionSummary(BaseModel):
+    """Chat session summary for client responses"""
+    id: str
+    name: str
+    last_activity: datetime
+    created_at: datetime
 
 class SendMessageRequest(BaseModel):
     """Request to send a message"""
     message: str
-    api_token: Optional[str] = Field(default=None, description="API token for Scratchpad server authentication")
+    api_token: str = Field(description="API token for Scratchpad server authentication")
 
 class SendMessageResponse(BaseModel):
     """Response from sending a message"""
@@ -46,12 +61,11 @@ class CreateSessionRequest(BaseModel):
 
 class CreateSessionResponse(BaseModel):
     """Response from creating a session"""
-    session_id: str
-    name: str
+    session: ChatSessionSummary
 
 class SessionListResponse(BaseModel):
     """Response containing list of sessions"""
-    sessions: List[ChatSession]
+    sessions: List[ChatSessionSummary]
 
 class SessionResponse(BaseModel):
     """Response containing a single session"""

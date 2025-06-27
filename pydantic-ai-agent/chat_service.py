@@ -9,35 +9,35 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import HTTPException
 
-from models import ChatSession, ChatMessage, SendMessageResponse, ChatResponse
+from models import ChatRunContext, ChatSession, ChatMessage, SendMessageResponse, ChatResponse
 from agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
-from tools import set_api_token, set_session_data
+# from tools import set_api_token, set_session_data
 
 class ChatService:
     def __init__(self):
         self.sessions: Dict[str, ChatSession] = {}
-        self.agent: Optional[Any] = None
-        self._initialize_agent()
+        # self.agent: Optional[Any] = None
+    #     self._initialize_agent()
 
-    def _initialize_agent(self) -> None:
-        """Initialize the PydanticAI agent"""
-        self.agent = create_agent()
-        if self.agent:
-            log_info("Agent initialized successfully")
-        else:
-            log_error("Agent initialization failed")
+    # def _initialize_agent(self) -> None:
+    #     """Initialize the PydanticAI agent"""
+    #     self.agent = create_agent()
+    #     if self.agent:
+    #         log_info("Agent initialized successfully")
+    #     else:
+    #         log_error("Agent initialization failed")
 
-    def create_chat_message(self, message: str, role: str, timestamp: datetime) -> ChatMessage:
-        """Create a new chat message"""
-        return ChatMessage(
-            message=message,
-            role=role,
-            timestamp=timestamp
-        )
+    # def create_chat_message(self, message: str, role: str, timestamp: datetime) -> ChatMessage:
+    #     """Create a new chat message"""
+    #     return ChatMessage(
+    #         message=message,
+    #         role=role,
+    #         timestamp=timestamp
+    #     )
 
-    def create_session(self, session_id: str, snapshot_id: Optional[str] = None) -> ChatSession:
+    def create_session(self, session_id: str, snapshot_id: str) -> ChatSession:
         """Create a new chat session and set session data in tools"""
         now = datetime.now()
         session = ChatSession(
@@ -49,11 +49,11 @@ class ChatService:
         )
         
         # Set session data in tools' global state
-        session_data = {
-            'session_id': session_id,
-            'snapshot_id': snapshot_id
-        }
-        set_session_data(session_data)
+        # session_data = {
+        #     'session_id': session_id,
+        #     'snapshot_id': snapshot_id
+        # }
+        # set_session_data(session_data)
         
         log_info("Session created and session data set", 
                  session_id=session_id, 
@@ -64,15 +64,19 @@ class ChatService:
         
         return session
 
-    async def process_message_with_agent(self, session: ChatSession, user_message: str, api_token: Optional[str] = None) -> SendMessageResponse:
+    async def process_message_with_agent(
+        self, 
+        session: ChatSession, 
+        user_message: str, 
+        api_token: str
+    ) -> SendMessageResponse:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
         if session.snapshot_id:
             print(f"📊 Session associated with snapshot: {session.snapshot_id}")
-        
         # Set API token in tools' global state for this message
         if api_token:
-            set_api_token(api_token)
+            # set_api_token(api_token)
             log_info("API token set for tools", 
                      session_id=session.id, 
                      token_length=len(api_token), 
@@ -91,10 +95,10 @@ class ChatService:
             log_info("No API token provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No API token provided")
         
-        if not self.agent:
-            log_error("Agent processing failed - agent not initialized", session_id=session.id, snapshot_id=session.snapshot_id)
-            print(f"❌ Agent not initialized!")
-            raise HTTPException(status_code=500, detail="Agent not initialized")
+        # if not self.agent:
+        #     log_error("Agent processing failed - agent not initialized", session_id=session.id, snapshot_id=session.snapshot_id)
+        #     print(f"❌ Agent not initialized!")
+        #     raise HTTPException(status_code=500, detail="Agent not initialized")
         
         try:
             # Build context from session history and important facts
@@ -134,13 +138,16 @@ class ChatService:
             print(f"🤖 Calling agent.run() with timeout...")
             try:
                 # Create context with API token and snapshot ID for tools
-                context = {}
-                if api_token:
-                    context['api_token'] = api_token
-                if session.snapshot_id:
-                    context['snapshot_id'] = session.snapshot_id
-                
-                result = await asyncio.wait_for(self.agent.run(full_prompt, deps=context), timeout=30.0)  # 30 second timeout
+                chatRunContext:ChatRunContext = ChatRunContext(
+                    session=session,
+                    api_token=api_token
+                )
+
+                agent = create_agent()
+                result = await asyncio.wait_for(agent.run(
+                    full_prompt, 
+                    deps=chatRunContext
+                ), timeout=30.0)  # 30 second timeout
                 print(f"✅ Agent.run() completed")
             except asyncio.TimeoutError:
                 log_error("Agent processing timeout", session_id=session.id, timeout_seconds=30, snapshot_id=session.snapshot_id)

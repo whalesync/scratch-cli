@@ -15,7 +15,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from endpoints import router, chat_service
+from chat_controller import router, chat_service
 from websocket_handler import websocket_endpoint
 from logger import log_info
 
@@ -43,14 +43,6 @@ async def websocket_endpoint_handler(websocket: WebSocket, session_id: str):
     """WebSocket endpoint for real-time chat"""
     await websocket_endpoint(websocket, session_id, chat_service)
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the agent on startup"""
-    if not chat_service.agent:
-        raise RuntimeError("Failed to initialize agent")
-    
-    log_info("Chat server started", server_version="1.0.0", agent_initialized=True)
 
 if __name__ == "__main__":
     # Run cleanup every hour

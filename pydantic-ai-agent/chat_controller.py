@@ -6,11 +6,10 @@ FastAPI Endpoints for Chat Server
 import time
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
 
-from models import ChatSession, SendMessageRequest, SendMessageResponse
+from models import ChatMessage, ChatSession, SendMessageRequest, SendMessageResponse, ChatSessionSummary
 from chat_service import ChatService
 from logger import log_info, log_warning, log_error
 
@@ -20,24 +19,30 @@ router = APIRouter(tags=["chat"])
 # Initialize chat service
 chat_service = ChatService()
 
-@router.post("/sessions", response_model=Dict[str, str])
-async def create_session(session_id: Optional[str] = None, snapshot_id: Optional[str] = None):
+@router.post("/sessions", response_model=Dict[str, ChatSessionSummary])
+async def create_session(snapshot_id: str):
     """Create a new chat session"""
-    if not session_id:
-        session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
-    
-    if session_id in chat_service.sessions:
-        log_warning("Session creation failed - already exists", session_id=session_id, snapshot_id=snapshot_id)
-        raise HTTPException(status_code=400, detail="Session already exists")
-    
-    # Create session using the chat service method
+    # if not session_id:
+    session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+
     session = chat_service.create_session(session_id, snapshot_id)
     chat_service.sessions[session_id] = session
     
-    log_info("Session created", session_id=session_id, total_sessions=len(chat_service.sessions), snapshot_id=snapshot_id)
-    print(f"📊 Total sessions: {len(chat_service.sessions)}")
-    print(f"📋 Session IDs: {list(chat_service.sessions.keys())}")
-    return {"session_id": session_id}
+    # Create summary for client response
+    session_summary = ChatSessionSummary(
+        id=session.id,
+        name=session.name,
+        last_activity=session.last_activity,
+        created_at=session.created_at
+    )
+    
+    log_info(
+        "Session created", 
+        session_id=session_id, 
+        total_sessions=len(chat_service.sessions), 
+        snapshot_id=snapshot_id
+    )
+    return {"session": session_summary}
 
 @router.get("/sessions/{session_id}", response_model=ChatSession)
 async def get_session(session_id: str):
@@ -82,11 +87,13 @@ async def send_message(session_id: str, request: SendMessageRequest):
     session.last_activity = datetime.now()
     
     # Add user message to history
-    user_message = chat_service.create_chat_message(
+    user_message = ChatMessage(
         message=request.message,
         role="user",
         timestamp=datetime.now()
     )
+    
+ 
     session.history.append(user_message)
     print(f"📝 Added user message to history. New length: {len(session.history)}")
     
@@ -101,11 +108,13 @@ async def send_message(session_id: str, request: SendMessageRequest):
         print(f"✅ Agent response received: {response.message[:50]}...")
         
         # Add assistant response to history
-        assistant_message = chat_service.create_chat_message(
+
+        assistant_message = ChatMessage(
             message=response.message,
             role="assistant",
             timestamp=datetime.now()
         )
+        
         session.history.append(assistant_message)
         print(f"📝 Added assistant message to history. New length: {len(session.history)}")
         
@@ -149,7 +158,19 @@ async def delete_session(session_id: str):
 async def list_sessions():
     """List all active sessions"""
     log_info("Sessions listed", session_count=len(chat_service.sessions))
-    return {"sessions": list(chat_service.sessions.keys())}
+    
+    # Convert full sessions to summaries
+    session_summaries = []
+    for session in chat_service.sessions.values():
+        summary = ChatSessionSummary(
+            id=session.id,
+            name=session.name,
+            last_activity=session.last_activity,
+            created_at=session.created_at
+        )
+        session_summaries.append(summary)
+    
+    return {"sessions": session_summaries}
 
 @router.post("/cleanup")
 async def cleanup_sessions():
