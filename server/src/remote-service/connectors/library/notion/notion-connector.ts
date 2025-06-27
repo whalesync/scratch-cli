@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
+import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
 import { sanitizeForWsId } from '../../ids';
-import { ColumnSpec, ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
+import { ConnectorRecord, EntityId, TablePreview } from '../../types';
+import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { NotionSchemaParser } from './notion-schema-parser';
 
 export class NotionConnector extends Connector<typeof Service.NOTION> {
@@ -34,10 +37,10 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     return tables;
   }
 
-  async fetchTableSpec(id: EntityId): Promise<TableSpec> {
+  async fetchTableSpec(id: EntityId): Promise<NotionTableSpec> {
     const [databaseId] = id.remoteId;
     const database = (await this.client.databases.retrieve({ database_id: databaseId })) as DatabaseObjectResponse;
-    const columns: ColumnSpec[] = [this.schemaParser.idColumn()];
+    const columns: NotionColumnSpec[] = [];
     for (const property of Object.values(database.properties)) {
       columns.push(this.schemaParser.parseColumn(property));
     }
@@ -50,7 +53,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
   }
 
   async downloadTableRecords(
-    tableSpec: TableSpec,
+    tableSpec: NotionTableSpec,
     callback: (records: ConnectorRecord[]) => Promise<void>,
   ): Promise<void> {
     const [databaseId] = tableSpec.id.remoteId;
@@ -146,33 +149,113 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     }
   }
 
+  private buildNotionPropertyValue(
+    type: string | undefined,
+    value: unknown,
+  ): CreatePageParameters['properties'][string] | undefined {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    switch (type) {
+      case 'title':
+        return { title: [{ text: { content: String(value) } }] };
+      case 'rich_text':
+        return { rich_text: [{ text: { content: String(value) } }] };
+      case 'number':
+        return { number: Number(value) };
+      case 'select':
+        return { select: { name: String(value) } };
+      case 'multi_select':
+        return { multi_select: Array.isArray(value) ? value.map((v) => ({ name: String(v) })) : [] };
+      case 'status':
+        return { status: { name: String(value) } };
+      case 'date':
+        return { date: { start: String(value) } }; // Assuming ISO 8601 string
+      case 'checkbox':
+        return { checkbox: Boolean(value) };
+      case 'url':
+        return { url: String(value) };
+      case 'email':
+        return { email: String(value) };
+      case 'phone_number':
+        return { phone_number: String(value) };
+      case 'relation':
+        return { relation: Array.isArray(value) ? value.map((id) => ({ id: String(id) })) : [] };
+      case 'last_edited_by':
+      case 'files':
+      case 'people':
+      default:
+        return undefined;
+    }
+  }
+
   getBatchSize(): number {
     return 1;
   }
 
   async createRecords(
-    tableSpec: TableSpec,
+    tableSpec: NotionTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
-    // TODO!!!!
-    console.log('createRecords', tableSpec, records);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return records.map((r) => ({ wsId: r.wsId, remoteId: r.wsId }));
+    const results: { wsId: string; remoteId: string }[] = [];
+
+    for (const record of records) {
+      const notionProperties: CreatePageParameters['properties'] = {};
+      for (const [wsId, value] of Object.entries(record.fields)) {
+        const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
+        if (column && !column.readonly) {
+          const propertyId = column.id.remoteId[0];
+          const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
+          if (propertyValue) {
+            notionProperties[propertyId] = propertyValue;
+          }
+        }
+      }
+
+      const newPage = await this.client.pages.create({
+        parent: { database_id: tableSpec.id.remoteId[0] },
+        properties: notionProperties,
+      });
+
+      results.push({ wsId: record.wsId, remoteId: newPage.id });
+    }
+
+    return results;
   }
 
-  // TODO: Should this return updated records?
   async updateRecords(
-    tableSpec: TableSpec,
+    tableSpec: NotionTableSpec,
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
   ): Promise<void> {
-    // TODO!!!!
-    console.log('updateRecords', tableSpec, records);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (const record of records) {
+      const notionProperties: CreatePageParameters['properties'] = {};
+      for (const [wsId, value] of Object.entries(record.partialFields)) {
+        const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
+        if (column && !column.readonly) {
+          const propertyId = column.id.remoteId[0];
+          const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
+          if (propertyValue) {
+            notionProperties[propertyId] = propertyValue;
+          }
+        }
+      }
+
+      if (Object.keys(notionProperties).length > 0) {
+        await this.client.pages.update({
+          page_id: record.id.remoteId,
+          properties: notionProperties,
+        });
+      }
+    }
   }
 
-  async deleteRecords(tableSpec: TableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
-    // TODO!!!!
-    console.log('deleteRecords', tableSpec, recordIds);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  async deleteRecords(tableSpec: NotionTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+    for (const recordId of recordIds) {
+      await this.client.pages.update({
+        page_id: recordId.remoteId,
+        archived: true,
+      });
+    }
   }
 }

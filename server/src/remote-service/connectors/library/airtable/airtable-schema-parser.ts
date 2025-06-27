@@ -1,5 +1,6 @@
 import { sanitizeForWsId } from '../../ids';
-import { ColumnSpec, PostgresColumnType, TablePreview } from '../../types';
+import { PostgresColumnType, TablePreview } from '../../types';
+import { AirtableColumnSpec } from '../custom-spec-registry';
 import { AirtableBase, AirtableDataType, AirtableFieldsV2, AirtableTableV2 } from './airtable-types';
 
 export class AirtableSchemaParser {
@@ -13,7 +14,7 @@ export class AirtableSchemaParser {
     };
   }
 
-  parseColumn(field: AirtableFieldsV2): ColumnSpec {
+  parseColumn(field: AirtableFieldsV2): AirtableColumnSpec {
     const pgType = this.getPostgresType(field);
     const readonly = this.isColumnReadonly(field);
     console.log(field.name, field.type, pgType);

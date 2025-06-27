@@ -1,6 +1,7 @@
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview, TableSpec } from '../../types';
+import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import { AirtableTableSpec } from '../custom-spec-registry';
 import { AirtableApiClient } from './airtable-api-client';
 import { AirtableSchemaParser } from './airtable-schema-parser';
 import { AirtableRecord } from './airtable-types';
@@ -31,7 +32,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     return tables;
   }
 
-  async fetchTableSpec(id: EntityId): Promise<TableSpec> {
+  async fetchTableSpec(id: EntityId): Promise<AirtableTableSpec> {
     const [baseId, tableId] = id.remoteId;
     const baseSchema = await this.client.getBaseSchema(baseId);
     const table = baseSchema.tables.find((t) => t.id === tableId);
@@ -46,7 +47,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   async downloadTableRecords(
-    tableSpec: TableSpec,
+    tableSpec: AirtableTableSpec,
     callback: (records: ConnectorRecord[]) => Promise<void>,
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
@@ -57,7 +58,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   // Record fields need to be keyed by the wsId, not the remoteId.
-  private wireToConnectorRecord(records: AirtableRecord[], tableSpec: TableSpec): ConnectorRecord[] {
+  private wireToConnectorRecord(records: AirtableRecord[], tableSpec: AirtableTableSpec): ConnectorRecord[] {
     return records.map((r) => {
       const record: ConnectorRecord = {
         id: r.id,
@@ -78,7 +79,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   async createRecords(
-    tableSpec: TableSpec,
+    tableSpec: AirtableTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const [baseId, tableId] = tableSpec.id.remoteId;
@@ -96,7 +97,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   async updateRecords(
-    tableSpec: TableSpec,
+    tableSpec: AirtableTableSpec,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
@@ -112,7 +113,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     await this.client.updateRecords(baseId, tableId, airtableRecords);
   }
 
-  async deleteRecords(tableSpec: TableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  async deleteRecords(tableSpec: AirtableTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
     await this.client.deleteRecords(
       baseId,
@@ -122,7 +123,10 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   // Record fields need to be keyed by the remoteId, not the wsId.
-  private wsFieldsToAirtableFields(wsFields: Record<string, unknown>, tableSpec: TableSpec): Record<string, unknown> {
+  private wsFieldsToAirtableFields(
+    wsFields: Record<string, unknown>,
+    tableSpec: AirtableTableSpec,
+  ): Record<string, unknown> {
     const airtableFields: Record<string, unknown> = {};
     for (const column of tableSpec.columns) {
       if (column.id.wsId === 'id') {

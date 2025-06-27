@@ -4,7 +4,8 @@ import { types } from 'pg';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
-import { ConnectorRecord, PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
+import { AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
+import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
@@ -61,7 +62,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     await this.knex.destroy();
   }
 
-  async createForSnapshot(snapshotId: SnapshotId, tables: TableSpec[]) {
+  async createForSnapshot(snapshotId: SnapshotId, tables: AnyTableSpec[]) {
     await this.knex.raw(`CREATE SCHEMA IF NOT EXISTS "${snapshotId}"`);
     for (const table of tables) {
       const tableExists = await this.knex.schema.withSchema(snapshotId).hasTable(table.id.wsId);
@@ -139,7 +140,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async upsertRecords(snapshotId: SnapshotId, table: TableSpec, records: ConnectorRecord[]) {
+  async upsertRecords(snapshotId: SnapshotId, table: AnyTableSpec, records: ConnectorRecord[]) {
     console.log('upsertRecords', snapshotId, table, JSON.stringify(records, null, 2));
 
     // Debug: Ensure the records have the right fields to catch bugs early.
@@ -310,7 +311,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateRemoteIds(snapshotId: SnapshotId, table: TableSpec, records: { wsId: string; remoteId: string }[]) {
+  async updateRemoteIds(snapshotId: SnapshotId, table: AnyTableSpec, records: { wsId: string; remoteId: string }[]) {
     await this.knex.transaction(async (trx) => {
       for (const record of records) {
         await trx(table.id.wsId).withSchema(snapshotId).where('wsId', record.wsId).update({ id: record.remoteId });
@@ -318,7 +319,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async deleteRecords(snapshotId: SnapshotId, table: TableSpec, wsIds: string[]) {
+  async deleteRecords(snapshotId: SnapshotId, table: AnyTableSpec, wsIds: string[]) {
     await this.knex(table.id.wsId).withSchema(snapshotId).whereIn('wsId', wsIds).delete();
   }
 
@@ -326,7 +327,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
    * Debug check to find connectors that are returning the wrong fields. I don't like my system for column names and
    * record conversion, and it's easy to make mistakes.
    */
-  private ensureExpectedFields(table: TableSpec, records: ConnectorRecord[]) {
+  private ensureExpectedFields(table: AnyTableSpec, records: ConnectorRecord[]) {
     let hasBad = false;
     const expectedFields = new Set(table.columns.map((c) => c.id.wsId));
     for (const record of records) {

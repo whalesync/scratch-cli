@@ -50,6 +50,8 @@ const generatePendingId = (): string => {
   return result;
 };
 
+const FAKE_LEFT_COLUMNS = 2;
+
 const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
@@ -63,23 +65,15 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
 
-    const createdRecords = recordsResponse.records.filter(
-      (r) => r.__edited_fields?.__created
-    );
-    const otherRecords = recordsResponse.records.filter(
-      (r) => !r.__edited_fields?.__created
-    );
-
     if (!sort) {
-      return [...createdRecords, ...otherRecords];
+      return recordsResponse.records;
     }
 
     const { columnId, dir } = sort;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sortedOthers = [...otherRecords].sort((a: any, b: any) => {
-      const aVal = a[columnId];
-      const bVal = b[columnId];
+    const sortedOthers = recordsResponse.records.sort((a, b) => {
+      const aVal = a.fields[columnId];
+      const bVal = b.fields[columnId];
 
       if (aVal === bVal) return 0;
       if (aVal === null || aVal === undefined) return -1;
@@ -96,7 +90,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
       }
       return 0;
     });
-    return [...createdRecords, ...sortedOthers];
+    return sortedOthers;
   }, [recordsResponse?.records, sort]);
 
   const onCellClicked = useCallback(
@@ -164,7 +158,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         };
       }
 
-      const column = table.columns[col - 2]; // Adjust index
+      const column = table.columns[col - FAKE_LEFT_COLUMNS];
       const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
 
@@ -252,7 +246,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
       if (!record) {
         return;
       }
-      const column = table.columns[col - 2];
+      const column = table.columns[col - FAKE_LEFT_COLUMNS];
       const columnId = column.id.wsId;
       const recordId = record.id.wsId;
 
@@ -284,7 +278,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   const onHeaderClicked = useCallback(
     (colIndex: number) => {
       if (colIndex === 0) return;
-      const column = table.columns[colIndex - 1];
+      const column = table.columns[colIndex - FAKE_LEFT_COLUMNS];
       const columnId = column.id.wsId;
 
       setSort((currentSort) => {

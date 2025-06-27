@@ -23,13 +23,10 @@ export type EntityId = {
   remoteId: string[];
 };
 
-export type TableSpec = {
+export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   id: EntityId;
   name: string;
-
-  // TODO custom connectordata.
-
-  columns: ColumnSpec[];
+  columns: ColumnType[];
 };
 
 /** Types of columns we support. Add more if needed. */
@@ -43,14 +40,12 @@ export enum PostgresColumnType {
   JSONB = 'jsonb',
 }
 
-export type ColumnSpec = {
+export type BaseColumnSpec = {
   id: EntityId;
   name: string;
 
   pgType: PostgresColumnType;
   readonly?: boolean;
-
-  // TODO custom connectordata.
 };
 
 /**

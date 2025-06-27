@@ -1,6 +1,7 @@
 import { DatabaseObjectResponse } from '@notionhq/client';
 import { sanitizeForWsId } from '../../ids';
-import { ColumnSpec, PostgresColumnType, TablePreview } from '../../types';
+import { PostgresColumnType, TablePreview } from '../../types';
+import { NotionColumnSpec } from '../custom-spec-registry';
 
 export class NotionSchemaParser {
   parseTablePreview(db: DatabaseObjectResponse): TablePreview {
@@ -14,16 +15,7 @@ export class NotionSchemaParser {
     };
   }
 
-  idColumn(): ColumnSpec {
-    return {
-      id: { wsId: 'id', remoteId: ['id'] },
-      name: 'id',
-      pgType: PostgresColumnType.TEXT,
-      readonly: true,
-    };
-  }
-
-  parseColumn(property: DatabaseObjectResponse['properties'][string]): ColumnSpec {
+  parseColumn(property: DatabaseObjectResponse['properties'][string]): NotionColumnSpec {
     const pgType = this.getPostgresType(property);
     const readonly = this.isColumnReadonly(property);
     return {
@@ -34,6 +26,7 @@ export class NotionSchemaParser {
       name: property.name,
       pgType,
       readonly,
+      notionDataType: property.type,
     };
   }
 

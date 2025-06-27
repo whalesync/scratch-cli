@@ -5,7 +5,8 @@ import { ConnectorAccount } from 'src/remote-service/connector-account/entities/
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
-import { PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
+import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
+import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -38,7 +39,7 @@ export class SnapshotService {
     // This probably could be something the user selects, which would mean we poll for it earlier and just take the
     // results back here.
     const connector = this.connectorService.getConnector(connectorAccount);
-    const tableSpecs: TableSpec[] = [];
+    const tableSpecs: AnyTableSpec[] = [];
     for (const tableId of tableIds) {
       tableSpecs.push(await connector.fetchTableSpec(tableId));
     }
@@ -117,7 +118,7 @@ export class SnapshotService {
     take: number,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
     }
@@ -143,7 +144,7 @@ export class SnapshotService {
     userId: string,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
     }
@@ -153,7 +154,7 @@ export class SnapshotService {
     return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops);
   }
 
-  private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: TableSpec) {
+  private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: AnyTableSpec) {
     const errors: { wsId?: string; field: string; message: string }[] = [];
     const numericRegex = /^-?\d+(\.\d+)?$/;
 
@@ -207,7 +208,7 @@ export class SnapshotService {
 
   private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<void> {
     const connector = this.connectorService.getConnector(snapshot.connectorAccount);
-    const tableSpecs = snapshot.tableSpecs as TableSpec[];
+    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     for (const tableSpec of tableSpecs) {
       await connector.downloadTableRecords(
         tableSpec,
@@ -226,7 +227,7 @@ export class SnapshotService {
 
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
     const connector = this.connectorService.getConnector(snapshot.connectorAccount);
-    const tableSpecs = snapshot.tableSpecs as TableSpec[];
+    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
     // First create everything.
     for (const tableSpec of tableSpecs) {
@@ -246,10 +247,10 @@ export class SnapshotService {
     console.log('Done publishing snapshot', snapshot.id);
   }
 
-  private async publishCreatesToTable<T extends Service>(
+  private async publishCreatesToTable<S extends Service>(
     snapshot: SnapshotWithConnectorAccount,
-    connector: Connector<T>,
-    tableSpec: TableSpec,
+    connector: Connector<S>,
+    tableSpec: TableSpecs[S],
   ): Promise<void> {
     await this.snapshotDbService.forAllDirtyRecords(
       snapshot.id as SnapshotId,
@@ -268,10 +269,10 @@ export class SnapshotService {
     );
   }
 
-  private async publishUpdatesToTable<T extends Service>(
+  private async publishUpdatesToTable<S extends Service>(
     snapshot: SnapshotWithConnectorAccount,
-    connector: Connector<T>,
-    tableSpec: TableSpec,
+    connector: Connector<S>,
+    tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
     await this.snapshotDbService.forAllDirtyRecords(
@@ -292,10 +293,10 @@ export class SnapshotService {
     );
   }
 
-  private async publishDeletesToTable<T extends Service>(
+  private async publishDeletesToTable<S extends Service>(
     snapshot: SnapshotWithConnectorAccount,
-    connector: Connector<T>,
-    tableSpec: TableSpec,
+    connector: Connector<S>,
+    tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Finally the deletes since hopefully nothing references them.
     await this.snapshotDbService.forAllDirtyRecords(
@@ -321,7 +322,7 @@ export class SnapshotService {
   }
 }
 
-function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: TableSpec): SnapshotRecord {
+function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: AnyTableSpec): SnapshotRecord {
   const editedFieldNames = tableSpec.columns
     .map((c) => c.id.wsId)
     .filter((colWsId) => !!record.__edited_fields[colWsId]);

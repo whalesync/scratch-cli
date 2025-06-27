@@ -1,5 +1,6 @@
 import { ConnectorAccount, Service } from '@prisma/client';
-import { ConnectorRecord, EntityId, TablePreview, TableSpec } from './types';
+import { TableSpecs } from './library/custom-spec-registry';
+import { ConnectorRecord, EntityId, TablePreview } from './types';
 
 export abstract class Connector<T extends Service> {
   abstract readonly service: T;
@@ -8,25 +9,25 @@ export abstract class Connector<T extends Service> {
 
   abstract listTables(account: ConnectorAccount): Promise<TablePreview[]>;
 
-  abstract fetchTableSpec(id: EntityId): Promise<TableSpec>;
+  abstract fetchTableSpec(id: EntityId): Promise<TableSpecs[T]>;
 
   abstract downloadTableRecords(
-    tableSpec: TableSpec,
+    tableSpec: TableSpecs[T],
     callback: (records: ConnectorRecord[]) => Promise<void>,
   ): Promise<void>;
 
   abstract getBatchSize(operation: 'create' | 'update' | 'delete'): number;
 
   abstract createRecords(
-    tableSpec: TableSpec,
+    tableSpec: TableSpecs[T],
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]>;
 
   // TODO: Should this return updated records?
   abstract updateRecords(
-    tableSpec: TableSpec,
+    tableSpec: TableSpecs[T],
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
   ): Promise<void>;
 
-  abstract deleteRecords(tableSpec: TableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
+  abstract deleteRecords(tableSpec: TableSpecs[T], recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
 }

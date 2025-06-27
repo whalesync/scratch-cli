@@ -1,5 +1,5 @@
 import { Snapshot as PrismaSnapshot } from '@prisma/client';
-import { TableSpec } from '../../remote-service/connectors/types';
+import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
 
 export class Snapshot {
   id: string;
@@ -7,13 +7,13 @@ export class Snapshot {
   updatedAt: Date;
   connectorAccountId: string;
 
-  tables: TableSpec[];
+  tables: AnyTableSpec[];
 
   constructor(snapshot: PrismaSnapshot) {
     this.id = snapshot.id;
     this.createdAt = snapshot.createdAt;
     this.updatedAt = snapshot.updatedAt;
     this.connectorAccountId = snapshot.connectorAccountId;
-    this.tables = snapshot.tableSpecs as TableSpec[];
+    this.tables = snapshot.tableSpecs as AnyTableSpec[];
   }
 }
