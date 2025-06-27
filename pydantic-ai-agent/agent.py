@@ -12,10 +12,13 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol
+from dotenv import load_dotenv
 
 from models import ChatResponse
 from tools import get_records, connect_snapshot, get_active_snapshot, set_api_token, set_session_data
 from logger import log_info, log_error
+
+load_dotenv()
 
 def extract_response(result):
     """Extract response from result object, trying different attributes"""

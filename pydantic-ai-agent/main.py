@@ -2,16 +2,14 @@
 """
 Main FastAPI Chat Server - Modular Version
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 import os
 import sys
 import threading
 import time as time_module
 from typing import Optional, Any
-from dotenv import load_dotenv
-
-# Add the current directory to the path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +20,7 @@ from websocket_handler import websocket_endpoint
 from logger import log_info
 
 # Load environment variables
-load_dotenv()
+
 
 # Initialize FastAPI app
 app = FastAPI(title="PydanticAI Chat Server", version="1.0.0")
