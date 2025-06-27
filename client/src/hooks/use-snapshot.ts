@@ -39,14 +39,39 @@ export const useSnapshots = (connectorAccountId: string) => {
 };
 
 export const useSnapshot = (id: string) => {
-  const { data, error, isLoading } = useSWR(SWR_KEYS.snapshot.detail(id), () =>
-    snapshotApi.detail(id)
+  const { data, error, isLoading, mutate } = useSWR(
+    SWR_KEYS.snapshot.detail(id),
+    () => snapshotApi.detail(id)
   );
+
+  const { mutate: globalMutate } = useSWRConfig();
+
+  const publish = useCallback(async () => {
+    if (!data) {
+      return;
+    }
+
+    await snapshotApi.publish(id);
+    // Revalidate the snapshot itself
+    await mutate();
+
+    // Revalidate the records in all tables for this snapshot.
+    globalMutate(
+      (key) =>
+        Array.isArray(key) &&
+        key[0] === "snapshot" &&
+        key[1] === "records" &&
+        key[2] === id,
+      undefined,
+      { revalidate: true }
+    );
+  }, [id, data, mutate, globalMutate]);
 
   return {
     snapshot: data,
     isLoading,
     error,
+    publish,
   };
 };
 

@@ -56,3 +56,16 @@ export const useConnectorAccounts = () => {
     testConnection,
   };
 };
+
+export const useConnectorAccount = (id?: string) => {
+  const { data, error, isLoading } = useSWR(
+    id ? SWR_KEYS.connectorAccounts.detail(id) : null,
+    () => (id ? connectorAccountsApi.detail(id) : null)
+  );
+
+  return {
+    connectorAccount: data,
+    isLoading,
+    error,
+  };
+};

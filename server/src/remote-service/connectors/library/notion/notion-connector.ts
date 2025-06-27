@@ -145,4 +145,34 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
         return `Unsupported type: ${property.type}`;
     }
   }
+
+  getBatchSize(): number {
+    return 1;
+  }
+
+  async createRecords(
+    tableSpec: TableSpec,
+    records: { wsId: string; fields: Record<string, unknown> }[],
+  ): Promise<{ wsId: string; remoteId: string }[]> {
+    // TODO!!!!
+    console.log('createRecords', tableSpec, records);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return records.map((r) => ({ wsId: r.wsId, remoteId: r.wsId }));
+  }
+
+  // TODO: Should this return updated records?
+  async updateRecords(
+    tableSpec: TableSpec,
+    records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
+  ): Promise<void> {
+    // TODO!!!!
+    console.log('updateRecords', tableSpec, records);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  async deleteRecords(tableSpec: TableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+    // TODO!!!!
+    console.log('deleteRecords', tableSpec, recordIds);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }

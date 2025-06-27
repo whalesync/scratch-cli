@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Snapshot } from '@prisma/client';
+import { Service, Snapshot } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
+import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { PostgresColumnType, SnapshotRecord, TableSpec } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
@@ -64,6 +65,15 @@ export class SnapshotService {
     return newSnapshot;
   }
 
+  async delete(id: SnapshotId, userId: string): Promise<void> {
+    await this.findOneWithConnectorAccount(id, userId); // Permissions
+
+    await this.snapshotDbService.cleanUpSnapshot(id);
+    await this.db.client.snapshot.delete({
+      where: { id },
+    });
+  }
+
   findAll(connectorAccountId: string, userId: string): Promise<Snapshot[]> {
     return this.db.client.snapshot.findMany({
       where: {
@@ -82,8 +92,11 @@ export class SnapshotService {
     });
   }
 
-  private async findOneAsUser(id: SnapshotId, userId: string): Promise<Snapshot> {
-    const snapshot = await this.findOne(id, userId);
+  private async findOneWithConnectorAccount(id: SnapshotId, userId: string): Promise<SnapshotWithConnectorAccount> {
+    const snapshot = await this.db.client.snapshot.findUnique({
+      where: { id, connectorAccount: { userId } },
+      include: { connectorAccount: true },
+    });
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -91,7 +104,8 @@ export class SnapshotService {
   }
 
   async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
-    const snapshot = await this.findOneAsUser(id, userId);
+    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+    // TODO: Update the snapshot if there's anything in the DTO.
     return snapshot;
   }
 
@@ -102,7 +116,7 @@ export class SnapshotService {
     cursor: string | undefined,
     take: number,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    const snapshot = await this.findOneAsUser(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -128,7 +142,7 @@ export class SnapshotService {
     dto: BulkUpdateRecordsDto,
     userId: string,
   ): Promise<void> {
-    const snapshot = await this.findOneAsUser(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as TableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -183,14 +197,7 @@ export class SnapshotService {
   }
 
   async download(id: SnapshotId, userId: string): Promise<void> {
-    const snapshot: SnapshotWithConnectorAccount | null = await this.db.client.snapshot.findUnique({
-      where: { id, connectorAccount: { userId } },
-      include: { connectorAccount: true },
-    });
-
-    if (!snapshot) {
-      throw new NotFoundException('Snapshot not found');
-    }
+    const snapshot = await this.findOneWithConnectorAccount(id, userId);
 
     // TODO: Do this work somewhere real.
     this.downloadSnapshotInBackground(snapshot).catch((error) => {
@@ -210,12 +217,120 @@ export class SnapshotService {
     console.log('Done downloading snapshot', snapshot.id);
   }
 
-  async delete(id: SnapshotId, userId: string): Promise<void> {
-    await this.findOneAsUser(id, userId);
-
-    await this.snapshotDbService.cleanUpSnapshot(id);
-    await this.db.client.snapshot.delete({
-      where: { id },
-    });
+  async publish(id: SnapshotId, userId: string): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+    // TODO: Do this work somewhere real.
+    // For now it's running synchronously, but could also be done in the background.
+    await this.publishSnapshot(snapshot);
   }
+
+  private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
+    const connector = this.connectorService.getConnector(snapshot.connectorAccount);
+    const tableSpecs = snapshot.tableSpecs as TableSpec[];
+
+    // First create everything.
+    for (const tableSpec of tableSpecs) {
+      await this.publishCreatesToTable(snapshot, connector, tableSpec);
+    }
+
+    // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
+    for (const tableSpec of tableSpecs) {
+      await this.publishUpdatesToTable(snapshot, connector, tableSpec);
+    }
+
+    // Finally the deletes since hopefully nothing references them any more.
+    for (const tableSpec of tableSpecs) {
+      await this.publishDeletesToTable(snapshot, connector, tableSpec);
+    }
+
+    console.log('Done publishing snapshot', snapshot.id);
+  }
+
+  private async publishCreatesToTable<T extends Service>(
+    snapshot: SnapshotWithConnectorAccount,
+    connector: Connector<T>,
+    tableSpec: TableSpec,
+  ): Promise<void> {
+    await this.snapshotDbService.forAllDirtyRecords(
+      snapshot.id as SnapshotId,
+      tableSpec.id.wsId,
+      'create',
+      connector.getBatchSize('create'),
+      async (records) => {
+        const sanitizedRecords = records
+          .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
+          .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
+
+        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords);
+        // Save the created IDs.
+        await this.snapshotDbService.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
+      },
+    );
+  }
+
+  private async publishUpdatesToTable<T extends Service>(
+    snapshot: SnapshotWithConnectorAccount,
+    connector: Connector<T>,
+    tableSpec: TableSpec,
+  ): Promise<void> {
+    // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
+    await this.snapshotDbService.forAllDirtyRecords(
+      snapshot.id as SnapshotId,
+      tableSpec.id.wsId,
+      'update',
+      connector.getBatchSize('update'),
+      async (records) => {
+        const sanitizedRecords = records
+          .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
+          .map((r) => ({
+            id: { wsId: r.id.wsId, remoteId: r.id.remoteId! },
+            partialFields: r.fields,
+          }));
+
+        await connector.updateRecords(tableSpec, sanitizedRecords);
+      },
+    );
+  }
+
+  private async publishDeletesToTable<T extends Service>(
+    snapshot: SnapshotWithConnectorAccount,
+    connector: Connector<T>,
+    tableSpec: TableSpec,
+  ): Promise<void> {
+    // Finally the deletes since hopefully nothing references them.
+    await this.snapshotDbService.forAllDirtyRecords(
+      snapshot.id as SnapshotId,
+      tableSpec.id.wsId,
+      'delete',
+      connector.getBatchSize('delete'),
+      async (records) => {
+        const recordIds = records
+          .filter((r) => !!r.id.remoteId)
+          .map((r) => ({ wsId: r.id.wsId, remoteId: r.id.remoteId! }));
+
+        await connector.deleteRecords(tableSpec, recordIds);
+
+        // Remove them from the snapshot.
+        await this.snapshotDbService.deleteRecords(
+          snapshot.id as SnapshotId,
+          tableSpec,
+          records.map((r) => r.id.wsId),
+        );
+      },
+    );
+  }
+}
+
+function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: TableSpec): SnapshotRecord {
+  const editedFieldNames = tableSpec.columns
+    .map((c) => c.id.wsId)
+    .filter((colWsId) => !!record.__edited_fields[colWsId]);
+  const editedFields = Object.fromEntries(
+    Object.entries(record.fields).filter(([fieldName]) => editedFieldNames.includes(fieldName)),
+  );
+
+  return {
+    ...record,
+    fields: editedFields,
+  };
 }

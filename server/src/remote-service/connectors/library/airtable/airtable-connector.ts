@@ -1,6 +1,6 @@
 import { Service } from '@prisma/client';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, TablePreview, TableSpec } from '../../types';
+import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview, TableSpec } from '../../types';
 import { AirtableApiClient } from './airtable-api-client';
 import { AirtableSchemaParser } from './airtable-schema-parser';
 import { AirtableRecord } from './airtable-types';
@@ -71,5 +71,72 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       }
       return record;
     });
+  }
+
+  getBatchSize(): number {
+    return 10;
+  }
+
+  async createRecords(
+    tableSpec: TableSpec,
+    records: { wsId: string; fields: Record<string, unknown> }[],
+  ): Promise<{ wsId: string; remoteId: string }[]> {
+    const [baseId, tableId] = tableSpec.id.remoteId;
+
+    const airtableRecords = records.map((r) => this.wsFieldsToAirtableFields(r.fields, tableSpec));
+
+    const created = await this.client.createRecords(
+      baseId,
+      tableId,
+      airtableRecords.map((fields) => ({ fields })),
+    );
+
+    // Airtable returns records in the same order as the request, zip them to get the IDs.
+    return records.map(({ wsId }, i) => ({ wsId, remoteId: created[i].id }));
+  }
+
+  async updateRecords(
+    tableSpec: TableSpec,
+    records: {
+      id: { wsId: string; remoteId: string };
+      partialFields: Record<string, unknown>;
+    }[],
+  ): Promise<void> {
+    const [baseId, tableId] = tableSpec.id.remoteId;
+    const airtableRecords = records.map((r) => {
+      return {
+        id: r.id.remoteId,
+        fields: this.wsFieldsToAirtableFields(r.partialFields, tableSpec),
+      };
+    });
+    await this.client.updateRecords(baseId, tableId, airtableRecords);
+  }
+
+  async deleteRecords(tableSpec: TableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+    const [baseId, tableId] = tableSpec.id.remoteId;
+    await this.client.deleteRecords(
+      baseId,
+      tableId,
+      recordIds.map((r) => r.remoteId),
+    );
+  }
+
+  // Record fields need to be keyed by the remoteId, not the wsId.
+  private wsFieldsToAirtableFields(wsFields: Record<string, unknown>, tableSpec: TableSpec): Record<string, unknown> {
+    const airtableFields: Record<string, unknown> = {};
+    for (const column of tableSpec.columns) {
+      if (column.id.wsId === 'id') {
+        continue;
+      }
+      const val = wsFields[column.id.wsId];
+      if (val !== undefined) {
+        if (column.pgType === PostgresColumnType.NUMERIC) {
+          airtableFields[column.id.remoteId[0]] = parseFloat(val as string);
+        } else {
+          airtableFields[column.id.remoteId[0]] = val;
+        }
+      }
+    }
+    return airtableFields;
   }
 }

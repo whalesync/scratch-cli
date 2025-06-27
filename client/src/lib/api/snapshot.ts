@@ -81,6 +81,21 @@ export const snapshotApi = {
     }
   },
 
+  async publish(id: string): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${id}/publish`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to start publish");
+    }
+  },
+
   async delete(id: string): Promise<void> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "DELETE",

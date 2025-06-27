@@ -1,5 +1,10 @@
 import axios, { RawAxiosRequestHeaders } from 'axios';
-import { AirtableBaseSchemaResponseV2, AirtableListBasesResponse, AirtableRecord } from './airtable-types';
+import {
+  AirtableApiPushResponse,
+  AirtableBaseSchemaResponseV2,
+  AirtableListBasesResponse,
+  AirtableRecord,
+} from './airtable-types';
 
 const AIRTABLE_API_BASE_URL = 'https://api.airtable.com/v0';
 
@@ -46,5 +51,39 @@ export class AirtableApiClient {
       yield r.data.records;
       offset = r.data.offset;
     } while (offset);
+  }
+
+  // Fields are keyed by airtable field ids.
+  async createRecords(
+    baseId: string,
+    tableId: string,
+    records: { fields: Record<string, unknown> }[],
+  ): Promise<AirtableRecord[]> {
+    const r = await axios.post<AirtableApiPushResponse>(
+      `${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`,
+      { records, typecast: true, returnFieldsByFieldId: true },
+      { headers: { ...this.authHeaders, 'Content-Type': 'application/json' } },
+    );
+    return r.data.records ?? [];
+  }
+
+  async updateRecords(
+    baseId: string,
+    tableId: string,
+    records: { id?: string; fields: Record<string, unknown> }[],
+  ): Promise<AirtableRecord[]> {
+    const r = await axios.patch<AirtableApiPushResponse>(
+      `${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`,
+      { records, typecast: true, returnFieldsByFieldId: true },
+      { headers: { ...this.authHeaders, 'Content-Type': 'application/json' } },
+    );
+    return r.data.records ?? [];
+  }
+
+  async deleteRecords(baseId: string, tableId: string, recordIds: string[]): Promise<void> {
+    await axios.delete(`${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`, {
+      headers: this.authHeaders,
+      params: { records: recordIds },
+    });
   }
 }

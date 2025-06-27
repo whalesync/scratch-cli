@@ -102,6 +102,39 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
           t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
           t.boolean(DIRTY_COLUMN).defaultTo(false);
         });
+      } else {
+        // The table exists, so we need to check if we need to migrate it.
+        const hasWsId = await this.knex.schema.withSchema(snapshotId).hasColumn(table.id.wsId, 'wsId');
+        if (!hasWsId) {
+          // Add wsId column, populate it, and set it as the new primary key.
+          await this.knex.schema.withSchema(snapshotId).alterTable(table.id.wsId, (t) => {
+            t.uuid('wsId').nullable();
+          });
+          await this.knex.raw(`UPDATE "${snapshotId}"."${table.id.wsId}" SET "wsId" = gen_random_uuid()`);
+          await this.knex.schema.withSchema(snapshotId).alterTable(table.id.wsId, (t) => {
+            t.dropPrimary();
+          });
+
+          await this.knex.schema.withSchema(snapshotId).alterTable(table.id.wsId, (t) => {
+            t.uuid('wsId').notNullable().alter();
+            t.primary(['wsId']);
+            t.unique(['id']);
+          });
+        }
+
+        // The table exists, so we need to check if the metadata columns exist.
+        for (const col of [EDITED_FIELDS_COLUMN, DIRTY_COLUMN]) {
+          const hasColumn = await this.knex.schema.withSchema(snapshotId).hasColumn(table.id.wsId, col);
+          if (!hasColumn) {
+            await this.knex.schema.withSchema(snapshotId).table(table.id.wsId, (t) => {
+              if (col === EDITED_FIELDS_COLUMN) {
+                t.jsonb(EDITED_FIELDS_COLUMN).nullable();
+              } else if (col === DIRTY_COLUMN) {
+                t.boolean(DIRTY_COLUMN).defaultTo(false);
+              }
+            });
+          }
+        }
       }
     }
   }
@@ -213,6 +246,80 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
         }
       }
     });
+  }
+
+  async forAllDirtyRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    operation: 'create' | 'update' | 'delete',
+    batchSize: number,
+    callback: (records: SnapshotRecord[]) => Promise<void>,
+  ) {
+    let hasMore = true;
+    while (hasMore) {
+      const records = await this.knex.transaction(async (trx) => {
+        const query = trx<DbRecord>(tableId)
+          .withSchema(snapshotId)
+          .select('*')
+          .where(DIRTY_COLUMN, true)
+          .limit(batchSize)
+          .forUpdate()
+          .skipLocked();
+
+        // Find the records for the given operation.
+        switch (operation) {
+          case 'create':
+            query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NOT NULL`);
+            break;
+          case 'update':
+            query
+              .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NULL`)
+              .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NULL`);
+            break;
+          case 'delete':
+            query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NOT NULL`);
+            break;
+        }
+
+        const dbRecords = await query;
+        if (dbRecords.length > 0) {
+          // Mark the records as clean.
+          await trx(tableId)
+            .withSchema(snapshotId)
+            .whereIn(
+              'wsId',
+              dbRecords.map((r) => r.wsId),
+            )
+            .update({ [DIRTY_COLUMN]: false, [EDITED_FIELDS_COLUMN]: '{}' });
+        }
+        return dbRecords;
+      });
+
+      if (records.length > 0) {
+        await callback(
+          records.map(({ wsId, id: remoteId, __edited_fields, __dirty, ...fields }) => ({
+            id: { wsId, remoteId },
+            __edited_fields,
+            __dirty,
+            fields,
+          })),
+        );
+      } else {
+        hasMore = false;
+      }
+    }
+  }
+
+  async updateRemoteIds(snapshotId: SnapshotId, table: TableSpec, records: { wsId: string; remoteId: string }[]) {
+    await this.knex.transaction(async (trx) => {
+      for (const record of records) {
+        await trx(table.id.wsId).withSchema(snapshotId).where('wsId', record.wsId).update({ id: record.remoteId });
+      }
+    });
+  }
+
+  async deleteRecords(snapshotId: SnapshotId, table: TableSpec, wsIds: string[]) {
+    await this.knex(table.id.wsId).withSchema(snapshotId).whereIn('wsId', wsIds).delete();
   }
 
   /**

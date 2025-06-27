@@ -1,6 +1,5 @@
 "use client";
 
-import { v4 as uuidv4 } from "uuid";
 import {
   DataEditor,
   EditableGridCell,
@@ -40,6 +39,16 @@ interface SortState {
   columnId: string;
   dir: SortDirection;
 }
+
+const generatePendingId = (): string => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "ws_pending_";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
@@ -168,6 +177,24 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         themeOverride.bgCell = "#fdfde0";
       }
 
+      if (
+        column.id.wsId === "id" &&
+        typeof value === "string" &&
+        value.startsWith("ws_pending_")
+      ) {
+        return {
+          kind: GridCellKind.Text,
+          data: value,
+          displayData: "new",
+          allowOverlay: false,
+          readonly: true,
+          themeOverride: {
+            ...themeOverride,
+            textDark: "darkgray",
+          },
+        };
+      }
+
       return {
         kind: GridCellKind.Text,
         allowOverlay: !isReadonly,
@@ -181,9 +208,7 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   );
 
   const onAddRow = useCallback(() => {
-    // This gets replaced when you save the record, but we need a way to reference it until then.
-    // Kind of hacky.
-    const newRecordId = uuidv4();
+    const newRecordId = generatePendingId();
 
     const newRecordData: Record<string, unknown> = {
       id: newRecordId,
@@ -341,6 +366,8 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
         onColumnResize={onColumnResize}
         onHeaderClicked={onHeaderClicked}
         onCellClicked={onCellClicked}
+        getCellsForSelection={true}
+        onPaste={true}
         onItemHovered={(args: GridMouseEventArgs) => {
           if (args.kind === "cell") {
             setHoveredRow(args.location[1]);

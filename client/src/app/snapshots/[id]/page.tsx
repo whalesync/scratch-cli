@@ -32,13 +32,17 @@ import AIChatPanel from "../../components/AIChatPanel";
 
 import "@glideapps/glide-data-grid/dist/index.css";
 import { useEffect, useState } from "react";
+import { useConnectorAccount } from "../../../hooks/use-connector-account";
 
 export default function SnapshotPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
 
-  const { snapshot, isLoading } = useSnapshot(id);
+  const { snapshot, isLoading, publish } = useSnapshot(id);
+  const { connectorAccount } = useConnectorAccount(
+    snapshot?.connectorAccountId
+  );
 
   const [selectedTable, setSelectedTable] = useState<TableSpec | undefined>(
     undefined
@@ -65,6 +69,41 @@ export default function SnapshotPage() {
         title: "Download failed",
         message: "There was an error starting the download.",
         color: "red",
+      });
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      notifications.show({
+        id: "publish-notification", // So it gets replaced by below.
+        title: "Publishing",
+        message: `Your data is being published to ${connectorAccount?.service}`,
+        color: "blue",
+        loading: true,
+        autoClose: false,
+        withCloseButton: false,
+      });
+      await publish();
+      notifications.update({
+        id: "publish-notification",
+        title: "Published",
+        message: `Your data has been published to ${connectorAccount?.service}`,
+        color: "green",
+        icon: <CheckIcon size={18} />,
+        loading: false,
+        autoClose: 2000,
+      });
+    } catch (e) {
+      console.error(e);
+      notifications.update({
+        id: "publish-notification",
+        title: "Publish failed",
+        message:
+          (e as Error).message ?? "There was an error publishing your data",
+        color: "red",
+        loading: false,
+        autoClose: 2000,
       });
     }
   };
@@ -185,10 +224,10 @@ export default function SnapshotPage() {
 
           <Button
             variant="outline"
-            onClick={() => alert("NOT YET IMPLEMENTED")}
+            onClick={handlePublish}
             leftSection={<UploadIcon />}
           >
-            Save to remote
+            Publish
           </Button>
           <Button
             variant="outline"

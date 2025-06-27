@@ -62,6 +62,12 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/publish')
+  async publish(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
+    return this.service.publish(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/download')
   async download(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     return this.service.download(id, req.user.id);
