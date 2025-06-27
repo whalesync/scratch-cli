@@ -15,7 +15,6 @@ import Link from "next/link";
 import {
   TestTubeIcon,
   PlugsIcon,
-  RocketLaunchIcon,
   SpiralIcon,
   CloudArrowDownIcon,
   CheckIcon,
@@ -25,29 +24,29 @@ import {
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
+import { RouteUrls } from "@/utils/route-urls";
 
 const links = [
   {
-    href: "/chat",
+    href: RouteUrls.chatPageUrl,
     label: "Chat",
     icon: <ChatCircleIcon size={16} />,
   },
   {
-    href: "/mcp-demo",
-    label: "MCP Demo",
-    icon: <RocketLaunchIcon size={16} />,
+    href: RouteUrls.connectionsPageUrl,
+    label: "Connections",
+    icon: <PlugsIcon size={16} />,
   },
   {
-    href: "/api-import-demo",
+    href: RouteUrls.apiImportDemoPageUrl,
     label: "API Import Demo",
     icon: <CloudArrowDownIcon size={16} />,
   },
   {
-    href: "/connector-accounts",
-    label: "Connections",
-    icon: <PlugsIcon size={16} />,
+    href: RouteUrls.healthPageUrl,
+    label: "Health",
+    icon: <TestTubeIcon size={16} />,
   },
-  { href: "/health", label: "Health", icon: <TestTubeIcon size={16} /> },
 ];
 
 export function SideMenu() {

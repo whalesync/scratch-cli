@@ -29,6 +29,7 @@ import {
   QuestionIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
+import { RouteUrls } from "@/utils/route-urls";
 
 interface ConnectorAccountRowProps {
   connectorAccount: ConnectorAccount;
@@ -89,7 +90,7 @@ export function ConnectorAccountRow({
   };
 
   const handleWorkWithSnapshot = (id: string) => {
-    router.push(`/snapshots/${id}`);
+    router.push(RouteUrls.snapshotPage(id));
   };
 
   const HealthIcon = (c: ConnectorAccount) => {

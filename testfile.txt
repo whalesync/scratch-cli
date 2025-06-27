@@ -1,0 +1,46 @@
+ PERSONAL_V100 = 'S2RQpN', // 250 records
+
+  // Starter Plan Variations (V10)
+  STARTER_V100 = 'VuOazt', // 500 records
+
+  // Plus Plan Variations (V10)
+  PLUS_1_V100 = 'ZiPt3t', // 1000 records
+  PLUS_2_V100 = 'KKZnGZ', // 2000 records
+  PLUS_3_V100 = '9iCGH0', // 5000 records
+  PLUS_4_V100 = 'WpEqDD', // 10000 records
+  PLUS_5_V100 = 'Qgtzoe', // 20000 records
+  PLUS_6_V100 = 'EO96jf', // 30000 records
+
+  // Pro Plan Variations (V10)
+  PRO_1_V100 = '9NYQt2', // 2000 records
+  PRO_2_V100 = 'FYRYRE', // 5000 records
+  PRO_3_V100 = '2yMbAf', // 10000 records
+  PRO_4_V100 = 'KLrUwc', // 20000 records
+  PRO_5_V100 = 'UieuY9', // 30000 records
+
+  // Enterprise Plan (V10)
+  ENTERPRISE_V100 = '2UfocV',
+
+// Personal
+https://test.whalesync.com/account/payment/S2RQpN
+
+// Starter
+https://test.whalesync.com/account/payment/VuOazt
+
+// Plus
+https://test.whalesync.com/account/payment/ZiPt3t
+https://test.whalesync.com/account/payment/KKZnGZ
+https://test.whalesync.com/account/payment/9iCGH0
+https://test.whalesync.com/account/payment/WpEqDD
+https://test.whalesync.com/account/payment/Qgtzoe
+https://test.whalesync.com/account/payment/EO96jf
+
+// Pro
+https://test.whalesync.com/account/payment/9NYQt2
+https://test.whalesync.com/account/payment/FYRYRE
+https://test.whalesync.com/account/payment/2yMbAf
+https://test.whalesync.com/account/payment/KLrUwc
+https://test.whalesync.com/account/payment/UieuY9
+
+// Enterprise
+https://test.whalesync.com/account/payment/2UfocV

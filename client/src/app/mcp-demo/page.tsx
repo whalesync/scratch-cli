@@ -21,6 +21,9 @@ const RecordsGridWithNoSSR = dynamic(
   }
 );
 
+/**
+ * @deprecated This page is no longer used.
+ */
 export default function Home() {
   const [records, setRecords] = useState<DataRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
