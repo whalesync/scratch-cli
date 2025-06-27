@@ -13,6 +13,7 @@ from models import ChatSession, ChatMessage, SendMessageResponse, ChatResponse
 from agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
+from tools import set_api_token, set_session_data
 
 class ChatService:
     def __init__(self):
@@ -36,21 +37,48 @@ class ChatService:
             timestamp=timestamp
         )
 
+    def create_session(self, session_id: str, snapshot_id: Optional[str] = None) -> ChatSession:
+        """Create a new chat session and set session data in tools"""
+        now = datetime.now()
+        session = ChatSession(
+            id=session_id,
+            name=f"Chat Session {now.strftime('%Y-%m-%d %H:%M')}",
+            last_activity=now,
+            created_at=now,
+            snapshot_id=snapshot_id
+        )
+        
+        # Set session data in tools' global state
+        session_data = {
+            'session_id': session_id,
+            'snapshot_id': snapshot_id
+        }
+        set_session_data(session_data)
+        
+        log_info("Session created and session data set", 
+                 session_id=session_id, 
+                 snapshot_id=snapshot_id)
+        print(f"📝 Created session: {session_id}")
+        if snapshot_id:
+            print(f"📊 Session associated with snapshot: {snapshot_id}")
+        
+        return session
+
     async def process_message_with_agent(self, session: ChatSession, user_message: str, api_token: Optional[str] = None) -> SendMessageResponse:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
         if session.snapshot_id:
             print(f"📊 Session associated with snapshot: {session.snapshot_id}")
         
-        # Set API token if provided
+        # Set API token in tools' global state for this message
         if api_token:
-            API_CONFIG.set_api_token(api_token)
-            log_info("API token set for session", 
+            set_api_token(api_token)
+            log_info("API token set for tools", 
                      session_id=session.id, 
                      token_length=len(api_token), 
                      token_preview=api_token[:8] + "..." if len(api_token) > 8 else api_token,
                      snapshot_id=session.snapshot_id)
-            print(f"🔑 API token set: {api_token[:8]}..." if len(api_token) > 8 else api_token)
+            print(f"🔑 API token set for tools: {api_token[:8]}..." if len(api_token) > 8 else api_token)
             
             # Test server connectivity
             if check_server_health():
@@ -105,7 +133,14 @@ class ChatService:
             # Get structured response from agent with timeout
             print(f"🤖 Calling agent.run() with timeout...")
             try:
-                result = await asyncio.wait_for(self.agent.run(full_prompt), timeout=30.0)  # 30 second timeout
+                # Create context with API token and snapshot ID for tools
+                context = {}
+                if api_token:
+                    context['api_token'] = api_token
+                if session.snapshot_id:
+                    context['snapshot_id'] = session.snapshot_id
+                
+                result = await asyncio.wait_for(self.agent.run(full_prompt, deps=context), timeout=30.0)  # 30 second timeout
                 print(f"✅ Agent.run() completed")
             except asyncio.TimeoutError:
                 log_error("Agent processing timeout", session_id=session.id, timeout_seconds=30, snapshot_id=session.snapshot_id)

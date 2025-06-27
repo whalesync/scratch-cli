@@ -30,20 +30,11 @@ async def create_session(session_id: Optional[str] = None, snapshot_id: Optional
         log_warning("Session creation failed - already exists", session_id=session_id, snapshot_id=snapshot_id)
         raise HTTPException(status_code=400, detail="Session already exists")
     
-    now = datetime.now()
-    session = ChatSession(
-        id=session_id,
-        name=f"Chat Session {now.strftime('%Y-%m-%d %H:%M')}",
-        last_activity=now,
-        created_at=now,
-        snapshot_id=snapshot_id
-    )
+    # Create session using the chat service method
+    session = chat_service.create_session(session_id, snapshot_id)
     chat_service.sessions[session_id] = session
     
     log_info("Session created", session_id=session_id, total_sessions=len(chat_service.sessions), snapshot_id=snapshot_id)
-    print(f"📝 Created new session: {session_id}")
-    if snapshot_id:
-        print(f"📊 Session associated with snapshot: {snapshot_id}")
     print(f"📊 Total sessions: {len(chat_service.sessions)}")
     print(f"📋 Session IDs: {list(chat_service.sessions.keys())}")
     return {"session_id": session_id}

@@ -5,10 +5,6 @@ Centralized logging module for the chat server
 
 import os
 from typing import Optional, Any
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Global logger instance
 _logger: Optional[Any] = None

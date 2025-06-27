@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Chat Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/pydantic-ai-agent/chat-server/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/pydantic-ai-agent/chat-server",
+       
+            "envFile": "${workspaceFolder}/pydantic-ai-agent/chat-server/.env",
+
+            "justMyCode": false,
+            "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
+        }
+    ]
+} 

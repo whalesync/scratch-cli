@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 """
-Agent functionality for the chat server
+PydanticAI Agent for the Chat Server
 """
 
 import os
 import asyncio
 import traceback
 import time
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol
 
 from models import ChatResponse
-
-# Load environment variables
-load_dotenv()
+from tools import get_records, connect_snapshot, get_active_snapshot, set_api_token, set_session_data
+from logger import log_info, log_error
 
 def extract_response(result):
     """Extract response from result object, trying different attributes"""
@@ -50,12 +48,39 @@ def create_agent():
         # Create the agent
         agent = Agent(
             name="ChatServerAgent",
-            instructions="You are a friendly AI assistant. Respond to user messages in a helpful and engaging way. Always respond with a message and an emotion. Remember important information that users tell you and use it in future conversations.",
+            instructions="""You are a helpful AI assistant that can work with data from Scratchpad snapshots. 
+
+
+
+Always be helpful and provide clear explanations of what you're doing.""",
             output_type=ChatResponse,
             model=model
         )
         
+        # Add tools using @agent.tool decorator
+        @agent.tool
+        async def connect_snapshot_tool(ctx: RunContext) -> str:  # type: ignore
+            """
+            Connect to the snapshot associated with the current session.
+            
+            Use this tool when the user wants to work with data from the snapshot associated with their session.
+            The snapshot ID is automatically determined from the session.
+            """
+            return await connect_snapshot(ctx)  # type: ignore
+        
+        @agent.tool
+        async def get_records_tool(ctx: RunContext, table_name: str, limit: int = 100) -> str:  # type: ignore
+            """
+            Get all records for a table from the active snapshot.
+            
+            Use this tool when the user asks to see data from a table or wants to view records.
+            The table_name should be the name of the table you want to get records from.
+            You must connect to a snapshot first using connect_snapshot.
+            """
+            return await get_records(ctx, table_name, limit)  # type: ignore
+        
         print(f"✅ Agent created successfully with model: {model_name}")
+        print(f"🔧 Agent has tools: connect_snapshot_tool, get_records_tool")
         return agent
         
     except Exception as e:

@@ -9,10 +9,6 @@ from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 from datetime import datetime
 import requests
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Data models equivalent to TypeScript interfaces
 @dataclass
