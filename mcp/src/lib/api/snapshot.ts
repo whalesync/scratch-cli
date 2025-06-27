@@ -9,7 +9,7 @@ export const snapshotApi = {
       {
         method: "GET",
         headers: {
-          ...API_CONFIG.getApiHeaders(),
+          ...API_CONFIG.getAuthHeaders(),
           "Content-Type": "application/json",
         },
       }
@@ -24,7 +24,7 @@ export const snapshotApi = {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "GET",
       headers: {
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
         "Content-Type": "application/json",
       },
     });
@@ -39,7 +39,7 @@ export const snapshotApi = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
       },
       body: JSON.stringify(dto),
     });
@@ -53,7 +53,7 @@ export const snapshotApi = {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "PATCH",
       headers: {
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
         "Content-Type": "application/json",
       },
     });
@@ -69,7 +69,7 @@ export const snapshotApi = {
       {
         method: "POST",
         headers: {
-          ...API_CONFIG.getApiHeaders(),
+          ...API_CONFIG.getAuthHeaders(),
         },
       }
     );
@@ -82,7 +82,7 @@ export const snapshotApi = {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "DELETE",
       headers: {
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
       },
     });
     if (!res.ok) {
@@ -108,7 +108,7 @@ export const snapshotApi = {
     const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
       },
     });
     if (!res.ok) {
@@ -127,13 +127,25 @@ export const snapshotApi = {
       {
         method: "POST",
         headers: {
-          ...API_CONFIG.getApiHeaders(),
+          ...API_CONFIG.getAuthHeaders(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify(dto),
       }
     );
     if (!res.ok) {
+      if (res.status === 400) {
+        const errorBody = await res.json();
+        const firstError = errorBody.errors?.[0];
+        if (firstError) {
+          throw new Error(
+            `Record ${firstError.id}, field ${firstError.field}: ${firstError.message}`
+          );
+        }
+        if (errorBody.message) {
+          throw new Error(errorBody.message);
+        }
+      }
       throw new Error(res.statusText ?? "Failed to bulk update records");
     }
   },

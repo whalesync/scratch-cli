@@ -27,3 +27,29 @@ For development with hot reload:
 ```bash
 yarn run dev
 ```
+
+## Packaging the Server
+
+The output in the `dist` folder is fine for local development but it a pain to give to other people. One shortcut is to use Vercel's NCC tool to build a single JS file that can run through node.
+
+### Add NCC as a local tool
+
+```bash
+npm install -g @vercel/ncc
+```
+
+### NCC Build
+
+```bash
+ncc build src/bin/stdio.ts -o dist_mcp
+```
+
+This will build just the Stdio MCP server used by Cursor and output it in a `dist_mcp` folder
+
+The compiled build file will be called `index.js`
+
+### Configure Cursor
+
+You can then distribute the `index.js` file and setup the MCP server in cursor like normal, pointing just to that file.
+
+The user will need Node.js installed locally in order to run it.

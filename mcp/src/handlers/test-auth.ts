@@ -15,7 +15,7 @@ export const testAuth = async () => {
     const response = await fetch(`${API_CONFIG.getApiUrl()}/test/auth`, {
       method: "GET",
       headers: {
-        ...API_CONFIG.getApiHeaders(),
+        ...API_CONFIG.getAuthHeaders(),
       },
     });
     if (!response.ok) {

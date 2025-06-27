@@ -16,28 +16,63 @@ export const BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION = {
       ops: {
         type: "array",
         description:
-          "Array of record operations. Each operation must specify an op ('create', 'update', or 'delete'), an id, and optional data for create/update.",
+          "Array of record operations. Each operation must specify an op ('create', 'update', or 'delete'), an wsId that uniquely identifies the record for update/delete, and optional data for create/update.",
         items: {
-          type: "object",
-          properties: {
-            op: {
-              type: "string",
-              enum: ["create", "update", "delete"],
-              description: "The operation type.",
-            },
-            id: {
-              type: "string",
-              description:
-                "The record ID (for create, this is the generated short UUID) and this must also be added to the data object with the id key.",
-            },
-            data: {
+          anyOf: [
+            {
               type: "object",
-              description:
-                "Field data for create or update. For creates this must contain the generated id property",
-              additionalProperties: true,
+              properties: {
+                op: {
+                  type: "string",
+                  enum: ["create"],
+                },
+                wsId: {
+                  type: "string",
+                  description:
+                    "A dummy value that will be ignored by the server",
+                },
+                data: {
+                  type: "object",
+                  description: "Field data for the record to create",
+                  additionalProperties: true,
+                },
+              },
+              required: ["op", "wsId", "data"],
             },
-          },
-          required: ["op", "id"],
+            {
+              type: "object",
+              properties: {
+                op: {
+                  type: "string",
+                  enum: ["update"],
+                },
+                wsId: {
+                  type: "string",
+                  description: "The unique record ID for the record to update",
+                },
+                data: {
+                  type: "object",
+                  description: "Field data for the record to create",
+                  additionalProperties: true,
+                },
+              },
+              required: ["op", "wsId", "data"],
+            },
+            {
+              type: "object",
+              properties: {
+                op: {
+                  type: "string",
+                  enum: ["delete"],
+                },
+                wsId: {
+                  type: "string",
+                  description: "The unique record ID for the record to delete",
+                },
+              },
+              required: ["op", "wsId"],
+            },
+          ],
         },
       },
     },

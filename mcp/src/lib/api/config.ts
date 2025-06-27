@@ -22,7 +22,7 @@ class ApiConfig {
     return this.apiToken;
   }
 
-  getApiHeaders(): HeadersInit {
+  getAuthHeaders(): HeadersInit {
     return {
       Authorization: `API-Token ${this.apiToken}`,
     };
