@@ -4,7 +4,7 @@ import { types } from 'pg';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
-import { AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
+import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
 
@@ -141,7 +141,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async upsertRecords(snapshotId: SnapshotId, table: AnyTableSpec, records: ConnectorRecord[]) {
-    console.log('upsertRecords', snapshotId, table, JSON.stringify(records, null, 2));
+    console.log('upsertRecords', snapshotId, table, records[0].fields.attachment);
 
     // Debug: Ensure the records have the right fields to catch bugs early.
     this.ensureExpectedFields(table, records);
@@ -149,7 +149,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     const upsertRecordsInput = records.map((r) => ({
       wsId: createSnapshotRecordId(), // Will be ignored on merge.
       id: r.id,
-      ...r.fields,
+      ...this.sanitizeFieldsForKnexInput(r.fields, table.columns),
     }));
 
     if (upsertRecordsInput.length === 0) {
@@ -164,6 +164,26 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       .insert(upsertRecordsInput)
       .onConflict('id')
       .merge(columnsToUpdateOnMerge);
+  }
+
+  private sanitizeFieldsForKnexInput(
+    fields: Record<string, unknown>,
+    columns: AnyColumnSpec[],
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const column of columns) {
+      const val = fields[column.id.wsId];
+      if (val === undefined) {
+        continue;
+      }
+      // JSON needs to be stringified, i don't know why.
+      if (column.pgType === PostgresColumnType.JSONB) {
+        result[column.id.wsId] = JSON.stringify(val);
+      } else {
+        result[column.id.wsId] = val;
+      }
+    }
+    return result;
   }
 
   async listRecords(

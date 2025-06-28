@@ -5,7 +5,17 @@ export interface ColumnSpec {
   name: string;
   type: "text" | "number" | "json";
   readonly?: boolean;
-  data_type: string; // Postgres data type
+  pgType: PostgresColumnType;
+}
+
+export enum PostgresColumnType {
+  TEXT = "text",
+  TEXT_ARRAY = "text[]",
+  NUMERIC = "numeric",
+  NUMERIC_ARRAY = "numeric[]",
+  BOOLEAN = "boolean",
+  BOOLEAN_ARRAY = "boolean[]",
+  JSONB = "jsonb",
 }
 
 export interface TableSpec {
