@@ -219,7 +219,7 @@ export default function SnapshotPage() {
             leftSection={<RobotIcon />}
             variant={showChat ? "filled" : "light"}
           >
-            {showChat ? "Close AI" : "AI Analysis"}
+            {showChat ? "Close AI" : "Edit with AI"}
           </Button>
 
           <Button

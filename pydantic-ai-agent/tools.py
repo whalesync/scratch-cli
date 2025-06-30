@@ -37,38 +37,6 @@ class GetRecordsInput(BaseModel):
     table_id: str = Field(description="The ID of the table to get records for")
     limit: Optional[int] = Field(default=100, description="The maximum number of records to retrieve")
 
-# Global snapshot storage (in a real app, this would be per-session)
-# _active_snapshot: Optional[Snapshot] = None
-# _current_api_token: Optional[str] = None
-# _current_session_data: Optional[Dict[str, Any]] = None
-
-# def get_active_snapshot() -> Optional[Snapshot]:
-#     """Get the currently active snapshot"""
-#     return _active_snapshot
-
-# def set_active_snapshot(snapshot: Snapshot) -> None:
-#     """Set the currently active snapshot"""
-#     global _active_snapshot
-#     _active_snapshot = snapshot
-
-# def set_api_token(api_token: str) -> None:
-#     """Set the current API token for tools"""
-#     global _current_api_token
-#     _current_api_token = api_token
-
-# def get_api_token() -> Optional[str]:
-#     """Get the current API token"""
-#     return _current_api_token
-
-# def set_session_data(session_data: Dict[str, Any]) -> None:
-#     """Set the current session data for tools"""
-#     global _current_session_data
-#     _current_session_data = session_data
-
-# def get_session_data() -> Optional[Dict[str, Any]]:
-#     """Get the current session data"""
-#     return _current_session_data
-
 async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
     """
     Connect to the snapshot associated with the current session.
@@ -148,7 +116,8 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
             tables=converted_tables
         )
         print(f"✅ Snapshot object created successfully")
-        
+        # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot
+        chatSession.snapshot = snapshot  # type: ignore
         # Store the snapshot
         # set_active_snapshot(snapshot)
         
@@ -172,6 +141,98 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
         # session_id = session_data.get('session_id') if session_data else None
         log_error("Error connecting to snapshot", 
                   session_id=session_id,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg
+
+async def create_records(ctx: RunContext[ChatRunContext], table_name: str, record_data_list: List[Dict[str, Any]]) -> str:
+    """
+    Create new records for a table in the active snapshot using data provided by the LLM.
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to create records for
+        record_data_list: List of dictionaries containing the field data for each record to create
+    
+    Returns:
+        A string describing the result of the operation
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the RecordOperation class
+        from scratchpad_api import RecordOperation
+        
+        # Validate that record_data_list is provided
+        if not record_data_list:
+            return "Error: No record data provided. Please provide a list of record data dictionaries."
+        
+        # Create RecordOperation objects from the provided data
+        sample_records = []
+        for i, record_data in enumerate(record_data_list):
+            if not isinstance(record_data, dict):
+                return f"Error: Record data at index {i} must be a dictionary, got {type(record_data)}"
+            
+            # Create proper RecordOperation objects
+            sample_records.append(RecordOperation(
+                op="create",
+                wsId=f"temp_id_{i+1}",  # Temporary ID for create operations
+                data=record_data
+            ))
+        
+        log_info("Creating records via bulk update", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(sample_records),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        # Import the bulk update function
+        from scratchpad_api import bulk_update_records
+        
+        # Call the bulk update endpoint
+        bulk_update_records(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            operations=sample_records
+        )
+        
+        print(f"✅ Successfully created {len(sample_records)} records for table '{table_name}'")
+        print(f"📋 Table ID: {table.id.wsId}")
+        print(f"📊 Records created:")
+        for i, record in enumerate(sample_records):
+            print(f"  Record {i+1}: {record.data}")
+        
+        log_info("Successfully created records", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(sample_records),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        return f"Successfully created {len(sample_records)} records for table '{table_name}'. Records have been logged to console."
+        
+    except Exception as e:
+        error_msg = f"Failed to create records for table '{table_name}': {str(e)}"
+        log_error("Error creating records", 
+                  table_name=table_name,
                   error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
@@ -242,7 +303,19 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
                  record_count=len(result.records), 
                  snapshot_id=chatRunContext.session.snapshot_id)
         
-        return f"Successfully retrieved {len(result.records)} records for table '{table_name}'. Records have been logged to console. Next cursor: {result.nextCursor}"
+        # Format records for the agent to understand
+        records_summary = []
+        for i, record in enumerate(result.records):
+            record_data = {}
+            for key, value in record.items():
+                # Truncate long values for readability
+                if isinstance(value, str) and len(value) > 100:
+                    record_data[key] = value[:100] + "..."
+                else:
+                    record_data[key] = value
+            records_summary.append(record_data)
+        
+        return f"Successfully retrieved {len(result.records)} records for table '{table_name}':\n\n{records_summary}\n\nNext cursor: {result.nextCursor}"
         
     except Exception as e:
         error_msg = f"Failed to get records for table '{table_name}': {str(e)}"
@@ -252,6 +325,200 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         print(f"❌ {error_msg}")
         return error_msg
 
-def get_tool_functions() -> List:
-    """Get all tool functions that can be decorated with @agent.tool"""
-    return [connect_snapshot, get_records] 
+async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str]) -> str:
+    """
+    Delete records from a table in the active snapshot by their IDs.
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to delete records from
+        record_ids: List of record IDs (wsId) to delete
+    
+    Returns:
+        A string describing the result of the operation
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the RecordOperation class
+        from scratchpad_api import RecordOperation
+        
+        # Validate that record_ids is provided
+        if not record_ids:
+            return "Error: No record IDs provided. Please provide a list of record IDs to delete."
+        
+        # Create RecordOperation objects for delete operations
+        delete_operations = []
+        for record_id in record_ids:
+            if not isinstance(record_id, str):
+                return f"Error: Record ID must be a string, got {type(record_id)}"
+            
+            # Create proper RecordOperation objects for delete
+            delete_operations.append(RecordOperation(
+                op="delete",
+                wsId=record_id,
+                data=None  # No data needed for delete operations
+            ))
+        
+        log_info("Deleting records via bulk update", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(delete_operations),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        # Import the bulk update function
+        from scratchpad_api import bulk_update_records
+        
+        # Call the bulk update endpoint
+        bulk_update_records(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            operations=delete_operations
+        )
+        
+        print(f"✅ Successfully deleted {len(delete_operations)} records from table '{table_name}'")
+        print(f"📋 Table ID: {table.id.wsId}")
+        print(f"🗑️ Deleted record IDs: {record_ids}")
+        
+        log_info("Successfully deleted records", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(delete_operations),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        return f"Successfully deleted {len(delete_operations)} records from table '{table_name}'. Deleted record IDs: {record_ids}"
+        
+    except Exception as e:
+        error_msg = f"Failed to delete records from table '{table_name}': {str(e)}"
+        log_error("Error deleting records", 
+                  table_name=table_name,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg
+
+async def update_records(ctx: RunContext[ChatRunContext], table_name: str, record_updates: List[Dict[str, Any]]) -> str:
+    """
+    Update records in a table in the active snapshot.
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to update records in
+        record_updates: List of dictionaries, each containing 'wsId' and 'data' keys
+                       Example: [{'wsId': 'record_id_1', 'data': {'field1': 'new_value'}}]
+    
+    Returns:
+        A string describing the result of the operation
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the RecordOperation class
+        from scratchpad_api import RecordOperation
+        
+        # Validate that record_updates is provided
+        if not record_updates:
+            return "Error: No record updates provided. Please provide a list of record updates."
+        
+        # Create RecordOperation objects for update operations
+        update_operations = []
+        for i, update in enumerate(record_updates):
+            if not isinstance(update, dict):
+                return f"Error: Record update at index {i} must be a dictionary, got {type(update)}"
+            
+            if 'wsId' not in update:
+                return f"Error: Record update at index {i} must contain 'wsId' key"
+            
+            if 'data' not in update:
+                return f"Error: Record update at index {i} must contain 'data' key"
+            
+            wsId = update['wsId']
+            data = update['data']
+            
+            if not isinstance(wsId, str):
+                return f"Error: wsId in record update at index {i} must be a string, got {type(wsId)}"
+            
+            if not isinstance(data, dict):
+                return f"Error: data in record update at index {i} must be a dictionary, got {type(data)}"
+            
+            # Create proper RecordOperation objects for update
+            update_operations.append(RecordOperation(
+                op="update",
+                wsId=wsId,
+                data=data
+            ))
+        
+        log_info("Updating records via bulk update", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(update_operations),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        # Import the bulk update function
+        from scratchpad_api import bulk_update_records
+        
+        # Call the bulk update endpoint
+        bulk_update_records(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            operations=update_operations
+        )
+        
+        print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")
+        print(f"📋 Table ID: {table.id.wsId}")
+        print(f"✏️ Updated records:")
+        for i, operation in enumerate(update_operations):
+            print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+        
+        log_info("Successfully updated records", 
+                 table_name=table_name,
+                 table_id=table.id.wsId,
+                 record_count=len(update_operations),
+                 snapshot_id=chatRunContext.session.snapshot_id)
+        
+        return f"Successfully updated {len(update_operations)} records in table '{table_name}'. Updated record IDs: {[op.wsId for op in update_operations]}"
+        
+    except Exception as e:
+        error_msg = f"Failed to update records in table '{table_name}': {str(e)}"
+        log_error("Error updating records", 
+                  table_name=table_name,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg

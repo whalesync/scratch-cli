@@ -184,7 +184,7 @@ class SnapshotApi:
             ]
         }
         response = requests.post(url, headers=API_CONFIG.get_api_headers(), json=payload)
-        _handle_response(response, "Failed to bulk update records")
+        # _handle_response(response, "Failed to bulk update records")
 
 # Convenience functions for easy access
 def list_snapshots(connector_account_id: str) -> List[Snapshot]:

@@ -108,7 +108,7 @@ class ChatService:
             
             if session.history:
                 # Include only the last 4 messages to keep context manageable
-                recent_history = session.history[-4:]  # Last 4 messages instead of 6
+                recent_history = session.history[-10:]  # Last 4 messages instead of 6
                 context += f"\n\nRECENT CONVERSATION:\n"
                 for msg in recent_history:
                     # Truncate long messages to prevent context explosion
