@@ -41,9 +41,19 @@ erDiagram
   String connectorAccountId FK
   Json tableSpecs
 }
+"GenericTable" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String name
+  Json fetch
+  Json mapping
+  String userId FK
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
+"GenericTable" }o--|| "User" : user
 ```
 
 ### `User`
@@ -90,3 +100,15 @@ Properties as follows:
 - `updatedAt`:
 - `connectorAccountId`:
 - `tableSpecs`:
+
+### `GenericTable`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `name`:
+- `fetch`:
+- `mapping`:
+- `userId`:

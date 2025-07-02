@@ -1,6 +1,7 @@
 export enum Service {
   NOTION = "NOTION",
   AIRTABLE = "AIRTABLE",
+  CUSTOM = "CUSTOM",
 }
 
 export enum ConnectorHealthStatus {

@@ -15,12 +15,12 @@ import {
   Group,
   Modal,
   Stack,
-  Table,
   Text,
   Textarea,
   ActionIcon,
   TextInput,
   Container,
+  Select,
 } from "@mantine/core";
 import {
   ArrowRight,
@@ -31,15 +31,24 @@ import {
 } from "@phosphor-icons/react";
 import _ from "lodash";
 import { FC, useCallback, useEffect, useState, useRef } from "react";
+import { useGenericTables, useGenericTable } from "@/hooks/use-generic-table";
+import { CreateGenericTableDto } from "@/types/server-entities/generic-table";
 
 interface MappingRow {
   id: string;
   destination: string;
   source: string;
+  pgType: string;
 }
 
 export const ApiImport: FC = () => {
   const nextMappingId = useRef(1);
+
+  // GenericTable state
+  const { data: genericTables, createGenericTable, isLoading: tablesLoading } = useGenericTables();
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const { data: selectedTable } = useGenericTable(selectedTableId || "");
+  const [tableName, setTableName] = useState("");
 
   const [curl, setCurl] = useState(`{
   "url": "https://jsonplaceholder.typicode.com/users",
@@ -71,7 +80,7 @@ export const ApiImport: FC = () => {
 
   // New state for dynamic field mappings
   const [mappings, setMappings] = useState<MappingRow[]>([
-    { id: "mapping-0", destination: "", source: "" },
+    { id: "mapping-0", destination: "", source: "", pgType: "text" },
   ]);
   const [currentMappingId, setCurrentMappingId] = useState<string | null>(null);
 
@@ -99,13 +108,27 @@ export const ApiImport: FC = () => {
     return paths;
   }, []);
 
+  // Function to extract all possible paths from an array of objects (combining all fields)
+  const extractAllPathsFromArray = useCallback((array: any[]): string[] => {
+    const allPaths = new Set<string>();
+    
+    array.forEach((item) => {
+      if (typeof item === "object" && item !== null) {
+        const paths = extractPaths(item);
+        paths.forEach(path => allPaths.add(path));
+      }
+    });
+    
+    return Array.from(allPaths);
+  }, [extractPaths]);
+
   // Update available paths when response changes
   useEffect(() => {
     if (response && recordArrayPath) {
       const arrayData =
         recordArrayPath === "." ? response : _.get(response, recordArrayPath);
       if (Array.isArray(arrayData) && arrayData.length > 0) {
-        const paths = extractPaths(arrayData[0]);
+        const paths = extractAllPathsFromArray(arrayData);
         const sortedPaths = paths.sort((a, b) => a.localeCompare(b));
         setAvailablePaths(sortedPaths);
       } else {
@@ -114,7 +137,40 @@ export const ApiImport: FC = () => {
     } else {
       setAvailablePaths([]);
     }
-  }, [response, recordArrayPath, extractPaths]);
+  }, [response, recordArrayPath, extractAllPathsFromArray]);
+
+  // Populate form when a table is selected
+  useEffect(() => {
+    if (selectedTable) {
+      // Populate the fetch configuration
+      if (selectedTable.fetch) {
+        setCurl(JSON.stringify(selectedTable.fetch, null, 2));
+      }
+      
+      // Populate the mapping configuration
+      if (selectedTable.mapping && typeof selectedTable.mapping === 'object') {
+        const mapping = selectedTable.mapping as any;
+        if (mapping.recordArrayPath) {
+          setRecordArrayPath(mapping.recordArrayPath);
+        }
+        if (mapping.fieldMappings) {
+          const fieldMappings = mapping.fieldMappings as Record<string, string>;
+          const fieldTypes = mapping.fieldTypes as Record<string, string> || {};
+          const newMappings: MappingRow[] = Object.entries(fieldMappings).map(([destination, source], index) => ({
+            id: `mapping-${index}`,
+            destination,
+            source,
+            pgType: fieldTypes[destination] || "text",
+          }));
+          setMappings(newMappings);
+          nextMappingId.current = newMappings.length;
+        }
+      }
+      
+      // Set the table name
+      setTableName(selectedTable.name);
+    }
+  }, [selectedTable]);
 
   // Function to extract all possible array paths from an object
   const extractArrayPaths = useCallback((obj: any, prefix = ""): string[] => {
@@ -140,21 +196,38 @@ export const ApiImport: FC = () => {
     setImporting(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:3000/import", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Create the fetch configuration from the current curl
+      const fetchConfig = JSON.parse(curl);
+      
+      // Create the mapping configuration from the current mappings
+      const fieldMappings = mappings.reduce((acc, m) => {
+        if (m.destination && m.source) {
+          acc[m.destination] = m.source;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      const fieldTypes = mappings.reduce((acc, m) => {
+        if (m.destination && m.pgType) {
+          acc[m.destination] = m.pgType;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      // Create the generic table with fetch and mapping data
+      const createTableDto: CreateGenericTableDto = {
+        name: tableName || `Table from ${fetchConfig.url || 'API'}`,
+        fetch: fetchConfig,
+        mapping: {
+          recordArrayPath,
+          fieldMappings,
+          fieldTypes,
         },
-        body: JSON.stringify(result),
-      });
+      };
 
-      if (!response.ok) {
-        throw new Error(`Import failed with status: ${response.status}`);
-      }
-
-      const createdRecords = await response.json();
-      alert(`Successfully imported ${createdRecords.length} records!`);
-      setResult(null); // Clear the grid after successful import
+      const createdTable = await createGenericTable(createTableDto);
+      alert(`Successfully created table "${createdTable.name}" with ${result.length} records!`);
+      setResult(null); // Clear the grid after successful creation
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -169,7 +242,7 @@ export const ApiImport: FC = () => {
       const fetchConfig = JSON.parse(curl);
       const { url, params = {} } = fetchConfig;
       // Make a direct call to the NestJS backend
-      const resp = await fetch("http://localhost:3000/rest/api-import/fetch", {
+      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, params }),
@@ -206,7 +279,7 @@ export const ApiImport: FC = () => {
       const newColumns: GridColumn[] = mappings
         .filter((m) => m.destination)
         .map((m) => ({
-          title: m.destination,
+          title: `${m.destination} (${m.pgType})`,
           id: m.destination,
           width: 200,
         }));
@@ -299,7 +372,7 @@ export const ApiImport: FC = () => {
 
   const handleMappingChange = (
     id: string,
-    field: "destination" | "source",
+    field: "destination" | "source" | "pgType",
     value: string
   ) => {
     setMappings((prev) =>
@@ -310,7 +383,7 @@ export const ApiImport: FC = () => {
   const addMappingRow = () => {
     setMappings((prev) => [
       ...prev,
-      { id: `mapping-${nextMappingId.current++}`, destination: "", source: "" },
+      { id: `mapping-${nextMappingId.current++}`, destination: "", source: "", pgType: "text" },
     ]);
   };
 
@@ -324,13 +397,14 @@ export const ApiImport: FC = () => {
     try {
       // Make a direct call to the NestJS backend
       const resp = await fetch(
-        "http://localhost:3000/rest/api-import/generate-fetch",
+        process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/generate-fetch",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt: aiPrompt }),
         }
       );
+      debugger;
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setCurl(JSON.stringify(data, null, 2));
@@ -345,10 +419,59 @@ export const ApiImport: FC = () => {
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
+        {/* Step 0: GenericTable Selection */}
+        <Stack gap="sm">
+          <Text size="lg" fw={600}>
+            0. Select or Create Table
+          </Text>
+          {!selectedTableId ? (
+            <Stack gap="sm">
+              {genericTables && genericTables.length > 0 && (
+                <Stack gap="xs">
+                  <Text size="sm" fw={500}>
+                    Select existing table:
+                  </Text>
+                  <Select
+                    placeholder="Choose a table"
+                    data={genericTables.map((table) => ({
+                      value: table.id,
+                      label: table.name,
+                    }))}
+                    onChange={(value) => setSelectedTableId(value)}
+                    disabled={tablesLoading}
+                  />
+                  <Text size="xs" c="dimmed">
+                    Or create a new one in the steps below
+                  </Text>
+                </Stack>
+              )}
+              
+              {genericTables && genericTables.length === 0 && (
+                <Text size="sm" c="dimmed">
+                  No tables found. Create a new table using the steps below.
+                </Text>
+              )}
+            </Stack>
+          ) : (
+            <Group gap="xs">
+              <Text size="sm">
+                Selected: {genericTables?.find(t => t.id === selectedTableId)?.name || "Unknown"}
+              </Text>
+              <Button
+                variant="light"
+                size="xs"
+                onClick={() => setSelectedTableId(null)}
+              >
+                Change
+              </Button>
+            </Group>
+          )}
+        </Stack>
+
         {/* Step 1: API Configuration and Data Fetching */}
         <Stack gap="sm">
           <Text size="lg" fw={600}>
-            1. Configure API Request
+            1. Configure API Request {selectedTableId && "(Read-only)"}
           </Text>
           <Group align="flex-start" gap="md">
             <Stack style={{ flex: 1 }} gap="sm">
@@ -361,12 +484,13 @@ export const ApiImport: FC = () => {
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   styles={{ input: { height: "120px" } }}
+                  disabled={!!selectedTableId}
                 />
                 <Button
                   leftSection={<Sparkle size={16} />}
                   onClick={handleAiGenerate}
                   loading={aiGenerating}
-                  disabled={!aiPrompt.trim()}
+                  disabled={!aiPrompt.trim() || !!selectedTableId}
                   size="sm"
                   variant="light"
                 >
@@ -385,10 +509,11 @@ export const ApiImport: FC = () => {
                     height: "200px",
                   },
                 }}
+                disabled={!!selectedTableId}
               />
               <Button
                 onClick={handleFetch}
-                disabled={!curl.trim()}
+                disabled={!curl.trim() || !!selectedTableId}
                 leftSection={<ArrowRight size={16} />}
                 style={{ width: "140px" }}
               >
@@ -401,9 +526,8 @@ export const ApiImport: FC = () => {
                 value={
                   response
                     ? JSON.stringify(response, null, 2)
-                    : "No response yet"
+                    : "No response yet. Click 'Fetch Data' to get started."
                 }
-                readOnly
                 styles={{
                   input: {
                     fontFamily: "monospace",
@@ -411,6 +535,7 @@ export const ApiImport: FC = () => {
                     height: "400px",
                   },
                 }}
+                readOnly
               />
             </Stack>
           </Group>
@@ -425,71 +550,51 @@ export const ApiImport: FC = () => {
         {response && (
           <Stack gap="sm">
             <Text size="lg" fw={600}>
-              2. Select Record Array Path
+              2. Select Record Array Path {selectedTableId && "(Read-only)"}
             </Text>
-            <Table>
-              <Table.Tbody>
-                <Table.Tr>
-                  <Table.Td style={{ width: "200px" }}>
-                    <Text size="sm" fw={500}>
-                      Path to records array:
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <TextInput
-                        placeholder="e.g., records (use '.' for root)"
-                        value={recordArrayPath}
-                        onChange={(e) => setRecordArrayPath(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
-                      <ActionIcon
-                        variant="subtle"
-                        onClick={() => {
-                          if (response) {
-                            const paths = extractArrayPaths(response);
-                            if (Array.isArray(response)) paths.unshift(".");
-                            setAvailableArrayPaths(paths);
-                          }
-                          setRecordArrayPathModalOpened(true);
-                        }}
-                      >
-                        <MagnifyingGlass size={16} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              </Table.Tbody>
-            </Table>
+            <Group gap="xs">
+              <Text size="sm" fw={500}>
+                Where are your records located in the response?
+              </Text>
+              <Button
+                variant="light"
+                size="xs"
+                onClick={() => {
+                  const paths = extractArrayPaths(response);
+                  setAvailableArrayPaths(paths);
+                  setRecordArrayPathModalOpened(true);
+                }}
+                disabled={!!selectedTableId}
+              >
+                Browse Paths
+              </Button>
+            </Group>
             {recordArrayPath && (
-              <Stack gap="xs">
+              <Group gap="xs">
                 <Text size="sm" fw={500}>
-                  Preview of selected array:
+                  Selected path:
                 </Text>
-                {(() => {
-                  try {
-                    const arrayData =
-                      recordArrayPath === "."
-                        ? response
-                        : _.get(response, recordArrayPath);
-                    return Array.isArray(arrayData) ? (
-                      <Text size="sm" c="green">
-                        ✓ Found array with {arrayData.length} items
-                      </Text>
-                    ) : (
-                      <Text size="sm" c="red">
-                        ✗ Path does not point to an array
-                      </Text>
-                    );
-                  } catch {
-                    return (
-                      <Text size="sm" c="red">
-                        ✗ Invalid path
-                      </Text>
-                    );
-                  }
-                })()}
-              </Stack>
+                <Text
+                  size="sm"
+                  style={{
+                    fontFamily: "monospace",
+                    backgroundColor: "var(--mantine-color-gray-1)",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {recordArrayPath === "." ? "(root level array)" : recordArrayPath}
+                </Text>
+                {!selectedTableId && (
+                  <Button
+                    variant="light"
+                    size="xs"
+                    onClick={() => setRecordArrayPath("")}
+                  >
+                    Change
+                  </Button>
+                )}
+              </Group>
             )}
           </Stack>
         )}
@@ -498,80 +603,80 @@ export const ApiImport: FC = () => {
         {response && recordArrayPath && (
           <Stack gap="sm">
             <Text size="lg" fw={600}>
-              3. Map Fields
+              3. Map Fields {selectedTableId && "(Read-only)"}
             </Text>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>API Response Path</Table.Th>
-                  <Table.Th></Table.Th>
-                  <Table.Th>Destination Field</Table.Th>
-                  <Table.Th></Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {mappings.map((mapping) => (
-                  <Table.Tr key={mapping.id}>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <ActionIcon
-                          variant="subtle"
-                          onClick={() => openPathModal(mapping.id)}
-                        >
-                          <MagnifyingGlass size={16} />
-                        </ActionIcon>
-                        <TextInput
-                          placeholder="e.g., user.name"
-                          value={mapping.source}
-                          onChange={(e) =>
-                            handleMappingChange(
-                              mapping.id,
-                              "source",
-                              e.target.value
-                            )
-                          }
-                          style={{ flex: 1 }}
-                        />
-                      </Group>
-                    </Table.Td>
-                    <Table.Td style={{ textAlign: "center", width: "50px" }}>
-                      <Text size="sm" c="dimmed">
-                        →
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <TextInput
-                        placeholder="e.g., title"
-                        value={mapping.destination}
-                        onChange={(e) =>
-                          handleMappingChange(
-                            mapping.id,
-                            "destination",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </Table.Td>
-                    <Table.Td>
-                      <ActionIcon
-                        color="red"
-                        onClick={() => removeMappingRow(mapping.id)}
-                      >
-                        <Trash size={16} />
-                      </ActionIcon>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-            <Button
-              leftSection={<Plus size={16} />}
-              onClick={addMappingRow}
-              variant="light"
-              style={{ alignSelf: "flex-start" }}
-            >
-              Add Row
-            </Button>
+            <Stack gap="xs">
+              {mappings.map((mapping) => (
+                <Group key={mapping.id} gap="xs">
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    onClick={() => openPathModal(mapping.id)}
+                    disabled={!!selectedTableId}
+                  >
+                    <MagnifyingGlass size={16} />
+                  </ActionIcon>
+                  <TextInput
+                    placeholder="Source path from API"
+                    value={mapping.source}
+                    onChange={(e) =>
+                      handleMappingChange(mapping.id, "source", e.target.value)
+                    }
+                    style={{ flex: 1 }}
+                    disabled={!!selectedTableId}
+                  />
+                  <Text size="sm">→</Text>
+                  <TextInput
+                    placeholder="Destination field name"
+                    value={mapping.destination}
+                    onChange={(e) =>
+                      handleMappingChange(mapping.id, "destination", e.target.value)
+                    }
+                    style={{ flex: 1 }}
+                    disabled={!!selectedTableId}
+                  />
+                  <Select
+                    placeholder="Type"
+                    value={mapping.pgType}
+                    onChange={(value) =>
+                      handleMappingChange(mapping.id, "pgType", value || "text")
+                    }
+                    data={[
+                      { value: "text", label: "Text" },
+                      { value: "text[]", label: "Text Array" },
+                      { value: "numeric", label: "Numeric" },
+                      { value: "numeric[]", label: "Numeric Array" },
+                      { value: "boolean", label: "Boolean" },
+                      { value: "boolean[]", label: "Boolean Array" },
+                      { value: "jsonb", label: "JSONB" },
+                    ]}
+                    style={{ width: "120px" }}
+                    disabled={!!selectedTableId}
+                  />
+                  {!selectedTableId && (
+                    <ActionIcon
+                      variant="light"
+                      color="red"
+                      onClick={() => removeMappingRow(mapping.id)}
+                      disabled={mappings.length === 1}
+                    >
+                      <Trash size={16} />
+                    </ActionIcon>
+                  )}
+                </Group>
+              ))}
+              {!selectedTableId && (
+                <Button
+                  variant="light"
+                  size="sm"
+                  leftSection={<Plus size={16} />}
+                  onClick={addMappingRow}
+                  style={{ width: "fit-content" }}
+                >
+                  Add Field Mapping
+                </Button>
+              )}
+            </Stack>
           </Stack>
         )}
 
@@ -579,11 +684,11 @@ export const ApiImport: FC = () => {
         {response && recordArrayPath && (
           <Stack gap="sm">
             <Text size="lg" fw={600}>
-              4. Apply Mapping
+              4. Apply Mapping {selectedTableId && "(Read-only)"}
             </Text>
             <Button
               onClick={handleApplyMapping}
-              disabled={!response || mappings.length === 0}
+              disabled={!response || mappings.length === 0 || !!selectedTableId}
               leftSection={<ArrowRight size={16} />}
               style={{ width: "140px" }}
             >
@@ -640,19 +745,47 @@ export const ApiImport: FC = () => {
           </Stack>
         )}
 
-        {/* Step 5: Run Import */}
-        {result && result.length > 0 && (
+        {/* Step 5: Create Table */}
+        {result && result.length > 0 && !selectedTableId && (
           <Stack gap="sm">
             <Text size="lg" fw={600}>
-              5. Run Import
+              5. Create Table
             </Text>
+            <TextInput
+              label="Table Name"
+              placeholder="Enter a name for this table"
+              value={tableName}
+              onChange={(e) => setTableName(e.target.value)}
+              style={{ maxWidth: "400px" }}
+            />
             <Button
               onClick={runImport}
               loading={importing}
               leftSection={<ArrowRight size={16} />}
               style={{ width: "140px" }}
             >
-              Run Import
+              Create Table
+            </Button>
+          </Stack>
+        )}
+
+        {/* Step 5: Run Table (when table is selected) */}
+        {selectedTableId && (
+          <Stack gap="sm">
+            <Text size="lg" fw={600}>
+              5. Run Table
+            </Text>
+            <Button
+              onClick={async () => {
+                // Run fetch and apply mapping automatically
+                await handleFetch();
+                await handleApplyMapping();
+              }}
+              loading={importing}
+              leftSection={<ArrowRight size={16} />}
+              style={{ width: "140px" }}
+            >
+              Run Table
             </Button>
           </Stack>
         )}

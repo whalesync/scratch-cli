@@ -15,6 +15,7 @@ export enum IdPrefixes {
   CONNECTOR_ACCOUNT = 'coa_',
   SNAPSHOT = 'sna_',
   SNAPSHOT_RECORD = 'sre_',
+  GENERIC_TABLE = 'gct_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -96,4 +97,15 @@ export function isSnapshotRecordId(id: unknown): id is SnapshotRecordId {
 
 export function createSnapshotRecordId(): SnapshotRecordId {
   return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
+}
+
+// ------- GenericTable -------
+export type GenericTableId = PrefixedId<IdPrefixes.GENERIC_TABLE>;
+
+export function isGenericTableId(id: unknown): id is GenericTableId {
+  return isId(id, IdPrefixes.GENERIC_TABLE);
+}
+
+export function createGenericTableId(): GenericTableId {
+  return createId(IdPrefixes.GENERIC_TABLE) as GenericTableId;
 }

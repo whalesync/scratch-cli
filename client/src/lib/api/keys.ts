@@ -3,6 +3,14 @@ export const SWR_KEYS = {
     list: () => ["connector-accounts"],
     detail: (id: string) => ["connector-accounts", "detail", id],
   },
+  genericConnections: {
+    list: () => ["generic-connections"],
+  },
+  genericTables: {
+    list: () => ["generic-tables"],
+    detail: (id: string) => ["generic-tables", "detail", id],
+  },
+  genericTable: (id: string) => ["generic-tables", id] as const,
   snapshot: {
     list: (connectorAccountId: string) => [
       "snapshot",

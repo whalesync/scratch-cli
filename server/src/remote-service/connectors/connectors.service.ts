@@ -3,6 +3,7 @@ import { ConnectorAccount, Service } from '@prisma/client';
 import { DbService } from '../../db/db.service';
 import { Connector } from './connector';
 import { AirtableConnector } from './library/airtable/airtable-connector';
+import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 
 @Injectable()
@@ -15,6 +16,8 @@ export class ConnectorsService {
         return new AirtableConnector(account.apiKey);
       case Service.NOTION:
         return new NotionConnector(account.apiKey);
+      case Service.CUSTOM:
+        return new CustomConnector(account.userId, this.db);
     }
   }
 }
