@@ -50,3 +50,8 @@ export type EditedFieldsMetadata = {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
 };
+
+export type ActivateViewDto = {
+  source: 'ui' | 'agent';
+  recordIds: string[];
+};

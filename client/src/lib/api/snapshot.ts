@@ -4,6 +4,7 @@ import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../../types/server-entities/records";
+import { ActivateViewDto } from "@/types/server-entities/snapshot";
 
 export const snapshotApi = {
   list: async (connectorAccountId: string): Promise<Snapshot[]> => {
@@ -112,7 +113,8 @@ export const snapshotApi = {
     snapshotId: string,
     tableId: string,
     cursor?: string,
-    take?: number
+    take?: number,
+    viewId?: string
   ): Promise<ListRecordsResponse> {
     const url = new URL(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
@@ -122,6 +124,9 @@ export const snapshotApi = {
     }
     if (take) {
       url.searchParams.append("take", take.toString());
+    }
+    if (viewId) {
+      url.searchParams.append("viewId", viewId);
     }
     const res = await fetch(url.toString(), {
       method: "GET",
@@ -166,5 +171,29 @@ export const snapshotApi = {
       }
       throw new Error(res.statusText ?? "Failed to bulk update records");
     }
+  },
+
+  async activateView(
+    snapshotId: string,
+    tableId: string,
+    dto: ActivateViewDto
+  ): Promise<string> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/activate-view`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dto),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to activate view");
+    }
+
+    const view = await res.json();
+    return view.id;
   },
 };

@@ -1,16 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Service, Snapshot } from '@prisma/client';
+import { Service, Snapshot, SnapshotTableView } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
-import { createSnapshotId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableViewsId, SnapshotId } from 'src/types/ids';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { ActivateViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
+import { SnapshotTableViewConfig } from './types';
 
 type SnapshotWithConnectorAccount = Snapshot & { connectorAccount: ConnectorAccount };
 
@@ -116,6 +118,7 @@ export class SnapshotService {
     userId: string,
     cursor: string | undefined,
     take: number,
+    viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
@@ -123,7 +126,18 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1);
+    let viewConfig: SnapshotTableViewConfig | undefined = undefined;
+
+    if (viewId) {
+      const view = await this.db.client.snapshotTableView.findUnique({
+        where: { id: viewId },
+      });
+      if (view) {
+        viewConfig = view.config as SnapshotTableViewConfig;
+      }
+    }
+
+    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1, viewConfig);
 
     let nextCursor: string | undefined;
     if (records.length === take + 1) {
@@ -319,6 +333,33 @@ export class SnapshotService {
         );
       },
     );
+  }
+
+  async activateView(
+    snapshotId: SnapshotId,
+    tableId: string, // wsId for the table
+    dto: ActivateViewDto,
+    userId: string,
+  ): Promise<SnapshotTableView> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const config = { ids: dto.recordIds };
+
+    return await this.db.client.snapshotTableView.upsert({
+      where: { snapshotId_tableId: { snapshotId, tableId } },
+      update: { source: dto.source, config },
+      create: {
+        id: createSnapshotTableViewsId(),
+        snapshotId,
+        tableId,
+        source: dto.source,
+        config,
+      },
+    });
   }
 }
 

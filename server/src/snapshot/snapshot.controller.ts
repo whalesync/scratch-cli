@@ -16,6 +16,7 @@ import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
+import { ActivateViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -87,9 +88,10 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Query('cursor') cursor: string | undefined,
     @Query('take', new ParseIntPipe({ optional: true })) take = 100,
+    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take);
+    return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take, viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -102,5 +104,17 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/activate-view')
+  async activateView(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() activateViewDto: ActivateViewDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ id: string }> {
+    const view = await this.service.activateView(snapshotId, tableId, activateViewDto, req.user.id);
+    return { id: view.id };
   }
 }

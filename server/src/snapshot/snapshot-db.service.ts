@@ -7,6 +7,7 @@ import { assertUnreachable } from 'src/utils/asserts';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
+import { SnapshotTableViewConfig } from './types';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -191,8 +192,23 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     tableId: string,
     cursor: string | undefined,
     take: number,
+    view: SnapshotTableViewConfig | undefined,
   ): Promise<SnapshotRecord[]> {
-    const query = this.knex<DbRecord>(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
+    let query = this.knex<DbRecord>(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
+
+    if (view && view.ids) {
+      const cteName = 'ids_in_view';
+      const schemaTable = `${snapshotId}.${tableId}`;
+
+      // NOTE: if you use a CTE , Knex gets confused with the withSchema call, so we have to manually add the schema to the table name
+      query = this.knex
+        .with(cteName, this.knex.raw('select unnest(?::text[]) as id', [view.ids]))
+        .select('*')
+        .from(schemaTable)
+        .join(cteName, `${tableId}.wsId`, '=', `${cteName}.id`)
+        .orderBy(`${tableId}.id`)
+        .limit(take) as Knex.QueryBuilder<DbRecord, DbRecord[]>;
+    }
 
     if (cursor) {
       query.where('id', '>=', cursor);

@@ -50,10 +50,21 @@ erDiagram
   Json mapping
   String userId FK
 }
+"SnapshotTableView" {
+  String id PK
+  String name "nullable"
+  String source
+  DateTime createdAt
+  DateTime updatedAt
+  String snapshotId FK
+  String tableId
+  Json config
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 "GenericTable" }o--|| "User" : user
+"SnapshotTableView" }o--|| "Snapshot" : snapshot
 ```
 
 ### `User`
@@ -112,3 +123,16 @@ Properties as follows:
 - `fetch`:
 - `mapping`:
 - `userId`:
+
+### `SnapshotTableView`
+
+Properties as follows:
+
+- `id`:
+- `name`:
+- `source`:
+- `createdAt`:
+- `updatedAt`:
+- `snapshotId`:
+- `tableId`:
+- `config`:

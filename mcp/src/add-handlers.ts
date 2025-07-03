@@ -24,6 +24,7 @@ import {
   BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION,
   bulkUpdateRecords,
 } from "./handlers/update-records.js";
+import { CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION, createFilteredView } from "./handlers/filter-records.js";
 
 export const addHandlers = (server: Server) => {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -34,6 +35,7 @@ export const addHandlers = (server: Server) => {
         DISCONNECT_SNAPSHOT_MCP_TOOL_DEFINITION,
         GET_RECORDS_MCP_TOOL_DEFINITION,
         BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION,
+        CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION,
       ],
     };
   });
@@ -59,6 +61,9 @@ export const addHandlers = (server: Server) => {
     }
     if (name === BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION.name) {
       return await bulkUpdateRecords(args);
+    }
+    if (name === CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION.name) {
+      return await createFilteredView(args);
     }
 
     throw new Error(`Unknown tool: ${name}`);
