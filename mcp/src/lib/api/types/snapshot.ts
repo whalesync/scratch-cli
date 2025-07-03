@@ -17,6 +17,19 @@ export interface TableSpec {
   columns: ColumnSpec[];
 }
 
+export type SnapshotTableContext = {
+  // The id of the table in the snapshot.
+  id: EntityId;
+
+  activeViewId?: string;
+
+  // Columns that should not be considered in the context for the AI agent
+  ignoredColumns: string[];
+
+  // Columns that should be read only in the UI.
+  readOnlyColumns: string[];
+};
+
 export interface Snapshot {
   id: string;
   name: string | null;
@@ -24,6 +37,7 @@ export interface Snapshot {
   updatedAt: string;
   connectorAccountId: string;
   tables: TableSpec[];
+  tableContexts: SnapshotTableContext[];
 }
 
 export interface CreateSnapshotDto {

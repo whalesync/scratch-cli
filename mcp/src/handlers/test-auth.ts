@@ -32,6 +32,10 @@ export const testAuth = async () => {
             2
           )}`,
         },
+        {
+          type: "text",
+          text: `Successfully connected to ${API_CONFIG.getApiUrl()}`,
+        },
       ],
     };
   } catch (error) {

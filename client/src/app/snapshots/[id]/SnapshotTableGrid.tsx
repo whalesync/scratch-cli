@@ -16,14 +16,17 @@ import {
   ActionIcon,
   Box,
   Center,
+  Group,
   Loader,
   Modal,
   ScrollArea,
+  Stack,
   Text,
+  Tooltip,
 } from "@mantine/core";
 import { useSnapshotRecords } from "../../../hooks/use-snapshot";
 import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
-import { Bug, Plus } from "@phosphor-icons/react";
+import { BugIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDisclosure } from "@mantine/hooks";
 import JsonTreeViewer from "../../components/JsonTreeViewer";
 import { notifications } from "@mantine/notifications";
@@ -349,27 +352,8 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
   }
 
   return (
-    <Box h="100%" w="100%" style={{ position: "relative" }}>
-      <DataEditor
-        width="100%"
-        height="100%"
-        columns={columns}
-        rows={sortedRecords?.length ?? 0}
-        getCellContent={getCellContent}
-        onCellEdited={onCellEdited}
-        onColumnResize={onColumnResize}
-        onHeaderClicked={onHeaderClicked}
-        onCellClicked={onCellClicked}
-        getCellsForSelection={true}
-        onPaste={true}
-        onItemHovered={(args: GridMouseEventArgs) => {
-          if (args.kind === "cell") {
-            setHoveredRow(args.location[1]);
-          } else {
-            setHoveredRow(undefined);
-          }
-        }}
-      />
+    <>
+      {" "}
       <Modal
         opened={debugModalOpened}
         onClose={closeDebugModal}
@@ -380,34 +364,57 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
           <JsonTreeViewer jsonData={table} />
         </ScrollArea>
       </Modal>
-      <ActionIcon
-        onClick={openDebugModal}
-        size="xl"
-        radius="xl"
-        variant="filled"
-        color="violet"
-        style={{
-          position: "absolute",
-          bottom: 16,
-          right: 80,
-        }}
-      >
-        <Bug size={24} />
-      </ActionIcon>
-      <ActionIcon
-        onClick={onAddRow}
-        size="xl"
-        radius="xl"
-        variant="filled"
-        style={{
-          position: "absolute",
-          bottom: 16,
-          right: 16,
-        }}
-      >
-        <Plus size={24} />
-      </ActionIcon>
-    </Box>
+      <Box h="100%" w="100%" style={{ position: "relative" }}>
+        <Stack p={0} h="100%" gap={0}>
+          <DataEditor
+            width="100%"
+            height="100%"
+            columns={columns}
+            rows={sortedRecords?.length ?? 0}
+            getCellContent={getCellContent}
+            onCellEdited={onCellEdited}
+            onColumnResize={onColumnResize}
+            onHeaderClicked={onHeaderClicked}
+            onCellClicked={onCellClicked}
+            getCellsForSelection={true}
+            onPaste={true}
+            onItemHovered={(args: GridMouseEventArgs) => {
+              if (args.kind === "cell") {
+                setHoveredRow(args.location[1]);
+              } else {
+                setHoveredRow(undefined);
+              }
+            }}
+          />
+          <Group w="100%" p="xs" bg="gray.0">
+            <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
+            <Group gap="xs" ml="auto" p={0}>
+              <Tooltip label="View JSON data">
+                <ActionIcon
+                  onClick={openDebugModal}
+                  size="lg"
+                  radius="xl"
+                  variant="filled"
+                  color="violet"
+                >
+                  <BugIcon size={24} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Add record">
+                <ActionIcon
+                  onClick={onAddRow}
+                  size="lg"
+                  radius="xl"
+                  variant="filled"
+                >
+                  <PlusIcon size={24} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Group>
+        </Stack>
+      </Box>
+    </>
   );
 };
 

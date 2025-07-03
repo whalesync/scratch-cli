@@ -86,6 +86,8 @@ model Snapshot {
 
   tableViews SnapshotTableView[]
 
+  tableContexts Json[] // SnapshotTableContext[]
+
   @@index([connectorAccountId])
 }
 

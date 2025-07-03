@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
-import { createSnapshotId, createSnapshotTableViewsId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableViewId, SnapshotId } from 'src/types/ids';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
@@ -372,7 +372,7 @@ export class SnapshotService {
       where: { snapshotId_tableId: { snapshotId, tableId } },
       update: { source: dto.source, config },
       create: {
-        id: createSnapshotTableViewsId(),
+        id: createSnapshotTableViewId(),
         snapshotId,
         tableId,
         source: dto.source,

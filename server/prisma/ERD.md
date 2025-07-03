@@ -41,6 +41,7 @@ erDiagram
   DateTime updatedAt
   String connectorAccountId FK
   Json tableSpecs
+  Json tableContexts
 }
 "GenericTable" {
   String id PK
@@ -113,6 +114,7 @@ Properties as follows:
 - `updatedAt`:
 - `connectorAccountId`:
 - `tableSpecs`:
+- `tableContexts`:
 
 ### `GenericTable`
 

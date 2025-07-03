@@ -1,5 +1,6 @@
 import { SnapshotCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
+import { SnapshotTableContext } from '../types';
 
 export class Snapshot {
   id: string;
@@ -12,6 +13,8 @@ export class Snapshot {
 
   tables: AnyTableSpec[];
 
+  tableContexts: SnapshotTableContext[];
+
   constructor(snapshot: SnapshotCluster.Snapshot) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? null;
@@ -21,5 +24,6 @@ export class Snapshot {
     this.tables = snapshot.tableSpecs as AnyTableSpec[];
     this.connectorDisplayName = snapshot.connectorAccount.displayName;
     this.connectorService = snapshot.connectorAccount.service;
+    this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
   }
 }
