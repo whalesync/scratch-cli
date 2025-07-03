@@ -3,9 +3,9 @@ import { API_CONFIG } from "./config.js";
 import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
 
 export const snapshotApi = {
-  list: async (connectorAccountId: string): Promise<Snapshot[]> => {
+  list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot?connectorAccountId=${connectorAccountId}`,
+      `${API_CONFIG.getApiUrl()}/snapshot${connectorAccountId ? `?connectorAccountId=${connectorAccountId}` : ""}`,
       {
         method: "GET",
         headers: {
@@ -175,7 +175,6 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to activate view");
     }
 
-    console.log("res", res);
     const view = await res.json();
     return view.id;
   },

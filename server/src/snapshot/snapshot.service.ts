@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Service, Snapshot, SnapshotTableView } from '@prisma/client';
+import { Service, SnapshotTableView } from '@prisma/client';
+import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
-import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { createSnapshotId, createSnapshotTableViewsId, SnapshotId } from 'src/types/ids';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -14,7 +14,7 @@ import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotTableViewConfig } from './types';
 
-type SnapshotWithConnectorAccount = Snapshot & { connectorAccount: ConnectorAccount };
+type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
 @Injectable()
 export class SnapshotService {
@@ -24,7 +24,7 @@ export class SnapshotService {
     private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
-  async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<Snapshot> {
+  async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
     const { connectorAccountId, tableIds } = createSnapshotDto;
 
     const connectorAccount = await this.db.client.connectorAccount.findUnique({
@@ -53,7 +53,7 @@ export class SnapshotService {
         connectorAccountId,
         tableSpecs,
       },
-      include: { connectorAccount: true },
+      include: SnapshotCluster._validator.include,
     });
 
     // Make a new schema and create tables to store its data.
@@ -77,7 +77,7 @@ export class SnapshotService {
     });
   }
 
-  findAll(connectorAccountId: string, userId: string): Promise<Snapshot[]> {
+  findAll(connectorAccountId: string, userId: string): Promise<SnapshotCluster.Snapshot[]> {
     return this.db.client.snapshot.findMany({
       where: {
         connectorAccountId,
@@ -86,19 +86,33 @@ export class SnapshotService {
       orderBy: {
         createdAt: 'desc',
       },
+      include: SnapshotCluster._validator.include,
     });
   }
 
-  findOne(id: SnapshotId, userId: string): Promise<Snapshot | null> {
+  findAllForUser(userId: string): Promise<SnapshotCluster.Snapshot[]> {
+    return this.db.client.snapshot.findMany({
+      where: {
+        connectorAccount: { userId },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: SnapshotCluster._validator.include,
+    });
+  }
+
+  findOne(id: SnapshotId, userId: string): Promise<SnapshotCluster.Snapshot | null> {
     return this.db.client.snapshot.findUnique({
       where: { id, connectorAccount: { userId } },
+      include: SnapshotCluster._validator.include,
     });
   }
 
   private async findOneWithConnectorAccount(id: SnapshotId, userId: string): Promise<SnapshotWithConnectorAccount> {
     const snapshot = await this.db.client.snapshot.findUnique({
       where: { id, connectorAccount: { userId } },
-      include: { connectorAccount: true },
+      include: SnapshotCluster._validator.include,
     });
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
@@ -106,7 +120,11 @@ export class SnapshotService {
     return snapshot;
   }
 
-  async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, userId: string): Promise<Snapshot> {
+  async update(
+    id: SnapshotId,
+    updateSnapshotDto: UpdateSnapshotDto,
+    userId: string,
+  ): Promise<SnapshotCluster.Snapshot> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
     // TODO: Update the snapshot if there's anything in the DTO.
     return snapshot;

@@ -7,9 +7,9 @@ import {
 import { ActivateViewDto } from "@/types/server-entities/snapshot";
 
 export const snapshotApi = {
-  list: async (connectorAccountId: string): Promise<Snapshot[]> => {
+  list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot?connectorAccountId=${connectorAccountId}`,
+      `${API_CONFIG.getApiUrl()}/snapshot${connectorAccountId ? `?connectorAccountId=${connectorAccountId}` : ""}`,
       {
         method: "GET",
         headers: {

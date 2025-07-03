@@ -33,6 +33,11 @@ const links = [
     icon: <ChatCircleIcon size={16} />,
   },
   {
+    href: RouteUrls.snapshotsPageUrl,
+    label: "Snapshots",
+    icon: <SpiralIcon size={16} />,
+  },
+  {
     href: RouteUrls.connectionsPageUrl,
     label: "Connections",
     icon: <PlugsIcon size={16} />,

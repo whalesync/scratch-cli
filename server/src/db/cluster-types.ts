@@ -8,3 +8,11 @@ export namespace UserCluster {
     include: { apiTokens: true },
   });
 }
+
+export namespace SnapshotCluster {
+  export type Snapshot = Prisma.SnapshotGetPayload<typeof _validator>;
+
+  export const _validator = Prisma.validator<Prisma.SnapshotDefaultArgs>()({
+    include: { connectorAccount: true },
+  });
+}

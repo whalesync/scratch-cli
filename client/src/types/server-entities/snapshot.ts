@@ -30,6 +30,8 @@ export interface Snapshot {
   updatedAt: string;
   connectorAccountId: string;
   tables: TableSpec[];
+  connectorDisplayName: string | null;
+  connectorService: string | null;
 }
 
 export interface CreateSnapshotDto {

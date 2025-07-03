@@ -20,4 +20,5 @@ export class RouteUrls {
   static chatPageUrl = "/chat";
   static healthPageUrl = "/health";
   static snapshotPage = (id: string) => `/snapshots/${id}`;
+  static snapshotsPageUrl = "/snapshots";
 }

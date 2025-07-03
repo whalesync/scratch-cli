@@ -11,21 +11,21 @@ import {
 } from "../types/server-entities/records";
 import { useCallback } from "react";
 
-export const useSnapshots = (connectorAccountId: string) => {
+export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(
-    SWR_KEYS.snapshot.list(connectorAccountId),
+    SWR_KEYS.snapshot.list(connectorAccountId ?? "all"),
     () => snapshotApi.list(connectorAccountId)
   );
 
   const createSnapshot = async (dto: CreateSnapshotDto) => {
     await snapshotApi.create(dto);
-    mutate(SWR_KEYS.snapshot.list(connectorAccountId));
+    mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
   };
 
   const updateSnapshot = async (id: string) => {
     await snapshotApi.update(id);
-    mutate(SWR_KEYS.snapshot.list(connectorAccountId));
+    mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
     mutate(SWR_KEYS.snapshot.detail(id));
   };
 

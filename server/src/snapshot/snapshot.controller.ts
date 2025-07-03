@@ -36,10 +36,14 @@ export class SnapshotController {
   @UseGuards(ScratchpadAuthGuard)
   @Get()
   async findAll(
-    @Query('connectorAccountId') connectorAccountId: string,
+    @Query('connectorAccountId') connectorAccountId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot[]> {
-    return (await this.service.findAll(connectorAccountId, req.user.id)).map((s) => new Snapshot(s));
+    if (connectorAccountId) {
+      return (await this.service.findAll(connectorAccountId, req.user.id)).map((s) => new Snapshot(s));
+    }
+
+    return (await this.service.findAllForUser(req.user.id)).map((s) => new Snapshot(s));
   }
 
   @UseGuards(ScratchpadAuthGuard)
