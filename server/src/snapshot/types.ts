@@ -1,5 +1,4 @@
 import { EntityId } from 'src/remote-service/connectors/types';
-import { SnapshotTableViewId } from 'src/types/ids';
 
 /**
  * Persitant configuration for a table within a snapshot that is shared between the UI and the AI agent.
@@ -9,7 +8,7 @@ export type SnapshotTableContext = {
   // The id of the table in the snapshot.
   id: EntityId;
 
-  activeViewId?: SnapshotTableViewId;
+  activeViewId: string | null;
 
   // Columns that should not be considered in the context for the AI agent
   ignoredColumns: string[];

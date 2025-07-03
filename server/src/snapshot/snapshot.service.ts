@@ -12,7 +12,7 @@ import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
-import { SnapshotTableViewConfig } from './types';
+import { SnapshotTableContext, SnapshotTableViewConfig } from './types';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
@@ -42,8 +42,15 @@ export class SnapshotService {
     // results back here.
     const connector = this.connectorService.getConnector(connectorAccount);
     const tableSpecs: AnyTableSpec[] = [];
+    const tableContexts: SnapshotTableContext[] = [];
     for (const tableId of tableIds) {
       tableSpecs.push(await connector.fetchTableSpec(tableId));
+      tableContexts.push({
+        id: tableId,
+        activeViewId: null,
+        ignoredColumns: [],
+        readOnlyColumns: [],
+      });
     }
 
     // Create the entity in the DB.
@@ -53,6 +60,7 @@ export class SnapshotService {
         connectorAccountId,
         name: createSnapshotDto.name,
         tableSpecs,
+        tableContexts,
       },
       include: SnapshotCluster._validator.include,
     });
@@ -368,7 +376,7 @@ export class SnapshotService {
 
     const config = { ids: dto.recordIds };
 
-    return await this.db.client.snapshotTableView.upsert({
+    const view = await this.db.client.snapshotTableView.upsert({
       where: { snapshotId_tableId: { snapshotId, tableId } },
       update: { source: dto.source, config },
       create: {
@@ -379,6 +387,23 @@ export class SnapshotService {
         config,
       },
     });
+
+    const contexts = snapshot.tableContexts as SnapshotTableContext[];
+
+    const tableContext = contexts.find((c) => c.id.wsId === tableId);
+    if (tableContext) {
+      // set the active ID
+      tableContext.activeViewId = view.id;
+
+      await this.db.client.snapshot.update({
+        where: { id: snapshotId },
+        data: {
+          tableContexts: contexts,
+        },
+      });
+    }
+
+    return view;
   }
 }
 
