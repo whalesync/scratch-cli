@@ -6,6 +6,9 @@ export class CreateSnapshotDto {
   @IsString()
   connectorAccountId: ConnectorAccountId;
 
+  @IsString()
+  name: string;
+
   @IsArray()
   @ArrayNotEmpty()
   tableIds: EntityId[];

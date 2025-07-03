@@ -19,6 +19,7 @@ export interface TableSpec {
 
 export interface Snapshot {
   id: string;
+  name: string | null;
   createdAt: string;
   updatedAt: string;
   connectorAccountId: string;

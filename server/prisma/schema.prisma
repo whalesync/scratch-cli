@@ -75,6 +75,7 @@ enum ConnectorHealthStatus {
 
 model Snapshot {
   id        String   @id // type: SnapshotId
+  name      String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

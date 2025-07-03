@@ -36,6 +36,7 @@ erDiagram
 }
 "Snapshot" {
   String id PK
+  String name "nullable"
   DateTime createdAt
   DateTime updatedAt
   String connectorAccountId FK
@@ -107,6 +108,7 @@ Properties as follows:
 Properties as follows:
 
 - `id`:
+- `name`:
 - `createdAt`:
 - `updatedAt`:
 - `connectorAccountId`:

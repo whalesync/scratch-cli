@@ -51,6 +51,7 @@ export class SnapshotService {
       data: {
         id: createSnapshotId(),
         connectorAccountId,
+        name: createSnapshotDto.name,
         tableSpecs,
       },
       include: SnapshotCluster._validator.include,

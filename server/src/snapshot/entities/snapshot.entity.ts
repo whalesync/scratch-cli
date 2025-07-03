@@ -3,6 +3,7 @@ import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spe
 
 export class Snapshot {
   id: string;
+  name: string | null;
   createdAt: Date;
   updatedAt: Date;
   connectorAccountId: string;
@@ -13,6 +14,7 @@ export class Snapshot {
 
   constructor(snapshot: SnapshotCluster.Snapshot) {
     this.id = snapshot.id;
+    this.name = snapshot.name ?? null;
     this.createdAt = snapshot.createdAt;
     this.updatedAt = snapshot.updatedAt;
     this.connectorAccountId = snapshot.connectorAccountId;

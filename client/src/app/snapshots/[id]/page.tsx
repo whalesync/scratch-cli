@@ -187,7 +187,7 @@ export default function SnapshotPage() {
     <Stack h="100vh">
       <Group p="xs" bg="gray.0">
         <Group>
-          <Title order={2}>Editing snapshot</Title>
+          <Title order={2}>{snapshot?.name ?? "Snapshot"}</Title>
           <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip
@@ -211,11 +211,11 @@ export default function SnapshotPage() {
           </CopyButton>
         </Group>
         <Group ml="auto">
-        <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
+          <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download from remote
           </Button>
-          <Button 
-            onClick={toggleChat} 
+          <Button
+            onClick={toggleChat}
             leftSection={<RobotIcon />}
             variant={showChat ? "filled" : "light"}
           >
@@ -239,20 +239,22 @@ export default function SnapshotPage() {
           </Button>
         </Group>
       </Group>
-      
+
       <Group h="calc(100vh - 80px)" gap={0}>
         {/* Main content area */}
-        <div style={{ 
-          width: showChat ? "70%" : "100%", 
-          height: "100%",
-          transition: "width 0.3s ease"
-        }}>
+        <div
+          style={{
+            width: showChat ? "70%" : "100%",
+            height: "100%",
+            transition: "width 0.3s ease",
+          }}
+        >
           {renderContent()}
         </div>
-        
+
         {/* AI Chat Panel */}
-        <AIChatPanel 
-          isOpen={showChat} 
+        <AIChatPanel
+          isOpen={showChat}
           onClose={() => setShowChat(false)}
           snapshotId={id}
         />

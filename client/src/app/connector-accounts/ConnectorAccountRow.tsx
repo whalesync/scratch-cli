@@ -10,6 +10,7 @@ import { TablePreview } from "@/types/server-entities/table-list";
 import {
   Badge,
   Button,
+  Center,
   Checkbox,
   Divider,
   Group,
@@ -19,6 +20,7 @@ import {
   ScrollArea,
   Stack,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -50,6 +52,7 @@ export function ConnectorAccountRow({
   const [isLoadingTables, setIsLoadingTables] = useState(false);
   const [tables, setTables] = useState<TablePreview[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [snapshotName, setSnapshotName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -76,7 +79,7 @@ export function ConnectorAccountRow({
     }
   }, [opened, connectorAccount.id]);
 
-  const handleCreateSession = () => {
+  const handleCreateSnapshot = () => {
     // We are storing the wsId in selectedTables. Find the full EntityId
     const tableIds = tables
       .filter((t) => selectedTables.includes(t.id.wsId))
@@ -85,6 +88,7 @@ export function ConnectorAccountRow({
     createSnapshot({
       connectorAccountId: connectorAccount.id,
       tableIds: tableIds,
+      name: snapshotName ?? "",
     });
     close();
   };
@@ -133,36 +137,43 @@ export function ConnectorAccountRow({
         centered
       >
         {isLoadingTables ? (
-          <Group justify="center">
-            <Loader />
-            <Text>Loading tables...</Text>
-          </Group>
+          <Center mih={200}>
+            <Group gap="sm">
+              <Loader />
+              <Text>Loading tables...</Text>
+            </Group>
+          </Center>
         ) : error ? (
           <Text c="red">{error}</Text>
         ) : (
-          <>
-            <Checkbox.Group
-              value={selectedTables}
-              onChange={setSelectedTables}
-              label="Select tables to include in the snapshot"
-            >
-              <Group justify="flex-end">
-                <Button
-                  variant="subtle"
-                  size="xs"
-                  onClick={() =>
-                    setSelectedTables(tables.map((t) => t.id.wsId))
-                  }
-                >
-                  Select all
-                </Button>
-                <Button
-                  variant="subtle"
-                  size="xs"
-                  onClick={() => setSelectedTables([])}
-                >
-                  Select none
-                </Button>
+          <Stack>
+            <TextInput
+              placeholder="Enter a name for the snapshot"
+              required
+              value={snapshotName}
+              onChange={(e) => setSnapshotName(e.target.value)}
+            />
+            <Checkbox.Group value={selectedTables} onChange={setSelectedTables}>
+              <Group justify="flex-start">
+                <Text size="sm">Select tables to include in the snapshot</Text>
+                <Group gap="xs" ml="auto">
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    onClick={() =>
+                      setSelectedTables(tables.map((t) => t.id.wsId))
+                    }
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    size="xs"
+                    onClick={() => setSelectedTables([])}
+                  >
+                    Select none
+                  </Button>
+                </Group>
               </Group>
 
               <Paper withBorder p="md" mt="sm">
@@ -183,14 +194,14 @@ export function ConnectorAccountRow({
                 </ScrollArea>
               </Paper>
             </Checkbox.Group>
-          </>
+          </Stack>
         )}
         <Group justify="flex-end" mt="xl">
           <Button variant="default" onClick={close}>
             Cancel
           </Button>
           <Button
-            onClick={handleCreateSession}
+            onClick={handleCreateSnapshot}
             disabled={selectedTables.length === 0 || !!error}
           >
             Create snapshot
@@ -239,12 +250,11 @@ export function ConnectorAccountRow({
                     onClick={() => handleWorkWithSnapshot(snapshot.id)}
                     variant="outline"
                   >
-                    View & edit snapshot data
+                    View {snapshot.name}
                   </Button>
                 ))}
-                {(snapshots?.length ?? 0) === 0 && (
-                  <Button onClick={open}>Start new snapshot</Button>
-                )}
+
+                <Button onClick={open}>Start new snapshot</Button>
               </Stack>
             )}
           </Group>

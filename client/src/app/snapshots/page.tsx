@@ -42,10 +42,10 @@ export default function SnapshotsListPage() {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>ID</Table.Th>
-            <Table.Th>Created At</Table.Th>
-            <Table.Th>Updated At</Table.Th>
+            <Table.Th>Name</Table.Th>
             <Table.Th>Connector Account</Table.Th>
             <Table.Th># Tables</Table.Th>
+            <Table.Th>Created At</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -59,14 +59,12 @@ export default function SnapshotsListPage() {
                 style={{ cursor: "pointer" }}
               >
                 <Table.Td>{snapshot.id}</Table.Td>
+                <Table.Td>{snapshot.name}</Table.Td>
+                <Table.Td>{snapshot.connectorService}</Table.Td>
+                <Table.Td>{snapshot.tables.length}</Table.Td>
                 <Table.Td>
                   {new Date(snapshot.createdAt).toLocaleString()}
                 </Table.Td>
-                <Table.Td>
-                  {new Date(snapshot.updatedAt).toLocaleString()}
-                </Table.Td>
-                <Table.Td>{snapshot.connectorService}</Table.Td>
-                <Table.Td>{snapshot.tables.length}</Table.Td>
               </Table.Tr>
             ))
           ) : (

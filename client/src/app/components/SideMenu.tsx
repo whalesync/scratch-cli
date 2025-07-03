@@ -20,6 +20,7 @@ import {
   CheckIcon,
   CopyIcon,
   ChatCircleIcon,
+  TableIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
@@ -28,14 +29,9 @@ import { RouteUrls } from "@/utils/route-urls";
 
 const links = [
   {
-    href: RouteUrls.chatPageUrl,
-    label: "Chat",
-    icon: <ChatCircleIcon size={16} />,
-  },
-  {
     href: RouteUrls.snapshotsPageUrl,
     label: "Snapshots",
-    icon: <SpiralIcon size={16} />,
+    icon: <TableIcon size={16} />,
   },
   {
     href: RouteUrls.connectionsPageUrl,
@@ -46,6 +42,11 @@ const links = [
     href: RouteUrls.apiImportDemoPageUrl,
     label: "API Import Demo",
     icon: <CloudArrowDownIcon size={16} />,
+  },
+  {
+    href: RouteUrls.chatPageUrl,
+    label: "Chat Testing",
+    icon: <ChatCircleIcon size={16} />,
   },
   {
     href: RouteUrls.healthPageUrl,
