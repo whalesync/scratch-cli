@@ -22,8 +22,9 @@ export const SWR_KEYS = {
       snapshotId: string,
       tableId: string,
       cursor?: string,
-      take?: number
-    ) => ["snapshot", "records", snapshotId, tableId, cursor, take],
+      take?: number,
+      viewId?: string
+    ) => ["snapshot", "records", snapshotId, tableId, cursor, take, viewId],
   },
   users: {
     activeUser: () => ["users", "activeUser"],

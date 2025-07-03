@@ -41,7 +41,11 @@ export const useSnapshots = (connectorAccountId?: string) => {
 export const useSnapshot = (id: string) => {
   const { data, error, isLoading, mutate } = useSWR(
     SWR_KEYS.snapshot.detail(id),
-    () => snapshotApi.detail(id)
+    () => snapshotApi.detail(id), 
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 5000,
+    }
   );
 
   const { mutate: globalMutate } = useSWRConfig();
@@ -75,18 +79,28 @@ export const useSnapshot = (id: string) => {
   };
 };
 
-export const useSnapshotRecords = (
+export const useSnapshotRecords = (args: {
   snapshotId: string,
   tableId: string,
   cursor?: string,
-  take: number = 5000
-) => {
+  take?: number,
+  viewId?: string
+}) => {
+  const { snapshotId, tableId, cursor, take, viewId } = args;
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
 
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(swrKey, () =>
-    snapshotApi.listRecords(snapshotId, tableId, cursor, take)
+    snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 10000,
+    }
   );
+
+  const refreshRecords = useCallback(async () => {
+    await mutate(swrKey);
+  }, [mutate, swrKey]);
 
   const bulkUpdateRecords = useCallback(
     async (dto: BulkUpdateRecordsDto) => {
@@ -177,5 +191,6 @@ export const useSnapshotRecords = (
     isLoading,
     error,
     bulkUpdateRecords,
+    refreshRecords,
   };
 };

@@ -11,7 +11,11 @@ import {
   Theme,
 } from "@glideapps/glide-data-grid";
 import { useCallback, useMemo, useState } from "react";
-import { ColumnSpec, TableSpec } from "@/types/server-entities/snapshot";
+import {
+  ColumnSpec,
+  SnapshotTableContext,
+  TableSpec,
+} from "@/types/server-entities/snapshot";
 import {
   ActionIcon,
   Box,
@@ -23,17 +27,23 @@ import {
   Stack,
   Text,
   Tooltip,
+  useModalsStack,
 } from "@mantine/core";
 import { useSnapshotRecords } from "../../../hooks/use-snapshot";
 import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
-import { BugIcon, PlusIcon } from "@phosphor-icons/react";
-import { useDisclosure } from "@mantine/hooks";
+import {
+  ArrowClockwiseIcon,
+  BugIcon,
+  PlusIcon,
+  SlidersIcon,
+} from "@phosphor-icons/react";
 import JsonTreeViewer from "../../components/JsonTreeViewer";
 import { notifications } from "@mantine/notifications";
 
 interface SnapshotTableGridProps {
   snapshotId: string;
   table: TableSpec;
+  tableContext: SnapshotTableContext;
 }
 
 type SortDirection = "asc" | "desc";
@@ -55,15 +65,28 @@ const generatePendingId = (): string => {
 
 const FAKE_LEFT_COLUMNS = 2;
 
-const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
+const SnapshotTableGrid = ({
+  snapshotId,
+  table,
+  tableContext,
+}: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
-  const [debugModalOpened, { open: openDebugModal, close: closeDebugModal }] =
-    useDisclosure(false);
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
-    useSnapshotRecords(snapshotId, table.id.wsId);
+  const modalStack = useModalsStack(["tableSpecDebug", "tableContextDebug"]);
+
+  const {
+    recordsResponse,
+    isLoading,
+    error,
+    bulkUpdateRecords,
+    refreshRecords,
+  } = useSnapshotRecords({
+    snapshotId,
+    tableId: table.id.wsId,
+    viewId: tableContext.activeViewId,
+  });
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -353,15 +376,22 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
 
   return (
     <>
-      {" "}
       <Modal
-        opened={debugModalOpened}
-        onClose={closeDebugModal}
+        {...modalStack.register("tableSpecDebug")}
         title={`TableSpec for ${table.name}`}
         size="lg"
       >
         <ScrollArea h={500}>
           <JsonTreeViewer jsonData={table} />
+        </ScrollArea>
+      </Modal>
+      <Modal
+        {...modalStack.register("tableContextDebug")}
+        title={`Table Context settings for ${table.name}`}
+        size="lg"
+      >
+        <ScrollArea h={500}>
+          <JsonTreeViewer jsonData={tableContext} />
         </ScrollArea>
       </Modal>
       <Box h="100%" w="100%" style={{ position: "relative" }}>
@@ -389,15 +419,37 @@ const SnapshotTableGrid = ({ snapshotId, table }: SnapshotTableGridProps) => {
           <Group w="100%" p="xs" bg="gray.0">
             <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
             <Group gap="xs" ml="auto" p={0}>
+              <Tooltip label="Refresh the records list">
+                <ActionIcon
+                  onClick={refreshRecords}
+                  size="lg"
+                  radius="xl"
+                  variant="filled"
+                  color="green"
+                >
+                  <ArrowClockwiseIcon size={24} />
+                </ActionIcon>
+              </Tooltip>
               <Tooltip label="View JSON data">
                 <ActionIcon
-                  onClick={openDebugModal}
+                  onClick={() => modalStack.open("tableSpecDebug")}
                   size="lg"
                   radius="xl"
                   variant="filled"
                   color="violet"
                 >
                   <BugIcon size={24} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="View Table Context data">
+                <ActionIcon
+                  onClick={() => modalStack.open("tableContextDebug")}
+                  size="lg"
+                  radius="xl"
+                  variant="filled"
+                  color="gray"
+                >
+                  <SlidersIcon size={24} />
                 </ActionIcon>
               </Tooltip>
               <Tooltip label="Add record">

@@ -136,23 +136,23 @@ export function ConnectorAccountRow({
         size="xl"
         centered
       >
-        {isLoadingTables ? (
-          <Center mih={200}>
-            <Group gap="sm">
-              <Loader />
-              <Text>Loading tables...</Text>
-            </Group>
-          </Center>
-        ) : error ? (
-          <Text c="red">{error}</Text>
-        ) : (
-          <Stack>
-            <TextInput
-              placeholder="Enter a name for the snapshot"
-              required
-              value={snapshotName}
-              onChange={(e) => setSnapshotName(e.target.value)}
-            />
+        <Stack>
+          <TextInput
+            placeholder="Enter a name for the snapshot"
+            required
+            value={snapshotName}
+            onChange={(e) => setSnapshotName(e.target.value)}
+          />
+          {isLoadingTables ? (
+            <Center mih={200}>
+              <Group gap="sm">
+                <Loader />
+                <Text>Loading tables...</Text>
+              </Group>
+            </Center>
+          ) : error ? (
+            <Text c="red">{error}</Text>
+          ) : (
             <Checkbox.Group value={selectedTables} onChange={setSelectedTables}>
               <Group justify="flex-start">
                 <Text size="sm">Select tables to include in the snapshot</Text>
@@ -194,8 +194,8 @@ export function ConnectorAccountRow({
                 </ScrollArea>
               </Paper>
             </Checkbox.Group>
-          </Stack>
-        )}
+          )}
+        </Stack>
         <Group justify="flex-end" mt="xl">
           <Button variant="default" onClick={close}>
             Cancel

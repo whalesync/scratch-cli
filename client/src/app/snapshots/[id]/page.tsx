@@ -27,7 +27,10 @@ import {
 } from "@phosphor-icons/react";
 import { useParams, useRouter } from "next/navigation";
 import SnapshotTableGrid from "./SnapshotTableGrid";
-import { TableSpec } from "@/types/server-entities/snapshot";
+import {
+  SnapshotTableContext,
+  TableSpec,
+} from "@/types/server-entities/snapshot";
 import AIChatPanel from "../../components/AIChatPanel";
 
 import "@glideapps/glide-data-grid/dist/index.css";
@@ -47,13 +50,18 @@ export default function SnapshotPage() {
   const [selectedTable, setSelectedTable] = useState<TableSpec | undefined>(
     undefined
   );
+  const [selectedTableContext, setSelectedTableContext] = useState<
+    SnapshotTableContext | undefined
+  >(undefined);
+
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     if (!selectedTable) {
       setSelectedTable(snapshot?.tables[0]);
+      setSelectedTableContext(snapshot?.tableContexts[0]);
     }
-  }, [snapshot, selectedTable]);
+  }, [snapshot, selectedTable, selectedTableContext]);
 
   const handleDownload = async () => {
     try {
@@ -163,9 +171,12 @@ export default function SnapshotPage() {
       <Stack h="100%" gap={0}>
         <Tabs
           value={selectedTable?.id?.wsId}
-          onChange={(value) =>
-            setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value))
-          }
+          onChange={(value) => {
+            setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value));
+            setSelectedTableContext(
+              snapshot.tableContexts.find((c) => c.id.wsId === value)
+            );
+          }}
           variant="outline"
         >
           <Tabs.List px="sm">
@@ -176,8 +187,12 @@ export default function SnapshotPage() {
             ))}
           </Tabs.List>
         </Tabs>
-        {selectedTable && (
-          <SnapshotTableGrid snapshotId={id} table={selectedTable} />
+        {selectedTable && selectedTableContext && (
+          <SnapshotTableGrid
+            snapshotId={id}
+            table={selectedTable}
+            tableContext={selectedTableContext}
+          />
         )}
       </Stack>
     );
