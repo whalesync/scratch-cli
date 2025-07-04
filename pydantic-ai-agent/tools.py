@@ -25,12 +25,22 @@ class TableSpec(BaseModel):
     name: str
     columns: List[ColumnSpec]
 
+class TableContext(BaseModel):
+    id: EntityId
+    activeViewId: Optional[str]
+    ignoredColumns: List[str]
+    readOnlyColumns: List[str]
+
 class Snapshot(BaseModel):
     id: str
+    name: Optional[str]
+    connectorDisplayName: Optional[str]
+    connectorService: Optional[str]
     createdAt: str
     updatedAt: str
     connectorAccountId: str
     tables: List[TableSpec]
+    tableContexts: List[TableContext]
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -106,14 +116,29 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
             )
             converted_tables.append(table_spec)
         
+        # Create table contexts
+        converted_table_contexts = []
+        for i, table_context in enumerate(snapshot_data.tableContexts):
+            table_context_spec = TableContext(
+                id=EntityId(wsId=table_context['id']['wsId'], remoteId=table_context['id']['remoteId']),  # type: ignore
+                activeViewId=table_context['activeViewId'],  # type: ignore
+                ignoredColumns=table_context['ignoredColumns'],  # type: ignore
+                readOnlyColumns=table_context['readOnlyColumns']  # type: ignore
+            )
+            converted_table_contexts.append(table_context_spec)
+
         # Create the snapshot
         print(f"🔍 Creating Snapshot object...")
         snapshot = Snapshot(
             id=snapshot_data.id,
+            name=snapshot_data.name,
+            connectorDisplayName=snapshot_data.connectorDisplayName,
+            connectorService=snapshot_data.connectorService,
             createdAt=snapshot_data.createdAt,
             updatedAt=snapshot_data.updatedAt,
             connectorAccountId=snapshot_data.connectorAccountId,
-            tables=converted_tables
+            tables=converted_tables,
+            tableContexts=converted_table_contexts
         )
         print(f"✅ Snapshot object created successfully")
         # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot

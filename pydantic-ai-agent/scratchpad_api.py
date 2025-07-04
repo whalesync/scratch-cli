@@ -29,19 +29,23 @@ class TableSpec:
     columns: List[ColumnSpec]
 
 @dataclass
+class TableContext:
+    id: EntityId
+    activeViewId: Optional[str]
+    ignoredColumns: List[str]
+    readOnlyColumns: List[str]
+
+@dataclass
 class Snapshot:
     id: str
+    name: Optional[str]
+    connectorDisplayName: Optional[str]
+    connectorService: Optional[str]
     createdAt: str
     updatedAt: str
     connectorAccountId: str
     tables: List[TableSpec]
-
-class Snapshot2:
-    id: str
-    createdAt: str
-    updatedAt: str
-    connectorAccountId: str
-    tables: List[TableSpec]
+    tableContexts: List[TableContext]
 
 @dataclass
 class CreateSnapshotDto:
@@ -62,6 +66,19 @@ class BulkUpdateRecordsDto:
 class ListRecordsResponse:
     records: List[Dict[str, Any]]  # SnapshotRecord[]
     nextCursor: Optional[str] = None
+
+@dataclass
+class CreateSnapshotTableViewDto:
+    source: str  # 'ui' or 'agent'
+    name: Optional[str]
+    recordIds: List[str]
+
+@dataclass
+class SnapshotTableView:
+    id: str
+    name: str
+    updatedAt: str
+    recordIds: List[str]
 
 class ScratchpadApiConfig:
     """Configuration for Scratchpad API calls"""
@@ -157,7 +174,7 @@ class SnapshotApi:
         _handle_response(response, "Failed to delete snapshot")
     
     @staticmethod
-    def list_records(snapshot_id: str, table_id: str, cursor: Optional[str] = None, take: Optional[int] = None) -> ListRecordsResponse:
+    def list_records(snapshot_id: str, table_id: str, cursor: Optional[str] = None, take: Optional[int] = None, view_id: Optional[str] = None) -> ListRecordsResponse:
         """List records for a table in a snapshot"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records"
         params = {}
@@ -165,7 +182,8 @@ class SnapshotApi:
             params["cursor"] = cursor
         if take:
             params["take"] = str(take)
-        
+        if view_id:
+            params["viewId"] = view_id
         response = requests.get(url, headers=API_CONFIG.get_api_headers(), params=params)
         data = _handle_response(response, "Failed to list records")
         return ListRecordsResponse(**data)
@@ -185,6 +203,42 @@ class SnapshotApi:
         }
         response = requests.post(url, headers=API_CONFIG.get_api_headers(), json=payload)
         # _handle_response(response, "Failed to bulk update records")
+
+    @staticmethod
+    def activate_view(snapshot_id: str, table_id: str, dto: CreateSnapshotTableViewDto) -> str:
+        """Activate a view for a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/activate-view"
+        payload = {
+            "source": dto.source,
+            "name": dto.name,
+            "recordIds": dto.recordIds,
+        }
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(), json=payload)
+        data = _handle_response(response, "Failed to activate view")
+        return data["id"]
+
+    @staticmethod
+    def list_views(snapshot_id: str, table_id: str) -> List[SnapshotTableView]:
+        """List all views for a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/views"
+        response = requests.post(url, headers=API_CONFIG.get_api_headers())
+        data = _handle_response(response, "Failed to list views")
+        return [SnapshotTableView(**view) for view in data]
+
+    @staticmethod
+    def delete_view(snapshot_id: str, table_id: str, view_id: str) -> None:
+        """Delete a view for a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/views/{view_id}"
+        response = requests.delete(url, headers=API_CONFIG.get_api_headers())
+        _handle_response(response, "Failed to delete view")
+
+    @staticmethod
+    def get_view(snapshot_id: str, table_id: str, view_id: str) -> SnapshotTableView:
+        """Get a specific view for a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/views/{view_id}"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers())
+        data = _handle_response(response, "Failed to get view")
+        return SnapshotTableView(**data)
 
 # Convenience functions for easy access
 def list_snapshots(connector_account_id: str) -> List[Snapshot]:
@@ -220,6 +274,22 @@ def bulk_update_records(snapshot_id: str, table_id: str, operations: List[Record
     """Bulk update records in a table"""
     dto = BulkUpdateRecordsDto(ops=operations)
     SnapshotApi.bulk_update_records(snapshot_id, table_id, dto)
+
+def activate_view(snapshot_id: str, table_id: str, dto: CreateSnapshotTableViewDto) -> str:
+    """Activate a view for a table in a snapshot"""
+    return SnapshotApi.activate_view(snapshot_id, table_id, dto)
+
+def list_views(snapshot_id: str, table_id: str) -> List[SnapshotTableView]:
+    """List all views for a table in a snapshot"""
+    return SnapshotApi.list_views(snapshot_id, table_id)
+
+def delete_view(snapshot_id: str, table_id: str, view_id: str) -> None:
+    """Delete a view for a table in a snapshot"""
+    SnapshotApi.delete_view(snapshot_id, table_id, view_id)
+
+def get_view(snapshot_id: str, table_id: str, view_id: str) -> SnapshotTableView:
+    """Get a specific view for a table in a snapshot"""
+    return SnapshotApi.get_view(snapshot_id, table_id, view_id)
 
 def check_server_health() -> bool:
     """Check if the Scratchpad server is healthy"""
