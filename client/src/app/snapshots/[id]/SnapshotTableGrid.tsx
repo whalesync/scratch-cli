@@ -29,7 +29,10 @@ import {
   Tooltip,
   useModalsStack,
 } from "@mantine/core";
-import { useSnapshotRecords } from "../../../hooks/use-snapshot";
+import {
+  useSnapshotRecords,
+  useSnapshotViews,
+} from "../../../hooks/use-snapshot";
 import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
 import { BugIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react";
 import JsonTreeViewer from "../../components/JsonTreeViewer";
@@ -77,6 +80,14 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       tableId: table.id.wsId,
       viewId: tableContext?.activeViewId,
     });
+
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    views,
+  } = useSnapshotViews({
+    snapshotId: snapshot.id,
+    tableId: table.id.wsId,
+  });
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;

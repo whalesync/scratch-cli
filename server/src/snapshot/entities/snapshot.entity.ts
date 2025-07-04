@@ -1,6 +1,7 @@
+import { SnapshotTableView as PrismaSnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { SnapshotTableContext } from '../types';
+import { SnapshotTableContext, SnapshotTableViewConfig } from '../types';
 
 export class Snapshot {
   id: string;
@@ -25,5 +26,19 @@ export class Snapshot {
     this.connectorDisplayName = snapshot.connectorAccount.displayName;
     this.connectorService = snapshot.connectorAccount.service;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
+  }
+}
+
+export class SnapshotTableView {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  recordIds: string[];
+
+  constructor(view: PrismaSnapshotTableView) {
+    this.id = view.id;
+    this.name = view.name ?? '';
+    this.updatedAt = view.updatedAt;
+    this.recordIds = (view.config as SnapshotTableViewConfig).ids;
   }
 }

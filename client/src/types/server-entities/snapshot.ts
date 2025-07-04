@@ -81,3 +81,10 @@ export type CreateSnapshotTableViewDto = {
   name?: string;
   recordIds: string[];
 };
+
+export type SnapshotTableView = {
+  id: string;
+  name: string;
+  updatedAt: string; // ISO string, since API returns dates as strings
+  recordIds: string[];
+};

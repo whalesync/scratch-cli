@@ -17,3 +17,8 @@ Add scopes to API tokens
 User verification on data entities
 
 - pretty minimal right now but we should have some simple permissions checking system to make sure the user ID is interfacing with an assest they have access to
+
+Error Handling & Logging
+
+- For the server we need a decent error management pattern - everything just uses exceptions right now
+- Add a standardized logger, like Winston, from the start

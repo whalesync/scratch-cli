@@ -20,7 +20,7 @@ import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
-import { Snapshot } from './entities/snapshot.entity';
+import { Snapshot, SnapshotTableView } from './entities/snapshot.entity';
 import { SnapshotService } from './snapshot.service';
 
 @Controller('snapshot')
@@ -131,5 +131,39 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.clearActiveView(snapshotId, tableId, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/views')
+  async listViews(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<SnapshotTableView[]> {
+    return (await this.service.listViews(snapshotId, tableId, req.user.id)).map((v) => new SnapshotTableView(v));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Delete(':id/tables/:tableId/views/:viewId')
+  @HttpCode(204)
+  async deleteView(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Param('viewId') viewId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.deleteView(snapshotId, tableId, viewId, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/tables/:tableId/views/:viewId')
+  async getView(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Param('viewId') viewId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<SnapshotTableView> {
+    const view = await this.service.getView(snapshotId, tableId, viewId, req.user.id);
+    return new SnapshotTableView(view);
   }
 }

@@ -1,4 +1,4 @@
-import { CreateSnapshotTableViewDto, CreateSnapshotDto, Snapshot } from "./types/snapshot.js";
+import { CreateSnapshotTableViewDto, CreateSnapshotDto, Snapshot, SnapshotTableView } from "./types/snapshot.js";
 import { API_CONFIG } from "./config.js";
 import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
 
@@ -198,5 +198,64 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to clear filter view");
     }
 
+  },
+
+  async listViews(
+    snapshotId: string,
+    tableId: string
+  ): Promise<SnapshotTableView[]> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to list views");
+    }
+    return res.json();
+  },
+
+  async deleteView(
+    snapshotId: string,
+    tableId: string,
+    viewId: string
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
+      {
+        method: "DELETE",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to delete view");
+    }
+  },
+
+  async getView(
+    snapshotId: string,
+    tableId: string,
+    viewId: string
+  ): Promise<SnapshotTableView> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
+      {
+        method: "GET",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to get view");
+    }
+    return res.json();
   },
 };
