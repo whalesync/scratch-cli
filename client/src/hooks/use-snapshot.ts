@@ -87,7 +87,7 @@ export const useSnapshotRecords = (args: {
   viewId?: string
 }) => {
   const { snapshotId, tableId, cursor, take, viewId } = args;
-  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
+  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
 
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(swrKey, () =>

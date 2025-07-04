@@ -27,10 +27,7 @@ import {
 } from "@phosphor-icons/react";
 import { useParams, useRouter } from "next/navigation";
 import SnapshotTableGrid from "./SnapshotTableGrid";
-import {
-  SnapshotTableContext,
-  TableSpec,
-} from "@/types/server-entities/snapshot";
+import { TableSpec } from "@/types/server-entities/snapshot";
 import AIChatPanel from "../../components/AIChatPanel";
 
 import "@glideapps/glide-data-grid/dist/index.css";
@@ -47,21 +44,17 @@ export default function SnapshotPage() {
     snapshot?.connectorAccountId
   );
 
-  const [selectedTable, setSelectedTable] = useState<TableSpec | undefined>(
-    undefined
-  );
-  const [selectedTableContext, setSelectedTableContext] = useState<
-    SnapshotTableContext | undefined
-  >(undefined);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
 
   const [showChat, setShowChat] = useState(true);
 
   useEffect(() => {
-    if (!selectedTable) {
-      setSelectedTable(snapshot?.tables[0]);
-      setSelectedTableContext(snapshot?.tableContexts[0]);
+    if (!selectedTableId) {
+      setSelectedTableId(snapshot?.tables[0].id.wsId ?? null);
+      setSelectedTable(snapshot?.tables[0] ?? null);
     }
-  }, [snapshot, selectedTable, selectedTableContext]);
+  }, [snapshot, selectedTableId]);
 
   const handleDownload = async () => {
     try {
@@ -172,13 +165,11 @@ export default function SnapshotPage() {
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
           <Stack h="100%" w="100%" flex={1}>
             <Tabs
-              value={selectedTable?.id?.wsId}
+              value={selectedTableId}
               onChange={(value) => {
+                setSelectedTableId(value);
                 setSelectedTable(
-                  snapshot.tables.find((t) => t.id.wsId === value)
-                );
-                setSelectedTableContext(
-                  snapshot.tableContexts.find((c) => c.id.wsId === value)
+                  snapshot.tables.find((t) => t.id.wsId === value) ?? null
                 );
               }}
               variant="outline"
@@ -191,12 +182,8 @@ export default function SnapshotPage() {
                 ))}
               </Tabs.List>
             </Tabs>
-            {selectedTable && selectedTableContext && (
-              <SnapshotTableGrid
-                snapshotId={id}
-                table={selectedTable}
-                tableContext={selectedTableContext}
-              />
+            {selectedTable && (
+              <SnapshotTableGrid snapshot={snapshot} table={selectedTable} />
             )}
           </Stack>
 

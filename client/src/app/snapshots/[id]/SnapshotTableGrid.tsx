@@ -13,7 +13,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import {
   ColumnSpec,
-  SnapshotTableContext,
+  Snapshot,
   TableSpec,
 } from "@/types/server-entities/snapshot";
 import {
@@ -31,19 +31,14 @@ import {
 } from "@mantine/core";
 import { useSnapshotRecords } from "../../../hooks/use-snapshot";
 import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
-import {
-  ArrowClockwiseIcon,
-  BugIcon,
-  PlusIcon,
-  SlidersIcon,
-} from "@phosphor-icons/react";
+import { BugIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react";
 import JsonTreeViewer from "../../components/JsonTreeViewer";
 import { notifications } from "@mantine/notifications";
+import { AnimatedArrowsClockwise } from "@/app/components/AnimatedArrowsClockwise";
 
 interface SnapshotTableGridProps {
-  snapshotId: string;
+  snapshot: Snapshot;
   table: TableSpec;
-  tableContext: SnapshotTableContext;
 }
 
 type SortDirection = "asc" | "desc";
@@ -65,28 +60,23 @@ const generatePendingId = (): string => {
 
 const FAKE_LEFT_COLUMNS = 2;
 
-const SnapshotTableGrid = ({
-  snapshotId,
-  table,
-  tableContext,
-}: SnapshotTableGridProps) => {
+const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
 
   const modalStack = useModalsStack(["tableSpecDebug", "tableContextDebug"]);
 
-  const {
-    recordsResponse,
-    isLoading,
-    error,
-    bulkUpdateRecords,
-    refreshRecords,
-  } = useSnapshotRecords({
-    snapshotId,
-    tableId: table.id.wsId,
-    viewId: tableContext.activeViewId,
-  });
+  const tableContext = snapshot.tableContexts.find(
+    (c) => c.id.wsId === table.id.wsId
+  );
+
+  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
+    useSnapshotRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      viewId: tableContext?.activeViewId,
+    });
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -391,7 +381,7 @@ const SnapshotTableGrid = ({
         size="lg"
       >
         <ScrollArea h={500}>
-          <JsonTreeViewer jsonData={tableContext} />
+          <JsonTreeViewer jsonData={tableContext ?? {}} />
         </ScrollArea>
       </Modal>
       <Box h="100%" w="100%" style={{ position: "relative" }}>
@@ -417,19 +407,12 @@ const SnapshotTableGrid = ({
             }}
           />
           <Group w="100%" p="xs" bg="gray.0">
-            <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
+            {isLoading ? (
+              <AnimatedArrowsClockwise size={24} />
+            ) : (
+              <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
+            )}
             <Group gap="xs" ml="auto" p={0}>
-              <Tooltip label="Refresh the records list">
-                <ActionIcon
-                  onClick={refreshRecords}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                  color="green"
-                >
-                  <ArrowClockwiseIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
               <Tooltip label="View JSON data">
                 <ActionIcon
                   onClick={() => modalStack.open("tableSpecDebug")}
