@@ -10,7 +10,7 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(RouteUrls.connectionsPageUrl);
+    router.push(RouteUrls.snapshotsPageUrl);
   }, [router]);
 
   return (
