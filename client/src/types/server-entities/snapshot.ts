@@ -76,7 +76,8 @@ export type EditedFieldsMetadata = {
   [wsId: string]: string;
 };
 
-export type ActivateViewDto = {
+export type CreateSnapshotTableViewDto = {
   source: 'ui' | 'agent';
+  name?: string;
   recordIds: string[];
 };

@@ -7,7 +7,7 @@ import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
-import { ActivateViewDto } from './dto/activate-view.dto';
+import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -362,10 +362,33 @@ export class SnapshotService {
     );
   }
 
+  async clearActiveView(snapshotId: SnapshotId, tableId: string, userId: string): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const contexts = snapshot.tableContexts as SnapshotTableContext[];
+
+    const tableContext = contexts.find((c) => c.id.wsId === tableId);
+    if (tableContext) {
+      // set the active ID
+      tableContext.activeViewId = null;
+
+      await this.db.client.snapshot.update({
+        where: { id: snapshotId },
+        data: {
+          tableContexts: contexts,
+        },
+      });
+    }
+  }
+
   async activateView(
     snapshotId: SnapshotId,
     tableId: string, // wsId for the table
-    dto: ActivateViewDto,
+    dto: CreateSnapshotTableViewDto,
     userId: string,
   ): Promise<SnapshotTableView> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
@@ -384,6 +407,7 @@ export class SnapshotService {
         snapshotId,
         tableId,
         source: dto.source,
+        name: dto.name,
         config,
       },
     });

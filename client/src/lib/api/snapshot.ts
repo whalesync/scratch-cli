@@ -4,7 +4,7 @@ import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../../types/server-entities/records";
-import { ActivateViewDto } from "@/types/server-entities/snapshot";
+import { CreateSnapshotTableViewDto } from "@/types/server-entities/snapshot";
 
 export const snapshotApi = {
   list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
@@ -176,7 +176,7 @@ export const snapshotApi = {
   async activateView(
     snapshotId: string,
     tableId: string,
-    dto: ActivateViewDto
+    dto: CreateSnapshotTableViewDto
   ): Promise<string> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/activate-view`,

@@ -11,6 +11,10 @@ export const CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION = {
         type: "string",
         description: "The ID of the table to get records for",
       },
+      name: {
+        type: "string",
+        description: "A short name of the filtered view to help you identify it. Less than 50 characters.",
+      },
       recordIds: {
         type: "array",
         description: "An array of wsIdsfor the records that are included in the filtered view",
@@ -21,13 +25,14 @@ export const CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION = {
         },
       },
     },
-    required: ["tableId", "recordIds"],
+    required: ["tableId", "recordIds", "name"],
   },
 };
 
 export const createFilteredView = async (args: Record<string, unknown> | undefined) => {
   const snapshot = snapshotManager.getActiveSnapshot();
   const tableId = args?.tableId as string;
+  const viewName = args?.name as string;
   const recordIds = args?.recordIds as string[];
 
   if (!snapshot) {
@@ -51,6 +56,17 @@ export const createFilteredView = async (args: Record<string, unknown> | undefin
     };
   }
 
+  if (!viewName) { return {
+    content: [
+      {
+        type: "text",
+        text: "A name is required for the filtered view.",
+      },
+    ],
+  };
+}
+
+
   if (!recordIds || recordIds.length === 0) {
     return {
       content: [
@@ -68,6 +84,7 @@ export const createFilteredView = async (args: Record<string, unknown> | undefin
       tableId,
       {
         source: "agent",
+        name: viewName,
         recordIds,
       }
     );

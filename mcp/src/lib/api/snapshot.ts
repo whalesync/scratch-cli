@@ -1,4 +1,4 @@
-import { ActivateViewDto, CreateSnapshotDto, Snapshot } from "./types/snapshot.js";
+import { CreateSnapshotTableViewDto, CreateSnapshotDto, Snapshot } from "./types/snapshot.js";
 import { API_CONFIG } from "./config.js";
 import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
 
@@ -157,7 +157,7 @@ export const snapshotApi = {
   async activateView(
     snapshotId: string,
     tableId: string,
-    dto: ActivateViewDto
+    dto: CreateSnapshotTableViewDto
   ): Promise<string> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/activate-view`,
@@ -177,5 +177,26 @@ export const snapshotApi = {
 
     const view = await res.json();
     return view.id;
+  },
+
+  async clearActiveView(
+    snapshotId: string,
+    tableId: string,
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-activate-view`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to clear filter view");
+    }
+
   },
 };

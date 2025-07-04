@@ -16,7 +16,7 @@ import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
-import { ActivateViewDto } from './dto/activate-view.dto';
+import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -115,10 +115,21 @@ export class SnapshotController {
   async activateView(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
-    @Body() activateViewDto: ActivateViewDto,
+    @Body() activateViewDto: CreateSnapshotTableViewDto,
     @Req() req: RequestWithUser,
   ): Promise<{ id: string }> {
     const view = await this.service.activateView(snapshotId, tableId, activateViewDto, req.user.id);
     return { id: view.id };
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/clear-activate-view')
+  @HttpCode(204)
+  async clearActiveView(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.clearActiveView(snapshotId, tableId, req.user.id);
   }
 }
