@@ -54,7 +54,7 @@ export default function SnapshotPage() {
     SnapshotTableContext | undefined
   >(undefined);
 
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
   useEffect(() => {
     if (!selectedTable) {
@@ -169,31 +169,43 @@ export default function SnapshotPage() {
 
     return (
       <Stack h="100%" gap={0}>
-        <Tabs
-          value={selectedTable?.id?.wsId}
-          onChange={(value) => {
-            setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value));
-            setSelectedTableContext(
-              snapshot.tableContexts.find((c) => c.id.wsId === value)
-            );
-          }}
-          variant="outline"
-        >
-          <Tabs.List px="sm">
-            {snapshot.tables.map((table: TableSpec) => (
-              <Tabs.Tab value={table.id.wsId} key={table.id.wsId}>
-                {table.name}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs>
-        {selectedTable && selectedTableContext && (
-          <SnapshotTableGrid
+        <Group h="100%" justify="flex-start" align="flex-start" w="100%">
+          <Stack h="100%" w="100%" flex={1}>
+            <Tabs
+              value={selectedTable?.id?.wsId}
+              onChange={(value) => {
+                setSelectedTable(
+                  snapshot.tables.find((t) => t.id.wsId === value)
+                );
+                setSelectedTableContext(
+                  snapshot.tableContexts.find((c) => c.id.wsId === value)
+                );
+              }}
+              variant="outline"
+            >
+              <Tabs.List px="sm">
+                {snapshot.tables.map((table: TableSpec) => (
+                  <Tabs.Tab value={table.id.wsId} key={table.id.wsId}>
+                    {table.name}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs>
+            {selectedTable && selectedTableContext && (
+              <SnapshotTableGrid
+                snapshotId={id}
+                table={selectedTable}
+                tableContext={selectedTableContext}
+              />
+            )}
+          </Stack>
+
+          <AIChatPanel
+            isOpen={showChat}
+            onClose={() => setShowChat(false)}
             snapshotId={id}
-            table={selectedTable}
-            tableContext={selectedTableContext}
           />
-        )}
+        </Group>
       </Stack>
     );
   };
@@ -259,20 +271,13 @@ export default function SnapshotPage() {
         {/* Main content area */}
         <div
           style={{
-            width: showChat ? "70%" : "100%",
+            width: "100%",
             height: "100%",
             transition: "width 0.3s ease",
           }}
         >
           {renderContent()}
         </div>
-
-        {/* AI Chat Panel */}
-        <AIChatPanel
-          isOpen={showChat}
-          onClose={() => setShowChat(false)}
-          snapshotId={id}
-        />
       </Group>
     </Stack>
   );

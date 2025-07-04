@@ -13,7 +13,13 @@ import {
   Alert,
   Select,
 } from "@mantine/core";
-import { ChatCircle, PaperPlaneRight, Plus, X } from "@phosphor-icons/react";
+import {
+  ChatCircle,
+  PaperPlaneRight,
+  Plus,
+  X,
+  XIcon,
+} from "@phosphor-icons/react";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 import { ChatSessionSummary } from "@/types/server-entities/chat-session";
 
@@ -270,11 +276,8 @@ export default function AIChatPanel({
       shadow="md"
       p="md"
       style={{
-        position: "fixed",
-        right: 0,
-        top: 0,
         width: "30%",
-        height: "100vh",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "visible",
@@ -291,7 +294,7 @@ export default function AIChatPanel({
           )}
         </Text>
         <ActionIcon onClick={onClose} size="sm" variant="subtle">
-          <X size={16} />
+          <XIcon size={16} />
         </ActionIcon>
       </Group>
 
