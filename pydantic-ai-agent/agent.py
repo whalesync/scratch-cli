@@ -12,7 +12,7 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
 
 from models import ChatResponse, ChatRunContext
-from tools import get_records, connect_snapshot, create_records, delete_records, update_records
+from tools import clear_table_view, get_records, connect_snapshot, create_records, delete_records, list_table_views, update_records, activate_table_view
 from logger import log_info, log_error
 
 
@@ -57,6 +57,9 @@ When working with tables:
 3. Use create_records_tool to add new records with data you generate
 4. Use update_records_tool to modify existing records
 5. Use delete_records_tool to remove records by their IDs
+6. Use activate_table_view_tool to create a filtered view for a table with subset of records for use in the context. 
+7. Use list_table_views_tool to list all the views for a table
+8. Use clear_table_view_tool to clear the active view for a table
 
 For creating records, you should:
 1. Connect to the snapshot first to get table schema information
@@ -72,7 +75,19 @@ For updating records, you should:
 For deleting records, you should:
 1. First get the records to see which ones match the deletion criteria
 2. Identify the record IDs (wsId) that should be deleted
-3. Call delete_records_tool with the list of record IDs to delete""",
+3. Call delete_records_tool with the list of record IDs to delete
+
+For creating filtered views, you should:
+1. First get all the records in the table
+2. Filter the records based on the user's criteria
+3. Extract the wsId values from the matching records to use as the record_ids
+4. Call activate_table_view_tool with the list of record IDs to create the view
+
+For clearing active views or reverting to the default view, you should:
+1. Call clear_table_view_tool to clear the active view for the table
+
+For listing existing filtered views on a table, you should:
+1. Call list_table_views_tool to list all the views for the table""",
             output_type=ChatResponse,
             model=model,
             deps_type=ChatRunContext
@@ -91,12 +106,15 @@ For deleting records, you should:
             return await connect_snapshot(ctx)  # type: ignore
         
         @agent.tool
-        async def get_records_tool(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100) -> str:  # type: ignore
+        async def get_records_tool(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100, view_id: Optional[str] = None) -> str:  # type: ignore
             """
             Get all records for a table from the active snapshot.
             
             Use this tool when the user asks to see data from a table or wants to view records.
             The table_name should be the name of the table you want to get records from.
+            If there is an active filtered view for the table, you can use the view_id to get records from the filtered view.
+            If no view_id is provided, all records from the table will be returned.
+
             You must connect to a snapshot first using connect_snapshot_tool.
             However if snapshot data has already been connected, you can skip this step.
             """
@@ -154,7 +172,59 @@ For deleting records, you should:
             However if snapshot data has already been connected, you can skip this step.
             """
             return await delete_records(ctx, table_name, record_ids)  # type: ignore
+
+
+        @agent.tool
+        async def activate_table_view_tool(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str], name: str) -> str:  # type: ignore
+            """
+            Create a filtered view for a table with subset of records for use in the context. 
+            
+            Use this tool when the user asks to filter records for a table or work with a subset of records.
+            The table_name should be the name of the table you want to create a filtered view for.
+            The record_ids should be a list of record IDs (wsId) include in the view.
+            
+            You should first use get_records_tool to see all the records in the table and filter them based on the user's criteria.
+            Then extract the wsId values from the matching records to use as the record_ids.
+
+            Do not use use this tool if there are no records to filter.      
+
+            The name should be a short name for the view to help you identify it. Less than 50 characters.
+            
+            After the view is created, you should use the view ID when getting records with the get_records_tool.
+
+            You must connect to a snapshot first using connect_snapshot_tool.
+            However if snapshot data has already been connected, you can skip this step.
+            """
+            return await activate_table_view(ctx, table_name, record_ids, name)  # type: ignore
         
+        @agent.tool
+        async def clear_table_view_tool(ctx: RunContext[ChatRunContext], table_name: str) -> str:  # type: ignore
+            """
+            Clear the active view for a table in the active snapshot and get all records from the table.
+            
+            Use this tool when the user asks to clear the active view for a table or revert to the default view.
+            The table_name should be the name of the table you want to clear the active view for.
+
+            Do not use use this tool if there is no active view for the table configured in the snapshot.
+
+            You must connect to a snapshot first using connect_snapshot_tool.
+            However if snapshot data has already been connected, you can skip this step.
+            """
+            return await clear_table_view(ctx, table_name)  # type: ignore
+
+        @agent.tool
+        async def list_table_views_tool(ctx: RunContext[ChatRunContext], table_name: str) -> str:  # type: ignore
+            """
+            List all saved filteredviews for a specific table in the current snapshot.
+            
+            Use this tool when the user asks to list all the views for a table.
+            The table_name should be the name of the table you want to list views for.
+
+            You must connect to a snapshot first using connect_snapshot_tool.
+            However if snapshot data has already been connected, you can skip this step.
+            """
+            return await list_table_views(ctx, table_name)  # type: ignore
+
         print(f"✅ Agent created successfully with model: {model_name}")
         print(f"🔧 Agent has tools: connect_snapshot_tool, get_records_tool, create_records_tool, update_records_tool, delete_records_tool")
         return agent

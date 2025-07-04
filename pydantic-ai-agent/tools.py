@@ -262,14 +262,15 @@ async def create_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         print(f"❌ {error_msg}")
         return error_msg
 
-async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100) -> str:
+async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100, view_id: Optional[str] = None) -> str:
     """
-    Get all records for a table from the active snapshot.
+    Get all records for a table from the active snapshot. If a view_id is provided, get records just from a filtered view
     
     Args:
         ctx: RunContext (not used, kept for compatibility)
         table_name: The name of the table to get records for
         limit: The maximum number of records to retrieve (default: 100)
+        view_id: The ID of the view to get records from (default: None)
     
     Returns:
         A string describing the result of the operation
@@ -547,3 +548,179 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
                   error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
+
+async def activate_table_view(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str], name: str) -> str:
+    """
+    Create a filtered view for a table with subset of records for use in the context. 
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to activate the view for
+        record_ids: List of record wsIDs to include in the view
+        name: The name of the view to create and activate
+    
+    Returns:
+        An ID that uniquely identifies the view
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the CreateSnapshotTableViewDto class
+        from scratchpad_api import CreateSnapshotTableViewDto, activate_view
+        
+        # Validate that record_ids is provided
+        if not record_ids:
+            return "Error: No record IDs provided. Please provide a list of record IDs to include in the view."
+        
+        # Create the DTO
+        dto = CreateSnapshotTableViewDto(
+            source="agent",
+            name=name,
+            recordIds=record_ids
+        )
+        
+        # Call the activate_view API
+        view_id = activate_view(
+            chatRunContext.session.snapshot_id,
+            table.id.wsId,
+            dto
+        )
+        
+        return f"Successfully activated view '{name}' (ID: {view_id}) for table '{table_name}' with {len(record_ids)} records."
+        
+    except Exception as e:
+        error_msg = f"Failed to activate view for table '{table_name}': {str(e)}"
+        log_error("Error activating view", 
+                  table_name=table_name,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg
+
+async def list_table_views(ctx: RunContext[ChatRunContext], table_name: str) -> str:
+    """
+    List all views for a specific table in the current snapshot.
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to list views for
+    
+    Returns:
+        A string summary of the views or an error message
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the list_views function
+        from scratchpad_api import list_views
+        
+        # Call the list_views API
+        views = list_views(
+            chatRunContext.session.snapshot_id,
+            table.id.wsId
+        )
+        
+        if not views:
+            return f"No views found for table '{table_name}'."
+        
+        # Format the views for display
+        view_summaries = [f"ID: {v.id}, Name: {v.name}, Updated: {v.updatedAt}, Record Count: {len(v.recordIds)}" for v in views]
+        return f"Views for table '{table_name}':\n" + "\n".join(view_summaries)
+        
+    except Exception as e:
+        error_msg = f"Failed to list views for table '{table_name}': {str(e)}"
+        log_error("Error listing views", 
+                  table_name=table_name,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg
+
+async def clear_table_view(ctx: RunContext[ChatRunContext], table_name: str) -> str:
+    """
+    Clear the current active view from a table in the active snapshot, reverting to the default (unfiltered) view.
+    
+    Args:
+        ctx: RunContext (not used, kept for compatibility)
+        table_name: The name of the table to clear the view from
+    
+    Returns:
+        A string describing the result of the operation
+    """
+    try:
+        # Get the active snapshot
+        chatRunContext: ChatRunContext = ctx.deps 
+        chatSession: ChatSession = chatRunContext.session
+        
+        if not chatSession.snapshot:
+            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+           
+        # Find the table by name
+        table = None
+        for t in chatSession.snapshot.tables:
+            if t.name.lower() == table_name.lower():
+                table = t
+                break
+        
+        if not table:
+            available_tables = [t.name for t in chatSession.snapshot.tables]
+            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        
+        # Set the API token for authentication
+        API_CONFIG.set_api_token(chatRunContext.api_token)
+        
+        # Import the clear_active_view function
+        from scratchpad_api import clear_active_view
+
+        # Call the clear_active_view API
+        clear_active_view(
+            chatRunContext.session.snapshot_id,
+            table.id.wsId
+        )
+        
+        return f"Successfully cleared the active view for table '{table_name}'."
+        
+    except Exception as e:
+        error_msg = f"Failed to clear the active view for table '{table_name}': {str(e)}"
+        log_error("Error clearing table view", 
+                  table_name=table_name,
+                  error=str(e))
+        print(f"❌ {error_msg}")
+        return error_msg
+

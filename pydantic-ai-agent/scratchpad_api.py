@@ -230,7 +230,8 @@ class SnapshotApi:
         """Delete a view for a table in a snapshot"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/views/{view_id}"
         response = requests.delete(url, headers=API_CONFIG.get_api_headers())
-        _handle_response(response, "Failed to delete view")
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to delete view: {response.status_code} - {response.text}")
 
     @staticmethod
     def get_view(snapshot_id: str, table_id: str, view_id: str) -> SnapshotTableView:
@@ -239,6 +240,14 @@ class SnapshotApi:
         response = requests.get(url, headers=API_CONFIG.get_api_headers())
         data = _handle_response(response, "Failed to get view")
         return SnapshotTableView(**data)
+
+    @staticmethod
+    def clear_active_view(snapshot_id: str, table_id: str) -> None:
+        """Clear the active view for a table in a snapshot (revert to default view)"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/clear-activate-view"
+        response = requests.post(url, headers=API_CONFIG.get_api_headers())
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to clear active view: {response.status_code} - {response.text}")
 
 # Convenience functions for easy access
 def list_snapshots(connector_account_id: str) -> List[Snapshot]:
@@ -290,6 +299,10 @@ def delete_view(snapshot_id: str, table_id: str, view_id: str) -> None:
 def get_view(snapshot_id: str, table_id: str, view_id: str) -> SnapshotTableView:
     """Get a specific view for a table in a snapshot"""
     return SnapshotApi.get_view(snapshot_id, table_id, view_id)
+
+def clear_active_view(snapshot_id: str, table_id: str) -> None:
+    """Clear the active view for a table in a snapshot (revert to default view)"""
+    SnapshotApi.clear_active_view(snapshot_id, table_id)
 
 def check_server_health() -> bool:
     """Check if the Scratchpad server is healthy"""
