@@ -74,13 +74,6 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     (c) => c.id.wsId === table.id.wsId
   );
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
-    useSnapshotRecords({
-      snapshotId: snapshot.id,
-      tableId: table.id.wsId,
-      viewId: tableContext?.activeViewId,
-    });
-
   const {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     views,
@@ -89,11 +82,29 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     tableId: table.id.wsId,
   });
 
+  const activeView = views
+    ? views.find((v) => v.id === tableContext?.activeViewId)
+    : undefined;
+
+  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
+    useSnapshotRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      activeView: activeView,
+    });
+
   const sortedRecords = useMemo(() => {
+    console.log("Evaluating sortedRecords", recordsResponse?.records);
+
     if (!recordsResponse?.records) return undefined;
 
     if (!sort) {
-      return recordsResponse.records;
+      // sort filtered last
+      return recordsResponse.records.sort((a, b) => {
+        if (a.filtered && !b.filtered) return 1;
+        if (!a.filtered && b.filtered) return -1;
+        return 0;
+      });
     }
 
     const { columnId, dir } = sort;
@@ -117,7 +128,13 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       }
       return 0;
     });
-    return sortedOthers;
+
+    // resort by filtered last
+    return sortedOthers.sort((a, b) => {
+      if (a.filtered && !b.filtered) return 1;
+      if (!a.filtered && b.filtered) return -1;
+      return 0;
+    });
   }, [recordsResponse?.records, sort]);
 
   const onCellClicked = useCallback(
@@ -151,6 +168,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const editedFields = record?.__edited_fields;
       const isHovered = hoveredRow === row;
       const isDeleted = !!editedFields?.__deleted;
+      const isFiltered = record?.filtered;
 
       if (col === 0) {
         if (!isHovered || isDeleted) {
@@ -197,6 +215,9 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       } else if (editedFields?.[column.id.wsId]) {
         themeOverride.bgCell = "#fdfde0";
       }
+      if (isFiltered) {
+        themeOverride.textDark = "#cacaca";
+      }
 
       if (
         column.id.wsId === "id" &&
@@ -210,8 +231,8 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
           allowOverlay: false,
           readonly: true,
           themeOverride: {
-            ...themeOverride,
             textDark: "darkgray",
+            ...themeOverride,
           },
         };
       }

@@ -4,12 +4,13 @@ import { SWR_KEYS } from "@/lib/api/keys";
 import {
   CreateSnapshotDto,
   SnapshotRecord,
+  SnapshotTableView,
 } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../types/server-entities/records";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
@@ -106,20 +107,20 @@ export const useSnapshotRecords = (args: {
   tableId: string,
   cursor?: string,
   take?: number,
-  viewId?: string
+  activeView?: SnapshotTableView
 }) => {
-  const { snapshotId, tableId, cursor, take, viewId } = args;
-  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
+  const { snapshotId, tableId, cursor, take, activeView } = args;
+  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
 
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(swrKey, () =>
-    snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
+    snapshotApi.listRecords(snapshotId, tableId, cursor, take),
     {
       revalidateOnFocus: false,
       refreshInterval: 10000,
     }
   );
-
+  
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);
   }, [mutate, swrKey]);
@@ -208,8 +209,29 @@ export const useSnapshotRecords = (args: {
     [snapshotId, tableId, mutate, swrKey, data]
   );
 
+
+  const recordsResponse = useMemo(() => {
+    if (!data) {
+      return undefined;
+    }
+
+    if (activeView) {
+      // mark records that are not in the active view as filtered
+      return {
+        ...data,
+        records: data.records.map((r) => ({...r, filtered: !activeView.recordIds.includes(r.id.wsId)})),
+      };
+    }
+    else{
+      return {
+        ...data,
+        records: data.records.map((r) => ({...r, filtered: false})),
+      };
+    }
+  }, [data, activeView]);
+
   return {
-    recordsResponse: data,
+    recordsResponse,
     isLoading,
     error,
     bulkUpdateRecords,
