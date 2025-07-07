@@ -19,11 +19,28 @@ export const useGenericTables = () => {
     return newTable;
   };
 
+  const updateGenericTable = async (
+    tableId: string,
+    dto: CreateGenericTableDto
+  ): Promise<GenericTable> => {
+    const updatedTable = await genericTableApi.update(tableId, dto);
+    mutate(SWR_KEYS.genericTables.list());
+    mutate(SWR_KEYS.genericTables.detail(tableId));
+    return updatedTable;
+  };
+
+  const deleteGenericTable = async (tableId: string): Promise<void> => {
+    await genericTableApi.delete(tableId);
+    mutate(SWR_KEYS.genericTables.list());
+  };
+
   return {
     data,
     error,
     isLoading,
     createGenericTable,
+    updateGenericTable,
+    deleteGenericTable,
   };
 };
 

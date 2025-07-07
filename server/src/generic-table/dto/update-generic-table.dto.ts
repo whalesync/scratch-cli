@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { MappingConfig } from '../types';
 
-export class CreateGenericTableDto {
+export class UpdateGenericTableDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)

@@ -11,6 +11,10 @@ export const SWR_KEYS = {
     detail: (id: string) => ["generic-tables", "detail", id],
   },
   genericTable: (id: string) => ["generic-tables", id] as const,
+  apiImport: {
+    generatePollRecords: () => ["api-import", "generate-poll-records"],
+    generateDeleteRecord: () => ["api-import", "generate-delete-record"],
+  },
   snapshot: {
     list: (connectorAccountId: string) => [
       "snapshot",

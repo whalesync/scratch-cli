@@ -1,102 +1,177 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { AiService } from 'src/ai/ai.service';
+import { executeDeleteRecord, executePollRecords } from './function-executor';
 
 @Injectable()
 export class RestApiImportService {
   constructor(private readonly aiService: AiService) {}
 
-  async fetch(data: GenerateFetchResponse): Promise<unknown> {
-    const { url, params } = data;
-
-    const response = await fetch(url, {
-      method: params.method,
-      headers: params.headers,
-      body: params.body,
-    });
-
-    // Handle non-2xx responses
-    if (!response.ok) {
-      throw new Error(`Failed to fetch data: ${response.statusText}`);
-    }
-
-    // Determine response type based on content-type header
-    const contentType = response.headers.get('content-type');
-    let responseData: unknown;
-
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else if (contentType?.includes('text/')) {
-      responseData = await response.text();
-    } else {
-      // For other types, try JSON first, fallback to text
-      try {
-        responseData = await response.json();
-      } catch {
-        responseData = await response.text();
-      }
-    }
-
-    return responseData;
+  async executePollRecords(functionString: string, apiKey: string): Promise<unknown> {
+    return executePollRecords(functionString, apiKey);
   }
 
-  async generateFetch(
-    request: GenerateFetchRequest,
-  ): Promise<GenerateFetchResponse> {
+  async executeDeleteRecord(functionString: string, recordId: string, apiKey: string): Promise<unknown> {
+    return executeDeleteRecord(functionString, recordId, apiKey);
+  }
+
+  async generatePollRecords(request: GeneratePollRecordsRequest): Promise<string> {
     const aiPrompt = `
-You are a fetch parameter generator. Based on the user's request, generate a valid JSON object that contains the parameters needed for a JavaScript fetch() call.
+You are a JavaScript function generator for fetching records via API calls. 
+Based on the user's request, generate a JavaScript function that uses fetch() to get records. 
 
-The JSON should have this exact structure:
-{
-  "url": "the complete URL to call",
-  "params": {
-    "method": "GET|POST|PUT|DELETE|etc",
-    "headers": {},
-    "body": null or JSON string for POST/PUT requests
+The user might provide a text prompt that describes how to connect to the service, including account/base id, table id, and possibly some other information.
+Alternatively they might provide a link to the table in the service. In that case you should extract the account/base id and table id from the link.
+The user could also privude both link and explanation. For example the link may include a view id, but the explanation could direct you to ignore the view. 
+
+The function should have this exact structure:
+
+async function pollRecords(apiKey) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": \`Bearer \${apiKey}\`,
+      "Content-Type": "application/json",
+      // other appropriate headers
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(\`Failed to fetch records: \${response.statusText}\`);
   }
+  
+  return response.json();
 }
 
+However some services might have slightly different structure.
+If the service has a different structure, please generate a function that works with the service's structure.
+
 Guidelines:
-- Always include the "method" field (default to "GET" if not specified)
-- Include appropriate headers if needed (e.g., "Content-Type": "application/json" for JSON requests)
-- Set body to null for GET requests, or to a JSON string for POST/PUT requests
-- Include authentication headers if mentioned in the request (e.g., "Authorization": "Bearer token")
-- Focus on data fetching/API calls
-- Only return the JSON object itself, no explanations or additional text
-- The JSON should be valid and parseable
+- The function should be named "pollRecords"
+- It should take an "apiKey" parameter for authentication
+- Use GET method for the fetch call (or appropriate method based on the request)
+- Include the API key in the Authorization header (e.g., "Authorization": "Bearer \${apiKey}")
+- Include appropriate headers (e.g., "Content-Type": "application/json")
+- Include error handling for non-2xx responses
+- Only return the function code itself, no explanations or additional text
+- The function should be valid JavaScript
 
 User request: ${request.prompt}
-
-Generate only the JSON object:
     `;
 
     const result = await this.aiService.generate(aiPrompt);
 
-    // Clean up the response to extract just the JSON
+    // Clean up the response to extract just the function
     let cleanedResponse = result.trim();
 
     // Remove common formatting artifacts
-    cleanedResponse = cleanedResponse.replace(/```json\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```javascript\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```js\n?/g, '');
     cleanedResponse = cleanedResponse.replace(/```\n?/g, '');
     cleanedResponse = cleanedResponse.trim();
 
-    // Parse the JSON to validate it
-    const parsedJson = JSON.parse(cleanedResponse);
+    return cleanedResponse;
+  }
 
-    // Validate the structure
-    if (!parsedJson.url || !parsedJson.params) {
-      throw new Error('AI response missing required url or params fields');
+  async generateGetRecord(request: GenerateGetRecordRequest): Promise<string> {
+    const aiPrompt = `
+You are a JavaScript function generator for fetching individual records via API calls. Based on the user's request, generate a JavaScript function that uses fetch() to get a single record.
+
+The function should have this exact structure:
+async function getRecord(recordId) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      // appropriate headers
     }
+  });
+  
+  if (!response.ok) {
+    throw new Error(\`Failed to get record: \${response.statusText}\`);
+  }
+  
+  return response.json();
+}
 
-    if (!parsedJson.params.method) {
-      parsedJson.params.method = 'GET';
-    }
+Guidelines:
+- The function should be named "getRecord"
+- It should take a "recordId" parameter
+- Use GET method for the fetch call
+- Include appropriate headers (e.g., "Content-Type": "application/json", "Authorization" if needed)
+- Include error handling for non-2xx responses
+- The URL should include the recordId parameter (e.g., \`\${baseUrl}/\${recordId}\`)
+- Only return the function code itself, no explanations or additional text
+- The function should be valid JavaScript
 
-    return {
-      url: parsedJson.url,
-      params: parsedJson.params,
-    };
+User request: ${request.prompt}
+
+Generate only the JavaScript function:
+    `;
+
+    const result = await this.aiService.generate(aiPrompt);
+
+    // Clean up the response to extract just the function
+    let cleanedResponse = result.trim();
+
+    // Remove common formatting artifacts
+    cleanedResponse = cleanedResponse.replace(/```javascript\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```js\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```\n?/g, '');
+    cleanedResponse = cleanedResponse.trim();
+
+    return cleanedResponse;
+  }
+
+  async generateDeleteRecord(request: GenerateDeleteRecordRequest): Promise<string> {
+    const aiPrompt = `
+You are a JavaScript function generator for deleting records via API calls. Based on the user's request, generate a JavaScript function that uses fetch() to delete a record.
+
+The function should have this structure:
+async function deleteRecord(recordId, apiKey) {
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      "Authorization": \`Bearer \${apiKey}\`,
+      "Content-Type": "application/json",
+      // other appropriate headers
+    },
+    // body if needed
+  });
+  
+  if (!response.ok) {
+    throw new Error(\`Failed to delete record: \${response.statusText}\`);
+  }
+  
+  return response.json();
+}
+
+Guidelines:
+- The function should be named "deleteRecord"
+- It should take a "recordId" parameter and an "apiKey" parameter
+- Use DELETE method for the fetch call
+- Include the API key in the Authorization header (e.g., "Authorization": "Bearer \${apiKey}")
+- Include appropriate headers (e.g., "Content-Type": "application/json")
+- Include error handling for non-2xx responses
+- The URL should include the recordId parameter (e.g., \`\${baseUrl}/\${recordId}\`)
+- Only return the function code itself, no explanations or additional text
+- The function should be valid JavaScript
+
+User request: ${request.prompt}
+
+Generate only the JavaScript function:
+    `;
+
+    const result = await this.aiService.generate(aiPrompt);
+
+    // Clean up the response to extract just the function
+    let cleanedResponse = result.trim();
+
+    // Remove common formatting artifacts
+    cleanedResponse = cleanedResponse.replace(/```javascript\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```js\n?/g, '');
+    cleanedResponse = cleanedResponse.replace(/```\n?/g, '');
+    cleanedResponse = cleanedResponse.trim();
+
+    return cleanedResponse;
   }
 }
 export type ApiImportData = {
@@ -106,7 +181,15 @@ export type ApiImportData = {
   matchOn: string;
 };
 
-export type GenerateFetchRequest = {
+export type GeneratePollRecordsRequest = {
+  prompt: string;
+};
+
+export type GenerateGetRecordRequest = {
+  prompt: string;
+};
+
+export type GenerateDeleteRecordRequest = {
   prompt: string;
 };
 

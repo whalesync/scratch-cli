@@ -48,9 +48,17 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
   String name
-  Json fetch
-  Json mapping
+  Json mapping "nullable"
   String userId FK
+  String prompt "nullable"
+  String apiKey "nullable"
+  String pollRecords "nullable"
+  String getRecord "nullable"
+  String deleteRecord "nullable"
+  String createRecord "nullable"
+  String updateRecord "nullable"
+  Json pollRecordsResponse "nullable"
+  Json getRecordResponse "nullable"
 }
 "SnapshotTableView" {
   String id PK
@@ -124,9 +132,17 @@ Properties as follows:
 - `createdAt`:
 - `updatedAt`:
 - `name`:
-- `fetch`:
 - `mapping`:
 - `userId`:
+- `prompt`:
+- `apiKey`:
+- `pollRecords`:
+- `getRecord`:
+- `deleteRecord`:
+- `createRecord`:
+- `updateRecord`:
+- `pollRecordsResponse`:
+- `getRecordResponse`:
 
 ### `SnapshotTableView`
 

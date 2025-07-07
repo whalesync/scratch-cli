@@ -75,7 +75,7 @@ enum ConnectorHealthStatus {
 
 model Snapshot {
   id        String   @id // type: SnapshotId
-  name      String? 
+  name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -96,23 +96,40 @@ model GenericTable {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String
-  fetch     Json // Store the fetch configuration JSON
-  mapping   Json // Store the field mapping JSON
+  mapping   Json? // Store the field mapping JSON
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+
+  // AI generation prompt
+  prompt String?
+
+  // API key for external services
+  apiKey String?
+
+  // CRUD operation function bodies
+  pollRecords  String? // Store the function body as text
+  getRecord    String?
+  deleteRecord String?
+  createRecord String?
+  updateRecord String?
+
+  // Response schemas
+  pollRecordsResponse Json?
+  getRecordResponse   Json?
 
   @@index([userId])
 }
 
 model SnapshotTableView {
-  id        String   @id // type: SnapshotTableViewsId
-  name      String? // Optional view name
-  source    String // "ui" | "agent"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  snapshot      Snapshot     @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  snapshotId    String
-  tableId       String // WS ID of the table
-  config Json // SnapshotTableViewConfig - describes the view
+  id         String   @id // type: SnapshotTableViewsId
+  name       String? // Optional view name
+  source     String // "ui" | "agent"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshotId String
+  tableId    String // WS ID of the table
+  config     Json // SnapshotTableViewConfig - describes the view
+
   @@unique([snapshotId, tableId])
 }

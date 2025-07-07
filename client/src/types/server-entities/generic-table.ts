@@ -1,15 +1,59 @@
+export interface MappingField {
+  path: string;
+  type: string;
+  name: string;
+}
+
+export interface MappingConfig {
+  recordArrayPath: string;
+  idPath?: string;
+  fields: MappingField[];
+}
+
 export interface GenericTable {
   id: string; // GenericTableId
   createdAt: string; // DateTime
   updatedAt: string; // DateTime
   name: string;
-  fetch: Record<string, unknown> | null;
-  mapping: Record<string, unknown> | null;
+  pollRecords: string | null;
+  mapping: MappingConfig | null;
   userId: string; // UserId
+
+  // AI generation prompt
+  prompt?: string | null;
+
+  // API key for external services
+  apiKey?: string | null;
+
+  // CRUD operation function bodies
+  getRecord?: string | null;
+  deleteRecord?: string | null;
+  createRecord?: string | null;
+  updateRecord?: string | null;
+
+  // Response schemas
+  pollRecordsResponse?: Record<string, unknown> | null;
+  getRecordResponse?: Record<string, unknown> | null;
 }
 
 export interface CreateGenericTableDto {
   name: string;
-  fetch?: Record<string, unknown>;
-  mapping?: Record<string, unknown>;
+  pollRecords?: string;
+  mapping?: MappingConfig;
+
+  // AI generation prompt
+  prompt?: string;
+
+  // API key for external services
+  apiKey?: string;
+
+  // CRUD operation function bodies
+  getRecord?: string;
+  deleteRecord?: string;
+  createRecord?: string;
+  updateRecord?: string;
+
+  // Response schemas
+  pollRecordsResponse?: Record<string, unknown>;
+  getRecordResponse?: Record<string, unknown>;
 } 

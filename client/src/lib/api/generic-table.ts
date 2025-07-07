@@ -44,4 +44,32 @@ export const genericTableApi = {
     }
     return res.json();
   },
+
+  update: async (tableId: string, dto: CreateGenericTableDto): Promise<GenericTable> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/generic-tables/${tableId}`, {
+      method: "PUT",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ...dto }),
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to update generic table");
+    }
+    return res.json();
+  },
+
+  delete: async (tableId: string): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/generic-tables/${tableId}`, {
+      method: "DELETE",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to delete generic table");
+    }
+  },
 }; 

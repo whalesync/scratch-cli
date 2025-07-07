@@ -17,7 +17,7 @@ export class ConnectorsService {
       case Service.NOTION:
         return new NotionConnector(account.apiKey);
       case Service.CUSTOM:
-        return new CustomConnector(account.userId, this.db);
+        return new CustomConnector(account.userId, this.db, account.apiKey);
     }
   }
 }

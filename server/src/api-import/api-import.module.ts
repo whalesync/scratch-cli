@@ -8,6 +8,6 @@ import { RestApiImportService } from './api-import.service';
   imports: [AiModule],
   controllers: [RestApiImportController],
   providers: [RestApiImportService],
-  exports: [],
+  exports: [RestApiImportService],
 })
 export class RestApiImportModule {}
