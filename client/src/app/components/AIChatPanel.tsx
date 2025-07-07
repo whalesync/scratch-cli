@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import {
   ChatCircle,
-  PaperPlaneRight,
+  PaperPlaneRightIcon,
   Plus,
   X,
   XIcon,
@@ -54,6 +54,8 @@ export default function AIChatPanel({
   onClose,
   snapshotId,
 }: AIChatPanelProps) {
+  const textInputRef = useRef<HTMLInputElement>(null);
+  const [resetInputFocus, setResetInputFocus] = useState(false);
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -83,6 +85,13 @@ export default function AIChatPanel({
       });
     }
   }, [sessionData?.history]);
+
+  useEffect(() => {
+    if (resetInputFocus) {
+      textInputRef.current?.focus();
+      setResetInputFocus(false);
+    }
+  }, [resetInputFocus]);
 
   const loadSessions = async () => {
     if (isLoadingSessions) return; // Prevent multiple simultaneous loads
@@ -191,6 +200,19 @@ export default function AIChatPanel({
   const sendMessage = async () => {
     if (!message.trim() || !currentSessionId || isLoading) return;
 
+    // Optimistically update chat history
+    if (sessionData) {
+      const optimisticMessage = {
+        role: "user" as const,
+        message: message.trim(),
+        timestamp: new Date().toISOString(),
+      };
+      setSessionData({
+        ...sessionData,
+        history: [...sessionData.history, optimisticMessage],
+      });
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -240,6 +262,7 @@ export default function AIChatPanel({
       console.error("Error sending message:", error);
     } finally {
       setIsLoading(false);
+      setResetInputFocus(true);
     }
   };
 
@@ -399,12 +422,13 @@ export default function AIChatPanel({
       </ScrollArea>
 
       {/* Input Area */}
-      <Group>
+      <Group gap="xs" align="center">
         <TextInput
+          ref={textInputRef}
           placeholder="Type your message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyUp={handleKeyPress}
           style={{ flex: 1 }}
           disabled={isLoading || !currentSessionId}
           size="xs"
@@ -413,9 +437,9 @@ export default function AIChatPanel({
           onClick={sendMessage}
           disabled={!message.trim() || isLoading || !currentSessionId}
           loading={isLoading}
-          size="sm"
+          size="md"
         >
-          <PaperPlaneRight size={14} />
+          <PaperPlaneRightIcon size={16} />
         </ActionIcon>
       </Group>
     </Paper>
