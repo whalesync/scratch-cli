@@ -1,9 +1,12 @@
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { Service } from '@prisma/client';
 import * as _ from 'lodash';
-import { executeDeleteRecord, executePollRecords } from '../../../../api-import/function-executor';
+import {
+  executeCreateRecord,
+  executeDeleteRecord,
+  executePollRecords,
+  executeSchema,
+  executeUpdateRecord,
+} from '../../../../api-import/function-executor';
 import { DbService } from '../../../../db/db.service';
 import { Connector } from '../../connector';
 import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
@@ -55,7 +58,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       select: {
         id: true,
         name: true,
-        mapping: true,
+        fetchSchema: true,
       },
     });
 
@@ -63,38 +66,53 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       throw new Error(`Table with id ${tableId} not found`);
     }
 
-    const mapping = table.mapping as {
-      recordArrayPath: string;
-      idPath?: string;
-      fields: Array<{
-        path: string;
-        type: string;
-        name: string;
-      }>;
-    } | null;
+    // If we have a fetch schema function, call it to get the schema
+    if (table.fetchSchema) {
+      try {
+        const schemaData = await executeSchema(table.fetchSchema, this.apiKey);
 
-    if (!mapping) {
-      return {
-        id,
-        name: table.name,
-        columns: [],
-      };
+        // Check if the data is in the expected schema format
+        if (Array.isArray(schemaData)) {
+          const columns = schemaData
+            .map((schemaField: unknown) => {
+              if (
+                typeof schemaField === 'object' &&
+                schemaField !== null &&
+                'id' in schemaField &&
+                'displayName' in schemaField &&
+                'type' in schemaField
+              ) {
+                const field = schemaField as { id: string; displayName: string; type: string };
+                return {
+                  id: {
+                    wsId: field.id,
+                    remoteId: [field.id],
+                  },
+                  name: field.displayName,
+                  pgType: field.type as PostgresColumnType,
+                };
+              }
+              return null;
+            })
+            .filter((col): col is NonNullable<typeof col> => col !== null);
+
+          return {
+            id,
+            name: table.name,
+            columns,
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching table spec from schema function:', error);
+        // Fall back to empty columns
+      }
     }
 
-    // Convert the mapping to columns
-    const columns = mapping.fields.map((field) => ({
-      id: {
-        wsId: field.name,
-        remoteId: [field.name],
-      },
-      name: field.name,
-      pgType: field.type as PostgresColumnType,
-    }));
-
+    // Fall back to empty columns if no schema function or error
     return {
       id,
       name: table.name,
-      columns,
+      columns: [],
     };
   }
 
@@ -109,7 +127,6 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       where: { id: tableId },
       select: {
         pollRecords: true,
-        mapping: true,
       },
     });
 
@@ -119,20 +136,6 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
     if (!table.pollRecords) {
       throw new Error('No poll records function configured for this table');
-    }
-
-    const mapping = table.mapping as {
-      recordArrayPath: string;
-      idPath?: string;
-      fields: Array<{
-        path: string;
-        type: string;
-        name: string;
-      }>;
-    } | null;
-
-    if (!mapping) {
-      throw new Error('Table configuration is incomplete');
     }
 
     // Execute the poll records function
@@ -145,44 +148,58 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       throw error;
     }
 
-    // Extract the array of records using the recordArrayPath
-    let recordsArray: unknown[];
-    if (mapping.recordArrayPath === '.') {
-      recordsArray = Array.isArray(data) ? data : [];
+    // Check if the data is in the new standardized format
+    if (
+      Array.isArray(data) &&
+      data.length > 0 &&
+      typeof data[0] === 'object' &&
+      data[0] !== null &&
+      'id' in data[0] &&
+      'fields' in data[0]
+    ) {
+      // Handle standardized format: { id: string, fields: { [fieldId]: value } }
+      const standardizedRecords = data as Array<{ id: string; fields: Record<string, string> }>;
+
+      // Convert to ConnectorRecord format
+      const connectorRecords: ConnectorRecord[] = standardizedRecords.map((record) => ({
+        id: record.id,
+        fields: record.fields,
+      }));
+
+      // Call the callback with the standardized records
+      await callback(connectorRecords);
     } else {
-      const extractedData = _.get(data, mapping.recordArrayPath) as unknown;
-      recordsArray = Array.isArray(extractedData) ? extractedData : [];
-    }
+      // Handle legacy format - use tableSpec columns to map the data
+      const recordsArray = Array.isArray(data) ? data : [];
 
-    // Apply the mapping to transform records
-    const mappedRecords: ConnectorRecord[] = recordsArray.map((record, index) => {
-      const mappedFields: Record<string, unknown> = {};
+      const mappedRecords: ConnectorRecord[] = recordsArray.map((record, index) => {
+        const mappedFields: Record<string, unknown> = {};
 
-      for (const field of mapping.fields) {
-        if (field.path) {
-          // Extract value from the source path using lodash
-          const value = _.get(record, field.path) as unknown;
-          mappedFields[field.name] = value;
+        // Use tableSpec columns to map the data
+        for (const column of tableSpec.columns) {
+          const fieldId = column.id.wsId;
+          const value = _.get(record, fieldId) as unknown;
+          mappedFields[fieldId] = value;
         }
-      }
 
-      // Use the real ID if available, otherwise fall back to index
-      let recordId: string;
-      if (mapping.idPath) {
-        const idValue = _.get(record, mapping.idPath) as unknown;
-        recordId = String(idValue);
-      } else {
-        recordId = index.toString();
-      }
+        // Use the record's ID if available, otherwise fall back to index
+        let recordId: string;
+        if (typeof record === 'object' && record !== null && 'id' in record) {
+          const recordWithId = record as { id: unknown };
+          recordId = String(recordWithId.id);
+        } else {
+          recordId = index.toString();
+        }
 
-      return {
-        id: recordId,
-        fields: mappedFields,
-      };
-    });
+        return {
+          id: recordId,
+          fields: mappedFields,
+        };
+      });
 
-    // Call the callback with the mapped records
-    await callback(mappedRecords);
+      // Call the callback with the mapped records
+      await callback(mappedRecords);
+    }
   }
 
   getBatchSize(): number {
@@ -193,7 +210,61 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     tableSpec: CustomTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
-    return [];
+    const [tableId] = tableSpec.id.remoteId;
+
+    // Get the table configuration from the database
+    const table = await this.db.client.genericTable.findUnique({
+      where: { id: tableId },
+      select: {
+        createRecord: true,
+      },
+    });
+
+    if (!table) {
+      throw new Error(`Table with id ${tableId} not found`);
+    }
+
+    if (!table.createRecord) {
+      throw new Error('No create function configured for this table');
+    }
+
+    const results: { wsId: string; remoteId: string }[] = [];
+
+    try {
+      // Execute the create function for each record
+      for (const record of records) {
+        try {
+          // Use the standalone execution function
+          const result = await executeCreateRecord(table.createRecord, record.fields, this.apiKey);
+          console.log(`Successfully created record: ${record.wsId}`);
+
+          // Extract the created record ID from the result
+          let remoteId: string;
+          if (typeof result === 'object' && result !== null && 'id' in result) {
+            remoteId = String((result as { id: unknown }).id);
+          } else if (typeof result === 'string') {
+            remoteId = result;
+          } else {
+            // Fallback to wsId if no ID in response
+            remoteId = record.wsId;
+          }
+
+          results.push({
+            wsId: record.wsId,
+            remoteId,
+          });
+        } catch (error) {
+          console.error(`Failed to create record ${record.wsId}:`, error);
+          throw error instanceof Error ? error : new Error(String(error));
+        }
+      }
+
+      console.log(`Successfully processed create operation for ${records.length} records`);
+      return results;
+    } catch (error) {
+      console.error('Error executing dynamic create function:', error);
+      throw error;
+    }
   }
 
   async updateRecords(
@@ -203,14 +274,42 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       partialFields: Record<string, unknown>;
     }[],
   ): Promise<void> {
-    // const [baseId, tableId] = tableSpec.id.remoteId;
-    // const airtableRecords = records.map((r) => {
-    //   return {
-    //     id: r.id.remoteId,
-    //     fields: this.wsFieldsToAirtableFields(r.partialFields, tableSpec),
-    //   };
-    // });
-    // await this.client.updateRecords(baseId, tableId, airtableRecords);
+    const [tableId] = tableSpec.id.remoteId;
+
+    // Get the table configuration from the database
+    const table = await this.db.client.genericTable.findUnique({
+      where: { id: tableId },
+      select: {
+        updateRecord: true,
+      },
+    });
+
+    if (!table) {
+      throw new Error(`Table with id ${tableId} not found`);
+    }
+
+    if (!table.updateRecord) {
+      throw new Error('No update function configured for this table');
+    }
+
+    try {
+      // Execute the update function for each record
+      for (const record of records) {
+        try {
+          // Use the standalone execution function
+          await executeUpdateRecord(table.updateRecord, record.id.remoteId, record.partialFields, this.apiKey);
+          console.log(`Successfully updated record: ${record.id.remoteId}`);
+        } catch (error) {
+          console.error(`Failed to update record ${record.id.remoteId}:`, error);
+          throw error instanceof Error ? error : new Error(String(error));
+        }
+      }
+
+      console.log(`Successfully processed update operation for ${records.length} records`);
+    } catch (error) {
+      console.error('Error executing dynamic update function:', error);
+      throw error;
+    }
   }
 
   async deleteRecords(tableSpec: CustomTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {

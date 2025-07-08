@@ -106,6 +106,10 @@ model GenericTable {
   // API key for external services
   apiKey String?
 
+  // Schema generation
+  fetchSchema String? // Store the schema generation function body as text
+  schema      Json? // Store the result of schema generation
+
   // CRUD operation function bodies
   pollRecords  String? // Store the function body as text
   getRecord    String?

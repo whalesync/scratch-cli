@@ -26,6 +26,15 @@ export class UpdateGenericTableDto {
   @IsOptional()
   apiKey?: string;
 
+  // Schema generation
+  @IsString()
+  @IsOptional()
+  fetchSchema?: string;
+
+  @IsObject()
+  @IsOptional()
+  schema?: Prisma.InputJsonValue;
+
   // CRUD operation function bodies
   @IsString()
   @IsOptional()

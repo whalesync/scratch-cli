@@ -16,11 +16,11 @@ import {
   TestTubeIcon,
   PlugsIcon,
   SpiralIcon,
-  CloudArrowDownIcon,
   CheckIcon,
   CopyIcon,
   ChatCircleIcon,
   TableIcon,
+  RobotIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
@@ -40,8 +40,8 @@ const links = [
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
-    label: "API Import Demo",
-    icon: <CloudArrowDownIcon size={16} />,
+    label: "AI Connector Builder",
+    icon: <RobotIcon size={16} />,
   },
   {
     href: RouteUrls.chatPageUrl,

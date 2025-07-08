@@ -16,6 +16,10 @@ export class GenericTableEntity {
   // API key for external services
   apiKey?: string;
 
+  // Schema generation
+  fetchSchema?: string;
+  schema?: Prisma.JsonValue;
+
   // CRUD operation function bodies
   getRecord?: string;
   deleteRecord?: string;
@@ -36,6 +40,8 @@ export class GenericTableEntity {
     userId: string;
     prompt?: string | null;
     apiKey?: string | null;
+    fetchSchema?: string | null;
+    schema?: Prisma.JsonValue | null;
     getRecord?: string | null;
     deleteRecord?: string | null;
     createRecord?: string | null;
@@ -52,6 +58,8 @@ export class GenericTableEntity {
     this.userId = genericTable.userId;
     this.prompt = genericTable.prompt ?? undefined;
     this.apiKey = genericTable.apiKey ?? undefined;
+    this.fetchSchema = genericTable.fetchSchema ?? undefined;
+    this.schema = genericTable.schema ?? undefined;
     this.getRecord = genericTable.getRecord ?? undefined;
     this.deleteRecord = genericTable.deleteRecord ?? undefined;
     this.createRecord = genericTable.createRecord ?? undefined;

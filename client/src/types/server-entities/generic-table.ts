@@ -1,3 +1,5 @@
+import { PostgresColumnType } from "./snapshot";
+
 export interface MappingField {
   path: string;
   type: string;
@@ -8,6 +10,12 @@ export interface MappingConfig {
   recordArrayPath: string;
   idPath?: string;
   fields: MappingField[];
+}
+
+export interface GenericTableSchemaField {
+  id: string;
+  displayName: string;
+  type: PostgresColumnType;
 }
 
 export interface GenericTable {
@@ -24,6 +32,10 @@ export interface GenericTable {
 
   // API key for external services
   apiKey?: string | null;
+
+  // Schema generation
+  fetchSchema?: string | null;
+  schema?: GenericTableSchemaField[] | null;
 
   // CRUD operation function bodies
   getRecord?: string | null;
@@ -46,6 +58,10 @@ export interface CreateGenericTableDto {
 
   // API key for external services
   apiKey?: string;
+
+  // Schema generation
+  fetchSchema?: string;
+  schema?: Record<string, unknown>;
 
   // CRUD operation function bodies
   getRecord?: string;

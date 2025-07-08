@@ -52,6 +52,8 @@ erDiagram
   String userId FK
   String prompt "nullable"
   String apiKey "nullable"
+  String fetchSchema "nullable"
+  Json schema "nullable"
   String pollRecords "nullable"
   String getRecord "nullable"
   String deleteRecord "nullable"
@@ -136,6 +138,8 @@ Properties as follows:
 - `userId`:
 - `prompt`:
 - `apiKey`:
+- `fetchSchema`:
+- `schema`:
 - `pollRecords`:
 - `getRecord`:
 - `deleteRecord`:
