@@ -19,11 +19,11 @@ export default function ClientLayout({
       <ClerkProvider>
         <ClerkAuthContextProvider>
           <AppShell navbar={{ width: 200, breakpoint: "sm" }}>
-            <AppShell.Navbar p={0}>
+            <AppShell.Navbar p={0} style={{ backgroundColor: "hsla(50, 25%, 96%)" }}>
               <SideMenu />
             </AppShell.Navbar>
 
-            <AppShell.Main>{children}</AppShell.Main>
+            <AppShell.Main style={{ backgroundColor: "hsla(50, 25%, 96%)" }}>{children}</AppShell.Main>
           </AppShell>
         </ClerkAuthContextProvider>
       </ClerkProvider>
