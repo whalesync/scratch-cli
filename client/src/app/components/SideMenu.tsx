@@ -2,9 +2,9 @@
 
 import {
   ActionIcon,
-  Center,
   CopyButton,
   Group,
+  Image,
   NavLink,
   Stack,
   Text,
@@ -15,7 +15,6 @@ import Link from "next/link";
 import {
   TestTubeIcon,
   PlugsIcon,
-  SpiralIcon,
   CheckIcon,
   CopyIcon,
   ChatCircleIcon,
@@ -67,9 +66,27 @@ export function SideMenu() {
 
   return (
     <Stack gap={0} h="100%">
-      <Center p="xs">
-        <SpiralIcon size={100} color="#00A2E9" />
-      </Center>
+      <Group justify="flex-start" align="center" p="xs" mb="md" gap="xs">
+        <Image
+          src="/dolphin-svgrepo-com.svg"
+          alt="Scratchpad.ai"
+          w={40}
+          h={40}
+          styles={{
+            root: {
+              fill: "d262c1",
+            },
+          }}
+        />
+        <Stack p={0} gap={0}>
+          <Text size="xl" fw={700}>
+            Scratchpad
+          </Text>
+          <Text size="xs" ml="auto">
+            by Whalesync
+          </Text>
+        </Stack>
+      </Group>
 
       {links.map((link) => (
         <NavLink

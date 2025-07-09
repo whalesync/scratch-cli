@@ -6,6 +6,7 @@ import { Notifications } from "@mantine/notifications";
 import { SideMenu } from "./components/SideMenu";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ClerkAuthContextProvider } from "@/contexts/auth";
+import { SCRATCHPAD_MANTINE_THEME } from "./components/theme/theme";
 
 export default function ClientLayout({
   children,
@@ -13,7 +14,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <MantineProvider defaultColorScheme="light">
+    <MantineProvider theme={SCRATCHPAD_MANTINE_THEME}>
       <Notifications />
       <ClerkProvider>
         <ClerkAuthContextProvider>

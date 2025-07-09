@@ -1,17 +1,20 @@
 "use client";
 
 import {
-  Table,
   Loader,
   Center,
   Stack,
   Title,
   Text,
   Group,
+  SimpleGrid,
+  Card,
 } from "@mantine/core";
 import { RouteUrls } from "@/utils/route-urls";
 import { useSnapshots } from "@/hooks/use-snapshot";
 import { useRouter } from "next/navigation";
+import { ConnectorIcon } from "../components/ConnectorIcon";
+import styles from "./page.module.css";
 
 export default function SnapshotsListPage() {
   const { snapshots, isLoading, error } = useSnapshots();
@@ -38,46 +41,38 @@ export default function SnapshotsListPage() {
       <Group justify="space-between">
         <Title order={2}>Snapshots</Title>
       </Group>
-      <Table striped highlightOnHover withTableBorder withColumnBorders>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>ID</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Connector Account</Table.Th>
-            <Table.Th># Tables</Table.Th>
-            <Table.Th>Created At</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {snapshots && snapshots.length > 0 ? (
-            snapshots.map((snapshot) => (
-              <Table.Tr
-                key={snapshot.id}
-                onClick={() => {
-                  router.push(RouteUrls.snapshotPage(snapshot.id));
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <Table.Td>{snapshot.id}</Table.Td>
-                <Table.Td>{snapshot.name}</Table.Td>
-                <Table.Td>{snapshot.connectorService}</Table.Td>
-                <Table.Td>{snapshot.tables.length}</Table.Td>
-                <Table.Td>
-                  {new Date(snapshot.createdAt).toLocaleString()}
-                </Table.Td>
-              </Table.Tr>
-            ))
-          ) : (
-            <Table.Tr>
-              <Table.Td colSpan={6}>
-                <Text c="dimmed" style={{ textAlign: "center" }}>
-                  No snapshots found.
-                </Text>
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+
+      <SimpleGrid cols={1} spacing="md" maw="600px">
+        {snapshots && snapshots.length > 0 ? (
+          snapshots.map((snapshot) => (
+            <Card
+              shadow="sm"
+              p="xs"
+              radius="md"
+              withBorder
+              key={snapshot.id}
+              onClick={() => router.push(RouteUrls.snapshotPage(snapshot.id))}
+              className={styles.snapshotCard}
+              mah="500px"
+            >
+              <Group justify="flex-start" align="flex-start">
+                <ConnectorIcon connector={snapshot.connectorService} />
+                <Stack gap="4px">
+                  <Text>{snapshot.name}</Text>
+                  <Text>{snapshot.tables.length} table(s)</Text>
+                  <Text fz="sm" c="dimmed">
+                    Created {new Date(snapshot.createdAt).toLocaleString()}
+                  </Text>
+                </Stack>
+              </Group>
+            </Card>
+          ))
+        ) : (
+          <Text c="dimmed" style={{ textAlign: "center" }}>
+            No snapshots found.
+          </Text>
+        )}
+      </SimpleGrid>
     </Stack>
   );
 }
