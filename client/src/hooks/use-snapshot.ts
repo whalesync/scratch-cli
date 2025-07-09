@@ -45,7 +45,7 @@ export const useSnapshot = (id: string) => {
     () => snapshotApi.detail(id), 
     {
       revalidateOnFocus: false,
-      refreshInterval: 5000,
+      refreshInterval: 2000,
     }
   );
 
@@ -77,6 +77,7 @@ export const useSnapshot = (id: string) => {
     isLoading,
     error,
     publish,
+    refreshSnapshot: mutate,
   };
 };
 
@@ -87,11 +88,11 @@ export const useSnapshotViews = (args: {
   const { snapshotId, tableId } = args;
   const swrKey = SWR_KEYS.snapshot.views(snapshotId, tableId);
 
-  const { data, error, isLoading } = useSWR(swrKey, () =>
+  const { data, error, isLoading, mutate } = useSWR(swrKey, () =>
     snapshotApi.listViews(snapshotId, tableId),
     {
       revalidateOnFocus: false,
-      refreshInterval: 10000,
+      refreshInterval: 2000,
     }
   );
 
@@ -99,6 +100,7 @@ export const useSnapshotViews = (args: {
     views: data,
     isLoading,
     error,
+    refreshViews: mutate,
   };
 };
 
@@ -117,7 +119,7 @@ export const useSnapshotRecords = (args: {
     snapshotApi.listRecords(snapshotId, tableId, cursor, take),
     {
       revalidateOnFocus: false,
-      refreshInterval: 10000,
+      refreshInterval: 2000,
     }
   );
   

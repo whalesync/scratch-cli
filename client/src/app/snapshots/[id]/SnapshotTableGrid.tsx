@@ -7,6 +7,7 @@ import {
   GridCellKind,
   GridColumn,
   GridMouseEventArgs,
+  GridSelection,
   Item,
   Theme,
 } from "@glideapps/glide-data-grid";
@@ -14,11 +15,13 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ColumnSpec,
   Snapshot,
+  SnapshotRecord,
   TableSpec,
 } from "@/types/server-entities/snapshot";
 import {
   ActionIcon,
   Box,
+  Button,
   Center,
   Group,
   Loader,
@@ -30,6 +33,7 @@ import {
   useModalsStack,
 } from "@mantine/core";
 import {
+  useSnapshot,
   useSnapshotRecords,
   useSnapshotViews,
 } from "../../../hooks/use-snapshot";
@@ -38,6 +42,7 @@ import { BugIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react";
 import JsonTreeViewer from "../../components/JsonTreeViewer";
 import { notifications } from "@mantine/notifications";
 import { AnimatedArrowsClockwise } from "@/app/components/AnimatedArrowsClockwise";
+import { snapshotApi } from "@/lib/api/snapshot";
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
@@ -67,17 +72,22 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
+  const [activeProcess, setActiveProcess] = useState<
+    "create-view" | "clear-view" | undefined
+  >();
 
+  const [currentSelection, setCurrentSelection] = useState<
+    GridSelection | undefined
+  >();
   const modalStack = useModalsStack(["tableSpecDebug", "tableContextDebug"]);
 
   const tableContext = snapshot.tableContexts.find(
     (c) => c.id.wsId === table.id.wsId
   );
 
-  const {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    views,
-  } = useSnapshotViews({
+  const { refreshSnapshot } = useSnapshot(snapshot.id);
+
+  const { views, refreshViews } = useSnapshotViews({
     snapshotId: snapshot.id,
     tableId: table.id.wsId,
   });
@@ -94,8 +104,6 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     });
 
   const sortedRecords = useMemo(() => {
-    console.log("Evaluating sortedRecords", recordsResponse?.records);
-
     if (!recordsResponse?.records) return undefined;
 
     if (!sort) {
@@ -249,6 +257,37 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     [sortedRecords, table.columns, hoveredRow]
   );
 
+  const getGetSelectedRecordsAndColumns = useCallback(() => {
+    const result: {
+      records: SnapshotRecord[];
+      columns: ColumnSpec[];
+    } = {
+      records: [],
+      columns: [],
+    };
+
+    if (currentSelection && currentSelection.current) {
+      const range = currentSelection.current.range;
+      const startRow = range.y;
+      const endRow = range.y + range.height; // not inclusive endpoint
+
+      for (let row = startRow; row < endRow; row++) {
+        const record = sortedRecords?.[row];
+        if (record) {
+          result.records.push(record);
+        }
+      }
+      const startCol = range.x - FAKE_LEFT_COLUMNS;
+      const endCol = range.x + range.width - FAKE_LEFT_COLUMNS;
+
+      result.columns = table.columns.filter((c, idx) => {
+        return idx >= startCol && idx < endCol;
+      });
+    }
+
+    return result;
+  }, [currentSelection, table.columns, sortedRecords]);
+
   const onAddRow = useCallback(() => {
     const newRecordId = generatePendingId();
 
@@ -322,6 +361,10 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     },
     [bulkUpdateRecords, sortedRecords, table.columns]
   );
+
+  const onGridSelectionChange = useCallback((selection: GridSelection) => {
+    setCurrentSelection(selection);
+  }, []);
 
   const onHeaderClicked = useCallback(
     (colIndex: number) => {
@@ -423,12 +466,14 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
             height="100%"
             columns={columns}
             rows={sortedRecords?.length ?? 0}
+            gridSelection={currentSelection}
             getCellContent={getCellContent}
             onCellEdited={onCellEdited}
             onColumnResize={onColumnResize}
             onHeaderClicked={onHeaderClicked}
             onCellClicked={onCellClicked}
             getCellsForSelection={true}
+            onGridSelectionChange={onGridSelectionChange}
             onPaste={true}
             onItemHovered={(args: GridMouseEventArgs) => {
               if (args.kind === "cell") {
@@ -444,6 +489,65 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
             ) : (
               <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
             )}
+            <Tooltip label="Select one or more records to create a view">
+              <Button
+                variant="outline"
+                loading={activeProcess === "create-view"}
+                disabled={Boolean(
+                  !currentSelection || !currentSelection.current
+                )}
+                onClick={async () => {
+                  const { records } = getGetSelectedRecordsAndColumns();
+                  try {
+                    setActiveProcess("create-view");
+                    await snapshotApi.activateView(snapshot.id, table.id.wsId, {
+                      name: "Selected Records",
+                      source: "ui",
+                      recordIds: records.map((r) => r.id.wsId),
+                    });
+                    await refreshViews();
+                    setCurrentSelection(undefined);
+                  } catch (e) {
+                    const error = e as Error;
+                    notifications.show({
+                      title: "Error activating view",
+                      message: error.message,
+                      color: "red",
+                    });
+                  } finally {
+                    setActiveProcess(undefined);
+                  }
+                }}
+              >
+                Create view
+              </Button>
+            </Tooltip>
+
+            <Button
+              variant="outline"
+              disabled={!activeView}
+              loading={activeProcess === "clear-view"}
+              onClick={async () => {
+                try {
+                  setActiveProcess("clear-view");
+                  await snapshotApi.clearActiveView(snapshot.id, table.id.wsId);
+                  await refreshViews();
+                  await refreshSnapshot();
+                } catch (e) {
+                  const error = e as Error;
+                  notifications.show({
+                    title: "Error clearing view",
+                    message: error.message,
+                    color: "red",
+                  });
+                } finally {
+                  setActiveProcess(undefined);
+                }
+              }}
+            >
+              Clear view
+            </Button>
+
             <Group gap="xs" ml="auto" p={0}>
               <Tooltip label="View JSON data">
                 <ActionIcon

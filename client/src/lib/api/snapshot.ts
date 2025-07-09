@@ -197,6 +197,26 @@ export const snapshotApi = {
     return view.id;
   },
 
+  async clearActiveView(
+    snapshotId: string,
+    tableId: string,
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-activate-view`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to clear filter view");
+    }
+  },
+
 
   async listViews(
     snapshotId: string,
