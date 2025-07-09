@@ -43,6 +43,7 @@ import JsonTreeViewer from "../../components/JsonTreeViewer";
 import { notifications } from "@mantine/notifications";
 import { AnimatedArrowsClockwise } from "@/app/components/AnimatedArrowsClockwise";
 import { snapshotApi } from "@/lib/api/snapshot";
+import pluralize from "pluralize";
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
@@ -486,9 +487,10 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
           <Group w="100%" p="xs" bg="gray.0">
             {isLoading ? (
               <AnimatedArrowsClockwise size={24} />
-            ) : (
-              <Text size="sm">{sortedRecords?.length ?? 0} records</Text>
-            )}
+            ) : 
+              currentSelection && currentSelection.current ? <Text size="sm" fs='italic'>{currentSelection.current.range.height} {pluralize("record", currentSelection.current.range.height)} selected</Text> : <Text size="sm">{sortedRecords?.length ?? 0} {pluralize("record", sortedRecords?.length ?? 0)}</Text>   
+            }
+           
             <Tooltip label="Select one or more records to create a view">
               <Button
                 variant="outline"

@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useStyleGuides } from "@/hooks/use-style-guide";
 import { styleGuideApi } from "@/lib/api/style-guide";
 import { RouteUrls } from "@/utils/route-urls";
+import { useRouter } from "next/navigation";
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
@@ -26,6 +27,7 @@ export default function StyleGuidesPage() {
   const [newStyleGuideName, setNewStyleGuideName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleCreateStyleGuide = async () => {
     if (!newStyleGuideName.trim()) return;
@@ -34,7 +36,7 @@ export default function StyleGuidesPage() {
     setCreateError(null);
 
     try {
-      await styleGuideApi.create({
+      const styleGuide = await styleGuideApi.create({
         name: newStyleGuideName.trim(),
         body: "",
       });
@@ -42,6 +44,7 @@ export default function StyleGuidesPage() {
       setNewStyleGuideName("");
       setIsCreateModalOpen(false);
       mutate();
+      router.push(RouteUrls.styleGuidePage(styleGuide.id));
     } catch (error) {
       setCreateError("Failed to create style guide");
       console.error("Error creating style guide:", error);
