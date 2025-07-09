@@ -1,5 +1,6 @@
 import { GenerateContentConfig, GoogleGenAI } from '@google/genai';
 import { Injectable } from '@nestjs/common';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 export enum AiModel {
   GEMINI2_0_FLASH = 'gemini-2.0-flash',
@@ -21,18 +22,23 @@ export interface AiGenerationConfig {
 export class AiService {
   private ai: GoogleGenAI;
 
-  constructor() {
-    // const project = configService.getGcpProjectNumber();
-    // if (!project) {
-    //   throw new Error(
-    //     'Trying to instantiate AiService when GCP_PROJECT_NUMBER is not set.',
-    //   );
-    // }
-    this.ai = new GoogleGenAI({
-      vertexai: true,
-      project: '111544850301',
-      location: 'us-central1',
-    });
+  constructor(private readonly configService: ScratchpadConfigService) {
+    const apiKey = this.configService.getGeminiApiKey();
+
+    if (apiKey) {
+      this.ai = new GoogleGenAI({
+        vertexai: true,
+        apiKey: this.configService.getGeminiApiKey(),
+      });
+    } else {
+      // try to setup using the default credentials
+      this.ai = new GoogleGenAI({
+        vertexai: true,
+        project: '111544850301',
+        location: 'us-central1',
+        apiKey: this.configService.getGeminiApiKey(),
+      });
+    }
   }
 
   async generate(prompt: string, model = AiModel.GEMINI2_5_FLASH, config?: AiGenerationConfig): Promise<string> {
