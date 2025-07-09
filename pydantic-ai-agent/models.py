@@ -47,6 +47,7 @@ class SendMessageRequest(BaseModel):
     """Request to send a message"""
     message: str
     api_token: str = Field(description="API token for Scratchpad server authentication")
+    style_guides: Optional[List[str]] = Field(default=None, description="List of style guide content to include in the prompt")
 
 class SendMessageResponse(BaseModel):
     """Response from sending a message"""

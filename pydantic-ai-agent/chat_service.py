@@ -68,7 +68,8 @@ class ChatService:
         self, 
         session: ChatSession, 
         user_message: str, 
-        api_token: str
+        api_token: str,
+        style_guides: Optional[List[str]] = None
     ) -> SendMessageResponse:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -103,8 +104,19 @@ class ChatService:
         try:
             # Build context from session history and important facts
             context = ""
+            
+            # Include style guides if provided
+            if style_guides:
+                print(f"📚 Including {len(style_guides)} style guides in prompt")
+                context += f"\n\nSTYLE GUIDES TO FOLLOW:\n"
+                for i, style_guide in enumerate(style_guides, 1):
+                    print(f"   Style Guide {i}: {style_guide[:50]}..." if len(style_guide) > 50 else f"   Style Guide {i}: {style_guide}")
+                    context += f"Style Guide {i}:\n{style_guide}\n\n"
+            else:
+                print(f"ℹ️ No style guides to include")
+            
             if session.important_facts:
-                context = f"\n\nIMPORTANT FACTS TO REMEMBER:\n" + "\n".join(session.important_facts[-3:])  # Only last 3 facts
+                context += f"\n\nIMPORTANT FACTS TO REMEMBER:\n" + "\n".join(session.important_facts[-3:])  # Only last 3 facts
             
             if session.history:
                 # Include only the last 4 messages to keep context manageable
@@ -129,6 +141,7 @@ class ChatService:
                      context_length=len(context),
                      history_length=len(session.history),
                      important_facts_count=len(session.important_facts),
+                     style_guides_count=len(style_guides) if style_guides else 0,
                      full_prompt_length=len(full_prompt),
                      user_message=user_message,
                      has_api_token=api_token is not None,

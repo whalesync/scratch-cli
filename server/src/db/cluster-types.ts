@@ -16,3 +16,9 @@ export namespace SnapshotCluster {
     include: { connectorAccount: true },
   });
 }
+
+export namespace StyleGuideCluster {
+  export type StyleGuide = Prisma.StyleGuideGetPayload<typeof _validator>;
+
+  export const _validator = Prisma.validator<Prisma.StyleGuideDefaultArgs>()({});
+}

@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { GenerateContentConfig, GoogleGenAI } from '@google/genai';
 import { Injectable } from '@nestjs/common';
 
@@ -39,11 +35,7 @@ export class AiService {
     });
   }
 
-  async generate(
-    prompt: string,
-    model = AiModel.GEMINI2_5_FLASH,
-    config?: AiGenerationConfig,
-  ): Promise<string> {
+  async generate(prompt: string, model = AiModel.GEMINI2_5_FLASH, config?: AiGenerationConfig): Promise<string> {
     const aiConfig: GenerateContentConfig = {};
 
     if (config?.thinkingBudget !== undefined) {

@@ -34,6 +34,7 @@ model User {
   apiTokens         APIToken[]
   connectorAccounts ConnectorAccount[]
   genericTables     GenericTable[]
+  styleGuides       StyleGuide[]
 }
 
 model APIToken {
@@ -136,4 +137,16 @@ model SnapshotTableView {
   config     Json // SnapshotTableViewConfig - describes the view
 
   @@unique([snapshotId, tableId])
+}
+
+model StyleGuide {
+  id        String   @id // type: StyleGuideId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  body      String // Markdown content
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
 }

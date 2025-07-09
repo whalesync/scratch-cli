@@ -21,6 +21,7 @@ import {
   ChatCircleIcon,
   TableIcon,
   RobotIcon,
+  BookOpenIcon,
 } from "@phosphor-icons/react";
 import { UserButton } from "@clerk/nextjs";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
@@ -47,6 +48,11 @@ const links = [
     href: RouteUrls.chatPageUrl,
     label: "Chat Testing",
     icon: <ChatCircleIcon size={16} />,
+  },
+  {
+    href: RouteUrls.styleGuidesPageUrl,
+    label: "Style Guides",
+    icon: <BookOpenIcon size={16} />,
   },
   {
     href: RouteUrls.healthPageUrl,

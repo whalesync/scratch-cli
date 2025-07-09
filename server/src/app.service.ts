@@ -55,7 +55,7 @@ export class AppService {
     }
 
     const record = this.records[index];
-    
+
     // Determine the base data to merge with. If staging, use staged data if it exists, otherwise remote.
     // For suggestions, the base is always the most current view of the data (staged or remote).
     const baseData = record.staged ?? record.remote;

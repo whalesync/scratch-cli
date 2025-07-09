@@ -12,6 +12,7 @@ import {
   Badge,
   Alert,
   Select,
+  MultiSelect,
 } from "@mantine/core";
 import {
   ChatCircle,
@@ -22,6 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 import { ChatSessionSummary } from "@/types/server-entities/chat-session";
+import { useStyleGuides } from "@/hooks/use-style-guide";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -64,9 +66,11 @@ export default function AIChatPanel({
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
 
   // Get user data including API token
   const { user } = useScratchPadUser();
+  const { styleGuides } = useStyleGuides();
 
   // Load sessions on mount
   useEffect(() => {
@@ -225,7 +229,14 @@ export default function AIChatPanel({
     });
 
     try {
-      const messageData: { message: string; api_token?: string } = {
+      // Get selected style guide content
+      const selectedStyleGuides = styleGuides.filter(sg => selectedStyleGuideIds.includes(sg.id));
+      
+      const messageData: { 
+        message: string; 
+        api_token?: string; 
+        style_guides?: string[] 
+      } = {
         message: message.trim(),
       };
 
@@ -235,6 +246,12 @@ export default function AIChatPanel({
         console.log("Including API token in request");
       } else {
         console.log("No API token available");
+      }
+
+      // Include style guide content if selected
+      if (selectedStyleGuides.length > 0) {
+        messageData.style_guides = selectedStyleGuides.map(sg => sg.body);
+        console.log("Including style guides:", selectedStyleGuides.map(sg => sg.name).join(", "));
       }
 
       const response = await fetch(
@@ -374,9 +391,32 @@ export default function AIChatPanel({
         )}
       </Group>
 
+      {/* Style Guide Selection */}
+      <Group mb="md" gap="xs">
+        <MultiSelect
+          placeholder="Select style guides (optional)"
+          value={selectedStyleGuideIds}
+          onChange={setSelectedStyleGuideIds}
+          data={styleGuides.map((styleGuide) => ({
+            value: styleGuide.id,
+            label: styleGuide.name,
+          }))}
+          size="xs"
+          style={{ flex: 1 }}
+          searchable={false}
+          clearable={true}
+          maxDropdownHeight={200}
+        />
+      </Group>
+
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
         Sessions: {sessions.length} | Current: {currentSessionId || "none"}
+        {selectedStyleGuideIds.length > 0 && (
+          <Text span size="xs" c="blue" ml="xs">
+            | Style Guides ({selectedStyleGuideIds.length}): {selectedStyleGuideIds.map(id => styleGuides.find(sg => sg.id === id)?.name).filter(Boolean).join(", ")}
+          </Text>
+        )}
       </Text>
 
       {/* Messages */}

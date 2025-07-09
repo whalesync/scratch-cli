@@ -11,6 +11,7 @@ import { RecordsGateway } from './records.gateway';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
+import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UserModule } from './users/users.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { UserModule } from './users/users.module';
     SnapshotModule,
     RestApiImportModule,
     GenericTableModule,
+    StyleGuideModule,
   ],
   controllers: [AppController],
   providers: [AppService, RecordsGateway],

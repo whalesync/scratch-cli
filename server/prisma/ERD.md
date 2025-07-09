@@ -72,11 +72,20 @@ erDiagram
   String tableId
   Json config
 }
+"StyleGuide" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String name
+  String body
+  String userId FK
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 "GenericTable" }o--|| "User" : user
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
+"StyleGuide" }o--|| "User" : user
 ```
 
 ### `User`
@@ -160,3 +169,14 @@ Properties as follows:
 - `snapshotId`:
 - `tableId`:
 - `config`:
+
+### `StyleGuide`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `name`:
+- `body`:
+- `userId`:

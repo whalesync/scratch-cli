@@ -62,7 +62,7 @@ async def get_session(session_id: str):
 @router.post("/sessions/{session_id}/messages", response_model=SendMessageResponse)
 async def send_message(session_id: str, request: SendMessageRequest):
     """Send a message to the agent"""
-    log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None)
+    log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None, style_guides_count=len(request.style_guides) if request.style_guides else 0)
     print(f"💬 Processing message for session: {session_id}")
     print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
     print(f"📝 Message: {request.message}")
@@ -70,6 +70,12 @@ async def send_message(session_id: str, request: SendMessageRequest):
         print(f"🔑 API token provided: {request.api_token[:8]}..." if len(request.api_token) > 8 else request.api_token)
     else:
         print(f"ℹ️ No API token provided")
+    if request.style_guides:
+        print(f"📚 Style guides provided: {len(request.style_guides)} guides")
+        for i, guide in enumerate(request.style_guides, 1):
+            print(f"   Guide {i}: {guide[:50]}..." if len(guide) > 50 else f"   Guide {i}: {guide}")
+    else:
+        print(f"ℹ️ No style guides provided")
     
     if session_id not in chat_service.sessions:
         log_error("Message failed - session not found", session_id=session_id, available_sessions=list(chat_service.sessions.keys()))
@@ -102,7 +108,7 @@ async def send_message(session_id: str, request: SendMessageRequest):
         print(f"🤖 Processing with agent...")
         log_info("Agent processing started", session_id=session_id, history_length=len(session.history), snapshot_id=session.snapshot_id)
         
-        response = await chat_service.process_message_with_agent(session, request.message, request.api_token)
+        response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides)
         
         log_info("Agent response received", session_id=session_id, response_length=len(response.message), emotion=response.emotion, snapshot_id=session.snapshot_id)
         print(f"✅ Agent response received: {response.message[:50]}...")
