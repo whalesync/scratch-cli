@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import HTTPException
 
-from models import ChatRunContext, ChatSession, ChatMessage, SendMessageResponse, ChatResponse
-from agent import create_agent, extract_response
+from agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
 # from tools import set_api_token, set_session_data
@@ -18,24 +18,6 @@ from scratchpad_api import API_CONFIG, check_server_health
 class ChatService:
     def __init__(self):
         self.sessions: Dict[str, ChatSession] = {}
-        # self.agent: Optional[Any] = None
-    #     self._initialize_agent()
-
-    # def _initialize_agent(self) -> None:
-    #     """Initialize the PydanticAI agent"""
-    #     self.agent = create_agent()
-    #     if self.agent:
-    #         log_info("Agent initialized successfully")
-    #     else:
-    #         log_error("Agent initialization failed")
-
-    # def create_chat_message(self, message: str, role: str, timestamp: datetime) -> ChatMessage:
-    #     """Create a new chat message"""
-    #     return ChatMessage(
-    #         message=message,
-    #         role=role,
-    #         timestamp=timestamp
-    #     )
 
     def create_session(self, session_id: str, snapshot_id: str) -> ChatSession:
         """Create a new chat session and set session data in tools"""
@@ -48,12 +30,6 @@ class ChatService:
             snapshot_id=snapshot_id
         )
         
-        # Set session data in tools' global state
-        # session_data = {
-        #     'session_id': session_id,
-        #     'snapshot_id': snapshot_id
-        # }
-        # set_session_data(session_data)
         
         log_info("Session created and session data set", 
                  session_id=session_id, 
@@ -70,7 +46,7 @@ class ChatService:
         user_message: str, 
         api_token: str,
         style_guides: Optional[List[str]] = None
-    ) -> SendMessageResponse:
+    ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
         if session.snapshot_id:
@@ -83,26 +59,14 @@ class ChatService:
                      token_length=len(api_token), 
                      token_preview=api_token[:8] + "..." if len(api_token) > 8 else api_token,
                      snapshot_id=session.snapshot_id)
-            print(f"🔑 API token set for tools: {api_token[:8]}..." if len(api_token) > 8 else api_token)
-            
-            # Test server connectivity
-            if check_server_health():
-                log_info("Scratchpad server health check passed", session_id=session.id, snapshot_id=session.snapshot_id)
-                print(f"✅ Scratchpad server is healthy")
-            else:
-                log_warning("Scratchpad server health check failed", session_id=session.id, snapshot_id=session.snapshot_id)
-                print(f"⚠️ Scratchpad server health check failed")
+            print(f"🔑 API token set for tools: {api_token[:8]}..." if len(api_token) > 8 else api_token)   
         else:
             log_info("No API token provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No API token provided")
         
-        # if not self.agent:
-        #     log_error("Agent processing failed - agent not initialized", session_id=session.id, snapshot_id=session.snapshot_id)
-        #     print(f"❌ Agent not initialized!")
-        #     raise HTTPException(status_code=500, detail="Agent not initialized")
         
         try:
-            # Build context from session history and important facts
+            # Build context from session history
             context = ""
             
             # Include style guides if provided
@@ -115,32 +79,35 @@ class ChatService:
             else:
                 print(f"ℹ️ No style guides to include")
             
-            if session.important_facts:
-                context += f"\n\nIMPORTANT FACTS TO REMEMBER:\n" + "\n".join(session.important_facts[-3:])  # Only last 3 facts
+            # Include summary history for agent context
+            if session.summary_history:
+                context += f"\n\nSUMMARY HISTORY:\n"
+                for summary in session.summary_history:
+                    context += f"Request: {summary.request_summary}\n"
+                    context += f"Response: {summary.response_summary}\n\n"
             
-            if session.history:
-                # Include only the last 4 messages to keep context manageable
-                recent_history = session.history[-10:]  # Last 4 messages instead of 6
+            # Include recent chat history for user context (last 5 messages)
+            if session.chat_history:
+                recent_history = session.chat_history[-5:]
                 context += f"\n\nRECENT CONVERSATION:\n"
                 for msg in recent_history:
-                    # Truncate long messages to prevent context explosion
                     truncated_msg = msg.message[:100] + "..." if len(msg.message) > 100 else msg.message
                     context += f"{msg.role.capitalize()}: {truncated_msg}\n"
             
             # Create the full prompt with memory
-            full_prompt = f"Respond to: {user_message}. Provide your response with a message and an emotion.{context}"
+            full_prompt = f"Respond to: {user_message}. Provide your response with a well-formatted message for the user and a concise summary of key actions/decisions for future reference.{context}"
             
             print(f"DEBUG - Context length: {len(context)}")
-            print(f"DEBUG - History length: {len(session.history)}")
-            print(f"DEBUG - Important facts: {len(session.important_facts)}")
+            print(f"DEBUG - Chat history length: {len(session.chat_history)}")
+            print(f"DEBUG - Summary history length: {len(session.summary_history)}")
             print(f"DEBUG - Full prompt length: {len(full_prompt)}")
             
             # Log agent processing details
             log_debug("Agent processing details", 
                      session_id=session.id,
                      context_length=len(context),
-                     history_length=len(session.history),
-                     important_facts_count=len(session.important_facts),
+                     chat_history_length=len(session.chat_history),
+                     summary_history_length=len(session.summary_history),
                      style_guides_count=len(style_guides) if style_guides else 0,
                      full_prompt_length=len(full_prompt),
                      user_message=user_message,
@@ -167,22 +134,57 @@ class ChatService:
                 print(f"❌ Agent.run() timed out after 30 seconds")
                 raise HTTPException(status_code=408, detail="Agent response timeout")
             
-            response = extract_response(result)
-            print(f"🔍 Extracted response: {type(response)}")
+            # The agent returns an AgentRunResult wrapper, we need to extract the actual response
+            response = result
+            print(f"🔍 Agent result: {type(response)}")
+            print(f"🔍 Response class: {response.__class__}")
+            print(f"🔍 ResponseFromAgent class: {ResponseFromAgent}")
             
-            if response and isinstance(response, ChatResponse):
+            # Extract the actual response from the AgentRunResult
+            actual_response = extract_response(response)
+            if not actual_response:
+                log_error("No response from agent", session_id=session.id, snapshot_id=session.snapshot_id)
+                print(f"❌ No response from agent")
+                raise HTTPException(status_code=500, detail="No response from agent")
+            
+            print(f"🔍 Actual response: {type(actual_response)}")
+            print(f"🔍 Is instance check: {isinstance(actual_response, ResponseFromAgent)}")
+            
+            # Check if actual_response has the expected fields using getattr for safety
+            try:
+                response_message = getattr(actual_response, 'response_message', None)
+                response_summary = getattr(actual_response, 'response_summary', None)
+                request_summary = getattr(actual_response, 'request_summary', None)
+                
+                has_expected_fields = (
+                    actual_response and 
+                    response_message is not None and 
+                    response_summary is not None and 
+                    request_summary is not None
+                )
+            except:
+                has_expected_fields = False
+            
+            if has_expected_fields:
                 log_info("Agent response successful", 
                          session_id=session.id,
-                         response_length=len(response.message),
-                         emotion=response.emotion,
+                         response_length=len(response_message),  # type: ignore
+                         response_summary_length=len(response_summary),  # type: ignore
+                         request_summary_length=len(request_summary),  # type: ignore
                          had_api_token=api_token is not None,
                          snapshot_id=session.snapshot_id)
-                print(f"✅ Valid ChatResponse received")
-                return SendMessageResponse(
-                    message=response.message,
-                    emotion=response.emotion,
-                    session_id=session.id
-                )
+                print(f"✅ Valid ResponseFromAgent received")
+                # Return both the SendMessageResponse and the original ResponseFromAgent
+                # send_response = SendMessageResponseDTO(
+                #     response_message=response_message,  # type: ignore
+                #     response_summary=response_summary,  # type: ignore
+                #     request_summary=request_summary,  # type: ignore
+                # )
+                
+                # # Store the original response for access to summaries
+                # send_response.original_response = actual_response  # type: ignore
+                
+                return actual_response
             else:
                 log_error("Invalid agent response", session_id=session.id, response_type=type(response), snapshot_id=session.snapshot_id)
                 print(f"❌ Invalid response from agent: {response}")

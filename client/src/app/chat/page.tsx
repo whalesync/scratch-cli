@@ -11,7 +11,6 @@ import {
   Group,
   ScrollArea,
   ActionIcon,
-  Badge,
   Loader,
 } from "@mantine/core";
 import {
@@ -26,13 +25,11 @@ interface ChatMessage {
   role: "user" | "assistant";
   message: string;
   timestamp: string;
-  emotion?: string;
 }
 
 interface ChatSession {
   id: string;
   history: ChatMessage[];
-  important_facts: string[];
   created_at: string;
   last_activity: string;
   snapshot_id?: string;
@@ -201,18 +198,7 @@ export default function ChatPage() {
     }
   };
 
-  const getEmotionColor = (emotion: string) => {
-    const emotionColors: Record<string, string> = {
-      happy: "green",
-      excited: "blue",
-      sad: "gray",
-      angry: "red",
-      neutral: "gray",
-      friendly: "teal",
-      helpful: "indigo",
-    };
-    return emotionColors[emotion.toLowerCase()] || "gray";
-  };
+ 
 
   return (
     <Container size="xl" py="xl">
@@ -285,15 +271,7 @@ export default function ChatPage() {
                       >
                         <Stack gap="xs">
                           <Text size="sm">{msg.message}</Text>
-                          {msg.emotion && (
-                            <Badge
-                              size="xs"
-                              color={getEmotionColor(msg.emotion)}
-                              variant="light"
-                            >
-                              {msg.emotion}
-                            </Badge>
-                          )}
+                         
                           <Text size="xs" c="dimmed">
                             {new Date(msg.timestamp).toLocaleTimeString()}
                           </Text>

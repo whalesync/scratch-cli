@@ -15,7 +15,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from chat_controller import router, chat_service
+from server.chat_controller import router, chat_service
 from websocket_handler import websocket_endpoint
 from logger import log_info
 

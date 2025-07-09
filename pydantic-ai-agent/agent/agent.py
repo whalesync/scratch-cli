@@ -11,20 +11,20 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
 
-from models import ChatResponse, ChatRunContext
-from tools import clear_table_view, get_records, connect_snapshot, create_records, delete_records, list_table_views, update_records, activate_table_view
+from agent.models import ResponseFromAgent, ChatRunContext
+from agent.tools import clear_table_view, get_records, connect_snapshot, create_records, delete_records, list_table_views, update_records, activate_table_view
 from logger import log_info, log_error
 
 
 
-def extract_response(result):
+def extract_response(result) -> ResponseFromAgent | None:
     """Extract response from result object, trying different attributes"""
     # Try different possible response attributes
     for attr in ['output', 'response', 'data']:
         if hasattr(result, attr):
             response = getattr(result, attr)
             if response:
-                return response
+                return response  # type: ignore
     return None
 
 def create_agent():
@@ -50,6 +50,11 @@ def create_agent():
             name="ChatServerAgent",
             instructions="""You are a helpful AI assistant that can work with data from Scratchpad snapshots. 
 Always be helpful and provide clear explanations of what you're doing.
+
+IMPORTANT: Your response should have three parts:
+1. responseMessage: A well-formatted, human-readable response with careful and full explanations of what you did or think
+2. responseSummary: A concise summary of key actions, decisions, or context that would be useful for processing future prompts. This should be focused and contain anything you find useful for future reference, but doesn't need to be user-readable or well-formatted.
+3. requestSummary: A concise summary of what the user requested, for future reference.
 
 When working with tables:
 1. First use connect_snapshot_tool to connect to the snapshot (this provides table schema information)
@@ -88,7 +93,7 @@ For clearing active views or reverting to the default view, you should:
 
 For listing existing filtered views on a table, you should:
 1. Call list_table_views_tool to list all the views for the table""",
-            output_type=ChatResponse,
+            output_type=ResponseFromAgent,
             model=model,
             deps_type=ChatRunContext
         )

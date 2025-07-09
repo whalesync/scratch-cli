@@ -9,7 +9,6 @@ import {
   Group,
   ScrollArea,
   ActionIcon,
-  Badge,
   Alert,
   Select,
   MultiSelect,
@@ -29,14 +28,16 @@ interface ChatMessage {
   role: "user" | "assistant";
   message: string;
   timestamp: string;
-  emotion?: string;
 }
 
 interface ChatSession {
   id: string;
   name: string;
-  history: ChatMessage[];
-  important_facts: string[];
+  chat_history: ChatMessage[];
+  summary_history: Array<{
+    requestSummary: string;
+    responseSummary: string;
+  }>;
   created_at: string;
   last_activity: string;
   snapshot_id?: string;
@@ -88,7 +89,7 @@ export default function AIChatPanel({
         behavior: "smooth",
       });
     }
-  }, [sessionData?.history]);
+  }, [sessionData?.chat_history]);
 
   useEffect(() => {
     if (resetInputFocus) {
@@ -213,7 +214,7 @@ export default function AIChatPanel({
       };
       setSessionData({
         ...sessionData,
-        history: [...sessionData.history, optimisticMessage],
+        chat_history: [...sessionData.chat_history, optimisticMessage],
       });
     }
 
@@ -223,7 +224,7 @@ export default function AIChatPanel({
     console.log("Message data:", {
       message: message.trim(),
       currentSessionId,
-      historyLength: sessionData?.history.length || 0,
+      historyLength: sessionData?.chat_history.length || 0,
       hasApiToken: !!user?.apiToken,
       snapshotId: snapshotId,
     });
@@ -290,18 +291,7 @@ export default function AIChatPanel({
     }
   };
 
-  const getEmotionColor = (emotion: string) => {
-    const emotionColors: Record<string, string> = {
-      happy: "green",
-      excited: "blue",
-      sad: "gray",
-      angry: "red",
-      neutral: "gray",
-      friendly: "teal",
-      helpful: "indigo",
-    };
-    return emotionColors[emotion.toLowerCase()] || "gray";
-  };
+
 
   const formatSessionLabel = (session: ChatSessionSummary) => {
     return session.name;
@@ -423,7 +413,7 @@ export default function AIChatPanel({
       <ScrollArea flex={1} ref={scrollAreaRef} mb="md">
         {currentSessionId ? (
           <Stack gap="xs">
-            {sessionData?.history.map((msg, index) => (
+            {sessionData?.chat_history.map((msg, index) => (
               <Paper
                 key={index}
                 p="xs"
@@ -435,15 +425,7 @@ export default function AIChatPanel({
               >
                 <Stack gap="xs">
                   <Text size="xs">{msg.message}</Text>
-                  {msg.emotion && (
-                    <Badge
-                      size="xs"
-                      color={getEmotionColor(msg.emotion)}
-                      variant="light"
-                    >
-                      {msg.emotion}
-                    </Badge>
-                  )}
+                  
                   <Text size="xs" c="dimmed">
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </Text>

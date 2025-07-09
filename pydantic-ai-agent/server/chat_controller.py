@@ -9,8 +9,9 @@ from datetime import datetime
 from typing import Dict
 from fastapi import APIRouter, HTTPException
 
-from models import ChatMessage, ChatSession, SendMessageRequest, SendMessageResponse, ChatSessionSummary
-from chat_service import ChatService
+from session import ChatMessage, ChatSession, RequestAndResponseSummary
+from server.DTOs import SendMessageRequestDTO, SendMessageResponseDTO, ChatSessionSummary
+from server.chat_service import ChatService
 from logger import log_info, log_warning, log_error
 
 # Create router
@@ -59,8 +60,8 @@ async def get_session(session_id: str):
     session.last_activity = datetime.now()
     return session
 
-@router.post("/sessions/{session_id}/messages", response_model=SendMessageResponse)
-async def send_message(session_id: str, request: SendMessageRequest):
+@router.post("/sessions/{session_id}/messages", response_model=SendMessageResponseDTO)
+async def send_message(session_id: str, request: SendMessageRequestDTO):
     """Send a message to the agent"""
     log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None, style_guides_count=len(request.style_guides) if request.style_guides else 0)
     print(f"💬 Processing message for session: {session_id}")
@@ -87,8 +88,8 @@ async def send_message(session_id: str, request: SendMessageRequest):
     print(f"✅ Found session: {session_id}")
     if session.snapshot_id:
         print(f"📊 Session associated with snapshot: {session.snapshot_id}")
-    print(f"📊 Session history length: {len(session.history)}")
-    print(f"💾 Important facts: {len(session.important_facts)}")
+    print(f"📊 Session chat history length: {len(session.chat_history)}")
+    print(f"📋 Session summary history length: {len(session.summary_history)}")
     
     session.last_activity = datetime.now()
     
@@ -100,51 +101,48 @@ async def send_message(session_id: str, request: SendMessageRequest):
     )
     
  
-    session.history.append(user_message)
-    print(f"📝 Added user message to history. New length: {len(session.history)}")
+    session.chat_history.append(user_message)
+    print(f"📝 Added user message to chat history. New length: {len(session.chat_history)}")
     
     try:
         # Process with agent
         print(f"🤖 Processing with agent...")
-        log_info("Agent processing started", session_id=session_id, history_length=len(session.history), snapshot_id=session.snapshot_id)
+        log_info("Agent processing started", session_id=session_id, chat_history_length=len(session.chat_history), summary_history_length=len(session.summary_history), snapshot_id=session.snapshot_id)
         
-        response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides)
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides)
         
-        log_info("Agent response received", session_id=session_id, response_length=len(response.message), emotion=response.emotion, snapshot_id=session.snapshot_id)
-        print(f"✅ Agent response received: {response.message[:50]}...")
+        log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         
-        # Add assistant response to history
-
+        # Add assistant response to chat history
         assistant_message = ChatMessage(
-            message=response.message,
+            message=agent_response.response_message,
             role="assistant",
             timestamp=datetime.now()
         )
         
-        session.history.append(assistant_message)
-        print(f"📝 Added assistant message to history. New length: {len(session.history)}")
+        session.chat_history.append(assistant_message)
+        print(f"📝 Added assistant message to chat history. New length: {len(session.chat_history)}")
         
-        # Check if user mentioned remembering something
-        if "remember" in request.message.lower() or "=" in request.message:
-            # Extract potential facts (simple heuristic)
-            if "=" in request.message:
-                fact = request.message.strip()
-                if fact not in session.important_facts:
-                    session.important_facts.append(fact)
-                    log_info("Fact stored", session_id=session_id, fact=fact, snapshot_id=session.snapshot_id)
-                    print(f"💾 Stored fact for session {session_id}: {fact}")
+        summary_entry = RequestAndResponseSummary(
+            request_summary=agent_response.request_summary,
+            response_summary=agent_response.response_summary
+        )
+        session.summary_history.append(summary_entry)
+        print(f"📋 Added to summary history. New length: {len(session.summary_history)}")
+        
+        
         
         # Update session
         chat_service.sessions[session_id] = session
         print(f"💾 Session updated in storage")
-        print(f"📊 Final session state - History: {len(session.history)}, Facts: {len(session.important_facts)}")
+        print(f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}")
         
-        return response
+        return agent_response
         
     except Exception as e:
         log_error("Message processing failed", session_id=session_id, error=str(e), snapshot_id=session.snapshot_id)
         print(f"❌ Error processing message: {e}")
-        print(f"🔍 Session state after error - History: {len(session.history)}, Facts: {len(session.important_facts)}")
+        print(f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}")
         # Don't update the session if there was an error
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 

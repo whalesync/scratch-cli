@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import Dict
 from fastapi import WebSocket, WebSocketDisconnect
 
-from models import ChatSession
-from chat_service import ChatService
+from agent.models import ChatSession
+from server.chat_service import ChatService
 
 class ConnectionManager:
     def __init__(self, chat_service: ChatService):
@@ -40,6 +40,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
             id=session_id,
             name=f"WebSocket Session {now.strftime('%Y-%m-%d %H:%M')}",
             last_activity=now,
+            snapshot_id='', # TODO: add snapshot_id
             created_at=now
         )
     
@@ -55,15 +56,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                 # Process with agent
                 response = await chat_service.process_message_with_agent(
                     chat_service.sessions[session_id], 
-                    user_message
+                    user_message,
+                    api_token='' # TODO: add api_token
                 )
                 
                 # Send response back to client
                 await manager.send_personal_message(
                     json.dumps({
                         "type": "response",
-                        "message": response.message,
-                        "emotion": response.emotion,
+                        "message": response.response_message,
                         "timestamp": datetime.now().isoformat()
                     }),
                     session_id

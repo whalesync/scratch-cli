@@ -2,7 +2,7 @@
 """
 PydanticAI Tools for the Chat Server
 """
-from models import ChatRunContext, ChatSession
+from agent.models import ChatRunContext, ChatSession
 
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
@@ -142,7 +142,7 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
         )
         print(f"✅ Snapshot object created successfully")
         # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot
-        chatSession.snapshot = snapshot  # type: ignore
+        chatRunContext.snapshot = snapshot  # type: ignore
         # Store the snapshot
         # set_active_snapshot(snapshot)
         
@@ -187,18 +187,18 @@ async def create_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
@@ -281,18 +281,18 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session  # ✅ your typed instance
         # chatSession = ctx.deps;
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Get API token from global state
@@ -368,18 +368,18 @@ async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
@@ -459,18 +459,18 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
@@ -567,18 +567,18 @@ async def activate_table_view(ctx: RunContext[ChatRunContext], table_name: str, 
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
@@ -631,18 +631,18 @@ async def list_table_views(ctx: RunContext[ChatRunContext], table_name: str) -> 
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
         
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
@@ -688,18 +688,18 @@ async def clear_table_view(ctx: RunContext[ChatRunContext], table_name: str) -> 
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
         
-        if not chatSession.snapshot:
+        if not chatRunContext.snapshot:
             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
            
         # Find the table by name
         table = None
-        for t in chatSession.snapshot.tables:
+        for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
         
         if not table:
-            available_tables = [t.name for t in chatSession.snapshot.tables]
+            available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
