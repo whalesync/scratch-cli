@@ -5,6 +5,7 @@ import { User } from '@prisma/client';
 import { Request } from 'express';
 import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
 
 @Injectable()
@@ -48,7 +49,11 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
 
       return user;
     } catch (error) {
-      console.error(error);
+      WSLogger.error({
+        source: 'ClerkStrategy',
+        message: 'Invalid JWT token',
+        error,
+      });
       throw new UnauthorizedException('Invalid JWT token');
     }
   }

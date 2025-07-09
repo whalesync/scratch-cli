@@ -12,6 +12,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { WSLogger } from 'src/logger';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
@@ -118,6 +119,13 @@ export class SnapshotController {
     @Body() activateViewDto: CreateSnapshotTableViewDto,
     @Req() req: RequestWithUser,
   ): Promise<{ id: string }> {
+    WSLogger.debug({
+      source: 'SnapshotController.activateView',
+      message: 'Creating a new view',
+      snapshotId,
+      tableId,
+      activateViewDto,
+    });
     const view = await this.service.activateView(snapshotId, tableId, activateViewDto, req.user.id);
     return { id: view.id };
   }

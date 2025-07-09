@@ -1,5 +1,6 @@
 import { Service } from '@prisma/client';
 import * as _ from 'lodash';
+import { WSLogger } from 'src/logger';
 import {
   executeCreateRecord,
   executeDeleteRecord,
@@ -103,7 +104,11 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
           };
         }
       } catch (error) {
-        console.error('Error fetching table spec from schema function:', error);
+        WSLogger.error({
+          source: 'CustomConnector.fetchTableSpec',
+          message: 'Error fetching table spec from schema function',
+          error,
+        });
         // Fall back to empty columns
       }
     }
@@ -144,7 +149,11 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       // Use the standalone execution function
       data = await executePollRecords(table.pollRecords, this.apiKey);
     } catch (error) {
-      console.error('Error executing poll records function:', error);
+      WSLogger.error({
+        source: 'CustomConnector.downloadTableRecords',
+        message: 'Error executing poll records function',
+        error,
+      });
       throw error;
     }
 
@@ -236,7 +245,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
         try {
           // Use the standalone execution function
           const result = await executeCreateRecord(table.createRecord, record.fields, this.apiKey);
-          console.log(`Successfully created record: ${record.wsId}`);
+          WSLogger.debug({ source: 'CustomConnector.createRecords', message: 'Successfully created record', record });
 
           // Extract the created record ID from the result
           let remoteId: string;
@@ -254,15 +263,28 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
             remoteId,
           });
         } catch (error) {
-          console.error(`Failed to create record ${record.wsId}:`, error);
+          WSLogger.error({
+            source: 'CustomConnector.createRecords',
+            message: 'Failed to create record',
+            recordId: record.wsId,
+            error,
+          });
           throw error instanceof Error ? error : new Error(String(error));
         }
       }
 
-      console.log(`Successfully processed create operation for ${records.length} records`);
+      WSLogger.debug({
+        source: 'CustomConnector.createRecords',
+        message: 'Successfully processed create operation',
+        records,
+      });
       return results;
     } catch (error) {
-      console.error('Error executing dynamic create function:', error);
+      WSLogger.error({
+        source: 'CustomConnector.createRecords',
+        message: 'Error executing dynamic create function',
+        error,
+      });
       throw error;
     }
   }
@@ -298,16 +320,33 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
         try {
           // Use the standalone execution function
           await executeUpdateRecord(table.updateRecord, record.id.remoteId, record.partialFields, this.apiKey);
-          console.log(`Successfully updated record: ${record.id.remoteId}`);
+          WSLogger.debug({
+            source: 'CustomConnector.updateRecords',
+            message: 'Successfully updated record',
+            record,
+          });
         } catch (error) {
-          console.error(`Failed to update record ${record.id.remoteId}:`, error);
+          WSLogger.error({
+            source: 'CustomConnector.updateRecords',
+            message: 'Failed to update record',
+            recordId: record.id.remoteId,
+            error,
+          });
           throw error instanceof Error ? error : new Error(String(error));
         }
       }
 
-      console.log(`Successfully processed update operation for ${records.length} records`);
+      WSLogger.debug({
+        source: 'CustomConnector.updateRecords',
+        message: 'Successfully processed update operation',
+        records,
+      });
     } catch (error) {
-      console.error('Error executing dynamic update function:', error);
+      WSLogger.error({
+        source: 'CustomConnector.updateRecords',
+        message: 'Error executing dynamic update function',
+        error,
+      });
       throw error;
     }
   }
@@ -337,16 +376,33 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
         try {
           // Use the standalone execution function
           await executeDeleteRecord(table.deleteRecord, recordId.remoteId, this.apiKey);
-          console.log(`Successfully deleted record: ${recordId.remoteId}`);
+          WSLogger.debug({
+            source: 'CustomConnector.deleteRecords',
+            message: 'Successfully deleted record',
+            recordId,
+          });
         } catch (error) {
-          console.error(`Failed to delete record ${recordId.remoteId}:`, error);
+          WSLogger.error({
+            source: 'CustomConnector.deleteRecords',
+            message: 'Failed to delete record',
+            recordId,
+            error,
+          });
           throw error;
         }
       }
 
-      console.log(`Successfully processed delete operation for ${recordIds.length} records`);
+      WSLogger.debug({
+        source: 'CustomConnector.deleteRecords',
+        message: 'Successfully processed delete operation',
+        recordIds,
+      });
     } catch (error) {
-      console.error('Error executing dynamic delete function:', error);
+      WSLogger.error({
+        source: 'CustomConnector.deleteRecords',
+        message: 'Error executing dynamic delete function',
+        error,
+      });
       throw error;
     }
   }

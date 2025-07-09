@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
+import { WSLogger } from 'src/logger';
 import { createSnapshotId, createSnapshotTableViewId, SnapshotId } from 'src/types/ids';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -71,7 +72,12 @@ export class SnapshotService {
     // Start downloading in the background
     // TODO: Do this work somewhere real.
     this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
-      console.error(`Error downloading snapshot ${newSnapshot.id}:`, error);
+      WSLogger.error({
+        source: 'SnapshotService.create',
+        message: 'Error downloading snapshot',
+        snapshotId: newSnapshot.id,
+        error,
+      });
     });
 
     return newSnapshot;
@@ -243,7 +249,12 @@ export class SnapshotService {
 
     // TODO: Do this work somewhere real.
     this.downloadSnapshotInBackground(snapshot).catch((error) => {
-      console.error(`Error downloading snapshot ${id}:`, error);
+      WSLogger.error({
+        source: 'SnapshotService.download',
+        message: 'Error downloading snapshot',
+        snapshotId: id,
+        error,
+      });
     });
   }
 
@@ -256,7 +267,11 @@ export class SnapshotService {
         async (records) => await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
       );
     }
-    console.log('Done downloading snapshot', snapshot.id);
+    WSLogger.debug({
+      source: 'SnapshotService.downloadSnapshotInBackground',
+      message: 'Done downloading snapshot',
+      snapshotId: snapshot.id,
+    });
   }
 
   async publish(id: SnapshotId, userId: string): Promise<void> {
@@ -285,7 +300,11 @@ export class SnapshotService {
       await this.publishDeletesToTable(snapshot, connector, tableSpec);
     }
 
-    console.log('Done publishing snapshot', snapshot.id);
+    WSLogger.debug({
+      source: 'SnapshotService.publishSnapshot',
+      message: 'Done publishing snapshot',
+      snapshotId: snapshot.id,
+    });
   }
 
   private async publishCreatesToTable<S extends Service>(

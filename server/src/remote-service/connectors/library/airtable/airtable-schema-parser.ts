@@ -1,3 +1,4 @@
+import { WSLogger } from 'src/logger';
 import { sanitizeForWsId } from '../../ids';
 import { PostgresColumnType, TablePreview } from '../../types';
 import { AirtableColumnSpec } from '../custom-spec-registry';
@@ -17,7 +18,7 @@ export class AirtableSchemaParser {
   parseColumn(field: AirtableFieldsV2): AirtableColumnSpec {
     const pgType = this.getPostgresType(field);
     const readonly = this.isColumnReadonly(field);
-    console.log(field.name, field.type, pgType);
+    WSLogger.debug({ source: 'AirtableSchemaParser', message: 'Parsing column', field, pgType, readonly });
     return {
       id: {
         wsId: sanitizeForWsId(field.name),

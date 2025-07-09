@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { WSLogger } from 'src/logger';
 
 @Injectable()
 export class DbService implements OnModuleInit, OnApplicationShutdown {
@@ -20,7 +21,11 @@ export class DbService implements OnModuleInit, OnApplicationShutdown {
     try {
       await this._client.$connect();
     } catch (error: unknown) {
-      console.error('Failed to connect to DB: ', error);
+      WSLogger.error({
+        source: 'DbService.onModuleInit',
+        message: 'Failed to connect to DB',
+        error,
+      });
       process.exit(1);
     }
   }

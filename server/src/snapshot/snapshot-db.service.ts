@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import knex, { Knex } from 'knex';
 import { types } from 'pg';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { WSLogger } from 'src/logger';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
@@ -53,7 +54,11 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.knex.on('error', (err: Error) => {
-      console.error('Unexpected error on idle client', err);
+      WSLogger.error({
+        source: 'SnapshotDbService.onModuleInit',
+        message: 'Unexpected error on idle client',
+        error: err,
+      });
     });
 
     await this.knex.raw('SELECT 1');
@@ -142,7 +147,13 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async upsertRecords(snapshotId: SnapshotId, table: AnyTableSpec, records: ConnectorRecord[]) {
-    console.log('upsertRecords', snapshotId, table, records[0].fields.attachment);
+    WSLogger.debug({
+      source: 'SnapshotDbService.upsertRecords',
+      message: 'Upserting records',
+      snapshotId,
+      table,
+      records,
+    });
 
     // Debug: Ensure the records have the right fields to catch bugs early.
     this.ensureExpectedFields(table, records);
@@ -369,7 +380,13 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     for (const record of records) {
       for (const [key, value] of Object.entries(record.fields)) {
         if (!expectedFields.has(key)) {
-          console.error(`Record ${record.id} has unexpected field ${key} with value ${JSON.stringify(value)}`);
+          WSLogger.error({
+            source: 'SnapshotDbService.ensureExpectedFields',
+            message: 'Record has unexpected field',
+            recordId: record.id,
+            key,
+            value,
+          });
           hasBad = true;
         }
       }
