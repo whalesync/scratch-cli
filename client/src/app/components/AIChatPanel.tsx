@@ -29,6 +29,7 @@ import {
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 import { ChatSessionSummary } from "@/types/server-entities/chat-session";
 import { useStyleGuides } from "@/hooks/use-style-guide";
+import { MarkdownRenderer } from "./markdown/MarkdownRenderer";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -426,8 +427,15 @@ export default function AIChatPanel({
                 }}
               >
                 <Stack gap="xs">
-                  <Text size="xs">{msg.message}</Text>
-                  
+                  {msg.role === "user" ? (
+                    <Text size="xs">
+                      {msg.message}
+                    </Text>
+                  ) : (
+                    <Text size="xs">
+                      <MarkdownRenderer>{msg.message}</MarkdownRenderer>
+                    </Text>
+                  )}
                   <Text size="xs" c="dimmed">
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </Text>
