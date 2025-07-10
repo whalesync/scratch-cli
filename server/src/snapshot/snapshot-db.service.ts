@@ -291,6 +291,12 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
                 [DIRTY_COLUMN]: true,
               });
             break;
+          case 'undelete':
+            await trx(tableId)
+              .withSchema(snapshotId)
+              .where('wsId', op.wsId)
+              .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: undefined }) });
+            break;
         }
       }
     });

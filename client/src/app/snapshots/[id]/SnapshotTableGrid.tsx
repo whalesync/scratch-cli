@@ -67,7 +67,7 @@ const generatePendingId = (): string => {
   return result;
 };
 
-const FAKE_LEFT_COLUMNS = 2;
+const FAKE_LEFT_COLUMNS = 1;
 
 const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
@@ -146,17 +146,34 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     });
   }, [recordsResponse?.records, sort]);
 
+
+  const isActionsColumn = useCallback((col: number) => {
+    return col === table.columns.length+1;
+  }, [table.columns]);
+
+  const isIdColumn = useCallback((col: number) => {
+    return col === 0;
+  }, []);
+
   const onCellClicked = useCallback(
     (cell: Item) => {
       const [col, row] = cell;
-      if (col === 0) {
+      if (isActionsColumn(col)) {
         // Actions column
         const record = sortedRecords?.[row];
         if (!record) return;
+
+        
         try {
-          bulkUpdateRecords({
-            ops: [{ op: "delete", wsId: record.id.wsId }],
-          });
+          if(record.__edited_fields?.__deleted) {
+            bulkUpdateRecords({
+              ops: [{ op: "undelete", wsId: record.id.wsId }],
+            });
+          }else {
+            bulkUpdateRecords({
+              ops: [{ op: "delete", wsId: record.id.wsId }],
+            });
+          }
         } catch (e) {
           const error = e as Error;
           notifications.show({
@@ -170,6 +187,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     [bulkUpdateRecords, sortedRecords]
   );
 
+
   const getCellContent = useCallback(
     (cell: Item): GridCell => {
       const [col, row] = cell;
@@ -179,8 +197,8 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const isDeleted = !!editedFields?.__deleted;
       const isFiltered = record?.filtered;
 
-      if (col === 0) {
-        if (!isHovered || isDeleted) {
+      if (col === table.columns.length+1) {
+        if (!isHovered) {
           return {
             kind: GridCellKind.Text,
             data: "",
@@ -190,10 +208,11 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
             themeOverride: isDeleted ? { bgCell: "#fde0e0" } : undefined,
           };
         }
+
         return {
           kind: GridCellKind.Text,
-          data: "🗑️",
-          displayData: "🗑️",
+          data: isDeleted ? "↩️" : "🗑️",
+          displayData: isDeleted ? "↩️" : "🗑️",
           readonly: true,
           allowOverlay: false,
           themeOverride: { bgCell: "#fde0e0" },
@@ -202,7 +221,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
         };
       }
 
-      if (col === 1) {
+      if (isIdColumn(col)) {
         return {
           kind: GridCellKind.Text,
           data: record?.id.remoteId ?? "",
@@ -211,7 +230,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
           allowOverlay: false,
         };
       }
-
+      
       const column = table.columns[col - FAKE_LEFT_COLUMNS];
       const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
@@ -284,6 +303,16 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       result.columns = table.columns.filter((c, idx) => {
         return idx >= startCol && idx < endCol;
       });
+    }
+
+    if (currentSelection && currentSelection.rows) {
+      debugger;
+      for (const row of currentSelection.rows) {
+        const record = sortedRecords?.[row];
+        if (record) {
+        result.records.push(record);
+      }
+      }
     }
 
     return result;
@@ -364,12 +393,13 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
   );
 
   const onGridSelectionChange = useCallback((selection: GridSelection) => {
+    console.log("onGridSelectionChange", selection);
     setCurrentSelection(selection);
   }, []);
 
   const onHeaderClicked = useCallback(
     (colIndex: number) => {
-      if (colIndex === 0) return;
+      if (isActionsColumn(colIndex) || isIdColumn(colIndex)) return;
       const column = table.columns[colIndex - FAKE_LEFT_COLUMNS];
       const columnId = column.id.wsId;
 
@@ -409,18 +439,18 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     }));
 
     return [
-      {
-        id: "actions",
-        title: "",
-        width: 35,
-      },
-      {
+       {
         title: "ID",
         id: "id",
         width: 150,
         themeOverride: { bgCell: "#F7F7F7" },
       },
       ...baseColumns,
+      {
+        id: "actions",
+        title: "",
+        width: 35,
+      },
     ];
   }, [table.columns, sort, columnWidths]);
 
@@ -483,21 +513,23 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
                 setHoveredRow(undefined);
               }
             }}
+            rowMarkers="both"
+            
           />
           <Group w="100%" p="xs" bg="gray.0">
             {isLoading ? (
               <AnimatedArrowsClockwise size={24} />
             ) : 
-              currentSelection && currentSelection.current ? <Text size="sm" fs='italic'>{currentSelection.current.range.height} {pluralize("record", currentSelection.current.range.height)} selected</Text> : <Text size="sm">{sortedRecords?.length ?? 0} {pluralize("record", sortedRecords?.length ?? 0)}</Text>   
+              currentSelection && getSelectedRowCount(currentSelection) > 0 ? <Text size="sm" fs='italic'>{getSelectedRowCount(currentSelection)} {pluralize("record", getSelectedRowCount(currentSelection))} selected</Text> : <Text size="sm">{sortedRecords?.length ?? 0} {pluralize("record", sortedRecords?.length ?? 0)}</Text>   
             }
            
             <Tooltip label="Select one or more records to create a view">
               <Button
                 variant="outline"
                 loading={activeProcess === "create-view"}
-                disabled={Boolean(
-                  !currentSelection || !currentSelection.current
-                )}
+                disabled={
+                  getSelectedRowCount(currentSelection) === 0
+                }
                 onClick={async () => {
                   const { records } = getGetSelectedRecordsAndColumns();
                   try {
@@ -597,6 +629,20 @@ function titleWithSort(column: ColumnSpec, sort: SortState | undefined) {
   }
   const icon = sort.dir === "asc" ? "🔼" : "🔽";
   return `${column.name} ${icon}`;
+}
+
+function getSelectedRowCount(currentSelection: GridSelection | undefined) {
+  if (!currentSelection) return 0;
+
+  if (currentSelection.current) {
+    return currentSelection.current.range.height;
+  }
+
+  if(currentSelection.rows) {
+    return currentSelection.rows.length;
+  }
+
+  return 0;
 }
 
 export default SnapshotTableGrid;

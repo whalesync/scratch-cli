@@ -1,7 +1,7 @@
 import { SnapshotRecord } from "./snapshot";
 
 export type RecordOperation = {
-  op: "create" | "update" | "delete";
+  op: "create" | "update" | "delete" | "undelete";
   wsId: string;
   data?: Record<string, unknown>;
 };
