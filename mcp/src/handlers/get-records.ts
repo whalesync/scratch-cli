@@ -3,7 +3,7 @@ import { snapshotApi } from "../lib/api/snapshot.js";
 
 export const GET_RECORDS_MCP_TOOL_DEFINITION = {
   name: "get_records",
-  description: "Get get all records for a table",
+  description: "Get the current records for a table. If there is an active view or filter only those records will be returned.",
   inputSchema: {
     type: "object",
     properties: {
@@ -14,12 +14,7 @@ export const GET_RECORDS_MCP_TOOL_DEFINITION = {
       limit: {
         type: "number",
         description: "The maximum number of records to retrieve.",
-        default: 500,
-        optional: true,
-      },
-      viewId: {
-        type: "string",
-        description: "The ID of the filtered view to get records for. If not provided, all records will be returned.",
+        default: 1000,
         optional: true,
       },
     },
@@ -31,7 +26,6 @@ export const getRecords = async (args: Record<string, unknown> | undefined) => {
   const snapshot = snapshotManager.getActiveSnapshot();
   const tableId = args?.tableId as string;
   const limit = args?.limit ? parseInt(args.limit as string) : 100;
-  const viewId = args?.viewId as string;
 
   if (!snapshot) {
     return {
@@ -55,12 +49,11 @@ export const getRecords = async (args: Record<string, unknown> | undefined) => {
   }
 
   try {
-    const result = await snapshotApi.listRecords(
+    const result = await snapshotApi.listActiveViewRecords(
       snapshot.id,
       tableId,
       undefined,
       limit,
-      viewId
     );
     return {
       content: [

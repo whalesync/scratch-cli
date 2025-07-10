@@ -184,6 +184,52 @@ export class SnapshotService {
     };
   }
 
+  /**
+   * List records for the active view of a table. If there is no active view, it will return records from the entire table.
+   */
+  async listActiveViewRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    userId: string,
+    cursor: string | undefined,
+    take: number,
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const tableContext = (snapshot.tableContexts as SnapshotTableContext[]).find((c) => c.id.wsId === tableId);
+    if (!tableContext) {
+      throw new NotFoundException('Table context not found in snapshot');
+    }
+
+    let viewConfig: SnapshotTableViewConfig | undefined = undefined;
+
+    if (tableContext.activeViewId) {
+      const view = await this.db.client.snapshotTableView.findUnique({
+        where: { id: tableContext.activeViewId },
+      });
+      if (view) {
+        viewConfig = view.config as SnapshotTableViewConfig;
+      }
+    }
+
+    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1, viewConfig);
+
+    let nextCursor: string | undefined;
+    if (records.length === take + 1) {
+      const nextRecord = records.pop();
+      nextCursor = nextRecord!.id.wsId;
+    }
+
+    return {
+      records,
+      nextCursor,
+    };
+  }
+
   async bulkUpdateRecords(
     snapshotId: SnapshotId,
     tableId: string,

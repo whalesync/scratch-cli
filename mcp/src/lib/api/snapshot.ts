@@ -121,6 +121,37 @@ export const snapshotApi = {
     return res.json();
   },
 
+
+  /**
+   * List records for the active view of a table.
+   */
+  async listActiveViewRecords(
+    snapshotId: string,
+    tableId: string,
+    cursor?: string,
+    take?: number,
+  ): Promise<ListRecordsResponse> {
+    const url = new URL(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
+    );
+    if (cursor) {
+      url.searchParams.append("cursor", cursor);
+    }
+    if (take) {
+      url.searchParams.append("take", take.toString());
+    }
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to list records");
+    }
+    return res.json();
+  },
+
   async bulkUpdateRecords(
     snapshotId: string,
     tableId: string,
