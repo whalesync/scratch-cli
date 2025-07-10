@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Paper,
   TextInput,
+  Textarea,
   Stack,
   Text,
   Group,
@@ -12,6 +13,10 @@ import {
   Alert,
   Select,
   MultiSelect,
+  Modal,
+  Button,
+  SimpleGrid,
+  Card,
 } from "@mantine/core";
 import {
   ChatCircle,
@@ -19,6 +24,7 @@ import {
   Plus,
   X,
   XIcon,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { useScratchPadUser } from "@/hooks/useScratchpadUser";
 import { ChatSessionSummary } from "@/types/server-entities/chat-session";
@@ -49,6 +55,16 @@ interface AIChatPanelProps {
   snapshotId?: string;
 }
 
+// Popular models from OpenRouter
+const POPULAR_MODELS = [
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast and efficient" },
+  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable model" },
+  { value: "anthropic/claude-3-5-sonnet", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced performance" },
+  { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku", provider: "Anthropic", description: "Fast and cost-effective" },
+  { value: "google/gemini-pro", label: "Gemini Pro", provider: "Google", description: "Google's latest model" },
+  { value: "google/gemini-flash", label: "Gemini Flash", provider: "Google", description: "Fast and efficient" },
+];
+
 const AI_CHAT_SERVER_URL =
   process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || "http://localhost:8000";
 
@@ -57,21 +73,23 @@ export default function AIChatPanel({
   onClose,
   snapshotId,
 }: AIChatPanelProps) {
-  const textInputRef = useRef<HTMLInputElement>(null);
-  const [resetInputFocus, setResetInputFocus] = useState(false);
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetInputFocus, setResetInputFocus] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o-mini");
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Get user data including API token
   const { user } = useScratchPadUser();
   const { styleGuides } = useStyleGuides();
+  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
 
   // Load sessions on mount
   useEffect(() => {
@@ -236,9 +254,11 @@ export default function AIChatPanel({
       const messageData: { 
         message: string; 
         api_token?: string; 
-        style_guides?: string[] 
+        style_guides?: string[];
+        model?: string;
       } = {
         message: message.trim(),
+        model: selectedModel,
       };
 
       // Include API token if available
@@ -381,27 +401,9 @@ export default function AIChatPanel({
         )}
       </Group>
 
-      {/* Style Guide Selection */}
-      <Group mb="md" gap="xs">
-        <MultiSelect
-          placeholder="Select style guides (optional)"
-          value={selectedStyleGuideIds}
-          onChange={setSelectedStyleGuideIds}
-          data={styleGuides.map((styleGuide) => ({
-            value: styleGuide.id,
-            label: styleGuide.name,
-          }))}
-          size="xs"
-          style={{ flex: 1 }}
-          searchable={false}
-          clearable={true}
-          maxDropdownHeight={200}
-        />
-      </Group>
-
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
-        Sessions: {sessions.length} | Current: {currentSessionId || "none"}
+        Sessions: {sessions.length} | Current: {currentSessionId || "none"} | Model: {selectedModel}
         {selectedStyleGuideIds.length > 0 && (
           <Text span size="xs" c="blue" ml="xs">
             | Style Guides ({selectedStyleGuideIds.length}): {selectedStyleGuideIds.map(id => styleGuides.find(sg => sg.id === id)?.name).filter(Boolean).join(", ")}
@@ -443,27 +445,138 @@ export default function AIChatPanel({
         )}
       </ScrollArea>
 
-      {/* Input Area */}
-      <Group gap="xs" align="center">
-        <TextInput
+      {/* Bottom Input Area */}
+      <Stack gap="xs">
+        {/* Style Guide Selection */}
+        <MultiSelect
+          placeholder={selectedStyleGuideIds.length === 0 ? "Select style guides (optional)" : ""}
+          value={selectedStyleGuideIds}
+          onChange={setSelectedStyleGuideIds}
+          data={styleGuides.map((styleGuide) => ({
+            value: styleGuide.id,
+            label: styleGuide.name,
+          }))}
+          size="xs"
+          searchable={false}
+          clearable={false}
+          maxDropdownHeight={200}
+          comboboxProps={{ position: 'top', middlewares: { flip: false, shift: false } }}
+          styles={{
+            input: {
+              border: 'none',
+              backgroundColor: 'transparent',
+              paddingLeft: '0px',
+            },
+          }}
+        />
+
+        {/* Input Area */}
+        <Textarea
           ref={textInputRef}
           placeholder="Type your message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
-          style={{ flex: 1 }}
           disabled={isLoading || !currentSessionId}
+
           size="xs"
+          minRows={5}
+          maxRows={5}
+          rows={5}
+          autosize={false}
         />
-        <ActionIcon
-          onClick={sendMessage}
-          disabled={!message.trim() || isLoading || !currentSessionId}
-          loading={isLoading}
-          size="md"
-        >
-          <PaperPlaneRightIcon size={16} />
-        </ActionIcon>
-      </Group>
+
+        {/* Model and Submit Row */}
+        <Group gap="xs" align="center">
+          <Group gap="xs" style={{ flex: 1 }}>
+            <ActionIcon
+              onClick={() => setShowModelSelector(true)}
+              size="sm"
+              variant="subtle"
+              title="Browse models"
+              style={{ 
+                color: '#ccc',
+                backgroundColor: 'transparent',
+              }}
+            >
+              <MagnifyingGlass size={14} />
+            </ActionIcon>
+            <TextInput
+              placeholder="Model"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              size="xs"
+              style={{ width: 150 }}
+              styles={{
+                input: {
+                  border: 'none',
+                  '&:focus': {
+                    border: '1px solid #228be6',
+                  },
+                },
+              }}
+            />
+          </Group>
+          <ActionIcon
+            onClick={sendMessage}
+            disabled={!message.trim() || isLoading || !currentSessionId}
+            loading={isLoading}
+            size="md"
+          >
+            <PaperPlaneRightIcon size={16} />
+          </ActionIcon>
+        </Group>
+      </Stack>
+
+      {/* Model Selector Modal */}
+      <Modal
+        opened={showModelSelector}
+        onClose={() => setShowModelSelector(false)}
+        title="Select Model"
+        size="md"
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Choose a model for AI generation. Different models have different capabilities and costs.
+          </Text>
+          
+          <SimpleGrid cols={2} spacing="md">
+            {POPULAR_MODELS.map((model) => (
+              <Card
+                key={model.value}
+                p="sm"
+                withBorder
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setSelectedModel(model.value);
+                  setShowModelSelector(false);
+                }}
+              >
+                <Stack gap="xs">
+                  <Text size="sm" fw={500}>
+                    {model.label}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {model.provider}
+                  </Text>
+                  <Text size="xs">
+                    {model.description}
+                  </Text>
+                </Stack>
+              </Card>
+            ))}
+          </SimpleGrid>
+          
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              onClick={() => setShowModelSelector(false)}
+            >
+              Cancel
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Paper>
   );
 }

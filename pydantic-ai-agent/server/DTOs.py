@@ -9,6 +9,7 @@ class SendMessageRequestDTO(BaseModel):
     message: str
     api_token: str = Field(description="API token for Scratchpad server authentication")
     style_guides: Optional[List[str]] = Field(default=None, description="List of style guide content to include in the prompt")
+    model: Optional[str] = Field(default="openai/gpt-4o-mini", description="Model to use for AI generation")
 
 class SendMessageResponseDTO(BaseModel):
     """Response from sending a message"""

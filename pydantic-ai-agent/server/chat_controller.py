@@ -109,7 +109,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         print(f"🤖 Processing with agent...")
         log_info("Agent processing started", session_id=session_id, chat_history_length=len(session.chat_history), summary_history_length=len(session.summary_history), snapshot_id=session.snapshot_id)
         
-        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides)
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides, request.model)
         
         log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         

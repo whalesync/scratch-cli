@@ -45,7 +45,8 @@ class ChatService:
         session: ChatSession, 
         user_message: str, 
         api_token: str,
-        style_guides: Optional[List[str]] = None
+        style_guides: Optional[List[str]] = None,
+        model: Optional[str] = None
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -123,7 +124,7 @@ class ChatService:
                     api_token=api_token
                 )
 
-                agent = create_agent()
+                agent = create_agent(model)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
                     deps=chatRunContext

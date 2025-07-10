@@ -27,7 +27,7 @@ def extract_response(result) -> ResponseFromAgent | None:
                 return response  # type: ignore
     return None
 
-def create_agent():
+def create_agent(model_name: Optional[str] = None):
     """Create and return a configured agent"""
     try:
         # OpenRouter API key from environment
@@ -36,8 +36,9 @@ def create_agent():
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY environment variable not found")
         
-        # Model name from environment
-        model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
+        # Use provided model name or fall back to environment variable
+        if model_name is None:
+            model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
         
         # Create the model using OpenRouter
         model = OpenAIModel(

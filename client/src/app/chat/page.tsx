@@ -44,6 +44,7 @@ export default function ChatPage() {
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o-mini");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Get user data including API token
@@ -155,8 +156,9 @@ export default function ChatPage() {
     });
 
     try {
-      const messageData: { message: string; api_token?: string } = {
+      const messageData: { message: string; api_token?: string; model?: string } = {
         message: message.trim(),
+        model: selectedModel,
       };
 
       // Include API token if available
@@ -283,6 +285,13 @@ export default function ChatPage() {
 
                 {/* Input Area */}
                 <Group>
+                  <TextInput
+                    placeholder="Model (e.g., openai/gpt-4o-mini)"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    style={{ width: 200 }}
+                    size="xs"
+                  />
                   <TextInput
                     placeholder="Type your message..."
                     value={message}
