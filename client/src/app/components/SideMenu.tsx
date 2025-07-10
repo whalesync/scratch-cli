@@ -17,7 +17,6 @@ import {
   PlugsIcon,
   CheckIcon,
   CopyIcon,
-  ChatCircleIcon,
   TableIcon,
   RobotIcon,
   BookOpenIcon,
@@ -42,11 +41,6 @@ const links = [
     href: RouteUrls.apiImportDemoPageUrl,
     label: "AI Connector Builder",
     icon: <RobotIcon size={16} />,
-  },
-  {
-    href: RouteUrls.chatPageUrl,
-    label: "Chat Testing",
-    icon: <ChatCircleIcon size={16} />,
   },
   {
     href: RouteUrls.styleGuidesPageUrl,

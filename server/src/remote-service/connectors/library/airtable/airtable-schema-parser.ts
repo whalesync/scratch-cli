@@ -18,6 +18,9 @@ export class AirtableSchemaParser {
   parseColumn(field: AirtableFieldsV2): AirtableColumnSpec {
     const pgType = this.getPostgresType(field);
     const readonly = this.isColumnReadonly(field);
+    // KLUDGE: hacky markdown support
+    const markdown = this.isMarkdownField(field);
+
     WSLogger.debug({ source: 'AirtableSchemaParser', message: 'Parsing column', field, pgType, readonly });
     return {
       id: {
@@ -27,6 +30,7 @@ export class AirtableSchemaParser {
       name: field.name,
       pgType,
       readonly,
+      markdown,
     };
   }
 
@@ -136,5 +140,11 @@ export class AirtableSchemaParser {
       default:
         return false;
     }
+  }
+
+  private isMarkdownField(field: AirtableFieldsV2): boolean {
+    const type = field.type as AirtableDataType;
+    const name = field.name.toLowerCase();
+    return type === AirtableDataType.MULTILINE_TEXT && name.endsWith('_md');
   }
 }

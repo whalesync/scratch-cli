@@ -27,6 +27,8 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   id: EntityId;
   name: string;
   columns: ColumnType[];
+  // Denotes this table as a collection of markdown files with each row being a separate markdown file
+  markdownFiles?: boolean;
 };
 
 /** Types of columns we support. Add more if needed. */
@@ -46,6 +48,7 @@ export type BaseColumnSpec = {
 
   pgType: PostgresColumnType;
   readonly?: boolean;
+  markdown?: boolean;
 };
 
 /**

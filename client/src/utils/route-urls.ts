@@ -17,7 +17,6 @@ export class RouteUrls {
   // Authenticated Routes & Route Generators
   static connectionsPageUrl = "/connector-accounts";
   static apiImportDemoPageUrl = "/ai-connector-builder";
-  static chatPageUrl = "/chat";
   static healthPageUrl = "/health";
   static snapshotPage = (id: string) => `/snapshots/${id}`;
   static snapshotsPageUrl = "/snapshots";

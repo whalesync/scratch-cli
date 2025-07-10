@@ -39,10 +39,15 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     if (!table) {
       throw new Error(`Table ${tableId} not found in base ${baseId}`);
     }
+
+    // KLUDGE: hacky markdown support
+    const markdown = table.name.endsWith('_md');
+
     return {
       id,
       name: table.name,
       columns: table.fields.map((field) => this.schemaParser.parseColumn(field)),
+      markdownFiles: markdown,
     };
   }
 
