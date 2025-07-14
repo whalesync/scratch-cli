@@ -6,12 +6,14 @@ import {
   GridCell,
   GridCellKind,
   GridColumn,
+  GridColumnMenuIcon,
   GridMouseEventArgs,
   GridSelection,
   Item,
   Theme,
+  CellClickedEventArgs,
 } from "@glideapps/glide-data-grid";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ColumnSpec,
   Snapshot,
@@ -25,6 +27,7 @@ import {
   Center,
   Group,
   Loader,
+  Menu,
   Modal,
   ScrollArea,
   Stack,
@@ -73,6 +76,20 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    col: number;
+    row: number;
+  } | null>(null);
+  const [headerMenu, setHeaderMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    col: number;
+  } | null>(null);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [activeProcess, setActiveProcess] = useState<
     "create-view" | "clear-view" | undefined
   >();
@@ -97,7 +114,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     ? views.find((v) => v.id === tableContext?.activeViewId)
     : undefined;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
+  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues } =
     useSnapshotRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
@@ -193,8 +210,10 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const [col, row] = cell;
       const record = sortedRecords?.[row];
       const editedFields = record?.__edited_fields;
+      const suggestedValues = record?.__suggested_values;
       const isHovered = hoveredRow === row;
       const isDeleted = !!editedFields?.__deleted;
+      const isSuggestedDeleted = !!suggestedValues?.__deleted;
       const isFiltered = record?.filtered;
 
       if (col === table.columns.length+1) {
@@ -222,12 +241,29 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       }
 
       if (isIdColumn(col)) {
+        const themeOverride: Partial<Theme> = {};
+        
+        // Background color logic for ID column
+        if (isDeleted) {
+          themeOverride.bgCell = "#fde0e0";
+        } else if (editedFields?.__created) {
+          themeOverride.bgCell = "#e0fde0";
+        }
+        
+        // Text color logic for ID column
+        if (isFiltered) {
+          themeOverride.textDark = "#cacaca";
+        } else if (isSuggestedDeleted) {
+          themeOverride.textDark = "#b8860b"; // Yellow text for suggested deletions
+        }
+
         return {
           kind: GridCellKind.Text,
           data: record?.id.remoteId ?? "",
           displayData: record?.id.remoteId ?? "",
           readonly: true,
           allowOverlay: false,
+          themeOverride,
         };
       }
       
@@ -235,16 +271,26 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
 
+      // Check if there's a suggested value for this field
+      const suggestedValue = suggestedValues?.[column.id.wsId];
+      const hasEditedValue = editedFields?.[column.id.wsId];
+
       const themeOverride: Partial<Theme> = {};
+      
+      // Background color logic
       if (isDeleted) {
         themeOverride.bgCell = "#fde0e0";
       } else if (editedFields?.__created) {
         themeOverride.bgCell = "#e0fde0";
-      } else if (editedFields?.[column.id.wsId]) {
-        themeOverride.bgCell = "#fdfde0";
+      } else if (hasEditedValue) {
+        themeOverride.bgCell = "#e0fde0"; // Green for edited fields
       }
+      
+      // Text color logic (independent of background)
       if (isFiltered) {
         themeOverride.textDark = "#cacaca";
+      } else if (suggestedValue || isSuggestedDeleted) {
+        themeOverride.textDark = "#b8860b"; // Yellow text for suggested values/deletions
       }
 
       if (
@@ -265,12 +311,25 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
         };
       }
 
+      // Determine what to display
+      let displayText = value ? String(value) : "";
+      
+      if (isSuggestedDeleted) {
+        // Show all values as crossed out with suggestion dot for suggested deletion
+        const strikethroughText = displayText.split('').map(char => char + '\u0336').join('');
+        displayText = `${strikethroughText} ●`;
+      } else if (suggestedValue) {
+        // Show original as crossed out using Unicode strikethrough characters whenever there's a suggested value
+        const strikethroughText = displayText.split('').map(char => char + '\u0336').join('');
+        displayText = `${strikethroughText} ● ${String(suggestedValue)}`;
+      }
+
       return {
         kind: GridCellKind.Text,
         allowOverlay: !isReadonly,
         readonly: isReadonly,
-        displayData: value ? String(value) : "",
-        data: value ? String(value) : "",
+        displayData: displayText, // Show the strikethrough version for viewing
+        data: value ? String(value) : "", // Keep original value for editing
         themeOverride,
       };
     },
@@ -426,32 +485,334 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     }
   }, []);
 
+  const onHeaderMenuClick = useCallback(
+    (col: number) => {
+      console.log("Header menu clicked for column:", col);
+      
+      if (isActionsColumn(col)) return;
+      
+      // Use the stored mouse position from the global mouse move handler
+      const mouseX = mousePosition?.x || 0;
+      const mouseY = mousePosition?.y || 0;
+      
+      console.log("Header menu position:", { mouseX, mouseY, mousePosition });
+      
+      // Show the header menu at the mouse position
+      setHeaderMenu({
+        visible: true,
+        x: mouseX,
+        y: mouseY,
+        col,
+      });
+    },
+    [table.columns, mousePosition]
+  );
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  // Track mouse position globally
+  useEffect(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [handleMouseMove]);
+
+  const onCellContextMenu = useCallback(
+    (cell: Item, event: CellClickedEventArgs) => {
+      const [col, row] = cell;
+      console.log("Cell context menu clicked:", { col, row, event });
+      
+      // Prevent the default browser context menu
+      event.preventDefault?.();
+      
+      if (isActionsColumn(col)) return;
+      
+      // Use the stored mouse position from the global mouse move handler
+      const mouseX = mousePosition?.x || 0;
+      const mouseY = mousePosition?.y || 0;
+      
+      console.log("Using mouse position:", { mouseX, mouseY, mousePosition });
+      
+      // Show the context menu at the mouse position
+      setContextMenu({
+        visible: true,
+        x: mouseX,
+        y: mouseY,
+        col,
+        row,
+      });
+    },
+    [table.columns, sortedRecords, mousePosition]
+  );
+
+  const handleContextMenuAction = useCallback(
+    async (action: string) => {
+      if (!contextMenu) return;
+      
+      const { col, row } = contextMenu;
+      const record = sortedRecords?.[row];
+      const columnName = isIdColumn(col) ? "ID" : table.columns[col - FAKE_LEFT_COLUMNS]?.name;
+      const cellValue = isIdColumn(col) 
+        ? record?.id.remoteId 
+        : record?.fields[table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId];
+      
+      if (action === "Accept Cell") {
+        if (!record || isIdColumn(col)) return;
+        
+        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        if (!columnId) return;
+        
+        try {
+          await acceptCellValues([{ wsId: record.id.wsId, columnId }]);
+          notifications.show({
+            title: "Accept Cell",
+            message: `Accepted suggestion for "${columnName}"`,
+            color: "green",
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: "Error accepting cell",
+            message: error.message,
+            color: "red",
+          });
+        }
+      } else if (action.startsWith("Accept Record")) {
+        if (!record) return;
+        
+        // Get all columns that have suggestions for this record
+        const suggestedValues = record.__suggested_values || {};
+        const columnsWithSuggestions = Object.keys(suggestedValues).filter(
+          columnId => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined
+        );
+        
+        if (columnsWithSuggestions.length === 0) {
+          notifications.show({
+            title: "Accept Record",
+            message: "No suggestions found for this record",
+            color: "yellow",
+          });
+          return;
+        }
+        
+        try {
+          // Create items array for all columns with suggestions
+          const items = columnsWithSuggestions.map(columnId => ({
+            wsId: record.id.wsId,
+            columnId
+          }));
+          
+          await acceptCellValues(items);
+          notifications.show({
+            title: "Accept Record",
+            message: `Accepted ${columnsWithSuggestions.length} suggestion${columnsWithSuggestions.length > 1 ? 's' : ''} for this record`,
+            color: "green",
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: "Error accepting record",
+            message: error.message,
+            color: "red",
+          });
+        }
+      } else {
+        notifications.show({
+          title: `${action}`,
+          message: `${action} action for "${columnName}" (${cellValue}) - coming soon!`,
+          color: "blue",
+        });
+      }
+      
+      // Close the context menu
+      setContextMenu(null);
+    },
+    [contextMenu, sortedRecords, table.columns, acceptCellValues]
+  );
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const closeHeaderMenu = useCallback(() => {
+    setHeaderMenu(null);
+  }, []);
+
+  const handleHeaderMenuAction = useCallback(
+    async (action: string) => {
+      if (!headerMenu) return;
+      
+      const { col } = headerMenu;
+      const columnName = isIdColumn(col) ? "ID" : table.columns[col - FAKE_LEFT_COLUMNS]?.name;
+      
+      if (action === "Accept Column") {
+        if (isIdColumn(col)) return;
+        
+        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        if (!columnId) return;
+        
+        // Find all records that have suggestions for this column
+        const recordsWithSuggestions = sortedRecords?.filter(record => {
+          const suggestedValues = record.__suggested_values || {};
+          return suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined;
+        }) || [];
+        
+        if (recordsWithSuggestions.length === 0) {
+          notifications.show({
+            title: "Accept Column",
+            message: `No suggestions found for column "${columnName}"`,
+            color: "yellow",
+          });
+          return;
+        }
+        
+        try {
+          // Create items array for all records with suggestions for this column
+          const items = recordsWithSuggestions.map(record => ({
+            wsId: record.id.wsId,
+            columnId
+          }));
+          
+          await acceptCellValues(items);
+          notifications.show({
+            title: "Accept Column",
+            message: `Accepted ${recordsWithSuggestions.length} suggestion${recordsWithSuggestions.length > 1 ? 's' : ''} for column "${columnName}"`,
+            color: "green",
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: "Error accepting column",
+            message: error.message,
+            color: "red",
+          });
+        }
+      } else {
+        notifications.show({
+          title: `${action}`,
+          message: `${action} action for column "${columnName}" - coming soon!`,
+          color: "blue",
+        });
+      }
+      
+      // Close the header menu
+      setHeaderMenu(null);
+    },
+    [headerMenu, table.columns, sortedRecords, acceptCellValues]
+  );
+
+  const getContextMenuItems = useCallback(() => {
+    if (!contextMenu) return [];
+    
+    const { col, row } = contextMenu;
+    const record = sortedRecords?.[row];
+    
+    if (isActionsColumn(col) || isIdColumn(col)) {
+      return [{ label: "No actions", disabled: true }];
+    }
+    
+    const column = table.columns[col - FAKE_LEFT_COLUMNS];
+    if (!column) {
+      return [{ label: "No actions", disabled: true }];
+    }
+    
+    // Check if there's a suggested value for this specific cell
+    const hasCellSuggestion = !!record?.__suggested_values?.[column.id.wsId];
+    
+    // Check if there are any suggested values for any field in this record
+    const recordSuggestions = record?.__suggested_values ? Object.keys(record.__suggested_values) : [];
+    const hasRecordSuggestions = recordSuggestions.length > 0;
+    
+    const items = [];
+    
+    if (hasCellSuggestion) {
+      items.push({ label: "Accept Cell", disabled: false });
+    }
+    
+    if (hasRecordSuggestions) {
+      const suggestionCount = recordSuggestions.length;
+      const suggestionText = suggestionCount === 1 ? "suggestion" : "suggestions";
+      items.push({ label: `Accept Record (${suggestionCount} ${suggestionText})`, disabled: false });
+    }
+    
+    if (items.length === 0) {
+      items.push({ label: "No actions", disabled: true });
+    }
+    
+    return items;
+  }, [contextMenu, sortedRecords, table.columns]);
+
+  const getHeaderMenuItems = useCallback(() => {
+    if (!headerMenu) return [];
+    
+    const { col } = headerMenu;
+    
+    if (isActionsColumn(col) || isIdColumn(col)) {
+      return [{ label: "No actions", disabled: true }];
+    }
+    
+    const column = table.columns[col - FAKE_LEFT_COLUMNS];
+    if (!column) {
+      return [{ label: "No actions", disabled: true }];
+    }
+    
+    // Check if any record has a suggested value for this column
+    const hasColumnSuggestions = sortedRecords?.some(record => 
+      record.__suggested_values?.[column.id.wsId]
+    );
+    
+    const items = [];
+    
+    if (hasColumnSuggestions) {
+      items.push({ label: "Accept Column", disabled: false });
+    }
+    
+    if (items.length === 0) {
+      items.push({ label: "No actions", disabled: true });
+    }
+    
+    return items;
+  }, [headerMenu, sortedRecords, table.columns]);
+
   const columns: GridColumn[] = useMemo(() => {
     const baseColumns: GridColumn[] = table.columns.map((c) => ({
       title: titleWithSort(c, sort),
       id: c.id.wsId,
       width: columnWidths[c.id.wsId] ?? 150,
+      menuIcon: GridColumnMenuIcon.Dots,
+      icon: "headerMenu",
+      hasMenu: true,
       ...(c.readonly && {
         themeOverride: {
           bgCell: "#F7F7F7",
         },
       }),
-    }));
+    } satisfies GridColumn));
 
-    return [
+    const result = [
        {
         title: "ID",
         id: "id",
         width: 150,
         themeOverride: { bgCell: "#F7F7F7" },
+        menuIcon: GridColumnMenuIcon.Dots,
+        icon: "headerMenu",
+        hasMenu: true,
       },
       ...baseColumns,
       {
         id: "actions",
         title: "",
         width: 35,
+        // No menu icon for actions column
       },
     ];
+    
+    console.log("Columns created:", result);
+    return result;
   }, [table.columns, sort, columnWidths]);
 
   if (error) {
@@ -490,7 +851,15 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
           <JsonTreeViewer jsonData={tableContext ?? {}} />
         </ScrollArea>
       </Modal>
-      <Box h="100%" w="100%" style={{ position: "relative" }}>
+      <Box 
+        h="100%" 
+        w="100%" 
+        style={{ position: "relative" }}
+        onClick={() => {
+          closeContextMenu();
+          closeHeaderMenu();
+        }}
+      >
         <Stack p={0} h="100%" gap={0}>
           <DataEditor
             width="100%"
@@ -514,7 +883,13 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
               }
             }}
             rowMarkers="both"
-            
+            onHeaderMenuClick={onHeaderMenuClick}
+            onCellContextMenu={onCellContextMenu}
+            theme={{
+              headerIconSize: 24,
+              bgHeader: "#f8f9fa",
+              textHeader: "#333",
+            }}
           />
           <Group w="100%" p="xs" bg="gray.0">
             {isLoading ? (
@@ -619,6 +994,88 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
           </Group>
         </Stack>
       </Box>
+      
+      {/* Context Menu */}
+      {contextMenu && (
+        <Menu
+          opened={contextMenu.visible}
+          onClose={closeContextMenu}
+          position="bottom-start"
+          offset={0}
+          styles={{
+            dropdown: {
+              position: 'fixed',
+              left: contextMenu.x,
+              top: contextMenu.y,
+              zIndex: 1000,
+            },
+          }}
+        >
+          <Menu.Target>
+            <div style={{ 
+              position: 'fixed', 
+              left: contextMenu.x, 
+              top: contextMenu.y, 
+              width: 1, 
+              height: 1, 
+              pointerEvents: 'none' 
+            }} />
+          </Menu.Target>
+          
+          <Menu.Dropdown>
+            {getContextMenuItems().map((item, index) => (
+              <Menu.Item
+                key={index}
+                disabled={item.disabled}
+                onClick={item.disabled ? undefined : () => handleContextMenuAction(item.label)}
+              >
+                {item.label}
+              </Menu.Item>
+            ))}
+          </Menu.Dropdown>
+        </Menu>
+      )}
+      
+      {/* Header Menu */}
+      {headerMenu && (
+        <Menu
+          opened={headerMenu.visible}
+          onClose={closeHeaderMenu}
+          position="bottom-start"
+          offset={0}
+          styles={{
+            dropdown: {
+              position: 'fixed',
+              left: headerMenu.x,
+              top: headerMenu.y,
+              zIndex: 1000,
+            },
+          }}
+        >
+          <Menu.Target>
+            <div style={{ 
+              position: 'fixed', 
+              left: headerMenu.x, 
+              top: headerMenu.y, 
+              width: 1, 
+              height: 1, 
+              pointerEvents: 'none' 
+            }} />
+          </Menu.Target>
+          
+          <Menu.Dropdown>
+            {getHeaderMenuItems().map((item, index) => (
+              <Menu.Item
+                key={index}
+                disabled={item.disabled}
+                onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+              >
+                {item.label}
+              </Menu.Item>
+            ))}
+          </Menu.Dropdown>
+        </Menu>
+      )}
     </>
   );
 };

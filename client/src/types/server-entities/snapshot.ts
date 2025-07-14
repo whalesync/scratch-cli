@@ -55,6 +55,15 @@ export interface CreateSnapshotDto {
   tableIds: EntityId[];
 }
 
+export interface AcceptCellValueItem {
+  wsId: string;
+  columnId: string;
+}
+
+export interface AcceptCellValueDto {
+  items: AcceptCellValueItem[];
+}
+
 export type SnapshotRecord = {
   id: {
     wsId: string;
@@ -63,6 +72,7 @@ export type SnapshotRecord = {
   fields: Record<string, unknown>;
 
   __edited_fields?: EditedFieldsMetadata;
+  __suggested_values?: Record<string, unknown>;
   __dirty: boolean;
 };
 

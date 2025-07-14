@@ -35,6 +35,23 @@ class TableContext:
     ignoredColumns: List[str]
     readOnlyColumns: List[str]
 
+# Type aliases for metadata fields
+SuggestedFields = Dict[str, str]
+EditedFieldsMetadata = Dict[str, str]  # Field name -> timestamp, plus special __created/__deleted keys
+
+@dataclass
+class RecordId:
+    wsId: str
+    remoteId: Optional[str]
+
+@dataclass
+class SnapshotRecord:
+    id: RecordId
+    fields: Dict[str, Any]
+    edited_fields: Optional[EditedFieldsMetadata] = None
+    suggested_fields: Optional[SuggestedFields] = None
+    dirty: bool = False
+
 @dataclass
 class Snapshot:
     id: str
@@ -64,7 +81,7 @@ class BulkUpdateRecordsDto:
 
 @dataclass
 class ListRecordsResponse:
-    records: List[Dict[str, Any]]  # SnapshotRecord[]
+    records: List[SnapshotRecord]
     nextCursor: Optional[str] = None
 
 @dataclass
@@ -186,12 +203,40 @@ class SnapshotApi:
             params["viewId"] = view_id
         response = requests.get(url, headers=API_CONFIG.get_api_headers(), params=params)
         data = _handle_response(response, "Failed to list records")
-        return ListRecordsResponse(**data)
+        
+        print(f"🔍 DEBUG: Raw server response has {len(data.get('records', []))} records")
+        
+        # Convert raw record dictionaries to SnapshotRecord objects
+        records = []
+        for i, record_dict in enumerate(data.get("records", [])):
+            print(f"🔍 DEBUG: Converting record {i}: {type(record_dict)}")
+            
+            record_id = RecordId(
+                wsId=record_dict["id"]["wsId"],
+                remoteId=record_dict["id"]["remoteId"]
+            )
+            
+            snapshot_record = SnapshotRecord(
+                id=record_id,
+                fields=record_dict.get("fields", {}),
+                edited_fields=record_dict.get("__edited_fields"),
+                suggested_fields=record_dict.get("__suggested_values"),  # Note: server uses __suggested_values
+                dirty=record_dict.get("__dirty", False)
+            )
+            print(f"🔍 DEBUG: Created SnapshotRecord: {type(snapshot_record)}")
+            records.append(snapshot_record)
+        
+        result = ListRecordsResponse(
+            records=records,
+            nextCursor=data.get("nextCursor")
+        )
+        print(f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}")
+        return result
     
     @staticmethod
     def bulk_update_records(snapshot_id: str, table_id: str, dto: BulkUpdateRecordsDto) -> None:
         """Bulk update records in a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk"
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
         payload = {
             "ops": [
                 {

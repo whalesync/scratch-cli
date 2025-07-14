@@ -318,10 +318,14 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         print(f"📊 Records for table '{table_name}' (ID: {table.id.wsId}, limit: {limit}):")
         print(f"📋 Total records returned: {len(result.records)}")
         print(f"📄 Next cursor: {result.nextCursor}")
+        print(f"🔍 DEBUG: result type: {type(result)}")
+        print(f"🔍 DEBUG: result.records type: {type(result.records)}")
+        if result.records:
+            print(f"🔍 DEBUG: First record type: {type(result.records[0])}")
         
         # Log each record (truncated for readability)
         for i, record in enumerate(result.records):
-            print(f"  Record {i+1}: {str(record)[:200]}...")
+            print(f"  Record {i+1} (type: {type(record)}): {str(record)[:200]}...")
         
         log_info("Successfully retrieved records", 
                  table_name=table_name,
@@ -332,13 +336,25 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         # Format records for the agent to understand
         records_summary = []
         for i, record in enumerate(result.records):
-            record_data = {}
-            for key, value in record.items():
+            record_data = {
+                "id": {"wsId": record.id.wsId, "remoteId": record.id.remoteId},
+                "dirty": record.dirty,
+            }
+            
+            # Add the actual field data
+            for key, value in record.fields.items():
                 # Truncate long values for readability
                 if isinstance(value, str) and len(value) > 100:
                     record_data[key] = value[:100] + "..."
                 else:
                     record_data[key] = value
+            
+            # Add metadata if present
+            if record.edited_fields:
+                record_data["edited_fields"] = record.edited_fields
+            if record.suggested_fields:
+                record_data["suggested_fields"] = record.suggested_fields
+                
             records_summary.append(record_data)
         
         return f"Successfully retrieved {len(result.records)} records for table '{table_name}':\n\n{records_summary}\n\nNext cursor: {result.nextCursor}"

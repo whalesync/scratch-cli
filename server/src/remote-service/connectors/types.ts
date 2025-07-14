@@ -75,6 +75,7 @@ export type SnapshotRecord = {
   fields: Record<string, unknown>;
 
   __edited_fields: EditedFieldsMetadata;
+  __suggested_values: Record<string, unknown>;
   __dirty: boolean;
 };
 

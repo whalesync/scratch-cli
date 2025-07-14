@@ -235,6 +235,7 @@ export class SnapshotService {
     tableId: string,
     dto: BulkUpdateRecordsDto,
     userId: string,
+    type: 'accepted' | 'suggested',
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
@@ -244,7 +245,55 @@ export class SnapshotService {
 
     this.validateBulkUpdateOps(dto.ops, tableSpec);
 
-    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops);
+    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops, type);
+  }
+
+  async acceptCellValues(
+    snapshotId: SnapshotId,
+    tableId: string,
+    items: { wsId: string; columnId: string }[],
+    userId: string,
+  ): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    // Validate that all columns exist in the table spec
+    const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
+    for (const item of items) {
+      const columnSpec = columnMap.get(item.columnId);
+      if (!columnSpec) {
+        throw new NotFoundException(`Column '${item.columnId}' not found in table`);
+      }
+    }
+
+    return this.snapshotDbService.acceptCellValues(snapshotId, tableId, items);
+  }
+
+  async rejectValues(
+    snapshotId: SnapshotId,
+    tableId: string,
+    items: { wsId: string; columnId: string }[],
+    userId: string,
+  ): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    // Validate that all columns exist in the table spec
+    const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
+    for (const item of items) {
+      const columnSpec = columnMap.get(item.columnId);
+      if (!columnSpec) {
+        throw new NotFoundException(`Column '${item.columnId}' not found in table`);
+      }
+    }
+
+    return this.snapshotDbService.rejectValues(snapshotId, tableId, items);
   }
 
   private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: AnyTableSpec) {

@@ -17,9 +17,11 @@ import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
+import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
+import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { Snapshot, SnapshotTableView } from './entities/snapshot.entity';
 import { SnapshotService } from './snapshot.service';
@@ -120,7 +122,43 @@ export class SnapshotController {
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id);
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'accepted');
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/bulk-suggest')
+  @HttpCode(204)
+  async bulkUpdateRecordsSuggest(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested');
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/accept-cell-values')
+  @HttpCode(204)
+  async acceptCellValues(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() acceptCellValueDto: AcceptCellValueDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.acceptCellValues(snapshotId, tableId, acceptCellValueDto.items, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/reject-values')
+  @HttpCode(204)
+  async rejectValues(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() rejectCellValueDto: RejectCellValueDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.rejectValues(snapshotId, tableId, rejectCellValueDto.items, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

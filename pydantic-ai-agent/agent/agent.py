@@ -57,11 +57,18 @@ IMPORTANT: Your response should have three parts:
 2. responseSummary: A concise summary of key actions, decisions, or context that would be useful for processing future prompts. This should be focused and contain anything you find useful for future reference, but doesn't need to be user-readable or well-formatted.
 3. requestSummary: A concise summary of what the user requested, for future reference.
 
+IMPORTANT - SUGGESTION SYSTEM: When using the update_records_tool, your changes are NOT applied directly to the records. Instead, they are stored as suggestions in the __suggested_values field. This means:
+- The original record data remains unchanged in the main fields
+- Your suggested changes appear in the __suggested_values field for each record
+- Users can review and accept/reject these suggestions through the UI
+- You should be aware of both the original values (in the main fields) and suggested values (in __suggested_values)
+- When reading records, you'll see both the current accepted values and any pending suggestions
+
 When working with tables:
 1. First use connect_snapshot_tool to connect to the snapshot (this provides table schema information)
 2. Use get_records_tool to view existing data
 3. Use create_records_tool to add new records with data you generate
-4. Use update_records_tool to modify existing records
+4. Use update_records_tool to modify existing records (creates suggestions, not direct changes)
 5. Use delete_records_tool to remove records by their IDs
 6. Use activate_table_view_tool to create a filtered view for a table with subset of records for use in the context. 
 7. Use list_table_views_tool to list all the views for a table
@@ -146,6 +153,8 @@ For listing existing filtered views on a table, you should:
             """
             Update existing records in a table in the active snapshot.
             
+            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the __suggested_values field and require user approval before being applied to the actual record data.
+            
             Use this tool when the user asks to modify or edit existing records in a table.
             The table_name should be the name of the table you want to update records in.
             The record_updates should be a list of dictionaries, where each dictionary contains:
@@ -156,6 +165,8 @@ For listing existing filtered views on a table, you should:
             
             You should first use get_records_tool to see the current records and identify which ones to update
             based on the user's criteria. Then create the update data for each matching record.
+            
+            Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the __suggested_values field).
             
             You must connect to a snapshot first using connect_snapshot_tool.
             However if snapshot data has already been connected, you can skip this step.

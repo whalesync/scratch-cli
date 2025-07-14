@@ -20,6 +20,9 @@ types.setTypeParser(23, 'text', parseInt); // INT4
 // of metadata in each snapshotted table. It contains the fields that have been edited since last download, plus whether
 // the record was created or deleted.
 export const EDITED_FIELDS_COLUMN = '__edited_fields';
+// Same as the above, but for edits that are suggested by the AI.
+export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
+
 export const DIRTY_COLUMN = '__dirty';
 
 export type EditedFieldsMetadata = {
@@ -36,6 +39,7 @@ type DbRecord = {
   wsId: SnapshotRecordId;
   id: string | null;
   [EDITED_FIELDS_COLUMN]: EditedFieldsMetadata;
+  [SUGGESTED_FIELDS_COLUMN]: Record<string, unknown>;
   [DIRTY_COLUMN]: boolean;
   [key: string]: unknown;
 };
@@ -51,6 +55,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       client: 'pg',
       connection: this.config.getDatabaseUrl(),
       searchPath: ['public'],
+      debug: true,
     });
 
     this.knex.on('error', (err: Error) => {
@@ -107,6 +112,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
             }
           }
           t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
+          t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
           t.boolean(DIRTY_COLUMN).defaultTo(false);
         });
       } else {
@@ -226,7 +232,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     }
 
     return (await query).map(
-      ({ wsId, id, __edited_fields, __dirty, ...fields }): SnapshotRecord => ({
+      ({ wsId, id, __edited_fields, __suggested_values, __dirty, ...fields }): SnapshotRecord => ({
         // Need to move the id columns up one level.
         id: {
           wsId,
@@ -234,12 +240,18 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
         },
         fields,
         __edited_fields,
+        __suggested_values,
         __dirty,
       }),
     );
   }
 
-  async bulkUpdateRecords(snapshotId: SnapshotId, tableId: string, ops: RecordOperation[]): Promise<void> {
+  async bulkUpdateRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    ops: RecordOperation[],
+    type: 'suggested' | 'accepted',
+  ): Promise<void> {
     const now = new Date().toISOString();
     await this.knex.transaction(async (trx) => {
       for (const op of ops) {
@@ -248,56 +260,208 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
             await trx(tableId)
               .withSchema(snapshotId)
               .insert({
-                ...op.data,
                 wsId: createSnapshotRecordId(),
                 id: null,
-                [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
-                [DIRTY_COLUMN]: true,
+                ...(type === 'accepted'
+                  ? // Set the fields that were edited.
+                    // Set the dirty column to true.
+                    // Set timestamps in __edited_fields.
+                    {
+                      ...op.data,
+                      [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
+                      [DIRTY_COLUMN]: true,
+                    }
+                  : // No fields actually edited
+                    // Set the suggested values on the __suggested_values json fied .
+                    {
+                      [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({
+                        __created: now,
+                        ...op.data,
+                      }),
+                    }),
               });
             break;
           case 'update': {
-            const newFields = Object.keys(op.data || {}).reduce(
-              (acc, key) => {
-                acc[key] = now;
-                return acc;
-              },
-              {} as Record<string, string>,
-            );
+            if (type === 'accepted') {
+              const newFields = Object.keys(op.data || {}).reduce(
+                (acc, key) => {
+                  acc[key] = now;
+                  return acc;
+                },
+                {} as Record<string, string>,
+              );
 
-            const updatePayload: Record<string, any> = {
-              ...op.data,
-              [DIRTY_COLUMN]: true,
-            };
+              const updatePayload: Record<string, any> = {
+                ...op.data,
+                [DIRTY_COLUMN]: true,
+              };
 
-            // Merge the new fields into the edited fields metadata.
-            if (Object.keys(newFields).length > 0) {
-              updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
-                EDITED_FIELDS_COLUMN,
-                JSON.stringify(newFields),
+              // Merge the new fields into the edited fields metadata.
+              if (Object.keys(newFields).length > 0) {
+                updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
+                  EDITED_FIELDS_COLUMN,
+                  JSON.stringify(newFields),
+                ]);
+              }
+
+              if (Object.keys(updatePayload).length > 0) {
+                await trx(tableId).withSchema(snapshotId).where('wsId', op.wsId).update(updatePayload);
+              }
+            } else {
+              const updatePayload: Record<string, any> = {};
+              updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
+                SUGGESTED_FIELDS_COLUMN,
+                JSON.stringify(op.data),
               ]);
-            }
-
-            if (Object.keys(updatePayload).length > 0) {
               await trx(tableId).withSchema(snapshotId).where('wsId', op.wsId).update(updatePayload);
             }
+
             break;
           }
           case 'delete':
-            await trx(tableId)
-              .withSchema(snapshotId)
-              .where('wsId', op.wsId)
-              .update({
-                [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
-                [DIRTY_COLUMN]: true,
-              });
+            if (type === 'accepted') {
+              await trx(tableId)
+                .withSchema(snapshotId)
+                .where('wsId', op.wsId)
+                .update({
+                  [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
+                  [DIRTY_COLUMN]: true,
+                });
+            } else {
+              await trx(tableId)
+                .withSchema(snapshotId)
+                .where('wsId', op.wsId)
+                .update({
+                  [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
+                  [DIRTY_COLUMN]: true,
+                });
+            }
+
             break;
           case 'undelete':
-            await trx(tableId)
-              .withSchema(snapshotId)
-              .where('wsId', op.wsId)
-              .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: undefined }) });
+            if (type === 'accepted') {
+              await trx(tableId)
+                .withSchema(snapshotId)
+                .where('wsId', op.wsId)
+                .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({}) });
+            } else {
+              await trx(tableId)
+                .withSchema(snapshotId)
+                .where('wsId', op.wsId)
+                .update({ [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({}) });
+            }
             break;
         }
+      }
+    });
+  }
+
+  async acceptCellValues(
+    snapshotId: SnapshotId,
+    tableId: string,
+    items: { wsId: string; columnId: string }[],
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    // Group items by wsId
+    const groupedByWsId = items.reduce(
+      (acc, item) => {
+        if (!acc[item.wsId]) {
+          acc[item.wsId] = [];
+        }
+        acc[item.wsId].push(item.columnId);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
+
+    await this.knex.transaction(async (trx) => {
+      // Process each record (wsId) separately
+      for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
+        const updatePayload: Record<string, any> = {};
+
+        // For each column, copy the suggested value to the actual column
+        for (const columnId of columnIds) {
+          updatePayload[columnId] = trx.raw(`??->>?`, [SUGGESTED_FIELDS_COLUMN, columnId]);
+        }
+
+        // Remove all suggestions for these columns using JSON deletion operator
+        if (columnIds.length === 1) {
+          // For single column, use the - operator
+          updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) - ?`, [
+            SUGGESTED_FIELDS_COLUMN,
+            columnIds[0],
+          ]);
+        } else {
+          // For multiple columns, use the - operator with an array
+          updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) - ?::text[]`, [
+            SUGGESTED_FIELDS_COLUMN,
+            columnIds,
+          ]);
+        }
+
+        // Track all edits in __edited_fields
+        const editedFields = columnIds.reduce(
+          (acc, columnId) => {
+            acc[columnId] = now;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+
+        updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
+          EDITED_FIELDS_COLUMN,
+          JSON.stringify(editedFields),
+        ]);
+
+        // Mark as dirty
+        updatePayload[DIRTY_COLUMN] = true;
+
+        // Execute the update for this record
+        await trx(tableId).withSchema(snapshotId).where('wsId', wsId).update(updatePayload);
+      }
+    });
+  }
+
+  async rejectValues(
+    snapshotId: SnapshotId,
+    tableId: string,
+    items: { wsId: string; columnId: string }[],
+  ): Promise<void> {
+    // Group items by wsId
+    const groupedByWsId = items.reduce(
+      (acc, item) => {
+        if (!acc[item.wsId]) {
+          acc[item.wsId] = [];
+        }
+        acc[item.wsId].push(item.columnId);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
+
+    await this.knex.transaction(async (trx) => {
+      // Process each record (wsId) separately
+      for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
+        const updatePayload: Record<string, any> = {};
+
+        // Remove all suggestions for these columns using JSON deletion operator
+        if (columnIds.length === 1) {
+          // For single column, use the - operator
+          updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) - ?`, [
+            SUGGESTED_FIELDS_COLUMN,
+            columnIds[0],
+          ]);
+        } else {
+          // For multiple columns, use the - operator with an array
+          updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) - ?::text[]`, [
+            SUGGESTED_FIELDS_COLUMN,
+            columnIds,
+          ]);
+        }
+
+        // Execute the update for this record
+        await trx(tableId).withSchema(snapshotId).where('wsId', wsId).update(updatePayload);
       }
     });
   }
@@ -351,10 +515,11 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
       if (records.length > 0) {
         await callback(
-          records.map(({ wsId, id: remoteId, __edited_fields, __dirty, ...fields }) => ({
+          records.map(({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, ...fields }) => ({
             id: { wsId, remoteId },
             __edited_fields,
             __dirty,
+            __suggested_values: __suggested_values ?? {},
             fields,
           })),
         );
