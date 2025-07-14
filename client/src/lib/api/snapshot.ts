@@ -327,4 +327,25 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to accept cell values");
     }
   },
+
+  async rejectCellValues(
+    snapshotId: string,
+    tableId: string,
+    items: { wsId: string; columnId: string }[]
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/reject-values`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ items }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to reject cell values");
+    }
+  },
 };

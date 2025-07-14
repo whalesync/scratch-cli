@@ -97,7 +97,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
   const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues } = useSnapshotRecords({
+  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotRecords({
     snapshotId: snapshot.id,
     tableId: table.id.wsId,
     activeView: activeView,
@@ -572,6 +572,27 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
             color: 'red',
           });
         }
+      } else if (action === 'Reject Cell') {
+        if (!record || isIdColumn(col)) return;
+
+        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        if (!columnId) return;
+
+        try {
+          await rejectCellValues([{ wsId: record.id.wsId, columnId }]);
+          notifications.show({
+            title: 'Reject Cell',
+            message: `Rejected suggestion for "${columnName}"`,
+            color: 'green',
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error rejecting cell',
+            message: error.message,
+            color: 'red',
+          });
+        }
       } else if (action.startsWith('Accept Record')) {
         if (!record) return;
 
@@ -611,6 +632,45 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
             color: 'red',
           });
         }
+      } else if (action.startsWith('Reject Record')) {
+        if (!record) return;
+
+        // Get all columns that have suggestions for this record
+        const suggestedValues = record.__suggested_values || {};
+        const columnsWithSuggestions = Object.keys(suggestedValues).filter(
+          (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
+        );
+
+        if (columnsWithSuggestions.length === 0) {
+          notifications.show({
+            title: 'Reject Record',
+            message: 'No suggestions found for this record',
+            color: 'yellow',
+          });
+          return;
+        }
+
+        try {
+          // Create items array for all columns with suggestions
+          const items = columnsWithSuggestions.map((columnId) => ({
+            wsId: record.id.wsId,
+            columnId,
+          }));
+
+          await rejectCellValues(items);
+          notifications.show({
+            title: 'Reject Record',
+            message: `Rejected ${columnsWithSuggestions.length} suggestion${columnsWithSuggestions.length > 1 ? 's' : ''} for this record`,
+            color: 'green',
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error rejecting record',
+            message: error.message,
+            color: 'red',
+          });
+        }
       } else {
         notifications.show({
           title: `${action}`,
@@ -622,7 +682,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       // Close the context menu
       setContextMenu(null);
     },
-    [contextMenu, sortedRecords, table.columns, acceptCellValues],
+    [contextMenu, sortedRecords, table.columns, acceptCellValues, rejectCellValues],
   );
 
   const closeContextMenu = useCallback(() => {
@@ -683,6 +743,49 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
             color: 'red',
           });
         }
+      } else if (action === 'Reject Column') {
+        if (isIdColumn(col)) return;
+
+        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        if (!columnId) return;
+
+        // Find all records that have suggestions for this column
+        const recordsWithSuggestions =
+          sortedRecords?.filter((record) => {
+            const suggestedValues = record.__suggested_values || {};
+            return suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined;
+          }) || [];
+
+        if (recordsWithSuggestions.length === 0) {
+          notifications.show({
+            title: 'Reject Column',
+            message: `No suggestions found for column "${columnName}"`,
+            color: 'yellow',
+          });
+          return;
+        }
+
+        try {
+          // Create items array for all records with suggestions for this column
+          const items = recordsWithSuggestions.map((record) => ({
+            wsId: record.id.wsId,
+            columnId,
+          }));
+
+          await rejectCellValues(items);
+          notifications.show({
+            title: 'Reject Column',
+            message: `Rejected ${recordsWithSuggestions.length} suggestion${recordsWithSuggestions.length > 1 ? 's' : ''} for column "${columnName}"`,
+            color: 'green',
+          });
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error rejecting column',
+            message: error.message,
+            color: 'red',
+          });
+        }
       } else {
         notifications.show({
           title: `${action}`,
@@ -694,7 +797,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       // Close the header menu
       setHeaderMenu(null);
     },
-    [headerMenu, table.columns, sortedRecords, acceptCellValues],
+    [headerMenu, table.columns, sortedRecords, acceptCellValues, rejectCellValues],
   );
 
   const getContextMenuItems = useCallback(() => {
@@ -723,12 +826,14 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
     if (hasCellSuggestion) {
       items.push({ label: 'Accept Cell', disabled: false });
+      items.push({ label: 'Reject Cell', disabled: false });
     }
 
     if (hasRecordSuggestions) {
       const suggestionCount = recordSuggestions.length;
       const suggestionText = suggestionCount === 1 ? 'suggestion' : 'suggestions';
       items.push({ label: `Accept Record (${suggestionCount} ${suggestionText})`, disabled: false });
+      items.push({ label: `Reject Record (${suggestionCount} ${suggestionText})`, disabled: false });
     }
 
     if (items.length === 0) {
@@ -759,6 +864,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
     if (hasColumnSuggestions) {
       items.push({ label: 'Accept Column', disabled: false });
+      items.push({ label: 'Reject Column', disabled: false });
     }
 
     if (items.length === 0) {

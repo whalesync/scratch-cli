@@ -1,8 +1,10 @@
 import { useSnapshotRecords, useSnapshotViews } from '@/hooks/use-snapshot';
+import { snapshotApi } from '@/lib/api/snapshot';
 import { PostgresColumnType, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
   Anchor,
+  Box,
   Button,
   Center,
   Checkbox,
@@ -18,7 +20,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure, useSetState } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, ArrowUpIcon, XIcon } from '@phosphor-icons/react';
 import MDEditor from '@uiw/react-md-editor';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -42,6 +44,7 @@ export const RecordView = ({
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
   const [draftRecord, setDraftRecord] = useState<SnapshotRecord | undefined>(undefined);
   const [recordDirty, setRecordDirty] = useState(false);
+  const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
   const [unsavedChangesModalOpened, { open: openUnsavedChangesModal, close: closeUnsavedChangesModal }] =
     useDisclosure(false);
   const [afterModalAction, setAfterModalAction] = useSetState<{
@@ -146,14 +149,17 @@ export const RecordView = ({
           (column.pgType === PostgresColumnType.TEXT && value && value.length > 100)
         ) {
           return (
-            <Textarea
-              key={field}
-              label={column.name}
-              value={value}
-              onChange={(e) => updateDraftField(field, e.target.value)}
-              autosize
-              minRows={10}
-            />
+            <Stack>
+              <Textarea
+                key={field}
+                label={column.name}
+                value={value}
+                onChange={(e) => updateDraftField(field, e.target.value)}
+                autosize
+                minRows={10}
+              />
+              <Box>123</Box>
+            </Stack>
           );
         }
       } else {
@@ -246,6 +252,109 @@ export const RecordView = ({
     [draftRecord, updateDraftField],
   );
 
+  const fieldToInputAndSuggestion = useCallback(
+    (field: string, table: TableSpec, focusedView?: boolean) => {
+      const column = table.columns.find((c) => c.id.wsId === field);
+      if (!column) return null;
+      if (!draftRecord) return null;
+
+      const hasSuggestion = !!draftRecord.__suggested_values?.[field];
+
+      const handleAcceptSuggestion = async () => {
+        if (!draftRecord) return;
+
+        try {
+          await snapshotApi.acceptCellValues(snapshot.id, table.id.wsId, [
+            { wsId: draftRecord.id.wsId, columnId: field },
+          ]);
+          notifications.show({
+            title: 'Suggestion Accepted',
+            message: `Accepted suggestion for ${column.name}`,
+            color: 'green',
+          });
+          // Refresh the records to get updated state
+          window.location.reload();
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error accepting suggestion',
+            message: error.message,
+            color: 'red',
+          });
+        }
+      };
+
+      const handleRejectSuggestion = async () => {
+        if (!draftRecord) return;
+
+        try {
+          await snapshotApi.rejectCellValues(snapshot.id, table.id.wsId, [
+            { wsId: draftRecord.id.wsId, columnId: field },
+          ]);
+          notifications.show({
+            title: 'Suggestion Rejected',
+            message: `Rejected suggestion for ${column.name}`,
+            color: 'green',
+          });
+          // Refresh the records to get updated state
+          window.location.reload();
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error rejecting suggestion',
+            message: error.message,
+            color: 'red',
+          });
+        }
+      };
+
+      return (
+        <Stack gap={'xs'}>
+          {fieldToInput(field, table, focusedView)}
+          {hasSuggestion && (
+            <>
+              <Group gap="xs" justify="center">
+                <Button
+                  size="xs"
+                  variant="outline"
+                  color="red"
+                  leftSection={<XIcon size={14} />}
+                  onClick={handleRejectSuggestion}
+                >
+                  Reject
+                </Button>
+                <Button
+                  size="xs"
+                  variant="filled"
+                  color="green"
+                  leftSection={<ArrowUpIcon size={14} />}
+                  onClick={handleAcceptSuggestion}
+                >
+                  Accept
+                </Button>
+              </Group>
+              <Textarea
+                value={draftRecord.__suggested_values?.[field] as string}
+                disabled
+                autosize
+                minRows={1}
+                maxRows={10}
+                styles={{
+                  input: {
+                    color: '#b8860b',
+                    backgroundColor: '#fefefe',
+                    borderColor: '#e0e0e0',
+                  },
+                }}
+              />
+            </>
+          )}
+        </Stack>
+      );
+    },
+    [draftRecord, updateDraftField, snapshot.id, table.id.wsId],
+  );
+
   if (error) {
     return (
       <Center h="100%">
@@ -266,13 +375,24 @@ export const RecordView = ({
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
 
   if (draftRecord && currentColumn) {
-    recordContent = fieldToInput(currentColumn.id.wsId, table, true);
+    recordContent = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
   } else if (draftRecord) {
+    // Filter fields based on checkbox state
+    const fieldsToShow = showSuggestedOnly
+      ? Object.keys(draftRecord.fields).filter((fieldName) => draftRecord.__suggested_values?.[fieldName] !== undefined)
+      : Object.keys(draftRecord.fields);
+
     recordContent = (
       <>
-        <Text>Record Details</Text>
-        {draftRecord.fields &&
-          Object.keys(draftRecord.fields).map((fieldName) => fieldToInput(fieldName, table, false))}
+        <Group justify="space-between" align="center">
+          <Text>Record Details</Text>
+          <Checkbox
+            label="Show fields with suggested changes only"
+            checked={showSuggestedOnly}
+            onChange={(e) => setShowSuggestedOnly(e.target.checked)}
+          />
+        </Group>
+        {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
       </>
     );
   }

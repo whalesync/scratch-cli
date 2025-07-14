@@ -226,6 +226,21 @@ export const useSnapshotRecords = (args: {
     [snapshotId, tableId, mutate, swrKey]
   );
 
+  const rejectCellValues = useCallback(
+    async (items: { wsId: string; columnId: string }[]) => {
+      try {
+        await snapshotApi.rejectCellValues(snapshotId, tableId, items);
+      } catch (e) {
+        // Re-throw the error so the calling component can handle it.
+        throw e;
+      } finally {
+        // Always revalidate to get the canonical state from the server.
+        await mutate(swrKey);
+      }
+    },
+    [snapshotId, tableId, mutate, swrKey]
+  );
+
   const recordsResponse = useMemo(() => {
     if (!data) {
       return undefined;
@@ -253,5 +268,6 @@ export const useSnapshotRecords = (args: {
     bulkUpdateRecords,
     refreshRecords,
     acceptCellValues,
+    rejectCellValues,
   };
 };
