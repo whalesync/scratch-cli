@@ -1,6 +1,11 @@
-"use client";
+'use client';
 
+import { AnimatedArrowsClockwise } from '@/app/components/AnimatedArrowsClockwise';
+import { snapshotApi } from '@/lib/api/snapshot';
+import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
+import { ColumnSpec, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
+  CellClickedEventArgs,
   DataEditor,
   EditableGridCell,
   GridCell,
@@ -10,17 +15,9 @@ import {
   GridSelection,
   Item,
   Theme,
-} from "@glideapps/glide-data-grid";
-import { useCallback, useMemo, useState } from "react";
-import {
-  ColumnSpec,
-  Snapshot,
-  SnapshotRecord,
-  TableSpec,
-} from "@/types/server-entities/snapshot";
+} from '@glideapps/glide-data-grid';
 import {
   ActionIcon,
-  Box,
   Button,
   Center,
   Group,
@@ -31,26 +28,21 @@ import {
   Text,
   Tooltip,
   useModalsStack,
-} from "@mantine/core";
-import {
-  useSnapshot,
-  useSnapshotRecords,
-  useSnapshotViews,
-} from "../../../hooks/use-snapshot";
-import { BulkUpdateRecordsDto } from "@/types/server-entities/records";
-import { BugIcon, PlusIcon, SlidersIcon } from "@phosphor-icons/react";
-import JsonTreeViewer from "../../components/JsonTreeViewer";
-import { notifications } from "@mantine/notifications";
-import { AnimatedArrowsClockwise } from "@/app/components/AnimatedArrowsClockwise";
-import { snapshotApi } from "@/lib/api/snapshot";
-import pluralize from "pluralize";
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { BugIcon, PlusIcon, SlidersIcon } from '@phosphor-icons/react';
+import pluralize from 'pluralize';
+import { useCallback, useMemo, useState } from 'react';
+import { useSnapshot, useSnapshotRecords, useSnapshotViews } from '../../../../hooks/use-snapshot';
+import JsonTreeViewer from '../../../components/JsonTreeViewer';
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
+  onSwitchToRecordView: (recordId: string, columnId?: string) => void;
 }
 
-type SortDirection = "asc" | "desc";
+type SortDirection = 'asc' | 'desc';
 
 interface SortState {
   columnId: string;
@@ -58,9 +50,8 @@ interface SortState {
 }
 
 const generatePendingId = (): string => {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "ws_pending_";
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = 'ws_pending_';
   for (let i = 0; i < 10; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -69,22 +60,16 @@ const generatePendingId = (): string => {
 
 const FAKE_LEFT_COLUMNS = 1;
 
-const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
+const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
-  const [activeProcess, setActiveProcess] = useState<
-    "create-view" | "clear-view" | undefined
-  >();
+  const [activeProcess, setActiveProcess] = useState<'create-view' | 'clear-view' | undefined>();
 
-  const [currentSelection, setCurrentSelection] = useState<
-    GridSelection | undefined
-  >();
-  const modalStack = useModalsStack(["tableSpecDebug", "tableContextDebug"]);
+  const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
+  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
 
-  const tableContext = snapshot.tableContexts.find(
-    (c) => c.id.wsId === table.id.wsId
-  );
+  const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
 
   const { refreshSnapshot } = useSnapshot(snapshot.id);
 
@@ -93,16 +78,13 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     tableId: table.id.wsId,
   });
 
-  const activeView = views
-    ? views.find((v) => v.id === tableContext?.activeViewId)
-    : undefined;
+  const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords } =
-    useSnapshotRecords({
-      snapshotId: snapshot.id,
-      tableId: table.id.wsId,
-      activeView: activeView,
-    });
+  const { recordsResponse, isLoading, error, bulkUpdateRecords } = useSnapshotRecords({
+    snapshotId: snapshot.id,
+    tableId: table.id.wsId,
+    activeView: activeView,
+  });
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -130,10 +112,10 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const strB = String(bVal).toLowerCase();
 
       if (strA < strB) {
-        return dir === "asc" ? -1 : 1;
+        return dir === 'asc' ? -1 : 1;
       }
       if (strA > strB) {
-        return dir === "asc" ? 1 : -1;
+        return dir === 'asc' ? 1 : -1;
       }
       return 0;
     });
@@ -146,47 +128,56 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     });
   }, [recordsResponse?.records, sort]);
 
-
-  const isActionsColumn = useCallback((col: number) => {
-    return col === table.columns.length+1;
-  }, [table.columns]);
+  const isActionsColumn = useCallback(
+    (col: number) => {
+      return col === table.columns.length + 1;
+    },
+    [table.columns],
+  );
 
   const isIdColumn = useCallback((col: number) => {
     return col === 0;
   }, []);
 
   const onCellClicked = useCallback(
-    (cell: Item) => {
+    (cell: Item, event: CellClickedEventArgs) => {
       const [col, row] = cell;
+
       if (isActionsColumn(col)) {
         // Actions column
         const record = sortedRecords?.[row];
         if (!record) return;
 
-        
         try {
-          if(record.__edited_fields?.__deleted) {
+          if (record.__edited_fields?.__deleted) {
             bulkUpdateRecords({
-              ops: [{ op: "undelete", wsId: record.id.wsId }],
+              ops: [{ op: 'undelete', wsId: record.id.wsId }],
             });
-          }else {
+          } else {
             bulkUpdateRecords({
-              ops: [{ op: "delete", wsId: record.id.wsId }],
+              ops: [{ op: 'delete', wsId: record.id.wsId }],
             });
           }
         } catch (e) {
           const error = e as Error;
           notifications.show({
-            title: "Error deleting record",
+            title: 'Error deleting record',
             message: error.message,
-            color: "red",
+            color: 'red',
           });
         }
       }
-    },
-    [bulkUpdateRecords, sortedRecords]
-  );
 
+      if (event.isDoubleClick) {
+        event.preventDefault();
+        const record = sortedRecords?.[row];
+        if (!record) return;
+        const column = table.columns[col - FAKE_LEFT_COLUMNS];
+        onSwitchToRecordView(record.id.wsId, column.id.wsId);
+      }
+    },
+    [bulkUpdateRecords, isActionsColumn, onSwitchToRecordView, sortedRecords, table.columns],
+  );
 
   const getCellContent = useCallback(
     (cell: Item): GridCell => {
@@ -197,69 +188,65 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const isDeleted = !!editedFields?.__deleted;
       const isFiltered = record?.filtered;
 
-      if (col === table.columns.length+1) {
+      if (col === table.columns.length + 1) {
         if (!isHovered) {
           return {
             kind: GridCellKind.Text,
-            data: "",
-            displayData: "",
+            data: '',
+            displayData: '',
             allowOverlay: false,
             readonly: true,
-            themeOverride: isDeleted ? { bgCell: "#fde0e0" } : undefined,
+            themeOverride: isDeleted ? { bgCell: '#fde0e0' } : undefined,
           };
         }
 
         return {
           kind: GridCellKind.Text,
-          data: isDeleted ? "↩️" : "🗑️",
-          displayData: isDeleted ? "↩️" : "🗑️",
+          data: isDeleted ? '↩️' : '🗑️',
+          displayData: isDeleted ? '↩️' : '🗑️',
           readonly: true,
           allowOverlay: false,
-          themeOverride: { bgCell: "#fde0e0" },
-          contentAlign: "center",
-          cursor: "pointer",
+          themeOverride: { bgCell: '#fde0e0' },
+          contentAlign: 'center',
+          cursor: 'pointer',
         };
       }
 
       if (isIdColumn(col)) {
         return {
           kind: GridCellKind.Text,
-          data: record?.id.remoteId ?? "",
-          displayData: record?.id.remoteId ?? "",
+          data: record?.id.remoteId ?? '',
+          displayData: record?.id.remoteId ?? '',
           readonly: true,
           allowOverlay: false,
         };
       }
-      
+
       const column = table.columns[col - FAKE_LEFT_COLUMNS];
       const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
 
       const themeOverride: Partial<Theme> = {};
       if (isDeleted) {
-        themeOverride.bgCell = "#fde0e0";
+        themeOverride.bgCell = '#fde0e0';
       } else if (editedFields?.__created) {
-        themeOverride.bgCell = "#e0fde0";
+        themeOverride.bgCell = '#e0fde0';
       } else if (editedFields?.[column.id.wsId]) {
-        themeOverride.bgCell = "#fdfde0";
+        themeOverride.bgCell = '#fdfde0';
       }
       if (isFiltered) {
-        themeOverride.textDark = "#cacaca";
+        themeOverride.textDark = '#cacaca';
       }
 
-      if (
-        column.id.wsId === "id" &&
-        typeof value === "string" &&
-        value.startsWith("ws_pending_")
-      ) {
+      if (column.id.wsId === 'id' && typeof value === 'string' && value.startsWith('ws_pending_')) {
         return {
           kind: GridCellKind.Text,
           data: value,
-          displayData: "new",
+          displayData: 'new',
           allowOverlay: false,
           readonly: true,
           themeOverride: {
-            textDark: "darkgray",
+            textDark: 'darkgray',
             ...themeOverride,
           },
         };
@@ -269,12 +256,12 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
         kind: GridCellKind.Text,
         allowOverlay: !isReadonly,
         readonly: isReadonly,
-        displayData: value ? String(value) : "",
-        data: value ? String(value) : "",
+        displayData: value ? String(value) : '',
+        data: value ? String(value) : '',
         themeOverride,
       };
     },
-    [sortedRecords, table.columns, hoveredRow]
+    [sortedRecords, hoveredRow, table.columns, isIdColumn],
   );
 
   const getGetSelectedRecordsAndColumns = useCallback(() => {
@@ -310,8 +297,8 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       for (const row of currentSelection.rows) {
         const record = sortedRecords?.[row];
         if (record) {
-        result.records.push(record);
-      }
+          result.records.push(record);
+        }
       }
     }
 
@@ -326,7 +313,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     };
 
     table.columns.forEach((c) => {
-      if (c.id.wsId !== "id") {
+      if (c.id.wsId !== 'id') {
         newRecordData[c.id.wsId] = null;
       }
     });
@@ -334,7 +321,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     const dto: BulkUpdateRecordsDto = {
       ops: [
         {
-          op: "create",
+          op: 'create',
           wsId: newRecordId,
           data: newRecordData,
         },
@@ -345,9 +332,9 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
     } catch (e) {
       const error = e as Error;
       notifications.show({
-        title: "Error creating record",
+        title: 'Error creating record',
         message: error.message,
-        color: "red",
+        color: 'red',
       });
     }
   }, [bulkUpdateRecords, table.columns]);
@@ -370,7 +357,7 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       const dto: BulkUpdateRecordsDto = {
         ops: [
           {
-            op: "update",
+            op: 'update',
             wsId: recordId,
             data: {
               [columnId]: newValue.data,
@@ -383,17 +370,17 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       } catch (e) {
         const error = e as Error;
         notifications.show({
-          title: "Error updating record",
+          title: 'Error updating record',
           message: error.message,
-          color: "red",
+          color: 'red',
         });
       }
     },
-    [bulkUpdateRecords, sortedRecords, table.columns]
+    [bulkUpdateRecords, sortedRecords, table.columns],
   );
 
   const onGridSelectionChange = useCallback((selection: GridSelection) => {
-    console.log("onGridSelectionChange", selection);
+    console.log('onGridSelectionChange', selection);
     setCurrentSelection(selection);
   }, []);
 
@@ -405,23 +392,23 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
 
       setSort((currentSort) => {
         if (currentSort?.columnId === columnId) {
-          if (currentSort.dir === "desc") {
+          if (currentSort.dir === 'desc') {
             return undefined;
           } else {
             return {
               ...currentSort,
-              dir: "desc",
+              dir: 'desc',
             };
           }
         }
-        return { columnId, dir: "asc" };
+        return { columnId, dir: 'asc' };
       });
     },
-    [table.columns]
+    [isActionsColumn, isIdColumn, table.columns],
   );
 
   const onColumnResize = useCallback((column: GridColumn, newSize: number) => {
-    if (column.id && column.id !== "actions") {
+    if (column.id && column.id !== 'actions') {
       setColumnWidths((prev) => ({ ...prev, [column.id as string]: newSize }));
     }
   }, []);
@@ -433,22 +420,22 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
       width: columnWidths[c.id.wsId] ?? 150,
       ...(c.readonly && {
         themeOverride: {
-          bgCell: "#F7F7F7",
+          bgCell: '#F7F7F7',
         },
       }),
     }));
 
     return [
-       {
-        title: "ID",
-        id: "id",
+      {
+        title: 'ID',
+        id: 'id',
         width: 150,
-        themeOverride: { bgCell: "#F7F7F7" },
+        themeOverride: { bgCell: '#F7F7F7' },
       },
       ...baseColumns,
       {
-        id: "actions",
-        title: "",
+        id: 'actions',
+        title: '',
         width: 35,
       },
     ];
@@ -472,153 +459,144 @@ const SnapshotTableGrid = ({ snapshot, table }: SnapshotTableGridProps) => {
 
   return (
     <>
-      <Modal
-        {...modalStack.register("tableSpecDebug")}
-        title={`TableSpec for ${table.name}`}
-        size="lg"
-      >
+      <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${table.name}`} size="lg">
         <ScrollArea h={500}>
           <JsonTreeViewer jsonData={table} />
         </ScrollArea>
       </Modal>
-      <Modal
-        {...modalStack.register("tableContextDebug")}
-        title={`Table Context settings for ${table.name}`}
-        size="lg"
-      >
+      <Modal {...modalStack.register('tableContextDebug')} title={`Table Context settings for ${table.name}`} size="lg">
         <ScrollArea h={500}>
           <JsonTreeViewer jsonData={tableContext ?? {}} />
         </ScrollArea>
       </Modal>
-      <Box h="100%" w="100%" style={{ position: "relative" }}>
-        <Stack p={0} h="100%" gap={0}>
-          <DataEditor
-            width="100%"
-            height="100%"
-            columns={columns}
-            rows={sortedRecords?.length ?? 0}
-            gridSelection={currentSelection}
-            getCellContent={getCellContent}
-            onCellEdited={onCellEdited}
-            onColumnResize={onColumnResize}
-            onHeaderClicked={onHeaderClicked}
-            onCellClicked={onCellClicked}
-            getCellsForSelection={true}
-            onGridSelectionChange={onGridSelectionChange}
-            onPaste={true}
-            onItemHovered={(args: GridMouseEventArgs) => {
-              if (args.kind === "cell") {
-                setHoveredRow(args.location[1]);
-              } else {
-                setHoveredRow(undefined);
-              }
-            }}
-            rowMarkers="both"
-            
-          />
-          <Group w="100%" p="xs" bg="gray.0">
-            {isLoading ? (
-              <AnimatedArrowsClockwise size={24} />
-            ) : 
-              currentSelection && getSelectedRowCount(currentSelection) > 0 ? <Text size="sm" fs='italic'>{getSelectedRowCount(currentSelection)} {pluralize("record", getSelectedRowCount(currentSelection))} selected</Text> : <Text size="sm">{sortedRecords?.length ?? 0} {pluralize("record", sortedRecords?.length ?? 0)}</Text>   
+      {/* <Box h="100%" w="100%" style={{ position: "relative" }}> */}
+      <Stack p={0} h="100%" gap={0}>
+        <DataEditor
+          width="100%"
+          height="100%"
+          columns={columns}
+          rows={sortedRecords?.length ?? 0}
+          gridSelection={currentSelection}
+          getCellContent={getCellContent}
+          onCellEdited={onCellEdited}
+          onColumnResize={onColumnResize}
+          onHeaderClicked={onHeaderClicked}
+          onCellClicked={onCellClicked}
+          getCellsForSelection={true}
+          onGridSelectionChange={onGridSelectionChange}
+          onPaste={true}
+          onItemHovered={(args: GridMouseEventArgs) => {
+            if (args.kind === 'cell') {
+              setHoveredRow(args.location[1]);
+            } else {
+              setHoveredRow(undefined);
             }
-           
-            <Tooltip label="Select one or more records to create a view">
-              <Button
-                variant="outline"
-                loading={activeProcess === "create-view"}
-                disabled={
-                  getSelectedRowCount(currentSelection) === 0
-                }
-                onClick={async () => {
-                  const { records } = getGetSelectedRecordsAndColumns();
-                  try {
-                    setActiveProcess("create-view");
-                    await snapshotApi.activateView(snapshot.id, table.id.wsId, {
-                      name: "Selected Records",
-                      source: "ui",
-                      recordIds: records.map((r) => r.id.wsId),
-                    });
-                    await refreshViews();
-                    setCurrentSelection(undefined);
-                  } catch (e) {
-                    const error = e as Error;
-                    notifications.show({
-                      title: "Error activating view",
-                      message: error.message,
-                      color: "red",
-                    });
-                  } finally {
-                    setActiveProcess(undefined);
-                  }
-                }}
-              >
-                Create view
-              </Button>
-            </Tooltip>
+          }}
+          rowMarkers="both"
+        />
+        <Group w="100%" p="xs" bg="gray.0">
+          {isLoading ? (
+            <AnimatedArrowsClockwise size={24} />
+          ) : currentSelection && getSelectedRowCount(currentSelection) > 0 ? (
+            <Text size="sm" fs="italic">
+              {getSelectedRowCount(currentSelection)} {pluralize('record', getSelectedRowCount(currentSelection))}{' '}
+              selected
+            </Text>
+          ) : (
+            <Text size="sm">
+              {sortedRecords?.length ?? 0} {pluralize('record', sortedRecords?.length ?? 0)}
+            </Text>
+          )}
 
+          <Tooltip label="Select one or more records to create a view">
             <Button
               variant="outline"
-              disabled={!activeView}
-              loading={activeProcess === "clear-view"}
+              loading={activeProcess === 'create-view'}
+              disabled={getSelectedRowCount(currentSelection) === 0}
               onClick={async () => {
+                const { records } = getGetSelectedRecordsAndColumns();
                 try {
-                  setActiveProcess("clear-view");
-                  await snapshotApi.clearActiveView(snapshot.id, table.id.wsId);
+                  setActiveProcess('create-view');
+                  await snapshotApi.activateView(snapshot.id, table.id.wsId, {
+                    name: 'Selected Records',
+                    source: 'ui',
+                    recordIds: records.map((r) => r.id.wsId),
+                  });
                   await refreshViews();
-                  await refreshSnapshot();
+                  setCurrentSelection(undefined);
                 } catch (e) {
                   const error = e as Error;
                   notifications.show({
-                    title: "Error clearing view",
+                    title: 'Error activating view',
                     message: error.message,
-                    color: "red",
+                    color: 'red',
                   });
                 } finally {
                   setActiveProcess(undefined);
                 }
               }}
             >
-              Clear view
+              Create view
             </Button>
+          </Tooltip>
 
-            <Group gap="xs" ml="auto" p={0}>
-              <Tooltip label="View JSON data">
-                <ActionIcon
-                  onClick={() => modalStack.open("tableSpecDebug")}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                  color="violet"
-                >
-                  <BugIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="View Table Context data">
-                <ActionIcon
-                  onClick={() => modalStack.open("tableContextDebug")}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                  color="gray"
-                >
-                  <SlidersIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="Add record">
-                <ActionIcon
-                  onClick={onAddRow}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                >
-                  <PlusIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
+          <Button
+            variant="outline"
+            disabled={!activeView}
+            loading={activeProcess === 'clear-view'}
+            onClick={async () => {
+              try {
+                setActiveProcess('clear-view');
+                await snapshotApi.clearActiveView(snapshot.id, table.id.wsId);
+                await refreshViews();
+                await refreshSnapshot();
+              } catch (e) {
+                const error = e as Error;
+                notifications.show({
+                  title: 'Error clearing view',
+                  message: error.message,
+                  color: 'red',
+                });
+              } finally {
+                setActiveProcess(undefined);
+              }
+            }}
+          >
+            Clear view
+          </Button>
+
+          <Group gap="xs" ml="auto" p={0}>
+            <Tooltip label="View JSON data">
+              <ActionIcon
+                onClick={() => modalStack.open('tableSpecDebug')}
+                size="lg"
+                radius="xl"
+                variant="filled"
+                color="violet"
+              >
+                <BugIcon size={24} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="View Table Context data">
+              <ActionIcon
+                onClick={() => modalStack.open('tableContextDebug')}
+                size="lg"
+                radius="xl"
+                variant="filled"
+                color="gray"
+              >
+                <SlidersIcon size={24} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Add record">
+              <ActionIcon onClick={onAddRow} size="lg" radius="xl" variant="filled">
+                <PlusIcon size={24} />
+              </ActionIcon>
+            </Tooltip>
           </Group>
-        </Stack>
-      </Box>
+        </Group>
+      </Stack>
+      {/* </Box> */}
     </>
   );
 };
@@ -627,7 +605,7 @@ function titleWithSort(column: ColumnSpec, sort: SortState | undefined) {
   if (sort?.columnId !== column.id.wsId) {
     return column.name;
   }
-  const icon = sort.dir === "asc" ? "🔼" : "🔽";
+  const icon = sort.dir === 'asc' ? '🔼' : '🔽';
   return `${column.name} ${icon}`;
 }
 
@@ -638,7 +616,7 @@ function getSelectedRowCount(currentSelection: GridSelection | undefined) {
     return currentSelection.current.range.height;
   }
 
-  if(currentSelection.rows) {
+  if (currentSelection.rows) {
     return currentSelection.rows.length;
   }
 

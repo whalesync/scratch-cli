@@ -3,9 +3,9 @@ import { EntityId } from "./table-list";
 export interface ColumnSpec {
   id: EntityId;
   name: string;
-  type: "text" | "number" | "json";
   readonly?: boolean;
   pgType: PostgresColumnType;
+  markdown?: boolean;
 }
 
 export enum PostgresColumnType {
@@ -22,6 +22,7 @@ export interface TableSpec {
   id: EntityId;
   name: string;
   columns: ColumnSpec[];
+  markdownFiles: boolean;
 }
 
 export type SnapshotTableContext = {

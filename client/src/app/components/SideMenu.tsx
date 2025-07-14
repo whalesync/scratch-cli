@@ -1,56 +1,33 @@
-"use client";
+'use client';
 
-import {
-  ActionIcon,
-  CopyButton,
-  Group,
-  Image,
-  NavLink,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import {
-  TestTubeIcon,
-  PlugsIcon,
-  CheckIcon,
-  CopyIcon,
-  TableIcon,
-  RobotIcon,
-  BookOpenIcon,
-} from "@phosphor-icons/react";
-import { UserButton } from "@clerk/nextjs";
-import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
-import { useScratchPadUser } from "@/hooks/useScratchpadUser";
-import { RouteUrls } from "@/utils/route-urls";
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { RouteUrls } from '@/utils/route-urls';
+import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
+import { ActionIcon, CopyButton, Group, Image, NavLink, Stack, Text, Tooltip } from '@mantine/core';
+import { BookOpenIcon, CheckIcon, CopyIcon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const links = [
   {
     href: RouteUrls.snapshotsPageUrl,
-    label: "Snapshots",
+    label: 'Snapshots',
     icon: <TableIcon size={16} />,
   },
   {
     href: RouteUrls.connectionsPageUrl,
-    label: "Connections",
+    label: 'Connections',
     icon: <PlugsIcon size={16} />,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
-    label: "AI Connector Builder",
+    label: 'AI Connector Builder',
     icon: <RobotIcon size={16} />,
   },
   {
     href: RouteUrls.styleGuidesPageUrl,
-    label: "Style Guides",
+    label: 'Style Guides',
     icon: <BookOpenIcon size={16} />,
-  },
-  {
-    href: RouteUrls.healthPageUrl,
-    label: "Health",
-    icon: <TestTubeIcon size={16} />,
   },
 ];
 
@@ -68,7 +45,7 @@ export function SideMenu() {
           h={40}
           styles={{
             root: {
-              fill: "d262c1",
+              fill: 'd262c1',
             },
           }}
         />
@@ -105,21 +82,9 @@ export function SideMenu() {
                 </Text>
                 <CopyButton value={user.id} timeout={2000}>
                   {({ copied, copy }) => (
-                    <Tooltip
-                      label={copied ? "Copied" : `${user.id}`}
-                      withArrow
-                      position="right"
-                    >
-                      <ActionIcon
-                        color={copied ? "teal" : "gray"}
-                        variant="subtle"
-                        onClick={copy}
-                      >
-                        {copied ? (
-                          <CheckIcon size={16} />
-                        ) : (
-                          <CopyIcon size={16} />
-                        )}
+                    <Tooltip label={copied ? 'Copied' : `${user.id}`} withArrow position="right">
+                      <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                        {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
                       </ActionIcon>
                     </Tooltip>
                   )}
@@ -133,21 +98,9 @@ export function SideMenu() {
                     </Text>
                     <CopyButton value={user.apiToken} timeout={2000}>
                       {({ copied, copy }) => (
-                        <Tooltip
-                          label={copied ? "Copied" : `${user.apiToken}`}
-                          withArrow
-                          position="right"
-                        >
-                          <ActionIcon
-                            color={copied ? "teal" : "gray"}
-                            variant="subtle"
-                            onClick={copy}
-                          >
-                            {copied ? (
-                              <CheckIcon size={16} />
-                            ) : (
-                              <CopyIcon size={16} />
-                            )}
+                        <Tooltip label={copied ? 'Copied' : `${user.apiToken}`} withArrow position="right">
+                          <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                            {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
                           </ActionIcon>
                         </Tooltip>
                       )}
