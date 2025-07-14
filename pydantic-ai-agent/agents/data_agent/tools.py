@@ -2,7 +2,7 @@
 """
 PydanticAI Tools for the Chat Server
 """
-from agent.models import ChatRunContext, ChatSession
+from agents.data_agent.models import ChatRunContext, ChatSession
 
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field

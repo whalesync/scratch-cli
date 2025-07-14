@@ -11,21 +11,10 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
 
-from agent.models import ResponseFromAgent, ChatRunContext
-from agent.tools import clear_table_view, get_records, connect_snapshot, create_records, delete_records, list_table_views, update_records, activate_table_view
+from agents.data_agent.models import ResponseFromAgent, ChatRunContext
+from agents.data_agent.tools import clear_table_view, get_records, connect_snapshot, create_records, delete_records, list_table_views, update_records, activate_table_view
 from logger import log_info, log_error
-
-
-
-def extract_response(result) -> ResponseFromAgent | None:
-    """Extract response from result object, trying different attributes"""
-    # Try different possible response attributes
-    for attr in ['output', 'response', 'data']:
-        if hasattr(result, attr):
-            response = getattr(result, attr)
-            if response:
-                return response  # type: ignore
-    return None
+from utils.response_extractor import extract_response
 
 def create_agent(model_name: Optional[str] = None):
     """Create and return a configured agent"""

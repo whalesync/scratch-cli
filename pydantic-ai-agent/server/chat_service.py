@@ -8,9 +8,10 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import HTTPException
+from pydantic_ai.usage import UsageLimits
 
-from agent.models import ChatRunContext, ChatSession, ResponseFromAgent
-from agent.agent import create_agent, extract_response
+from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
 # from tools import set_api_token, set_session_data
@@ -82,21 +83,21 @@ class ChatService:
             
             # Include summary history for agent context
             if session.summary_history:
-                context += f"\n\nSUMMARY HISTORY:\n"
+                context += f"\n\nSUMMARY OF RECENT USER REQUESTS AND ASSISTANT ACTIONS:\n"
                 for summary in session.summary_history:
-                    context += f"Request: {summary.request_summary}\n"
-                    context += f"Response: {summary.response_summary}\n\n"
+                    context += f"User: {summary.request_summary}\n"
+                    context += f"Agent: {summary.response_summary}\n\n"
             
             # Include recent chat history for user context (last 5 messages)
-            if session.chat_history:
-                recent_history = session.chat_history[-5:]
-                context += f"\n\nRECENT CONVERSATION:\n"
-                for msg in recent_history:
-                    truncated_msg = msg.message[:100] + "..." if len(msg.message) > 100 else msg.message
-                    context += f"{msg.role.capitalize()}: {truncated_msg}\n"
+            # if session.chat_history:
+            #     recent_history = session.chat_history[-5:]
+            #     context += f"\n\nRECENT CONVERSATION:\n"
+            #     for msg in recent_history:
+            #         truncated_msg = msg.message[:100] + "..." if len(msg.message) > 100 else msg.message
+            #         context += f"{msg.role.capitalize()}: {truncated_msg}\n"
             
             # Create the full prompt with memory
-            full_prompt = f"Respond to: {user_message}. Provide your response with a well-formatted message for the user and a concise summary of key actions/decisions for future reference.{context}"
+            full_prompt = f"RESPOND TO: {user_message} {context}"
             
             print(f"DEBUG - Context length: {len(context)}")
             print(f"DEBUG - Chat history length: {len(session.chat_history)}")
@@ -127,7 +128,13 @@ class ChatService:
                 agent = create_agent(model)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
-                    deps=chatRunContext
+                    deps=chatRunContext,
+                    usage_limits=UsageLimits(
+                        request_limit=10,  # Maximum 20 requests per agent run
+                        # request_tokens_limit=10000,  # Maximum 10k tokens per request
+                        # response_tokens_limit=5000,  # Maximum 5k tokens per response
+                        # total_tokens_limit=15000  # Maximum 15k tokens total
+                    )
                 ), timeout=30.0)  # 30 second timeout
                 print(f"✅ Agent.run() completed")
             except asyncio.TimeoutError:
@@ -142,7 +149,7 @@ class ChatService:
             print(f"🔍 ResponseFromAgent class: {ResponseFromAgent}")
             
             # Extract the actual response from the AgentRunResult
-            actual_response = extract_response(response)
+            actual_response = extract_response(response, ResponseFromAgent)
             if not actual_response:
                 log_error("No response from agent", session_id=session.id, snapshot_id=session.snapshot_id)
                 print(f"❌ No response from agent")

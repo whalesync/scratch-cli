@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict
 from fastapi import WebSocket, WebSocketDisconnect
 
-from agent.models import ChatSession
+from agents.data_agent.models import ChatSession
 from server.chat_service import ChatService
 
 class ConnectionManager:
