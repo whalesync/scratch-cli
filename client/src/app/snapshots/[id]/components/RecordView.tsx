@@ -45,6 +45,7 @@ export const RecordView = ({
   const [draftRecord, setDraftRecord] = useState<SnapshotRecord | undefined>(undefined);
   const [recordDirty, setRecordDirty] = useState(false);
   const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
+  const [showEditedOnly, setShowEditedOnly] = useState(false);
   const [unsavedChangesModalOpened, { open: openUnsavedChangesModal, close: closeUnsavedChangesModal }] =
     useDisclosure(false);
   const [afterModalAction, setAfterModalAction] = useSetState<{
@@ -121,12 +122,19 @@ export const RecordView = ({
   );
 
   const fieldToInput = useCallback(
-    (field: string, table: TableSpec, focusedView?: boolean) => {
+    (field: string, table: TableSpec, focusedView?: boolean, hasEditedValue?: boolean) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
       if (!draftRecord) return null;
 
       const value = draftRecord.fields[field] as string;
+      const greenBackgroundStyle = hasEditedValue
+        ? {
+            input: {
+              backgroundColor: '#e0fde0',
+            },
+          }
+        : undefined;
 
       if (focusedView) {
         if (column.pgType === PostgresColumnType.TEXT && column.markdown) {
@@ -157,6 +165,7 @@ export const RecordView = ({
                 onChange={(e) => updateDraftField(field, e.target.value)}
                 autosize
                 minRows={10}
+                styles={greenBackgroundStyle}
               />
               <Box>123</Box>
             </Stack>
@@ -174,6 +183,7 @@ export const RecordView = ({
               minRows={3}
               maxRows={5}
               readOnly={column.readonly}
+              styles={greenBackgroundStyle}
             />
           );
         }
@@ -192,6 +202,7 @@ export const RecordView = ({
               minRows={3}
               maxRows={5}
               readOnly={column.readonly}
+              styles={greenBackgroundStyle}
             />
           );
         }
@@ -206,6 +217,7 @@ export const RecordView = ({
             value={draftRecord.fields[field] as number}
             onChange={(value) => updateDraftField(field, value.toString())}
             readOnly={column.readonly}
+            styles={greenBackgroundStyle}
           />
         );
       }
@@ -235,6 +247,7 @@ export const RecordView = ({
             minRows={3}
             maxRows={5}
             readOnly={column.readonly}
+            styles={greenBackgroundStyle}
           />
         );
       }
@@ -246,6 +259,7 @@ export const RecordView = ({
           value={value}
           onChange={(e) => updateDraftField(field, e.target.value)}
           readOnly={column.readonly}
+          styles={greenBackgroundStyle}
         />
       );
     },
@@ -308,9 +322,11 @@ export const RecordView = ({
         }
       };
 
+      const hasEditedValue = !!draftRecord.__edited_fields?.[field];
+
       return (
         <Stack gap={'xs'}>
-          {fieldToInput(field, table, focusedView)}
+          {fieldToInput(field, table, focusedView, hasEditedValue)}
           {hasSuggestion && (
             <>
               <Group gap="xs" justify="center">
@@ -377,20 +393,42 @@ export const RecordView = ({
   if (draftRecord && currentColumn) {
     recordContent = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
   } else if (draftRecord) {
-    // Filter fields based on checkbox state
-    const fieldsToShow = showSuggestedOnly
-      ? Object.keys(draftRecord.fields).filter((fieldName) => draftRecord.__suggested_values?.[fieldName] !== undefined)
-      : Object.keys(draftRecord.fields);
+    // Filter fields based on checkbox states
+    const fieldsToShow = Object.keys(draftRecord.fields).filter((fieldName) => {
+      const hasSuggestion = draftRecord.__suggested_values?.[fieldName] !== undefined;
+      const hasEditedValue = draftRecord.__edited_fields?.[fieldName] !== undefined;
+
+      if (showSuggestedOnly && showEditedOnly) {
+        // Both checkboxes checked: show fields that have BOTH suggestion AND edited value
+        return hasSuggestion && hasEditedValue;
+      } else if (showSuggestedOnly) {
+        // Only suggested checkbox checked: show fields with suggestions
+        return hasSuggestion;
+      } else if (showEditedOnly) {
+        // Only edited checkbox checked: show fields with edited values
+        return hasEditedValue;
+      } else {
+        // No checkboxes checked: show all fields
+        return true;
+      }
+    });
 
     recordContent = (
       <>
         <Group justify="space-between" align="center">
           <Text>Record Details</Text>
-          <Checkbox
-            label="Show fields with suggested changes only"
-            checked={showSuggestedOnly}
-            onChange={(e) => setShowSuggestedOnly(e.target.checked)}
-          />
+          <Group gap="md">
+            <Checkbox
+              label="Show fields with suggested changes only"
+              checked={showSuggestedOnly}
+              onChange={(e) => setShowSuggestedOnly(e.target.checked)}
+            />
+            <Checkbox
+              label="Show fields with updated values only"
+              checked={showEditedOnly}
+              onChange={(e) => setShowEditedOnly(e.target.checked)}
+            />
+          </Group>
         </Group>
         {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
       </>
