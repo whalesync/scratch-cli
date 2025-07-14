@@ -1,38 +1,29 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useStyleGuides } from '@/hooks/use-style-guide';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { ChatSessionSummary } from '@/types/server-entities/chat-session';
 import {
-  Paper,
-  TextInput,
-  Textarea,
-  Stack,
-  Text,
-  Group,
-  ScrollArea,
   ActionIcon,
   Alert,
-  Select,
-  MultiSelect,
+  Group,
   Modal,
-  Button,
-  SimpleGrid,
-  Card,
-} from "@mantine/core";
-import {
-  ChatCircle,
-  PaperPlaneRightIcon,
-  Plus,
-  X,
-  XIcon,
-  MagnifyingGlass,
-} from "@phosphor-icons/react";
-import { useScratchPadUser } from "@/hooks/useScratchpadUser";
-import { ChatSessionSummary } from "@/types/server-entities/chat-session";
-import { useStyleGuides } from "@/hooks/use-style-guide";
-import { MarkdownRenderer } from "./markdown/MarkdownRenderer";
+  MultiSelect,
+  Paper,
+  ScrollArea,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
+import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { MarkdownRenderer } from './markdown/MarkdownRenderer';
+import ModelPicker from './ModelPicker';
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   message: string;
   timestamp: string;
 }
@@ -56,32 +47,17 @@ interface AIChatPanelProps {
   snapshotId?: string;
 }
 
-// Popular models from OpenRouter
-const POPULAR_MODELS = [
-  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast and efficient" },
-  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable model" },
-  { value: "anthropic/claude-3-5-sonnet", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced performance" },
-  { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku", provider: "Anthropic", description: "Fast and cost-effective" },
-  { value: "google/gemini-pro", label: "Gemini Pro", provider: "Google", description: "Google's latest model" },
-  { value: "google/gemini-flash", label: "Gemini Flash", provider: "Google", description: "Fast and efficient" },
-];
+const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
 
-const AI_CHAT_SERVER_URL =
-  process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || "http://localhost:8000";
-
-export default function AIChatPanel({
-  isOpen,
-  onClose,
-  snapshotId,
-}: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanelProps) {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o-mini");
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -105,7 +81,7 @@ export default function AIChatPanel({
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
         top: scrollAreaRef.current.scrollHeight,
-        behavior: "smooth",
+        behavior: 'smooth',
       });
     }
   }, [sessionData?.chat_history]);
@@ -122,15 +98,15 @@ export default function AIChatPanel({
 
     setIsLoadingSessions(true);
     try {
-      console.log("Loading sessions from:", `${AI_CHAT_SERVER_URL}/sessions`);
+      console.log('Loading sessions from:', `${AI_CHAT_SERVER_URL}/sessions`);
       const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`);
       const data = await response.json();
-      console.log("Sessions response:", data);
+      console.log('Sessions response:', data);
       setSessions(data.sessions);
-      console.log("Set sessions:", data.sessions);
+      console.log('Set sessions:', data.sessions);
     } catch (error) {
-      setError("Failed to load sessions");
-      console.error("Error loading sessions:", error);
+      setError('Failed to load sessions');
+      console.error('Error loading sessions:', error);
     } finally {
       setIsLoadingSessions(false);
     }
@@ -138,18 +114,16 @@ export default function AIChatPanel({
 
   const loadSession = async (sessionId: string) => {
     try {
-      const response = await fetch(
-        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`
-      );
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${sessionId}`);
       if (response.ok) {
         const data = (await response.json()) as ChatSession;
         setSessionData(data);
       } else {
-        setError("Failed to load session");
+        setError('Failed to load session');
       }
     } catch (error) {
-      setError("Failed to load session");
-      console.error("Error loading session:", error);
+      setError('Failed to load session');
+      console.error('Error loading session:', error);
     }
   };
 
@@ -161,18 +135,18 @@ export default function AIChatPanel({
 
   const createNewSession = async () => {
     if (!snapshotId) {
-      setError("Snapshot ID is required to create a session");
+      setError('Snapshot ID is required to create a session');
       return;
     }
 
     try {
       const url = new URL(`${AI_CHAT_SERVER_URL}/sessions`);
-      url.searchParams.append("snapshot_id", snapshotId);
+      url.searchParams.append('snapshot_id', snapshotId);
 
       const response = await fetch(url.toString(), {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
 
@@ -181,43 +155,36 @@ export default function AIChatPanel({
         setSessions((prev) => [...prev, data.session]);
         setCurrentSessionId(data.session.id);
         setError(null);
-        console.log("Created new session with snapshot ID:", snapshotId);
+        console.log('Created new session with snapshot ID:', snapshotId);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(
-          `Failed to create session: ${errorData.detail || response.statusText}`
-        );
+        setError(`Failed to create session: ${errorData.detail || response.statusText}`);
       }
     } catch (error) {
-      setError("Failed to create session");
-      console.error("Error creating session:", error);
+      setError('Failed to create session');
+      console.error('Error creating session:', error);
     }
   };
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const response = await fetch(
-        `${AI_CHAT_SERVER_URL}/sessions/${sessionId}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
 
       if (response.ok) {
-        setSessions((prev) =>
-          prev.filter((session) => session.id !== sessionId)
-        );
+        setSessions((prev) => prev.filter((session) => session.id !== sessionId));
         if (currentSessionId === sessionId) {
           setCurrentSessionId(null);
           setSessionData(null);
         }
         setError(null);
       } else {
-        setError("Failed to delete session");
+        setError('Failed to delete session');
       }
     } catch (error) {
-      setError("Failed to delete session");
-      console.error("Error deleting session:", error);
+      setError('Failed to delete session');
+      console.error('Error deleting session:', error);
     }
   };
 
@@ -227,7 +194,7 @@ export default function AIChatPanel({
     // Optimistically update chat history
     if (sessionData) {
       const optimisticMessage = {
-        role: "user" as const,
+        role: 'user' as const,
         message: message.trim(),
         timestamp: new Date().toISOString(),
       };
@@ -240,7 +207,7 @@ export default function AIChatPanel({
     setIsLoading(true);
     setError(null);
 
-    console.log("Message data:", {
+    console.log('Message data:', {
       message: message.trim(),
       currentSessionId,
       historyLength: sessionData?.chat_history.length || 0,
@@ -250,11 +217,11 @@ export default function AIChatPanel({
 
     try {
       // Get selected style guide content
-      const selectedStyleGuides = styleGuides.filter(sg => selectedStyleGuideIds.includes(sg.id));
-      
-      const messageData: { 
-        message: string; 
-        api_token?: string; 
+      const selectedStyleGuides = styleGuides.filter((sg) => selectedStyleGuideIds.includes(sg.id));
+
+      const messageData: {
+        message: string;
+        api_token?: string;
         style_guides?: string[];
         model?: string;
       } = {
@@ -265,40 +232,37 @@ export default function AIChatPanel({
       // Include API token if available
       if (user?.apiToken) {
         messageData.api_token = user.apiToken;
-        console.log("Including API token in request");
+        console.log('Including API token in request');
       } else {
-        console.log("No API token available");
+        console.log('No API token available');
       }
 
       // Include style guide content if selected
       if (selectedStyleGuides.length > 0) {
-        messageData.style_guides = selectedStyleGuides.map(sg => sg.body);
-        console.log("Including style guides:", selectedStyleGuides.map(sg => sg.name).join(", "));
+        messageData.style_guides = selectedStyleGuides.map((sg) => sg.body);
+        console.log('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
       }
 
-      const response = await fetch(
-        `${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(messageData),
-        }
-      );
+      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messageData),
+      });
 
       if (response.ok) {
-        setMessage("");
+        setMessage('');
 
         // Reload session to get updated history
         await loadSession(currentSessionId);
-        console.log("Message sent successfully, reloaded session");
+        console.log('Message sent successfully, reloaded session');
       } else {
-        setError("Failed to send message");
+        setError('Failed to send message');
       }
     } catch (error) {
-      setError("Failed to send message");
-      console.error("Error sending message:", error);
+      setError('Failed to send message');
+      console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
       setResetInputFocus(true);
@@ -306,13 +270,11 @@ export default function AIChatPanel({
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       sendMessage();
     }
   };
-
-
 
   const formatSessionLabel = (session: ChatSessionSummary) => {
     return session.name;
@@ -327,11 +289,11 @@ export default function AIChatPanel({
       shadow="md"
       p="md"
       style={{
-        width: "30%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "visible",
+        width: '30%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'visible',
       }}
     >
       {/* Header */}
@@ -362,7 +324,7 @@ export default function AIChatPanel({
           placeholder="Select session"
           value={currentSessionId}
           onChange={(value) => {
-            console.log("Select onChange called with:", value);
+            console.log('Select onChange called with:', value);
             setCurrentSessionId(value);
           }}
           data={sessions.map((session) => ({
@@ -370,23 +332,18 @@ export default function AIChatPanel({
             label: formatSessionLabel(session),
           }))}
           size="xs"
-          style={{ flex: 1, zIndex: 10001 }}
+          style={{ flex: 1, zIndex: 1001 }}
           searchable={false}
           clearable={false}
           allowDeselect={true}
           maxDropdownHeight={200}
           styles={{
             dropdown: {
-              zIndex: 10002,
+              zIndex: 1002,
             },
           }}
         />
-        <ActionIcon
-          onClick={createNewSession}
-          size="sm"
-          variant="subtle"
-          title="New chat"
-        >
+        <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
           <Plus size={14} />
         </ActionIcon>
         {currentSessionId && (
@@ -404,10 +361,14 @@ export default function AIChatPanel({
 
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
-        Sessions: {sessions.length} | Current: {currentSessionId || "none"} | Model: {selectedModel}
+        Sessions: {sessions.length} | Current: {currentSessionId || 'none'} | Model: {selectedModel}
         {selectedStyleGuideIds.length > 0 && (
           <Text span size="xs" c="blue" ml="xs">
-            | Style Guides ({selectedStyleGuideIds.length}): {selectedStyleGuideIds.map(id => styleGuides.find(sg => sg.id === id)?.name).filter(Boolean).join(", ")}
+            | Style Guides ({selectedStyleGuideIds.length}):{' '}
+            {selectedStyleGuideIds
+              .map((id) => styleGuides.find((sg) => sg.id === id)?.name)
+              .filter(Boolean)
+              .join(', ')}
           </Text>
         )}
       </Text>
@@ -420,17 +381,15 @@ export default function AIChatPanel({
               <Paper
                 key={index}
                 p="xs"
-                bg={msg.role === "user" ? "blue.0" : "gray.0"}
+                bg={msg.role === 'user' ? 'blue.0' : 'gray.0'}
                 style={{
-                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "90%",
+                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '90%',
                 }}
               >
                 <Stack gap="xs">
-                  {msg.role === "user" ? (
-                    <Text size="xs">
-                      {msg.message}
-                    </Text>
+                  {msg.role === 'user' ? (
+                    <Text size="xs">{msg.message}</Text>
                   ) : (
                     <Text size="xs">
                       <MarkdownRenderer>{msg.message}</MarkdownRenderer>
@@ -457,7 +416,7 @@ export default function AIChatPanel({
       <Stack gap="xs">
         {/* Style Guide Selection */}
         <MultiSelect
-          placeholder={selectedStyleGuideIds.length === 0 ? "Select style guides (optional)" : ""}
+          placeholder={selectedStyleGuideIds.length === 0 ? 'Select style guides (optional)' : ''}
           value={selectedStyleGuideIds}
           onChange={setSelectedStyleGuideIds}
           data={styleGuides.map((styleGuide) => ({
@@ -486,7 +445,6 @@ export default function AIChatPanel({
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
           disabled={isLoading || !currentSessionId}
-
           size="xs"
           minRows={5}
           maxRows={5}
@@ -502,7 +460,7 @@ export default function AIChatPanel({
               size="sm"
               variant="subtle"
               title="Browse models"
-              style={{ 
+              style={{
                 color: '#ccc',
                 backgroundColor: 'transparent',
               }}
@@ -514,7 +472,7 @@ export default function AIChatPanel({
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               size="xs"
-              style={{ width: 150 }}
+              style={{ flex: 1 }}
               styles={{
                 input: {
                   border: 'none',
@@ -541,49 +499,16 @@ export default function AIChatPanel({
         opened={showModelSelector}
         onClose={() => setShowModelSelector(false)}
         title="Select Model"
-        size="md"
+        size="xl"
+        zIndex={1003}
       >
-        <Stack gap="md">
-          <Text size="sm" c="dimmed">
-            Choose a model for AI generation. Different models have different capabilities and costs.
-          </Text>
-          
-          <SimpleGrid cols={2} spacing="md">
-            {POPULAR_MODELS.map((model) => (
-              <Card
-                key={model.value}
-                p="sm"
-                withBorder
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setSelectedModel(model.value);
-                  setShowModelSelector(false);
-                }}
-              >
-                <Stack gap="xs">
-                  <Text size="sm" fw={500}>
-                    {model.label}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {model.provider}
-                  </Text>
-                  <Text size="xs">
-                    {model.description}
-                  </Text>
-                </Stack>
-              </Card>
-            ))}
-          </SimpleGrid>
-          
-          <Group justify="flex-end">
-            <Button
-              variant="subtle"
-              onClick={() => setShowModelSelector(false)}
-            >
-              Cancel
-            </Button>
-          </Group>
-        </Stack>
+        <ModelPicker
+          value={selectedModel}
+          onChange={(value) => {
+            setSelectedModel(value);
+            setShowModelSelector(false);
+          }}
+        />
       </Modal>
     </Paper>
   );
