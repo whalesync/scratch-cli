@@ -4,7 +4,6 @@ import { PostgresColumnType, Snapshot, SnapshotRecord, TableSpec } from '@/types
 import {
   ActionIcon,
   Anchor,
-  Box,
   Button,
   Center,
   Checkbox,
@@ -21,7 +20,6 @@ import {
 import { useDisclosure, useSetState } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, ArrowUpIcon, XIcon } from '@phosphor-icons/react';
-import MDEditor from '@uiw/react-md-editor';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -136,71 +134,42 @@ export const RecordView = ({
           }
         : undefined;
 
-      if (focusedView) {
-        if (column.pgType === PostgresColumnType.TEXT && column.markdown) {
-          return (
-            <>
-              <Text>{column.name}</Text>
-              <MDEditor
-                value={value || ''}
-                onChange={(value) => {
-                  updateDraftField(field, value || '');
-                }}
-                preview="edit"
-              />
-            </>
-          );
-        }
-
-        if (
-          column.pgType === PostgresColumnType.JSONB ||
-          (column.pgType === PostgresColumnType.TEXT && value && value.length > 100)
-        ) {
-          return (
-            <Stack>
-              <Textarea
-                key={field}
-                label={column.name}
-                value={value}
-                onChange={(e) => updateDraftField(field, e.target.value)}
-                autosize
-                minRows={10}
-                styles={greenBackgroundStyle}
-              />
-              <Box>123</Box>
-            </Stack>
-          );
-        }
-      } else {
-        if (column.pgType === PostgresColumnType.TEXT && column.markdown) {
+      if (
+        column.pgType === PostgresColumnType.JSONB ||
+        column.markdown ||
+        (column.pgType === PostgresColumnType.TEXT && value && value.length > 200)
+      ) {
+        if (focusedView) {
+          // the text area should try and fill the full height of the parent stack
           return (
             <Textarea
               key={field}
               label={column.name}
-              value={value}
+              value={value || ''}
               onChange={(e) => updateDraftField(field, e.target.value)}
-              autosize
-              minRows={3}
-              maxRows={5}
-              readOnly={column.readonly}
-              styles={greenBackgroundStyle}
+              minRows={10}
+              styles={{
+                wrapper: {
+                  height: '100%',
+                },
+                input: {
+                  height: '100%',
+                  ...greenBackgroundStyle?.input,
+                },
+              }}
+              h="100%"
             />
           );
-        }
-
-        if (
-          column.pgType === PostgresColumnType.JSONB ||
-          (column.pgType === PostgresColumnType.TEXT && value && value.length > 100)
-        ) {
+        } else {
           return (
             <Textarea
               key={field}
               label={column.name}
-              value={value}
+              value={value || ''}
               onChange={(e) => updateDraftField(field, e.target.value)}
               autosize
               minRows={3}
-              maxRows={5}
+              maxRows={10}
               readOnly={column.readonly}
               styles={greenBackgroundStyle}
             />
@@ -325,7 +294,7 @@ export const RecordView = ({
       const hasEditedValue = !!draftRecord.__edited_fields?.[field];
 
       return (
-        <Stack gap={'xs'}>
+        <Stack key={field} gap="xs" h="100%">
           {fieldToInput(field, table, focusedView, hasEditedValue)}
           {hasSuggestion && (
             <>
@@ -414,7 +383,7 @@ export const RecordView = ({
     });
 
     recordContent = (
-      <>
+      <Stack>
         <Group justify="space-between" align="center">
           <Text>Record Details</Text>
           <Group gap="md">
@@ -431,7 +400,7 @@ export const RecordView = ({
           </Group>
         </Group>
         {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
-      </>
+      </Stack>
     );
   }
 
