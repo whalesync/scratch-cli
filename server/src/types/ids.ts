@@ -18,6 +18,7 @@ export enum IdPrefixes {
   GENERIC_TABLE = 'gct_',
   SNAPSHOT_TABLE_VIEW = 'stv_',
   STYLE_GUIDE = 'sgd_',
+  VIEW = 'vew_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -132,4 +133,15 @@ export function isStyleGuideId(id: unknown): id is StyleGuideId {
 
 export function createStyleGuideId(): StyleGuideId {
   return createId(IdPrefixes.STYLE_GUIDE) as StyleGuideId;
+}
+
+// ------- View -------
+export type ViewId = PrefixedId<IdPrefixes.VIEW>;
+
+export function isViewId(id: unknown): id is ViewId {
+  return isId(id, IdPrefixes.VIEW);
+}
+
+export function createViewId(): ViewId {
+  return createId(IdPrefixes.VIEW) as ViewId;
 }

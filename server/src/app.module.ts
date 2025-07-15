@@ -13,6 +13,7 @@ import { ConnectorsModule } from './remote-service/connectors/connectors.module'
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UserModule } from './users/users.module';
+import { ViewModule } from './view/view.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UserModule } from './users/users.module';
     RestApiImportModule,
     GenericTableModule,
     StyleGuideModule,
+    ViewModule,
   ],
   controllers: [AppController],
   providers: [AppService, RecordsGateway],

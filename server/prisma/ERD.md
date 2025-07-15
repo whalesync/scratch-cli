@@ -80,12 +80,22 @@ erDiagram
   String body
   String userId FK
 }
+"View" {
+  String id PK
+  String parentId FK "nullable"
+  String name "nullable"
+  String snapshotId
+  Json config
+  DateTime createdAt
+  DateTime updatedAt
+}
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 "GenericTable" }o--|| "User" : user
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
+"View" }o--o| "View" : parent
 ```
 
 ### `User`
@@ -180,3 +190,15 @@ Properties as follows:
 - `name`:
 - `body`:
 - `userId`:
+
+### `View`
+
+Properties as follows:
+
+- `id`:
+- `parentId`:
+- `name`:
+- `snapshotId`:
+- `config`:
+- `createdAt`:
+- `updatedAt`:

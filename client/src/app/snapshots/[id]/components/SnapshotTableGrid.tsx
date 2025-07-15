@@ -37,13 +37,16 @@ import { notifications } from '@mantine/notifications';
 import { BugIcon, PlusIcon, SlidersIcon } from '@phosphor-icons/react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSnapshot, useSnapshotRecords, useSnapshotViews } from '../../../../hooks/use-snapshot';
+import { useSnapshot, useSnapshotRecords } from '../../../../hooks/use-snapshot';
+import { useUpsertView, useViews } from '../../../../hooks/use-view';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
+  currentViewId?: string | null;
   onSwitchToRecordView: (recordId: string, columnId?: string) => void;
+  onViewCreated?: (viewId: string) => void;
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -86,7 +89,13 @@ const getColumnIcon = (column: ColumnSpec): GridColumnIcon => {
 
 const FAKE_LEFT_COLUMNS = 1;
 
-const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTableGridProps) => {
+const SnapshotTableGrid = ({
+  snapshot,
+  table,
+  currentViewId,
+  onSwitchToRecordView,
+  onViewCreated,
+}: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
   const [hoveredRow, setHoveredRow] = useState<number | undefined>();
@@ -113,19 +122,17 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
   const { refreshSnapshot } = useSnapshot(snapshot.id);
 
-  const { views, refreshViews } = useSnapshotViews({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-  });
+  const { views, refreshViews } = useViews(snapshot.id);
 
-  const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
+  const activeView = views ? views.find((v) => v.id === currentViewId) : undefined;
 
   const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
     useSnapshotRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
-      activeView: activeView,
     });
+
+  const { upsertView } = useUpsertView();
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -179,6 +186,27 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
   const isIdColumn = (col: number) => {
     return col === 0;
   };
+
+  const getColumnStatus = useCallback(
+    (columnId: string) => {
+      if (!activeView || !activeView.config[table.id.wsId]) {
+        return { visible: true, editable: true }; // Default to visible and editable if not in view
+      }
+
+      const tableConfig = activeView.config[table.id.wsId];
+      const columnConfig = tableConfig.columns?.find((c: { wsId: string }) => c.wsId === columnId);
+
+      if (!columnConfig) {
+        return { visible: true, editable: true }; // Default to visible and editable if not specified
+      }
+
+      return {
+        visible: columnConfig.visible !== false, // Default to true if not set
+        editable: columnConfig.editable !== false, // Default to true if not set
+      };
+    },
+    [activeView, table.id.wsId],
+  );
 
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -695,6 +723,107 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
             color: 'red',
           });
         }
+      } else if (action === 'Add to View') {
+        if (!record) return;
+
+        try {
+          if (currentViewId && activeView) {
+            // Update existing view
+            const existingConfig = activeView.config;
+            const tableConfig = existingConfig[table.id.wsId] || {
+              visible: true,
+              editable: true,
+              records: [],
+            };
+
+            // Check if record is already in the view
+            const recordExists = tableConfig.records?.some((r: { wsId: string }) => r.wsId === record.id.wsId);
+
+            if (recordExists) {
+              notifications.show({
+                title: 'Add to View',
+                message: `Record is already in the current view`,
+                color: 'yellow',
+              });
+              return;
+            }
+
+            // Add record to existing view
+            const updatedTableConfig = {
+              ...tableConfig,
+              records: [
+                ...(tableConfig.records || []),
+                {
+                  wsId: record.id.wsId,
+                  visible: true,
+                  editable: true,
+                },
+              ],
+            };
+
+            const updatedConfig = {
+              ...existingConfig,
+              [table.id.wsId]: updatedTableConfig,
+            };
+
+            await upsertView({
+              id: activeView.id,
+              parentId: activeView.parentId || undefined,
+              name: activeView.name || undefined,
+              snapshotId: snapshot.id,
+              config: updatedConfig,
+              save: false, // Update the existing view without creating a new one
+            });
+
+            notifications.show({
+              title: 'Add to View',
+              message: `Added record to existing view`,
+              color: 'green',
+            });
+
+            // Don't call onViewCreated for updates - only for new view creation
+          } else {
+            // Create a new view with this record visible
+            const viewConfig = {
+              [table.id.wsId]: {
+                visible: true,
+                editable: true,
+                records: [
+                  {
+                    wsId: record.id.wsId,
+                    visible: true,
+                    editable: true,
+                  },
+                ],
+              },
+            };
+
+            const result = await upsertView({
+              snapshotId: snapshot.id,
+              config: viewConfig,
+              save: true, // Save the view immediately
+            });
+
+            notifications.show({
+              title: 'Add to View',
+              message: `Added record to new view`,
+              color: 'green',
+            });
+
+            // Select the newly created view
+            onViewCreated?.(result.id);
+          }
+
+          // Refresh the views list
+          refreshViews?.();
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error adding to view',
+            message: error.message,
+            color: 'red',
+          });
+        }
       } else {
         notifications.show({
           title: `${action}`,
@@ -706,7 +835,20 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       // Close the context menu
       setContextMenu(null);
     },
-    [contextMenu, sortedRecords, table.columns, acceptCellValues, rejectCellValues],
+    [
+      contextMenu,
+      sortedRecords,
+      table.columns,
+      acceptCellValues,
+      rejectCellValues,
+      upsertView,
+      refreshViews,
+      snapshot.id,
+      table.id.wsId,
+      currentViewId,
+      activeView,
+      onViewCreated,
+    ],
   );
 
   const closeContextMenu = useCallback(() => {
@@ -810,6 +952,112 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
             color: 'red',
           });
         }
+      } else if (action === 'Add to View') {
+        if (isIdColumn(col)) return;
+
+        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        if (!columnId) return;
+
+        try {
+          if (currentViewId && activeView) {
+            // Update existing view
+            const existingConfig = activeView.config;
+            const tableConfig = existingConfig[table.id.wsId] || {
+              visible: true,
+              editable: true,
+              records: [],
+              columns: [],
+            };
+
+            // Check if column is already in the view
+            const columnExists = tableConfig.columns?.some((c: { wsId: string }) => c.wsId === columnId);
+
+            if (columnExists) {
+              notifications.show({
+                title: 'Add to View',
+                message: `Column is already in the current view`,
+                color: 'yellow',
+              });
+              return;
+            }
+
+            // Add column to existing view
+            const updatedTableConfig = {
+              ...tableConfig,
+              columns: [
+                ...(tableConfig.columns || []),
+                {
+                  wsId: columnId,
+                  visible: true,
+                  editable: true,
+                },
+              ],
+            };
+
+            const updatedConfig = {
+              ...existingConfig,
+              [table.id.wsId]: updatedTableConfig,
+            };
+
+            await upsertView({
+              id: activeView.id,
+              parentId: activeView.parentId || undefined,
+              name: activeView.name || undefined,
+              snapshotId: snapshot.id,
+              config: updatedConfig,
+              save: false, // Update the existing view without creating a new one
+            });
+
+            notifications.show({
+              title: 'Add to View',
+              message: `Added column to existing view`,
+              color: 'green',
+            });
+
+            // Don't call onViewCreated for updates - only for new view creation
+          } else {
+            // Create a new view with this column visible
+            const viewConfig = {
+              [table.id.wsId]: {
+                visible: true,
+                editable: true,
+                records: [],
+                columns: [
+                  {
+                    wsId: columnId,
+                    visible: true,
+                    editable: true,
+                  },
+                ],
+              },
+            };
+
+            const result = await upsertView({
+              snapshotId: snapshot.id,
+              config: viewConfig,
+              save: true, // Save the view immediately
+            });
+
+            notifications.show({
+              title: 'Add to View',
+              message: `Added column to new view`,
+              color: 'green',
+            });
+
+            // Select the newly created view
+            onViewCreated?.(result.id);
+          }
+
+          // Refresh the views list
+          refreshViews?.();
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error adding to view',
+            message: error.message,
+            color: 'red',
+          });
+        }
       } else {
         notifications.show({
           title: `${action}`,
@@ -821,7 +1069,20 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       // Close the header menu
       setHeaderMenu(null);
     },
-    [headerMenu, table.columns, sortedRecords, acceptCellValues, rejectCellValues],
+    [
+      headerMenu,
+      table.columns,
+      sortedRecords,
+      acceptCellValues,
+      rejectCellValues,
+      upsertView,
+      refreshViews,
+      snapshot.id,
+      table.id.wsId,
+      currentViewId,
+      activeView,
+      onViewCreated,
+    ],
   );
 
   const getContextMenuItems = useCallback(() => {
@@ -860,6 +1121,9 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       items.push({ label: `Reject Record (${suggestionCount} ${suggestionText})`, disabled: false });
     }
 
+    // Add "Add to View" option for any cell
+    items.push({ label: 'Add to View', disabled: false });
+
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
@@ -891,6 +1155,9 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
       items.push({ label: 'Reject Column', disabled: false });
     }
 
+    // Add "Add to View" option for any column
+    items.push({ label: 'Add to View', disabled: false });
+
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
@@ -899,22 +1166,39 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
   }, [headerMenu, sortedRecords, table.columns, isActionsColumn]);
 
   const columns: GridColumn[] = useMemo(() => {
-    const baseColumns: GridColumn[] = table.columns.map(
-      (c) =>
-        ({
-          title: titleWithSort(c, sort),
-          id: c.id.wsId,
-          width: columnWidths[c.id.wsId] ?? 150,
-          menuIcon: GridColumnMenuIcon.Dots,
-          icon: getColumnIcon(c),
-          hasMenu: true,
-          ...(c.readonly && {
-            themeOverride: {
-              bgCell: '#F7F7F7',
-            },
-          }),
-        }) satisfies GridColumn,
-    );
+    const baseColumns: GridColumn[] = table.columns.map((c) => {
+      const columnStatus = getColumnStatus(c.id.wsId);
+
+      // Only show icons if the column is present in the view config
+      let titleWithIcons = titleWithSort(c, sort);
+
+      if (activeView && activeView.config[table.id.wsId]) {
+        const tableConfig = activeView.config[table.id.wsId];
+        const columnConfig = tableConfig.columns?.find((col: { wsId: string }) => col.wsId === c.id.wsId);
+
+        if (columnConfig) {
+          // Column is in the config, show icons based on its settings
+          const visibilityIcon = columnStatus.visible ? '👁️' : '🚫';
+          const editabilityIcon = columnStatus.editable ? '✏️' : '🔒';
+          titleWithIcons = `${titleWithSort(c, sort)} ${visibilityIcon}${editabilityIcon}`;
+        }
+        // If column is not in config, don't show any icons
+      }
+
+      return {
+        title: titleWithIcons,
+        id: c.id.wsId,
+        width: columnWidths[c.id.wsId] ?? 150,
+        menuIcon: GridColumnMenuIcon.Dots,
+        icon: getColumnIcon(c),
+        hasMenu: true,
+        ...(c.readonly && {
+          themeOverride: {
+            bgCell: '#F7F7F7',
+          },
+        }),
+      } satisfies GridColumn;
+    });
 
     const result = [
       {
@@ -937,7 +1221,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
     console.log('Columns created:', result);
     return result;
-  }, [table.columns, sort, columnWidths]);
+  }, [table.columns, sort, columnWidths, getColumnStatus, activeView]);
 
   if (error) {
     return (

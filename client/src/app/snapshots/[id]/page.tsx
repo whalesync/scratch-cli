@@ -33,6 +33,7 @@ import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
+import { ViewList } from './components/ViewList';
 
 export default function SnapshotPage() {
   const params = useParams();
@@ -44,6 +45,7 @@ export default function SnapshotPage() {
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
+  const [currentViewId, setCurrentViewId] = useState<string | null>(null);
 
   const [showChat, setShowChat] = useState(true);
 
@@ -159,8 +161,12 @@ export default function SnapshotPage() {
 
     return (
       <Stack h="100%" gap={0}>
+        {/* View List Band */}
+
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
           <Stack h="100%" w="100%" flex={1}>
+            <ViewList snapshotId={id} currentViewId={currentViewId} onViewChange={setCurrentViewId} />
+
             <Tabs
               value={selectedTableId}
               onChange={(value) => {
@@ -177,7 +183,14 @@ export default function SnapshotPage() {
                 ))}
               </Tabs.List>
             </Tabs>
-            {selectedTable && <TableContent snapshot={snapshot} table={selectedTable} />}
+            {selectedTable && (
+              <TableContent
+                snapshot={snapshot}
+                table={selectedTable}
+                currentViewId={currentViewId}
+                onViewCreated={setCurrentViewId}
+              />
+            )}
           </Stack>
 
           <AIChatPanel isOpen={showChat} onClose={() => setShowChat(false)} snapshotId={id} />
