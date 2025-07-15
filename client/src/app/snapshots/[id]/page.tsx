@@ -1,6 +1,7 @@
 'use client';
 
 import { useSnapshot } from '@/hooks/use-snapshot';
+import { useUpsertView, useViews } from '@/hooks/use-view';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import {
@@ -11,6 +12,7 @@ import {
   CopyButton,
   Group,
   Loader,
+  Menu,
   Stack,
   Tabs,
   Text,
@@ -46,6 +48,7 @@ export default function SnapshotPage() {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
+  const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
 
   const [showChat, setShowChat] = useState(true);
 
@@ -131,6 +134,187 @@ export default function SnapshotPage() {
     setShowChat(!showChat);
   };
 
+  const TableTab = ({ table, onViewCreated }: { table: TableSpec; onViewCreated?: (viewId: string) => void }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const { views, refreshViews } = useViews(snapshot?.id ?? '');
+    const { upsertView } = useUpsertView();
+
+    // Get current view for this table
+    const currentView = views?.find((v) => v.id === currentViewId);
+    const tableConfig = currentView?.config[table.id.wsId];
+
+    // Default to true if not specified (as per the type definition)
+    const isRecordsVisible = tableConfig?.visible !== false;
+    const isRecordsEditable = tableConfig?.editable !== false;
+
+    // For tab title: show icon if set to non-default (invisible or non-editable)
+    const tabIcons = [];
+    if (tableConfig?.visible === false) tabIcons.push('🚫');
+    if (tableConfig?.editable === false) tabIcons.push('🔒');
+
+    const toggleRecordsVisibility = async () => {
+      if (!snapshot) return;
+      if (currentView) {
+        const newConfig = {
+          ...currentView.config,
+          [table.id.wsId]: {
+            ...tableConfig,
+            visible: !isRecordsVisible,
+          },
+        };
+
+        // Optimistically update the local cache immediately
+        const updatedView = { ...currentView, config: newConfig };
+        const updatedViews = views?.map((v) => (v.id === currentView.id ? updatedView : v));
+        refreshViews(updatedViews, false); // Update cache without revalidating
+
+        // Force immediate re-render
+        setLastViewUpdate(Date.now());
+
+        // Then update the server
+        await upsertView({
+          id: currentView.id,
+          parentId: currentView.parentId || undefined,
+          name: currentView.name || undefined,
+          snapshotId: snapshot.id,
+          config: newConfig,
+        });
+
+        // Revalidate to ensure consistency
+        await refreshViews();
+
+        notifications.show({
+          title: 'Records Visibility Updated',
+          message: `Records are now ${!isRecordsVisible ? 'visible' : 'hidden'} by default`,
+          color: 'green',
+        });
+      } else {
+        // No view: create a new view for this table
+        const newConfig = {
+          [table.id.wsId]: {
+            visible: false,
+            editable: true,
+          },
+        };
+        const result = await upsertView({
+          snapshotId: snapshot.id,
+          config: newConfig,
+        });
+        await refreshViews();
+        notifications.show({
+          title: 'Records Visibility Updated',
+          message: `Records are now hidden by default`,
+          color: 'green',
+        });
+        // Select the newly created view
+        onViewCreated?.(result.id);
+      }
+    };
+
+    const toggleRecordsEditability = async () => {
+      if (!snapshot) return;
+      if (currentView) {
+        const newConfig = {
+          ...currentView.config,
+          [table.id.wsId]: {
+            ...tableConfig,
+            editable: !isRecordsEditable,
+          },
+        };
+
+        // Optimistically update the local cache immediately
+        const updatedView = { ...currentView, config: newConfig };
+        const updatedViews = views?.map((v) => (v.id === currentView.id ? updatedView : v));
+        refreshViews(updatedViews, false); // Update cache without revalidating
+
+        // Force immediate re-render
+        setLastViewUpdate(Date.now());
+
+        // Then update the server
+        await upsertView({
+          id: currentView.id,
+          parentId: currentView.parentId || undefined,
+          name: currentView.name || undefined,
+          snapshotId: snapshot.id,
+          config: newConfig,
+        });
+
+        // Revalidate to ensure consistency
+        await refreshViews();
+
+        notifications.show({
+          title: 'Records Editability Updated',
+          message: `Records are now ${!isRecordsEditable ? 'editable' : 'locked'} by default`,
+          color: 'green',
+        });
+      } else {
+        // No view: create a new view for this table
+        const newConfig = {
+          [table.id.wsId]: {
+            visible: true,
+            editable: false,
+          },
+        };
+        const result = await upsertView({
+          snapshotId: snapshot.id,
+          config: newConfig,
+        });
+        await refreshViews();
+        notifications.show({
+          title: 'Records Editability Updated',
+          message: `Records are now locked by default`,
+          color: 'green',
+        });
+        // Select the newly created view
+        onViewCreated?.(result.id);
+      }
+    };
+
+    // If there is no view, default is visible/editable, so menu should offer to make invisible/non-editable
+    const menuItems = [
+      <Menu.Item key="visibility" leftSection={isRecordsVisible ? '🚫' : '👁️'} onClick={toggleRecordsVisibility}>
+        {isRecordsVisible ? 'Make Records Hidden by Default' : 'Make Records Visible by Default'}
+      </Menu.Item>,
+      <Menu.Item key="editability" leftSection={isRecordsEditable ? '🔒' : '✏️'} onClick={toggleRecordsEditability}>
+        {isRecordsEditable ? 'Make Records Locked by Default' : 'Make Records Editable by Default'}
+      </Menu.Item>,
+    ];
+
+    return (
+      <Group
+        gap="xs"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{ position: 'relative' }}
+      >
+        <Text>
+          {table.name} {tabIcons.length > 0 && <span style={{ marginLeft: 2 }}>{tabIcons.join(' ')}</span>}
+        </Text>
+        <Menu shadow="md" width={240}>
+          <Menu.Target>
+            <ActionIcon
+              size="xs"
+              variant="subtle"
+              color="gray"
+              onClick={(e) => e.stopPropagation()}
+              component="div"
+              style={{
+                opacity: isHovered ? 1 : 0,
+                transition: 'opacity 0.2s ease',
+                visibility: 'visible',
+              }}
+            >
+              <span role="img" aria-label="menu">
+                ⋯
+              </span>
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>{menuItems}</Menu.Dropdown>
+        </Menu>
+      </Group>
+    );
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -175,10 +359,10 @@ export default function SnapshotPage() {
               }}
               variant="outline"
             >
-              <Tabs.List px="sm">
+              <Tabs.List px="sm" style={{ paddingRight: 0 }}>
                 {snapshot.tables.map((table: TableSpec) => (
-                  <Tabs.Tab value={table.id.wsId} key={table.id.wsId}>
-                    {table.name}
+                  <Tabs.Tab value={table.id.wsId} key={`${table.id.wsId}-${currentViewId}-${lastViewUpdate}`}>
+                    <TableTab table={table} onViewCreated={setCurrentViewId} />
                   </Tabs.Tab>
                 ))}
               </Tabs.List>

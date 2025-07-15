@@ -87,7 +87,7 @@ const getColumnIcon = (column: ColumnSpec): GridColumnIcon => {
   }
 };
 
-const FAKE_LEFT_COLUMNS = 1;
+const FAKE_LEFT_COLUMNS = 2; // Updated to account for the new record status column
 
 const SnapshotTableGrid = ({
   snapshot,
@@ -184,7 +184,11 @@ const SnapshotTableGrid = ({
   );
 
   const isIdColumn = (col: number) => {
-    return col === 0;
+    return col === 1; // Updated to account for the new record status column
+  };
+
+  const isRecordStatusColumn = (col: number) => {
+    return col === 0; // New column for record status icons
   };
 
   const getColumnStatus = useCallback(
@@ -203,6 +207,27 @@ const SnapshotTableGrid = ({
       return {
         visible: columnConfig.visible !== false, // Default to true if not set
         editable: columnConfig.editable !== false, // Default to true if not set
+      };
+    },
+    [activeView, table.id.wsId],
+  );
+
+  const getRecordStatus = useCallback(
+    (recordId: string) => {
+      if (!activeView || !activeView.config[table.id.wsId]) {
+        return { visible: true, editable: true }; // Default to visible and editable if not in view
+      }
+
+      const tableConfig = activeView.config[table.id.wsId];
+      const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === recordId);
+
+      if (!recordConfig) {
+        return { visible: true, editable: true }; // Default to visible and editable if not specified
+      }
+
+      return {
+        visible: recordConfig.visible !== false, // Default to true if not set
+        editable: recordConfig.editable !== false, // Default to true if not set
       };
     },
     [activeView, table.id.wsId],
@@ -258,7 +283,8 @@ const SnapshotTableGrid = ({
       const isSuggestedDeleted = !!suggestedValues?.__deleted;
       const isFiltered = record?.filtered;
 
-      if (col === table.columns.length + 1) {
+      if (col === table.columns.length + 2) {
+        // Updated to account for new column
         if (!isHovered) {
           return {
             kind: GridCellKind.Text,
@@ -279,6 +305,56 @@ const SnapshotTableGrid = ({
           themeOverride: { bgCell: '#fde0e0' },
           contentAlign: 'center',
           cursor: 'pointer',
+        };
+      }
+
+      if (isRecordStatusColumn(col)) {
+        // Record status column - show visibility and editability icons
+        if (!record) {
+          return {
+            kind: GridCellKind.Text,
+            data: '',
+            displayData: '',
+            allowOverlay: false,
+            readonly: true,
+          };
+        }
+
+        // Only show icons if the record is present in the view config
+        let displayText = '';
+        if (activeView && activeView.config[table.id.wsId]) {
+          const tableConfig = activeView.config[table.id.wsId];
+          const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === record.id.wsId);
+
+          if (recordConfig) {
+            // Record is in the config, show icons only for explicitly overridden properties
+            let icons = '';
+
+            // Only show visibility icon if explicitly set
+            if ('visible' in recordConfig) {
+              const visibilityIcon = recordConfig.visible ? '👁️' : '🚫';
+              icons += visibilityIcon;
+            }
+
+            // Only show editability icon if explicitly set
+            if ('editable' in recordConfig) {
+              const editabilityIcon = recordConfig.editable ? '✏️' : '🔒';
+              icons += editabilityIcon;
+            }
+
+            displayText = icons;
+          }
+          // If record is not in config, don't show any icons
+        }
+
+        return {
+          kind: GridCellKind.Text,
+          data: displayText,
+          displayData: displayText,
+          readonly: true,
+          allowOverlay: false,
+          contentAlign: 'center',
+          themeOverride: isDeleted ? { bgCell: '#fde0e0' } : undefined,
         };
       }
 
@@ -377,7 +453,7 @@ const SnapshotTableGrid = ({
         themeOverride,
       };
     },
-    [sortedRecords, table.columns, hoveredRow],
+    [sortedRecords, table.columns, hoveredRow, activeView],
   );
 
   const getGetSelectedRecordsAndColumns = useCallback(() => {
@@ -502,7 +578,7 @@ const SnapshotTableGrid = ({
 
   const onHeaderClicked = useCallback(
     (colIndex: number) => {
-      if (isActionsColumn(colIndex) || isIdColumn(colIndex)) return;
+      if (isActionsColumn(colIndex) || isIdColumn(colIndex) || isRecordStatusColumn(colIndex)) return;
       const column = table.columns[colIndex - FAKE_LEFT_COLUMNS];
       const columnId = column.id.wsId;
 
@@ -520,7 +596,7 @@ const SnapshotTableGrid = ({
         return { columnId, dir: 'asc' };
       });
     },
-    [table.columns, isActionsColumn],
+    [table.columns, isActionsColumn, isRecordStatusColumn],
   );
 
   const onColumnResize = useCallback((column: GridColumn, newSize: number) => {
@@ -533,7 +609,7 @@ const SnapshotTableGrid = ({
     (col: number) => {
       console.log('Header menu clicked for column:', col);
 
-      if (isActionsColumn(col)) return;
+      if (isActionsColumn(col) || isRecordStatusColumn(col) || isIdColumn(col)) return;
 
       // Use the stored mouse position from the global mouse move handler
       const mouseX = mousePosition?.x || 0;
@@ -549,7 +625,7 @@ const SnapshotTableGrid = ({
         col,
       });
     },
-    [mousePosition, isActionsColumn],
+    [mousePosition, isActionsColumn, isRecordStatusColumn, isIdColumn],
   );
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -572,7 +648,7 @@ const SnapshotTableGrid = ({
       // Prevent the default browser context menu
       event.preventDefault?.();
 
-      if (isActionsColumn(col)) return;
+      if (isActionsColumn(col) || isRecordStatusColumn(col) || isIdColumn(col)) return;
 
       // Use the stored mouse position from the global mouse move handler
       const mouseX = mousePosition?.x || 0;
@@ -589,7 +665,7 @@ const SnapshotTableGrid = ({
         row,
       });
     },
-    [mousePosition, isActionsColumn],
+    [mousePosition, isActionsColumn, isRecordStatusColumn, isIdColumn],
   );
 
   const handleContextMenuAction = useCallback(
@@ -723,10 +799,26 @@ const SnapshotTableGrid = ({
             color: 'red',
           });
         }
-      } else if (action === 'Add to View') {
+      } else if (action.startsWith('Make Record') || action.startsWith('Unset Record')) {
         if (!record) return;
 
         try {
+          // Determine what to do based on the action
+          const isUnsetAction = action.startsWith('Unset Record');
+          const isVisibilityAction =
+            action.includes('Hidden') || action.includes('Visible') || action.includes('Visibility');
+          const isEditabilityAction =
+            action.includes('Locked') || action.includes('Editable') || action.includes('Editability');
+
+          if (!isVisibilityAction && !isEditabilityAction) {
+            notifications.show({
+              title: 'Invalid Action',
+              message: 'Unknown record action',
+              color: 'red',
+            });
+            return;
+          }
+
           if (currentViewId && activeView) {
             // Update existing view
             const existingConfig = activeView.config;
@@ -736,29 +828,64 @@ const SnapshotTableGrid = ({
               records: [],
             };
 
-            // Check if record is already in the view
-            const recordExists = tableConfig.records?.some((r: { wsId: string }) => r.wsId === record.id.wsId);
+            // Find existing record config or create new one
+            const existingRecordIndex =
+              tableConfig.records?.findIndex((r: { wsId: string }) => r.wsId === record.id.wsId) ?? -1;
+            const existingRecord = existingRecordIndex >= 0 ? tableConfig.records?.[existingRecordIndex] : null;
 
-            if (recordExists) {
-              notifications.show({
-                title: 'Add to View',
-                message: `Record is already in the current view`,
-                color: 'yellow',
-              });
-              return;
+            let updatedRecord;
+            if (isUnsetAction) {
+              // Remove the specific override (visible or editable)
+              if (isVisibilityAction) {
+                // Remove visible override, keep editable override if it exists
+                updatedRecord = {
+                  wsId: record.id.wsId,
+                  ...(existingRecord?.editable !== undefined && { editable: existingRecord.editable }),
+                };
+              } else {
+                // Remove editable override, keep visible override if it exists
+                updatedRecord = {
+                  wsId: record.id.wsId,
+                  ...(existingRecord?.visible !== undefined && { visible: existingRecord.visible }),
+                };
+              }
+            } else {
+              // Set a specific value - preserve existing overrides
+              if (isVisibilityAction) {
+                const newVisible = action.includes('Visible');
+                updatedRecord = {
+                  wsId: record.id.wsId,
+                  visible: newVisible,
+                  ...(existingRecord?.editable !== undefined && { editable: existingRecord.editable }),
+                };
+              } else {
+                const newEditable = action.includes('Editable');
+                updatedRecord = {
+                  wsId: record.id.wsId,
+                  editable: newEditable,
+                  ...(existingRecord?.visible !== undefined && { visible: existingRecord.visible }),
+                };
+              }
             }
 
-            // Add record to existing view
+            // Update or add the record
+            const records = tableConfig.records || [];
+            const updatedRecords = [...records];
+            if (existingRecordIndex >= 0) {
+              if (Object.keys(updatedRecord).length === 1) {
+                // Only has wsId, remove the record entirely
+                updatedRecords.splice(existingRecordIndex, 1);
+              } else {
+                updatedRecords[existingRecordIndex] = updatedRecord;
+              }
+            } else if (Object.keys(updatedRecord).length > 1) {
+              // Only add if it has more than just wsId
+              updatedRecords.push(updatedRecord);
+            }
+
             const updatedTableConfig = {
               ...tableConfig,
-              records: [
-                ...(tableConfig.records || []),
-                {
-                  wsId: record.id.wsId,
-                  visible: true,
-                  editable: true,
-                },
-              ],
+              records: updatedRecords,
             };
 
             const updatedConfig = {
@@ -772,41 +899,71 @@ const SnapshotTableGrid = ({
               name: activeView.name || undefined,
               snapshotId: snapshot.id,
               config: updatedConfig,
-              save: false, // Update the existing view without creating a new one
             });
 
+            const actionType = isUnsetAction
+              ? 'unset'
+              : isVisibilityAction
+                ? 'visible' in updatedRecord && updatedRecord.visible
+                  ? 'made visible'
+                  : 'made hidden'
+                : 'editable' in updatedRecord && updatedRecord.editable
+                  ? 'made editable'
+                  : 'made locked';
             notifications.show({
-              title: 'Add to View',
-              message: `Added record to existing view`,
+              title: 'Record Updated',
+              message: `Record ${actionType}`,
               color: 'green',
             });
-
-            // Don't call onViewCreated for updates - only for new view creation
           } else {
-            // Create a new view with this record visible
+            // Create a new view with this record setting
+            const tableDefaults = {
+              visible: true,
+              editable: true,
+            };
+
+            let recordConfig;
+            if (isUnsetAction) {
+              // For unset actions, don't create a new view
+              notifications.show({
+                title: 'No View',
+                message: 'No active view to unset record settings from',
+                color: 'yellow',
+              });
+              return;
+            } else {
+              if (isVisibilityAction) {
+                const newVisible = action.includes('Visible');
+                recordConfig = {
+                  wsId: record.id.wsId,
+                  visible: newVisible,
+                };
+              } else {
+                const newEditable = action.includes('Editable');
+                recordConfig = {
+                  wsId: record.id.wsId,
+                  editable: newEditable,
+                };
+              }
+            }
+
             const viewConfig = {
               [table.id.wsId]: {
-                visible: true,
-                editable: true,
-                records: [
-                  {
-                    wsId: record.id.wsId,
-                    visible: true,
-                    editable: true,
-                  },
-                ],
+                visible: tableDefaults.visible,
+                editable: tableDefaults.editable,
+                records: [recordConfig],
+                columns: [],
               },
             };
 
             const result = await upsertView({
               snapshotId: snapshot.id,
               config: viewConfig,
-              save: true, // Save the view immediately
             });
 
             notifications.show({
-              title: 'Add to View',
-              message: `Added record to new view`,
+              title: 'Record Updated',
+              message: `Record ${isVisibilityAction ? (recordConfig.visible ? 'made visible' : 'made hidden') : recordConfig.editable ? 'made editable' : 'made locked'}`,
               color: 'green',
             });
 
@@ -819,7 +976,7 @@ const SnapshotTableGrid = ({
         } catch (e) {
           const error = e as Error;
           notifications.show({
-            title: 'Error adding to view',
+            title: 'Error updating record',
             message: error.message,
             color: 'red',
           });
@@ -952,13 +1109,29 @@ const SnapshotTableGrid = ({
             color: 'red',
           });
         }
-      } else if (action === 'Add to View') {
+      } else if (action.startsWith('Make Column') || action.startsWith('Unset Column')) {
         if (isIdColumn(col)) return;
 
         const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
         if (!columnId) return;
 
         try {
+          // Determine what to do based on the action
+          const isUnsetAction = action.startsWith('Unset Column');
+          const isVisibilityAction =
+            action.includes('Hidden') || action.includes('Visible') || action.includes('Visibility');
+          const isEditabilityAction =
+            action.includes('Locked') || action.includes('Editable') || action.includes('Editability');
+
+          if (!isVisibilityAction && !isEditabilityAction) {
+            notifications.show({
+              title: 'Invalid Action',
+              message: 'Unknown column action',
+              color: 'red',
+            });
+            return;
+          }
+
           if (currentViewId && activeView) {
             // Update existing view
             const existingConfig = activeView.config;
@@ -969,29 +1142,63 @@ const SnapshotTableGrid = ({
               columns: [],
             };
 
-            // Check if column is already in the view
-            const columnExists = tableConfig.columns?.some((c: { wsId: string }) => c.wsId === columnId);
+            // Find existing column config or create new one
+            const columns = tableConfig.columns || [];
+            const existingColumnIndex = columns.findIndex((c: { wsId: string }) => c.wsId === columnId);
+            const existingColumn = existingColumnIndex >= 0 ? columns[existingColumnIndex] : null;
 
-            if (columnExists) {
-              notifications.show({
-                title: 'Add to View',
-                message: `Column is already in the current view`,
-                color: 'yellow',
-              });
-              return;
+            let updatedColumn;
+            if (isUnsetAction) {
+              // Remove the specific override (visible or editable)
+              if (isVisibilityAction) {
+                // Remove visible override, keep editable override if it exists
+                updatedColumn = {
+                  wsId: columnId,
+                  ...(existingColumn?.editable !== undefined && { editable: existingColumn.editable }),
+                };
+              } else {
+                // Remove editable override, keep visible override if it exists
+                updatedColumn = {
+                  wsId: columnId,
+                  ...(existingColumn?.visible !== undefined && { visible: existingColumn.visible }),
+                };
+              }
+            } else {
+              // Set a specific value - only include the property being set
+              if (isVisibilityAction) {
+                const newVisible = action.includes('Visible');
+                updatedColumn = {
+                  wsId: columnId,
+                  visible: newVisible,
+                  ...(existingColumn?.editable !== undefined && { editable: existingColumn.editable }),
+                };
+              } else {
+                const newEditable = action.includes('Editable');
+                updatedColumn = {
+                  wsId: columnId,
+                  editable: newEditable,
+                  ...(existingColumn?.visible !== undefined && { visible: existingColumn.visible }),
+                };
+              }
             }
 
-            // Add column to existing view
+            // Update or add the column
+            const updatedColumns = [...columns];
+            if (existingColumnIndex >= 0) {
+              if (Object.keys(updatedColumn).length === 1) {
+                // Only has wsId, remove the column entirely
+                updatedColumns.splice(existingColumnIndex, 1);
+              } else {
+                updatedColumns[existingColumnIndex] = updatedColumn;
+              }
+            } else if (Object.keys(updatedColumn).length > 1) {
+              // Only add if it has more than just wsId
+              updatedColumns.push(updatedColumn);
+            }
+
             const updatedTableConfig = {
               ...tableConfig,
-              columns: [
-                ...(tableConfig.columns || []),
-                {
-                  wsId: columnId,
-                  visible: true,
-                  editable: true,
-                },
-              ],
+              columns: updatedColumns,
             };
 
             const updatedConfig = {
@@ -1005,42 +1212,71 @@ const SnapshotTableGrid = ({
               name: activeView.name || undefined,
               snapshotId: snapshot.id,
               config: updatedConfig,
-              save: false, // Update the existing view without creating a new one
             });
 
+            const actionType = isUnsetAction
+              ? 'unset'
+              : isVisibilityAction
+                ? 'visible' in updatedColumn && updatedColumn.visible
+                  ? 'made visible'
+                  : 'made hidden'
+                : 'editable' in updatedColumn && updatedColumn.editable
+                  ? 'made editable'
+                  : 'made locked';
             notifications.show({
-              title: 'Add to View',
-              message: `Added column to existing view`,
+              title: 'Column Updated',
+              message: `Column ${actionType}`,
               color: 'green',
             });
-
-            // Don't call onViewCreated for updates - only for new view creation
           } else {
-            // Create a new view with this column visible
+            // Create a new view with this column setting
+            const tableDefaults = {
+              visible: true,
+              editable: true,
+            };
+
+            let columnConfig;
+            if (isUnsetAction) {
+              // For unset actions, don't create a new view
+              notifications.show({
+                title: 'No View',
+                message: 'No active view to unset column settings from',
+                color: 'yellow',
+              });
+              return;
+            } else {
+              if (isVisibilityAction) {
+                const newVisible = action.includes('Visible');
+                columnConfig = {
+                  wsId: columnId,
+                  visible: newVisible,
+                };
+              } else {
+                const newEditable = action.includes('Editable');
+                columnConfig = {
+                  wsId: columnId,
+                  editable: newEditable,
+                };
+              }
+            }
+
             const viewConfig = {
               [table.id.wsId]: {
-                visible: true,
-                editable: true,
+                visible: tableDefaults.visible,
+                editable: tableDefaults.editable,
                 records: [],
-                columns: [
-                  {
-                    wsId: columnId,
-                    visible: true,
-                    editable: true,
-                  },
-                ],
+                columns: [columnConfig],
               },
             };
 
             const result = await upsertView({
               snapshotId: snapshot.id,
               config: viewConfig,
-              save: true, // Save the view immediately
             });
 
             notifications.show({
-              title: 'Add to View',
-              message: `Added column to new view`,
+              title: 'Column Updated',
+              message: `Column ${isVisibilityAction ? (columnConfig.visible ? 'made visible' : 'made hidden') : columnConfig.editable ? 'made editable' : 'made locked'}`,
               color: 'green',
             });
 
@@ -1053,7 +1289,7 @@ const SnapshotTableGrid = ({
         } catch (e) {
           const error = e as Error;
           notifications.show({
-            title: 'Error adding to view',
+            title: 'Error updating column',
             message: error.message,
             color: 'red',
           });
@@ -1091,7 +1327,7 @@ const SnapshotTableGrid = ({
     const { col, row } = contextMenu;
     const record = sortedRecords?.[row];
 
-    if (isActionsColumn(col) || isIdColumn(col)) {
+    if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
       return [{ label: 'No actions', disabled: true }];
     }
 
@@ -1121,22 +1357,60 @@ const SnapshotTableGrid = ({
       items.push({ label: `Reject Record (${suggestionCount} ${suggestionText})`, disabled: false });
     }
 
-    // Add "Add to View" option for any cell
-    items.push({ label: 'Add to View', disabled: false });
+    // Get table defaults and current record status
+    const tableConfig = activeView?.config[table.id.wsId];
+    const tableDefaults = {
+      visible: tableConfig?.visible !== false, // Default to true if not specified
+      editable: tableConfig?.editable !== false, // Default to true if not specified
+    };
+
+    const recordConfig = tableConfig?.records?.find((r: { wsId: string }) => r.wsId === record?.id.wsId);
+    const hasRecordVisibleOverride = recordConfig && recordConfig.visible !== undefined;
+    const hasRecordEditableOverride = recordConfig && recordConfig.editable !== undefined;
+
+    // Visibility
+    if (hasRecordVisibleOverride) {
+      items.push({
+        label: 'Unset Record Visibility',
+        disabled: false,
+        leftSection: '↩️',
+      });
+    } else {
+      items.push({
+        label: `Make Record ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
+        disabled: false,
+        leftSection: tableDefaults.visible ? '🚫' : '👁️',
+      });
+    }
+
+    // Editability
+    if (hasRecordEditableOverride) {
+      items.push({
+        label: 'Unset Record Editability',
+        disabled: false,
+        leftSection: '↩️',
+      });
+    } else {
+      items.push({
+        label: `Make Record ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
+        disabled: false,
+        leftSection: tableDefaults.editable ? '🔒' : '✏️',
+      });
+    }
 
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
 
     return items;
-  }, [contextMenu, sortedRecords, table.columns, isActionsColumn]);
+  }, [contextMenu, sortedRecords, table.columns, isActionsColumn, isRecordStatusColumn, activeView, table.id.wsId]);
 
   const getHeaderMenuItems = useCallback(() => {
     if (!headerMenu) return [];
 
     const { col } = headerMenu;
 
-    if (isActionsColumn(col) || isIdColumn(col)) {
+    if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
       return [{ label: 'No actions', disabled: true }];
     }
 
@@ -1155,20 +1429,56 @@ const SnapshotTableGrid = ({
       items.push({ label: 'Reject Column', disabled: false });
     }
 
-    // Add "Add to View" option for any column
-    items.push({ label: 'Add to View', disabled: false });
+    // Get table defaults and current column status
+    const tableConfig = activeView?.config[table.id.wsId];
+    const tableDefaults = {
+      visible: tableConfig?.visible !== false, // Default to true if not specified
+      editable: tableConfig?.editable !== false, // Default to true if not specified
+    };
+
+    // COLUMN CONTEXT MENU LOGIC
+    const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === column.id.wsId);
+    const hasColumnVisibleOverride = columnConfig && columnConfig.visible !== undefined;
+    const hasColumnEditableOverride = columnConfig && columnConfig.editable !== undefined;
+
+    // Visibility
+    if (hasColumnVisibleOverride) {
+      items.push({
+        label: 'Unset Column Visibility',
+        disabled: false,
+        leftSection: '↩️',
+      });
+    } else {
+      items.push({
+        label: `Make Column ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
+        disabled: false,
+        leftSection: tableDefaults.visible ? '🚫' : '👁️',
+      });
+    }
+    // Editability
+    if (hasColumnEditableOverride) {
+      items.push({
+        label: 'Unset Column Editability',
+        disabled: false,
+        leftSection: '↩️',
+      });
+    } else {
+      items.push({
+        label: `Make Column ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
+        disabled: false,
+        leftSection: tableDefaults.editable ? '🔒' : '✏️',
+      });
+    }
 
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
 
     return items;
-  }, [headerMenu, sortedRecords, table.columns, isActionsColumn]);
+  }, [headerMenu, sortedRecords, table.columns, isActionsColumn, isRecordStatusColumn, activeView, table.id.wsId]);
 
   const columns: GridColumn[] = useMemo(() => {
     const baseColumns: GridColumn[] = table.columns.map((c) => {
-      const columnStatus = getColumnStatus(c.id.wsId);
-
       // Only show icons if the column is present in the view config
       let titleWithIcons = titleWithSort(c, sort);
 
@@ -1177,10 +1487,24 @@ const SnapshotTableGrid = ({
         const columnConfig = tableConfig.columns?.find((col: { wsId: string }) => col.wsId === c.id.wsId);
 
         if (columnConfig) {
-          // Column is in the config, show icons based on its settings
-          const visibilityIcon = columnStatus.visible ? '👁️' : '🚫';
-          const editabilityIcon = columnStatus.editable ? '✏️' : '🔒';
-          titleWithIcons = `${titleWithSort(c, sort)} ${visibilityIcon}${editabilityIcon}`;
+          // Column is in the config, show icons only for explicitly overridden properties
+          let icons = '';
+
+          // Only show visibility icon if explicitly set
+          if ('visible' in columnConfig) {
+            const visibilityIcon = columnConfig.visible ? '👁️' : '🚫';
+            icons += visibilityIcon;
+          }
+
+          // Only show editability icon if explicitly set
+          if ('editable' in columnConfig) {
+            const editabilityIcon = columnConfig.editable ? '✏️' : '🔒';
+            icons += editabilityIcon;
+          }
+
+          if (icons) {
+            titleWithIcons = `${titleWithSort(c, sort)} ${icons}`;
+          }
         }
         // If column is not in config, don't show any icons
       }
@@ -1202,13 +1526,22 @@ const SnapshotTableGrid = ({
 
     const result = [
       {
+        title: '',
+        id: 'record-status',
+        width: 60,
+        themeOverride: { bgCell: '#F7F7F7' },
+        // menuIcon: GridColumnMenuIcon.Dots,
+        // icon: GridColumnIcon.HeaderRowID,
+        // hasMenu: true,
+      },
+      {
         title: 'ID',
         id: 'id',
         width: 150,
         themeOverride: { bgCell: '#F7F7F7' },
-        menuIcon: GridColumnMenuIcon.Dots,
+        // menuIcon: GridColumnMenuIcon.Dots,
         icon: GridColumnIcon.HeaderRowID, // ID is typically a string identifier
-        hasMenu: true,
+        // hasMenu: true,
       },
       ...baseColumns,
       {
@@ -1221,7 +1554,7 @@ const SnapshotTableGrid = ({
 
     console.log('Columns created:', result);
     return result;
-  }, [table.columns, sort, columnWidths, getColumnStatus, activeView]);
+  }, [table.columns, sort, columnWidths, getColumnStatus, activeView, getRecordStatus, currentViewId]);
 
   if (error) {
     return (
