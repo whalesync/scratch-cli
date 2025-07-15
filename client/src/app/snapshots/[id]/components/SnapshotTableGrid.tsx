@@ -11,6 +11,7 @@ import {
   GridCell,
   GridCellKind,
   GridColumn,
+  GridColumnIcon,
   GridColumnMenuIcon,
   GridMouseEventArgs,
   GridSelection,
@@ -61,6 +62,28 @@ const generatePendingId = (): string => {
   return result;
 };
 
+// Helper function to get column type icon
+const getColumnIcon = (column: ColumnSpec): GridColumnIcon => {
+  switch (column.pgType) {
+    case 'text':
+      return GridColumnIcon.HeaderString;
+    case 'text[]':
+      return GridColumnIcon.HeaderArray;
+    case 'numeric':
+      return GridColumnIcon.HeaderNumber;
+    case 'numeric[]':
+      return GridColumnIcon.HeaderArray;
+    case 'boolean':
+      return GridColumnIcon.HeaderBoolean;
+    case 'boolean[]':
+      return GridColumnIcon.HeaderArray;
+    case 'jsonb':
+      return GridColumnIcon.HeaderCode;
+    default:
+      return GridColumnIcon.HeaderString;
+  }
+};
+
 const FAKE_LEFT_COLUMNS = 1;
 
 const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTableGridProps) => {
@@ -97,11 +120,12 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
 
   const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotRecords({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-    activeView: activeView,
-  });
+  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
+    useSnapshotRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      activeView: activeView,
+    });
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -152,9 +176,9 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
     [table.columns],
   );
 
-  const isIdColumn = useCallback((col: number) => {
+  const isIdColumn = (col: number) => {
     return col === 0;
-  }, []);
+  };
 
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -468,7 +492,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
         return { columnId, dir: 'asc' };
       });
     },
-    [table.columns],
+    [table.columns, isActionsColumn],
   );
 
   const onColumnResize = useCallback((column: GridColumn, newSize: number) => {
@@ -497,7 +521,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
         col,
       });
     },
-    [table.columns, mousePosition],
+    [mousePosition, isActionsColumn],
   );
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -537,7 +561,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
         row,
       });
     },
-    [table.columns, sortedRecords, mousePosition],
+    [mousePosition, isActionsColumn],
   );
 
   const handleContextMenuAction = useCallback(
@@ -841,7 +865,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
     }
 
     return items;
-  }, [contextMenu, sortedRecords, table.columns]);
+  }, [contextMenu, sortedRecords, table.columns, isActionsColumn]);
 
   const getHeaderMenuItems = useCallback(() => {
     if (!headerMenu) return [];
@@ -872,7 +896,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
     }
 
     return items;
-  }, [headerMenu, sortedRecords, table.columns]);
+  }, [headerMenu, sortedRecords, table.columns, isActionsColumn]);
 
   const columns: GridColumn[] = useMemo(() => {
     const baseColumns: GridColumn[] = table.columns.map(
@@ -882,7 +906,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
           id: c.id.wsId,
           width: columnWidths[c.id.wsId] ?? 150,
           menuIcon: GridColumnMenuIcon.Dots,
-          icon: 'headerMenu',
+          icon: getColumnIcon(c),
           hasMenu: true,
           ...(c.readonly && {
             themeOverride: {
@@ -899,7 +923,7 @@ const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTa
         width: 150,
         themeOverride: { bgCell: '#F7F7F7' },
         menuIcon: GridColumnMenuIcon.Dots,
-        icon: 'headerMenu',
+        icon: GridColumnIcon.HeaderRowID, // ID is typically a string identifier
         hasMenu: true,
       },
       ...baseColumns,

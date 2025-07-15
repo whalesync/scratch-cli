@@ -28,6 +28,10 @@ export class ScratchpadConfigService {
     return this.configService.get<string>('GEMINI_API_KEY');
   }
 
+  getDbDebug(): boolean {
+    return this.configService.get<string>('DB_DEBUG') === 'true';
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

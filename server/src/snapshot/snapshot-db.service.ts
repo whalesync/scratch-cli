@@ -55,7 +55,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       client: 'pg',
       connection: this.config.getDatabaseUrl(),
       searchPath: ['public'],
-      debug: true,
+      debug: this.config.getDbDebug(),
     });
 
     this.knex.on('error', (err: Error) => {

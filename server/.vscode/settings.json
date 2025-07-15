@@ -1,0 +1,10 @@
+{
+  "eslint.workingDirectories": ["."],
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    "typescript"
+  ],
+  "typescript.preferences.useAliasesForRenames": false,
+  "typescript.preferences.includePackageJsonAutoImports": "auto"
+}
