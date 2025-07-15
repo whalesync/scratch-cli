@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from scratchpad_api import Snapshot
+from scratchpad_api import ScratchpadSnapshot
 from typing import List, Optional
 
 

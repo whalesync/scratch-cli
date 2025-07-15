@@ -3,44 +3,20 @@
 PydanticAI Tools for the Chat Server
 """
 from agents.data_agent.models import ChatRunContext, ChatSession
+from agents.data_agent.data_agent_utils import (
+    convert_scratchpad_snapshot_to_ai_snapshot, 
+    SnapshotForAi, 
+    ColumnSpecForAi, 
+    TableSpec, 
+    TableContext, 
+    EntityId
+)
 
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
 from scratchpad_api import list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
-
-# Data types for Snapshot
-class EntityId(BaseModel):
-    wsId: str
-    remoteId: List[str]
-
-class ColumnSpec(BaseModel):
-    id: EntityId
-    name: str
-    type: str  # "text" | "number" | "json"
-
-class TableSpec(BaseModel):
-    id: EntityId
-    name: str
-    columns: List[ColumnSpec]
-
-class TableContext(BaseModel):
-    id: EntityId
-    activeViewId: Optional[str]
-    ignoredColumns: List[str]
-    readOnlyColumns: List[str]
-
-class Snapshot(BaseModel):
-    id: str
-    name: Optional[str]
-    connectorDisplayName: Optional[str]
-    connectorService: Optional[str]
-    createdAt: str
-    updatedAt: str
-    connectorAccountId: str
-    tables: List[TableSpec]
-    tableContexts: List[TableContext]
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -76,71 +52,15 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
         session_id = chatSession.id
         
             
-        # Set the API token for authentication
-        API_CONFIG.set_api_token(api_token)
+        # API token is now passed directly to each function call
         
         log_info("Connecting to snapshot for session", session_id=session_id, snapshot_id=snapshot_id)
         
         # Fetch snapshot details from the server
-        snapshot_data = get_snapshot(snapshot_id)
+        snapshot_data = get_snapshot(snapshot_id, api_token)
         
-        # Convert to our Snapshot model
-        print(f"🔍 Converting snapshot data...")
-        print(f"📊 Snapshot ID: {snapshot_id}")
-        print(f"📅 Created: {chatSession.created_at}")
-        print(f"📅 Updated: {chatSession.last_activity}")
-        # print(f"📋 Tables count: {len(chatSession.)}")
-        
-        # Convert tables one by one
-        converted_tables = []
-        for i, table in enumerate(snapshot_data.tables):
-            print(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
-            
-            # Convert columns for this table
-            converted_columns = []
-            for j, col in enumerate(table['columns']):  # type: ignore
-                print(f"  🔍 Converting column {j+1}/{len(table['columns'])}: {col['name']}")  # type: ignore
-                print(f"    📋 Column type: {col['pgType']}")  # type: ignore
-                column_spec = ColumnSpec(
-                    id=EntityId(wsId=col['id']['wsId'], remoteId=col['id']['remoteId']),  # type: ignore
-                    name=col['name'],  # type: ignore
-                    type=col['pgType']  # type: ignore
-                )
-                converted_columns.append(column_spec)
-            
-            # Create table spec
-            table_spec = TableSpec(
-                id=EntityId(wsId=table['id']['wsId'], remoteId=table['id']['remoteId']),  # type: ignore
-                name=table['name'],  # type: ignore
-                columns=converted_columns
-            )
-            converted_tables.append(table_spec)
-        
-        # Create table contexts
-        converted_table_contexts = []
-        for i, table_context in enumerate(snapshot_data.tableContexts):
-            table_context_spec = TableContext(
-                id=EntityId(wsId=table_context['id']['wsId'], remoteId=table_context['id']['remoteId']),  # type: ignore
-                activeViewId=table_context['activeViewId'],  # type: ignore
-                ignoredColumns=table_context['ignoredColumns'],  # type: ignore
-                readOnlyColumns=table_context['readOnlyColumns']  # type: ignore
-            )
-            converted_table_contexts.append(table_context_spec)
-
-        # Create the snapshot
-        print(f"🔍 Creating Snapshot object...")
-        snapshot = Snapshot(
-            id=snapshot_data.id,
-            name=snapshot_data.name,
-            connectorDisplayName=snapshot_data.connectorDisplayName,
-            connectorService=snapshot_data.connectorService,
-            createdAt=snapshot_data.createdAt,
-            updatedAt=snapshot_data.updatedAt,
-            connectorAccountId=snapshot_data.connectorAccountId,
-            tables=converted_tables,
-            tableContexts=converted_table_contexts
-        )
-        print(f"✅ Snapshot object created successfully")
+        # Convert to our Snapshot model using the utility function
+        snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, chatSession)
         # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot
         chatRunContext.snapshot = snapshot  # type: ignore
         # Store the snapshot
@@ -202,7 +122,7 @@ async def create_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the RecordOperation class
         from scratchpad_api import RecordOperation
@@ -237,7 +157,8 @@ async def create_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         bulk_update_records(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
-            operations=sample_records
+            operations=sample_records,
+            api_token=chatRunContext.api_token
         )
         
         print(f"✅ Successfully created {len(sample_records)} records for table '{table_name}'")
@@ -303,7 +224,7 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         #     return "Error: No API token available. Cannot authenticate with the server."
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         log_info("Getting records from Scratchpad server", 
                  table_name=table_name,
@@ -312,7 +233,7 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
                  snapshot_id=chatRunContext.session.snapshot_id)
         
         # Get records from the server using the table ID
-        result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, take=limit)
+        result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, chatRunContext.api_token, take=limit)
         
         # Log the records to console
         print(f"📊 Records for table '{table_name}' (ID: {table.id.wsId}, limit: {limit}):")
@@ -399,7 +320,7 @@ async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the RecordOperation class
         from scratchpad_api import RecordOperation
@@ -434,7 +355,8 @@ async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         bulk_update_records(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
-            operations=delete_operations
+            operations=delete_operations,
+            api_token=chatRunContext.api_token
         )
         
         print(f"✅ Successfully deleted {len(delete_operations)} records from table '{table_name}'")
@@ -490,7 +412,7 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the RecordOperation class
         from scratchpad_api import RecordOperation
@@ -540,7 +462,8 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         bulk_update_records(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
-            operations=update_operations
+            operations=update_operations,
+            api_token=chatRunContext.api_token
         )
         
         print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")
@@ -598,7 +521,7 @@ async def activate_table_view(ctx: RunContext[ChatRunContext], table_name: str, 
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the CreateSnapshotTableViewDto class
         from scratchpad_api import CreateSnapshotTableViewDto, activate_view
@@ -618,7 +541,8 @@ async def activate_table_view(ctx: RunContext[ChatRunContext], table_name: str, 
         view_id = activate_view(
             chatRunContext.session.snapshot_id,
             table.id.wsId,
-            dto
+            dto,
+            chatRunContext.api_token
         )
         
         return f"Successfully activated view '{name}' (ID: {view_id}) for table '{table_name}' with {len(record_ids)} records."
@@ -662,7 +586,7 @@ async def list_table_views(ctx: RunContext[ChatRunContext], table_name: str) -> 
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the list_views function
         from scratchpad_api import list_views
@@ -670,7 +594,8 @@ async def list_table_views(ctx: RunContext[ChatRunContext], table_name: str) -> 
         # Call the list_views API
         views = list_views(
             chatRunContext.session.snapshot_id,
-            table.id.wsId
+            table.id.wsId,
+            chatRunContext.api_token
         )
         
         if not views:
@@ -719,7 +644,7 @@ async def clear_table_view(ctx: RunContext[ChatRunContext], table_name: str) -> 
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
         
         # Set the API token for authentication
-        API_CONFIG.set_api_token(chatRunContext.api_token)
+        # API_CONFIG.set_api_token(chatRunContext.api_token)
         
         # Import the clear_active_view function
         from scratchpad_api import clear_active_view
@@ -727,7 +652,8 @@ async def clear_table_view(ctx: RunContext[ChatRunContext], table_name: str) -> 
         # Call the clear_active_view API
         clear_active_view(
             chatRunContext.session.snapshot_id,
-            table.id.wsId
+            table.id.wsId,
+            chatRunContext.api_token
         )
         
         return f"Successfully cleared the active view for table '{table_name}'."
