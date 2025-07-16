@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 from scratchpad_api import ScratchpadSnapshot
 
@@ -103,3 +103,30 @@ def convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, chatSession) -> Sn
     print(f"✅ Snapshot object created successfully")
     
     return snapshot
+
+
+def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100) -> str:
+    """Format records for display in a consistent way for both prompt and tool output"""
+    if not records:
+        return "No records found"
+    
+    records_summary = []
+    for i, record in enumerate(records[:limit]):
+        # Map from flat structure to our desired format
+        record_data = {
+            "wsid": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
+            "id": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
+            "fields": record.get('fields', {}),
+            "edited_fields": record.get('edited_fields', {}),
+            "suggested_fields": record.get('suggested_fields', {})
+        }
+        
+        # Truncate long string values in fields for readability
+        for key, value in record_data["fields"].items():
+            if isinstance(value, str) and len(value) > 100:
+                record_data["fields"][key] = value[:100] + "..."
+        
+        records_summary.append(record_data)
+    
+    return str(records_summary)
+

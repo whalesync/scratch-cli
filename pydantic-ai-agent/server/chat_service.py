@@ -201,7 +201,7 @@ class ChatService:
                             snapshot_context += f"- suggested_fields: {{string: any}} - Current suggestions for changes made by the agent, but not yet accepted by the user\n\n"
                             
                             # Format records using the shared function
-                            from agents.data_agent.tools import format_records_for_display
+                            from agents.data_agent.data_agent_utils import format_records_for_display
                             records_summary = format_records_for_display(records, limit=50)
                             snapshot_context += f"RECORDS:\n{records_summary}\n"
                         else:
