@@ -261,29 +261,20 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
                  record_count=len(result.records), 
                  snapshot_id=chatRunContext.session.snapshot_id)
         
-        # Format records for the agent to understand
-        records_summary = []
-        for i, record in enumerate(result.records):
-            record_data = {
-                "id": {"wsId": record.id.wsId, "remoteId": record.id.remoteId},
-                "dirty": record.dirty,
+        # Convert records to the same format as pre-loaded data
+        records_dict = [
+            {
+                'id': {'wsId': record.id.wsId, 'remoteId': record.id.remoteId},
+                'fields': record.fields,
+                'suggested_fields': record.suggested_fields,
+                'edited_fields': record.edited_fields,
+                'dirty': record.dirty
             }
-            
-            # Add the actual field data
-            for key, value in record.fields.items():
-                # Truncate long values for readability
-                if isinstance(value, str) and len(value) > 100:
-                    record_data[key] = value[:100] + "..."
-                else:
-                    record_data[key] = value
-            
-            # Add metadata if present
-            if record.edited_fields:
-                record_data["edited_fields"] = record.edited_fields
-            if record.suggested_fields:
-                record_data["suggested_fields"] = record.suggested_fields
-                
-            records_summary.append(record_data)
+            for record in result.records
+        ]
+        
+        # Format records using the shared function
+        records_summary = format_records_for_display(records_dict, limit)
         
         return f"Successfully retrieved {len(result.records)} records for table '{table_name}':\n\n{records_summary}\n\nNext cursor: {result.nextCursor}"
         
@@ -684,4 +675,29 @@ async def clear_table_view(ctx: RunContext[ChatRunContext], table_name: str) -> 
                   error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
+
+def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100) -> str:
+    """Format records for display in a consistent way for both prompt and tool output"""
+    if not records:
+        return "No records found"
+    
+    records_summary = []
+    for i, record in enumerate(records[:limit]):
+        # Map from flat structure to our desired format
+        record_data = {
+            "wsid": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
+            "id": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
+            "fields": record.get('fields', {}),
+            "edited_fields": record.get('edited_fields', {}),
+            "suggested_fields": record.get('suggested_fields', {})
+        }
+        
+        # Truncate long string values in fields for readability
+        for key, value in record_data["fields"].items():
+            if isinstance(value, str) and len(value) > 100:
+                record_data["fields"][key] = value[:100] + "..."
+        
+        records_summary.append(record_data)
+    
+    return str(records_summary)
 

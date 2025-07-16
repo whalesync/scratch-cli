@@ -128,14 +128,90 @@ class ChatService:
             # Get structured response from agent with timeout
             print(f"🤖 Calling agent.run() with timeout...")
             try:
-                # Create context with API token and snapshot ID for tools
+                # Pre-load snapshot data and records for efficiency
+                print(f"🔄 Pre-loading snapshot data and records...")
+                snapshot_data = None
+                preloaded_records = {}
+                
+                if session.snapshot_id and api_token:
+                    try:
+                        # Fetch snapshot details
+                        from scratchpad_api import get_snapshot, list_records
+                        from agents.data_agent.data_agent_utils import convert_scratchpad_snapshot_to_ai_snapshot
+                        
+                        snapshot_data = get_snapshot(session.snapshot_id, api_token)
+                        snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, session)
+                        
+                        # Pre-load records for each table
+                        for table in snapshot.tables:
+                            try:
+                                records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
+                                preloaded_records[table.name] = [
+                                    {
+                                        'id': {'wsId': record.id.wsId, 'remoteId': record.id.remoteId},
+                                        'fields': record.fields,
+                                        'suggested_fields': record.suggested_fields,
+                                        'edited_fields': record.edited_fields,
+                                        'dirty': record.dirty
+                                    }
+                                    for record in records_result.records
+                                ]
+                                print(f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'")
+                            except Exception as e:
+                                print(f"⚠️ Failed to pre-load records for table '{table.name}': {e}")
+                                preloaded_records[table.name] = []
+                        
+                        print(f"✅ Pre-loaded data for {len(snapshot.tables)} tables")
+                    except Exception as e:
+                        print(f"⚠️ Failed to pre-load snapshot data: {e}")
+                        snapshot = None
+                        preloaded_records = {}
+                
+                # Create context with pre-loaded data
                 chatRunContext:ChatRunContext = ChatRunContext(
                     session=session,
                     api_token=api_token,
-                    view_id=view_id
+                    view_id=view_id,
+                    snapshot=snapshot,
+                    preloaded_records=preloaded_records
                 )
 
-                agent = create_agent(model)
+                # Add pre-loaded snapshot data and records to the prompt
+                if chatRunContext.snapshot:
+                    snapshot_context = f"\n\nCURRENT SNAPSHOT DATA:\n"
+                    snapshot_context += f"Snapshot: {chatRunContext.snapshot.name or chatRunContext.snapshot.id}\n"
+                    snapshot_context += f"Tables: {len(chatRunContext.snapshot.tables)}\n\n"
+                    
+                    for table in chatRunContext.snapshot.tables:
+                        snapshot_context += f"TABLE: {table.name} (ID: {table.id.wsId})\n"
+                        snapshot_context += f"Columns: {[col.name for col in table.columns]}\n"
+                        
+                        # Add records if available
+                        if chatRunContext.preloaded_records and table.name in chatRunContext.preloaded_records:
+                            records = chatRunContext.preloaded_records[table.name]
+                            snapshot_context += f"Records ({len(records)}):\n\n"
+                            
+                            # Add clear explanation of record structure
+                            snapshot_context += f"RECORD STRUCTURE EXPLANATION:\n"
+                            snapshot_context += f"Each record has this structure:\n"
+                            snapshot_context += f"- wsid: string - The unique identifier for this record\n"
+                            snapshot_context += f"- id: string - Same as wsid (for compatibility)\n"
+                            snapshot_context += f"- fields: {{string: any}} - The current values for the fields of this record, including any accepted changes\n"
+                            snapshot_context += f"- edited_fields: {{string: timestamp}} - Fields that have accepted changes by the user, with timestamps\n"
+                            snapshot_context += f"- suggested_fields: {{string: any}} - Current suggestions for changes made by the agent, but not yet accepted by the user\n\n"
+                            
+                            # Format records using the shared function
+                            from agents.data_agent.tools import format_records_for_display
+                            records_summary = format_records_for_display(records, limit=50)
+                            snapshot_context += f"RECORDS:\n{records_summary}\n"
+                        else:
+                            snapshot_context += "Records: Not loaded\n"
+                        snapshot_context += "\n"
+                    
+                    # Update the full prompt with snapshot data
+                    full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
+
+                agent = create_agent(model_name=model)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
                     deps=chatRunContext,

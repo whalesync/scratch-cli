@@ -6,8 +6,9 @@ Data models for the chat server
 from pydantic import BaseModel, Field
 from datetime import datetime
 from scratchpad_api import ScratchpadSnapshot
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from session import ChatSession
+from agents.data_agent.data_agent_utils import SnapshotForAi
 
 
 
@@ -21,6 +22,7 @@ class ResponseFromAgent(BaseModel):
 class ChatRunContext(BaseModel):
     session: ChatSession
     api_token: str
-    snapshot: Optional[ScratchpadSnapshot] = Field(default=None, description="Associated snapshot")
+    snapshot: Optional[SnapshotForAi] = Field(default=None, description="Associated snapshot")
     view_id: Optional[str] = Field(default=None, description="ID of the currently selected view")
+    preloaded_records: Optional[Dict[str, Any]] = Field(default=None, description="Preloaded records for the session")
 
