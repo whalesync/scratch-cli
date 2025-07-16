@@ -49,11 +49,12 @@ export const getRecords = async (args: Record<string, unknown> | undefined) => {
   }
 
   try {
-    const result = await snapshotApi.listActiveViewRecords(
+    const result = await snapshotApi.listRecords(
       snapshot.id,
       tableId,
       undefined,
       limit,
+      undefined, // MCP doesn't have access to current view context
     );
     return {
       content: [

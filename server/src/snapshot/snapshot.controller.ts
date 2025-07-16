@@ -101,17 +101,17 @@ export class SnapshotController {
     return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take, viewId);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
-  @Get(':id/tables/:tableId/records/active-view')
-  async listActiveViewRecords(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Query('cursor') cursor: string | undefined,
-    @Query('take', new ParseIntPipe({ optional: true })) take = 100,
-    @Req() req: RequestWithUser,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return this.service.listActiveViewRecords(snapshotId, tableId, req.user.id, cursor, take);
-  }
+  // @UseGuards(ScratchpadAuthGuard)
+  // @Get(':id/tables/:tableId/records/active-view')
+  // async listActiveViewRecords(
+  //   @Param('id') snapshotId: SnapshotId,
+  //   @Param('tableId') tableId: string,
+  //   @Query('cursor') cursor: string | undefined,
+  //   @Query('take', new ParseIntPipe({ optional: true })) take = 100,
+  //   @Req() req: RequestWithUser,
+  // ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+  //   return this.service.listActiveViewRecords(snapshotId, tableId, req.user.id, cursor, take);
+  // }
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/bulk')
@@ -132,9 +132,10 @@ export class SnapshotController {
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
+    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested');
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested', viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)

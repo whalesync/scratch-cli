@@ -7,4 +7,4 @@ export type ViewTableConfig = {
 
 export type ViewConfig = {
   [tableId: string]: ViewTableConfig;
-}; 
+};

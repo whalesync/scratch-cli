@@ -46,6 +46,10 @@ IMPORTANT: Your response should have three parts:
 2. responseSummary: A concise summary of key actions, decisions, or context that would be useful for processing future prompts. This should be focused and contain anything you find useful for future reference, but doesn't need to be user-readable or well-formatted.
 3. requestSummary: A concise summary of what the user requested, for future reference.
 
+CRITICAL JSON HANDLING: When calling tools that expect lists or dictionaries, pass them as proper Python objects, NOT as JSON strings. For example:
+- CORRECT: record_updates=[{'wsId': 'id1', 'data': {'field': 'value'}}]
+- INCORRECT: record_updates="[{'wsId': 'id1', 'data': {'field': 'value'}}]"
+
 IMPORTANT - SUGGESTION SYSTEM: When using the update_records_tool, your changes are NOT applied directly to the records. Instead, they are stored as suggestions in the __suggested_values field. This means:
 - The original record data remains unchanged in the main fields
 - Your suggested changes appear in the __suggested_values field for each record
@@ -120,7 +124,7 @@ For listing existing filtered views on a table, you should:
             You must connect to a snapshot first using connect_snapshot_tool.
             However if snapshot data has already been connected, you can skip this step.
             """
-            return await get_records(ctx, table_name, limit)  # type: ignore
+            return await get_records(ctx, table_name, limit, view_id)  # type: ignore
         
         @agent.tool
         async def create_records_tool(ctx: RunContext[ChatRunContext], table_name: str, record_data_list: List[Dict[str, Any]]) -> str:  # type: ignore
@@ -150,7 +154,9 @@ For listing existing filtered views on a table, you should:
             - 'wsId': the record ID to update
             - 'data': a dictionary of field names and new values to set
             
+            CRITICAL: Pass record_updates as a proper list object, NOT as a JSON string.
             Example: [{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]
+            NOT: "[{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]"
             
             You should first use get_records_tool to see the current records and identify which ones to update
             based on the user's criteria. Then create the update data for each matching record.

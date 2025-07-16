@@ -47,7 +47,8 @@ class ChatService:
         user_message: str, 
         api_token: str,
         style_guides: Optional[List[str]] = None,
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        view_id: Optional[str] = None
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -65,6 +66,14 @@ class ChatService:
         else:
             log_info("No API token provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No API token provided")
+        
+        # Log view ID if provided
+        if view_id:
+            log_info("View ID provided for session", session_id=session.id, view_id=view_id, snapshot_id=session.snapshot_id)
+            print(f"👁️ View ID provided: {view_id}")
+        else:
+            log_info("No view ID provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
+            print(f"ℹ️ No view ID provided")
         
         
         try:
@@ -122,7 +131,8 @@ class ChatService:
                 # Create context with API token and snapshot ID for tools
                 chatRunContext:ChatRunContext = ChatRunContext(
                     session=session,
-                    api_token=api_token
+                    api_token=api_token,
+                    view_id=view_id
                 )
 
                 agent = create_agent(model)

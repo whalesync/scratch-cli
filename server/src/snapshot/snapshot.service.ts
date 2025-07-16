@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { createSnapshotId, createSnapshotTableViewId, SnapshotId } from 'src/types/ids';
+import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
@@ -13,7 +17,7 @@ import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
-import { SnapshotTableContext, SnapshotTableViewConfig } from './types';
+import { SnapshotTableContext } from './types';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
@@ -159,18 +163,25 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    let viewConfig: SnapshotTableViewConfig | undefined = undefined;
+    let viewConfig: ViewConfig | undefined = undefined;
 
     if (viewId) {
-      const view = await this.db.client.snapshotTableView.findUnique({
+      const view = await this.db.client.view.findUnique({
         where: { id: viewId },
       });
       if (view) {
-        viewConfig = view.config as SnapshotTableViewConfig;
+        viewConfig = view.config as ViewConfig;
       }
     }
 
-    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1, viewConfig);
+    const records = await this.snapshotDbService.listRecords(
+      snapshotId,
+      tableId,
+      cursor,
+      take + 1,
+      viewConfig,
+      tableSpec,
+    );
 
     let nextCursor: string | undefined;
     if (records.length === take + 1) {
@@ -187,48 +198,55 @@ export class SnapshotService {
   /**
    * List records for the active view of a table. If there is no active view, it will return records from the entire table.
    */
-  async listActiveViewRecords(
-    snapshotId: SnapshotId,
-    tableId: string,
-    userId: string,
-    cursor: string | undefined,
-    take: number,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
-    }
+  // async listActiveViewRecords(
+  //   snapshotId: SnapshotId,
+  //   tableId: string,
+  //   userId: string,
+  //   cursor: string | undefined,
+  //   take: number,
+  // ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+  //   const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+  //   const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+  //   if (!tableSpec) {
+  //     throw new NotFoundException('Table not found in snapshot');
+  //   }
 
-    const tableContext = (snapshot.tableContexts as SnapshotTableContext[]).find((c) => c.id.wsId === tableId);
-    if (!tableContext) {
-      throw new NotFoundException('Table context not found in snapshot');
-    }
+  //   const tableContext = (snapshot.tableContexts as SnapshotTableContext[]).find((c) => c.id.wsId === tableId);
+  //   if (!tableContext) {
+  //     throw new NotFoundException('Table context not found in snapshot');
+  //   }
 
-    let viewConfig: SnapshotTableViewConfig | undefined = undefined;
+  //   let viewConfig: SnapshotTableViewConfig | undefined = undefined;
 
-    if (tableContext.activeViewId) {
-      const view = await this.db.client.snapshotTableView.findUnique({
-        where: { id: tableContext.activeViewId },
-      });
-      if (view) {
-        viewConfig = view.config as SnapshotTableViewConfig;
-      }
-    }
+  //   if (tableContext.activeViewId) {
+  //     const view = await this.db.client.snapshotTableView.findUnique({
+  //       where: { id: tableContext.activeViewId },
+  //     });
+  //     if (view) {
+  //       viewConfig = view.config as SnapshotTableViewConfig;
+  //     }
+  //   }
 
-    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, cursor, take + 1, viewConfig);
+  //   const records = await this.snapshotDbService.listRecords(
+  //     snapshotId,
+  //     tableId,
+  //     cursor,
+  //     take + 1,
+  //     viewConfig,
+  //     tableSpec,
+  //   );
 
-    let nextCursor: string | undefined;
-    if (records.length === take + 1) {
-      const nextRecord = records.pop();
-      nextCursor = nextRecord!.id.wsId;
-    }
+  //   let nextCursor: string | undefined;
+  //   if (records.length === take + 1) {
+  //     const nextRecord = records.pop();
+  //     nextCursor = nextRecord!.id.wsId;
+  //   }
 
-    return {
-      records,
-      nextCursor,
-    };
-  }
+  //   return {
+  //     records,
+  //     nextCursor,
+  //   };
+  // }
 
   async bulkUpdateRecords(
     snapshotId: SnapshotId,
@@ -236,6 +254,7 @@ export class SnapshotService {
     dto: BulkUpdateRecordsDto,
     userId: string,
     type: 'accepted' | 'suggested',
+    viewId?: string,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
@@ -243,9 +262,127 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    this.validateBulkUpdateOps(dto.ops, tableSpec);
+    let viewConfig: ViewConfig | undefined = undefined;
 
-    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, dto.ops, type);
+    // Only apply view filtering for suggested updates
+    if (type === 'suggested' && viewId) {
+      const view = await this.db.client.view.findUnique({
+        where: { id: viewId },
+      });
+      if (view) {
+        viewConfig = view.config as ViewConfig;
+      }
+    }
+
+    // Filter operations based on view if provided
+    const filteredOps =
+      type === 'suggested' && viewConfig
+        ? this.filterOperationsByView(dto.ops, viewConfig, tableId, tableSpec)
+        : dto.ops;
+
+    this.validateBulkUpdateOps(filteredOps, tableSpec);
+
+    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, filteredOps, type);
+  }
+
+  private filterOperationsByView(
+    ops: RecordOperation[],
+    viewConfig: ViewConfig,
+    tableId: string,
+    tableSpec: AnyTableSpec,
+  ): RecordOperation[] {
+    const tableViewConfig = viewConfig[tableId];
+    if (!tableViewConfig) {
+      return ops; // No view config for this table, return all operations
+    }
+
+    return ops.filter((op) => {
+      // For create operations, only filter by column visibility
+      if (op.op === 'create') {
+        return this.isCreateOperationAllowed(op, tableViewConfig, tableSpec);
+      }
+
+      // For update operations, filter by both record and column visibility
+      if (op.op === 'update') {
+        return this.isUpdateOperationAllowed(op, tableViewConfig, tableSpec);
+      }
+
+      // For delete operations, only filter by record visibility
+      if (op.op === 'delete') {
+        return this.isDeleteOperationAllowed(op, tableViewConfig);
+      }
+
+      // For undelete operations, only filter by record visibility
+      if (op.op === 'undelete') {
+        return this.isDeleteOperationAllowed(op, tableViewConfig);
+      }
+
+      return true; // Allow other operations
+    });
+  }
+
+  private isCreateOperationAllowed(
+    op: RecordOperation,
+    tableViewConfig: ViewTableConfig,
+    tableSpec: AnyTableSpec,
+  ): boolean {
+    // For create operations, we only need to check if the columns being set are visible
+    if (op.op !== 'create' || !op.data) return true;
+
+    const visibleColumns = this.getVisibleColumns(tableViewConfig, tableSpec);
+    const requestedColumns = Object.keys(op.data);
+
+    // Check if all requested columns are visible
+    return requestedColumns.every((column) => visibleColumns.includes(column));
+  }
+
+  private isUpdateOperationAllowed(
+    op: RecordOperation,
+    tableViewConfig: ViewTableConfig,
+    tableSpec: AnyTableSpec,
+  ): boolean {
+    // First check if the record is visible
+    if (op.op !== 'update' || !this.isRecordVisible(op.wsId, tableViewConfig)) {
+      return false;
+    }
+
+    // Then check if the columns being updated are visible
+    if (!op.data) return true;
+
+    const visibleColumns = this.getVisibleColumns(tableViewConfig, tableSpec);
+    const requestedColumns = Object.keys(op.data);
+
+    // Check if all requested columns are visible
+    return requestedColumns.every((column) => visibleColumns.includes(column));
+  }
+
+  private isDeleteOperationAllowed(op: RecordOperation, tableViewConfig: ViewTableConfig): boolean {
+    // For delete operations, we only need to check if the record is visible
+    if (op.op !== 'delete') return true;
+    return this.isRecordVisible(op.wsId, tableViewConfig);
+  }
+
+  private isRecordVisible(wsId: string, tableViewConfig: ViewTableConfig): boolean {
+    if (tableViewConfig.visible === false) {
+      // In exclude mode, record is visible if it's explicitly marked as visible
+      return tableViewConfig.records?.some((r) => r.wsId === wsId && r.visible === true) || false;
+    } else {
+      // In include mode, record is visible if it's not explicitly marked as hidden
+      return !(tableViewConfig.records?.some((r) => r.wsId === wsId && r.visible === false) || false);
+    }
+  }
+
+  private getVisibleColumns(tableViewConfig: ViewTableConfig, tableSpec: AnyTableSpec): string[] {
+    const allColumns = tableSpec.columns.map((c) => c.id.wsId);
+
+    if (tableViewConfig.visible === false) {
+      // In exclude mode, columns are visible if they're explicitly marked as visible
+      return tableViewConfig.columns?.filter((c) => c.visible === true).map((c) => c.wsId) ?? [];
+    } else {
+      // In include mode, columns are visible if they're not explicitly marked as hidden
+      const hiddenColumns = tableViewConfig.columns?.filter((c) => c.visible === false).map((c) => c.wsId) ?? [];
+      return allColumns.filter((col) => !hiddenColumns.includes(col));
+    }
   }
 
   async acceptCellValues(

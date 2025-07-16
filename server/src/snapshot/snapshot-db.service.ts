@@ -5,10 +5,10 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
+import { ViewConfig } from 'src/view/types';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
-import { SnapshotTableViewConfig } from './types';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -24,6 +24,8 @@ export const EDITED_FIELDS_COLUMN = '__edited_fields';
 export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
 
 export const DIRTY_COLUMN = '__dirty';
+
+const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
 
 export type EditedFieldsMetadata = {
   /** Timestamps when the record was created locally. */
@@ -209,29 +211,62 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     tableId: string,
     cursor: string | undefined,
     take: number,
-    view: SnapshotTableViewConfig | undefined,
+    view: ViewConfig | undefined,
+    tableSpec?: AnyTableSpec,
   ): Promise<SnapshotRecord[]> {
-    let query = this.knex<DbRecord>(tableId).withSchema(snapshotId).select('*').orderBy('id').limit(take);
+    // const query = this.knex<DbRecord>(tableId);
 
-    if (view && view.ids) {
-      const cteName = 'ids_in_view';
-      const schemaTable = `${snapshotId}.${tableId}`;
-
-      // NOTE: if you use a CTE , Knex gets confused with the withSchema call, so we have to manually add the schema to the table name
-      query = this.knex
-        .with(cteName, this.knex.raw('select unnest(?::text[]) as id', [view.ids]))
-        .select('*')
-        .from(schemaTable)
-        .join(cteName, `${tableId}.wsId`, '=', `${cteName}.id`)
-        .orderBy(`${tableId}.id`)
-        .limit(take) as Knex.QueryBuilder<DbRecord, DbRecord[]>;
-    }
+    const query = this.knex<DbRecord>(tableId).withSchema(snapshotId).orderBy('id').limit(take);
 
     if (cursor) {
-      query.where('id', '>=', cursor);
+      query.where('wsId', '>=', cursor);
+    }
+    const tableViewConfig = view?.[tableId];
+    if (tableViewConfig) {
+      if (tableViewConfig.visible === false) {
+        const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
+        query.whereIn('wsId', recordIds);
+      } else {
+        const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
+        if (recordIds.length > 0) {
+          query.whereNotIn('wsId', recordIds);
+        }
+      }
+      if (tableViewConfig.visible === false) {
+        const columns = (tableViewConfig.columns ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
+        query.select([...DEFAULT_COLUMNS, ...columns]);
+      } else {
+        const columns = (tableViewConfig.columns ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
+        if (columns.length > 0) {
+          // Get all available columns from the table spec and subtract the hidden ones
+          const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
+          const visibleColumns = allColumns.filter((col) => !columns.includes(col));
+          query.select([...DEFAULT_COLUMNS, ...visibleColumns]);
+        } else {
+          query.select('*');
+        }
+      }
+    } else {
+      query.select('*');
     }
 
-    return (await query).map(
+    // if (view && view.ids) {
+    //   const cteName = 'ids_in_view';
+    //   const schemaTable = `${snapshotId}.${tableId}`;
+
+    //   // NOTE: if you use a CTE , Knex gets confused with the withSchema call, so we have to manually add the schema to the table name
+    //   query = this.knex
+    //     .with(cteName, this.knex.raw('select unnest(?::text[]) as id', [view.ids]))
+    //     .select('*')
+    //     .from(schemaTable)
+    //     .join(cteName, `${tableId}.wsId`, '=', `${cteName}.id`)
+    //     .orderBy(`${tableId}.id`)
+    //     .limit(take) as Knex.QueryBuilder<DbRecord, DbRecord[]>;
+    // }
+
+    const reqult = await query;
+
+    return reqult.map(
       ({ wsId, id, __edited_fields, __suggested_values, __dirty, ...fields }): SnapshotRecord => ({
         // Need to move the id columns up one level.
         id: {

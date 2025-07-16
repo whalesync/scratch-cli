@@ -227,9 +227,12 @@ class SnapshotApi:
         return result
     
     @staticmethod
-    def bulk_update_records(snapshot_id: str, table_id: str, dto: BulkUpdateRecordsDto, api_token: str) -> None:
+    def bulk_update_records(snapshot_id: str, table_id: str, dto: BulkUpdateRecordsDto, api_token: str, view_id: Optional[str] = None) -> None:
         """Bulk update records in a table"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
+        params = {}
+        if view_id:
+            params["viewId"] = view_id
         payload = {
             "ops": [
                 {
@@ -239,7 +242,7 @@ class SnapshotApi:
                 } for op in dto.ops
             ]
         }
-        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload)
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload, params=params)
         # _handle_response(response, "Failed to bulk update records")
 
     @staticmethod
@@ -313,14 +316,14 @@ def delete_snapshot(snapshot_id: str, api_token: str) -> None:
     """Delete a snapshot"""
     SnapshotApi.delete(snapshot_id, api_token)
 
-def list_records(snapshot_id: str, table_id: str, api_token: str, cursor: Optional[str] = None, take: Optional[int] = None) -> ListRecordsResponse:
+def list_records(snapshot_id: str, table_id: str, api_token: str, cursor: Optional[str] = None, take: Optional[int] = None, view_id: Optional[str] = None) -> ListRecordsResponse:
     """List records for a table in a snapshot"""
-    return SnapshotApi.list_records(snapshot_id, table_id, api_token, cursor, take)
+    return SnapshotApi.list_records(snapshot_id, table_id, api_token, cursor, take, view_id)
 
-def bulk_update_records(snapshot_id: str, table_id: str, operations: List[RecordOperation], api_token: str) -> None:
+def bulk_update_records(snapshot_id: str, table_id: str, operations: List[RecordOperation], api_token: str, view_id: Optional[str] = None) -> None:
     """Bulk update records in a table"""
     dto = BulkUpdateRecordsDto(ops=operations)
-    SnapshotApi.bulk_update_records(snapshot_id, table_id, dto, api_token)
+    SnapshotApi.bulk_update_records(snapshot_id, table_id, dto, api_token, view_id)
 
 def activate_view(snapshot_id: str, table_id: str, dto: CreateSnapshotTableViewDto, api_token: str) -> str:
     """Activate a view for a table in a snapshot"""

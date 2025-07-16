@@ -109,14 +109,15 @@ export const useSnapshotRecords = (args: {
   tableId: string,
   cursor?: string,
   take?: number,
-  activeView?: SnapshotTableView
+  activeView?: SnapshotTableView,
+  viewId?: string
 }) => {
-  const { snapshotId, tableId, cursor, take, activeView } = args;
-  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
+  const { snapshotId, tableId, cursor, take, activeView, viewId } = args;
+  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
 
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(swrKey, () =>
-    snapshotApi.listRecords(snapshotId, tableId, cursor, take),
+    snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
     {
       revalidateOnFocus: false,
       refreshInterval: 2000,

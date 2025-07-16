@@ -12,7 +12,7 @@ from agents.data_agent.data_agent_utils import (
     EntityId
 )
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
 from scratchpad_api import list_records, get_snapshot, API_CONFIG
@@ -76,7 +76,8 @@ async def connect_snapshot(ctx: RunContext[ChatRunContext]) -> str:
         log_info("Successfully connected to snapshot", 
                  session_id=session_id,
                  snapshot_id=snapshot_id, 
-                 table_count=len(snapshot.tables))
+                 table_count=len(snapshot.tables),
+                 snapshot=snapshot)
         
         return f"Successfully connected to snapshot {snapshot_id}. Found {len(snapshot.tables)} table(s): {[table.name for table in snapshot.tables]}"
         
@@ -158,7 +159,8 @@ async def create_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=sample_records,
-            api_token=chatRunContext.api_token
+            api_token=chatRunContext.api_token,
+            view_id=chatRunContext.view_id
         )
         
         print(f"✅ Successfully created {len(sample_records)} records for table '{table_name}'")
@@ -229,11 +231,16 @@ async def get_records(ctx: RunContext[ChatRunContext], table_name: str, limit: i
         log_info("Getting records from Scratchpad server", 
                  table_name=table_name,
                  table_id=table.id.wsId,
-                 limit=limit, 
+                 limit=limit,
+                 view_id=chatRunContext.view_id,
                  snapshot_id=chatRunContext.session.snapshot_id)
         
-        # Get records from the server using the table ID
-        result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, chatRunContext.api_token, take=limit)
+        # Get records from the server using the table ID and view ID if available
+        if chatRunContext.view_id:
+            print(f"👁️ Using view ID: {chatRunContext.view_id}")
+        else:
+            print(f"ℹ️ No view ID provided, getting all records")
+        result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, chatRunContext.api_token, take=limit, view_id=chatRunContext.view_id)
         
         # Log the records to console
         print(f"📊 Records for table '{table_name}' (ID: {table.id.wsId}, limit: {limit}):")
@@ -356,7 +363,8 @@ async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=delete_operations,
-            api_token=chatRunContext.api_token
+            api_token=chatRunContext.api_token,
+            view_id=chatRunContext.view_id
         )
         
         print(f"✅ Successfully deleted {len(delete_operations)} records from table '{table_name}'")
@@ -379,7 +387,7 @@ async def delete_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         print(f"❌ {error_msg}")
         return error_msg
 
-async def update_records(ctx: RunContext[ChatRunContext], table_name: str, record_updates: List[Dict[str, Any]]) -> str:
+async def update_records(ctx: RunContext[ChatRunContext], table_name: str, record_updates: Union[List[Dict[str, Any]], str]) -> str:
     """
     Update records in a table in the active snapshot.
     
@@ -393,6 +401,16 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
         A string describing the result of the operation
     """
     try:
+        # Handle case where record_updates is passed as a JSON string
+        if isinstance(record_updates, str):
+            import json
+            try:
+                record_updates = json.loads(record_updates)
+            except json.JSONDecodeError as e:
+                return f"Error: Invalid JSON string for record_updates: {e}"
+        # Validate that record_updates is now a list
+        if not isinstance(record_updates, list):
+            return f"Error: record_updates must be a list, got {type(record_updates)}"
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps 
         chatSession: ChatSession = chatRunContext.session
@@ -463,7 +481,8 @@ async def update_records(ctx: RunContext[ChatRunContext], table_name: str, recor
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=update_operations,
-            api_token=chatRunContext.api_token
+            api_token=chatRunContext.api_token,
+            view_id=chatRunContext.view_id
         )
         
         print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")

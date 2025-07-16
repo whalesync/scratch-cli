@@ -45,11 +45,12 @@ interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   snapshotId?: string;
+  currentViewId?: string | null;
 }
 
 const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
 
-export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -224,6 +225,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
         api_token?: string;
         style_guides?: string[];
         model?: string;
+        view_id?: string;
       } = {
         message: message.trim(),
         model: selectedModel,
@@ -241,6 +243,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
       if (selectedStyleGuides.length > 0) {
         messageData.style_guides = selectedStyleGuides.map((sg) => sg.body);
         console.log('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
+      }
+
+      // Include view ID if available
+      if (currentViewId) {
+        messageData.view_id = currentViewId;
       }
 
       const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
@@ -362,6 +369,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId }: AIChatPanel
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
         Sessions: {sessions.length} | Current: {currentSessionId || 'none'} | Model: {selectedModel}
+        {currentViewId && (
+          <Text span size="xs" c="green" ml="xs">
+            | View: {currentViewId.slice(0, 8)}...
+          </Text>
+        )}
         {selectedStyleGuideIds.length > 0 && (
           <Text span size="xs" c="blue" ml="xs">
             | Style Guides ({selectedStyleGuideIds.length}):{' '}

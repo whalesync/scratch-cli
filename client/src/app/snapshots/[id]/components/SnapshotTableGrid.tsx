@@ -23,6 +23,7 @@ import {
   Box,
   Button,
   Center,
+  Checkbox,
   Group,
   Loader,
   Menu,
@@ -116,6 +117,7 @@ const SnapshotTableGrid = ({
   const [activeProcess, setActiveProcess] = useState<'create-view' | 'clear-view' | undefined>();
 
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
+  const [filterToView, setFilterToView] = useState(false);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
 
   const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
@@ -130,6 +132,7 @@ const SnapshotTableGrid = ({
     useSnapshotRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
+      viewId: filterToView && activeView ? activeView.id : undefined,
     });
 
   const { upsertView } = useUpsertView();
@@ -1694,6 +1697,15 @@ const SnapshotTableGrid = ({
             >
               Clear view
             </Button>
+
+            {activeView && (
+              <Checkbox
+                label="Filter to view records"
+                checked={filterToView}
+                onChange={(e) => setFilterToView(e.target.checked)}
+                size="sm"
+              />
+            )}
 
             <Group gap="xs" ml="auto" p={0}>
               <Tooltip label="View JSON data">

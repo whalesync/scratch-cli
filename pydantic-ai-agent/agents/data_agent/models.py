@@ -22,4 +22,5 @@ class ChatRunContext(BaseModel):
     session: ChatSession
     api_token: str
     snapshot: Optional[ScratchpadSnapshot] = Field(default=None, description="Associated snapshot")
+    view_id: Optional[str] = Field(default=None, description="ID of the currently selected view")
 
