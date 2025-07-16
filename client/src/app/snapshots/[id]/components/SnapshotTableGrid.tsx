@@ -13,6 +13,7 @@ import {
   GridColumn,
   GridColumnIcon,
   GridColumnMenuIcon,
+  GridKeyEventArgs,
   GridMouseEventArgs,
   GridSelection,
   Item,
@@ -55,6 +56,11 @@ type SortDirection = 'asc' | 'desc';
 interface SortState {
   columnId: string;
   dir: SortDirection;
+}
+
+interface FocusedCell {
+  recordWsId: string;
+  columnWsId: string;
 }
 
 const generatePendingId = (): string => {
@@ -118,7 +124,9 @@ const SnapshotTableGrid = ({
 
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
   const [filterToView, setFilterToView] = useState(false);
-  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
+  const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
+  const [writeFocus, setWriteFocus] = useState<FocusedCell[]>([]);
+  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'focusedCellsDebug']);
 
   const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
 
@@ -285,6 +293,25 @@ const SnapshotTableGrid = ({
       const isDeleted = !!editedFields?.__deleted;
       const isSuggestedDeleted = !!suggestedValues?.__deleted;
       const isFiltered = record?.filtered;
+
+      // Check if this cell is focused
+      const isFocused =
+        record &&
+        readFocus.some(
+          (focusedCell) =>
+            focusedCell.recordWsId === record.id.wsId &&
+            focusedCell.columnWsId === (col === 1 ? 'id' : table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId),
+        );
+
+      // Debug logging for focused cells
+      if (isFocused) {
+        console.log('Focused cell detected:', {
+          col,
+          row,
+          recordId: record?.id.wsId,
+          columnId: col === 1 ? 'id' : table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId,
+        });
+      }
 
       if (col === table.columns.length + 2) {
         // Updated to account for new column
@@ -456,7 +483,7 @@ const SnapshotTableGrid = ({
         themeOverride,
       };
     },
-    [sortedRecords, table.columns, hoveredRow, activeView],
+    [sortedRecords, table.columns, hoveredRow, activeView, readFocus],
   );
 
   const getGetSelectedRecordsAndColumns = useCallback(() => {
@@ -488,7 +515,6 @@ const SnapshotTableGrid = ({
     }
 
     if (currentSelection && currentSelection.rows) {
-      debugger;
       for (const row of currentSelection.rows) {
         const record = sortedRecords?.[row];
         if (record) {
@@ -642,6 +668,140 @@ const SnapshotTableGrid = ({
       document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [handleMouseMove]);
+
+  const handleKeyDown = useCallback(
+    (e: GridKeyEventArgs) => {
+      if (e.key.toLowerCase() === 'r' && e.shiftKey && currentSelection) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { records } = getGetSelectedRecordsAndColumns();
+        const { columns } = getGetSelectedRecordsAndColumns();
+
+        if (records.length > 0 && columns.length > 0) {
+          let addedCount = 0;
+          let removedCount = 0;
+
+          setReadFocus((prev) => {
+            const newReadFocus = [...prev];
+
+            records.forEach((record) => {
+              columns.forEach((column) => {
+                const cellKey = `${record.id.wsId}-${column.id.wsId}`;
+                const existingIndex = newReadFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
+
+                if (existingIndex >= 0) {
+                  // Remove if already focused
+                  newReadFocus.splice(existingIndex, 1);
+                  removedCount++;
+                } else {
+                  // Add if not focused
+                  newReadFocus.push({
+                    recordWsId: record.id.wsId,
+                    columnWsId: column.id.wsId,
+                  });
+                  addedCount++;
+                }
+              });
+            });
+
+            return newReadFocus;
+          });
+
+          if (addedCount > 0 && removedCount > 0) {
+            notifications.show({
+              title: 'Read Focus Toggled',
+              message: `Added ${addedCount} and removed ${removedCount} cell(s) from read focus`,
+              color: 'blue',
+            });
+          } else if (addedCount > 0) {
+            notifications.show({
+              title: 'Read Focus Added',
+              message: `Added ${addedCount} cell(s) to read focus`,
+              color: 'blue',
+            });
+          } else if (removedCount > 0) {
+            notifications.show({
+              title: 'Read Focus Removed',
+              message: `Removed ${removedCount} cell(s) from read focus`,
+              color: 'blue',
+            });
+          }
+        }
+      } else if (e.key.toLowerCase() === 'w' && e.shiftKey && currentSelection) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { records } = getGetSelectedRecordsAndColumns();
+        const { columns } = getGetSelectedRecordsAndColumns();
+
+        if (records.length > 0 && columns.length > 0) {
+          let addedCount = 0;
+          let removedCount = 0;
+
+          setWriteFocus((prev) => {
+            const newWriteFocus = [...prev];
+
+            records.forEach((record) => {
+              columns.forEach((column) => {
+                const cellKey = `${record.id.wsId}-${column.id.wsId}`;
+                const existingIndex = newWriteFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
+
+                if (existingIndex >= 0) {
+                  // Remove if already focused
+                  newWriteFocus.splice(existingIndex, 1);
+                  removedCount++;
+                } else {
+                  // Add if not focused
+                  newWriteFocus.push({
+                    recordWsId: record.id.wsId,
+                    columnWsId: column.id.wsId,
+                  });
+                  addedCount++;
+                }
+              });
+            });
+
+            return newWriteFocus;
+          });
+
+          if (addedCount > 0 && removedCount > 0) {
+            notifications.show({
+              title: 'Write Focus Toggled',
+              message: `Added ${addedCount} and removed ${removedCount} cell(s) from write focus`,
+              color: 'orange',
+            });
+          } else if (addedCount > 0) {
+            notifications.show({
+              title: 'Write Focus Added',
+              message: `Added ${addedCount} cell(s) to write focus`,
+              color: 'orange',
+            });
+          } else if (removedCount > 0) {
+            notifications.show({
+              title: 'Write Focus Removed',
+              message: `Removed ${removedCount} cell(s) from write focus`,
+              color: 'orange',
+            });
+          }
+        }
+      } else if (e.key.toLowerCase() === 'c' && e.shiftKey && (readFocus.length > 0 || writeFocus.length > 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Clear both focus sets when 'Shift+C' is pressed
+        const totalCleared = readFocus.length + writeFocus.length;
+        setReadFocus([]);
+        setWriteFocus([]);
+        notifications.show({
+          title: 'All Focus Cleared',
+          message: `Cleared ${totalCleared} focused cell(s)`,
+          color: 'blue',
+        });
+      }
+    },
+    [currentSelection, getGetSelectedRecordsAndColumns, readFocus, writeFocus],
+  );
 
   const onCellContextMenu = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -1587,6 +1747,82 @@ const SnapshotTableGrid = ({
           <JsonTreeViewer jsonData={tableContext ?? {}} />
         </ScrollArea>
       </Modal>
+      <Modal
+        {...modalStack.register('focusedCellsDebug')}
+        title={`Focused Cells Debug (${readFocus.length + writeFocus.length})`}
+        size="lg"
+      >
+        <ScrollArea h={500}>
+          <Stack gap="md">
+            <Text size="sm" fw={500}>
+              Read Focus Details ({readFocus.length}):
+            </Text>
+            {readFocus.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                No read focused cells
+              </Text>
+            ) : (
+              <Stack gap="xs">
+                {readFocus.map((cell, index) => (
+                  <Box
+                    key={`read-${cell.recordWsId}-${cell.columnWsId}`}
+                    p="xs"
+                    bg="blue.0"
+                    style={{ borderRadius: 4, borderLeft: '4px solid #0066cc' }}
+                  >
+                    <Text size="sm">
+                      <strong>Read Cell {index + 1}:</strong> Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      Column Name: {table.columns.find((c) => c.id.wsId === cell.columnWsId)?.name || 'Unknown'}
+                    </Text>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+
+            <Text size="sm" fw={500}>
+              Write Focus Details ({writeFocus.length}):
+            </Text>
+            {writeFocus.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                No write focused cells
+              </Text>
+            ) : (
+              <Stack gap="xs">
+                {writeFocus.map((cell, index) => (
+                  <Box
+                    key={`write-${cell.recordWsId}-${cell.columnWsId}`}
+                    p="xs"
+                    bg="orange.0"
+                    style={{ borderRadius: 4, borderLeft: '4px solid #ff8c00' }}
+                  >
+                    <Text size="sm">
+                      <strong>Write Cell {index + 1}:</strong> Record ID: {cell.recordWsId}, Column ID:{' '}
+                      {cell.columnWsId}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      Column Name: {table.columns.find((c) => c.id.wsId === cell.columnWsId)?.name || 'Unknown'}
+                    </Text>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => {
+                console.log('Read Focus:', readFocus);
+                console.log('Write Focus:', writeFocus);
+                console.log('Sorted Records:', sortedRecords);
+              }}
+            >
+              Log to Console
+            </Button>
+          </Stack>
+        </ScrollArea>
+      </Modal>
       <Box
         h="100%"
         w="100%"
@@ -1621,11 +1857,51 @@ const SnapshotTableGrid = ({
             rowMarkers="both"
             onHeaderMenuClick={onHeaderMenuClick}
             onCellContextMenu={onCellContextMenu}
+            onKeyDown={handleKeyDown}
             theme={{
               headerIconSize: 24,
               bgHeader: '#f8f9fa',
               textHeader: '#333',
             }}
+            drawCell={(args, defaultDraw) => {
+              const { rect, ctx, col, row } = args;
+
+              // Let the default renderer draw the text cell first
+              defaultDraw();
+
+              // Check if this cell is in read focus
+              const record = sortedRecords?.[row];
+              const isReadFocused =
+                record &&
+                readFocus.some(
+                  (focusedCell) =>
+                    focusedCell.recordWsId === record.id.wsId &&
+                    focusedCell.columnWsId === (col === 1 ? 'id' : table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId),
+                );
+
+              // Check if this cell is in write focus
+              const isWriteFocused =
+                record &&
+                writeFocus.some(
+                  (focusedCell) =>
+                    focusedCell.recordWsId === record.id.wsId &&
+                    focusedCell.columnWsId === (col === 1 ? 'id' : table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId),
+                );
+
+              // Add custom border for focused cells
+              if (isReadFocused) {
+                ctx.strokeStyle = '#0066cc'; // Blue for read focus
+                ctx.lineWidth = 2;
+                ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+              }
+
+              if (isWriteFocused) {
+                ctx.strokeStyle = '#ff8c00'; // Orange for write focus
+                ctx.lineWidth = 2;
+                ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+              }
+            }}
+            data-grid-container // Add this attribute to the grid container
           />
           <Group w="100%" p="xs" bg="gray.0">
             {isLoading ? (
@@ -1707,6 +1983,11 @@ const SnapshotTableGrid = ({
               />
             )}
 
+            <Text size="xs" c="dimmed" style={{ fontStyle: 'italic' }}>
+              Tip: Select cells and press Shift+R to toggle read focus (blue), Shift+W to toggle write focus (orange),
+              Shift+C to clear all.
+            </Text>
+
             <Group gap="xs" ml="auto" p={0}>
               <Tooltip label="View JSON data">
                 <ActionIcon
@@ -1735,6 +2016,65 @@ const SnapshotTableGrid = ({
                   <PlusIcon size={24} />
                 </ActionIcon>
               </Tooltip>
+              {readFocus.length > 0 && (
+                <>
+                  <Tooltip
+                    label={`${readFocus.length} read focused cell(s). Press Shift+R to add more, click to clear.`}
+                  >
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="blue"
+                      onClick={() => {
+                        setReadFocus([]);
+                        notifications.show({
+                          title: 'Read Focus Cleared',
+                          message: `Cleared ${readFocus.length} read focused cell(s)`,
+                          color: 'blue',
+                        });
+                      }}
+                    >
+                      {readFocus.length} Read
+                    </Button>
+                  </Tooltip>
+                </>
+              )}
+              {writeFocus.length > 0 && (
+                <>
+                  <Tooltip
+                    label={`${writeFocus.length} write focused cell(s). Press Shift+W to add more, click to clear.`}
+                  >
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="orange"
+                      onClick={() => {
+                        setWriteFocus([]);
+                        notifications.show({
+                          title: 'Write Focus Cleared',
+                          message: `Cleared ${writeFocus.length} write focused cell(s)`,
+                          color: 'orange',
+                        });
+                      }}
+                    >
+                      {writeFocus.length} Write
+                    </Button>
+                  </Tooltip>
+                </>
+              )}
+              {(readFocus.length > 0 || writeFocus.length > 0) && (
+                <Tooltip label="Debug: Show focused cells details">
+                  <ActionIcon
+                    onClick={() => modalStack.open('focusedCellsDebug')}
+                    size="sm"
+                    radius="xl"
+                    variant="filled"
+                    color="orange"
+                  >
+                    <BugIcon size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
             </Group>
           </Group>
         </Stack>
