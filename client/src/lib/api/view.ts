@@ -1,8 +1,8 @@
 import { API_CONFIG } from './config';
-import { View, ViewConfig } from '@/types/server-entities/view';
+import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 
 export const viewApi = {
-  getBySnapshot: async (snapshotId: string): Promise<View[]> => {
+  getBySnapshot: async (snapshotId: string): Promise<ColumnView[]> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/views/snapshot/${snapshotId}`, {
       method: 'GET',
       headers: {
@@ -17,12 +17,10 @@ export const viewApi = {
 
   upsert: async (data: {
     id?: string;
-    parentId?: string;
     name?: string;
     snapshotId: string;
     config: ViewConfig;
-    save?: boolean;
-  }): Promise<View> => {
+  }): Promise<ColumnView> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/views`, {
       method: 'POST',
       headers: {

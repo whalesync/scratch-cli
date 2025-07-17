@@ -24,7 +24,6 @@ import {
   Box,
   Button,
   Center,
-  Checkbox,
   Group,
   Loader,
   Menu,
@@ -62,6 +61,8 @@ interface SnapshotTableGridProps {
   onSwitchToRecordView: (recordId: string, columnId?: string) => void;
   onViewCreated?: (viewId: string) => void;
   onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
+  filterToView: boolean;
+  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -111,6 +112,7 @@ const FAKE_LEFT_COLUMNS = 2; // Updated to account for the new record status col
 
 const FOCUS_GROUP_NAME = 'Set/Unset Focus';
 const FILTERING_GROUP_NAME = 'Filtering';
+const COLUMN_VIEW_GROUP_NAME = 'Column View';
 const ACCEPT_REJECT_GROUP_NAME = 'Accept/Reject Changes';
 const MENU_ICON_SIZE = 18;
 
@@ -121,6 +123,8 @@ const SnapshotTableGrid = ({
   onSwitchToRecordView,
   onViewCreated,
   onFocusedCellsChange,
+  filterToView,
+  onFilteredRecordsCountChange,
 }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
@@ -142,7 +146,6 @@ const SnapshotTableGrid = ({
   const [activeProcess, setActiveProcess] = useState<'create-view' | 'clear-view' | undefined>();
 
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
-  const [filterToView, setFilterToView] = useState(false);
   const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
   const [writeFocus, setWriteFocus] = useState<FocusedCell[]>([]);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'focusedCellsDebug']);
@@ -155,12 +158,20 @@ const SnapshotTableGrid = ({
 
   const activeView = views ? views.find((v) => v.id === currentViewId) : undefined;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
-    useSnapshotRecords({
-      snapshotId: snapshot.id,
-      tableId: table.id.wsId,
-      viewId: filterToView && activeView ? activeView.id : undefined,
-    });
+  const {
+    recordsResponse,
+    isLoading,
+    error,
+    bulkUpdateRecords,
+    acceptCellValues,
+    rejectCellValues,
+    filteredRecordsCount,
+    refreshRecords,
+  } = useSnapshotRecords({
+    snapshotId: snapshot.id,
+    tableId: table.id.wsId,
+    viewId: filterToView && activeView ? activeView.id : undefined,
+  });
 
   const { upsertView } = useUpsertView();
 
@@ -170,6 +181,13 @@ const SnapshotTableGrid = ({
       onFocusedCellsChange(readFocus, writeFocus);
     }
   }, [readFocus, writeFocus, onFocusedCellsChange]);
+
+  // Notify parent component when filtered records count changes
+  useEffect(() => {
+    if (onFilteredRecordsCountChange) {
+      onFilteredRecordsCountChange(filteredRecordsCount);
+    }
+  }, [filteredRecordsCount, onFilteredRecordsCountChange]);
 
   const sortedRecords = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -231,44 +249,48 @@ const SnapshotTableGrid = ({
   const getColumnStatus = useCallback(
     (columnId: string) => {
       if (!activeView || !activeView.config[table.id.wsId]) {
-        return { visible: true, editable: true }; // Default to visible and editable if not in view
+        return { hidden: false, protected: false }; // Default to not hidden and not protected if not in view
       }
 
       const tableConfig = activeView.config[table.id.wsId];
       const columnConfig = tableConfig.columns?.find((c: { wsId: string }) => c.wsId === columnId);
 
       if (!columnConfig) {
-        return { visible: true, editable: true }; // Default to visible and editable if not specified
+        return { hidden: false, protected: false }; // Default to not hidden and not protected if not specified
       }
 
       return {
-        visible: columnConfig.visible !== false, // Default to true if not set
-        editable: columnConfig.editable !== false, // Default to true if not set
+        hidden: columnConfig.hidden === true, // Default to false if not set
+        protected: columnConfig.protected === true, // Default to false if not set
       };
     },
     [activeView, table.id.wsId],
   );
 
-  const getRecordStatus = useCallback(
-    (recordId: string) => {
-      if (!activeView || !activeView.config[table.id.wsId]) {
-        return { visible: true, editable: true }; // Default to visible and editable if not in view
-      }
+  // const getRecordStatus = useCallback(
+  //   (recordId: string) => {
+  //     if (!activeView || !activeView.config[table.id.wsId]) {
+  //       return { visible: true, editable: true }; // Default to visible and editable if not in view
+  //     }
 
-      const tableConfig = activeView.config[table.id.wsId];
-      const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === recordId);
+  //     const tableConfig = activeView.config[table.id.wsId];
+  //     const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === recordId);
 
-      if (!recordConfig) {
-        return { visible: true, editable: true }; // Default to visible and editable if not specified
-      }
+  //     if (!recordConfig) {
+  //       return { visible: true, editable: true }; // Default to visible and editable if not specified
+  //     }
 
-      return {
-        visible: recordConfig.visible !== false, // Default to true if not set
-        editable: recordConfig.editable !== false, // Default to true if not set
-      };
-    },
-    [activeView, table.id.wsId],
-  );
+  //     return {
+  //       visible: recordConfig.visible !== false, // Default to true if not set
+  //       editable: recordConfig.editable !== false, // Default to true if not set
+  //     };
+  //   },
+  //   [activeView, table.id.wsId],
+  // );
+  const getRecordStatus = useCallback(() => {
+    // TODO: records field moved to different entity - temporarily return defaults
+    return { visible: true, editable: true }; // Default to visible and editable for now
+  }, []);
 
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -376,32 +398,33 @@ const SnapshotTableGrid = ({
           };
         }
 
+        // TODO: records field moved to different entity - temporarily show no icons
         // Only show icons if the record is present in the view config
-        let displayText = '';
-        if (activeView && activeView.config[table.id.wsId]) {
-          const tableConfig = activeView.config[table.id.wsId];
-          const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === record.id.wsId);
+        const displayText = '';
+        // if (activeView && activeView.config[table.id.wsId]) {
+        //   const tableConfig = activeView.config[table.id.wsId];
+        //   const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === record.id.wsId);
 
-          if (recordConfig) {
-            // Record is in the config, show icons only for explicitly overridden properties
-            let icons = '';
+        //   if (recordConfig) {
+        //     // Record is in the config, show icons only for explicitly overridden properties
+        //     let icons = '';
 
-            // Only show visibility icon if explicitly set
-            if ('visible' in recordConfig) {
-              const visibilityIcon = recordConfig.visible ? '👁️' : '🚫';
-              icons += visibilityIcon;
-            }
+        //     // Only show visibility icon if explicitly set
+        //     if ('visible' in recordConfig) {
+        //       const visibilityIcon = recordConfig.visible ? '👁️' : '🚫';
+        //       icons += visibilityIcon;
+        //     }
 
-            // Only show editability icon if explicitly set
-            if ('editable' in recordConfig) {
-              const editabilityIcon = recordConfig.editable ? '✏️' : '🔒';
-              icons += editabilityIcon;
-            }
+        //     // Only show editability icon if explicitly set
+        //     if ('editable' in recordConfig) {
+        //       const editabilityIcon = recordConfig.editable ? '✏️' : '🔒';
+        //       icons += editabilityIcon;
+        //     }
 
-            displayText = icons;
-          }
-          // If record is not in config, don't show any icons
-        }
+        //     displayText = icons;
+        //   }
+        //   // If record is not in config, don't show any icons
+        // }
 
         return {
           kind: GridCellKind.Text,
@@ -995,6 +1018,62 @@ const SnapshotTableGrid = ({
         return;
       }
 
+      if (action === 'Filter Out Records') {
+        if (!currentSelection) return;
+
+        // Get all selected record IDs
+        const selectedRecordIds: string[] = [];
+
+        if (currentSelection.current) {
+          const { range } = currentSelection.current;
+          for (let r = range.y; r < range.y + range.height; r++) {
+            const record = sortedRecords?.[r];
+            if (record) {
+              selectedRecordIds.push(record.id.wsId);
+            }
+          }
+        }
+
+        if (currentSelection.rows) {
+          for (const row of currentSelection.rows) {
+            const record = sortedRecords?.[row];
+            if (record) {
+              selectedRecordIds.push(record.id.wsId);
+            }
+          }
+        }
+
+        if (selectedRecordIds.length === 0) {
+          notifications.show({
+            title: 'No Records Selected',
+            message: 'Please select one or more records to filter out',
+            color: 'yellow',
+          });
+          setContextMenu(null);
+          return;
+        }
+
+        try {
+          await snapshotApi.addActiveRecordFilter(snapshot.id, table.id.wsId, selectedRecordIds);
+          notifications.show({
+            title: 'Filter Updated',
+            message: `Added ${selectedRecordIds.length} record(s) to active filter`,
+            color: 'green',
+          });
+          // Refresh the records to update the filtered count
+          await refreshRecords();
+        } catch (e) {
+          const error = e as Error;
+          notifications.show({
+            title: 'Error updating filter',
+            message: error.message,
+            color: 'red',
+          });
+        }
+        setContextMenu(null);
+        return;
+      }
+
       if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
         return;
       }
@@ -1120,188 +1199,6 @@ const SnapshotTableGrid = ({
           const error = e as Error;
           notifications.show({
             title: 'Error rejecting record',
-            message: error.message,
-            color: 'red',
-          });
-        }
-      } else if (action.startsWith('Make Record') || action.startsWith('Unset Record')) {
-        if (!record) return;
-
-        try {
-          // Determine what to do based on the action
-          const isUnsetAction = action.startsWith('Unset Record');
-          const isVisibilityAction =
-            action.includes('Hidden') || action.includes('Visible') || action.includes('Visibility');
-          const isEditabilityAction =
-            action.includes('Locked') || action.includes('Editable') || action.includes('Editability');
-
-          if (!isVisibilityAction && !isEditabilityAction) {
-            notifications.show({
-              title: 'Invalid Action',
-              message: 'Unknown record action',
-              color: 'red',
-            });
-            return;
-          }
-
-          if (currentViewId && activeView) {
-            // Update existing view
-            const existingConfig = activeView.config;
-            const tableConfig = existingConfig[table.id.wsId] || {
-              visible: true,
-              editable: true,
-              records: [],
-            };
-
-            // Find existing record config or create new one
-            const existingRecordIndex =
-              tableConfig.records?.findIndex((r: { wsId: string }) => r.wsId === record.id.wsId) ?? -1;
-            const existingRecord = existingRecordIndex >= 0 ? tableConfig.records?.[existingRecordIndex] : null;
-
-            let updatedRecord;
-            if (isUnsetAction) {
-              // Remove the specific override (visible or editable)
-              if (isVisibilityAction) {
-                // Remove visible override, keep editable override if it exists
-                updatedRecord = {
-                  wsId: record.id.wsId,
-                  ...(existingRecord?.editable !== undefined && { editable: existingRecord.editable }),
-                };
-              } else {
-                // Remove editable override, keep visible override if it exists
-                updatedRecord = {
-                  wsId: record.id.wsId,
-                  ...(existingRecord?.visible !== undefined && { visible: existingRecord.visible }),
-                };
-              }
-            } else {
-              // Set a specific value - preserve existing overrides
-              if (isVisibilityAction) {
-                const newVisible = action.includes('Visible');
-                updatedRecord = {
-                  wsId: record.id.wsId,
-                  visible: newVisible,
-                  ...(existingRecord?.editable !== undefined && { editable: existingRecord.editable }),
-                };
-              } else {
-                const newEditable = action.includes('Editable');
-                updatedRecord = {
-                  wsId: record.id.wsId,
-                  editable: newEditable,
-                  ...(existingRecord?.visible !== undefined && { visible: existingRecord.visible }),
-                };
-              }
-            }
-
-            // Update or add the record
-            const records = tableConfig.records || [];
-            const updatedRecords = [...records];
-            if (existingRecordIndex >= 0) {
-              if (Object.keys(updatedRecord).length === 1) {
-                // Only has wsId, remove the record entirely
-                updatedRecords.splice(existingRecordIndex, 1);
-              } else {
-                updatedRecords[existingRecordIndex] = updatedRecord;
-              }
-            } else if (Object.keys(updatedRecord).length > 1) {
-              // Only add if it has more than just wsId
-              updatedRecords.push(updatedRecord);
-            }
-
-            const updatedTableConfig = {
-              ...tableConfig,
-              records: updatedRecords,
-            };
-
-            const updatedConfig = {
-              ...existingConfig,
-              [table.id.wsId]: updatedTableConfig,
-            };
-
-            await upsertView({
-              id: activeView.id,
-              parentId: activeView.parentId || undefined,
-              name: activeView.name || undefined,
-              snapshotId: snapshot.id,
-              config: updatedConfig,
-            });
-
-            const actionType = isUnsetAction
-              ? 'unset'
-              : isVisibilityAction
-                ? 'visible' in updatedRecord && updatedRecord.visible
-                  ? 'made visible'
-                  : 'made hidden'
-                : 'editable' in updatedRecord && updatedRecord.editable
-                  ? 'made editable'
-                  : 'made locked';
-            notifications.show({
-              title: 'Record Updated',
-              message: `Record ${actionType}`,
-              color: 'green',
-            });
-          } else {
-            // Create a new view with this record setting
-            const tableDefaults = {
-              visible: true,
-              editable: true,
-            };
-
-            let recordConfig;
-            if (isUnsetAction) {
-              // For unset actions, don't create a new view
-              notifications.show({
-                title: 'No View',
-                message: 'No active view to unset record settings from',
-                color: 'yellow',
-              });
-              return;
-            } else {
-              if (isVisibilityAction) {
-                const newVisible = action.includes('Visible');
-                recordConfig = {
-                  wsId: record.id.wsId,
-                  visible: newVisible,
-                };
-              } else {
-                const newEditable = action.includes('Editable');
-                recordConfig = {
-                  wsId: record.id.wsId,
-                  editable: newEditable,
-                };
-              }
-            }
-
-            const viewConfig = {
-              [table.id.wsId]: {
-                visible: tableDefaults.visible,
-                editable: tableDefaults.editable,
-                records: [recordConfig],
-                columns: [],
-              },
-            };
-
-            const result = await upsertView({
-              snapshotId: snapshot.id,
-              config: viewConfig,
-            });
-
-            notifications.show({
-              title: 'Record Updated',
-              message: `Record ${isVisibilityAction ? (recordConfig.visible ? 'made visible' : 'made hidden') : recordConfig.editable ? 'made editable' : 'made locked'}`,
-              color: 'green',
-            });
-
-            // Select the newly created view
-            onViewCreated?.(result.id);
-          }
-
-          // Refresh the views list
-          refreshViews?.();
-        } catch (e) {
-          const error = e as Error;
-          notifications.show({
-            title: 'Error updating record',
             message: error.message,
             color: 'red',
           });
@@ -1440,7 +1337,12 @@ const SnapshotTableGrid = ({
             color: 'red',
           });
         }
-      } else if (action.startsWith('Make Column') || action.startsWith('Unset Column')) {
+      } else if (
+        action.includes('Hide') ||
+        action.includes('Unhide') ||
+        action.includes('Protect') ||
+        action.includes('Unprotect')
+      ) {
         if (isIdColumn(col)) return;
 
         const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
@@ -1448,13 +1350,11 @@ const SnapshotTableGrid = ({
 
         try {
           // Determine what to do based on the action
-          const isUnsetAction = action.startsWith('Unset Column');
-          const isVisibilityAction =
-            action.includes('Hidden') || action.includes('Visible') || action.includes('Visibility');
-          const isEditabilityAction =
-            action.includes('Locked') || action.includes('Editable') || action.includes('Editability');
+          const isUnsetAction = action.startsWith('Unhide') || action.startsWith('Unprotect');
+          const isHideAction = action.includes('Hide') || action.includes('Unhide');
+          const isProtectAction = action.includes('Protect') || action.includes('Unprotect');
 
-          if (!isVisibilityAction && !isEditabilityAction) {
+          if (!isHideAction && !isProtectAction) {
             notifications.show({
               title: 'Invalid Action',
               message: 'Unknown column action',
@@ -1467,9 +1367,8 @@ const SnapshotTableGrid = ({
             // Update existing view
             const existingConfig = activeView.config;
             const tableConfig = existingConfig[table.id.wsId] || {
-              visible: true,
-              editable: true,
-              records: [],
+              hidden: false,
+              protected: false,
               columns: [],
             };
 
@@ -1480,35 +1379,35 @@ const SnapshotTableGrid = ({
 
             let updatedColumn;
             if (isUnsetAction) {
-              // Remove the specific override (visible or editable)
-              if (isVisibilityAction) {
-                // Remove visible override, keep editable override if it exists
+              // Remove the specific override (hidden or protected)
+              if (isHideAction) {
+                // Remove hidden override, keep protected override if it exists
                 updatedColumn = {
                   wsId: columnId,
-                  ...(existingColumn?.editable !== undefined && { editable: existingColumn.editable }),
+                  ...(existingColumn?.protected !== undefined && { protected: existingColumn.protected }),
                 };
               } else {
-                // Remove editable override, keep visible override if it exists
+                // Remove protected override, keep hidden override if it exists
                 updatedColumn = {
                   wsId: columnId,
-                  ...(existingColumn?.visible !== undefined && { visible: existingColumn.visible }),
+                  ...(existingColumn?.hidden !== undefined && { hidden: existingColumn.hidden }),
                 };
               }
             } else {
               // Set a specific value - only include the property being set
-              if (isVisibilityAction) {
-                const newVisible = action.includes('Visible');
+              if (isHideAction) {
+                const newHidden = action.includes('Hide');
                 updatedColumn = {
                   wsId: columnId,
-                  visible: newVisible,
-                  ...(existingColumn?.editable !== undefined && { editable: existingColumn.editable }),
+                  hidden: newHidden,
+                  ...(existingColumn?.protected !== undefined && { protected: existingColumn.protected }),
                 };
               } else {
-                const newEditable = action.includes('Editable');
+                const newProtected = action.includes('Protect');
                 updatedColumn = {
                   wsId: columnId,
-                  editable: newEditable,
-                  ...(existingColumn?.visible !== undefined && { visible: existingColumn.visible }),
+                  protected: newProtected,
+                  ...(existingColumn?.hidden !== undefined && { hidden: existingColumn.hidden }),
                 };
               }
             }
@@ -1539,7 +1438,6 @@ const SnapshotTableGrid = ({
 
             await upsertView({
               id: activeView.id,
-              parentId: activeView.parentId || undefined,
               name: activeView.name || undefined,
               snapshotId: snapshot.id,
               config: updatedConfig,
@@ -1547,13 +1445,13 @@ const SnapshotTableGrid = ({
 
             const actionType = isUnsetAction
               ? 'unset'
-              : isVisibilityAction
-                ? 'visible' in updatedColumn && updatedColumn.visible
-                  ? 'made visible'
-                  : 'made hidden'
-                : 'editable' in updatedColumn && updatedColumn.editable
-                  ? 'made editable'
-                  : 'made locked';
+              : isHideAction
+                ? 'hidden' in updatedColumn && updatedColumn.hidden
+                  ? 'hidden'
+                  : 'unhidden'
+                : 'protected' in updatedColumn && updatedColumn.protected
+                  ? 'protected'
+                  : 'unprotected';
             notifications.show({
               title: 'Column Updated',
               message: `Column ${actionType}`,
@@ -1562,8 +1460,8 @@ const SnapshotTableGrid = ({
           } else {
             // Create a new view with this column setting
             const tableDefaults = {
-              visible: true,
-              editable: true,
+              hidden: false,
+              protected: false,
             };
 
             let columnConfig;
@@ -1576,26 +1474,25 @@ const SnapshotTableGrid = ({
               });
               return;
             } else {
-              if (isVisibilityAction) {
-                const newVisible = action.includes('Visible');
+              if (isHideAction) {
+                const newHidden = action.includes('Hide');
                 columnConfig = {
                   wsId: columnId,
-                  visible: newVisible,
+                  hidden: newHidden,
                 };
               } else {
-                const newEditable = action.includes('Editable');
+                const newProtected = action.includes('Protect');
                 columnConfig = {
                   wsId: columnId,
-                  editable: newEditable,
+                  protected: newProtected,
                 };
               }
             }
 
             const viewConfig = {
               [table.id.wsId]: {
-                visible: tableDefaults.visible,
-                editable: tableDefaults.editable,
-                records: [],
+                hidden: tableDefaults.hidden,
+                protected: tableDefaults.protected,
                 columns: [columnConfig],
               },
             };
@@ -1607,7 +1504,7 @@ const SnapshotTableGrid = ({
 
             notifications.show({
               title: 'Column Updated',
-              message: `Column ${isVisibilityAction ? (columnConfig.visible ? 'made visible' : 'made hidden') : columnConfig.editable ? 'made editable' : 'made locked'}`,
+              message: `Column ${isHideAction ? (columnConfig.hidden ? 'hidden' : 'unhidden') : columnConfig.protected ? 'protected' : 'unprotected'}`,
               color: 'green',
             });
 
@@ -1788,6 +1685,16 @@ const SnapshotTableGrid = ({
 
     const items = focusItems;
 
+    // Add Filter Out Records item if records are selected
+    if (currentSelection && getSelectedRowCount(currentSelection) > 0) {
+      items.push({
+        label: 'Filter Out Records',
+        disabled: false,
+        group: FILTERING_GROUP_NAME,
+        leftSection: '🚫',
+      });
+    }
+
     // Check if there's a suggested value for this specific cell
     const hasCellSuggestion = !!record?.__suggested_values?.[column.id.wsId];
 
@@ -1836,32 +1743,33 @@ const SnapshotTableGrid = ({
               leftSection: <ListBulletsIcon size={MENU_ICON_SIZE} color="#ff0000" />,
             });
           }
-          const tableConfig = activeView?.config[table.id.wsId];
-          const tableDefaults = {
-            visible: tableConfig?.visible !== false,
-            editable: tableConfig?.editable !== false,
-          };
-          const recordConfig = tableConfig?.records?.find((r: { wsId: string }) => r.wsId === record?.id.wsId);
-          const hasRecordVisibleOverride = recordConfig && recordConfig.visible !== undefined;
-          const hasRecordEditableOverride = recordConfig && recordConfig.editable !== undefined;
-          if (hasRecordVisibleOverride) {
-            extraItems.push({ label: 'Unset Record Visibility', disabled: false, group: FILTERING_GROUP_NAME });
-          } else {
-            extraItems.push({
-              label: `Make Record ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
-              disabled: false,
-              group: FILTERING_GROUP_NAME,
-            });
-          }
-          if (hasRecordEditableOverride) {
-            extraItems.push({ label: 'Unset Record Editability', disabled: false, group: FILTERING_GROUP_NAME });
-          } else {
-            extraItems.push({
-              label: `Make Record ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
-              disabled: false,
-              group: FILTERING_GROUP_NAME,
-            });
-          }
+          // TODO: records field moved to different entity - temporarily disable record actions
+          // const tableConfig = activeView?.config[table.id.wsId];
+          // const tableDefaults = {
+          //   visible: tableConfig?.visible !== false,
+          //   editable: tableConfig?.editable !== false,
+          // };
+          // const recordConfig = tableConfig?.records?.find((r: { wsId: string }) => r.wsId === record?.id.wsId);
+          // const hasRecordVisibleOverride = recordConfig && recordConfig.visible !== undefined;
+          // const hasRecordEditableOverride = recordConfig && recordConfig.editable !== undefined;
+          // if (hasRecordVisibleOverride) {
+          //   extraItems.push({ label: 'Unset Record Visibility', disabled: false, group: FILTERING_GROUP_NAME });
+          // } else {
+          //   extraItems.push({
+          //     label: `Make Record ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
+          //     disabled: false,
+          //     group: FILTERING_GROUP_NAME,
+          //   });
+          // }
+          // if (hasRecordEditableOverride) {
+          //   extraItems.push({ label: 'Unset Record Editability', disabled: false, group: FILTERING_GROUP_NAME });
+          // } else {
+          //   extraItems.push({
+          //     label: `Make Record ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
+          //     disabled: false,
+          //     group: FILTERING_GROUP_NAME,
+          //   });
+          // }
           return extraItems;
         })(),
       ].flat(),
@@ -1909,42 +1817,42 @@ const SnapshotTableGrid = ({
 
     // Get table defaults and current column status
     const tableConfig = activeView?.config[table.id.wsId];
-    const tableDefaults = {
-      visible: tableConfig?.visible !== false, // Default to true if not specified
-      editable: tableConfig?.editable !== false, // Default to true if not specified
-    };
 
     // COLUMN CONTEXT MENU LOGIC
     const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === column.id.wsId);
-    const hasColumnVisibleOverride = columnConfig && columnConfig.visible !== undefined;
-    const hasColumnEditableOverride = columnConfig && columnConfig.editable !== undefined;
+    const hasColumnHiddenOverride = columnConfig && columnConfig.hidden !== undefined;
+    const hasColumnProtectedOverride = columnConfig && columnConfig.protected !== undefined;
 
-    // Visibility
-    if (hasColumnVisibleOverride) {
+    // Hide/Unhide
+    if (hasColumnHiddenOverride) {
       items.push({
-        label: 'Unset Column Visibility',
+        label: 'Unhide Column',
         disabled: false,
-        group: FILTERING_GROUP_NAME,
+        group: COLUMN_VIEW_GROUP_NAME,
+        leftSection: '👁️',
       });
     } else {
       items.push({
-        label: `Make Column ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
+        label: 'Hide Column',
         disabled: false,
-        group: FILTERING_GROUP_NAME,
+        group: COLUMN_VIEW_GROUP_NAME,
+        leftSection: '🚫',
       });
     }
-    // Editability
-    if (hasColumnEditableOverride) {
+    // Protect/Unprotect
+    if (hasColumnProtectedOverride) {
       items.push({
-        label: 'Unset Column Editability',
+        label: 'Unprotect Column',
         disabled: false,
-        group: FILTERING_GROUP_NAME,
+        group: COLUMN_VIEW_GROUP_NAME,
+        leftSection: '✏️',
       });
     } else {
       items.push({
-        label: `Make Column ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
+        label: 'Protect Column',
         disabled: false,
-        group: FILTERING_GROUP_NAME,
+        group: COLUMN_VIEW_GROUP_NAME,
+        leftSection: '🔒',
       });
     }
 
@@ -1968,16 +1876,16 @@ const SnapshotTableGrid = ({
           // Column is in the config, show icons only for explicitly overridden properties
           let icons = '';
 
-          // Only show visibility icon if explicitly set
-          if ('visible' in columnConfig) {
-            const visibilityIcon = columnConfig.visible ? '👁️' : '🚫';
-            icons += visibilityIcon;
+          // Only show hidden icon if explicitly set
+          if ('hidden' in columnConfig) {
+            const hiddenIcon = columnConfig.hidden ? '🚫' : '👁️';
+            icons += hiddenIcon;
           }
 
-          // Only show editability icon if explicitly set
-          if ('editable' in columnConfig) {
-            const editabilityIcon = columnConfig.editable ? '✏️' : '🔒';
-            icons += editabilityIcon;
+          // Only show protected icon if explicitly set
+          if ('protected' in columnConfig) {
+            const protectedIcon = columnConfig.protected ? '🔒' : '✏️';
+            icons += protectedIcon;
           }
 
           if (icons) {
@@ -2148,65 +2056,6 @@ const SnapshotTableGrid = ({
         }}
       >
         <Stack p={0} h="100%" gap={0}>
-          {/* Focus status bar - blue band at top */}
-          {(readFocus.length > 0 || writeFocus.length > 0) && (
-            <Group w="100%" p="xs" bg="blue.0" style={{ borderBottom: '1px solid #0066cc' }}>
-              <Text size="sm" fw={500} c="blue.8">
-                Focus Status:
-              </Text>
-              {readFocus.length > 0 && (
-                <Tooltip label={`${readFocus.length} read focused cell(s). Press Shift+R to add more, click to clear.`}>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color="blue"
-                    onClick={() => {
-                      setReadFocus([]);
-                      notifications.show({
-                        title: 'Read Focus Cleared',
-                        message: `Cleared ${readFocus.length} read focused cell(s)`,
-                        color: 'blue',
-                      });
-                    }}
-                  >
-                    {readFocus.length} Read
-                  </Button>
-                </Tooltip>
-              )}
-              {writeFocus.length > 0 && (
-                <Tooltip
-                  label={`${writeFocus.length} write focused cell(s). Press Shift+W to add more, click to clear.`}
-                >
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color="orange"
-                    onClick={() => {
-                      setWriteFocus([]);
-                      notifications.show({
-                        title: 'Write Focus Cleared',
-                        message: `Cleared ${writeFocus.length} write focused cell(s)`,
-                        color: 'orange',
-                      });
-                    }}
-                  >
-                    {writeFocus.length} Write
-                  </Button>
-                </Tooltip>
-              )}
-              <Tooltip label="Debug: Show focused cells details">
-                <ActionIcon
-                  onClick={() => modalStack.open('focusedCellsDebug')}
-                  size="sm"
-                  radius="xl"
-                  variant="filled"
-                  color="blue"
-                >
-                  <BugIcon size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          )}
           <DataEditor
             width="100%"
             height="100%"
@@ -2349,15 +2198,6 @@ const SnapshotTableGrid = ({
             >
               Clear view
             </Button>
-
-            {activeView && (
-              <Checkbox
-                label="Filter to view records"
-                checked={filterToView}
-                onChange={(e) => setFilterToView(e.target.checked)}
-                size="sm"
-              />
-            )}
 
             <Text size="xs" c="dimmed" style={{ fontStyle: 'italic' }}>
               Tip: Select cells and press Shift+R to toggle read focus (blue), Shift+W to toggle write focus (orange),

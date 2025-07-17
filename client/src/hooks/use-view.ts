@@ -27,11 +27,9 @@ export const useUpsertView = () => {
     SWR_KEYS.view.upsert(),
     async (_key: string[], { arg }: { arg: {
       id?: string;
-      parentId?: string;
       name?: string;
       snapshotId: string;
       config: ViewConfig;
-      save?: boolean;
     } }) => {
       return viewApi.upsert(arg);
     },

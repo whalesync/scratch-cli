@@ -166,75 +166,75 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
             print(f"❌ {error_msg}")
             return error_msg
 
-    @agent.tool
-    async def connect_snapshot_tool(ctx: RunContext[ChatRunContext]) -> str:  # type: ignore
-        """
-        Connect to the snapshot associated with the current session.
+    # @agent.tool
+    # async def connect_snapshot_tool(ctx: RunContext[ChatRunContext]) -> str:  # type: ignore
+    #     """
+    #     Connect to the snapshot associated with the current session.
         
-        Use this tool when the user wants to work with data from the snapshot associated with their session.
-        The snapshot ID is automatically determined from the session.
-        This will provide you with table schema information including column names and types.
-        """
-        try:
-            # Get API token and session data from global state
-            chatRunContext: ChatRunContext = ctx.deps 
-            api_token = chatRunContext.api_token
-            chatSession = chatRunContext.session
-            # session_data = get_session_data()
+    #     Use this tool when the user wants to work with data from the snapshot associated with their session.
+    #     The snapshot ID is automatically determined from the session.
+    #     This will provide you with table schema information including column names and types.
+    #     """
+    #     try:
+    #         # Get API token and session data from global state
+    #         chatRunContext: ChatRunContext = ctx.deps 
+    #         api_token = chatRunContext.api_token
+    #         chatSession = chatRunContext.session
+    #         # session_data = get_session_data()
             
-            if not api_token:
-                log_error("No API token available for connect_snapshot")
-                return "Error: No API token available. Cannot authenticate with the server."
+    #         if not api_token:
+    #             log_error("No API token available for connect_snapshot")
+    #             return "Error: No API token available. Cannot authenticate with the server."
             
-            # if not session_data:
-            #     log_error("No session data available for connect_snapshot")
-            #     return "Error: No session data available. Cannot determine which snapshot to connect to."
+    #         # if not session_data:
+    #         #     log_error("No session data available for connect_snapshot")
+    #         #     return "Error: No session data available. Cannot determine which snapshot to connect to."
             
-            snapshot_id = chatSession.snapshot_id
-            session_id = chatSession.id
+    #         snapshot_id = chatSession.snapshot_id
+    #         session_id = chatSession.id
             
                 
-            # API token is now passed directly to each function call
+    #         # API token is now passed directly to each function call
             
-            log_info("Connecting to snapshot for session", session_id=session_id, snapshot_id=snapshot_id)
+    #         log_info("Connecting to snapshot for session", session_id=session_id, snapshot_id=snapshot_id)
             
-            # Fetch snapshot details from the server
-            snapshot_data = get_snapshot(snapshot_id, api_token)
+    #         # Fetch snapshot details from the server
+    #         snapshot_data = get_snapshot(snapshot_id, api_token)
             
-            # Convert to our Snapshot model using the utility function
-            snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, chatSession)
-            # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot
-            chatRunContext.snapshot = snapshot  # type: ignore
-            # Store the snapshot
-            # set_active_snapshot(snapshot)
+    #         # Convert to our Snapshot model using the utility function
+    #         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, chatSession)
+    #         # Type assertion to handle the type mismatch between local Snapshot and scratchpad_api.Snapshot
+    #         chatRunContext.snapshot = snapshot  # type: ignore
+    #         # Store the snapshot
+    #         # set_active_snapshot(snapshot)
             
-            # Log the connection
-            print(f"📊 Connected to snapshot: {snapshot_id}")
-            print(f"📋 Found {len(snapshot.tables)} tables:")
-            for table in snapshot.tables:
-                print(f"  - {table.name} (ID: {table.id.wsId})")
-                print(f"    Columns: {[col.name for col in table.columns]}")
+    #         # Log the connection
+    #         print(f"📊 Connected to snapshot: {snapshot_id}")
+    #         print(f"📋 Found {len(snapshot.tables)} tables:")
+    #         for table in snapshot.tables:
+    #             print(f"  - {table.name} (ID: {table.id.wsId})")
+    #             print(f"    Columns: {[col.name for col in table.columns]}")
             
-            log_info("Successfully connected to snapshot", 
-                    session_id=session_id,
-                    snapshot_id=snapshot_id, 
-                    table_count=len(snapshot.tables),
-                    snapshot=snapshot)
+    #         log_info("Successfully connected to snapshot", 
+    #                 session_id=session_id,
+    #                 snapshot_id=snapshot_id, 
+    #                 table_count=len(snapshot.tables),
+    #                 snapshot=snapshot)
             
-            return f"Successfully connected to snapshot {snapshot_id}. Found {len(snapshot.tables)} table(s): {[table.name for table in snapshot.tables]}"
+    #         return f"Successfully connected to snapshot {snapshot_id}. Found {len(snapshot.tables)} table(s): {[table.name for table in snapshot.tables]}"
             
-        except Exception as e:
-            error_msg = f"Failed to connect to snapshot: {str(e)}"
-            # session_data = get_session_data()
-            # session_id = session_data.get('session_id') if session_data else None
-            log_error("Error connecting to snapshot", 
-                    session_id=session_id,
-                    error=str(e))
-            print(f"❌ {error_msg}")
-            return error_msg
+    #     except Exception as e:
+    #         error_msg = f"Failed to connect to snapshot: {str(e)}"
+    #         # session_data = get_session_data()
+    #         # session_id = session_data.get('session_id') if session_data else None
+    #         log_error("Error connecting to snapshot", 
+    #                 session_id=session_id,
+    #                 error=str(e))
+    #         print(f"❌ {error_msg}")
+    #         return error_msg
 
-    @agent.tool
-    async def get_records_tool(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100, view_id: Optional[str] = None) -> str:  # type: ignore
+    # @agent.tool
+    # async def get_records_tool(ctx: RunContext[ChatRunContext], table_name: str, limit: int = 100, view_id: Optional[str] = None) -> str:  # type: ignore
         """
         Get all records for a table from the active snapshot.
         
@@ -451,8 +451,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
                     error=str(e))
             print(f"❌ {error_msg}")
             return error_msg
-    
-    
     
     @agent.tool
     async def delete_records_tool(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str]) -> str:  # type: ignore

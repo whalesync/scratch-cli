@@ -42,6 +42,7 @@ erDiagram
   String connectorAccountId FK
   Json tableSpecs
   Json tableContexts
+  Json activeRecordFilter "nullable"
 }
 "GenericTable" {
   String id PK
@@ -80,9 +81,8 @@ erDiagram
   String body
   String userId FK
 }
-"View" {
+"ColumnView" {
   String id PK
-  String parentId FK "nullable"
   String name "nullable"
   String snapshotId
   Json config
@@ -95,7 +95,6 @@ erDiagram
 "GenericTable" }o--|| "User" : user
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
-"View" }o--o| "View" : parent
 ```
 
 ### `User`
@@ -144,6 +143,7 @@ Properties as follows:
 - `connectorAccountId`:
 - `tableSpecs`:
 - `tableContexts`:
+- `activeRecordFilter`:
 
 ### `GenericTable`
 
@@ -191,12 +191,11 @@ Properties as follows:
 - `body`:
 - `userId`:
 
-### `View`
+### `ColumnView`
 
 Properties as follows:
 
 - `id`:
-- `parentId`:
 - `name`:
 - `snapshotId`:
 - `config`:

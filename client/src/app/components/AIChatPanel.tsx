@@ -342,7 +342,7 @@ export default function AIChatPanel({
       p="md"
       style={{
         width: '30%',
-        // height: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',

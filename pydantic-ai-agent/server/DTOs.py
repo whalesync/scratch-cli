@@ -2,8 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from session import ChatSession
-from agents.data_agent.models import FocusedCell
-
+from agents.data_agent.models import ChatSession, FocusedCell
 class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
     message: str

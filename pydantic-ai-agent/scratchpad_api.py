@@ -83,6 +83,7 @@ class BulkUpdateRecordsDto:
 class ListRecordsResponse:
     records: List[SnapshotRecord]
     nextCursor: Optional[str] = None
+    filteredRecordsCount: int = 0
 
 @dataclass
 class CreateSnapshotTableViewDto:
@@ -221,7 +222,8 @@ class SnapshotApi:
         
         result = ListRecordsResponse(
             records=records,
-            nextCursor=data.get("nextCursor")
+            nextCursor=data.get("nextCursor"),
+            filteredRecordsCount=data.get("filteredRecordsCount", 0)
         )
         print(f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}")
         return result
@@ -272,7 +274,8 @@ class SnapshotApi:
         
         result = ListRecordsResponse(
             records=records,
-            nextCursor=data.get("nextCursor")
+            nextCursor=data.get("nextCursor"),
+            filteredRecordsCount=data.get("filteredRecordsCount", 0)
         )
         print(f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}")
         return result
@@ -341,6 +344,25 @@ class SnapshotApi:
         if not response.ok:
             raise ScratchpadApiError(f"Failed to clear active view: {response.status_code} - {response.text}")
 
+    @staticmethod
+    def add_active_record_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+        """Add records to the active record filter for a table"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-active-record-filter"
+        payload = {
+            "recordIds": record_ids
+        }
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload)
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to add active record filter: {response.status_code} - {response.text}")
+
+    @staticmethod
+    def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
+        """Clear the active record filter for a table"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/clear-active-record-filter"
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token))
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to clear active record filter: {response.status_code} - {response.text}")
+
 # Convenience functions for easy access
 def list_snapshots(connector_account_id: str, api_token: str) -> List[ScratchpadSnapshot]:
     """List snapshots for a connector account"""
@@ -399,6 +421,14 @@ def get_view(snapshot_id: str, table_id: str, view_id: str, api_token: str) -> S
 def clear_active_view(snapshot_id: str, table_id: str, api_token: str) -> None:
     """Clear the active view for a table in a snapshot (revert to default view)"""
     SnapshotApi.clear_active_view(snapshot_id, table_id, api_token)
+
+def add_active_record_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+    """Add records to the active record filter for a table"""
+    SnapshotApi.add_active_record_filter(snapshot_id, table_id, record_ids, api_token)
+
+def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
+    """Clear the active record filter for a table"""
+    SnapshotApi.clear_active_record_filter(snapshot_id, table_id, api_token)
 
 def check_server_health() -> bool:
     """Check if the Scratchpad server is healthy"""

@@ -140,6 +140,66 @@ export const snapshotApi = {
     return res.json();
   },
 
+  async updateActiveRecordFilter(
+    snapshotId: string,
+    tableId: string,
+    recordIds: string[]
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/update-active-record-filter`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recordIds }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to update active record filter");
+    }
+  },
+
+  async addActiveRecordFilter(
+    snapshotId: string,
+    tableId: string,
+    recordIds: string[]
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/add-active-record-filter`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recordIds }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to add to active record filter");
+    }
+  },
+
+  async clearActiveRecordFilter(
+    snapshotId: string,
+    tableId: string
+  ): Promise<void> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-active-record-filter`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to clear active record filter");
+    }
+  },
+
   /**
    * List records for the active view of a table.
    */

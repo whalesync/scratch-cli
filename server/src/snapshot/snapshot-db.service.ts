@@ -9,6 +9,7 @@ import { ViewConfig } from 'src/view/types';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
+import { ActiveRecordFilter } from './types';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -213,6 +214,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     take: number,
     view: ViewConfig | undefined,
     tableSpec?: AnyTableSpec,
+    activeRecordFilter?: ActiveRecordFilter,
   ): Promise<SnapshotRecord[]> {
     // const query = this.knex<DbRecord>(tableId);
 
@@ -221,26 +223,38 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     if (cursor) {
       query.where('wsId', '>=', cursor);
     }
+
+    // Apply active record filter to exclude filtered records
+    if (activeRecordFilter && activeRecordFilter[tableId] && activeRecordFilter[tableId].length > 0) {
+      const filteredRecordIds = activeRecordFilter[tableId];
+      if (Array.isArray(filteredRecordIds) && filteredRecordIds.length > 0) {
+        query.whereNotIn('wsId', filteredRecordIds);
+      }
+    }
+
     const tableViewConfig = view?.[tableId];
     if (tableViewConfig) {
-      if (tableViewConfig.visible === false) {
-        const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
-        query.whereIn('wsId', recordIds);
+      // TODO: Record filtering moved to different entity - commented out for now
+      // if (tableViewConfig.visible === false) {
+      //   const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
+      //   query.whereIn('wsId', recordIds);
+      // } else {
+      //   const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
+      //   if (recordIds.length > 0) {
+      //     query.whereNotIn('wsId', recordIds);
+      //   }
+      // }
+
+      // If table is hidden, return empty array
+      if (tableViewConfig.hidden === true) {
+        query.select([]);
       } else {
-        const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
-        if (recordIds.length > 0) {
-          query.whereNotIn('wsId', recordIds);
-        }
-      }
-      if (tableViewConfig.visible === false) {
-        const columns = (tableViewConfig.columns ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
-        query.select([...DEFAULT_COLUMNS, ...columns]);
-      } else {
-        const columns = (tableViewConfig.columns ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
-        if (columns.length > 0) {
+        // Remove hidden columns from the set of all columns
+        const hiddenColumns = (tableViewConfig.columns ?? []).filter((c) => c.hidden === true).map((c) => c.wsId);
+        if (hiddenColumns.length > 0) {
           // Get all available columns from the table spec and subtract the hidden ones
           const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
-          const visibleColumns = allColumns.filter((col) => !columns.includes(col));
+          const visibleColumns = allColumns.filter((col) => !hiddenColumns.includes(col));
           query.select([...DEFAULT_COLUMNS, ...visibleColumns]);
         } else {
           query.select('*');

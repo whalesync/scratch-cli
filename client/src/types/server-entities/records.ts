@@ -13,4 +13,5 @@ export type BulkUpdateRecordsDto = {
 export type ListRecordsResponse = {
   records: SnapshotRecord[];
   nextCursor?: string;
+  filteredRecordsCount: number;
 };

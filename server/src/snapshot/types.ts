@@ -21,3 +21,10 @@ export type SnapshotTableContext = {
 export type SnapshotTableViewConfig = {
   ids: string[]; // wsIds of the records to include in the view
 };
+
+/**
+ * Maps tableId to an array of record IDs that are currently visible (filtered in).
+ */
+export type ActiveRecordFilter = {
+  [tableId: string]: string[];
+};

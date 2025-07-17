@@ -1,8 +1,7 @@
 export type ViewTableConfig = {
-  visible?: boolean; // defaults to true
-  editable?: boolean; // defaults to true
-  records?: { wsId: string; visible?: boolean; editable?: boolean }[]; // wsIds of the records to include in the view
-  columns?: { wsId: string; visible?: boolean; editable?: boolean }[]; // wsIds of the columns to include in the view
+  hidden?: boolean; // defaults to false (visible)
+  protected?: boolean; // defaults to false (editable)
+  columns?: { wsId: string; hidden?: boolean; protected?: boolean }[]; // wsIds of the columns to include in the view
 };
 
 export type ViewConfig = {

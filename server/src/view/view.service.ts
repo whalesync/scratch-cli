@@ -6,75 +6,51 @@ import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import { createViewId } from '../types/ids';
 import { UpsertViewDto } from './dto/upsert-view.dto';
-import { View } from './entities/view.entity';
+import { ColumnView } from './entities/column-view.entity';
 
 @Injectable()
 export class ViewService {
   constructor(private readonly db: DbService) {}
 
-  async upsertView(dto: UpsertViewDto): Promise<View> {
-    const { save = false, ...viewData } = dto;
-
-    // If saving and we have a parentId, we need to delete the parent first
-    if (save && viewData.parentId) {
-      // Delete the parent view
-      await this.db.client.view.delete({
-        where: { id: viewData.parentId },
-      });
-    }
-
+  async upsertView(dto: UpsertViewDto): Promise<ColumnView> {
     // If we have an id, this is an update operation
-    if (viewData.id) {
-      if (save && viewData.parentId) {
-        // Save unsaved view: delete parent, create new with new id
-        const createData = { ...viewData };
-        delete createData.parentId;
-        const view = await this.db.client.view.create({
-          data: {
-            id: createViewId(),
-            ...createData,
-          },
-        });
-        return new View(view);
-      } else {
-        // Regular update: update existing view
-        const view = await this.db.client.view.update({
-          where: { id: viewData.id },
-          data: viewData,
-        });
-        return new View(view);
-      }
+    if (dto.id) {
+      const view = await this.db.client.columnView.update({
+        where: { id: dto.id },
+        data: dto,
+      });
+      return new ColumnView(view);
     } else {
       // Create new view
-      const view = await this.db.client.view.create({
+      const view = await this.db.client.columnView.create({
         data: {
           id: createViewId(),
-          ...viewData,
+          ...dto,
         },
       });
-      return new View(view);
+      return new ColumnView(view);
     }
   }
 
-  async getView(id: string): Promise<View | null> {
-    const view = await this.db.client.view.findUnique({
+  async getView(id: string): Promise<ColumnView | null> {
+    const view = await this.db.client.columnView.findUnique({
       where: { id },
     });
 
-    return view ? new View(view) : null;
+    return view ? new ColumnView(view) : null;
   }
 
-  async getViewsBySnapshot(snapshotId: string): Promise<View[]> {
-    const views = await this.db.client.view.findMany({
+  async getViewsBySnapshot(snapshotId: string): Promise<ColumnView[]> {
+    const views = await this.db.client.columnView.findMany({
       where: { snapshotId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return views.map((view) => new View(view));
+    return views.map((view) => new ColumnView(view));
   }
 
   async deleteView(id: string): Promise<void> {
-    await this.db.client.view.delete({
+    await this.db.client.columnView.delete({
       where: { id },
     });
   }

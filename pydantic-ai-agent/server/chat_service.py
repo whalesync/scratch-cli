@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any
 from fastapi import HTTPException
 from pydantic_ai.usage import UsageLimits
 
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, FocusedCell
+from agents.data_agent.models import ChatRunContext, ChatSession, FocusedCell, ResponseFromAgent
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
@@ -159,6 +159,8 @@ class ChatService:
                                     for record in records_result.records
                                 ]
                                 print(f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'")
+                                if records_result.filteredRecordsCount > 0:
+                                    print(f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'")
                             except Exception as e:
                                 print(f"⚠️ Failed to pre-load records for table '{table.name}': {e}")
                                 preloaded_records[table.name] = []
@@ -194,6 +196,14 @@ class ChatService:
                         if chatRunContext.preloaded_records and table.name in chatRunContext.preloaded_records:
                             records = chatRunContext.preloaded_records[table.name]
                             snapshot_context += f"Records ({len(records)}):\n\n"
+                            
+                            # Add filtered records information if available
+                            try:
+                                records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
+                                if records_result.filteredRecordsCount > 0:
+                                    snapshot_context += f"Note: {records_result.filteredRecordsCount} records are currently filtered out and not shown in this list.\n\n"
+                            except:
+                                pass  # If we can't get the filtered count, just continue
                             
                             # Add clear explanation of record structure
                             snapshot_context += f"RECORD STRUCTURE EXPLANATION:\n"

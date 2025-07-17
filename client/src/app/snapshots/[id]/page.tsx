@@ -35,7 +35,7 @@ import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
-import { ViewList } from './components/ViewList';
+import { ViewData } from './components/ViewData';
 
 export default function SnapshotPage() {
   const params = useParams();
@@ -49,10 +49,34 @@ export default function SnapshotPage() {
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
-
-  const [showChat, setShowChat] = useState(true);
   const [readFocus, setReadFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
   const [writeFocus, setWriteFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
+  const [filterToView, setFilterToView] = useState(false);
+  const [filteredRecordsCount, setFilteredRecordsCount] = useState(0);
+
+  const [showChat, setShowChat] = useState(true);
+
+  const handleClearFilter = async () => {
+    if (!selectedTable) return;
+
+    try {
+      await snapshotApi.clearActiveRecordFilter(id, selectedTable.id.wsId);
+      notifications.show({
+        title: 'Filter Cleared',
+        message: 'All records are now visible',
+        color: 'green',
+      });
+      // Force immediate update of the filtered count
+      setFilteredRecordsCount(0);
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: 'Error clearing filter',
+        message: error.message,
+        color: 'red',
+      });
+    }
+  };
 
   useEffect(() => {
     if (!selectedTableId) {
@@ -145,23 +169,23 @@ export default function SnapshotPage() {
     const currentView = views?.find((v) => v.id === currentViewId);
     const tableConfig = currentView?.config[table.id.wsId];
 
-    // Default to true if not specified (as per the type definition)
-    const isRecordsVisible = tableConfig?.visible !== false;
-    const isRecordsEditable = tableConfig?.editable !== false;
+    // Default to false if not specified (as per the new type definition)
+    const isTableHidden = tableConfig?.hidden === true;
+    const isTableProtected = tableConfig?.protected === true;
 
-    // For tab title: show icon if set to non-default (invisible or non-editable)
+    // For tab title: show icon if set to non-default (hidden or protected)
     const tabIcons = [];
-    if (tableConfig?.visible === false) tabIcons.push('🚫');
-    if (tableConfig?.editable === false) tabIcons.push('🔒');
+    if (tableConfig?.hidden === true) tabIcons.push('🚫');
+    if (tableConfig?.protected === true) tabIcons.push('🔒');
 
-    const toggleRecordsVisibility = async () => {
+    const toggleTableVisibility = async () => {
       if (!snapshot) return;
       if (currentView) {
         const newConfig = {
           ...currentView.config,
           [table.id.wsId]: {
             ...tableConfig,
-            visible: !isRecordsVisible,
+            hidden: !isTableHidden,
           },
         };
 
@@ -176,7 +200,6 @@ export default function SnapshotPage() {
         // Then update the server
         await upsertView({
           id: currentView.id,
-          parentId: currentView.parentId || undefined,
           name: currentView.name || undefined,
           snapshotId: snapshot.id,
           config: newConfig,
@@ -186,16 +209,16 @@ export default function SnapshotPage() {
         await refreshViews();
 
         notifications.show({
-          title: 'Records Visibility Updated',
-          message: `Records are now ${!isRecordsVisible ? 'visible' : 'hidden'} by default`,
+          title: 'Table Visibility Updated',
+          message: `Table is now ${!isTableHidden ? 'hidden' : 'visible'}`,
           color: 'green',
         });
       } else {
         // No view: create a new view for this table
         const newConfig = {
           [table.id.wsId]: {
-            visible: false,
-            editable: true,
+            hidden: true,
+            protected: false,
           },
         };
         const result = await upsertView({
@@ -204,8 +227,8 @@ export default function SnapshotPage() {
         });
         await refreshViews();
         notifications.show({
-          title: 'Records Visibility Updated',
-          message: `Records are now hidden by default`,
+          title: 'Table Visibility Updated',
+          message: 'Table is now hidden',
           color: 'green',
         });
         // Select the newly created view
@@ -213,14 +236,14 @@ export default function SnapshotPage() {
       }
     };
 
-    const toggleRecordsEditability = async () => {
+    const toggleTableProtection = async () => {
       if (!snapshot) return;
       if (currentView) {
         const newConfig = {
           ...currentView.config,
           [table.id.wsId]: {
             ...tableConfig,
-            editable: !isRecordsEditable,
+            protected: !isTableProtected,
           },
         };
 
@@ -235,7 +258,6 @@ export default function SnapshotPage() {
         // Then update the server
         await upsertView({
           id: currentView.id,
-          parentId: currentView.parentId || undefined,
           name: currentView.name || undefined,
           snapshotId: snapshot.id,
           config: newConfig,
@@ -245,16 +267,16 @@ export default function SnapshotPage() {
         await refreshViews();
 
         notifications.show({
-          title: 'Records Editability Updated',
-          message: `Records are now ${!isRecordsEditable ? 'editable' : 'locked'} by default`,
+          title: 'Table Protection Updated',
+          message: `Table is now ${!isTableProtected ? 'protected' : 'editable'}`,
           color: 'green',
         });
       } else {
         // No view: create a new view for this table
         const newConfig = {
           [table.id.wsId]: {
-            visible: true,
-            editable: false,
+            hidden: false,
+            protected: true,
           },
         };
         const result = await upsertView({
@@ -263,8 +285,8 @@ export default function SnapshotPage() {
         });
         await refreshViews();
         notifications.show({
-          title: 'Records Editability Updated',
-          message: `Records are now locked by default`,
+          title: 'Table Protection Updated',
+          message: 'Table is now protected',
           color: 'green',
         });
         // Select the newly created view
@@ -272,13 +294,13 @@ export default function SnapshotPage() {
       }
     };
 
-    // If there is no view, default is visible/editable, so menu should offer to make invisible/non-editable
+    // Menu items for Hide/Unhide and Protect/Unprotect
     const menuItems = [
-      <Menu.Item key="visibility" leftSection={isRecordsVisible ? '🚫' : '👁️'} onClick={toggleRecordsVisibility}>
-        {isRecordsVisible ? 'Make Records Hidden by Default' : 'Make Records Visible by Default'}
+      <Menu.Item key="visibility" leftSection={isTableHidden ? '👁️' : '🚫'} onClick={toggleTableVisibility}>
+        {isTableHidden ? 'Unhide Table' : 'Hide Table'}
       </Menu.Item>,
-      <Menu.Item key="editability" leftSection={isRecordsEditable ? '🔒' : '✏️'} onClick={toggleRecordsEditability}>
-        {isRecordsEditable ? 'Make Records Locked by Default' : 'Make Records Editable by Default'}
+      <Menu.Item key="protection" leftSection={isTableProtected ? '✏️' : '🔒'} onClick={toggleTableProtection}>
+        {isTableProtected ? 'Unprotect Table' : 'Protect Table'}
       </Menu.Item>,
     ];
 
@@ -351,7 +373,7 @@ export default function SnapshotPage() {
 
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
           <Stack h="100%" w="100%" flex={1}>
-            <ViewList
+            <ViewData
               snapshotId={id}
               currentViewId={currentViewId}
               onViewChange={setCurrentViewId}
@@ -359,6 +381,10 @@ export default function SnapshotPage() {
               writeFocus={writeFocus}
               onClearReadFocus={() => setReadFocus([])}
               onClearWriteFocus={() => setWriteFocus([])}
+              filterToView={filterToView}
+              onFilterToViewChange={setFilterToView}
+              filteredRecordsCount={filteredRecordsCount}
+              onClearFilter={handleClearFilter}
             />
 
             <Tabs
@@ -387,6 +413,8 @@ export default function SnapshotPage() {
                   setReadFocus(read);
                   setWriteFocus(write);
                 }}
+                filterToView={filterToView}
+                onFilteredRecordsCountChange={setFilteredRecordsCount}
               />
             )}
           </Stack>

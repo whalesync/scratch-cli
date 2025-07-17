@@ -303,5 +303,6 @@ export const useSnapshotRecords = (args: {
     refreshRecords,
     acceptCellValues,
     rejectCellValues,
+    filteredRecordsCount: data?.filteredRecordsCount || 0,
   };
 };

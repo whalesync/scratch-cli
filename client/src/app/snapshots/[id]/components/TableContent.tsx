@@ -11,9 +11,11 @@ interface FocusedCell {
 interface TableContentProps {
   snapshot: Snapshot;
   table: TableSpec;
-  currentViewId?: string | null;
-  onViewCreated?: (viewId: string) => void;
-  onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
+  currentViewId: string | null;
+  onViewCreated: (viewId: string) => void;
+  onFocusedCellsChange: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
+  filterToView: boolean;
+  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 interface ActiveRecord {
@@ -27,6 +29,8 @@ export const TableContent = ({
   currentViewId,
   onViewCreated,
   onFocusedCellsChange,
+  filterToView,
+  onFilteredRecordsCountChange,
 }: TableContentProps) => {
   const [currentView, setCurrentView] = useState<string | null>('spreadsheet');
   const [currentRecord, setCurrentRecord] = useState<ActiveRecord>({ recordId: undefined, columnId: undefined });
@@ -45,6 +49,8 @@ export const TableContent = ({
         onSwitchToRecordView={(recordId: string, columnId?: string) => handleSwitchView('record', recordId, columnId)}
         onViewCreated={onViewCreated}
         onFocusedCellsChange={onFocusedCellsChange}
+        filterToView={filterToView}
+        onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
     );
   } else {

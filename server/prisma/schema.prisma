@@ -89,6 +89,8 @@ model Snapshot {
 
   tableContexts Json[] // SnapshotTableContext[]
 
+  activeRecordFilter Json? // {[tableId: string]: string[]}
+
   @@index([connectorAccountId])
 }
 
@@ -151,19 +153,13 @@ model StyleGuide {
   @@index([userId])
 }
 
-model View {
-  id         String   @id // type: ViewId
-  parentId   String? // FK to another view (for temporary unsaved views)
+model ColumnView {
+  id         String   @id // type: ColumnViewId
   name       String? // Optional name for the view
   snapshotId String
   config     Json // ViewConfig
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // Self-referencing relationship for parent/child views
-  parent   View?  @relation("ViewHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children View[] @relation("ViewHierarchy")
-
   @@index([snapshotId])
-  @@index([parentId])
 }
