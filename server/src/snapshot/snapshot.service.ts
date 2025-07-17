@@ -298,9 +298,9 @@ export class SnapshotService {
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
       data: {
-        id: snapshotId,
         numRecords: filteredOps.length,
         changeType: type,
+        source: type === 'suggested' ? 'agent' : 'user',
       },
     });
 
@@ -772,6 +772,14 @@ export class SnapshotService {
         activeRecordFilter: updatedFilter,
       },
     });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'filter-changed',
+      data: {
+        tableId,
+        source: 'user',
+      },
+    });
   }
 
   async addRecordsToActiveFilter(
@@ -810,6 +818,14 @@ export class SnapshotService {
         activeRecordFilter: updatedFilter,
       },
     });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'filter-changed',
+      data: {
+        tableId,
+        source: 'user',
+      },
+    });
   }
 
   async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, userId: string): Promise<void> {
@@ -832,6 +848,14 @@ export class SnapshotService {
       where: { id: snapshotId },
       data: {
         activeRecordFilter: updatedFilter,
+      },
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'filter-changed',
+      data: {
+        tableId,
+        source: 'user',
       },
     });
   }

@@ -117,7 +117,7 @@ export const useSSE = <T = unknown>({
     // Cleanup function: abort the connection when the component unmounts
     // or when dependencies change.
     return () => {
-      console.log('Closing SSE connection.');
+      console.log('Closing SSE connection on unmount');
       ctrl.abort();
       setIsConnected(false);
     };

@@ -318,10 +318,9 @@ export class SnapshotController {
     const event: SnapshotRecordEvent = {
       type: 'record-changes',
       data: {
-        id: '123',
         numRecords: 1,
         changeType: 'suggested',
-        source: 'test',
+        source: 'agent',
       },
     };
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, event);

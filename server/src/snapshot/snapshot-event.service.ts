@@ -6,18 +6,17 @@ import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-
 export interface SnapshotRecordEvent {
   type: 'record-changes';
   data: {
-    id: string;
     numRecords: number;
     changeType: 'suggested' | 'accepted';
-    source?: string; // where the changes are coming from (e.g. ai-agent, user.)
+    source: 'user' | 'agent';
   };
 }
 
 export interface SnapshotEvent {
-  type: 'snapshot-updated' | 'snapshot-deleted';
+  type: 'snapshot-updated' | 'filter-changed';
   data: {
-    id: string;
-    name: string;
+    tableId?: string;
+    source: 'user' | 'agent';
   };
 }
 

@@ -1,3 +1,4 @@
+import { LoggerService } from '@nestjs/common';
 import { networkInterfaces } from 'os';
 import winston from 'winston';
 
@@ -90,7 +91,7 @@ export class WSLogger {
   /** Only output this and lower. */
   static setOutputLevel(level: LogLevel): void {
     // Don't use the logger to log this!
-    // eslint-disable-next-line no-console
+
     console.log('Setting log level to', level);
     this.logger.level = level;
   }
@@ -114,4 +115,39 @@ function expandedErrorsFormat(): winston.Logform.Format {
     }
     return info;
   })();
+}
+
+export class WSLoggerShim implements LoggerService {
+  log(raw: any, ...optionalParams: any[]): any {
+    WSLogger.info({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+
+  error(raw: any, ...optionalParams: any[]): any {
+    WSLogger.error({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+
+  warn(raw: any, ...optionalParams: any[]): any {
+    WSLogger.warn({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+
+  debug(raw: any, ...optionalParams: any[]): any {
+    WSLogger.debug({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+
+  verbose(raw: any, ...optionalParams: any[]): any {
+    WSLogger.verbose({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+
+  fatal(raw: any, ...optionalParams: any[]): any {
+    WSLogger.error({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
+  }
+}
+
+function pickMessage(raw: any): string {
+  if (typeof raw === 'string') {
+    return raw;
+  } else if (raw instanceof Error) {
+    return raw.message;
+  }
+  return 'unknown';
 }

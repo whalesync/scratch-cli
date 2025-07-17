@@ -6,6 +6,7 @@ import {
   SnapshotRecord,
   SnapshotTableView,
 } from "@/types/server-entities/snapshot";
+import { SnapshotEventPayload, SnapshotRecordEventPayload } from "@/types/server-entities/sse";
 import { EventSourceMessage } from "@microsoft/fetch-event-source";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -44,16 +45,36 @@ export const useSnapshots = (connectorAccountId?: string) => {
 };
 
 export const useSnapshot = (id: string) => {
+  const {user} = useScratchPadUser();
   const { data, error, isLoading, mutate } = useSWR(
     SWR_KEYS.snapshot.detail(id),
     () => snapshotApi.detail(id), 
     {
       revalidateOnFocus: false,
-      refreshInterval: 2000,
     }
   );
 
   const { mutate: globalMutate } = useSWRConfig();
+
+  const handleSSEMessage = useCallback((msg: EventSourceMessage) => {
+    if (msg.event && msg.data) {
+      try{
+        const payload = JSON.parse(msg.data) as SnapshotEventPayload;
+        if (payload.source === 'agent') {
+          mutate();
+        }
+      }catch(err){
+        console.error("Error parsing SSE message", err);
+      }
+    }
+  }, [mutate]);
+
+  useSSE({
+    url: `${API_CONFIG.getApiUrl()}/snapshot/${id}/events`,
+    authToken: user?.apiToken ?? null,
+    authType: 'api-token',  // Should be 'jwt' if using Clerk auth
+    onMessage: handleSSEMessage,
+  });
 
   const publish = useCallback(async () => {
     if (!data) {
@@ -96,7 +117,7 @@ export const useSnapshotViews = (args: {
     snapshotApi.listViews(snapshotId, tableId),
     {
       revalidateOnFocus: false,
-      refreshInterval: 2000,
+      refreshInterval: 10000,
     }
   );
 
@@ -107,14 +128,6 @@ export const useSnapshotViews = (args: {
     refreshViews: mutate,
   };
 };
-
-
-export interface SnapshotRecordSSEMessage {
-    id: string;
-    numRecords: number;
-    changeType: 'suggested' | 'accepted';
-    source?: string; // where the changes are coming from (e.g. ai-agent, user.)
-}
 
 export const useSnapshotRecords = (args: {
   snapshotId: string,
@@ -140,7 +153,7 @@ export const useSnapshotRecords = (args: {
   const handleSSEMessage = useCallback((msg: EventSourceMessage) => {
     if (msg.event === "record-changes" && msg.data) {
       try{
-        const payload = JSON.parse(msg.data) as SnapshotRecordSSEMessage;
+        const payload = JSON.parse(msg.data) as SnapshotRecordEventPayload;
         if (payload.numRecords > 0 && payload.changeType === 'suggested') {
           mutateRecords(undefined, { revalidate: true });
         }

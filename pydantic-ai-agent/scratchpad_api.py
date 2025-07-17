@@ -109,7 +109,8 @@ class ScratchpadApiConfig:
     
     def get_api_headers(self, api_token: str) -> Dict[str, str]:
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            'User-Agent': 'scratchpad-pydantic-ai-agent'
         }
         if api_token:
             headers["Authorization"] = f"API-Token {api_token}"
