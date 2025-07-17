@@ -6,6 +6,7 @@ import { ChatSessionSummary } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
   Alert,
+  Box,
   Group,
   Modal,
   MultiSelect,
@@ -18,7 +19,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
 
@@ -48,6 +49,10 @@ interface AIChatPanelProps {
   currentViewId?: string | null;
 }
 
+interface AgentErrorResponse {
+  detail: string;
+}
+
 const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
 
 export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
@@ -57,6 +62,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
   const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
   const [showModelSelector, setShowModelSelector] = useState(false);
@@ -69,6 +75,15 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const { styleGuides } = useStyleGuides();
   const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
 
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [scrollAreaRef]);
+
   // Load sessions on mount
   useEffect(() => {
     if (isOpen) {
@@ -79,13 +94,10 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+    if (sessionData?.chat_history && sessionData.chat_history.length > 0) {
+      scrollToBottom();
     }
-  }, [sessionData?.chat_history]);
+  }, [sessionData?.chat_history, scrollToBottom]);
 
   useEffect(() => {
     if (resetInputFocus) {
@@ -119,6 +131,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       if (response.ok) {
         const data = (await response.json()) as ChatSession;
         setSessionData(data);
+        scrollToBottom();
       } else {
         setError('Failed to load session');
       }
@@ -203,6 +216,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         ...sessionData,
         chat_history: [...sessionData.chat_history, optimisticMessage],
       });
+      scrollToBottom();
     }
 
     setIsLoading(true);
@@ -266,10 +280,14 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         console.log('Message sent successfully, reloaded session');
       } else {
         setError('Failed to send message');
+        const errorText = (await response.json()) as AgentErrorResponse;
+        setErrorDetails(errorText.detail);
+        console.error('Error from agent server: ', errorText.detail);
       }
     } catch (error) {
-      setError('Failed to send message');
-      console.error('Error sending message:', error);
+      setError('Failed to send agent message');
+      setErrorDetails(error instanceof Error ? error.message : 'Unknown error');
+      console.error('Exception while sending message:', error);
     } finally {
       setIsLoading(false);
       setResetInputFocus(true);
@@ -297,7 +315,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       p="md"
       style={{
         width: '30%',
-        height: '100%',
+        // height: '100%',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',
@@ -320,8 +338,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
 
       {/* Error Alert */}
       {error && (
-        <Alert color="red" mb="md">
-          {error}
+        <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
+          {errorDetails && (
+            <Text size="xs" c="dimmed">
+              {errorDetails}
+            </Text>
+          )}
         </Alert>
       )}
 
@@ -386,7 +408,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       </Text>
 
       {/* Messages */}
-      <ScrollArea flex={1} ref={scrollAreaRef} mb="md">
+      <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
         {currentSessionId ? (
           <Stack gap="xs">
             {sessionData?.chat_history.map((msg, index) => (
@@ -403,9 +425,9 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
                   {msg.role === 'user' ? (
                     <Text size="xs">{msg.message}</Text>
                   ) : (
-                    <Text size="xs">
+                    <Box fz="xs">
                       <MarkdownRenderer>{msg.message}</MarkdownRenderer>
-                    </Text>
+                    </Box>
                   )}
                   <Text size="xs" c="dimmed">
                     {new Date(msg.timestamp).toLocaleTimeString()}
