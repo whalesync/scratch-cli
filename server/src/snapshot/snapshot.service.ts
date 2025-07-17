@@ -13,10 +13,10 @@ import { ConnectorsService } from '../remote-service/connectors/connectors.servi
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
-import { AddActiveRecordFilterDto } from './dto/add-active-record-filter.dto';
+import { AddRecordsToActiveFilterDto } from './dto/add-active-record-filter.dto';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
-import { UpdateActiveRecordFilterDto } from './dto/update-active-record-filter.dto';
+import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
@@ -745,10 +745,10 @@ export class SnapshotService {
     }
   }
 
-  async updateActiveRecordFilter(
+  async setActiveRecordsFilter(
     snapshotId: SnapshotId,
     tableId: string,
-    dto: UpdateActiveRecordFilterDto,
+    dto: SetActiveRecordsFilterDto,
     userId: string,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
@@ -774,10 +774,10 @@ export class SnapshotService {
     });
   }
 
-  async addActiveRecordFilter(
+  async addRecordsToActiveFilter(
     snapshotId: SnapshotId,
     tableId: string,
-    dto: AddActiveRecordFilterDto,
+    dto: AddRecordsToActiveFilterDto,
     userId: string,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);

@@ -33,6 +33,7 @@ import AIChatPanel from '../../components/AIChatPanel';
 
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
+import { useSWRConfig } from 'swr';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
@@ -44,6 +45,7 @@ export default function SnapshotPage() {
 
   const { snapshot, isLoading, publish } = useSnapshot(id);
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
+  const { mutate } = useSWRConfig();
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
@@ -68,6 +70,11 @@ export default function SnapshotPage() {
       });
       // Force immediate update of the filtered count
       setFilteredRecordsCount(0);
+
+      // Invalidate records cache to refresh the data
+      mutate((key) => Array.isArray(key) && key[0] === 'snapshot' && key[1] === 'records' && key[2] === id, undefined, {
+        revalidate: true,
+      });
     } catch (e) {
       const error = e as Error;
       notifications.show({

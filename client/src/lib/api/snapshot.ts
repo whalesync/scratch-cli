@@ -140,13 +140,13 @@ export const snapshotApi = {
     return res.json();
   },
 
-  async updateActiveRecordFilter(
+  async setActiveRecordsFilter(
     snapshotId: string,
     tableId: string,
     recordIds: string[]
   ): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/update-active-record-filter`,
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/set-active-records-filter`,
       {
         method: "POST",
         headers: {
@@ -157,17 +157,17 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to update active record filter");
+      throw new Error(res.statusText ?? "Failed to set active records filter");
     }
   },
 
-  async addActiveRecordFilter(
+  async addRecordsToActiveFilter(
     snapshotId: string,
     tableId: string,
     recordIds: string[]
   ): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/add-active-record-filter`,
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/add-records-to-active-filter`,
       {
         method: "POST",
         headers: {
@@ -178,7 +178,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to add to active record filter");
+      throw new Error(res.statusText ?? "Failed to add records to active filter");
     }
   },
 

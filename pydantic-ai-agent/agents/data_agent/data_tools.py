@@ -38,7 +38,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
         """
         Update existing records in a table in the active snapshot.
         
-        IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the __suggested_values field and require user approval before being applied to the actual record data.
+        IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
         
         Use this tool when the user asks to modify or edit existing records in a table.
         The table_name should be the name of the table you want to update records in.
@@ -53,7 +53,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
         You should first use get_records_tool to see the current records and identify which ones to update
         based on the user's criteria. Then create the update data for each matching record.
         
-        Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the __suggested_values field).
+        Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
         
         """
         try:

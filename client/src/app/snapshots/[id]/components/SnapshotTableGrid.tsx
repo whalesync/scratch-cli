@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatedArrowsClockwise } from '@/app/components/AnimatedArrowsClockwise';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
 import { ColumnSpec, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -48,9 +47,8 @@ import {
   SlidersIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSnapshot, useSnapshotRecords } from '../../../../hooks/use-snapshot';
+import { useSnapshotRecords } from '../../../../hooks/use-snapshot';
 import { useUpsertView, useViews } from '../../../../hooks/use-view';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 
@@ -143,7 +141,6 @@ const SnapshotTableGrid = ({
     col: number;
   } | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
-  const [activeProcess, setActiveProcess] = useState<'create-view' | 'clear-view' | undefined>();
 
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
   const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
@@ -151,8 +148,6 @@ const SnapshotTableGrid = ({
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'focusedCellsDebug']);
 
   const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
-
-  const { refreshSnapshot } = useSnapshot(snapshot.id);
 
   const { views, refreshViews } = useViews(snapshot.id);
 
@@ -1054,7 +1049,7 @@ const SnapshotTableGrid = ({
         }
 
         try {
-          await snapshotApi.addActiveRecordFilter(snapshot.id, table.id.wsId, selectedRecordIds);
+          await snapshotApi.addRecordsToActiveFilter(snapshot.id, table.id.wsId, selectedRecordIds);
           notifications.show({
             title: 'Filter Updated',
             message: `Added ${selectedRecordIds.length} record(s) to active filter`,
@@ -2128,83 +2123,8 @@ const SnapshotTableGrid = ({
             }}
             data-grid-container // Add this attribute to the grid container
           />
-          <Group w="100%" p="xs" bg="gray.0">
-            {isLoading ? (
-              <AnimatedArrowsClockwise size={24} />
-            ) : currentSelection && getSelectedRowCount(currentSelection) > 0 ? (
-              <Text size="sm" fs="italic">
-                {getSelectedRowCount(currentSelection)} {pluralize('record', getSelectedRowCount(currentSelection))}{' '}
-                selected
-              </Text>
-            ) : (
-              <Text size="sm">
-                {sortedRecords?.length ?? 0} {pluralize('record', sortedRecords?.length ?? 0)}
-              </Text>
-            )}
-
-            <Tooltip label="Select one or more records to create a view">
-              <Button
-                variant="outline"
-                loading={activeProcess === 'create-view'}
-                disabled={getSelectedRowCount(currentSelection) === 0}
-                onClick={async () => {
-                  const { records } = getGetSelectedRecordsAndColumns();
-                  try {
-                    setActiveProcess('create-view');
-                    await snapshotApi.activateView(snapshot.id, table.id.wsId, {
-                      name: 'Selected Records',
-                      source: 'ui',
-                      recordIds: records.map((r) => r.id.wsId),
-                    });
-                    await refreshViews();
-                    setCurrentSelection(undefined);
-                  } catch (e) {
-                    const error = e as Error;
-                    notifications.show({
-                      title: 'Error activating view',
-                      message: error.message,
-                      color: 'red',
-                    });
-                  } finally {
-                    setActiveProcess(undefined);
-                  }
-                }}
-              >
-                Create view
-              </Button>
-            </Tooltip>
-
-            <Button
-              variant="outline"
-              disabled={!activeView}
-              loading={activeProcess === 'clear-view'}
-              onClick={async () => {
-                try {
-                  setActiveProcess('clear-view');
-                  await snapshotApi.clearActiveView(snapshot.id, table.id.wsId);
-                  await refreshViews();
-                  await refreshSnapshot();
-                } catch (e) {
-                  const error = e as Error;
-                  notifications.show({
-                    title: 'Error clearing view',
-                    message: error.message,
-                    color: 'red',
-                  });
-                } finally {
-                  setActiveProcess(undefined);
-                }
-              }}
-            >
-              Clear view
-            </Button>
-
-            <Text size="xs" c="dimmed" style={{ fontStyle: 'italic' }}>
-              Tip: Select cells and press Shift+R to toggle read focus (blue), Shift+W to toggle write focus (orange),
-              Shift+C to clear all.
-            </Text>
-
-            <Group gap="xs" ml="auto" p={0}>
+          <Group w="100%" p="xs" bg="gray.0" justify="flex-end">
+            <Group gap="xs" p={0}>
               <Tooltip label="View JSON data">
                 <ActionIcon
                   onClick={() => modalStack.open('tableSpecDebug')}

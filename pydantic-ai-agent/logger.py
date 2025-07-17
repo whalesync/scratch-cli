@@ -19,7 +19,11 @@ def initialize_logger() -> None:
     if logfire_token:
         try:
             import logfire as logfire_module
-            logfire_module.configure(token=logfire_token, service_name="pydantic-ai-chat-server")
+            logfire_module.configure(
+                token=logfire_token, 
+                service_name="pydantic-ai-chat-server",
+                scrubbing=False  # Disable scrubbing to see full data including auth tokens
+            )
             _logger = logfire_module
             _logfire_available = True
             

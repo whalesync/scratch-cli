@@ -213,6 +213,9 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
         You should first use get_records_tool to see all the records in the table and identify which ones to filter.
         Then extract the wsId values from the records you want to filter out to use as the record_ids.
 
+        IMPORTANT: Only call this tool ONCE per table per conversation. Collect all records you want to filter 
+        and add them in a single call rather than making multiple calls for the same table.
+
         Do not use this tool if there are no records to filter.
 
         You must connect to a snapshot first using connect_snapshot_tool.
@@ -241,11 +244,11 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
             if not record_ids:
                 return "Error: No record IDs provided. Please provide a list of record IDs to add to the filter."
             
-            # Import the add_active_record_filter function
-            from scratchpad_api import add_active_record_filter
+            # Import the add_records_to_active_filter function
+            from scratchpad_api import add_records_to_active_filter
 
-            # Call the add_active_record_filter API
-            add_active_record_filter(
+            # Call the add_records_to_active_filter API
+            add_records_to_active_filter(
                 chatRunContext.session.snapshot_id,
                 table.id.wsId,
                 record_ids,
@@ -262,8 +265,8 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
             print(f"❌ {error_msg}")
             return error_msg
 
-    @agent.tool
-    async def clear_record_filter_tool(ctx: RunContext[ChatRunContext], table_name: str) -> str:  # type: ignore
+    # @agent.tool
+    # async def clear_record_filter_tool(ctx: RunContext[ChatRunContext], table_name: str) -> str:  # type: ignore
         """
         Clear the active record filter for a table in the current snapshot.
         

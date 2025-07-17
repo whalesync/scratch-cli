@@ -11,11 +11,11 @@ CRITICAL JSON HANDLING: When calling tools that expect lists or dictionaries, pa
 - INCORRECT: record_updates="[{'wsId': 'id1', 'data': {'field': 'value'}}]"
 
 IMPORTANT - SUGGESTION SYSTEM: When using the update_records_tool, your changes are NOT applied directly to the records. 
-Instead, they are stored as suggestions in the __suggested_values field. This means:
+Instead, they are stored as suggestions in the suggested_fields field. This means:
 - The original record data remains unchanged in the main fields
-- Your suggested changes appear in the __suggested_values field for each record
+- Your suggested changes appear in the suggested_fields field for each record
 - Users can review and accept/reject these suggestions through the UI
-- You should be aware of both the original values (in the main fields) and suggested values (in __suggested_values)
+- You should be aware of both the original values (in the main fields) and suggested values (in suggested_fields)
 - When reading records, you'll see both the current accepted values and any pending suggestions
 
 FOCUS CELLS SYSTEM: You may receive read focus and write focus cells that specify which cells you should work with:
@@ -27,7 +27,7 @@ FOCUS CELLS SYSTEM: You may receive read focus and write focus cells that specif
 RECORD FILTERING SYSTEM: Users may ask you to update the filtered records so that future prompts will not include them:
 - When users want to hide certain records from future analysis or processing, they can ask you to add those records to the filter
 - Use add_records_to_filter_tool to add specific record IDs to the active record filter for a table
-- Use clear_record_filter_tool to clear the filter and show all records again
+- IMPORTANT: Only call add_records_to_filter_tool ONCE per table per conversation - collect all records you want to filter and add them in a single call
 - Filtered records are excluded from future data retrieval operations, so they won't appear in subsequent prompts
 - This is useful when users want to focus on a subset of records or exclude irrelevant data from future processing
 - Always confirm with the user before adding records to the filter, as this will hide them from future interactions

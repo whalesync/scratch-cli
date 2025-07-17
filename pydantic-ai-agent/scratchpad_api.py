@@ -345,15 +345,26 @@ class SnapshotApi:
             raise ScratchpadApiError(f"Failed to clear active view: {response.status_code} - {response.text}")
 
     @staticmethod
-    def add_active_record_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+    def add_records_to_active_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
         """Add records to the active record filter for a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-active-record-filter"
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-records-to-active-filter"
         payload = {
             "recordIds": record_ids
         }
         response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload)
         if not response.ok:
-            raise ScratchpadApiError(f"Failed to add active record filter: {response.status_code} - {response.text}")
+            raise ScratchpadApiError(f"Failed to add records to active filter: {response.status_code} - {response.text}")
+
+    @staticmethod
+    def set_active_records_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+        """Set the active records filter for a table (replaces existing filter)"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/set-active-records-filter"
+        payload = {
+            "recordIds": record_ids
+        }
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload)
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to set active records filter: {response.status_code} - {response.text}")
 
     @staticmethod
     def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
@@ -422,9 +433,13 @@ def clear_active_view(snapshot_id: str, table_id: str, api_token: str) -> None:
     """Clear the active view for a table in a snapshot (revert to default view)"""
     SnapshotApi.clear_active_view(snapshot_id, table_id, api_token)
 
-def add_active_record_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+def add_records_to_active_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
     """Add records to the active record filter for a table"""
-    SnapshotApi.add_active_record_filter(snapshot_id, table_id, record_ids, api_token)
+    SnapshotApi.add_records_to_active_filter(snapshot_id, table_id, record_ids, api_token)
+
+def set_active_records_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
+    """Set the active records filter for a table (replaces existing filter)"""
+    SnapshotApi.set_active_records_filter(snapshot_id, table_id, record_ids, api_token)
 
 def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
     """Clear the active record filter for a table"""

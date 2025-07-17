@@ -1,6 +1,6 @@
 import { IsArray, IsString } from 'class-validator';
 
-export class AddActiveRecordFilterDto {
+export class AddRecordsToActiveFilterDto {
   @IsArray()
   @IsString({ each: true })
   recordIds: string[];
