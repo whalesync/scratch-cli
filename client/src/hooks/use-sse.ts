@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 interface UseSSEOptions {
   url: string;
   authToken: string | null;
+  authType: 'api-token' | 'jwt';
   // Let's add optional callbacks for more control
   onOpen?: () => void;
   onMessage?: (event: EventSourceMessage) => void;
@@ -31,6 +32,7 @@ interface SSEReturn<T> {
 export const useSSE = <T = unknown>({
   url,
   authToken,
+  authType,
   onOpen,
   onMessage,
   onError,
@@ -53,7 +55,7 @@ export const useSSE = <T = unknown>({
       try {
         await fetchEventSource(url, {
           headers: {
-            'Authorization': `Bearer ${authToken}`,
+            'Authorization': authType === 'api-token' ? `API-Token ${authToken}` : `Bearer ${authToken}`,
             'Accept': 'text/event-stream',
           },
           signal: ctrl.signal,
@@ -75,7 +77,7 @@ export const useSSE = <T = unknown>({
           },
 
           onmessage: (ev: EventSourceMessage) => {
-            console.log(`Received event: ${ev.event}, data: ${ev.data}`);
+            console.log(`SSE message: ${ev.event}, data: ${ev.data}`);
             try {
               const parsedData = JSON.parse(ev.data) as T;
               setData(parsedData);

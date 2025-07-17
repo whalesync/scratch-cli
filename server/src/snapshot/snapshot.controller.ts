@@ -279,10 +279,12 @@ export class SnapshotController {
       throw new NotFoundException('Snapshot not found');
     }
     const event: SnapshotRecordEvent = {
-      type: 'record-created',
+      type: 'record-changes',
       data: {
         id: '123',
-        name: 'Test Record',
+        numRecords: 1,
+        changeType: 'suggested',
+        source: 'test',
       },
     };
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, event);

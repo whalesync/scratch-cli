@@ -4,11 +4,12 @@ import { Observable, Subject } from 'rxjs';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 
 export interface SnapshotRecordEvent {
-  type: 'record-created' | 'record-updated' | 'record-deleted';
+  type: 'record-changes';
   data: {
     id: string;
-    name: string;
-    source?: string;
+    numRecords: number;
+    changeType: 'suggested' | 'accepted';
+    source?: string; // where the changes are coming from (e.g. ai-agent, user.)
   };
 }
 

@@ -1,3 +1,4 @@
+import { API_CONFIG } from "@/lib/api/config";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {
@@ -5,12 +6,15 @@ import {
   SnapshotRecord,
   SnapshotTableView,
 } from "@/types/server-entities/snapshot";
+import { EventSourceMessage } from "@microsoft/fetch-event-source";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../types/server-entities/records";
+import { useSSE } from "./use-sse";
+import { useScratchPadUser } from "./useScratchpadUser";
 
 export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
@@ -104,6 +108,14 @@ export const useSnapshotViews = (args: {
   };
 };
 
+
+export interface SnapshotRecordSSEMessage {
+    id: string;
+    numRecords: number;
+    changeType: 'suggested' | 'accepted';
+    source?: string; // where the changes are coming from (e.g. ai-agent, user.)
+}
+
 export const useSnapshotRecords = (args: {
   snapshotId: string,
   tableId: string,
@@ -112,27 +124,38 @@ export const useSnapshotRecords = (args: {
   activeView?: SnapshotTableView,
   viewId?: string
 }) => {
+  const {user} = useScratchPadUser();
   const { snapshotId, tableId, cursor, take, activeView, viewId } = args;
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
 
   const { mutate } = useSWRConfig();
-  const { data, error, isLoading } = useSWR(swrKey, () =>
+  const { data, error, isLoading, mutate: mutateRecords } = useSWR(swrKey, () =>
     snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
     {
       revalidateOnFocus: false,
-      refreshInterval: 2000,
+
     }
   );
 
-  // const handleSSEMessage = useCallback((data: unknown) => {
-  //   console.log("SSE record event!", data);
-  // }, []);
+  const handleSSEMessage = useCallback((msg: EventSourceMessage) => {
+    if (msg.event === "record-changes" && msg.data) {
+      try{
+        const payload = JSON.parse(msg.data) as SnapshotRecordSSEMessage;
+        if (payload.numRecords > 0 && payload.changeType === 'suggested') {
+          mutateRecords(undefined, { revalidate: true });
+        }
+      }catch(err){
+        console.error("Error parsing SSE message", err);
+      }
+    }
+  }, [mutateRecords]);
   
-  // useSSE({
-  //   url: `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/events`,
-  //   authToken: API_CONFIG.getAuthToken(),
-  //   onMessage: handleSSEMessage,
-  // });
+  useSSE({
+    url: `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/events`,
+    authToken: user?.apiToken ?? null,
+    authType: 'api-token',  // Should be 'jwt' if using Clerk auth
+    onMessage: handleSSEMessage,
+  });
 
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);

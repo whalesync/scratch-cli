@@ -215,7 +215,7 @@ const SnapshotTableGrid = ({
 
   const isActionsColumn = useCallback(
     (col: number) => {
-      return col === table.columns.length + 1;
+      return col === table.columns.length + 2;
     },
     [table.columns],
   );
