@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -17,6 +14,7 @@ import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
+import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotTableContext } from './types';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
@@ -27,6 +25,7 @@ export class SnapshotService {
     private readonly db: DbService,
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly snapshotEventService: SnapshotEventService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {

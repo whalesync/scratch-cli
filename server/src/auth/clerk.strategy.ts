@@ -1,12 +1,13 @@
 import { ClerkClient, verifyToken } from '@clerk/backend';
+import { TokenVerificationError } from '@clerk/backend/errors';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { User } from '@prisma/client';
 import { Request } from 'express';
 import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
+import { AuthenticatedUser } from './types';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
@@ -19,7 +20,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     super();
   }
 
-  async validate(req: Request): Promise<User> {
+  async validate(req: Request): Promise<AuthenticatedUser> {
     const parts = req.headers.authorization?.split(' ');
 
     const tokenPrefix = parts?.[0];
@@ -47,13 +48,28 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         throw new UnauthorizedException('No Scratchpad user found');
       }
 
-      return user;
+      return {
+        ...user,
+        authType: 'jwt',
+        authSource: 'user',
+        clerkUser,
+      };
     } catch (error) {
-      WSLogger.error({
-        source: 'ClerkStrategy',
-        message: 'Invalid JWT token',
-        error,
-      });
+      if (error instanceof TokenVerificationError) {
+        WSLogger.error({
+          source: 'ClerkStrategy',
+          message: 'JWT token failed to verify',
+          reason: error.reason,
+          action: error.action,
+        });
+      } else {
+        WSLogger.error({
+          source: 'ClerkStrategy',
+          message: 'JWT token validation error',
+          error,
+        });
+      }
+
       throw new UnauthorizedException('Invalid JWT token');
     }
   }

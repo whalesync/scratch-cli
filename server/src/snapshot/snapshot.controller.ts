@@ -4,15 +4,19 @@ import {
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
   Req,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { WSLogger } from 'src/logger';
+import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
@@ -24,11 +28,15 @@ import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { Snapshot, SnapshotTableView } from './entities/snapshot.entity';
+import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
 
 @Controller('snapshot')
 export class SnapshotController {
-  constructor(private readonly service: SnapshotService) {}
+  constructor(
+    private readonly service: SnapshotService,
+    private readonly snapshotEventService: SnapshotEventService,
+  ) {}
 
   @UseGuards(ScratchpadAuthGuard)
   @Post()
@@ -224,5 +232,72 @@ export class SnapshotController {
   ): Promise<SnapshotTableView> {
     const view = await this.service.getView(snapshotId, tableId, viewId, req.user.id);
     return new SnapshotTableView(view);
+  }
+
+  /**
+   * SSE endpoint to stream record changes for a snapshot table.
+   * GET /snapshot/:id/tables/:tableId/records/events
+   */
+  @UseGuards(ScratchpadAuthGuard)
+  @Sse(':id/tables/:tableId/records/events')
+  async subscribeRecordEvents(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Observable<SnapshotRecordEvent>> {
+    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    return this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
+  }
+
+  /**
+   * SSE endpoint to stream record changes for a snapshot table.
+   * GET /snapshot/:id/tables/:tableId/records/events
+   */
+  @UseGuards(ScratchpadAuthGuard)
+  @Sse(':id/events')
+  async subscribeSnapshotEvents(
+    @Param('id') snapshotId: SnapshotId,
+    @Req() req: RequestWithUser,
+  ): Promise<Observable<SnapshotEvent>> {
+    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    return this.snapshotEventService.getSnapshotEvents(snapshot);
+  }
+
+  // TODO: move this endpoint to some kind of debug controller.
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/events/test')
+  async sendTestRecordEvent(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<string> {
+    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+    const event: SnapshotRecordEvent = {
+      type: 'record-created',
+      data: {
+        id: '123',
+        name: 'Test Record',
+      },
+    };
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, event);
+    return 'event sent at ' + new Date().toISOString();
   }
 }

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { User } from '@prisma/client';
 import { HeaderAPIKeyStrategy } from 'passport-headerapikey';
 
 import { UsersService } from 'src/users/users.service';
+import { AuthenticatedUser } from './types';
 
 /**
  * This strategy inspects the request for a Whalesync API Token and validates it against the database.
@@ -20,8 +20,17 @@ export class APITokenStrategy extends PassportStrategy(HeaderAPIKeyStrategy, 'AP
     );
   }
 
-  async validate(token: string): Promise<User | null> {
+  async validate(token: string): Promise<AuthenticatedUser | null> {
     const user = await this.userService.getUserFromAPIToken(token);
-    return user;
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      ...user,
+      authType: 'api-token',
+      authSource: 'agent',
+    };
   }
 }

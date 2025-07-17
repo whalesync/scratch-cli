@@ -1,16 +1,16 @@
-import useSWR, { useSWRConfig } from "swr";
-import { snapshotApi } from "@/lib/api/snapshot";
 import { SWR_KEYS } from "@/lib/api/keys";
+import { snapshotApi } from "@/lib/api/snapshot";
 import {
   CreateSnapshotDto,
   SnapshotRecord,
   SnapshotTableView,
 } from "@/types/server-entities/snapshot";
+import { useCallback, useMemo } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../types/server-entities/records";
-import { useCallback, useMemo } from "react";
 
 export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
@@ -123,7 +123,17 @@ export const useSnapshotRecords = (args: {
       refreshInterval: 2000,
     }
   );
+
+  // const handleSSEMessage = useCallback((data: unknown) => {
+  //   console.log("SSE record event!", data);
+  // }, []);
   
+  // useSSE({
+  //   url: `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/events`,
+  //   authToken: API_CONFIG.getAuthToken(),
+  //   onMessage: handleSSEMessage,
+  // });
+
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);
   }, [mutate, swrKey]);
