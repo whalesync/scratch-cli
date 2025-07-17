@@ -42,11 +42,18 @@ interface ChatSession {
   snapshot_id?: string;
 }
 
+interface FocusedCell {
+  recordWsId: string;
+  columnWsId: string;
+}
+
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   snapshotId?: string;
   currentViewId?: string | null;
+  readFocus?: FocusedCell[];
+  writeFocus?: FocusedCell[];
 }
 
 interface AgentErrorResponse {
@@ -55,7 +62,14 @@ interface AgentErrorResponse {
 
 const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
 
-export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
+export default function AIChatPanel({
+  isOpen,
+  onClose,
+  snapshotId,
+  currentViewId,
+  readFocus,
+  writeFocus,
+}: AIChatPanelProps) {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -240,6 +254,8 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         style_guides?: string[];
         model?: string;
         view_id?: string;
+        read_focus?: FocusedCell[];
+        write_focus?: FocusedCell[];
       } = {
         message: message.trim(),
         model: selectedModel,
@@ -262,6 +278,17 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       // Include view ID if available
       if (currentViewId) {
         messageData.view_id = currentViewId;
+      }
+
+      // Include focused cells if available
+      if (readFocus && readFocus.length > 0) {
+        messageData.read_focus = readFocus;
+        console.log('Including read focus:', readFocus.length, 'cells');
+      }
+
+      if (writeFocus && writeFocus.length > 0) {
+        messageData.write_focus = writeFocus;
+        console.log('Including write focus:', writeFocus.length, 'cells');
       }
 
       const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
@@ -517,6 +544,26 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
               }}
             />
           </Group>
+          <ActionIcon
+            onClick={() => {
+              setMessage('update');
+              // Trigger send after setting the message
+              setTimeout(() => {
+                if (currentSessionId && !isLoading) {
+                  sendMessage();
+                }
+              }, 0);
+            }}
+            disabled={isLoading || !currentSessionId}
+            size="sm"
+            variant="light"
+            color="blue"
+            title="Send 'update' message"
+          >
+            <Text size="xs" fw={500}>
+              update
+            </Text>
+          </ActionIcon>
           <ActionIcon
             onClick={sendMessage}
             disabled={!message.trim() || isLoading || !currentSessionId}

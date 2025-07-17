@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any
 from fastapi import HTTPException
 from pydantic_ai.usage import UsageLimits
 
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, FocusedCell
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
@@ -48,7 +48,9 @@ class ChatService:
         api_token: str,
         style_guides: Optional[List[str]] = None,
         model: Optional[str] = None,
-        view_id: Optional[str] = None
+        view_id: Optional[str] = None,
+        read_focus: Optional[List[FocusedCell]] = None,
+        write_focus: Optional[List[FocusedCell]] = None
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -173,7 +175,9 @@ class ChatService:
                     api_token=api_token,
                     view_id=view_id,
                     snapshot=snapshot,
-                    preloaded_records=preloaded_records
+                    read_focus=read_focus,
+                    write_focus=write_focus,
+                    preloaded_records=preloaded_records,
                 )
 
                 # Add pre-loaded snapshot data and records to the prompt
@@ -210,6 +214,24 @@ class ChatService:
                     
                     # Update the full prompt with snapshot data
                     full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
+
+                    # Add focus cells information to the prompt if they exist
+                    if read_focus or write_focus:
+                        focus_context = "\n\nFOCUS CELLS:\n"
+                        
+                        if read_focus:
+                            focus_context += "Read Focus Cells:\n"
+                            for cell in read_focus:
+                                focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+                            focus_context += "\n"
+                        
+                        if write_focus:
+                            focus_context += "Write Focus Cells:\n"
+                            for cell in write_focus:
+                                focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+                            focus_context += "\n"
+                        
+                        full_prompt += focus_context
 
                 agent = create_agent(model_name=model)
                 result = await asyncio.wait_for(agent.run(

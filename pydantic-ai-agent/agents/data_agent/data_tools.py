@@ -55,8 +55,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
         
         Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the __suggested_values field).
         
-        You must connect to a snapshot first using connect_snapshot_tool.
-        However if snapshot data has already been connected, you can skip this step.
         """
         try:
             # Extract data from input
@@ -285,12 +283,35 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent]):
                     view_id=chatRunContext.view_id,
                     snapshot_id=chatRunContext.session.snapshot_id)
             
-            # Get records from the server using the table ID and view ID if available
+            # Import the list_records_for_ai function
+            from scratchpad_api import list_records_for_ai
+            
+            # Get focus arrays from the context
+            read_focus = chatRunContext.read_focus
+            write_focus = chatRunContext.write_focus
+            
+            # Get records from the server using the AI endpoint
             if chatRunContext.view_id:
                 print(f"👁️ Using view ID: {chatRunContext.view_id}")
             else:
                 print(f"ℹ️ No view ID provided, getting all records")
-            result = list_records(chatRunContext.session.snapshot_id, table.id.wsId, chatRunContext.api_token, take=limit, view_id=chatRunContext.view_id)
+            
+            print(f"🔍 Using AI endpoint with read_focus: {len(read_focus) if read_focus else 0}, write_focus: {len(write_focus) if write_focus else 0}")
+            
+            # Convert FocusedCell objects to dictionaries
+            read_focus_dict = [{"recordWsId": cell.recordWsId, "columnWsId": cell.columnWsId} for cell in read_focus] if read_focus else None
+            write_focus_dict = [{"recordWsId": cell.recordWsId, "columnWsId": cell.columnWsId} for cell in write_focus] if write_focus else None
+            
+            result = list_records_for_ai(
+                snapshot_id=chatRunContext.session.snapshot_id,
+                table_id=table.id.wsId,
+                api_token=chatRunContext.api_token,
+                cursor=None,
+                take=limit,
+                view_id=chatRunContext.view_id,
+                read_focus=read_focus_dict,
+                write_focus=write_focus_dict
+            )
             
             # Log the records to console
             print(f"📊 Records for table '{table_name}' (ID: {table.id.wsId}, limit: {limit}):")

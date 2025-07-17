@@ -225,6 +225,57 @@ class SnapshotApi:
         )
         print(f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}")
         return result
+
+    @staticmethod
+    def list_records_for_ai(snapshot_id: str, table_id: str, api_token: str, cursor: Optional[str] = None, take: Optional[int] = None, view_id: Optional[str] = None, read_focus: Optional[List[Dict[str, str]]] = None, write_focus: Optional[List[Dict[str, str]]] = None) -> ListRecordsResponse:
+        """List records for a table in a snapshot with focus arrays for AI processing"""
+        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/active-view"
+        params = {}
+        if cursor:
+            params["cursor"] = cursor
+        if take:
+            params["take"] = str(take)
+        if view_id:
+            params["viewId"] = view_id
+        
+        # Prepare request body with focus arrays
+        body = {}
+        if read_focus:
+            body["readFocus"] = read_focus
+        if write_focus:
+            body["writeFocus"] = write_focus
+        
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), params=params, json=body)
+        data = _handle_response(response, "Failed to list records for AI")
+        
+        print(f"🔍 DEBUG: Raw server response has {len(data.get('records', []))} records")
+        
+        # Convert raw record dictionaries to SnapshotRecord objects
+        records = []
+        for i, record_dict in enumerate(data.get("records", [])):
+            print(f"🔍 DEBUG: Converting record {i}: {type(record_dict)}")
+            
+            record_id = RecordId(
+                wsId=record_dict["id"]["wsId"],
+                remoteId=record_dict["id"]["remoteId"]
+            )
+            
+            snapshot_record = SnapshotRecord(
+                id=record_id,
+                fields=record_dict.get("fields", {}),
+                edited_fields=record_dict.get("__edited_fields"),
+                suggested_fields=record_dict.get("__suggested_values"),  # Note: server uses __suggested_values
+                dirty=record_dict.get("__dirty", False)
+            )
+            print(f"🔍 DEBUG: Created SnapshotRecord: {type(snapshot_record)}")
+            records.append(snapshot_record)
+        
+        result = ListRecordsResponse(
+            records=records,
+            nextCursor=data.get("nextCursor")
+        )
+        print(f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}")
+        return result
     
     @staticmethod
     def bulk_update_records(snapshot_id: str, table_id: str, dto: BulkUpdateRecordsDto, api_token: str, view_id: Optional[str] = None) -> None:
@@ -319,6 +370,10 @@ def delete_snapshot(snapshot_id: str, api_token: str) -> None:
 def list_records(snapshot_id: str, table_id: str, api_token: str, cursor: Optional[str] = None, take: Optional[int] = None, view_id: Optional[str] = None) -> ListRecordsResponse:
     """List records for a table in a snapshot"""
     return SnapshotApi.list_records(snapshot_id, table_id, api_token, cursor, take, view_id)
+
+def list_records_for_ai(snapshot_id: str, table_id: str, api_token: str, cursor: Optional[str] = None, take: Optional[int] = None, view_id: Optional[str] = None, read_focus: Optional[List[Dict[str, str]]] = None, write_focus: Optional[List[Dict[str, str]]] = None) -> ListRecordsResponse:
+    """List records for a table in a snapshot with focus arrays for AI processing"""
+    return SnapshotApi.list_records_for_ai(snapshot_id, table_id, api_token, cursor, take, view_id, read_focus, write_focus)
 
 def bulk_update_records(snapshot_id: str, table_id: str, operations: List[RecordOperation], api_token: str, view_id: Optional[str] = None) -> None:
     """Bulk update records in a table"""

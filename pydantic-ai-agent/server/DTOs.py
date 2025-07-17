@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from session import ChatSession
-
+from agents.data_agent.models import FocusedCell
 
 class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
@@ -11,6 +11,8 @@ class SendMessageRequestDTO(BaseModel):
     style_guides: Optional[List[str]] = Field(default=None, description="List of style guide content to include in the prompt")
     model: Optional[str] = Field(default="openai/gpt-4o-mini", description="Model to use for AI generation")
     view_id: Optional[str] = Field(default=None, description="ID of the currently selected view")
+    read_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of read-focused cells")
+    write_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of write-focused cells")
 
 class SendMessageResponseDTO(BaseModel):
     """Response from sending a message"""

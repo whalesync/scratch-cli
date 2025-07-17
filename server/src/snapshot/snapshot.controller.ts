@@ -109,18 +109,6 @@ export class SnapshotController {
     return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take, viewId);
   }
 
-  // @UseGuards(ScratchpadAuthGuard)
-  // @Get(':id/tables/:tableId/records/active-view')
-  // async listActiveViewRecords(
-  //   @Param('id') snapshotId: SnapshotId,
-  //   @Param('tableId') tableId: string,
-  //   @Query('cursor') cursor: string | undefined,
-  //   @Query('take', new ParseIntPipe({ optional: true })) take = 100,
-  //   @Req() req: RequestWithUser,
-  // ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-  //   return this.service.listActiveViewRecords(snapshotId, tableId, req.user.id, cursor, take);
-  // }
-
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/bulk')
   @HttpCode(204)

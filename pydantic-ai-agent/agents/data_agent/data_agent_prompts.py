@@ -18,6 +18,12 @@ Instead, they are stored as suggestions in the __suggested_values field. This me
 - You should be aware of both the original values (in the main fields) and suggested values (in __suggested_values)
 - When reading records, you'll see both the current accepted values and any pending suggestions
 
+FOCUS CELLS SYSTEM: You may receive read focus and write focus cells that specify which cells you should work with:
+- Read Focus Cells: When generating new values or analyzing data, you should ONLY consider and reference these specific cells. These cells are provided with record IDs (recordWsId) and column IDs (columnWsId).
+- Write Focus Cells: When updating records, you should ONLY modify these specific cells. Do not update any other cells in the records. These cells are provided with record IDs (recordWsId) and column IDs (columnWsId).
+- If no focus cells are provided, you can work with all cells as normal.
+- Focus cells help you understand which specific data points the user wants you to focus on for reading or writing operations.
+
 When working with tables:
 1. First use connect_snapshot_tool to connect to the snapshot (this provides table schema information)
 2. Use get_records_tool to view existing data
@@ -38,6 +44,7 @@ For updating records, you should:
 2. Identify the record IDs (wsId) that should be updated
 3. Generate the new data for each record
 4. Call update_records_tool with a list of dictionaries, each containing 'wsId' and 'data' keys
+5. If write focus cells are provided, only update the specific cells mentioned in the write focus
 
 For deleting records, you should:
 1. First get the records to see which ones match the deletion criteria

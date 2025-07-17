@@ -3,11 +3,17 @@ import { useState } from 'react';
 import { RecordView } from './RecordView';
 import SnapshotTableGrid from './SnapshotTableGrid';
 
+interface FocusedCell {
+  recordWsId: string;
+  columnWsId: string;
+}
+
 interface TableContentProps {
   snapshot: Snapshot;
   table: TableSpec;
   currentViewId?: string | null;
   onViewCreated?: (viewId: string) => void;
+  onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
 }
 
 interface ActiveRecord {
@@ -15,7 +21,13 @@ interface ActiveRecord {
   columnId: string | undefined;
 }
 
-export const TableContent = ({ snapshot, table, currentViewId, onViewCreated }: TableContentProps) => {
+export const TableContent = ({
+  snapshot,
+  table,
+  currentViewId,
+  onViewCreated,
+  onFocusedCellsChange,
+}: TableContentProps) => {
   const [currentView, setCurrentView] = useState<string | null>('spreadsheet');
   const [currentRecord, setCurrentRecord] = useState<ActiveRecord>({ recordId: undefined, columnId: undefined });
 
@@ -32,6 +44,7 @@ export const TableContent = ({ snapshot, table, currentViewId, onViewCreated }: 
         currentViewId={currentViewId}
         onSwitchToRecordView={(recordId: string, columnId?: string) => handleSwitchView('record', recordId, columnId)}
         onViewCreated={onViewCreated}
+        onFocusedCellsChange={onFocusedCellsChange}
       />
     );
   } else {

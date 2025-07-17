@@ -194,6 +194,54 @@ export class SnapshotService {
     };
   }
 
+  async listRecordsForAi(
+    snapshotId: SnapshotId,
+    tableId: string,
+    userId: string,
+    cursor: string | undefined,
+    take: number,
+    viewId: string | undefined,
+    readFocus?: Array<{ recordWsId: string; columnWsId: string }>,
+    writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    let viewConfig: ViewConfig | undefined = undefined;
+
+    if (viewId) {
+      const view = await this.db.client.view.findUnique({
+        where: { id: viewId },
+      });
+      if (view) {
+        viewConfig = view.config as ViewConfig;
+      }
+    }
+
+    const records = await this.snapshotDbService.listRecords(
+      snapshotId,
+      tableId,
+      cursor,
+      take + 1,
+      viewConfig,
+      tableSpec,
+    );
+
+    let nextCursor: string | undefined;
+    if (records.length === take + 1) {
+      const nextRecord = records.pop();
+      nextCursor = nextRecord!.id.wsId;
+    }
+
+    return {
+      records,
+      nextCursor,
+    };
+  }
+
   /**
    * List records for the active view of a table. If there is no active view, it will return records from the entire table.
    */

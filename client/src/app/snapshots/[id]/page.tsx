@@ -51,6 +51,8 @@ export default function SnapshotPage() {
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
 
   const [showChat, setShowChat] = useState(true);
+  const [readFocus, setReadFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
+  const [writeFocus, setWriteFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
 
   useEffect(() => {
     if (!selectedTableId) {
@@ -349,7 +351,15 @@ export default function SnapshotPage() {
 
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
           <Stack h="100%" w="100%" flex={1}>
-            <ViewList snapshotId={id} currentViewId={currentViewId} onViewChange={setCurrentViewId} />
+            <ViewList
+              snapshotId={id}
+              currentViewId={currentViewId}
+              onViewChange={setCurrentViewId}
+              readFocus={readFocus}
+              writeFocus={writeFocus}
+              onClearReadFocus={() => setReadFocus([])}
+              onClearWriteFocus={() => setWriteFocus([])}
+            />
 
             <Tabs
               value={selectedTableId}
@@ -373,6 +383,10 @@ export default function SnapshotPage() {
                 table={selectedTable}
                 currentViewId={currentViewId}
                 onViewCreated={setCurrentViewId}
+                onFocusedCellsChange={(read, write) => {
+                  setReadFocus(read);
+                  setWriteFocus(write);
+                }}
               />
             )}
           </Stack>
@@ -382,6 +396,8 @@ export default function SnapshotPage() {
             onClose={() => setShowChat(false)}
             snapshotId={id}
             currentViewId={currentViewId}
+            readFocus={readFocus}
+            writeFocus={writeFocus}
           />
         </Group>
       </Stack>

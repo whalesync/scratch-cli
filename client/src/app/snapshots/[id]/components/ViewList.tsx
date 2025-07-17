@@ -13,9 +13,21 @@ interface ViewListProps {
   snapshotId: string;
   currentViewId?: string | null;
   onViewChange?: (viewId: string | null) => void;
+  readFocus?: Array<{ recordWsId: string; columnWsId: string }>;
+  writeFocus?: Array<{ recordWsId: string; columnWsId: string }>;
+  onClearReadFocus?: () => void;
+  onClearWriteFocus?: () => void;
 }
 
-export const ViewList = ({ snapshotId, currentViewId, onViewChange }: ViewListProps) => {
+export const ViewList = ({
+  snapshotId,
+  currentViewId,
+  onViewChange,
+  readFocus = [],
+  writeFocus = [],
+  onClearReadFocus,
+  onClearWriteFocus,
+}: ViewListProps) => {
   const { views, isLoading, error, refreshViews } = useViews(snapshotId);
   const [debugView, setDebugView] = useState<View | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -138,7 +150,7 @@ export const ViewList = ({ snapshotId, currentViewId, onViewChange }: ViewListPr
     <Box p="xs" bg="blue.0">
       <Group gap="xs" align="center">
         <Text size="sm" fw={500}>
-          Current View:
+          Column View:
         </Text>
         <Select
           size="xs"
@@ -204,6 +216,49 @@ export const ViewList = ({ snapshotId, currentViewId, onViewChange }: ViewListPr
             >
               <TrashIcon size={12} />
             </ActionIcon>
+          </>
+        )}
+
+        {/* Focus Status */}
+        {(readFocus.length > 0 || writeFocus.length > 0) && (
+          <>
+            <Text size="sm" fw={500} c="blue.8" style={{ marginLeft: 'auto' }}>
+              Focus:
+            </Text>
+            {readFocus.length > 0 && (
+              <Button
+                size="xs"
+                variant="light"
+                color="blue"
+                onClick={() => {
+                  onClearReadFocus?.();
+                  notifications.show({
+                    title: 'Read Focus Cleared',
+                    message: `Cleared ${readFocus.length} read focused cell(s)`,
+                    color: 'blue',
+                  });
+                }}
+              >
+                {readFocus.length} Read
+              </Button>
+            )}
+            {writeFocus.length > 0 && (
+              <Button
+                size="xs"
+                variant="light"
+                color="orange"
+                onClick={() => {
+                  onClearWriteFocus?.();
+                  notifications.show({
+                    title: 'Write Focus Cleared',
+                    message: `Cleared ${writeFocus.length} write focused cell(s)`,
+                    color: 'orange',
+                  });
+                }}
+              >
+                {writeFocus.length} Write
+              </Button>
+            )}
           </>
         )}
       </Group>
