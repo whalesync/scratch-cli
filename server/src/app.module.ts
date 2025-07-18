@@ -5,6 +5,7 @@ import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { DbModule } from './db/db.module';
 import { GenericTableModule } from './generic-table/generic-table.module';
+import { HealthModule } from './health/health.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
@@ -26,6 +27,7 @@ import { ViewModule } from './view/view.module';
     GenericTableModule,
     StyleGuideModule,
     ViewModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [],
