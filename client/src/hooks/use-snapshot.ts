@@ -106,29 +106,6 @@ export const useSnapshot = (id: string) => {
   };
 };
 
-export const useSnapshotViews = (args: {
-  snapshotId: string,
-  tableId: string,
-}) => {
-  const { snapshotId, tableId } = args;
-  const swrKey = SWR_KEYS.snapshot.views(snapshotId, tableId);
-
-  const { data, error, isLoading, mutate } = useSWR(swrKey, () =>
-    snapshotApi.listViews(snapshotId, tableId),
-    {
-      revalidateOnFocus: false,
-      refreshInterval: 10000,
-    }
-  );
-
-  return {
-    views: data,
-    isLoading,
-    error,
-    refreshViews: mutate,
-  };
-};
-
 export const useSnapshotRecords = (args: {
   snapshotId: string,
   tableId: string,
@@ -146,7 +123,6 @@ export const useSnapshotRecords = (args: {
     snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
     {
       revalidateOnFocus: false,
-
     }
   );
 

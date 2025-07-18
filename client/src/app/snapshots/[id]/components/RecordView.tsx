@@ -1,5 +1,5 @@
-import { useSnapshotRecords, useSnapshotViews } from '@/hooks/use-snapshot';
-import { snapshotApi } from '@/lib/api/snapshot';
+import { useSnapshotRecords } from '@/hooks/use-snapshot';
+import { useViews } from '@/hooks/use-view';
 import { RecordOperation } from '@/types/server-entities/records';
 import { PostgresColumnType, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
@@ -29,6 +29,9 @@ interface RecordViewProps {
   initialColumnId?: string;
   onSwitchToSpreadsheetView: () => void;
   onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
+  currentViewId?: string | null;
+  filterToView?: boolean;
+  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 export const RecordView = ({
@@ -38,6 +41,8 @@ export const RecordView = ({
   initialColumnId,
   onSwitchToSpreadsheetView,
   onFocusedCellsChange,
+  currentViewId,
+  filterToView,
 }: RecordViewProps) => {
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
@@ -45,20 +50,15 @@ export const RecordView = ({
   const [showEditedOnly, setShowEditedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
+  const { views } = useViews(snapshot.id);
+  const activeView = views ? views.find((v) => v.id === currentViewId) : undefined;
 
-  const { views } = useSnapshotViews({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-  });
-
-  const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
-
-  const { recordsResponse, isLoading, error, bulkUpdateRecords } = useSnapshotRecords({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-    activeView: activeView,
-  });
+  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
+    useSnapshotRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      viewId: filterToView && activeView ? activeView.id : undefined,
+    });
 
   const records = useMemo(() => {
     if (!recordsResponse?.records) return undefined;
@@ -160,6 +160,7 @@ export const RecordView = ({
               value={value || ''}
               onChange={(e) => updateField(field, e.target.value)}
               minRows={10}
+              resize="vertical"
               styles={{
                 wrapper: {
                   height: '95%',
@@ -182,6 +183,7 @@ export const RecordView = ({
               autosize
               minRows={3}
               maxRows={10}
+              resize="vertical"
               readOnly={column.readonly}
               styles={greenBackgroundStyle}
             />
@@ -226,9 +228,11 @@ export const RecordView = ({
             value={value ?? ''}
             autosize
             minRows={3}
-            maxRows={5}
+            maxRows={10}
+            onChange={(e) => updateField(field, e.target.value)}
             readOnly={column.readonly}
             styles={greenBackgroundStyle}
+            resize="vertical"
           />
         );
       }
@@ -260,9 +264,7 @@ export const RecordView = ({
 
         try {
           setSaving(true);
-          await snapshotApi.acceptCellValues(snapshot.id, table.id.wsId, [
-            { wsId: currentRecord.id.wsId, columnId: field },
-          ]);
+          await acceptCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
           notifications.show({
             title: 'Suggestion Accepted',
             message: `Accepted suggestion for ${column.name}`,
@@ -287,9 +289,8 @@ export const RecordView = ({
 
         try {
           setSaving(true);
-          await snapshotApi.rejectCellValues(snapshot.id, table.id.wsId, [
-            { wsId: currentRecord.id.wsId, columnId: field },
-          ]);
+          await rejectCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
+
           notifications.show({
             title: 'Suggestion Rejected',
             message: `Rejected suggestion for ${column.name}`,

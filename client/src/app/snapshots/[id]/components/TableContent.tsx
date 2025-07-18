@@ -58,6 +58,9 @@ export const TableContent = ({
         initialColumnId={currentRecord.columnId}
         initialRecordId={currentRecord.recordId}
         onFocusedCellsChange={onFocusedCellsChange}
+        currentViewId={currentViewId}
+        filterToView={filterToView}
+        onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
     );
   }

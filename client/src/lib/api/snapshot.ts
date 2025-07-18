@@ -1,10 +1,9 @@
 import { CreateSnapshotDto, Snapshot } from "@/types/server-entities/snapshot";
-import { API_CONFIG } from "./config";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../../types/server-entities/records";
-import { CreateSnapshotTableViewDto, SnapshotTableView } from "@/types/server-entities/snapshot";
+import { API_CONFIG } from "./config";
 
 export const snapshotApi = {
   list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
@@ -202,6 +201,7 @@ export const snapshotApi = {
 
   /**
    * List records for the active view of a table.
+   * @deprecated
    */
   async listActiveViewRecords(
     snapshotId: string,
@@ -261,110 +261,6 @@ export const snapshotApi = {
       }
       throw new Error(res.statusText ?? "Failed to bulk update records");
     }
-  },
-
-  async activateView(
-    snapshotId: string,
-    tableId: string,
-    dto: CreateSnapshotTableViewDto
-  ): Promise<string> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/activate-view`,
-      {
-        method: "POST",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(dto),
-      }
-    );
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to activate view");
-    }
-
-    const view = await res.json();
-    return view.id;
-  },
-
-  async clearActiveView(
-    snapshotId: string,
-    tableId: string,
-  ): Promise<void> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-activate-view`,
-      {
-        method: "POST",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to clear filter view");
-    }
-  },
-
-
-  async listViews(
-    snapshotId: string,
-    tableId: string
-  ): Promise<SnapshotTableView[]> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views`,
-      {
-        method: "POST",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to list views");
-    }
-    return res.json();
-  },
-
-  async deleteView(
-    snapshotId: string,
-    tableId: string,
-    viewId: string
-  ): Promise<void> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
-      {
-        method: "DELETE",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-        },
-      }
-    );
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to delete view");
-    }
-  },
-
-  async getView(
-    snapshotId: string,
-    tableId: string,
-    viewId: string
-  ): Promise<SnapshotTableView> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
-      {
-        method: "GET",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-        },
-      }
-    );
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to get view");
-    }
-    return res.json();
   },
 
   async acceptCellValues(
