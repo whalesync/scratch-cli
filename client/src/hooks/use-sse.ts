@@ -62,7 +62,7 @@ export const useSSE = <T = unknown>({
 
           onopen: async (response) => {
             if (response.ok) {
-              console.log('SSE connection established.');
+              console.debug('SSE connection established.');
               setIsConnected(true);
               setError(null);
               onOpen?.(); // Call the user-provided callback
@@ -77,7 +77,7 @@ export const useSSE = <T = unknown>({
           },
 
           onmessage: (ev: EventSourceMessage) => {
-            console.log(`SSE message: ${ev.event}, data: ${ev.data}`);
+            console.debug(`SSE message: ${ev.event}, data: ${ev.data}`);
             try {
               const parsedData = JSON.parse(ev.data) as T;
               setData(parsedData);
@@ -117,7 +117,7 @@ export const useSSE = <T = unknown>({
     // Cleanup function: abort the connection when the component unmounts
     // or when dependencies change.
     return () => {
-      console.log('Closing SSE connection on unmount');
+      console.debug('Closing SSE connection on unmount');
       ctrl.abort();
       setIsConnected(false);
     };

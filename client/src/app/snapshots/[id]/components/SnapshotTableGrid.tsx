@@ -23,7 +23,6 @@ import {
   Box,
   Button,
   Center,
-  Group,
   Loader,
   Menu,
   Modal,
@@ -35,7 +34,6 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-  BugIcon,
   CheckIcon,
   Eye,
   EyeSlash,
@@ -44,13 +42,11 @@ import {
   Pencil,
   PencilSlash,
   PlusIcon,
-  SlidersIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSnapshotRecords } from '../../../../hooks/use-snapshot';
 import { useUpsertView, useViews } from '../../../../hooks/use-view';
-import JsonTreeViewer from '../../../components/JsonTreeViewer';
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
@@ -145,9 +141,7 @@ const SnapshotTableGrid = ({
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
   const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
   const [writeFocus, setWriteFocus] = useState<FocusedCell[]>([]);
-  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'focusedCellsDebug']);
-
-  const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
+  const modalStack = useModalsStack(['focusedCellsDebug']);
 
   const { views, refreshViews } = useViews(snapshot.id);
 
@@ -233,13 +227,20 @@ const SnapshotTableGrid = ({
     [table.columns],
   );
 
-  const isIdColumn = (col: number) => {
+  const isIdColumn = useCallback((col: number) => {
     return col === 1; // Updated to account for the new record status column
-  };
+  }, []);
 
-  const isRecordStatusColumn = (col: number) => {
+  const isRecordStatusColumn = useCallback((col: number) => {
     return col === 0; // New column for record status icons
-  };
+  }, []);
+
+  const isSpecialColumn = useCallback(
+    (col: number) => {
+      return col < 0 || isRecordStatusColumn(col) || isActionsColumn(col);
+    },
+    [isActionsColumn, isRecordStatusColumn],
+  );
 
   const getColumnStatus = useCallback(
     (columnId: string) => {
@@ -315,15 +316,15 @@ const SnapshotTableGrid = ({
         }
       }
 
-      if (event.isDoubleClick) {
+      if (event.isDoubleClick && !isSpecialColumn(col)) {
         event.preventDefault();
         const record = sortedRecords?.[row];
         if (!record) return;
         const column = table.columns[col - FAKE_LEFT_COLUMNS];
-        onSwitchToRecordView(record.id.wsId, column.id.wsId);
+        onSwitchToRecordView(record.id.wsId, column?.id.wsId);
       }
     },
-    [bulkUpdateRecords, isActionsColumn, onSwitchToRecordView, sortedRecords, table.columns],
+    [bulkUpdateRecords, isActionsColumn, isSpecialColumn, onSwitchToRecordView, sortedRecords, table.columns],
   );
 
   const getCellContent = useCallback(
@@ -348,7 +349,7 @@ const SnapshotTableGrid = ({
 
       // Debug logging for focused cells
       if (isFocused) {
-        console.log('Focused cell detected:', {
+        console.debug('Focused cell detected:', {
           col,
           row,
           recordId: record?.id.wsId,
@@ -645,7 +646,6 @@ const SnapshotTableGrid = ({
   );
 
   const onGridSelectionChange = useCallback((selection: GridSelection) => {
-    console.log('onGridSelectionChange', selection);
     setCurrentSelection(selection);
   }, []);
 
@@ -680,7 +680,7 @@ const SnapshotTableGrid = ({
 
   const onHeaderMenuClick = useCallback(
     (col: number) => {
-      console.log('Header menu clicked for column:', col);
+      console.debug('Header menu clicked for column:', col);
 
       if (isActionsColumn(col) || isRecordStatusColumn(col) || isIdColumn(col)) return;
 
@@ -688,7 +688,7 @@ const SnapshotTableGrid = ({
       const mouseX = mousePosition?.x || 0;
       const mouseY = mousePosition?.y || 0;
 
-      console.log('Header menu position:', { mouseX, mouseY, mousePosition });
+      console.debug('Header menu position:', { mouseX, mouseY, mousePosition });
 
       // Show the header menu at the mouse position
       setHeaderMenu({
@@ -850,7 +850,7 @@ const SnapshotTableGrid = ({
   const onCellContextMenu = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
       const [col, row] = cell;
-      console.log('Cell context menu clicked:', { col, row, event });
+      console.debug('Cell context menu clicked:', { col, row, event });
 
       // Prevent the default browser context menu
       event.preventDefault?.();
@@ -861,7 +861,7 @@ const SnapshotTableGrid = ({
       const mouseX = mousePosition?.x || 0;
       const mouseY = mousePosition?.y || 0;
 
-      console.log('Using mouse position:', { mouseX, mouseY, mousePosition });
+      console.debug('Using mouse position:', { mouseX, mouseY, mousePosition });
 
       // Show the context menu at the mouse position
       setContextMenu({
@@ -1933,7 +1933,7 @@ const SnapshotTableGrid = ({
       },
     ];
 
-    console.log('Columns created:', result);
+    console.debug('Columns created:', result);
     return result;
   }, [table.columns, sort, columnWidths, getColumnStatus, activeView, getRecordStatus, currentViewId]);
 
@@ -1955,16 +1955,6 @@ const SnapshotTableGrid = ({
 
   return (
     <>
-      <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${table.name}`} size="lg">
-        <ScrollArea h={500}>
-          <JsonTreeViewer jsonData={table} />
-        </ScrollArea>
-      </Modal>
-      <Modal {...modalStack.register('tableContextDebug')} title={`Table Context settings for ${table.name}`} size="lg">
-        <ScrollArea h={500}>
-          <JsonTreeViewer jsonData={tableContext ?? {}} />
-        </ScrollArea>
-      </Modal>
       <Modal
         {...modalStack.register('focusedCellsDebug')}
         title={`Focused Cells Debug (${readFocus.length + writeFocus.length})`}
@@ -2031,9 +2021,9 @@ const SnapshotTableGrid = ({
               size="xs"
               variant="outline"
               onClick={() => {
-                console.log('Read Focus:', readFocus);
-                console.log('Write Focus:', writeFocus);
-                console.log('Sorted Records:', sortedRecords);
+                console.debug('Read Focus:', readFocus);
+                console.debug('Write Focus:', writeFocus);
+                console.debug('Sorted Records:', sortedRecords);
               }}
             >
               Log to Console
@@ -2123,37 +2113,20 @@ const SnapshotTableGrid = ({
             }}
             data-grid-container // Add this attribute to the grid container
           />
-          <Group w="100%" p="xs" bg="gray.0" justify="flex-end">
-            <Group gap="xs" p={0}>
-              <Tooltip label="View JSON data">
-                <ActionIcon
-                  onClick={() => modalStack.open('tableSpecDebug')}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                  color="violet"
-                >
-                  <BugIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="View Table Context data">
-                <ActionIcon
-                  onClick={() => modalStack.open('tableContextDebug')}
-                  size="lg"
-                  radius="xl"
-                  variant="filled"
-                  color="gray"
-                >
-                  <SlidersIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="Add record">
-                <ActionIcon onClick={onAddRow} size="lg" radius="xl" variant="filled">
-                  <PlusIcon size={24} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          </Group>
+          <Box
+            style={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+              zIndex: 10,
+            }}
+          >
+            <Tooltip label="Add record">
+              <ActionIcon onClick={onAddRow} size="xl" radius="xl" variant="filled">
+                <PlusIcon size={24} strokeWidth="bold" />
+              </ActionIcon>
+            </Tooltip>
+          </Box>
         </Stack>
       </Box>
 

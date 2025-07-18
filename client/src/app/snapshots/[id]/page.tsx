@@ -3,7 +3,7 @@
 import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotTableContext, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
   Button,
@@ -13,14 +13,18 @@ import {
   Group,
   Loader,
   Menu,
+  Modal,
+  ScrollArea,
   Stack,
   Tabs,
   Text,
   Title,
   Tooltip,
+  useModalsStack,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
+  BugIcon,
   DownloadSimpleIcon,
   HeadCircuitIcon,
   RobotIcon,
@@ -31,6 +35,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
+import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
@@ -49,12 +54,14 @@ export default function SnapshotPage() {
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
+  const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
   const [readFocus, setReadFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
   const [writeFocus, setWriteFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
   const [filterToView, setFilterToView] = useState(false);
   const [filteredRecordsCount, setFilteredRecordsCount] = useState(0);
+  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
 
   const [showChat, setShowChat] = useState(true);
 
@@ -89,6 +96,7 @@ export default function SnapshotPage() {
     if (!selectedTableId) {
       setSelectedTableId(snapshot?.tables[0].id.wsId ?? null);
       setSelectedTable(snapshot?.tables[0] ?? null);
+      setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
     }
   }, [snapshot, selectedTableId]);
 
@@ -301,7 +309,7 @@ export default function SnapshotPage() {
       }
     };
 
-    // Menu items for Hide/Unhide and Protect/Unprotect
+    // Menu items for configuring the Table: Hide/Unhide and Protect/Unprotect
     const menuItems = [
       <Menu.Item key="visibility" leftSection={isTableHidden ? '👁️' : '🚫'} onClick={toggleTableVisibility}>
         {isTableHidden ? 'Unhide Table' : 'Hide Table'}
@@ -309,6 +317,21 @@ export default function SnapshotPage() {
       <Menu.Item key="protection" leftSection={isTableProtected ? '✏️' : '🔒'} onClick={toggleTableProtection}>
         {isTableProtected ? 'Unprotect Table' : 'Protect Table'}
       </Menu.Item>,
+      <Menu.Sub key="debug">
+        <Menu.Sub.Target>
+          <Menu.Sub.Item key="debug" leftSection={<BugIcon />}>
+            Debug
+          </Menu.Sub.Item>
+        </Menu.Sub.Target>
+        <Menu.Sub.Dropdown>
+          <Menu.Item key="tableSpecDebug" onClick={() => modalStack.open('tableSpecDebug')}>
+            View spec
+          </Menu.Item>
+          <Menu.Item key="tableContextDebug" onClick={() => modalStack.open('tableContextDebug')}>
+            View context
+          </Menu.Item>
+        </Menu.Sub.Dropdown>
+      </Menu.Sub>,
     ];
 
     return (
@@ -399,6 +422,7 @@ export default function SnapshotPage() {
               onChange={(value) => {
                 setSelectedTableId(value);
                 setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value) ?? null);
+                setSelectedTableContext(snapshot.tableContexts.find((t) => t.id.wsId === value) ?? null);
               }}
               variant="outline"
             >
@@ -435,6 +459,25 @@ export default function SnapshotPage() {
             writeFocus={writeFocus}
           />
         </Group>
+
+        {selectedTable && (
+          <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${selectedTable?.name}`} size="lg">
+            <ScrollArea h={500}>
+              <JsonTreeViewer jsonData={selectedTable} />
+            </ScrollArea>
+          </Modal>
+        )}
+        {selectedTable && (
+          <Modal
+            {...modalStack.register('tableContextDebug')}
+            title={`Table Context settings for ${selectedTable?.name}`}
+            size="lg"
+          >
+            <ScrollArea h={500}>
+              <JsonTreeViewer jsonData={selectedTableContext ?? {}} />
+            </ScrollArea>
+          </Modal>
+        )}
       </Stack>
     );
   };
