@@ -1,12 +1,15 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
-# Client  development
+
+# Client development
+
 The source under /client is the web client for this project.
 
 ## Technologies
+
 - Always use yarn.
 - Before running any commands, change to the `/client` directory and run `nvm use` to activate the correct version.
 - This is a nextjs project. It uses App router.
@@ -14,11 +17,11 @@ The source under /client is the web client for this project.
 - Do not use `<a>` for links, always use next/link.
 - Icons should come from the @phosphor-icons/react library.
 
-
 ## Client/server communication
 
-This uses SWR library for fetching from the server. 
+This uses SWR library for fetching from the server.
 Follow this pattern for any new REST endpoints, and always keep all of these elements updated and in sync with each other when you change one of them:
+
 ```
 ├── client/
 │   └── src/
@@ -36,7 +39,11 @@ Follow this pattern for any new REST endpoints, and always keep all of these ele
         └── [resource]/
             ├── [resource].controller.ts # API endpoint definitions
             ├── entities/
-            │   └── *.entity.ts 
+            │   └── *.entity.ts
             └── dto/
                 └── *.dto.ts # Create & update DTOs.
 ```
+
+## Logging
+
+always use console.debug instead of console.log

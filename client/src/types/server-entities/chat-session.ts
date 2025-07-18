@@ -7,4 +7,15 @@ export interface ChatSessionSummary {
 
 export interface SessionListResponse {
   sessions: ChatSessionSummary[];
+}
+
+export interface Capability {
+  code: string;
+  enabledByDefault: boolean;
+  description: string;
+}
+
+export interface CreateSessionResponse {
+  session: ChatSessionSummary;
+  available_capabilities: Capability[];
 } 

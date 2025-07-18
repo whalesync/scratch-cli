@@ -18,7 +18,7 @@ from utils.response_extractor import extract_response
 from agents.data_agent.data_tools import define_data_tools
 from agents.data_agent.view_tools import define_view_tools
 
-def create_agent(model_name: Optional[str] = None):
+def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None):
     """Create and return a configured agent"""
     try:
         # OpenRouter API key from environment
@@ -46,8 +46,8 @@ def create_agent(model_name: Optional[str] = None):
             deps_type=ChatRunContext
         )
         
-        define_data_tools(agent);
-        define_view_tools(agent);
+        define_data_tools(agent, capabilities);
+        define_view_tools(agent, capabilities);
         
  
 

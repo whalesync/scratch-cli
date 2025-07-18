@@ -50,7 +50,8 @@ class ChatService:
         model: Optional[str] = None,
         view_id: Optional[str] = None,
         read_focus: Optional[List[FocusedCell]] = None,
-        write_focus: Optional[List[FocusedCell]] = None
+        write_focus: Optional[List[FocusedCell]] = None,
+        capabilities: Optional[List[str]] = None
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -76,6 +77,14 @@ class ChatService:
         else:
             log_info("No view ID provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No view ID provided")
+        
+        # Log capabilities if provided
+        if capabilities:
+            log_info("Capabilities provided for session", session_id=session.id, capabilities=capabilities, snapshot_id=session.snapshot_id)
+            print(f"🔧 Capabilities provided: {capabilities}")
+        else:
+            log_info("No capabilities provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
+            print(f"ℹ️ No capabilities provided")
         
         
         try:
@@ -122,6 +131,7 @@ class ChatService:
                      chat_history_length=len(session.chat_history),
                      summary_history_length=len(session.summary_history),
                      style_guides_count=len(style_guides) if style_guides else 0,
+                     capabilities_count=len(capabilities) if capabilities else 0,
                      full_prompt_length=len(full_prompt),
                      user_message=user_message,
                      has_api_token=api_token is not None,
@@ -243,7 +253,7 @@ class ChatService:
                         
                         full_prompt += focus_context
 
-                agent = create_agent(model_name=model)
+                agent = create_agent(model_name=model, capabilities=capabilities)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
                     deps=chatRunContext,

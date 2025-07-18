@@ -10,7 +10,7 @@ from typing import Dict
 from fastapi import APIRouter, HTTPException
 
 from session import ChatMessage, ChatSession, RequestAndResponseSummary
-from server.DTOs import SendMessageRequestDTO, SendMessageResponseDTO, ChatSessionSummary
+from server.DTOs import SendMessageRequestDTO, SendMessageResponseDTO, ChatSessionSummary, CreateSessionResponseDTO, Capability
 from server.chat_service import ChatService
 from logger import log_info, log_warning, log_error
 
@@ -20,7 +20,36 @@ router = APIRouter(tags=["chat"])
 # Initialize chat service
 chat_service = ChatService()
 
-@router.post("/sessions", response_model=Dict[str, ChatSessionSummary])
+# Static list of available capabilities
+AVAILABLE_CAPABILITIES = [
+    Capability(
+        code='data:create', 
+        enabledByDefault=True,
+        description='Create new records for a table in the active snapshot using data provided by the LLM.'
+    ),
+    Capability(
+        code='data:update', 
+        enabledByDefault=True,
+        description='Update existing records in a table in the active snapshot (creates suggestions, not direct changes).'
+    ),
+    Capability(
+        code='data:delete', 
+        enabledByDefault=True,
+        description='Delete records from a table in the active snapshot by their IDs.'
+    ),
+    Capability(
+        code='views:filter-out-records', 
+        enabledByDefault=True,
+        description='Add records to the active record filter for a table in the current snapshot.'
+    ),
+    Capability(
+        code='views:clear-filters', 
+        enabledByDefault=False,
+        description='Clear the active record filter for a table in the current snapshot.'
+    ),
+]
+
+@router.post("/sessions", response_model=CreateSessionResponseDTO)
 async def create_session(snapshot_id: str):
     """Create a new chat session"""
     # if not session_id:
@@ -43,7 +72,10 @@ async def create_session(snapshot_id: str):
         total_sessions=len(chat_service.sessions), 
         snapshot_id=snapshot_id
     )
-    return {"session": session_summary}
+    return CreateSessionResponseDTO(
+        session=session_summary,
+        available_capabilities=AVAILABLE_CAPABILITIES
+    )
 
 @router.get("/sessions/{session_id}", response_model=ChatSession)
 async def get_session(session_id: str):
@@ -63,7 +95,7 @@ async def get_session(session_id: str):
 @router.post("/sessions/{session_id}/messages", response_model=SendMessageResponseDTO)
 async def send_message(session_id: str, request: SendMessageRequestDTO):
     """Send a message to the agent"""
-    log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None, style_guides_count=len(request.style_guides) if request.style_guides else 0)
+    log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None, style_guides_count=len(request.style_guides) if request.style_guides else 0, capabilities_count=len(request.capabilities) if request.capabilities else 0)
     print(f"💬 Processing message for session: {session_id}")
     print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
     print(f"📝 Message: {request.message}")
@@ -77,6 +109,12 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
             print(f"   Guide {i}: {guide[:50]}..." if len(guide) > 50 else f"   Guide {i}: {guide}")
     else:
         print(f"ℹ️ No style guides provided")
+    if request.capabilities:
+        print(f"🔧 Capabilities provided: {len(request.capabilities)} capabilities")
+        for i, capability in enumerate(request.capabilities, 1):
+            print(f"   Capability {i}: {capability}")
+    else:
+        print(f"ℹ️ No capabilities provided")
     
     if session_id not in chat_service.sessions:
         log_error("Message failed - session not found", session_id=session_id, available_sessions=list(chat_service.sessions.keys()))
@@ -109,7 +147,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         print(f"🤖 Processing with agent...")
         log_info("Agent processing started", session_id=session_id, chat_history_length=len(session.chat_history), summary_history_length=len(session.summary_history), snapshot_id=session.snapshot_id)
         
-        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides, request.model, request.view_id, request.read_focus, request.write_focus)
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
         
         log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         

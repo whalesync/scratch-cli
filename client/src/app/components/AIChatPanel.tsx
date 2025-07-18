@@ -2,7 +2,7 @@
 
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ChatSessionSummary } from '@/types/server-entities/chat-session';
+import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
   Alert,
@@ -20,6 +20,7 @@ import {
 } from '@mantine/core';
 import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
 
@@ -88,6 +89,8 @@ export default function AIChatPanel({
   const { user } = useScratchPadUser();
   const { styleGuides } = useStyleGuides();
   const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
+  const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
+  const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
@@ -125,12 +128,12 @@ export default function AIChatPanel({
 
     setIsLoadingSessions(true);
     try {
-      console.log('Loading sessions from:', `${AI_CHAT_SERVER_URL}/sessions`);
+      console.debug('Loading sessions from:', `${AI_CHAT_SERVER_URL}/sessions`);
       const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`);
       const data = await response.json();
-      console.log('Sessions response:', data);
+      console.debug('Sessions response:', data);
       setSessions(data.sessions);
-      console.log('Set sessions:', data.sessions);
+      console.debug('Set sessions:', data.sessions);
     } catch (error) {
       setError('Failed to load sessions');
       console.error('Error loading sessions:', error);
@@ -182,8 +185,16 @@ export default function AIChatPanel({
         const data = await response.json();
         setSessions((prev) => [...prev, data.session]);
         setCurrentSessionId(data.session.id);
+        setAvailableCapabilities(data.available_capabilities);
+        // Preselect capabilities that have enabledByDefault=true
+        const defaultCapabilities = data.available_capabilities
+          .filter((cap: Capability) => cap.enabledByDefault)
+          .map((cap: Capability) => cap.code);
+        setSelectedCapabilities(defaultCapabilities);
         setError(null);
-        console.log('Created new session with snapshot ID:', snapshotId);
+        console.debug('Created new session with snapshot ID:', snapshotId);
+        console.debug('Available capabilities:', data.available_capabilities);
+        console.debug('Default selected capabilities:', defaultCapabilities);
       } else {
         const errorData = await response.json().catch(() => ({}));
         setError(`Failed to create session: ${errorData.detail || response.statusText}`);
@@ -236,7 +247,7 @@ export default function AIChatPanel({
     setIsLoading(true);
     setError(null);
 
-    console.log('Message data:', {
+    console.debug('Message data:', {
       message: message.trim(),
       currentSessionId,
       historyLength: sessionData?.chat_history.length || 0,
@@ -252,6 +263,7 @@ export default function AIChatPanel({
         message: string;
         api_token?: string;
         style_guides?: string[];
+        capabilities?: string[];
         model?: string;
         view_id?: string;
         read_focus?: FocusedCell[];
@@ -264,15 +276,15 @@ export default function AIChatPanel({
       // Include API token if available
       if (user?.apiToken) {
         messageData.api_token = user.apiToken;
-        console.log('Including API token in request');
+        console.debug('Including API token in request');
       } else {
-        console.log('No API token available');
+        console.debug('No API token available');
       }
 
       // Include style guide content if selected
       if (selectedStyleGuides.length > 0) {
         messageData.style_guides = selectedStyleGuides.map((sg) => sg.body);
-        console.log('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
+        console.debug('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
       }
 
       // Include view ID if available
@@ -280,15 +292,21 @@ export default function AIChatPanel({
         messageData.view_id = currentViewId;
       }
 
+      // Include capabilities if selected
+      if (selectedCapabilities.length > 0) {
+        messageData.capabilities = selectedCapabilities;
+        console.debug('Including capabilities:', selectedCapabilities.join(', '));
+      }
+
       // Include focused cells if available
       if (readFocus && readFocus.length > 0) {
         messageData.read_focus = readFocus;
-        console.log('Including read focus:', readFocus.length, 'cells');
+        console.debug('Including read focus:', readFocus.length, 'cells');
       }
 
       if (writeFocus && writeFocus.length > 0) {
         messageData.write_focus = writeFocus;
-        console.log('Including write focus:', writeFocus.length, 'cells');
+        console.debug('Including write focus:', writeFocus.length, 'cells');
       }
 
       const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
@@ -304,7 +322,7 @@ export default function AIChatPanel({
 
         // Reload session to get updated history
         await loadSession(currentSessionId);
-        console.log('Message sent successfully, reloaded session');
+        console.debug('Message sent successfully, reloaded session');
       } else {
         setError('Failed to send message');
         const errorText = (await response.json()) as AgentErrorResponse;
@@ -380,8 +398,11 @@ export default function AIChatPanel({
           placeholder="Select session"
           value={currentSessionId}
           onChange={(value) => {
-            console.log('Select onChange called with:', value);
+            console.debug('Select onChange called with:', value);
             setCurrentSessionId(value);
+            // Reset capabilities when switching sessions
+            setAvailableCapabilities([]);
+            setSelectedCapabilities([]);
           }}
           data={sessions.map((session) => ({
             value: session.id,
@@ -430,6 +451,11 @@ export default function AIChatPanel({
               .map((id) => styleGuides.find((sg) => sg.id === id)?.name)
               .filter(Boolean)
               .join(', ')}
+          </Text>
+        )}
+        {selectedCapabilities.length > 0 && (
+          <Text span size="xs" c="purple" ml="xs">
+            | Capabilities ({selectedCapabilities.length}): {selectedCapabilities.join(', ')}
           </Text>
         )}
       </Text>
@@ -497,6 +523,15 @@ export default function AIChatPanel({
             },
           }}
         />
+
+        {/* Capabilities Selection */}
+        {availableCapabilities.length > 0 && (
+          <CapabilitiesPicker
+            availableCapabilities={availableCapabilities}
+            selectedCapabilities={selectedCapabilities}
+            onCapabilitiesChange={setSelectedCapabilities}
+          />
+        )}
 
         {/* Input Area */}
         <Textarea
