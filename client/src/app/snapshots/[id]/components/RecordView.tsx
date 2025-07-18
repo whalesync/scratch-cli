@@ -1,5 +1,6 @@
 import { useSnapshotRecords, useSnapshotViews } from '@/hooks/use-snapshot';
 import { snapshotApi } from '@/lib/api/snapshot';
+import { RecordOperation } from '@/types/server-entities/records';
 import { PostgresColumnType, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
@@ -10,17 +11,14 @@ import {
   Divider,
   Group,
   Loader,
-  Modal,
   NumberInput,
   Stack,
   Text,
   Textarea,
   TextInput,
 } from '@mantine/core';
-import { useDisclosure, useSetState } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, ArrowUpIcon, XIcon } from '@phosphor-icons/react';
-import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FocusedCell } from './types';
 
@@ -43,19 +41,9 @@ export const RecordView = ({
 }: RecordViewProps) => {
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
-  const [draftRecord, setDraftRecord] = useState<SnapshotRecord | undefined>(undefined);
-  const [recordDirty, setRecordDirty] = useState(false);
   const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
   const [showEditedOnly, setShowEditedOnly] = useState(false);
-  const [unsavedChangesModalOpened, { open: openUnsavedChangesModal, close: closeUnsavedChangesModal }] =
-    useDisclosure(false);
-  const [afterModalAction, setAfterModalAction] = useSetState<{
-    action: 'switchToRecord' | 'exitView' | null;
-    switchToRecord: SnapshotRecord | null;
-  }>({
-    action: null,
-    switchToRecord: null,
-  });
+  const [saving, setSaving] = useState(false);
 
   const tableContext = snapshot.tableContexts.find((c) => c.id.wsId === table.id.wsId);
 
@@ -66,7 +54,7 @@ export const RecordView = ({
 
   const activeView = views ? views.find((v) => v.id === tableContext?.activeViewId) : undefined;
 
-  const { recordsResponse, isLoading, error } = useSnapshotRecords({
+  const { recordsResponse, isLoading, error, bulkUpdateRecords } = useSnapshotRecords({
     snapshotId: snapshot.id,
     tableId: table.id.wsId,
     activeView: activeView,
@@ -76,6 +64,11 @@ export const RecordView = ({
     if (!recordsResponse?.records) return undefined;
     return recordsResponse.records;
   }, [recordsResponse]);
+
+  const currentRecord = useMemo<SnapshotRecord | undefined>(() => {
+    if (!currentRecordId) return undefined;
+    return records?.find((r) => r.id.wsId === currentRecordId);
+  }, [currentRecordId, records]);
 
   const focusRecord = useCallback(
     (record: SnapshotRecord, columnId?: string) => {
@@ -96,24 +89,37 @@ export const RecordView = ({
     }
   }, [recordsResponse, currentRecordId, focusRecord]);
 
-  useEffect(() => {
-    if (currentRecordId && records && !draftRecord) {
-      const rec = records.find((r) => r.id.wsId === currentRecordId);
-      if (rec) {
-        setDraftRecord(_.cloneDeep(rec));
+  const updateField = useCallback(
+    async (field: string, value: string) => {
+      if (!currentRecord) return;
+
+      const ops: RecordOperation[] = [
+        {
+          op: 'update',
+          wsId: currentRecord.id.wsId,
+          data: { [field]: value },
+        },
+      ];
+
+      try {
+        setSaving(true);
+        await bulkUpdateRecords({ ops });
+      } catch (e) {
+        const error = e as Error;
+        notifications.show({
+          title: 'Error updating field',
+          message: error.message,
+          color: 'red',
+        });
+      } finally {
+        setSaving(false);
       }
-    }
-  }, [currentRecordId, records, draftRecord]);
+    },
+    [currentRecord, bulkUpdateRecords],
+  );
 
   const handleSelectRecord = (record: SnapshotRecord) => {
-    if (recordDirty) {
-      setAfterModalAction({ action: 'switchToRecord', switchToRecord: record });
-      openUnsavedChangesModal();
-      return;
-    }
     setCurrentRecordId(record.id.wsId);
-    setDraftRecord(_.cloneDeep(record));
-    setRecordDirty(false);
     focusRecord(record, currentColumnId);
   };
 
@@ -125,32 +131,13 @@ export const RecordView = ({
     [focusRecord, setCurrentColumnId],
   );
 
-  const saveDraftRecord = useCallback(async () => {
-    if (!draftRecord || !recordDirty) return;
-
-    notifications.show({
-      title: 'Save not implemented yet',
-      message: `Chris is still working on this`,
-      color: 'yellow',
-    });
-  }, [draftRecord]);
-
-  const updateDraftField = useCallback(
-    (field: string, value: string) => {
-      if (!draftRecord) return;
-      setDraftRecord({ ...draftRecord, fields: { ...draftRecord.fields, [field]: value } });
-      setRecordDirty(true);
-    },
-    [draftRecord, setDraftRecord, setRecordDirty],
-  );
-
   const fieldToInput = useCallback(
     (field: string, table: TableSpec, focusedView?: boolean, hasEditedValue?: boolean) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
-      if (!draftRecord) return null;
+      if (!currentRecord) return null;
 
-      const value = draftRecord.fields[field] as string;
+      const value = currentRecord.fields[field] as string;
       const greenBackgroundStyle = hasEditedValue
         ? {
             input: {
@@ -171,7 +158,7 @@ export const RecordView = ({
               key={field}
               label={column.name}
               value={value || ''}
-              onChange={(e) => updateDraftField(field, e.target.value)}
+              onChange={(e) => updateField(field, e.target.value)}
               minRows={10}
               styles={{
                 wrapper: {
@@ -191,7 +178,7 @@ export const RecordView = ({
               key={field}
               label={column.name}
               value={value || ''}
-              onChange={(e) => updateDraftField(field, e.target.value)}
+              onChange={(e) => updateField(field, e.target.value)}
               autosize
               minRows={3}
               maxRows={10}
@@ -208,8 +195,8 @@ export const RecordView = ({
           <NumberInput
             key={field}
             label={column.name}
-            value={draftRecord.fields[field] as number}
-            onChange={(value) => updateDraftField(field, value.toString())}
+            value={currentRecord.fields[field] as number}
+            onChange={(value) => updateField(field, value.toString())}
             readOnly={column.readonly}
             styles={greenBackgroundStyle}
           />
@@ -221,7 +208,7 @@ export const RecordView = ({
             key={field}
             label={column.name}
             checked={value === 'true'}
-            onChange={(e) => updateDraftField(field, e.target.checked.toString())}
+            onChange={(e) => updateField(field, e.target.checked.toString())}
             readOnly={column.readonly}
           />
         );
@@ -251,29 +238,30 @@ export const RecordView = ({
           key={field}
           label={column.name}
           value={value ?? ''}
-          onChange={(e) => updateDraftField(field, e.target.value)}
+          onChange={(e) => updateField(field, e.target.value)}
           readOnly={column.readonly}
           styles={greenBackgroundStyle}
         />
       );
     },
-    [draftRecord, updateDraftField],
+    [currentRecord, updateField],
   );
 
   const fieldToInputAndSuggestion = useCallback(
     (field: string, table: TableSpec, focusedView?: boolean) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
-      if (!draftRecord) return null;
+      if (!currentRecord) return null;
 
-      const hasSuggestion = !!draftRecord.__suggested_values?.[field];
+      const hasSuggestion = !!currentRecord.__suggested_values?.[field];
 
       const handleAcceptSuggestion = async () => {
-        if (!draftRecord) return;
+        if (!currentRecord) return;
 
         try {
+          setSaving(true);
           await snapshotApi.acceptCellValues(snapshot.id, table.id.wsId, [
-            { wsId: draftRecord.id.wsId, columnId: field },
+            { wsId: currentRecord.id.wsId, columnId: field },
           ]);
           notifications.show({
             title: 'Suggestion Accepted',
@@ -281,7 +269,7 @@ export const RecordView = ({
             color: 'green',
           });
           // Refresh the records to get updated state
-          window.location.reload();
+          // window.location.reload();
         } catch (e) {
           const error = e as Error;
           notifications.show({
@@ -289,15 +277,18 @@ export const RecordView = ({
             message: error.message,
             color: 'red',
           });
+        } finally {
+          setSaving(false);
         }
       };
 
       const handleRejectSuggestion = async () => {
-        if (!draftRecord) return;
+        if (!currentRecord) return;
 
         try {
+          setSaving(true);
           await snapshotApi.rejectCellValues(snapshot.id, table.id.wsId, [
-            { wsId: draftRecord.id.wsId, columnId: field },
+            { wsId: currentRecord.id.wsId, columnId: field },
           ]);
           notifications.show({
             title: 'Suggestion Rejected',
@@ -305,7 +296,7 @@ export const RecordView = ({
             color: 'green',
           });
           // Refresh the records to get updated state
-          window.location.reload();
+          // window.location.reload();
         } catch (e) {
           const error = e as Error;
           notifications.show({
@@ -313,10 +304,12 @@ export const RecordView = ({
             message: error.message,
             color: 'red',
           });
+        } finally {
+          setSaving(false);
         }
       };
 
-      const hasEditedValue = !!draftRecord.__edited_fields?.[field];
+      const hasEditedValue = !!currentRecord.__edited_fields?.[field];
 
       return (
         <Stack key={field} gap="xs" h="100%">
@@ -330,6 +323,7 @@ export const RecordView = ({
                   color="red"
                   leftSection={<XIcon size={14} />}
                   onClick={handleRejectSuggestion}
+                  loading={saving}
                 >
                   Reject
                 </Button>
@@ -339,12 +333,13 @@ export const RecordView = ({
                   color="green"
                   leftSection={<ArrowUpIcon size={14} />}
                   onClick={handleAcceptSuggestion}
+                  loading={saving}
                 >
                   Accept
                 </Button>
               </Group>
               <Textarea
-                value={draftRecord.__suggested_values?.[field] as string}
+                value={currentRecord.__suggested_values?.[field] as string}
                 disabled
                 autosize
                 minRows={1}
@@ -362,7 +357,7 @@ export const RecordView = ({
         </Stack>
       );
     },
-    [draftRecord, updateDraftField, snapshot.id, table.id.wsId],
+    [currentRecord, updateField, snapshot.id, table.id.wsId],
   );
 
   if (error) {
@@ -384,13 +379,13 @@ export const RecordView = ({
   let recordContent = null;
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
 
-  if (draftRecord && currentColumn) {
+  if (currentRecord && currentColumn) {
     recordContent = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
-  } else if (draftRecord) {
+  } else if (currentRecord) {
     // Filter fields based on checkbox states
-    const fieldsToShow = Object.keys(draftRecord.fields).filter((fieldName) => {
-      const hasSuggestion = draftRecord.__suggested_values?.[fieldName] !== undefined;
-      const hasEditedValue = draftRecord.__edited_fields?.[fieldName] !== undefined;
+    const fieldsToShow = Object.keys(currentRecord.fields).filter((fieldName) => {
+      const hasSuggestion = currentRecord.__suggested_values?.[fieldName] !== undefined;
+      const hasEditedValue = currentRecord.__edited_fields?.[fieldName] !== undefined;
 
       if (showSuggestedOnly && showEditedOnly) {
         // Both checkboxes checked: show fields that have BOTH suggestion AND edited value
@@ -431,44 +426,12 @@ export const RecordView = ({
 
   return (
     <Stack h="100%" w="100%" gap={0} p={0}>
-      <Modal opened={unsavedChangesModalOpened} onClose={closeUnsavedChangesModal} title="Record has unsaved changes">
-        <Stack>
-          <Text>You have unsaved changes to this record. Do you want to discard them?</Text>
-          <Group>
-            <Button variant="outline" onClick={closeUnsavedChangesModal}>
-              Cancel
-            </Button>
-            <Button
-              variant="filled"
-              onClick={() => {
-                if (afterModalAction.action === 'switchToRecord' && afterModalAction.switchToRecord) {
-                  setCurrentRecordId(afterModalAction.switchToRecord.id.wsId);
-                  setDraftRecord(_.cloneDeep(afterModalAction.switchToRecord));
-                  setRecordDirty(false);
-                } else {
-                  setDraftRecord(undefined);
-                }
-                closeUnsavedChangesModal();
-              }}
-            >
-              Discard
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
       <Group p="xs">
         <ActionIcon variant="subtle" onClick={onSwitchToSpreadsheetView} c="black">
           <ArrowLeftIcon />
         </ActionIcon>
         <Text>Record View</Text>
-        <Group ml="auto">
-          {draftRecord && recordDirty && (
-            <Button variant="filled" size="xs" onClick={saveDraftRecord}>
-              Save
-            </Button>
-          )}
-        </Group>
+        {saving && <Loader size="xs" ml="auto" />}
       </Group>
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" gap="xs" p="xs">

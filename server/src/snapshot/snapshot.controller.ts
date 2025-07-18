@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   NotFoundException,
   Param,
@@ -265,6 +266,9 @@ export class SnapshotController {
    */
   @UseGuards(ScratchpadAuthGuard)
   @Sse(':id/tables/:tableId/records/events')
+  @Header('Content-Type', 'text/event-stream')
+  @Header('Cache-Control', 'no-cache')
+  @Header('Connection', 'keep-alive')
   async subscribeRecordEvents(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
@@ -290,6 +294,9 @@ export class SnapshotController {
    */
   @UseGuards(ScratchpadAuthGuard)
   @Sse(':id/events')
+  @Header('Content-Type', 'text/event-stream')
+  @Header('Cache-Control', 'no-cache')
+  @Header('Connection', 'keep-alive')
   async subscribeSnapshotEvents(
     @Param('id') snapshotId: SnapshotId,
     @Req() req: RequestWithUser,
