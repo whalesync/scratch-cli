@@ -2,11 +2,7 @@ import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
 import { useState } from 'react';
 import { RecordView } from './RecordView';
 import SnapshotTableGrid from './SnapshotTableGrid';
-
-interface FocusedCell {
-  recordWsId: string;
-  columnWsId: string;
-}
+import { FocusedCell } from './types';
 
 interface TableContentProps {
   snapshot: Snapshot;
@@ -61,6 +57,7 @@ export const TableContent = ({
         onSwitchToSpreadsheetView={() => handleSwitchView('spreadsheet')}
         initialColumnId={currentRecord.columnId}
         initialRecordId={currentRecord.recordId}
+        onFocusedCellsChange={onFocusedCellsChange}
       />
     );
   }

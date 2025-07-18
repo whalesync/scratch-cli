@@ -42,6 +42,7 @@ import { useSWRConfig } from 'swr';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
+import { FocusedCell } from './components/types';
 
 export default function SnapshotPage() {
   const params = useParams();
@@ -57,8 +58,8 @@ export default function SnapshotPage() {
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
-  const [readFocus, setReadFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
-  const [writeFocus, setWriteFocus] = useState<Array<{ recordWsId: string; columnWsId: string }>>([]);
+  const [readFocus, setReadFocus] = useState<Array<FocusedCell>>([]);
+  const [writeFocus, setWriteFocus] = useState<Array<FocusedCell>>([]);
   const [filterToView, setFilterToView] = useState(false);
   const [filteredRecordsCount, setFilteredRecordsCount] = useState(0);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
@@ -441,6 +442,7 @@ export default function SnapshotPage() {
                 currentViewId={currentViewId}
                 onViewCreated={setCurrentViewId}
                 onFocusedCellsChange={(read, write) => {
+                  console.log('onFocusedCellsChange Callback', read, write);
                   setReadFocus(read);
                   setWriteFocus(write);
                 }}

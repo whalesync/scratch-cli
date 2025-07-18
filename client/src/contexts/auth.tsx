@@ -1,21 +1,17 @@
-import { FullPageLoader } from "@/app/components/FullPageLoader";
-import { useScratchPadUser } from "@/hooks/useScratchpadUser";
-import { API_CONFIG } from "@/lib/api/config";
-import { RouteUrls } from "@/utils/route-urls";
-import { useAuth, useUser } from "@clerk/nextjs";
-import { usePathname } from "next/navigation";
-import { JSX, ReactNode, useCallback, useEffect, useState } from "react";
+import { FullPageLoader } from '@/app/components/FullPageLoader';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { API_CONFIG } from '@/lib/api/config';
+import { RouteUrls } from '@/utils/route-urls';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
 
-const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
+const JWT_TOKEN_REFRESH_MS = 5000; // 10 seconds
 
 /**
  * This component just makes sure the Scratchpad user is loaded from the server and that authentication is fully complete before loading protected pages
  */
-export const ScratchPadUserProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}): JSX.Element => {
+export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const { isLoading } = useScratchPadUser();
   if (isLoading) {
     return <FullPageLoader message="Loading user data..." />;
@@ -28,9 +24,7 @@ export const ScratchPadUserProvider = ({
  * This provider handles combining Clerk auth with Scratchpad auth.
  * It refreshes the JWT token periodically and sets the value into the API_CONFIG so all API calls can be authenticated
  */
-export const ClerkAuthContextProvider = (props: {
-  children: ReactNode;
-}): JSX.Element => {
+export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.Element => {
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();

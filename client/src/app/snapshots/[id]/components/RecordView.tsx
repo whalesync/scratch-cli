@@ -22,6 +22,7 @@ import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, ArrowUpIcon, XIcon } from '@phosphor-icons/react';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FocusedCell } from './types';
 
 interface RecordViewProps {
   snapshot: Snapshot;
@@ -29,6 +30,7 @@ interface RecordViewProps {
   initialRecordId?: string;
   initialColumnId?: string;
   onSwitchToSpreadsheetView: () => void;
+  onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
 }
 
 export const RecordView = ({
@@ -37,6 +39,7 @@ export const RecordView = ({
   initialRecordId,
   initialColumnId,
   onSwitchToSpreadsheetView,
+  onFocusedCellsChange,
 }: RecordViewProps) => {
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
@@ -74,11 +77,24 @@ export const RecordView = ({
     return recordsResponse.records;
   }, [recordsResponse]);
 
+  const focusRecord = useCallback(
+    (record: SnapshotRecord, columnId?: string) => {
+      const cells = columnId
+        ? [{ recordWsId: record.id.wsId, columnWsId: columnId }]
+        : Object.keys(record.fields).map((field) => ({ recordWsId: record.id.wsId, columnWsId: field }));
+
+      onFocusedCellsChange?.([], cells);
+    },
+    [onFocusedCellsChange],
+  );
+
   useEffect(() => {
     if (!currentRecordId && recordsResponse?.records && recordsResponse.records.length > 0) {
-      setCurrentRecordId(recordsResponse.records[0].id.wsId);
+      const record = recordsResponse.records[0];
+      setCurrentRecordId(record.id.wsId);
+      focusRecord(record);
     }
-  }, [recordsResponse, currentRecordId]);
+  }, [recordsResponse, currentRecordId, focusRecord]);
 
   useEffect(() => {
     if (currentRecordId && records && !draftRecord) {
@@ -98,7 +114,16 @@ export const RecordView = ({
     setCurrentRecordId(record.id.wsId);
     setDraftRecord(_.cloneDeep(record));
     setRecordDirty(false);
+    focusRecord(record, currentColumnId);
   };
+
+  const handleSelectColumn = useCallback(
+    (record: SnapshotRecord, columnId?: string) => {
+      setCurrentColumnId(columnId);
+      focusRecord(record, columnId);
+    },
+    [focusRecord, setCurrentColumnId],
+  );
 
   const saveDraftRecord = useCallback(async () => {
     if (!draftRecord || !recordDirty) return;
@@ -150,14 +175,14 @@ export const RecordView = ({
               minRows={10}
               styles={{
                 wrapper: {
-                  height: '100%',
+                  height: '95%',
                 },
                 input: {
-                  height: '100%',
+                  height: '95%',
                   ...greenBackgroundStyle?.input,
                 },
               }}
-              h="100%"
+              h="95%"
             />
           );
         } else {
@@ -211,7 +236,7 @@ export const RecordView = ({
           <Textarea
             key={field}
             label={column.name}
-            value={value}
+            value={value ?? ''}
             autosize
             minRows={3}
             maxRows={5}
@@ -225,7 +250,7 @@ export const RecordView = ({
         <TextInput
           key={field}
           label={column.name}
-          value={value}
+          value={value ?? ''}
           onChange={(e) => updateDraftField(field, e.target.value)}
           readOnly={column.readonly}
           styles={greenBackgroundStyle}
@@ -467,9 +492,9 @@ export const RecordView = ({
                       key={c.id.wsId}
                       onClick={() => {
                         if (currentColumnId === c.id.wsId) {
-                          setCurrentColumnId(undefined);
+                          handleSelectColumn(record, undefined);
                         } else {
-                          setCurrentColumnId(c.id.wsId);
+                          handleSelectColumn(record, c.id.wsId);
                         }
                       }}
                       underline="never"

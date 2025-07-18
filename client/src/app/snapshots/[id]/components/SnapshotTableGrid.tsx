@@ -47,6 +47,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSnapshotRecords } from '../../../../hooks/use-snapshot';
 import { useUpsertView, useViews } from '../../../../hooks/use-view';
+import { FocusedCell } from './types';
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
@@ -64,11 +65,6 @@ type SortDirection = 'asc' | 'desc';
 interface SortState {
   columnId: string;
   dir: SortDirection;
-}
-
-interface FocusedCell {
-  recordWsId: string;
-  columnWsId: string;
 }
 
 const generatePendingId = (): string => {
