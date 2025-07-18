@@ -103,18 +103,25 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         print(f"🔑 API token provided: {request.api_token[:8]}..." if len(request.api_token) > 8 else request.api_token)
     else:
         print(f"ℹ️ No API token provided")
-    if request.style_guides:
-        print(f"📚 Style guides provided: {len(request.style_guides)} guides")
-        for i, guide in enumerate(request.style_guides, 1):
-            print(f"   Guide {i}: {guide[:50]}..." if len(guide) > 50 else f"   Guide {i}: {guide}")
-    else:
-        print(f"ℹ️ No style guides provided")
+  
     if request.capabilities:
         print(f"🔧 Capabilities provided: {len(request.capabilities)} capabilities")
         for i, capability in enumerate(request.capabilities, 1):
             print(f"   Capability {i}: {capability}")
     else:
         print(f"ℹ️ No capabilities provided")
+    
+    if request.style_guides:
+        print(f"📋 Style guides provided: {len(request.style_guides)} style guides")
+        for i, style_guide in enumerate(request.style_guides, 1):
+            content = style_guide.content
+            if isinstance(content, str):
+                truncated_content = content[:50] + "..." if len(content) > 50 else content
+            else:
+                truncated_content = str(content)[:50] + "..." if len(str(content)) > 50 else str(content)
+            print(f"   Style guide {i}: {style_guide.name} - {truncated_content}")
+    else:
+        print(f"ℹ️ No style guides provided")
     
     if session_id not in chat_service.sessions:
         log_error("Message failed - session not found", session_id=session_id, available_sessions=list(chat_service.sessions.keys()))
@@ -147,7 +154,19 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         print(f"🤖 Processing with agent...")
         log_info("Agent processing started", session_id=session_id, chat_history_length=len(session.chat_history), summary_history_length=len(session.summary_history), snapshot_id=session.snapshot_id)
         
-        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, request.style_guides, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
+        # Convert style guides to dict format if provided
+        print(f"🔍 Converting style guides:")
+        print(f"   request.style_guides: {request.style_guides}")
+        print(f"   request.style_guides type: {type(request.style_guides)}")
+        
+        style_guides_dict = None
+        if request.style_guides:
+            style_guides_dict = [{"name": g.name, "content": g.content} for g in request.style_guides]
+            print(f"   Converted to: {style_guides_dict}")
+        else:
+            print(f"   No style guides to convert, keeping as None")
+        
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
         
         log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         

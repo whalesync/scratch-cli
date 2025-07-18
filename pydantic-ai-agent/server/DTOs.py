@@ -10,11 +10,16 @@ class Capability(BaseModel):
     enabledByDefault: bool = Field(description="Whether this capability is enabled by default")
     description: str = Field(description="One-sentence description of what this capability does")
 
+class Guideline(BaseModel):
+    """Guideline with name and content for overriding system prompt sections"""
+    name: str = Field(description="The name of the system prompt section to override (e.g., 'BASE_INSTRUCTIONS')")
+    content: str = Field(description="The content to use instead of the default section")
+
 class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
     message: str
     api_token: str = Field(description="API token for Scratchpad server authentication")
-    style_guides: Optional[List[str]] = Field(default=None, description="List of style guide content to include in the prompt")
+    style_guides: Optional[List[Guideline]] = Field(default=None, description="List of style guides with name and content to override system prompt sections")
     capabilities: Optional[List[str]] = Field(default=None, description="List of selected capabilities for this message")
     model: Optional[str] = Field(default="openai/gpt-4o-mini", description="Model to use for AI generation")
     view_id: Optional[str] = Field(default=None, description="ID of the currently selected view")

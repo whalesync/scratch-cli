@@ -262,7 +262,7 @@ export default function AIChatPanel({
       const messageData: {
         message: string;
         api_token?: string;
-        style_guides?: string[];
+        style_guides?: Array<{ name: string; content: string }>;
         capabilities?: string[];
         model?: string;
         view_id?: string;
@@ -283,7 +283,10 @@ export default function AIChatPanel({
 
       // Include style guide content if selected
       if (selectedStyleGuides.length > 0) {
-        messageData.style_guides = selectedStyleGuides.map((sg) => sg.body);
+        messageData.style_guides = selectedStyleGuides.map((sg) => ({
+          name: sg.name,
+          content: sg.body,
+        }));
         console.debug('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
       }
 

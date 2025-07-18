@@ -12,14 +12,24 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
 
 from agents.data_agent.models import ResponseFromAgent, ChatRunContext
-from agents.data_agent.data_agent_prompts import DATA_AGENT_INSTRUCTIONS
+from agents.data_agent.data_agent_prompts import get_data_agent_instructions
 from logger import log_info, log_error
 from utils.response_extractor import extract_response
 from agents.data_agent.data_tools import define_data_tools
 from agents.data_agent.view_tools import define_view_tools
 
-def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None):
+def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Optional[List[Dict[str, str]]] = None):
     """Create and return a configured agent"""
+    print(f"🔍 create_agent called with:")
+    print(f"   model_name: {model_name}")
+    print(f"   capabilities: {capabilities}")
+    print(f"   style_guides: {style_guides}")
+    print(f"   style_guides type: {type(style_guides)}")
+    if style_guides:
+        print(f"   style_guides length: {len(style_guides)}")
+        for i, g in enumerate(style_guides):
+            print(f"   style_guide {i}: {g}")
+    
     try:
         # OpenRouter API key from environment
         api_key = os.getenv("OPENROUTER_API_KEY")
@@ -40,7 +50,7 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
         # Create the agent
         agent = Agent(
             name="ChatServerAgent",
-            instructions=DATA_AGENT_INSTRUCTIONS,
+            instructions=get_data_agent_instructions(capabilities, style_guides),
             output_type=ResponseFromAgent,
             model=model,
             deps_type=ChatRunContext

@@ -46,7 +46,7 @@ class ChatService:
         session: ChatSession, 
         user_message: str, 
         api_token: str,
-        style_guides: Optional[List[str]] = None,
+        style_guides: Optional[List[Dict[str, str]]] = None,
         model: Optional[str] = None,
         view_id: Optional[str] = None,
         read_focus: Optional[List[FocusedCell]] = None,
@@ -86,18 +86,28 @@ class ChatService:
             log_info("No capabilities provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No capabilities provided")
         
+        # Log style guides if provided
+        if style_guides:
+            log_info("Style guides provided for session", session_id=session.id, style_guides_count=len(style_guides), style_guide_names=[g.get('name') for g in style_guides], snapshot_id=session.snapshot_id)
+            print(f"📋 Style guides provided: {len(style_guides)} style guides")
+            for i, style_guide in enumerate(style_guides, 1):
+                content = str(style_guide.get('content', ''))
+                truncated_content = content[:50] + "..." if len(content) > 50 else content
+                print(f"   Style guide {i}: {style_guide.get('name')} - {truncated_content}")
+        else:
+            log_info("No style guides provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
+            print(f"ℹ️ No style guides provided")
+        
         
         try:
             # Build context from session history
             context = ""
             
-            # Include style guides if provided
+            # Style guides are now handled in the system prompt, not user prompt context
             if style_guides:
-                print(f"📚 Including {len(style_guides)} style guides in prompt")
-                context += f"\n\nSTYLE GUIDES TO FOLLOW:\n"
+                print(f"📚 Style guides will be included in system prompt: {len(style_guides)} style guides")
                 for i, style_guide in enumerate(style_guides, 1):
-                    print(f"   Style Guide {i}: {style_guide[:50]}..." if len(style_guide) > 50 else f"   Style Guide {i}: {style_guide}")
-                    context += f"Style Guide {i}:\n{style_guide}\n\n"
+                    print(f"   Style Guide {i}: {style_guide.get('name')}")
             else:
                 print(f"ℹ️ No style guides to include")
             
@@ -215,14 +225,7 @@ class ChatService:
                             except:
                                 pass  # If we can't get the filtered count, just continue
                             
-                            # Add clear explanation of record structure
-                            snapshot_context += f"RECORD STRUCTURE EXPLANATION:\n"
-                            snapshot_context += f"Each record has this structure:\n"
-                            snapshot_context += f"- wsid: string - The unique identifier for this record\n"
-                            snapshot_context += f"- id: string - Same as wsid (for compatibility)\n"
-                            snapshot_context += f"- fields: {{string: any}} - The current values for the fields of this record, including any accepted changes\n"
-                            snapshot_context += f"- edited_fields: {{string: timestamp}} - Fields that have accepted changes by the user, with timestamps\n"
-                            snapshot_context += f"- suggested_fields: {{string: any}} - Current suggestions for changes made by the agent, but not yet accepted by the user\n\n"
+                            # Record structure is now explained in the system prompt
                             
                             # Format records using the shared function
                             from agents.data_agent.data_agent_utils import format_records_for_display
@@ -253,7 +256,13 @@ class ChatService:
                         
                         full_prompt += focus_context
 
-                agent = create_agent(model_name=model, capabilities=capabilities)
+                print(f"🔍 About to call create_agent with:")
+                print(f"   model: {model}")
+                print(f"   capabilities: {capabilities}")
+                print(f"   style_guides: {style_guides}")
+                print(f"   style_guides type: {type(style_guides)}")
+                
+                agent = create_agent(model_name=model, capabilities=capabilities, style_guides=style_guides)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
                     deps=chatRunContext,
