@@ -442,7 +442,6 @@ export default function SnapshotPage() {
                 currentViewId={currentViewId}
                 onViewCreated={setCurrentViewId}
                 onFocusedCellsChange={(read, write) => {
-                  console.log('onFocusedCellsChange Callback', read, write);
                   setReadFocus(read);
                   setWriteFocus(write);
                 }}

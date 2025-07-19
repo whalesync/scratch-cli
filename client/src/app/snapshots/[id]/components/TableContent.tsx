@@ -34,6 +34,10 @@ export const TableContent = ({
   const handleSwitchView = (view: 'spreadsheet' | 'record', recordId?: string, columnId?: string) => {
     setCurrentView(view);
     setCurrentRecord({ recordId, columnId });
+
+    if (view === 'record' && recordId && columnId) {
+      onFocusedCellsChange([], [{ recordWsId: recordId, columnWsId: columnId }]);
+    }
   };
 
   if (currentView === 'spreadsheet') {
