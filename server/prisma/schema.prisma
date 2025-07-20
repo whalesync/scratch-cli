@@ -37,6 +37,11 @@ model User {
   styleGuides       StyleGuide[]
 }
 
+enum TokenType {
+  AGENT // For AI agents
+  WEBSOCKET // For client web socket connections
+}
+
 model APIToken {
   id        String   @id // type: APITokenId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -44,6 +49,7 @@ model APIToken {
   token     String
   createdAt DateTime @default(now())
   expiresAt DateTime @updatedAt
+  type      TokenType @default(AGENT)
 
   @@unique([token])
   @@index([userId])
@@ -127,6 +133,7 @@ model GenericTable {
   @@index([userId])
 }
 
+// @deprecated
 model SnapshotTableView {
   id         String   @id // type: SnapshotTableViewsId
   name       String? // Optional view name

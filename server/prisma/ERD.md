@@ -22,6 +22,7 @@ erDiagram
   String token UK
   DateTime createdAt
   DateTime expiresAt
+  TokenType type
 }
 "ConnectorAccount" {
   String id PK
@@ -117,6 +118,7 @@ Properties as follows:
 - `token`:
 - `createdAt`:
 - `expiresAt`:
+- `type`:
 
 ### `ConnectorAccount`
 
