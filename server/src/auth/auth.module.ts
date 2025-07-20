@@ -6,10 +6,11 @@ import { DbModule } from 'src/db/db.module';
 import { UserModule } from 'src/users/users.module';
 import { APITokenStrategy } from './api-token.strategy';
 import { ClerkStrategy } from './clerk.strategy';
+import { WebSocketAuthGuard } from './websocket-auth-guard';
 
 @Module({
   imports: [PassportModule, ScratchpadConfigModule, ClerkModule, DbModule, UserModule],
-  providers: [ClerkStrategy, APITokenStrategy],
+  providers: [ClerkStrategy, APITokenStrategy, WebSocketAuthGuard],
   exports: [PassportModule],
 })
 export class AuthModule {}
