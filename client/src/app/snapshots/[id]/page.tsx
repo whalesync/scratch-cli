@@ -1,7 +1,6 @@
 'use client';
 
-import { useSnapshot } from '@/hooks/use-snapshot';
-import { useUpsertView, useViews } from '@/hooks/use-view';
+import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotTableContext, TableSpec } from '@/types/server-entities/snapshot';
 import {
@@ -42,24 +41,22 @@ import { useSWRConfig } from 'swr';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
-import { FocusedCell } from './components/types';
+import { FocusedCellsProvider } from './FocusedCellsContext';
+import { ICONS } from './icons';
 
-export default function SnapshotPage() {
+function SnapshotPageContent() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
 
-  const { snapshot, isLoading, publish } = useSnapshot(id);
+  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
   const { mutate } = useSWRConfig();
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
-  const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
-  const [readFocus, setReadFocus] = useState<Array<FocusedCell>>([]);
-  const [writeFocus, setWriteFocus] = useState<Array<FocusedCell>>([]);
   const [filterToView, setFilterToView] = useState(false);
   const [filteredRecordsCount, setFilteredRecordsCount] = useState(0);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
@@ -130,7 +127,7 @@ export default function SnapshotPage() {
         autoClose: false,
         withCloseButton: false,
       });
-      await publish();
+      await publish?.();
       notifications.update({
         id: 'publish-notification',
         title: 'Published',
@@ -176,13 +173,11 @@ export default function SnapshotPage() {
     setShowChat(!showChat);
   };
 
-  const TableTab = ({ table, onViewCreated }: { table: TableSpec; onViewCreated?: (viewId: string) => void }) => {
+  const TableTab = ({ table }: { table: TableSpec }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const { views, refreshViews } = useViews(snapshot?.id ?? '');
-    const { upsertView } = useUpsertView();
+    const { refreshViews, createView, setCurrentViewId, currentView, updateTableInCurrentView } = useSnapshotContext();
 
     // Get current view for this table
-    const currentView = views?.find((v) => v.id === currentViewId);
     const tableConfig = currentView?.config[table.id.wsId];
 
     // Default to false if not specified (as per the new type definition)
@@ -191,38 +186,22 @@ export default function SnapshotPage() {
 
     // For tab title: show icon if set to non-default (hidden or protected)
     const tabIcons = [];
-    if (tableConfig?.hidden === true) tabIcons.push('🚫');
-    if (tableConfig?.protected === true) tabIcons.push('🔒');
+    if (tableConfig?.hidden === true) tabIcons.push(ICONS.hidden);
+    if (tableConfig?.protected === true) tabIcons.push(ICONS.protected);
 
     const toggleTableVisibility = async () => {
       if (!snapshot) return;
       if (currentView) {
-        const newConfig = {
-          ...currentView.config,
-          [table.id.wsId]: {
-            ...tableConfig,
-            hidden: !isTableHidden,
-          },
+        const newTableConfig = {
+          ...tableConfig,
+          hidden: !isTableHidden,
         };
-
-        // Optimistically update the local cache immediately
-        const updatedView = { ...currentView, config: newConfig };
-        const updatedViews = views?.map((v) => (v.id === currentView.id ? updatedView : v));
-        refreshViews(updatedViews, false); // Update cache without revalidating
 
         // Force immediate re-render
         setLastViewUpdate(Date.now());
 
-        // Then update the server
-        await upsertView({
-          id: currentView.id,
-          name: currentView.name || undefined,
-          snapshotId: snapshot.id,
-          config: newConfig,
-        });
-
-        // Revalidate to ensure consistency
-        await refreshViews();
+        // Update the table in the current view
+        await updateTableInCurrentView(table.id.wsId, newTableConfig);
 
         notifications.show({
           title: 'Table Visibility Updated',
@@ -237,50 +216,31 @@ export default function SnapshotPage() {
             protected: false,
           },
         };
-        const result = await upsertView({
-          snapshotId: snapshot.id,
-          config: newConfig,
-        });
-        await refreshViews();
+        const viewId = await createView(newConfig);
+        await refreshViews?.();
         notifications.show({
           title: 'Table Visibility Updated',
           message: 'Table is now hidden',
           color: 'green',
         });
         // Select the newly created view
-        onViewCreated?.(result.id);
+        setCurrentViewId(viewId);
       }
     };
 
     const toggleTableProtection = async () => {
       if (!snapshot) return;
       if (currentView) {
-        const newConfig = {
-          ...currentView.config,
-          [table.id.wsId]: {
-            ...tableConfig,
-            protected: !isTableProtected,
-          },
+        const newTableConfig = {
+          ...tableConfig,
+          protected: !isTableProtected,
         };
-
-        // Optimistically update the local cache immediately
-        const updatedView = { ...currentView, config: newConfig };
-        const updatedViews = views?.map((v) => (v.id === currentView.id ? updatedView : v));
-        refreshViews(updatedViews, false); // Update cache without revalidating
 
         // Force immediate re-render
         setLastViewUpdate(Date.now());
 
-        // Then update the server
-        await upsertView({
-          id: currentView.id,
-          name: currentView.name || undefined,
-          snapshotId: snapshot.id,
-          config: newConfig,
-        });
-
-        // Revalidate to ensure consistency
-        await refreshViews();
+        // Update the table in the current view
+        await updateTableInCurrentView(table.id.wsId, newTableConfig);
 
         notifications.show({
           title: 'Table Protection Updated',
@@ -295,27 +255,32 @@ export default function SnapshotPage() {
             protected: true,
           },
         };
-        const result = await upsertView({
-          snapshotId: snapshot.id,
-          config: newConfig,
-        });
-        await refreshViews();
+        const viewId = await createView(newConfig);
+        await refreshViews?.();
         notifications.show({
           title: 'Table Protection Updated',
           message: 'Table is now protected',
           color: 'green',
         });
         // Select the newly created view
-        onViewCreated?.(result.id);
+        setCurrentViewId(viewId);
       }
     };
 
     // Menu items for configuring the Table: Hide/Unhide and Protect/Unprotect
     const menuItems = [
-      <Menu.Item key="visibility" leftSection={isTableHidden ? '👁️' : '🚫'} onClick={toggleTableVisibility}>
+      <Menu.Item
+        key="visibility"
+        leftSection={isTableHidden ? ICONS.visible : ICONS.hidden}
+        onClick={toggleTableVisibility}
+      >
         {isTableHidden ? 'Unhide Table' : 'Hide Table'}
       </Menu.Item>,
-      <Menu.Item key="protection" leftSection={isTableProtected ? '✏️' : '🔒'} onClick={toggleTableProtection}>
+      <Menu.Item
+        key="protection"
+        leftSection={isTableProtected ? ICONS.editable : ICONS.protected}
+        onClick={toggleTableProtection}
+      >
         {isTableProtected ? 'Unprotect Table' : 'Protect Table'}
       </Menu.Item>,
       <Menu.Sub key="debug">
@@ -405,13 +370,8 @@ export default function SnapshotPage() {
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
           <Stack h="100%" w="100%" flex={1}>
             <ViewData
-              snapshotId={id}
               currentViewId={currentViewId}
               onViewChange={setCurrentViewId}
-              readFocus={readFocus}
-              writeFocus={writeFocus}
-              onClearReadFocus={() => setReadFocus([])}
-              onClearWriteFocus={() => setWriteFocus([])}
               filterToView={filterToView}
               onFilterToViewChange={setFilterToView}
               filteredRecordsCount={filteredRecordsCount}
@@ -430,35 +390,22 @@ export default function SnapshotPage() {
               <Tabs.List px="sm" style={{ paddingRight: 0 }}>
                 {snapshot.tables.map((table: TableSpec) => (
                   <Tabs.Tab value={table.id.wsId} key={`${table.id.wsId}-${currentViewId}-${lastViewUpdate}`}>
-                    <TableTab table={table} onViewCreated={setCurrentViewId} />
+                    <TableTab table={table} />
                   </Tabs.Tab>
                 ))}
               </Tabs.List>
             </Tabs>
             {selectedTable && (
               <TableContent
-                snapshot={snapshot}
                 table={selectedTable}
                 currentViewId={currentViewId}
-                onViewCreated={setCurrentViewId}
-                onFocusedCellsChange={(read, write) => {
-                  setReadFocus(read);
-                  setWriteFocus(write);
-                }}
                 filterToView={filterToView}
                 onFilteredRecordsCountChange={setFilteredRecordsCount}
               />
             )}
           </Stack>
 
-          <AIChatPanel
-            isOpen={showChat}
-            onClose={() => setShowChat(false)}
-            snapshotId={id}
-            currentViewId={currentViewId}
-            readFocus={readFocus}
-            writeFocus={writeFocus}
-          />
+          <AIChatPanel isOpen={showChat} onClose={toggleChat} snapshotId={id} currentViewId={currentViewId} />
         </Group>
 
         {selectedTable && (
@@ -528,5 +475,18 @@ export default function SnapshotPage() {
         </div>
       </Group>
     </Stack>
+  );
+}
+
+export default function SnapshotPage() {
+  const params = useParams();
+  const id = params.id as string;
+
+  return (
+    <SnapshotProvider snapshotId={id}>
+      <FocusedCellsProvider>
+        <SnapshotPageContent />
+      </FocusedCellsProvider>
+    </SnapshotProvider>
   );
 }

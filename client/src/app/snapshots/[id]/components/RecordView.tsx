@@ -1,43 +1,38 @@
+import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
+import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotRecords } from '@/hooks/use-snapshot';
-import { useViews } from '@/hooks/use-view';
-import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Anchor, Center, Divider, Group, Loader, Stack, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { RecordDetails } from './RecordDetails';
-import { FocusedCell } from './types';
 
 interface RecordViewProps {
-  snapshot: Snapshot;
   table: TableSpec;
   initialRecordId?: string;
   initialColumnId?: string;
   onSwitchToSpreadsheetView: () => void;
-  onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
-  currentViewId?: string | null;
   filterToView?: boolean;
   onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 export const RecordView = ({
-  snapshot,
   table,
   initialRecordId,
   initialColumnId,
   onSwitchToSpreadsheetView,
-  onFocusedCellsChange,
-  currentViewId,
   filterToView,
 }: RecordViewProps) => {
+  const { snapshot, currentView } = useSnapshotContext();
+  const { setWriteFocus } = useFocusedCellsContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
 
-  const { views } = useViews(snapshot.id);
-  const activeView = views ? views.find((v) => v.id === currentViewId) : undefined;
+  const activeView = currentView;
 
   const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
     useSnapshotRecords({
-      snapshotId: snapshot.id,
+      snapshotId: snapshot?.id ?? '',
       tableId: table.id.wsId,
       viewId: filterToView && activeView ? activeView.id : undefined,
     });
@@ -48,9 +43,9 @@ export const RecordView = ({
         ? [{ recordWsId: record.id.wsId, columnWsId: columnId }]
         : Object.keys(record.fields).map((field) => ({ recordWsId: record.id.wsId, columnWsId: field }));
 
-      onFocusedCellsChange?.([], cells);
+      setWriteFocus(cells);
     },
-    [onFocusedCellsChange],
+    [setWriteFocus],
   );
 
   useEffect(() => {
@@ -144,7 +139,7 @@ export const RecordView = ({
             {recordsResponse?.records?.map((record) => (
               <Tabs.Panel key={record.id.wsId} value={record.id.wsId}>
                 <RecordDetails
-                  snapshotId={snapshot.id}
+                  snapshotId={snapshot?.id ?? ''}
                   currentRecord={record}
                   table={table}
                   currentColumnId={currentColumnId}

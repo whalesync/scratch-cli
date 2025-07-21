@@ -1,5 +1,6 @@
 'use client';
 
+import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
 import { ColumnSpec, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -45,26 +46,38 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSnapshotRecords } from '../../../../hooks/use-snapshot';
-import { useUpsertView, useViews } from '../../../../hooks/use-view';
-import { FocusedCell } from './types';
+import { useSnapshotRecords } from '../../../../../hooks/use-snapshot';
+import { useUpsertView } from '../../../../../hooks/use-view';
+import { useFocusedCellsContext } from '../../FocusedCellsContext';
+import { ICONS } from '../../icons';
+import { FocusedCell } from '../types';
+import {
+  ACCEPT_REJECT_GROUP_NAME,
+  COLUMN_VIEW_GROUP_NAME,
+  FILTERING_GROUP_NAME,
+  FOCUS_GROUP_NAME,
+  MENU_ICON_SIZE,
+} from './context-menus/constants';
+import {
+  FAKE_LEFT_COLUMNS,
+  getColumnIcon,
+  getSelectedRowCount,
+  isActionsColumn,
+  isIdColumn,
+  isRecordStatusColumn,
+  isSpecialColumn,
+  SortState,
+  titleWithSort,
+} from './helpers';
+import { useMousePosition } from './useMousePosition';
 
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
   currentViewId?: string | null;
   onSwitchToRecordView: (recordId: string, columnId?: string) => void;
-  onViewCreated?: (viewId: string) => void;
-  onFocusedCellsChange?: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
   filterToView: boolean;
   onFilteredRecordsCountChange?: (count: number) => void;
-}
-
-type SortDirection = 'asc' | 'desc';
-
-interface SortState {
-  columnId: string;
-  dir: SortDirection;
 }
 
 const generatePendingId = (): string => {
@@ -77,42 +90,12 @@ const generatePendingId = (): string => {
 };
 
 // Helper function to get column type icon
-const getColumnIcon = (column: ColumnSpec): GridColumnIcon => {
-  switch (column.pgType) {
-    case 'text':
-      return GridColumnIcon.HeaderString;
-    case 'text[]':
-      return GridColumnIcon.HeaderArray;
-    case 'numeric':
-      return GridColumnIcon.HeaderNumber;
-    case 'numeric[]':
-      return GridColumnIcon.HeaderArray;
-    case 'boolean':
-      return GridColumnIcon.HeaderBoolean;
-    case 'boolean[]':
-      return GridColumnIcon.HeaderArray;
-    case 'jsonb':
-      return GridColumnIcon.HeaderCode;
-    default:
-      return GridColumnIcon.HeaderString;
-  }
-};
-
-const FAKE_LEFT_COLUMNS = 2; // Updated to account for the new record status column
-
-const FOCUS_GROUP_NAME = 'Set/Unset Focus';
-const FILTERING_GROUP_NAME = 'Filtering';
-const COLUMN_VIEW_GROUP_NAME = 'Column View';
-const ACCEPT_REJECT_GROUP_NAME = 'Accept/Reject Changes';
-const MENU_ICON_SIZE = 18;
 
 const SnapshotTableGrid = ({
   snapshot,
   table,
   currentViewId,
   onSwitchToRecordView,
-  onViewCreated,
-  onFocusedCellsChange,
   filterToView,
   onFilteredRecordsCountChange,
 }: SnapshotTableGridProps) => {
@@ -123,8 +106,6 @@ const SnapshotTableGrid = ({
     visible: boolean;
     x: number;
     y: number;
-    col: number;
-    row: number;
   } | null>(null);
   const [headerMenu, setHeaderMenu] = useState<{
     visible: boolean;
@@ -132,16 +113,15 @@ const SnapshotTableGrid = ({
     y: number;
     col: number;
   } | null>(null);
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
-
   const [currentSelection, setCurrentSelection] = useState<GridSelection | undefined>();
-  const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
-  const [writeFocus, setWriteFocus] = useState<FocusedCell[]>([]);
   const modalStack = useModalsStack(['focusedCellsDebug']);
 
-  const { views, refreshViews } = useViews(snapshot.id);
+  const { refreshViews, setCurrentViewId, currentView } = useSnapshotContext();
+  const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
+    useFocusedCellsContext();
+  const mousePosition = useMousePosition();
 
-  const activeView = views ? views.find((v) => v.id === currentViewId) : undefined;
+  const activeView = currentView;
 
   const {
     recordsResponse,
@@ -159,13 +139,6 @@ const SnapshotTableGrid = ({
   });
 
   const { upsertView } = useUpsertView();
-
-  // Notify parent component when focused cells change
-  useEffect(() => {
-    if (onFocusedCellsChange) {
-      onFocusedCellsChange(readFocus, writeFocus);
-    }
-  }, [readFocus, writeFocus, onFocusedCellsChange]);
 
   // Notify parent component when filtered records count changes
   useEffect(() => {
@@ -216,28 +189,6 @@ const SnapshotTableGrid = ({
     });
   }, [recordsResponse?.records, sort]);
 
-  const isActionsColumn = useCallback(
-    (col: number) => {
-      return col === table.columns.length + 2;
-    },
-    [table.columns],
-  );
-
-  const isIdColumn = useCallback((col: number) => {
-    return col === 1; // Updated to account for the new record status column
-  }, []);
-
-  const isRecordStatusColumn = useCallback((col: number) => {
-    return col === 0; // New column for record status icons
-  }, []);
-
-  const isSpecialColumn = useCallback(
-    (col: number) => {
-      return col < 0 || isRecordStatusColumn(col) || isActionsColumn(col);
-    },
-    [isActionsColumn, isRecordStatusColumn],
-  );
-
   const getColumnStatus = useCallback(
     (columnId: string) => {
       if (!activeView || !activeView.config[table.id.wsId]) {
@@ -259,26 +210,6 @@ const SnapshotTableGrid = ({
     [activeView, table.id.wsId],
   );
 
-  // const getRecordStatus = useCallback(
-  //   (recordId: string) => {
-  //     if (!activeView || !activeView.config[table.id.wsId]) {
-  //       return { visible: true, editable: true }; // Default to visible and editable if not in view
-  //     }
-
-  //     const tableConfig = activeView.config[table.id.wsId];
-  //     const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === recordId);
-
-  //     if (!recordConfig) {
-  //       return { visible: true, editable: true }; // Default to visible and editable if not specified
-  //     }
-
-  //     return {
-  //       visible: recordConfig.visible !== false, // Default to true if not set
-  //       editable: recordConfig.editable !== false, // Default to true if not set
-  //     };
-  //   },
-  //   [activeView, table.id.wsId],
-  // );
   const getRecordStatus = useCallback(() => {
     // TODO: records field moved to different entity - temporarily return defaults
     return { visible: true, editable: true }; // Default to visible and editable for now
@@ -287,7 +218,7 @@ const SnapshotTableGrid = ({
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
       const [col, row] = cell;
-      if (isActionsColumn(col)) {
+      if (isActionsColumn(col, table.columns.length)) {
         // Actions column
         const record = sortedRecords?.[row];
         if (!record) return;
@@ -312,7 +243,7 @@ const SnapshotTableGrid = ({
         }
       }
 
-      if (event.isDoubleClick && !isSpecialColumn(col)) {
+      if (event.isDoubleClick && !isSpecialColumn(col, table.columns.length)) {
         event.preventDefault();
         const record = sortedRecords?.[row];
         if (!record) return;
@@ -320,7 +251,7 @@ const SnapshotTableGrid = ({
         onSwitchToRecordView(record.id.wsId, column?.id.wsId);
       }
     },
-    [bulkUpdateRecords, isActionsColumn, isSpecialColumn, onSwitchToRecordView, sortedRecords, table.columns],
+    [bulkUpdateRecords, onSwitchToRecordView, sortedRecords, table.columns],
   );
 
   const getCellContent = useCallback(
@@ -393,30 +324,6 @@ const SnapshotTableGrid = ({
         // TODO: records field moved to different entity - temporarily show no icons
         // Only show icons if the record is present in the view config
         const displayText = '';
-        // if (activeView && activeView.config[table.id.wsId]) {
-        //   const tableConfig = activeView.config[table.id.wsId];
-        //   const recordConfig = tableConfig.records?.find((r: { wsId: string }) => r.wsId === record.id.wsId);
-
-        //   if (recordConfig) {
-        //     // Record is in the config, show icons only for explicitly overridden properties
-        //     let icons = '';
-
-        //     // Only show visibility icon if explicitly set
-        //     if ('visible' in recordConfig) {
-        //       const visibilityIcon = recordConfig.visible ? '👁️' : '🚫';
-        //       icons += visibilityIcon;
-        //     }
-
-        //     // Only show editability icon if explicitly set
-        //     if ('editable' in recordConfig) {
-        //       const editabilityIcon = recordConfig.editable ? '✏️' : '🔒';
-        //       icons += editabilityIcon;
-        //     }
-
-        //     displayText = icons;
-        //   }
-        //   // If record is not in config, don't show any icons
-        // }
 
         return {
           kind: GridCellKind.Text,
@@ -524,7 +431,7 @@ const SnapshotTableGrid = ({
         themeOverride,
       };
     },
-    [sortedRecords, table.columns, hoveredRow, activeView, readFocus],
+    [sortedRecords, table.columns, hoveredRow, readFocus],
   );
 
   const getGetSelectedRecordsAndColumns = useCallback(() => {
@@ -566,6 +473,33 @@ const SnapshotTableGrid = ({
 
     return result;
   }, [currentSelection, table.columns, sortedRecords]);
+
+  // Helper function to check if selected cells match a focus condition
+  const checkSelectedCellsFocus = useCallback(
+    (focusArray: FocusedCell[], shouldBeFocused: boolean): boolean => {
+      if (!currentSelection?.current) return false;
+
+      const { range } = currentSelection.current;
+      for (let r = range.y; r < range.y + range.height; r++) {
+        for (let c = range.x; c < range.x + range.width; c++) {
+          if (isActionsColumn(c, table.columns.length) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
+          const rec = sortedRecords?.[r];
+          const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
+          if (rec && colObj) {
+            const cell: FocusedCell = { recordWsId: rec.id.wsId, columnWsId: colObj.id.wsId };
+            const isFocused = focusArray.some(
+              (f) => f.recordWsId === cell.recordWsId && f.columnWsId === cell.columnWsId,
+            );
+            if (isFocused === shouldBeFocused) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+    [currentSelection, sortedRecords, table.columns],
+  );
 
   const onAddRow = useCallback(() => {
     const newRecordId = generatePendingId();
@@ -647,7 +581,8 @@ const SnapshotTableGrid = ({
 
   const onHeaderClicked = useCallback(
     (colIndex: number) => {
-      if (isActionsColumn(colIndex) || isIdColumn(colIndex) || isRecordStatusColumn(colIndex)) return;
+      if (isActionsColumn(colIndex, table.columns.length) || isIdColumn(colIndex) || isRecordStatusColumn(colIndex))
+        return;
       const column = table.columns[colIndex - FAKE_LEFT_COLUMNS];
       const columnId = column.id.wsId;
 
@@ -665,7 +600,7 @@ const SnapshotTableGrid = ({
         return { columnId, dir: 'asc' };
       });
     },
-    [table.columns, isActionsColumn, isRecordStatusColumn],
+    [table.columns],
   );
 
   const onColumnResize = useCallback((column: GridColumn, newSize: number) => {
@@ -678,7 +613,7 @@ const SnapshotTableGrid = ({
     (col: number) => {
       console.debug('Header menu clicked for column:', col);
 
-      if (isActionsColumn(col) || isRecordStatusColumn(col) || isIdColumn(col)) return;
+      if (isActionsColumn(col, table.columns.length) || isRecordStatusColumn(col) || isIdColumn(col)) return;
 
       // Use the stored mouse position from the global mouse move handler
       const mouseX = mousePosition?.x || 0;
@@ -694,20 +629,8 @@ const SnapshotTableGrid = ({
         col,
       });
     },
-    [mousePosition, isActionsColumn, isRecordStatusColumn, isIdColumn],
+    [mousePosition, table.columns.length],
   );
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  // Track mouse position globally
-  useEffect(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [handleMouseMove]);
 
   const handleKeyDown = useCallback(
     (e: GridKeyEventArgs) => {
@@ -722,31 +645,34 @@ const SnapshotTableGrid = ({
           let addedCount = 0;
           let removedCount = 0;
 
-          setReadFocus((prev) => {
-            const newReadFocus = [...prev];
+          const cellsToToggle: FocusedCell[] = [];
+          const cellsToRemove: FocusedCell[] = [];
 
-            records.forEach((record) => {
-              columns.forEach((column) => {
-                const cellKey = `${record.id.wsId}-${column.id.wsId}`;
-                const existingIndex = newReadFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
+          records.forEach((record) => {
+            columns.forEach((column) => {
+              const cell: FocusedCell = { recordWsId: record.id.wsId, columnWsId: column.id.wsId };
+              const cellKey = `${record.id.wsId}-${column.id.wsId}`;
+              const existingIndex = readFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
 
-                if (existingIndex >= 0) {
-                  // Remove if already focused
-                  newReadFocus.splice(existingIndex, 1);
-                  removedCount++;
-                } else {
-                  // Add if not focused
-                  newReadFocus.push({
-                    recordWsId: record.id.wsId,
-                    columnWsId: column.id.wsId,
-                  });
-                  addedCount++;
-                }
-              });
+              if (existingIndex >= 0) {
+                // Remove if already focused
+                cellsToRemove.push(cell);
+                removedCount++;
+              } else {
+                // Add if not focused
+                cellsToToggle.push(cell);
+                addedCount++;
+              }
             });
-
-            return newReadFocus;
           });
+
+          // Apply changes
+          if (cellsToToggle.length > 0) {
+            addReadFocus(cellsToToggle);
+          }
+          if (cellsToRemove.length > 0) {
+            removeReadFocus(cellsToRemove);
+          }
 
           if (addedCount > 0 && removedCount > 0) {
             notifications.show({
@@ -779,31 +705,34 @@ const SnapshotTableGrid = ({
           let addedCount = 0;
           let removedCount = 0;
 
-          setWriteFocus((prev) => {
-            const newWriteFocus = [...prev];
+          const cellsToToggle: FocusedCell[] = [];
+          const cellsToRemove: FocusedCell[] = [];
 
-            records.forEach((record) => {
-              columns.forEach((column) => {
-                const cellKey = `${record.id.wsId}-${column.id.wsId}`;
-                const existingIndex = newWriteFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
+          records.forEach((record) => {
+            columns.forEach((column) => {
+              const cell: FocusedCell = { recordWsId: record.id.wsId, columnWsId: column.id.wsId };
+              const cellKey = `${record.id.wsId}-${column.id.wsId}`;
+              const existingIndex = writeFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
 
-                if (existingIndex >= 0) {
-                  // Remove if already focused
-                  newWriteFocus.splice(existingIndex, 1);
-                  removedCount++;
-                } else {
-                  // Add if not focused
-                  newWriteFocus.push({
-                    recordWsId: record.id.wsId,
-                    columnWsId: column.id.wsId,
-                  });
-                  addedCount++;
-                }
-              });
+              if (existingIndex >= 0) {
+                // Remove if already focused
+                cellsToRemove.push(cell);
+                removedCount++;
+              } else {
+                // Add if not focused
+                cellsToToggle.push(cell);
+                addedCount++;
+              }
             });
-
-            return newWriteFocus;
           });
+
+          // Apply changes
+          if (cellsToToggle.length > 0) {
+            addWriteFocus(cellsToToggle);
+          }
+          if (cellsToRemove.length > 0) {
+            removeWriteFocus(cellsToRemove);
+          }
 
           if (addedCount > 0 && removedCount > 0) {
             notifications.show({
@@ -825,14 +754,13 @@ const SnapshotTableGrid = ({
             });
           }
         }
-      } else if (e.key.toLowerCase() === 'c' && e.shiftKey && (readFocus.length > 0 || writeFocus.length > 0)) {
+      } else if (e.key.toLowerCase() === 'c' && e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
 
         // Clear both focus sets when 'Shift+C' is pressed
         const totalCleared = readFocus.length + writeFocus.length;
-        setReadFocus([]);
-        setWriteFocus([]);
+        clearAllFocus();
         notifications.show({
           title: 'All Focus Cleared',
           message: `Cleared ${totalCleared} focused cell(s)`,
@@ -840,7 +768,17 @@ const SnapshotTableGrid = ({
         });
       }
     },
-    [currentSelection, getGetSelectedRecordsAndColumns, readFocus, writeFocus],
+    [
+      currentSelection,
+      getGetSelectedRecordsAndColumns,
+      readFocus,
+      writeFocus,
+      addReadFocus,
+      addWriteFocus,
+      removeReadFocus,
+      removeWriteFocus,
+      clearAllFocus,
+    ],
   );
 
   const onCellContextMenu = useCallback(
@@ -851,7 +789,7 @@ const SnapshotTableGrid = ({
       // Prevent the default browser context menu
       event.preventDefault?.();
 
-      if (isActionsColumn(col) || isRecordStatusColumn(col) || isIdColumn(col)) return;
+      // if (isRecordStatusColumn(col) || isIdColumn(col)) return;
 
       // Use the stored mouse position from the global mouse move handler
       const mouseX = mousePosition?.x || 0;
@@ -864,20 +802,17 @@ const SnapshotTableGrid = ({
         visible: true,
         x: mouseX,
         y: mouseY,
-        col,
-        row,
       });
     },
-    [mousePosition, isActionsColumn, isRecordStatusColumn, isIdColumn],
+    [mousePosition],
   );
 
   const handleContextMenuAction = useCallback(
     async (action: string) => {
       if (!contextMenu) return;
-      const { col, row } = contextMenu;
-      const record = sortedRecords?.[row];
-      const column = table.columns[col - FAKE_LEFT_COLUMNS];
-      if (!record || !column) return;
+
+      // Get the selected records and columns from the current selection
+      getGetSelectedRecordsAndColumns();
 
       if (action === 'Add Read Focus') {
         // Add all selected cells to readFocus (avoid duplicates)
@@ -887,7 +822,7 @@ const SnapshotTableGrid = ({
           const { range } = currentSelection.current;
           for (let r = range.y; r < range.y + range.height; r++) {
             for (let c = range.x; c < range.x + range.width; c++) {
-              if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
+              if (isActionsColumn(c, table.columns.length) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
               const rec = sortedRecords?.[r];
               const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
               if (rec && colObj) {
@@ -900,7 +835,7 @@ const SnapshotTableGrid = ({
             }
           }
         }
-        setReadFocus((prev) => [...prev, ...newCells]);
+        addReadFocus(newCells);
         notifications.show({
           title: 'Read Focus Added',
           message: `Added ${newCells.length} cell(s) to read focus`,
@@ -918,7 +853,7 @@ const SnapshotTableGrid = ({
           const { range } = currentSelection.current;
           for (let r = range.y; r < range.y + range.height; r++) {
             for (let c = range.x; c < range.x + range.width; c++) {
-              if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
+              if (isActionsColumn(c, table.columns.length) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
               const rec = sortedRecords?.[r];
               const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
               if (rec && colObj) {
@@ -931,7 +866,7 @@ const SnapshotTableGrid = ({
             }
           }
         }
-        setWriteFocus((prev) => [...prev, ...newCells]);
+        addWriteFocus(newCells);
         notifications.show({
           title: 'Write Focus Added',
           message: `Added ${newCells.length} cell(s) to write focus`,
@@ -949,7 +884,7 @@ const SnapshotTableGrid = ({
           const { range } = currentSelection.current;
           for (let r = range.y; r < range.y + range.height; r++) {
             for (let c = range.x; c < range.x + range.width; c++) {
-              if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
+              if (isActionsColumn(c, table.columns.length) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
               const rec = sortedRecords?.[r];
               const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
               if (rec && colObj) {
@@ -961,11 +896,7 @@ const SnapshotTableGrid = ({
             }
           }
         }
-        setReadFocus((prev) =>
-          prev.filter(
-            (f) => !cellsToRemove.some((c) => c.recordWsId === f.recordWsId && c.columnWsId === f.columnWsId),
-          ),
-        );
+        removeReadFocus(cellsToRemove);
         notifications.show({
           title: 'Read Focus Removed',
           message: `Removed ${cellsToRemove.length} cell(s) from read focus`,
@@ -983,7 +914,7 @@ const SnapshotTableGrid = ({
           const { range } = currentSelection.current;
           for (let r = range.y; r < range.y + range.height; r++) {
             for (let c = range.x; c < range.x + range.width; c++) {
-              if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
+              if (isActionsColumn(c, table.columns.length) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
               const rec = sortedRecords?.[r];
               const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
               if (rec && colObj) {
@@ -995,11 +926,7 @@ const SnapshotTableGrid = ({
             }
           }
         }
-        setWriteFocus((prev) =>
-          prev.filter(
-            (f) => !cellsToRemove.some((c) => c.recordWsId === f.recordWsId && c.columnWsId === f.columnWsId),
-          ),
-        );
+        removeWriteFocus(cellsToRemove);
         notifications.show({
           title: 'Write Focus Removed',
           message: `Removed ${cellsToRemove.length} cell(s) from write focus`,
@@ -1065,23 +992,50 @@ const SnapshotTableGrid = ({
         return;
       }
 
-      if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
+      // For cell-specific actions, check if only a single cell is selected
+      const isSingleCellSelected =
+        currentSelection?.current &&
+        currentSelection.current.range.width === 1 &&
+        currentSelection.current.range.height === 1;
+
+      if (!isSingleCellSelected) {
+        notifications.show({
+          title: 'Invalid Selection',
+          message: 'This action requires selecting exactly one cell',
+          color: 'yellow',
+        });
+        setContextMenu(null);
         return;
       }
 
-      const columnName = isIdColumn(col) ? 'ID' : table.columns[col - FAKE_LEFT_COLUMNS]?.name;
-      const cellValue = isIdColumn(col)
-        ? record?.id.remoteId
-        : record?.fields[table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId];
+      // Get the single selected cell for cell-specific actions
+      const singleCellRange = currentSelection.current.range;
+      const singleCellCol = singleCellRange.x;
+      const singleCellRow = singleCellRange.y;
+      const singleCellRecord = sortedRecords?.[singleCellRow];
+      const singleCellColumn = table.columns[singleCellCol - FAKE_LEFT_COLUMNS];
+
+      if (
+        isActionsColumn(singleCellCol, table.columns.length) ||
+        isIdColumn(singleCellCol) ||
+        isRecordStatusColumn(singleCellCol)
+      ) {
+        return;
+      }
+
+      const columnName = isIdColumn(singleCellCol) ? 'ID' : singleCellColumn?.name;
+      const cellValue = isIdColumn(singleCellCol)
+        ? singleCellRecord?.id.remoteId
+        : singleCellRecord?.fields[singleCellColumn?.id.wsId];
 
       if (action === 'Accept Cell') {
-        if (!record || isIdColumn(col)) return;
+        if (!singleCellRecord || isIdColumn(singleCellCol)) return;
 
-        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        const columnId = singleCellColumn?.id.wsId;
         if (!columnId) return;
 
         try {
-          await acceptCellValues([{ wsId: record.id.wsId, columnId }]);
+          await acceptCellValues([{ wsId: singleCellRecord.id.wsId, columnId }]);
           notifications.show({
             title: 'Accept Cell',
             message: `Accepted suggestion for "${columnName}"`,
@@ -1096,13 +1050,13 @@ const SnapshotTableGrid = ({
           });
         }
       } else if (action === 'Reject Cell') {
-        if (!record || isIdColumn(col)) return;
+        if (!singleCellRecord || isIdColumn(singleCellCol)) return;
 
-        const columnId = table.columns[col - FAKE_LEFT_COLUMNS]?.id.wsId;
+        const columnId = singleCellColumn?.id.wsId;
         if (!columnId) return;
 
         try {
-          await rejectCellValues([{ wsId: record.id.wsId, columnId }]);
+          await rejectCellValues([{ wsId: singleCellRecord.id.wsId, columnId }]);
           notifications.show({
             title: 'Reject Cell',
             message: `Rejected suggestion for "${columnName}"`,
@@ -1117,10 +1071,10 @@ const SnapshotTableGrid = ({
           });
         }
       } else if (action.startsWith('Accept Record')) {
-        if (!record) return;
+        if (!singleCellRecord) return;
 
         // Get all columns that have suggestions for this record
-        const suggestedValues = record.__suggested_values || {};
+        const suggestedValues = singleCellRecord.__suggested_values || {};
         const columnsWithSuggestions = Object.keys(suggestedValues).filter(
           (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
         );
@@ -1137,7 +1091,7 @@ const SnapshotTableGrid = ({
         try {
           // Create items array for all columns with suggestions
           const items = columnsWithSuggestions.map((columnId) => ({
-            wsId: record.id.wsId,
+            wsId: singleCellRecord.id.wsId,
             columnId,
           }));
 
@@ -1156,10 +1110,10 @@ const SnapshotTableGrid = ({
           });
         }
       } else if (action.startsWith('Reject Record')) {
-        if (!record) return;
+        if (!singleCellRecord) return;
 
         // Get all columns that have suggestions for this record
-        const suggestedValues = record.__suggested_values || {};
+        const suggestedValues = singleCellRecord.__suggested_values || {};
         const columnsWithSuggestions = Object.keys(suggestedValues).filter(
           (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
         );
@@ -1176,7 +1130,7 @@ const SnapshotTableGrid = ({
         try {
           // Create items array for all columns with suggestions
           const items = columnsWithSuggestions.map((columnId) => ({
-            wsId: record.id.wsId,
+            wsId: singleCellRecord.id.wsId,
             columnId,
           }));
 
@@ -1207,23 +1161,21 @@ const SnapshotTableGrid = ({
     },
     [
       contextMenu,
+      getGetSelectedRecordsAndColumns,
+      currentSelection,
       sortedRecords,
       table.columns,
+      table.id.wsId,
+      readFocus,
+      writeFocus,
+      snapshot.id,
+      refreshRecords,
       acceptCellValues,
       rejectCellValues,
-      upsertView,
-      refreshViews,
-      snapshot.id,
-      table.id.wsId,
-      currentViewId,
-      activeView,
-      onViewCreated,
-      currentSelection,
-      readFocus,
-      setReadFocus,
-      notifications,
-      writeFocus,
-      setWriteFocus,
+      addReadFocus,
+      addWriteFocus,
+      removeReadFocus,
+      removeWriteFocus,
     ],
   );
 
@@ -1500,7 +1452,7 @@ const SnapshotTableGrid = ({
             });
 
             // Select the newly created view
-            onViewCreated?.(result.id);
+            setCurrentViewId(result.id);
           }
 
           // Refresh the views list
@@ -1536,108 +1488,20 @@ const SnapshotTableGrid = ({
       table.id.wsId,
       currentViewId,
       activeView,
-      onViewCreated,
+      setCurrentViewId,
     ],
   );
 
   const getContextMenuItems = useCallback(() => {
     if (!contextMenu) return [];
 
-    const { col, row } = contextMenu;
-    const record = sortedRecords?.[row];
+    // Get the selected records and columns from the current selection
+    getGetSelectedRecordsAndColumns();
 
-    if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
-      return [{ label: 'No actions', disabled: true }];
-    }
-
-    const column = table.columns[col - FAKE_LEFT_COLUMNS];
-    if (!column) {
-      return [{ label: 'No actions', disabled: true }];
-    }
-
-    // Check if any selected cells are not in read focus
-    const hasUnfocusedReadCells =
-      currentSelection?.current &&
-      (() => {
-        const { range } = currentSelection.current;
-        for (let r = range.y; r < range.y + range.height; r++) {
-          for (let c = range.x; c < range.x + range.width; c++) {
-            if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
-            const rec = sortedRecords?.[r];
-            const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
-            if (rec && colObj) {
-              const cell: FocusedCell = { recordWsId: rec.id.wsId, columnWsId: colObj.id.wsId };
-              if (!readFocus.some((f) => f.recordWsId === cell.recordWsId && f.columnWsId === cell.columnWsId)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      })();
-
-    // Check if any selected cells are in read focus
-    const hasFocusedReadCells =
-      currentSelection?.current &&
-      (() => {
-        const { range } = currentSelection.current;
-        for (let r = range.y; r < range.y + range.height; r++) {
-          for (let c = range.x; c < range.x + range.width; c++) {
-            if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
-            const rec = sortedRecords?.[r];
-            const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
-            if (rec && colObj) {
-              const cell: FocusedCell = { recordWsId: rec.id.wsId, columnWsId: colObj.id.wsId };
-              if (readFocus.some((f) => f.recordWsId === cell.recordWsId && f.columnWsId === cell.columnWsId)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      })();
-
-    // Check if any selected cells are not in write focus
-    const hasUnfocusedWriteCells =
-      currentSelection?.current &&
-      (() => {
-        const { range } = currentSelection.current;
-        for (let r = range.y; r < range.y + range.height; r++) {
-          for (let c = range.x; c < range.x + range.width; c++) {
-            if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
-            const rec = sortedRecords?.[r];
-            const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
-            if (rec && colObj) {
-              const cell: FocusedCell = { recordWsId: rec.id.wsId, columnWsId: colObj.id.wsId };
-              if (!writeFocus.some((f) => f.recordWsId === cell.recordWsId && f.columnWsId === cell.columnWsId)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      })();
-
-    // Check if any selected cells are in write focus
-    const hasFocusedWriteCells =
-      currentSelection?.current &&
-      (() => {
-        const { range } = currentSelection.current;
-        for (let r = range.y; r < range.y + range.height; r++) {
-          for (let c = range.x; c < range.x + range.width; c++) {
-            if (isActionsColumn(c) || isIdColumn(c) || isRecordStatusColumn(c)) continue;
-            const rec = sortedRecords?.[r];
-            const colObj = table.columns[c - FAKE_LEFT_COLUMNS];
-            if (rec && colObj) {
-              const cell: FocusedCell = { recordWsId: rec.id.wsId, columnWsId: colObj.id.wsId };
-              if (writeFocus.some((f) => f.recordWsId === cell.recordWsId && f.columnWsId === cell.columnWsId)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      })();
+    const hasUnfocusedReadCells = checkSelectedCellsFocus(readFocus, false);
+    const hasFocusedReadCells = checkSelectedCellsFocus(readFocus, true);
+    const hasUnfocusedWriteCells = checkSelectedCellsFocus(writeFocus, false);
+    const hasFocusedWriteCells = checkSelectedCellsFocus(writeFocus, true);
 
     // Conditionally show add/remove items
     const focusItems: Array<{ label: string; disabled: boolean; leftSection?: React.ReactNode; group?: string }> = [];
@@ -1682,90 +1546,89 @@ const SnapshotTableGrid = ({
         label: 'Filter Out Records',
         disabled: false,
         group: FILTERING_GROUP_NAME,
-        leftSection: '🚫',
+        leftSection: ICONS.hidden,
       });
     }
 
-    // Check if there's a suggested value for this specific cell
-    const hasCellSuggestion = !!record?.__suggested_values?.[column.id.wsId];
+    // For cell-specific actions, check if only a single cell is selected
+    const isSingleCellSelected =
+      currentSelection?.current &&
+      currentSelection.current.range.width === 1 &&
+      currentSelection.current.range.height === 1;
 
-    // Check if there are any suggested values for any field in this record
-    const recordSuggestions = record?.__suggested_values ? Object.keys(record.__suggested_values) : [];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const hasRecordSuggestions = recordSuggestions.length > 0;
+    if (isSingleCellSelected) {
+      // Get the single selected cell for cell-specific actions
+      const singleCellRange = currentSelection.current.range;
+      const singleCellCol = singleCellRange.x;
+      const singleCellRow = singleCellRange.y;
+      const singleCellRecord = sortedRecords?.[singleCellRow];
+      const singleCellColumn = table.columns[singleCellCol - FAKE_LEFT_COLUMNS];
+
+      if (
+        singleCellRecord &&
+        singleCellColumn &&
+        !isActionsColumn(singleCellCol, table.columns.length) &&
+        !isIdColumn(singleCellCol) &&
+        !isRecordStatusColumn(singleCellCol)
+      ) {
+        // Check if there's a suggested value for this specific cell
+        const hasCellSuggestion = !!singleCellRecord.__suggested_values?.[singleCellColumn.id.wsId];
+
+        // Check if there are any suggested values for any field in this record
+        const recordSuggestions = singleCellRecord.__suggested_values
+          ? Object.keys(singleCellRecord.__suggested_values)
+          : [];
+        const hasRecordSuggestions = recordSuggestions.length > 0;
+
+        if (hasCellSuggestion) {
+          items.push({
+            label: 'Accept Cell',
+            disabled: false,
+            group: ACCEPT_REJECT_GROUP_NAME,
+            leftSection: <CheckIcon size={MENU_ICON_SIZE} color="#00aa00" />,
+          });
+          items.push({
+            label: 'Reject Cell',
+            disabled: false,
+            group: ACCEPT_REJECT_GROUP_NAME,
+            leftSection: <XIcon size={MENU_ICON_SIZE} color="#ff0000" />,
+          });
+        }
+
+        if (hasRecordSuggestions) {
+          const suggestionCount = recordSuggestions.length;
+          const suggestionText = suggestionCount === 1 ? 'suggestion' : 'suggestions';
+          items.push({
+            label: `Accept Record (${suggestionCount} ${suggestionText})`,
+            disabled: false,
+            group: ACCEPT_REJECT_GROUP_NAME,
+            leftSection: <ListChecksIcon size={MENU_ICON_SIZE} color="#00aa00" />,
+          });
+          items.push({
+            label: `Reject Record (${suggestionCount} ${suggestionText})`,
+            disabled: false,
+            group: ACCEPT_REJECT_GROUP_NAME,
+            leftSection: <ListBulletsIcon size={MENU_ICON_SIZE} color="#ff0000" />,
+          });
+        }
+      }
+    }
 
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
 
-    return items.concat(
-      [
-        ...(() => {
-          const extraItems = [];
-          if (hasCellSuggestion) {
-            extraItems.push({
-              label: 'Accept Cell',
-              disabled: false,
-              group: ACCEPT_REJECT_GROUP_NAME,
-              leftSection: <CheckIcon size={MENU_ICON_SIZE} color="#00aa00" />,
-            });
-            extraItems.push({
-              label: 'Reject Cell',
-              disabled: false,
-              group: ACCEPT_REJECT_GROUP_NAME,
-              leftSection: <XIcon size={MENU_ICON_SIZE} color="#ff0000" />,
-            });
-          }
-          const recordSuggestions = record?.__suggested_values ? Object.keys(record.__suggested_values) : [];
-          const hasRecordSuggestions = recordSuggestions.length > 0;
-          if (hasRecordSuggestions) {
-            const suggestionCount = recordSuggestions.length;
-            const suggestionText = suggestionCount === 1 ? 'suggestion' : 'suggestions';
-            extraItems.push({
-              label: `Accept Record (${suggestionCount} ${suggestionText})`,
-              disabled: false,
-              group: ACCEPT_REJECT_GROUP_NAME,
-              leftSection: <ListChecksIcon size={MENU_ICON_SIZE} color="#00aa00" />,
-            });
-            extraItems.push({
-              label: `Reject Record (${suggestionCount} ${suggestionText})`,
-              disabled: false,
-              group: ACCEPT_REJECT_GROUP_NAME,
-              leftSection: <ListBulletsIcon size={MENU_ICON_SIZE} color="#ff0000" />,
-            });
-          }
-          // TODO: records field moved to different entity - temporarily disable record actions
-          // const tableConfig = activeView?.config[table.id.wsId];
-          // const tableDefaults = {
-          //   visible: tableConfig?.visible !== false,
-          //   editable: tableConfig?.editable !== false,
-          // };
-          // const recordConfig = tableConfig?.records?.find((r: { wsId: string }) => r.wsId === record?.id.wsId);
-          // const hasRecordVisibleOverride = recordConfig && recordConfig.visible !== undefined;
-          // const hasRecordEditableOverride = recordConfig && recordConfig.editable !== undefined;
-          // if (hasRecordVisibleOverride) {
-          //   extraItems.push({ label: 'Unset Record Visibility', disabled: false, group: FILTERING_GROUP_NAME });
-          // } else {
-          //   extraItems.push({
-          //     label: `Make Record ${tableDefaults.visible ? 'Hidden' : 'Visible'}`,
-          //     disabled: false,
-          //     group: FILTERING_GROUP_NAME,
-          //   });
-          // }
-          // if (hasRecordEditableOverride) {
-          //   extraItems.push({ label: 'Unset Record Editability', disabled: false, group: FILTERING_GROUP_NAME });
-          // } else {
-          //   extraItems.push({
-          //     label: `Make Record ${tableDefaults.editable ? 'Locked' : 'Editable'}`,
-          //     disabled: false,
-          //     group: FILTERING_GROUP_NAME,
-          //   });
-          // }
-          return extraItems;
-        })(),
-      ].flat(),
-    );
-  }, [contextMenu, sortedRecords, table.columns, isActionsColumn, isRecordStatusColumn, activeView, table.id.wsId]);
+    return items;
+  }, [
+    contextMenu,
+    sortedRecords,
+    table.columns,
+    currentSelection,
+    readFocus,
+    writeFocus,
+    getGetSelectedRecordsAndColumns,
+    checkSelectedCellsFocus,
+  ]);
 
   const getHeaderMenuItems = useCallback((): Array<{
     label: string;
@@ -1777,7 +1640,7 @@ const SnapshotTableGrid = ({
 
     const { col } = headerMenu;
 
-    if (isActionsColumn(col) || isIdColumn(col) || isRecordStatusColumn(col)) {
+    if (isActionsColumn(col, table.columns.length) || isIdColumn(col) || isRecordStatusColumn(col)) {
       return [{ label: 'No actions', disabled: true }];
     }
 
@@ -1827,7 +1690,7 @@ const SnapshotTableGrid = ({
         label: 'Hide Column',
         disabled: false,
         group: COLUMN_VIEW_GROUP_NAME,
-        leftSection: '🚫',
+        leftSection: ICONS.hidden,
       });
     }
     // Protect/Unprotect
@@ -1836,14 +1699,14 @@ const SnapshotTableGrid = ({
         label: 'Unprotect Column',
         disabled: false,
         group: COLUMN_VIEW_GROUP_NAME,
-        leftSection: '✏️',
+        leftSection: ICONS.editable,
       });
     } else {
       items.push({
         label: 'Protect Column',
         disabled: false,
         group: COLUMN_VIEW_GROUP_NAME,
-        leftSection: '🔒',
+        leftSection: ICONS.protected,
       });
     }
 
@@ -1852,7 +1715,7 @@ const SnapshotTableGrid = ({
     }
 
     return items;
-  }, [headerMenu, sortedRecords, table.columns, isActionsColumn, isRecordStatusColumn, activeView, table.id.wsId]);
+  }, [headerMenu, sortedRecords, table.columns, activeView, table.id.wsId]);
 
   const columns: GridColumn[] = useMemo(() => {
     const baseColumns: GridColumn[] = table.columns.map((c) => {
@@ -1869,13 +1732,13 @@ const SnapshotTableGrid = ({
 
           // Only show hidden icon if explicitly set
           if ('hidden' in columnConfig) {
-            const hiddenIcon = columnConfig.hidden ? '🚫' : '👁️';
+            const hiddenIcon = columnConfig.hidden ? ICONS.hidden : ICONS.visible;
             icons += hiddenIcon;
           }
 
           // Only show protected icon if explicitly set
           if ('protected' in columnConfig) {
-            const protectedIcon = columnConfig.protected ? '🔒' : '✏️';
+            const protectedIcon = columnConfig.protected ? ICONS.protected : ICONS.editable;
             icons += protectedIcon;
           }
 
@@ -1931,7 +1794,7 @@ const SnapshotTableGrid = ({
 
     console.debug('Columns created:', result);
     return result;
-  }, [table.columns, sort, columnWidths, getColumnStatus, activeView, getRecordStatus, currentViewId]);
+  }, [table.columns, sort, columnWidths, getColumnStatus, activeView, getRecordStatus, currentViewId, getColumnIcon]);
 
   if (error) {
     return (
@@ -2442,27 +2305,5 @@ const SnapshotTableGrid = ({
     </>
   );
 };
-
-function titleWithSort(column: ColumnSpec, sort: SortState | undefined) {
-  if (sort?.columnId !== column.id.wsId) {
-    return column.name;
-  }
-  const icon = sort.dir === 'asc' ? '🔼' : '🔽';
-  return `${column.name} ${icon}`;
-}
-
-function getSelectedRowCount(currentSelection: GridSelection | undefined) {
-  if (!currentSelection) return 0;
-
-  if (currentSelection.current) {
-    return currentSelection.current.range.height;
-  }
-
-  if (currentSelection.rows) {
-    return currentSelection.rows.length;
-  }
-
-  return 0;
-}
 
 export default SnapshotTableGrid;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
@@ -53,8 +54,6 @@ interface AIChatPanelProps {
   onClose: () => void;
   snapshotId?: string;
   currentViewId?: string | null;
-  readFocus?: FocusedCell[];
-  writeFocus?: FocusedCell[];
 }
 
 interface AgentErrorResponse {
@@ -63,14 +62,7 @@ interface AgentErrorResponse {
 
 const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
 
-export default function AIChatPanel({
-  isOpen,
-  onClose,
-  snapshotId,
-  currentViewId,
-  readFocus,
-  writeFocus,
-}: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<ChatSession | null>(null);
@@ -84,6 +76,7 @@ export default function AIChatPanel({
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
+  const { readFocus, writeFocus } = useFocusedCellsContext();
 
   // Get user data including API token
   const { user } = useScratchPadUser();

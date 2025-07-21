@@ -1,6 +1,6 @@
 'use client';
 
-import { useViews } from '@/hooks/use-view';
+import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { viewApi } from '@/lib/api/view';
 import { ColumnView } from '@/types/server-entities/view';
 import { ActionIcon, Box, Button, Checkbox, Group, Loader, Modal, Select, Text, TextInput } from '@mantine/core';
@@ -8,15 +8,12 @@ import { notifications } from '@mantine/notifications';
 import { BugIcon, FloppyDiskIcon, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
+import { useFocusedCellsContext } from '../FocusedCellsContext';
+import { ICONS } from '../icons';
 
 interface ViewDataProps {
-  snapshotId: string;
   currentViewId?: string | null;
   onViewChange?: (viewId: string | null) => void;
-  readFocus?: Array<{ recordWsId: string; columnWsId: string }>;
-  writeFocus?: Array<{ recordWsId: string; columnWsId: string }>;
-  onClearReadFocus?: () => void;
-  onClearWriteFocus?: () => void;
   filterToView?: boolean;
   onFilterToViewChange?: (filterToView: boolean) => void;
   filteredRecordsCount?: number;
@@ -24,19 +21,16 @@ interface ViewDataProps {
 }
 
 export const ViewData = ({
-  snapshotId,
   currentViewId,
   onViewChange,
-  readFocus = [],
-  writeFocus = [],
-  onClearReadFocus,
-  onClearWriteFocus,
   filterToView = false,
   onFilterToViewChange,
   filteredRecordsCount = 0,
   onClearFilter,
 }: ViewDataProps) => {
-  const { views, isLoading, error, refreshViews } = useViews(snapshotId);
+  const { views, isLoading, error, refreshViews, snapshot } = useSnapshotContext();
+  const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useFocusedCellsContext();
+  const snapshotId = snapshot?.id;
   const [debugView, setDebugView] = useState<
     ColumnView | { readFocus: typeof readFocus; writeFocus: typeof writeFocus } | null
   >(null);
@@ -70,7 +64,7 @@ export const ViewData = ({
   };
 
   const handleRenameWithName = async () => {
-    if (!currentView || !viewName.trim()) return;
+    if (!currentView || !viewName.trim() || !snapshotId) return;
 
     setRenaming(true);
     try {
@@ -89,7 +83,7 @@ export const ViewData = ({
 
       setRenameModalOpen(false);
       setViewName('');
-      await refreshViews();
+      await refreshViews?.();
     } catch (error) {
       console.error('Error renaming view:', error);
       notifications.show({
@@ -117,7 +111,7 @@ export const ViewData = ({
 
       setDeleteModalOpen(false);
       onViewChange?.(null); // Clear the current view selection
-      await refreshViews();
+      await refreshViews?.();
     } catch (error) {
       console.error('Error deleting view:', error);
       notifications.show({
@@ -220,7 +214,7 @@ export const ViewData = ({
             size="xs"
             variant="light"
             color="blue"
-            onClick={onClearReadFocus}
+            onClick={clearReadFocus}
             disabled={readFocus.length === 0}
             title={readFocus.length > 0 ? `Clear ${readFocus.length} read focused cell(s)` : 'No read focused cells'}
           >
@@ -230,7 +224,7 @@ export const ViewData = ({
             size="xs"
             variant="light"
             color="orange"
-            onClick={onClearWriteFocus}
+            onClick={clearWriteFocus}
             disabled={writeFocus.length === 0}
             title={
               writeFocus.length > 0 ? `Clear ${writeFocus.length} write focused cell(s)` : 'No write focused cells'
@@ -258,7 +252,7 @@ export const ViewData = ({
         {filteredRecordsCount > 0 && (
           <Group gap="xs" align="center">
             <Text size="sm" fw={500} c="red">
-              🚫 {filteredRecordsCount} record{filteredRecordsCount === 1 ? '' : 's'} filtered
+              {ICONS.hidden} {filteredRecordsCount} record{filteredRecordsCount === 1 ? '' : 's'} filtered
             </Text>
             <Button size="xs" variant="light" color="red" onClick={onClearFilter} disabled={filteredRecordsCount === 0}>
               Clear Filter

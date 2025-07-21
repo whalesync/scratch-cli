@@ -1,15 +1,13 @@
-import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
+import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { TableSpec } from '@/types/server-entities/snapshot';
 import { useState } from 'react';
+import { useFocusedCellsContext } from '../FocusedCellsContext';
 import { RecordView } from './RecordView';
-import SnapshotTableGrid from './SnapshotTableGrid';
-import { FocusedCell } from './types';
+import SnapshotTableGrid from './snapshot-table/SnapshotTableGrid';
 
 interface TableContentProps {
-  snapshot: Snapshot;
   table: TableSpec;
   currentViewId: string | null;
-  onViewCreated: (viewId: string) => void;
-  onFocusedCellsChange: (readFocus: FocusedCell[], writeFocus: FocusedCell[]) => void;
   filterToView: boolean;
   onFilteredRecordsCountChange?: (count: number) => void;
 }
@@ -20,14 +18,13 @@ interface ActiveRecord {
 }
 
 export const TableContent = ({
-  snapshot,
   table,
   currentViewId,
-  onViewCreated,
-  onFocusedCellsChange,
   filterToView,
   onFilteredRecordsCountChange,
 }: TableContentProps) => {
+  const { snapshot } = useSnapshotContext();
+  const { setWriteFocus } = useFocusedCellsContext();
   const [currentView, setCurrentView] = useState<string | null>('spreadsheet');
   const [currentRecord, setCurrentRecord] = useState<ActiveRecord>({ recordId: undefined, columnId: undefined });
 
@@ -36,9 +33,13 @@ export const TableContent = ({
     setCurrentRecord({ recordId, columnId });
 
     if (view === 'record' && recordId && columnId) {
-      onFocusedCellsChange([], [{ recordWsId: recordId, columnWsId: columnId }]);
+      setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
     }
   };
+
+  if (!snapshot) {
+    return null; // or a loading state
+  }
 
   if (currentView === 'spreadsheet') {
     return (
@@ -47,8 +48,6 @@ export const TableContent = ({
         table={table}
         currentViewId={currentViewId}
         onSwitchToRecordView={(recordId: string, columnId?: string) => handleSwitchView('record', recordId, columnId)}
-        onViewCreated={onViewCreated}
-        onFocusedCellsChange={onFocusedCellsChange}
         filterToView={filterToView}
         onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
@@ -56,13 +55,10 @@ export const TableContent = ({
   } else {
     return (
       <RecordView
-        snapshot={snapshot}
         table={table}
         onSwitchToSpreadsheetView={() => handleSwitchView('spreadsheet')}
         initialColumnId={currentRecord.columnId}
         initialRecordId={currentRecord.recordId}
-        onFocusedCellsChange={onFocusedCellsChange}
-        currentViewId={currentViewId}
         filterToView={filterToView}
         onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
