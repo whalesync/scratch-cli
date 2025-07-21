@@ -2,9 +2,12 @@
 
 import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
+import { snapshotApi } from '@/lib/api/snapshot';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
+import { notifications } from '@mantine/notifications';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { useSWRConfig } from 'swr';
 
 interface SnapshotContextValue {
   snapshot: Snapshot | undefined;
@@ -19,6 +22,9 @@ interface SnapshotContextValue {
   createView: (config: ViewConfig, name?: string) => Promise<string>;
   selectView: (viewId: string | null) => void;
   updateTableInCurrentView: (tableId: string, tableConfig: Record<string, unknown>) => Promise<void>;
+  // Filter management
+  // filteredRecordsCount: number;
+  clearActiveRecordFilter: (tableId: string) => Promise<void>;
 }
 
 const SnapshotContext = createContext<SnapshotContextValue | undefined>(undefined);
@@ -33,6 +39,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
   const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
   const { upsertView } = useUpsertView();
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
+  const { mutate } = useSWRConfig();
 
   // Get the current view based on currentViewId
   const currentView = views?.find((v) => v.id === currentViewId);
@@ -85,6 +92,38 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     [snapshot, currentView, upsertView, refreshViews],
   );
 
+  const clearActiveRecordFilter = useCallback(
+    async (tableId: string) => {
+      if (!snapshot) return;
+
+      try {
+        await snapshotApi.clearActiveRecordFilter(snapshot.id, tableId);
+        notifications.show({
+          title: 'Filter Cleared',
+          message: 'All records are now visible',
+          color: 'green',
+        });
+
+        // Invalidate records cache to refresh the data
+        mutate(
+          (key) => Array.isArray(key) && key[0] === 'snapshot' && key[1] === 'records' && key[2] === snapshot.id,
+          undefined,
+          {
+            revalidate: true,
+          },
+        );
+      } catch (e) {
+        const error = e as Error;
+        notifications.show({
+          title: 'Error clearing filter',
+          message: error.message,
+          color: 'red',
+        });
+      }
+    },
+    [snapshot, mutate],
+  );
+
   const value: SnapshotContextValue = {
     snapshot,
     views,
@@ -98,6 +137,8 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     createView,
     selectView,
     updateTableInCurrentView,
+    // Filter management
+    clearActiveRecordFilter,
   };
 
   return <SnapshotContext.Provider value={value}>{children}</SnapshotContext.Provider>;

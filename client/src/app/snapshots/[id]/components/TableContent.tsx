@@ -9,7 +9,6 @@ interface TableContentProps {
   table: TableSpec;
   currentViewId: string | null;
   filterToView: boolean;
-  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 interface ActiveRecord {
@@ -17,12 +16,7 @@ interface ActiveRecord {
   columnId: string | undefined;
 }
 
-export const TableContent = ({
-  table,
-  currentViewId,
-  filterToView,
-  onFilteredRecordsCountChange,
-}: TableContentProps) => {
+export const TableContent = ({ table, currentViewId, filterToView }: TableContentProps) => {
   const { snapshot } = useSnapshotContext();
   const { setWriteFocus } = useFocusedCellsContext();
   const [currentView, setCurrentView] = useState<string | null>('spreadsheet');
@@ -49,7 +43,6 @@ export const TableContent = ({
         currentViewId={currentViewId}
         onSwitchToRecordView={(recordId: string, columnId?: string) => handleSwitchView('record', recordId, columnId)}
         filterToView={filterToView}
-        onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
     );
   } else {
@@ -60,7 +53,6 @@ export const TableContent = ({
         initialColumnId={currentRecord.columnId}
         initialRecordId={currentRecord.recordId}
         filterToView={filterToView}
-        onFilteredRecordsCountChange={onFilteredRecordsCountChange}
       />
     );
   }

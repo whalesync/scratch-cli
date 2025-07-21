@@ -9,15 +9,13 @@ import { BugIcon, FloppyDiskIcon, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 import { useFocusedCellsContext } from '../FocusedCellsContext';
-import { ICONS } from '../icons';
 
 interface ViewDataProps {
   currentViewId?: string | null;
   onViewChange?: (viewId: string | null) => void;
   filterToView?: boolean;
   onFilterToViewChange?: (filterToView: boolean) => void;
-  filteredRecordsCount?: number;
-  onClearFilter?: () => void;
+  currentTableId?: string | null;
 }
 
 export const ViewData = ({
@@ -25,10 +23,9 @@ export const ViewData = ({
   onViewChange,
   filterToView = false,
   onFilterToViewChange,
-  filteredRecordsCount = 0,
-  onClearFilter,
+  currentTableId,
 }: ViewDataProps) => {
-  const { views, isLoading, error, refreshViews, snapshot } = useSnapshotContext();
+  const { views, isLoading, error, refreshViews, snapshot, clearActiveRecordFilter } = useSnapshotContext();
   const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useFocusedCellsContext();
   const snapshotId = snapshot?.id;
   const [debugView, setDebugView] = useState<
@@ -249,16 +246,21 @@ export const ViewData = ({
         </Text>
 
         {/* Filtered Records Count */}
-        {filteredRecordsCount > 0 && (
-          <Group gap="xs" align="center">
-            <Text size="sm" fw={500} c="red">
-              {ICONS.hidden} {filteredRecordsCount} record{filteredRecordsCount === 1 ? '' : 's'} filtered
-            </Text>
-            <Button size="xs" variant="light" color="red" onClick={onClearFilter} disabled={filteredRecordsCount === 0}>
-              Clear Filter
-            </Button>
-          </Group>
-        )}
+        {/* {filteredRecordsCount > 0 && ( */}
+        <Group gap="xs" align="center">
+          <Text size="sm" fw={500} c="red">
+            ? filtered
+          </Text>
+          <Button
+            size="xs"
+            variant="light"
+            color="red"
+            onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
+          >
+            Clear Filter
+          </Button>
+        </Group>
+        {/* )} */}
       </Group>
 
       {/* Rename Modal */}

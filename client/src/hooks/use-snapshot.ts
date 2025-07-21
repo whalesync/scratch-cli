@@ -4,11 +4,10 @@ import { snapshotApi } from "@/lib/api/snapshot";
 import {
   CreateSnapshotDto,
   SnapshotRecord,
-  SnapshotTableView,
 } from "@/types/server-entities/snapshot";
 import { SnapshotEventPayload, SnapshotRecordEventPayload } from "@/types/server-entities/sse";
 import { EventSourceMessage } from "@microsoft/fetch-event-source";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
   BulkUpdateRecordsDto,
@@ -111,11 +110,10 @@ export const useSnapshotRecords = (args: {
   tableId: string,
   cursor?: string,
   take?: number,
-  activeView?: SnapshotTableView,
   viewId?: string
 }) => {
   const {user} = useScratchPadUser();
-  const { snapshotId, tableId, cursor, take, activeView, viewId } = args;
+  const { snapshotId, tableId, cursor, take, viewId } = args;
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
 
   const { mutate } = useSWRConfig();
@@ -264,34 +262,25 @@ export const useSnapshotRecords = (args: {
     [snapshotId, tableId, mutate, swrKey]
   );
 
-  const recordsResponse = useMemo(() => {
-    if (!data) {
-      return undefined;
-    }
+  // const recordsResponse = useMemo(() => {
+  //   if (!data) {
+  //     return undefined;
+  //   }
 
-    if (activeView) {
-      // mark records that are not in the active view as filtered
-      return {
-        ...data,
-        records: data.records.map((r) => ({...r, filtered: !activeView.recordIds.includes(r.id.wsId)})),
-      };
-    }
-    else{
-      return {
-        ...data,
-        records: data.records.map((r) => ({...r, filtered: false})),
-      };
-    }
-  }, [data, activeView]);
+  //   return {
+  //     ...data,
+  //     records: data.records.map((r) => ({...r, filtered: false})),
+  //   };
+  // }, [data]);
 
   return {
-    recordsResponse,
+    records: data?.records ?? undefined,
     isLoading,
     error,
     bulkUpdateRecords,
     refreshRecords,
     acceptCellValues,
     rejectCellValues,
-    filteredRecordsCount: data?.filteredRecordsCount || 0,
+    filteredRecordsInTableCount: data?.filteredRecordsCount || 0,
   };
 };

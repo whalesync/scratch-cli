@@ -45,7 +45,7 @@ import {
   PlusIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSnapshotRecords } from '../../../../../hooks/use-snapshot';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { useFocusedCellsContext } from '../../FocusedCellsContext';
@@ -57,7 +57,7 @@ import {
   FILTERING_GROUP_NAME,
   FOCUS_GROUP_NAME,
   MENU_ICON_SIZE,
-} from './context-menus/constants';
+} from './contextMenu.ts/constants';
 import {
   FAKE_LEFT_COLUMNS,
   getColumnIcon,
@@ -77,7 +77,6 @@ interface SnapshotTableGridProps {
   currentViewId?: string | null;
   onSwitchToRecordView: (recordId: string, columnId?: string) => void;
   filterToView: boolean;
-  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 const generatePendingId = (): string => {
@@ -97,7 +96,6 @@ const SnapshotTableGrid = ({
   currentViewId,
   onSwitchToRecordView,
   filterToView,
-  onFilteredRecordsCountChange,
 }: SnapshotTableGridProps) => {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [sort, setSort] = useState<SortState | undefined>();
@@ -123,45 +121,25 @@ const SnapshotTableGrid = ({
 
   const activeView = currentView;
 
-  const {
-    recordsResponse,
-    isLoading,
-    error,
-    bulkUpdateRecords,
-    acceptCellValues,
-    rejectCellValues,
-    filteredRecordsCount,
-    refreshRecords,
-  } = useSnapshotRecords({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-    viewId: filterToView && activeView ? activeView.id : undefined,
-  });
+  const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues, refreshRecords } =
+    useSnapshotRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      viewId: filterToView && activeView ? activeView.id : undefined,
+    });
 
   const { upsertView } = useUpsertView();
 
-  // Notify parent component when filtered records count changes
-  useEffect(() => {
-    if (onFilteredRecordsCountChange) {
-      onFilteredRecordsCountChange(filteredRecordsCount);
-    }
-  }, [filteredRecordsCount, onFilteredRecordsCountChange]);
-
   const sortedRecords = useMemo(() => {
-    if (!recordsResponse?.records) return undefined;
+    if (!records) return undefined;
 
     if (!sort) {
-      // sort filtered last
-      return recordsResponse.records.sort((a, b) => {
-        if (a.filtered && !b.filtered) return 1;
-        if (!a.filtered && b.filtered) return -1;
-        return 0;
-      });
+      return records;
     }
 
     const { columnId, dir } = sort;
 
-    const sortedOthers = recordsResponse.records.sort((a, b) => {
+    const sortedOthers = records.sort((a, b) => {
       const aVal = a.fields[columnId];
       const bVal = b.fields[columnId];
 
@@ -181,39 +159,8 @@ const SnapshotTableGrid = ({
       return 0;
     });
 
-    // resort by filtered last
-    return sortedOthers.sort((a, b) => {
-      if (a.filtered && !b.filtered) return 1;
-      if (!a.filtered && b.filtered) return -1;
-      return 0;
-    });
-  }, [recordsResponse?.records, sort]);
-
-  const getColumnStatus = useCallback(
-    (columnId: string) => {
-      if (!activeView || !activeView.config[table.id.wsId]) {
-        return { hidden: false, protected: false }; // Default to not hidden and not protected if not in view
-      }
-
-      const tableConfig = activeView.config[table.id.wsId];
-      const columnConfig = tableConfig.columns?.find((c: { wsId: string }) => c.wsId === columnId);
-
-      if (!columnConfig) {
-        return { hidden: false, protected: false }; // Default to not hidden and not protected if not specified
-      }
-
-      return {
-        hidden: columnConfig.hidden === true, // Default to false if not set
-        protected: columnConfig.protected === true, // Default to false if not set
-      };
-    },
-    [activeView, table.id.wsId],
-  );
-
-  const getRecordStatus = useCallback(() => {
-    // TODO: records field moved to different entity - temporarily return defaults
-    return { visible: true, editable: true }; // Default to visible and editable for now
-  }, []);
+    return sortedOthers;
+  }, [records, sort]);
 
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -263,7 +210,7 @@ const SnapshotTableGrid = ({
       const isHovered = hoveredRow === row;
       const isDeleted = !!editedFields?.__deleted;
       const isSuggestedDeleted = !!suggestedValues?.__deleted;
-      const isFiltered = record?.filtered;
+      // const isFiltered = record?.filtered;
 
       // Check if this cell is focused
       const isFocused =
@@ -347,11 +294,11 @@ const SnapshotTableGrid = ({
         }
 
         // Text color logic for ID column
-        if (isFiltered) {
-          themeOverride.textDark = '#cacaca';
-        } else if (isSuggestedDeleted) {
-          themeOverride.textDark = '#b8860b'; // Yellow text for suggested deletions
-        }
+        // if (isFiltered) {
+        //   themeOverride.textDark = '#cacaca';
+        // } else if (isSuggestedDeleted) {
+        // }
+        themeOverride.textDark = '#b8860b'; // Yellow text for suggested deletions
 
         return {
           kind: GridCellKind.Text,
@@ -382,10 +329,7 @@ const SnapshotTableGrid = ({
         themeOverride.bgCell = '#e0fde0'; // Green for edited fields
       }
 
-      // Text color logic (independent of background)
-      if (isFiltered) {
-        themeOverride.textDark = '#cacaca';
-      } else if (suggestedValue || isSuggestedDeleted) {
+      if (suggestedValue || isSuggestedDeleted) {
         themeOverride.textDark = '#b8860b'; // Yellow text for suggested values/deletions
       }
 
@@ -1794,7 +1738,7 @@ const SnapshotTableGrid = ({
 
     console.debug('Columns created:', result);
     return result;
-  }, [table.columns, sort, columnWidths, getColumnStatus, activeView, getRecordStatus, currentViewId, getColumnIcon]);
+  }, [table.columns, table.id.wsId, sort, activeView, columnWidths]);
 
   if (error) {
     return (
@@ -1804,7 +1748,7 @@ const SnapshotTableGrid = ({
     );
   }
 
-  if (isLoading && !recordsResponse) {
+  if (isLoading && !records) {
     return (
       <Center h="100%">
         <Loader />

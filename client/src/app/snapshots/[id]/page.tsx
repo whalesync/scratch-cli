@@ -37,7 +37,6 @@ import AIChatPanel from '../../components/AIChatPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
-import { useSWRConfig } from 'swr';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
@@ -51,44 +50,15 @@ function SnapshotPageContent() {
 
   const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-  const { mutate } = useSWRConfig();
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
   const [filterToView, setFilterToView] = useState(false);
-  const [filteredRecordsCount, setFilteredRecordsCount] = useState(0);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
 
   const [showChat, setShowChat] = useState(true);
-
-  const handleClearFilter = async () => {
-    if (!selectedTable) return;
-
-    try {
-      await snapshotApi.clearActiveRecordFilter(id, selectedTable.id.wsId);
-      notifications.show({
-        title: 'Filter Cleared',
-        message: 'All records are now visible',
-        color: 'green',
-      });
-      // Force immediate update of the filtered count
-      setFilteredRecordsCount(0);
-
-      // Invalidate records cache to refresh the data
-      mutate((key) => Array.isArray(key) && key[0] === 'snapshot' && key[1] === 'records' && key[2] === id, undefined, {
-        revalidate: true,
-      });
-    } catch (e) {
-      const error = e as Error;
-      notifications.show({
-        title: 'Error clearing filter',
-        message: error.message,
-        color: 'red',
-      });
-    }
-  };
 
   useEffect(() => {
     if (!selectedTableId) {
@@ -374,8 +344,7 @@ function SnapshotPageContent() {
               onViewChange={setCurrentViewId}
               filterToView={filterToView}
               onFilterToViewChange={setFilterToView}
-              filteredRecordsCount={filteredRecordsCount}
-              onClearFilter={handleClearFilter}
+              currentTableId={selectedTableId}
             />
 
             <Tabs
@@ -396,12 +365,7 @@ function SnapshotPageContent() {
               </Tabs.List>
             </Tabs>
             {selectedTable && (
-              <TableContent
-                table={selectedTable}
-                currentViewId={currentViewId}
-                filterToView={filterToView}
-                onFilteredRecordsCountChange={setFilteredRecordsCount}
-              />
+              <TableContent table={selectedTable} currentViewId={currentViewId} filterToView={filterToView} />
             )}
           </Stack>
 

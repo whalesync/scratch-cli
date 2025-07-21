@@ -13,7 +13,6 @@ interface RecordViewProps {
   initialColumnId?: string;
   onSwitchToSpreadsheetView: () => void;
   filterToView?: boolean;
-  onFilteredRecordsCountChange?: (count: number) => void;
 }
 
 export const RecordView = ({
