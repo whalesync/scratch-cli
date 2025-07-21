@@ -1,4 +1,4 @@
-import { DebouncedTextArea } from '@/app/components/DebouncedTextArea';
+import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Button, Checkbox, Group, Loader, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
@@ -40,9 +40,9 @@ export const RecordDetails = ({
     [setCurrentTextSelection],
   );
 
-  const handleTextAreaCursorChange = useCallback((cursor: { start: number; end: number }) => {
-    console.debug('new cursor position', cursor);
-  }, []);
+  // const handleTextAreaCursorChange = useCallback((cursor: { start: number; end: number }) => {
+  //   console.debug('new cursor position', cursor);
+  // }, []);
 
   const updateField = useCallback(
     async (field: string, value: string) => {
@@ -74,7 +74,14 @@ export const RecordDetails = ({
   );
 
   const fieldToInput = useCallback(
-    (record: SnapshotRecord, field: string, table: TableSpec, focusedView?: boolean, hasEditedValue?: boolean) => {
+    (
+      record: SnapshotRecord,
+      field: string,
+      table: TableSpec,
+      focusedView?: boolean,
+      hasEditedValue?: boolean,
+      hasSuggestion?: boolean,
+    ) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
       if (!record) return null;
@@ -93,11 +100,11 @@ export const RecordDetails = ({
         column.pgType === PostgresColumnType.JSONB ||
         (column.pgType === PostgresColumnType.TEXT && value && value.length > 200)
       ) {
-        if (focusedView) {
+        if (focusedView && !hasSuggestion) {
           // the text area should try and fill the full height of the parent stack
           return (
             <>
-              <DebouncedTextArea
+              <EnhancedTextArea
                 key={field}
                 label={column.name}
                 value={value || ''}
@@ -117,9 +124,9 @@ export const RecordDetails = ({
                 }}
                 h="95%"
                 onSelectionChange={handleTextSelectionChange}
-                onCursorChange={handleTextAreaCursorChange}
+                // onCursorChange={handleTextAreaCursorChange}
               />
-              {currentTextSelection && currentTextSelection.text.length > 0 && (
+              {currentTextSelection && (
                 <Text size="xs" c="dimmed">
                   Selected: {currentTextSelection.text.length} characters
                 </Text>
@@ -129,7 +136,7 @@ export const RecordDetails = ({
         } else {
           return (
             <>
-              <DebouncedTextArea
+              <EnhancedTextArea
                 key={field}
                 label={column.name}
                 value={value || ''}
@@ -141,9 +148,9 @@ export const RecordDetails = ({
                 readOnly={column.readonly}
                 styles={greenBackgroundStyle}
                 onSelectionChange={handleTextSelectionChange}
-                onCursorChange={handleTextAreaCursorChange}
+                // onCursorChange={handleTextAreaCursorChange}
               />
-              {currentTextSelection && currentTextSelection.text.length > 0 && (
+              {currentTextSelection && (
                 <Text size="xs" c="dimmed">
                   Selected: {currentTextSelection.text.length} characters
                 </Text>
@@ -185,7 +192,7 @@ export const RecordDetails = ({
       ) {
         return (
           <>
-            <DebouncedTextArea
+            <EnhancedTextArea
               key={field}
               label={column.name}
               value={value ?? ''}
@@ -197,7 +204,7 @@ export const RecordDetails = ({
               styles={greenBackgroundStyle}
               resize="vertical"
               onSelectionChange={handleTextSelectionChange}
-              onCursorChange={handleTextAreaCursorChange}
+              // onCursorChange={handleTextAreaCursorChange}
             />
             {currentTextSelection && currentTextSelection.text.length > 0 && (
               <Text size="xs" c="dimmed">
@@ -286,8 +293,8 @@ export const RecordDetails = ({
       const hasEditedValue = !!currentRecord.__edited_fields?.[field];
 
       return (
-        <Stack key={field} gap="xs" h="100%">
-          {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue)}
+        <Stack key={field} gap="xs" h={focusedView ? '100%' : 'auto'}>
+          {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
           {hasSuggestion && (
             <>
               <Group gap="xs" justify="center">
@@ -366,7 +373,14 @@ export const RecordDetails = ({
       <Group justify="space-between" align="center">
         <Group gap="xs">
           <Text>Record Details</Text>
-          {saving && <Loader size="xs" ml="auto" />}
+          {saving && (
+            <Group gap="3px" ml="auto">
+              <Loader size="xs" />
+              <Text size="xs" c="dimmed">
+                Saving...
+              </Text>
+            </Group>
+          )}
         </Group>
         <Group gap="md">
           {!currentColumn && (

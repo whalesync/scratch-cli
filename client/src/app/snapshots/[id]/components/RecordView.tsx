@@ -133,9 +133,9 @@ export const RecordView = ({
         </Stack>
         <Divider orientation="vertical" w={10} />
         <Stack h="100%" gap="xs" p="xs" flex={1}>
-          <Tabs value={currentRecordId}>
+          <Tabs value={currentRecordId} h="100%">
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId}>
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%">
                 <RecordDetails
                   snapshotId={snapshot?.id ?? ''}
                   currentRecord={record}
