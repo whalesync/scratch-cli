@@ -1,4 +1,3 @@
-import { User as ClerkUser } from '@clerk/backend';
 import { Injectable } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { nanoid } from 'nanoid';
@@ -27,8 +26,8 @@ export class UsersService {
     });
   }
 
-  public async getOrCreateUserFromClerk(clerkUser: ClerkUser): Promise<UserCluster.User | null> {
-    const user = await this.findByClerkId(clerkUser.id);
+  public async getOrCreateUserFromClerk(clerkUserId: string): Promise<UserCluster.User | null> {
+    const user = await this.findByClerkId(clerkUserId);
 
     if (user) {
       // make sure the user has an api token
@@ -54,7 +53,7 @@ export class UsersService {
     const newUser = await this.db.client.user.create({
       data: {
         id: createUserId(),
-        clerkId: clerkUser.id,
+        clerkId: clerkUserId,
         updatedAt: new Date(),
         role: UserRole.USER,
         apiTokens: {

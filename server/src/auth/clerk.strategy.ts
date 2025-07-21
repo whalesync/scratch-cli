@@ -36,13 +36,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         secretKey: this.configService.getClerkSecretKey(),
       });
 
-      const clerkUser = await this.clerkClient.users.getUser(tokenPayload.sub);
-
-      if (!clerkUser) {
-        throw new UnauthorizedException('No clerk user found');
-      }
-
-      const user = await this.userService.getOrCreateUserFromClerk(clerkUser);
+      const user = await this.userService.getOrCreateUserFromClerk(tokenPayload.sub);
 
       if (!user) {
         throw new UnauthorizedException('No Scratchpad user found');
@@ -52,7 +46,6 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         ...user,
         authType: 'jwt',
         authSource: 'user',
-        clerkUser,
       };
     } catch (error) {
       if (error instanceof TokenVerificationError) {

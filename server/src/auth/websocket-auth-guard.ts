@@ -75,13 +75,9 @@ export class WebSocketAuthGuard implements CanActivate {
         secretKey: this.configService.getClerkSecretKey(),
       });
 
-      const clerkUser = await this.clerkClient.users.getUser(tokenPayload.sub);
-
-      if (!clerkUser) {
-        return null;
-      }
-
-      const user = await this.userService.getOrCreateUserFromClerk(clerkUser);
+      // verifying the JWT is enough to validate the session, no need to fetch the user from clerk with every request
+      // The `sub` field in the token payload is a clerk user id
+      const user = await this.userService.getOrCreateUserFromClerk(tokenPayload.sub);
 
       if (!user) {
         return null;
@@ -91,7 +87,6 @@ export class WebSocketAuthGuard implements CanActivate {
         ...user,
         authType: 'jwt',
         authSource: 'user',
-        clerkUser,
       };
     } catch (error) {
       if (error instanceof TokenVerificationError) {
