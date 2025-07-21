@@ -29,12 +29,11 @@ export const RecordView = ({
 
   const activeView = currentView;
 
-  const { recordsResponse, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } =
-    useSnapshotRecords({
-      snapshotId: snapshot?.id ?? '',
-      tableId: table.id.wsId,
-      viewId: filterToView && activeView ? activeView.id : undefined,
-    });
+  const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotRecords({
+    snapshotId: snapshot?.id ?? '',
+    tableId: table.id.wsId,
+    viewId: filterToView && activeView ? activeView.id : undefined,
+  });
 
   const focusRecord = useCallback(
     (record: SnapshotRecord, columnId?: string) => {
@@ -48,12 +47,12 @@ export const RecordView = ({
   );
 
   useEffect(() => {
-    if (!currentRecordId && recordsResponse?.records && recordsResponse.records.length > 0) {
-      const record = recordsResponse.records[0];
+    if (!currentRecordId && records && records?.length > 0) {
+      const record = records[0];
       setCurrentRecordId(record.id.wsId);
       focusRecord(record);
     }
-  }, [recordsResponse, currentRecordId, focusRecord]);
+  }, [records, currentRecordId, focusRecord]);
 
   const handleSelectRecord = useCallback(
     (record: SnapshotRecord) => {
@@ -79,7 +78,7 @@ export const RecordView = ({
     );
   }
 
-  if (isLoading && !recordsResponse) {
+  if (isLoading && !records) {
     return (
       <Center h="100%">
         <Loader />
@@ -97,7 +96,7 @@ export const RecordView = ({
       </Group>
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" gap="xs" p="xs">
-          {recordsResponse?.records?.map((record) => (
+          {records?.map((record) => (
             <Stack key={record.id.wsId} gap="3px">
               <Anchor
                 component="span"
@@ -135,7 +134,7 @@ export const RecordView = ({
         <Divider orientation="vertical" w={10} />
         <Stack h="100%" gap="xs" p="xs" flex={1}>
           <Tabs value={currentRecordId}>
-            {recordsResponse?.records?.map((record) => (
+            {records?.map((record) => (
               <Tabs.Panel key={record.id.wsId} value={record.id.wsId}>
                 <RecordDetails
                   snapshotId={snapshot?.id ?? ''}
