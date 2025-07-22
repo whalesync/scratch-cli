@@ -98,6 +98,19 @@ class SnapshotTableView:
     updatedAt: str
     recordIds: List[str]
 
+@dataclass
+class AppendFieldValueDto:
+    wsId: str
+    columnId: str
+    value: str
+
+@dataclass
+class InjectFieldValueDto:
+    wsId: str
+    columnId: str
+    value: str
+    targetKey: Optional[str] = None
+
 class ScratchpadApiConfig:
     """Configuration for Scratchpad API calls"""
     
@@ -375,6 +388,45 @@ class SnapshotApi:
         if not response.ok:
             raise ScratchpadApiError(f"Failed to clear active record filter: {response.status_code} - {response.text}")
 
+    @staticmethod
+    def append_value(snapshot_id: str, table_id: str, dto: AppendFieldValueDto, api_token: str, view_id: Optional[str] = None) -> None:
+        """Append a value to a field in a record."""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/append-value"
+        params = {}
+        if view_id:
+            params["viewId"] = view_id
+        
+        payload = {
+            "wsId": dto.wsId,
+            "columnId": dto.columnId,
+            "value": dto.value
+        }
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload, params=params)
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to append value: {response.status_code} - {response.text}")
+
+    @staticmethod
+    def inject_value(snapshot_id: str, table_id: str, dto: InjectFieldValueDto, api_token: str, view_id: Optional[str] = None) -> None:
+        """Inject a value into a field in a record."""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/inject-value"
+        params = {}
+        if view_id:
+            params["viewId"] = view_id
+        
+        payload = {
+            "wsId": dto.wsId,
+            "columnId": dto.columnId,
+            "value": dto.value
+        }
+        if dto.targetKey is not None:
+            payload["targetKey"] = dto.targetKey
+        
+        response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload, params=params)
+        if not response.ok:
+            raise ScratchpadApiError(f"Failed to inject value: {response.status_code} - {response.text}")
+
+    
+
 # Convenience functions for easy access
 def list_snapshots(connector_account_id: str, api_token: str) -> List[ScratchpadSnapshot]:
     """List snapshots for a connector account"""
@@ -445,6 +497,14 @@ def set_active_records_filter(snapshot_id: str, table_id: str, record_ids: List[
 def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
     """Clear the active record filter for a table"""
     SnapshotApi.clear_active_record_filter(snapshot_id, table_id, api_token)
+
+def append_value(snapshot_id: str, table_id: str, dto: AppendFieldValueDto, api_token: str, view_id: Optional[str] = None) -> None:
+    """Append a value to a field in a record."""
+    SnapshotApi.append_value(snapshot_id, table_id, dto, api_token, view_id)
+
+def inject_value(snapshot_id: str, table_id: str, dto: InjectFieldValueDto, api_token: str, view_id: Optional[str] = None) -> None:
+    """Inject a value into a field in a record."""
+    SnapshotApi.inject_value(snapshot_id, table_id, dto, api_token, view_id)
 
 def check_server_health() -> bool:
     """Check if the Scratchpad server is healthy"""
