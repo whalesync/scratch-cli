@@ -2,10 +2,11 @@
 import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { Button, Checkbox, Group, Loader, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { Button, Checkbox, Divider, Group, Loader, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
+import { useAIPromptContext } from '../AIPromptContext';
 
 interface RecordDetailsProps {
   snapshotId: string;
@@ -30,6 +31,7 @@ export const RecordDetails = ({
   const [saving, setSaving] = useState(false);
   const [currentTextSelection, setCurrentTextSelection] = useState<TextSelection | undefined>(undefined);
   const [currentCursorPosition, setCurrentCursorPosition] = useState<CursorPosition | undefined>(undefined);
+  const { addToPrompt } = useAIPromptContext();
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
 
@@ -387,6 +389,16 @@ export const RecordDetails = ({
         </Group>
       </Group>
       {content}
+      {currentTextSelection && currentTextSelection.text.length > 0 ? (
+        <>
+          <Divider />
+          <Group gap="md">
+            <Button variant="outline" onClick={() => addToPrompt(currentTextSelection?.text)}>
+              Add to prompt
+            </Button>
+          </Group>
+        </>
+      ) : null}
     </Stack>
   );
 };

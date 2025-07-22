@@ -21,6 +21,7 @@ import {
 } from '@mantine/core';
 import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
@@ -77,6 +78,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const { readFocus, writeFocus } = useFocusedCellsContext();
+  const { promptQueue, clearPromptQueue } = useAIPromptContext();
 
   // Get user data including API token
   const { user } = useScratchPadUser();
@@ -115,6 +117,13 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       setResetInputFocus(false);
     }
   }, [resetInputFocus]);
+
+  useEffect(() => {
+    if (promptQueue.length > 0) {
+      setMessage(message + '\n' + promptQueue.join('\n'));
+      clearPromptQueue();
+    }
+  }, [promptQueue, clearPromptQueue, message]);
 
   const loadSessions = async () => {
     if (isLoadingSessions) return; // Prevent multiple simultaneous loads

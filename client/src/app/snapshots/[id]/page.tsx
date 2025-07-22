@@ -38,6 +38,7 @@ import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
+import { AIPromptProvider } from './AIPromptContext';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
 import { FocusedCellsProvider } from './FocusedCellsContext';
@@ -449,7 +450,9 @@ export default function SnapshotPage() {
   return (
     <SnapshotProvider snapshotId={id}>
       <FocusedCellsProvider>
-        <SnapshotPageContent />
+        <AIPromptProvider>
+          <SnapshotPageContent />
+        </AIPromptProvider>
       </FocusedCellsProvider>
     </SnapshotProvider>
   );
