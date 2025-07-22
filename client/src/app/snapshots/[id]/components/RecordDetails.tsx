@@ -1,4 +1,5 @@
-import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Button, Checkbox, Group, Loader, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
@@ -27,22 +28,23 @@ export const RecordDetails = ({
   const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
   const [showEditedOnly, setShowEditedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [currentTextSelection, setCurrentTextSelection] = useState<
-    { start: number; end: number; text: string } | undefined
-  >(undefined);
+  const [currentTextSelection, setCurrentTextSelection] = useState<TextSelection | undefined>(undefined);
+  const [currentCursorPosition, setCurrentCursorPosition] = useState<CursorPosition | undefined>(undefined);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
 
   const handleTextSelectionChange = useCallback(
-    (selection: { start: number; end: number; text: string }) => {
+    (selection: TextSelection) => {
       setCurrentTextSelection(selection);
+      console.debug('RecordDetails: text selection changed', selection);
     },
     [setCurrentTextSelection],
   );
 
-  // const handleTextAreaCursorChange = useCallback((cursor: { start: number; end: number }) => {
-  //   console.debug('new cursor position', cursor);
-  // }, []);
+  const handleTextAreaCursorChange = useCallback((cursor: CursorPosition) => {
+    setCurrentCursorPosition(cursor);
+    console.debug('RecordDetails: cursor position changed', cursor);
+  }, []);
 
   const updateField = useCallback(
     async (field: string, value: string) => {
@@ -124,13 +126,8 @@ export const RecordDetails = ({
                 }}
                 h="95%"
                 onSelectionChange={handleTextSelectionChange}
-                // onCursorChange={handleTextAreaCursorChange}
+                onCursorChange={handleTextAreaCursorChange}
               />
-              {currentTextSelection && (
-                <Text size="xs" c="dimmed">
-                  Selected: {currentTextSelection.text.length} characters
-                </Text>
-              )}
             </>
           );
         } else {
@@ -148,13 +145,8 @@ export const RecordDetails = ({
                 readOnly={column.readonly}
                 styles={greenBackgroundStyle}
                 onSelectionChange={handleTextSelectionChange}
-                // onCursorChange={handleTextAreaCursorChange}
+                onCursorChange={handleTextAreaCursorChange}
               />
-              {currentTextSelection && (
-                <Text size="xs" c="dimmed">
-                  Selected: {currentTextSelection.text.length} characters
-                </Text>
-              )}
             </>
           );
         }
@@ -204,13 +196,8 @@ export const RecordDetails = ({
               styles={greenBackgroundStyle}
               resize="vertical"
               onSelectionChange={handleTextSelectionChange}
-              // onCursorChange={handleTextAreaCursorChange}
+              onCursorChange={handleTextAreaCursorChange}
             />
-            {currentTextSelection && currentTextSelection.text.length > 0 && (
-              <Text size="xs" c="dimmed">
-                Selected: {currentTextSelection.text.length} characters
-              </Text>
-            )}
           </>
         );
       }
