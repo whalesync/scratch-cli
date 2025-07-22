@@ -1,4 +1,4 @@
-import { CreateSnapshotDto, Snapshot } from "@/types/server-entities/snapshot";
+import { AppendFieldValueDto, CreateSnapshotDto, InjectFieldValueDto, Snapshot } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -304,4 +304,59 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to reject cell values");
     }
   },
+
+  async appendValue(
+    snapshotId: string,
+    tableId: string,
+    dto: AppendFieldValueDto,
+    viewId?: string
+  ): Promise<void> {
+    const url = new URL(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/append-value`
+    );
+    if (viewId) {
+      url.searchParams.append("viewId", viewId);
+    }
+    
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dto),
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to append value");
+    }
+  },
+
+  async injectValue(
+    snapshotId: string,
+    tableId: string,
+    dto: InjectFieldValueDto,
+    viewId?: string
+  ): Promise<void> {
+    const url = new URL(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/inject-value`
+    );
+    if (viewId) {
+      url.searchParams.append("viewId", viewId);
+    }
+    
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dto),
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to inject value");
+    }
+  },
+
+
+  
 };

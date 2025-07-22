@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -259,6 +256,115 @@ export class SnapshotService {
       nextCursor,
       filteredRecordsCount,
     };
+  }
+
+  async appendFieldValue(
+    snapshotId: SnapshotId,
+    tableId: string,
+    wsId: string,
+    userId: string,
+    type: 'accepted' | 'suggested',
+    columnId: string,
+    valueToAppend: string,
+  ): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const columnSpec = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!columnSpec) {
+      throw new NotFoundException(`Column '${columnId}' not found in table`);
+    }
+
+    if (columnSpec.pgType !== PostgresColumnType.TEXT) {
+      throw new BadRequestException(`Column '${columnId}' is not a text column`);
+    }
+
+    const record = await this.snapshotDbService.getRecord(snapshotId, tableId, wsId);
+    if (!record) {
+      throw new NotFoundException(`Record '${wsId}' not found in table`);
+    }
+
+    const currentValue = record.fields[columnId];
+    if (typeof currentValue !== 'string') {
+      throw new BadRequestException(`Column '${columnId}' is not a string`);
+    }
+
+    const updateOperation: RecordOperation = {
+      op: 'update',
+      wsId,
+      data: {
+        [columnId]: `${currentValue} ${valueToAppend}`,
+      },
+    };
+
+    await this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, [updateOperation], type);
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        numRecords: 1,
+        changeType: type,
+        source: type === 'suggested' ? 'agent' : 'user',
+      },
+    });
+  }
+  async injectFieldValue(
+    snapshotId: SnapshotId,
+    tableId: string,
+    wsId: string,
+    userId: string,
+    type: 'accepted' | 'suggested',
+    columnId: string,
+    valueToInject: string,
+    targetKey: string = '@@', // TODO: Make this configurable
+  ): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const columnSpec = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!columnSpec) {
+      throw new NotFoundException(`Column '${columnId}' not found in table`);
+    }
+
+    if (columnSpec.pgType !== PostgresColumnType.TEXT) {
+      throw new BadRequestException(`Column '${columnId}' is not a text column`);
+    }
+
+    const record = await this.snapshotDbService.getRecord(snapshotId, tableId, wsId);
+    if (!record) {
+      throw new NotFoundException(`Record '${wsId}' not found in table`);
+    }
+
+    const currentValue = record.fields[columnId];
+    if (typeof currentValue !== 'string') {
+      throw new BadRequestException(`Column '${columnId}' is not a string`);
+    }
+    const updatedValue = currentValue.replace(targetKey, valueToInject);
+
+    const updateOperation: RecordOperation = {
+      op: 'update',
+      wsId,
+      data: {
+        [columnId]: updatedValue,
+      },
+    };
+
+    await this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, [updateOperation], type);
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        numRecords: 1,
+        changeType: type,
+        source: type === 'suggested' ? 'agent' : 'user',
+      },
+    });
   }
 
   async bulkUpdateRecords(

@@ -25,8 +25,10 @@ import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
 import { AddRecordsToActiveFilterDto } from './dto/add-active-record-filter.dto';
+import { AppendFieldValueDto } from './dto/append-field-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
+import { InjectFieldValueDto } from './dto/inject-field-value.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -332,5 +334,48 @@ export class SnapshotController {
     };
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, event);
     return 'event sent at ' + new Date().toISOString();
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/append-value')
+  @HttpCode(204)
+  async appendValue(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() appendFieldValueDto: AppendFieldValueDto,
+    @Query('viewId') viewId: string | undefined,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.appendFieldValue(
+      snapshotId,
+      tableId,
+      appendFieldValueDto.wsId,
+      req.user.id,
+      'suggested',
+      appendFieldValueDto.columnId,
+      appendFieldValueDto.value,
+    );
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/inject-value')
+  @HttpCode(204)
+  async injectValue(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() injectFieldValueDto: InjectFieldValueDto,
+    @Query('viewId') viewId: string | undefined,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.injectFieldValue(
+      snapshotId,
+      tableId,
+      injectFieldValueDto.wsId,
+      req.user.id,
+      'suggested',
+      injectFieldValueDto.columnId,
+      injectFieldValueDto.value,
+      injectFieldValueDto.targetKey,
+    );
   }
 }

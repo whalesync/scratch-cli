@@ -91,3 +91,16 @@ export type CreateSnapshotTableViewDto = {
   name?: string;
   recordIds: string[];
 };
+
+export interface AppendFieldValueDto {
+  wsId: string;
+  columnId: string;
+  value: string;
+}
+
+export interface InjectFieldValueDto {
+  wsId: string;
+  columnId: string;
+  value: string;
+  targetKey?: string;
+}

@@ -280,19 +280,31 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
     const reqult = await query;
 
-    return reqult.map(
-      ({ wsId, id, __edited_fields, __suggested_values, __dirty, ...fields }): SnapshotRecord => ({
-        // Need to move the id columns up one level.
-        id: {
-          wsId,
-          remoteId: id,
-        },
-        fields,
-        __edited_fields,
-        __suggested_values,
-        __dirty,
-      }),
-    );
+    return reqult.map((r) => this.mapDbRecordToSnapshotRecord(r));
+  }
+
+  private mapDbRecordToSnapshotRecord(record: DbRecord): SnapshotRecord {
+    const { wsId, id, __edited_fields, __suggested_values, __dirty, ...fields } = record;
+    return {
+      id: {
+        wsId,
+        remoteId: id,
+      },
+      fields,
+      __edited_fields,
+      __suggested_values,
+      __dirty,
+    };
+  }
+
+  async getRecord(snapshotId: SnapshotId, tableId: string, wsId: string): Promise<SnapshotRecord | null> {
+    const result = await this.knex<DbRecord>(tableId).withSchema(snapshotId).where('wsId', wsId).select('*').first();
+
+    if (!result) {
+      return null;
+    }
+
+    return this.mapDbRecordToSnapshotRecord(result);
   }
 
   async bulkUpdateRecords(
