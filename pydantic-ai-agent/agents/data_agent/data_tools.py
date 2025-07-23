@@ -272,14 +272,14 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
             Use this tool when the user asks to append data to a single record field
-            The table_name should be the name of the table you want to update records in.
+            The table_name should be the name of the table you want to update a record in.
             The wsId should be the ID of the record to update.
             The field_name should be the name of the field to append a value to.
             The value should be the data value to append to the field.
             
             CRITICAL: The value should always be a string and should not be empty.
             
-            You should first use get_records_tool to see the current records and identify which ones to update
+            You should first use get_records_tool to see the current records and identify which one to update
             based on the user's criteria. Then determine the record id and field name to append the value to.
             
             Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
@@ -376,6 +376,113 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         error=str(e))
                 print(f"❌ {error_msg}")
                 return error_msg
+
+        @agent.tool
+        async def inject_field_value_tool(ctx: RunContext[ChatRunContext], input_data: AppendFieldValueInput) -> str:  # type: ignore
+            """
+            Inserts a value inside of an existing field for a record in a table.
+            
+            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+            
+            Use this tool when the user asks to insert or inject data to a single record field without replacing the existing value.
+            The table_name should be the name of the table you want to update records in.
+            The wsId should be the ID of the record to update.
+            The field_name should be the name of the field to append a value to.
+            The value should be the data value to append to the field.
+            
+            CRITICAL: The value should always be a string and should not be empty.
+            
+            You should first use get_records_tool to see the current records and identify which one to update
+            based on the user's criteria. Then determine the record id and field name to insert the new value into.
+            
+            Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
+            
+            """
+            try:
+                # Extract data from input
+                table_name = input_data.table_name
+                wsId = input_data.wsId
+                field_name = input_data.field_name
+                value = input_data.value
+
+                # Validate that wsId is a string
+                if not isinstance(wsId, str):
+                    return f"Error: wsId must be a string, got {type(wsId)}"
+                
+                # Validate that field_name is a string
+                if not isinstance(field_name, str):
+                    return f"Error: field_name must be a string, got {type(field_name)}"
+                
+                # Validate that value is a string
+                if not isinstance(value, str):
+                    return f"Error: value must be a string, got {type(value)}"
+                
+                # Get the active snapshot
+                chatRunContext: ChatRunContext = ctx.deps 
+                chatSession: ChatSession = chatRunContext.session
+                
+                if not chatRunContext.snapshot:
+                    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+                
+                # Find the table by name
+                table = None
+                for t in chatRunContext.snapshot.tables:
+                    if t.name.lower() == table_name.lower():
+                        table = t
+                        break
+                
+                if not table:
+                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
+                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+                                                
+                log_info("Injecting value into field in record", 
+                        table_name=table_name,
+                        table_id=table.id.wsId,
+                        wsId=wsId,
+                        field_name=field_name,
+                        value=value,
+                        snapshot_id=chatRunContext.session.snapshot_id)
+                
+                # Import the inject value  function
+                from scratchpad_api import inject_value, InjectFieldValueDto
+                
+                # Call the inject value endpoint
+                inject_value(
+                    snapshot_id=chatRunContext.session.snapshot_id,
+                    table_id=table.id.wsId,
+                    dto=InjectFieldValueDto(
+                        wsId=wsId,
+                        columnId=field_name,
+                        value=value,
+                        targetKey='@@'
+                    ),
+                    api_token=chatRunContext.api_token,
+                    view_id=chatRunContext.view_id
+                )
+                
+                print(f"✅ Successfully inserted the suggested value into the record")
+                print(f"📋 Table ID: {table.id.wsId}")
+                print(f"✏️ wsId: {wsId}")
+                print(f"✏️ Field name: {field_name}")
+                
+                
+                log_info("Successfully inserted the suggested value into the record", 
+                        table_name=table_name,
+                        table_id=table.id.wsId,
+                        wsId=wsId,
+                        field_name=field_name,
+                        value=value,
+                        snapshot_id=chatRunContext.session.snapshot_id)
+                
+                return f"Successfully inserted the suggested value into the field in record"      
+            except Exception as e:
+                error_msg = f"Failed to insert the suggested value into the field in record in table '{table_name}': {str(e)}"
+                log_error("Error inserting the suggested value into the field in record", 
+                        table_name=table_name,
+                        error=str(e))
+                print(f"❌ {error_msg}")
+                return error_msg
+
 
     if capabilities is None or 'data:delete' in capabilities:
         @agent.tool
