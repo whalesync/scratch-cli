@@ -10,4 +10,5 @@ export class ConnectorAccount implements PrismaConnectorAccount {
   apiKey: string;
   healthStatus: ConnectorHealthStatus | null;
   healthStatusLastCheckedAt: Date | null;
+  modifier: string | null;
 }

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { RestApiImportModule } from './api-import/api-import.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
+import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { DbModule } from './db/db.module';
-import { GenericTableModule } from './generic-table/generic-table.module';
+import { CustomConnectorModule } from './generic-table/generic-table.module';
 import { HealthModule } from './health/health.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
@@ -24,7 +24,7 @@ import { ViewModule } from './view/view.module';
     ConnectorsModule,
     SnapshotModule,
     RestApiImportModule,
-    GenericTableModule,
+    CustomConnectorModule,
     StyleGuideModule,
     ViewModule,
     HealthModule,

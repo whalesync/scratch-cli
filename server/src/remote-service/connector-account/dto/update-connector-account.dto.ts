@@ -10,4 +10,8 @@ export class UpdateConnectorAccountDto {
   @IsNotEmpty()
   @IsOptional()
   readonly apiKey?: string;
+
+  @IsString()
+  @IsOptional()
+  readonly modifier?: string;
 }

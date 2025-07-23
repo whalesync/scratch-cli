@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -50,7 +53,7 @@ export class SnapshotService {
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
     for (const tableId of tableIds) {
-      tableSpecs.push(await connector.fetchTableSpec(tableId));
+      tableSpecs.push(await connector.fetchTableSpec(tableId, connectorAccount));
       tableContexts.push({
         id: tableId,
         activeViewId: null,
@@ -625,6 +628,7 @@ export class SnapshotService {
       await connector.downloadTableRecords(
         tableSpec,
         async (records) => await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
+        snapshot.connectorAccount,
       );
     }
     WSLogger.debug({
@@ -682,7 +686,7 @@ export class SnapshotService {
           .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
           .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
 
-        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords);
+        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords, snapshot.connectorAccount);
         // Save the created IDs.
         await this.snapshotDbService.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
       },
@@ -708,7 +712,7 @@ export class SnapshotService {
             partialFields: r.fields,
           }));
 
-        await connector.updateRecords(tableSpec, sanitizedRecords);
+        await connector.updateRecords(tableSpec, sanitizedRecords, snapshot.connectorAccount);
       },
     );
   }
@@ -729,7 +733,7 @@ export class SnapshotService {
           .filter((r) => !!r.id.remoteId)
           .map((r) => ({ wsId: r.id.wsId, remoteId: r.id.remoteId! }));
 
-        await connector.deleteRecords(tableSpec, recordIds);
+        await connector.deleteRecords(tableSpec, recordIds, snapshot.connectorAccount);
 
         // Remove them from the snapshot.
         await this.snapshotDbService.deleteRecords(

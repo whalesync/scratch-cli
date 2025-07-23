@@ -23,6 +23,7 @@ export class ConnectorAccountService {
         service: createDto.service,
         displayName: `${createDto.service.toLowerCase()} base`,
         apiKey: createDto.apiKey,
+        modifier: createDto.modifier,
       },
     });
     return connectorAccount;

@@ -1,19 +1,24 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DbService } from '../db/db.service';
-import { createGenericTableId } from '../types/ids';
-import { CreateGenericTableDto } from './dto/create-generic-table.dto';
-import { UpdateGenericTableDto } from './dto/update-generic-table.dto';
-import { GenericTableEntity } from './entities/generic-table.entity';
+import { createCustomConnectorId } from '../types/ids';
+import { CreateCustomConnectorDto } from './dto/create-custom-connector.dto';
+import { UpdateCustomConnectorDto } from './dto/update-custom-connector.dto';
+import { CustomConnectorEntity } from './entities/custom-connector.entity';
 
 @Injectable()
-export class GenericTableService {
+export class CustomConnectorService {
   constructor(private readonly db: DbService) {}
 
-  async create(userId: string, createDto: CreateGenericTableDto): Promise<GenericTableEntity> {
-    const genericTable = (await this.db.client.genericTable.create({
+  async create(userId: string, createDto: CreateCustomConnectorDto): Promise<CustomConnectorEntity> {
+    const customConnector = (await this.db.client.customConnector.create({
       data: {
-        id: createGenericTableId(),
+        id: createCustomConnectorId(),
         name: createDto.name,
         pollRecords: createDto.pollRecords,
         mapping: createDto.mapping
@@ -24,6 +29,8 @@ export class GenericTableService {
         apiKey: createDto.apiKey,
         fetchSchema: createDto.fetchSchema,
         schema: createDto.schema,
+        listTables: createDto.listTables,
+        tables: createDto.tables,
         getRecord: createDto.getRecord,
         deleteRecord: createDto.deleteRecord,
         createRecord: createDto.createRecord,
@@ -31,13 +38,13 @@ export class GenericTableService {
         pollRecordsResponse: createDto.pollRecordsResponse,
         getRecordResponse: createDto.getRecordResponse,
       },
-    })) as GenericTableEntity;
+    })) as CustomConnectorEntity;
 
-    return new GenericTableEntity(genericTable);
+    return new CustomConnectorEntity(customConnector);
   }
 
-  async update(userId: string, id: string, updateDto: UpdateGenericTableDto): Promise<GenericTableEntity> {
-    const genericTable = await this.db.client.genericTable.update({
+  async update(userId: string, id: string, updateDto: UpdateCustomConnectorDto): Promise<CustomConnectorEntity> {
+    const customConnector = await this.db.client.customConnector.update({
       where: {
         id,
         userId,
@@ -52,6 +59,8 @@ export class GenericTableService {
         apiKey: updateDto.apiKey,
         fetchSchema: updateDto.fetchSchema,
         schema: updateDto.schema,
+        listTables: updateDto.listTables,
+        tables: updateDto.tables,
         getRecord: updateDto.getRecord,
         deleteRecord: updateDto.deleteRecord,
         createRecord: updateDto.createRecord,
@@ -61,35 +70,35 @@ export class GenericTableService {
       },
     });
 
-    return new GenericTableEntity(genericTable);
+    return new CustomConnectorEntity(customConnector);
   }
 
-  async findAllByUserId(userId: string): Promise<GenericTableEntity[]> {
-    const genericTables = await this.db.client.genericTable.findMany({
+  async findAllByUserId(userId: string): Promise<CustomConnectorEntity[]> {
+    const customConnectors = await this.db.client.customConnector.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return genericTables.map((table) => new GenericTableEntity(table));
+    return customConnectors.map((connector) => new CustomConnectorEntity(connector));
   }
 
-  async findOne(userId: string, id: string): Promise<GenericTableEntity> {
-    const genericTable = await this.db.client.genericTable.findFirst({
+  async findOne(userId: string, id: string): Promise<CustomConnectorEntity> {
+    const customConnector = await this.db.client.customConnector.findFirst({
       where: {
         id,
         userId,
       },
     });
 
-    if (!genericTable) {
-      throw new Error('Generic table not found');
+    if (!customConnector) {
+      throw new Error('Custom connector not found');
     }
 
-    return new GenericTableEntity(genericTable);
+    return new CustomConnectorEntity(customConnector);
   }
 
   async remove(userId: string, id: string): Promise<void> {
-    await this.db.client.genericTable.delete({
+    await this.db.client.customConnector.delete({
       where: {
         id,
         userId,

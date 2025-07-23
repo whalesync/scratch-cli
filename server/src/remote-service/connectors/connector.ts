@@ -9,11 +9,12 @@ export abstract class Connector<T extends Service> {
 
   abstract listTables(account: ConnectorAccount): Promise<TablePreview[]>;
 
-  abstract fetchTableSpec(id: EntityId): Promise<TableSpecs[T]>;
+  abstract fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<TableSpecs[T]>;
 
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],
     callback: (records: ConnectorRecord[]) => Promise<void>,
+    account: ConnectorAccount,
   ): Promise<void>;
 
   abstract getBatchSize(operation: 'create' | 'update' | 'delete'): number;
@@ -21,13 +22,19 @@ export abstract class Connector<T extends Service> {
   abstract createRecords(
     tableSpec: TableSpecs[T],
     records: { wsId: string; fields: Record<string, unknown> }[],
+    account: ConnectorAccount,
   ): Promise<{ wsId: string; remoteId: string }[]>;
 
   // TODO: Should this return updated records?
   abstract updateRecords(
     tableSpec: TableSpecs[T],
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
+    account: ConnectorAccount,
   ): Promise<void>;
 
-  abstract deleteRecords(tableSpec: TableSpecs[T], recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
+  abstract deleteRecords(
+    tableSpec: TableSpecs[T],
+    recordIds: { wsId: string; remoteId: string }[],
+    account: ConnectorAccount,
+  ): Promise<void>;
 }

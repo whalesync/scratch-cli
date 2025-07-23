@@ -33,7 +33,7 @@ model User {
   role              UserRole           @default(USER)
   apiTokens         APIToken[]
   connectorAccounts ConnectorAccount[]
-  genericTables     GenericTable[]
+  customConnectors  CustomConnector[]
   styleGuides       StyleGuide[]
 }
 
@@ -43,12 +43,12 @@ enum TokenType {
 }
 
 model APIToken {
-  id        String   @id // type: APITokenId
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id // type: APITokenId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   token     String
-  createdAt DateTime @default(now())
-  expiresAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  expiresAt DateTime  @updatedAt
   type      TokenType @default(AGENT)
 
   @@unique([token])
@@ -66,6 +66,7 @@ model ConnectorAccount {
   apiKey                    String
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
+  modifier                  String? // ID of the custom connector or other modifier entity
   snapshots                 Snapshot[]
 }
 
@@ -100,8 +101,8 @@ model Snapshot {
   @@index([connectorAccountId])
 }
 
-model GenericTable {
-  id        String   @id // type: GenericTableId
+model CustomConnector {
+  id        String   @id // type: CustomConnectorId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String
@@ -114,6 +115,10 @@ model GenericTable {
 
   // API key for external services
   apiKey String?
+
+  // Table listing
+  listTables String? // Store the table listing function body as text
+  tables     String[] // Store the test table IDs we have fetched while building the connector
 
   // Schema generation
   fetchSchema String? // Store the schema generation function body as text

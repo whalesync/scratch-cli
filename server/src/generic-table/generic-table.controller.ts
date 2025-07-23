@@ -1,50 +1,53 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
-import { CreateGenericTableDto } from './dto/create-generic-table.dto';
-import { UpdateGenericTableDto } from './dto/update-generic-table.dto';
-import { GenericTableEntity } from './entities/generic-table.entity';
-import { GenericTableService } from './generic-table.service';
+import { CreateCustomConnectorDto } from './dto/create-custom-connector.dto';
+import { UpdateCustomConnectorDto } from './dto/update-custom-connector.dto';
+import { CustomConnectorEntity } from './entities/custom-connector.entity';
+import { CustomConnectorService } from './generic-table.service';
 
-@Controller('generic-tables')
+@Controller('custom-connectors')
 @UseGuards(ScratchpadAuthGuard)
-export class GenericTableController {
-  constructor(private readonly genericTableService: GenericTableService) {}
+export class CustomConnectorController {
+  constructor(private readonly customConnectorService: CustomConnectorService) {}
 
   @Post()
-  async create(@Req() req: RequestWithUser, @Body() createDto: CreateGenericTableDto): Promise<GenericTableEntity> {
+  async create(
+    @Req() req: RequestWithUser,
+    @Body() createDto: CreateCustomConnectorDto,
+  ): Promise<CustomConnectorEntity> {
     if (!req.user) {
       throw new Error('User not found');
     }
-    return this.genericTableService.create(req.user.id, createDto);
+    return this.customConnectorService.create(req.user.id, createDto);
   }
 
   @Put(':id')
   async update(
     @Req() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() updateDto: UpdateGenericTableDto,
-  ): Promise<GenericTableEntity> {
+    @Body() updateDto: UpdateCustomConnectorDto,
+  ): Promise<CustomConnectorEntity> {
     if (!req.user) {
       throw new Error('User not found');
     }
-    return this.genericTableService.update(req.user.id, id, updateDto);
+    return this.customConnectorService.update(req.user.id, id, updateDto);
   }
 
   @Get()
-  async findAll(@Req() req: RequestWithUser): Promise<GenericTableEntity[]> {
+  async findAll(@Req() req: RequestWithUser): Promise<CustomConnectorEntity[]> {
     if (!req.user) {
       throw new Error('User not found');
     }
-    return this.genericTableService.findAllByUserId(req.user.id);
+    return this.customConnectorService.findAllByUserId(req.user.id);
   }
 
   @Get(':id')
-  async findOne(@Req() req: RequestWithUser, @Param('id') id: string): Promise<GenericTableEntity> {
+  async findOne(@Req() req: RequestWithUser, @Param('id') id: string): Promise<CustomConnectorEntity> {
     if (!req.user) {
       throw new Error('User not found');
     }
-    return this.genericTableService.findOne(req.user.id, id);
+    return this.customConnectorService.findOne(req.user.id, id);
   }
 
   @Delete(':id')
@@ -52,6 +55,6 @@ export class GenericTableController {
     if (!req.user) {
       throw new Error('User not found');
     }
-    return this.genericTableService.remove(req.user.id, id);
+    return this.customConnectorService.remove(req.user.id, id);
   }
 }

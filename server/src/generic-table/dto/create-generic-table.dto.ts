@@ -26,6 +26,14 @@ export class CreateGenericTableDto {
   @IsOptional()
   apiKey?: string;
 
+  // Table listing
+  @IsString()
+  @IsOptional()
+  listTables?: string;
+
+  @IsOptional()
+  tables?: string[];
+
   // Schema generation
   @IsString()
   @IsOptional()

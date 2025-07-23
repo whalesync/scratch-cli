@@ -1,28 +1,14 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Service,
-  ConnectorAccount,
-} from "@/types/server-entities/connector-accounts";
-import {
-  Container,
-  Title,
-  Stack,
-  Loader,
-  Alert,
-  Paper,
-  Group,
-  Button,
-  Select,
-  TextInput,
-  Modal,
-} from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
-import { WarningCircleIcon } from "@phosphor-icons/react";
-import { useConnectorAccounts } from "../../hooks/use-connector-account";
-import { ConnectorAccountRow } from "./ConnectorAccountRow";
+import { useCustomConnectors } from '@/hooks/use-custom-connector';
+import { ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
+import { Alert, Button, Container, Group, Loader, Modal, Paper, Select, Stack, TextInput, Title } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
+import { WarningCircleIcon } from '@phosphor-icons/react';
+import { useState } from 'react';
+import { useConnectorAccounts } from '../../hooks/use-connector-account';
+import { ConnectorAccountRow } from './ConnectorAccountRow';
 
 export default function ConnectorAccountsPage() {
   const {
@@ -35,29 +21,34 @@ export default function ConnectorAccountsPage() {
     testConnection,
   } = useConnectorAccounts();
 
+  const { data: customConnectors } = useCustomConnectors();
+
   // State for the creation form
-  const [newApiKey, setNewApiKey] = useState("");
+  const [newApiKey, setNewApiKey] = useState('');
   const [newService, setNewService] = useState<Service | null>(null);
+  const [newModifier, setNewModifier] = useState<string | null>(null);
 
   // State for the update modal
   const [opened, { open, close }] = useDisclosure(false);
-  const [selectedConnectorAccount, setSelectedConnectorAccount] =
-    useState<ConnectorAccount | null>(null);
-  const [updatedName, setUpdatedName] = useState("");
-  const [updatedApiKey, setUpdatedApiKey] = useState("");
+  const [selectedConnectorAccount, setSelectedConnectorAccount] = useState<ConnectorAccount | null>(null);
+  const [updatedName, setUpdatedName] = useState('');
+  const [updatedApiKey, setUpdatedApiKey] = useState('');
+  const [updatedModifier, setUpdatedModifier] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!newService || !newApiKey) {
-      alert("Service and API key are required.");
+      alert('Service and API key are required.');
       return;
     }
     const newAccount = await createConnectorAccount({
       service: newService,
       apiKey: newApiKey,
+      modifier: newModifier || undefined,
     });
-    setNewApiKey("");
+    setNewApiKey('');
     setNewService(null);
+    setNewModifier(null);
     if (newAccount && newAccount.id) {
       await handleTest(newAccount.id);
     }
@@ -67,6 +58,7 @@ export default function ConnectorAccountsPage() {
     setSelectedConnectorAccount(conn);
     setUpdatedName(conn.displayName);
     setUpdatedApiKey(conn.apiKey);
+    setUpdatedModifier(conn.modifier);
     open();
   };
 
@@ -76,6 +68,7 @@ export default function ConnectorAccountsPage() {
     await updateConnectorAccount(selectedConnectorAccount.id, {
       displayName: updatedName,
       apiKey: updatedApiKey,
+      modifier: updatedModifier || undefined,
     });
     close();
   };
@@ -83,17 +76,17 @@ export default function ConnectorAccountsPage() {
   const handleTest = async (id: string) => {
     setTestingId(id);
     const r = await testConnection(id);
-    if (r.health === "error") {
+    if (r.health === 'error') {
       notifications.show({
-        title: "Connection Test Failed",
+        title: 'Connection Test Failed',
         message: r.error,
-        color: "red",
+        color: 'red',
       });
     } else {
       notifications.show({
-        title: "Connection Test Succeeded",
-        message: "Successfully connected to the service.",
-        color: "green",
+        title: 'Connection Test Succeeded',
+        message: 'Successfully connected to the service.',
+        color: 'green',
       });
     }
     setTestingId(null);
@@ -110,11 +103,7 @@ export default function ConnectorAccountsPage() {
   if (error) {
     return (
       <Container>
-        <Alert
-          icon={<WarningCircleIcon size="1rem" />}
-          title="Error!"
-          color="red"
-        >
+        <Alert icon={<WarningCircleIcon size="1rem" />} title="Error!" color="red">
           Failed to load connections. Please try again later.
         </Alert>
       </Container>
@@ -125,16 +114,21 @@ export default function ConnectorAccountsPage() {
     <>
       <Modal opened={opened} onClose={close} title="Update Connection">
         <Stack>
-          <TextInput
-            label="Display Name"
-            value={updatedName}
-            onChange={(e) => setUpdatedName(e.currentTarget.value)}
-          />
-          <TextInput
-            label="API Key"
-            value={updatedApiKey}
-            onChange={(e) => setUpdatedApiKey(e.currentTarget.value)}
-          />
+          <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
+          <TextInput label="API Key" value={updatedApiKey} onChange={(e) => setUpdatedApiKey(e.currentTarget.value)} />
+          {selectedConnectorAccount?.service === Service.CUSTOM && customConnectors && (
+            <Select
+              label="Custom Connector"
+              placeholder="Select a custom connector (optional)"
+              data={customConnectors.map((connector) => ({
+                value: connector.id,
+                label: connector.name,
+              }))}
+              value={updatedModifier}
+              onChange={setUpdatedModifier}
+              clearable
+            />
+          )}
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>
               Cancel
@@ -182,6 +176,19 @@ export default function ConnectorAccountsPage() {
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.currentTarget.value)}
               />
+              {newService === Service.CUSTOM && customConnectors && (
+                <Select
+                  label="Custom Connector"
+                  placeholder="Select a custom connector (optional)"
+                  data={customConnectors.map((connector) => ({
+                    value: connector.id,
+                    label: connector.name,
+                  }))}
+                  value={newModifier}
+                  onChange={setNewModifier}
+                  clearable
+                />
+              )}
               <Button onClick={handleCreate}>Create</Button>
             </Stack>
           </Paper>

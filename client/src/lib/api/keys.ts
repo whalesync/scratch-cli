@@ -6,11 +6,11 @@ export const SWR_KEYS = {
   genericConnections: {
     list: () => ["generic-connections"],
   },
-  genericTables: {
-    list: () => ["generic-tables"],
-    detail: (id: string) => ["generic-tables", "detail", id],
+  customConnectors: {
+    list: () => ["custom-connectors"],
+    detail: (id: string) => ["custom-connectors", "detail", id],
   },
-  genericTable: (id: string) => ["generic-tables", id] as const,
+  customConnector: (id: string) => ["custom-connectors", id] as const,
   apiImport: {
     generatePollRecords: () => ["api-import", "generate-poll-records"],
     generateDeleteRecord: () => ["api-import", "generate-delete-record"],

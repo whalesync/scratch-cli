@@ -1,4 +1,17 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCustomConnector, useCustomConnectors } from '@/hooks/use-custom-connector';
+import {
+  executeCreateRecord,
+  executeDeleteRecord,
+  executeListTables,
+  executeUpdateRecord,
+  generateCreateRecord,
+  generateDeleteRecord,
+  generateListTables,
+  generateUpdateRecord,
+} from '@/lib/api/api-import';
+import { CreateCustomConnectorDto } from '@/types/server-entities/custom-connector';
 import {
   DataEditor,
   EditableGridCell,
@@ -7,50 +20,39 @@ import {
   GridColumn,
   GridSelection,
   Item,
-} from "@glideapps/glide-data-grid";
-import "@glideapps/glide-data-grid/dist/index.css";
+} from '@glideapps/glide-data-grid';
+import '@glideapps/glide-data-grid/dist/index.css';
 import {
+  Accordion,
+  ActionIcon,
   Box,
   Button,
+  Center,
+  Container,
   Group,
+  Loader,
   Modal,
+  Select,
   Stack,
+  Tabs,
   Text,
   Textarea,
-  ActionIcon,
   TextInput,
-  Container,
-  Select,
-  Tabs,
   Tooltip,
-  Accordion,
-  Loader,
-  Center,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import {
   ArrowRight,
+  CaretDown,
+  CaretUp,
   MagnifyingGlass,
+  PencilSimple,
   Plus,
   Sparkle,
   Trash,
-  PencilSimple,
-  CaretUp,
-  CaretDown,
-} from "@phosphor-icons/react";
-import _ from "lodash";
-import { FC, useCallback, useEffect, useState, useRef } from "react";
-import { useGenericTables, useGenericTable } from "@/hooks/use-generic-table";
-import { CreateGenericTableDto } from "@/types/server-entities/generic-table";
-import { 
-  generateDeleteRecord, 
-  executeDeleteRecord,
-  generateCreateRecord,
-  executeCreateRecord,
-  generateUpdateRecord,
-  executeUpdateRecord
-} from "@/lib/api/api-import";
-
+} from '@phosphor-icons/react';
+import _ from 'lodash';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
 interface MappingRow {
   id: string;
@@ -67,13 +69,19 @@ export const ApiImport: FC = () => {
 
   // Popup state for table name
   const [tableNameModalOpened, setTableNameModalOpened] = useState(false);
-  const [newTableName, setNewTableName] = useState("");
+  const [newTableName, setNewTableName] = useState('');
 
   // GenericTable state
-  const { data: genericTables, createGenericTable, updateGenericTable, deleteGenericTable, isLoading: tablesLoading } = useGenericTables();
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const { data: selectedTable } = useGenericTable(selectedTableId || "");
-  const [tableName, setTableName] = useState("");
+  const {
+    data: customConnectors,
+    createCustomConnector,
+    updateCustomConnector,
+    deleteCustomConnector,
+    isLoading: connectorsLoading,
+  } = useCustomConnectors();
+  const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
+  const { data: selectedConnector } = useCustomConnector(selectedConnectorId || '');
+  const [connectorName, setConnectorName] = useState('');
 
   // State for schema generation
   const [fetchSchemaFunction, setFetchSchemaFunction] = useState(`async function fetchSchema() {
@@ -87,6 +95,18 @@ export const ApiImport: FC = () => {
 
   const [schema, setSchema] = useState<any[] | null>(null);
 
+  // State for list tables functionality
+  const [listTablesFunction, setListTablesFunction] = useState(`async function listTables(apiKey) {
+  // This is a static list tables example
+  return [
+    { id: ["base1", "table1"], displayName: "Users Table" },
+    { id: ["base1", "table2"], displayName: "Products Table" }
+  ];
+}`);
+
+  const [tables, setTables] = useState<any[] | null>(null);
+  const [selectedTableFromList, setSelectedTableFromList] = useState<string[] | null>(null);
+
   const [pollRecordsFunction, setPollRecordsFunction] = useState(`async function pollRecords() {
   const response = await fetch("https://jsonplaceholder.typicode.com/users", {
     method: "GET",
@@ -97,39 +117,36 @@ export const ApiImport: FC = () => {
 
   const [response, setResponse] = useState<any[] | null>(null);
   const [columns, setColumns] = useState<GridColumn[]>([]);
-  const [gridSelection, setGridSelection] = useState<
-    GridSelection | undefined
-  >();
+  const [gridSelection, setGridSelection] = useState<GridSelection | undefined>();
   const [pathModalOpened, setPathModalOpened] = useState(false);
   const [availablePaths, setAvailablePaths] = useState<string[]>([]);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [mappedRecords, setMappedRecords] = useState<any[] | null>(null);
 
   // State for record array path selection
-  const [recordArrayPath, setRecordArrayPath] = useState<string>("");
-  const [recordArrayPathModalOpened, setRecordArrayPathModalOpened] =
-    useState(false);
+  const [recordArrayPath, setRecordArrayPath] = useState<string>('');
+  const [recordArrayPathModalOpened, setRecordArrayPathModalOpened] = useState(false);
   const [availableArrayPaths, setAvailableArrayPaths] = useState<string[]>([]);
 
   // State for ID path selection
-  const [idPath, setIdPath] = useState<string>("");
+  const [idPath, setIdPath] = useState<string>('');
   const [idPathModalOpened, setIdPathModalOpened] = useState(false);
 
   // New state for dynamic field mappings
   const [mappings, setMappings] = useState<MappingRow[]>([
-    { id: "mapping-0", destination: "", source: "", pgType: "text" },
+    { id: 'mapping-0', destination: '', source: '', pgType: 'text' },
   ]);
   const [currentMappingId, setCurrentMappingId] = useState<string | null>(null);
 
   // State for delete functionality
-  const [deleteFunction, setDeleteFunction] = useState("");
-  const [selectedDeleteId, setSelectedDeleteId] = useState<string>("");
+  const [deleteFunction, setDeleteFunction] = useState('');
+  const [selectedDeleteId, setSelectedDeleteId] = useState<string>('');
 
   // State for create functionality
-  const [createFunction, setCreateFunction] = useState("");
+  const [createFunction, setCreateFunction] = useState('');
   const [createRecordData, setCreateRecordData] = useState<Record<string, unknown>>({});
-  const [createRecordDataText, setCreateRecordDataText] = useState("{}");
+  const [createRecordDataText, setCreateRecordDataText] = useState('{}');
 
   // Update text when createRecordData changes
   useEffect(() => {
@@ -137,10 +154,10 @@ export const ApiImport: FC = () => {
   }, [createRecordData]);
 
   // State for update functionality
-  const [updateFunction, setUpdateFunction] = useState("");
-  const [selectedUpdateId, setSelectedUpdateId] = useState<string>("");
+  const [updateFunction, setUpdateFunction] = useState('');
+  const [selectedUpdateId, setSelectedUpdateId] = useState<string>('');
   const [updateRecordData, setUpdateRecordData] = useState<Record<string, unknown>>({});
-  const [updateRecordDataText, setUpdateRecordDataText] = useState("{}");
+  const [updateRecordDataText, setUpdateRecordDataText] = useState('{}');
 
   // Update text when updateRecordData changes
   useEffect(() => {
@@ -148,11 +165,20 @@ export const ApiImport: FC = () => {
   }, [updateRecordData]);
 
   // State for accordion control
-  const [accordionValue, setAccordionValue] = useState<string[]>(["step1", "step2", "step3", "step5", "step6", "step7", "step8"]);
+  const [accordionValue, setAccordionValue] = useState<string[]>([
+    'step1',
+    'step2',
+    'step3',
+    'step4',
+    'step5',
+    'step6',
+    'step7',
+    'step8',
+  ]);
 
   // Expand all accordion items
   const expandAll = () => {
-    setAccordionValue(["step1", "step2", "step3", "step5", "step6", "step7", "step8", "step9"]);
+    setAccordionValue(['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'step9']);
   };
 
   // Collapse all accordion items
@@ -161,20 +187,20 @@ export const ApiImport: FC = () => {
   };
 
   // Function to extract all possible paths from an object
-  const extractPaths = useCallback((obj: any, prefix = ""): string[] => {
+  const extractPaths = useCallback((obj: any, prefix = ''): string[] => {
     const paths: string[] = [];
     if (Array.isArray(obj) && obj.length > 0) {
       const firstItem = obj[0];
-      if (typeof firstItem === "object" && firstItem !== null) {
+      if (typeof firstItem === 'object' && firstItem !== null) {
         paths.push(...extractPaths(firstItem, prefix));
       } else {
-        paths.push(prefix || "[0]");
+        paths.push(prefix || '[0]');
       }
-    } else if (typeof obj === "object" && obj !== null) {
+    } else if (typeof obj === 'object' && obj !== null) {
       Object.keys(obj).forEach((key) => {
         const newPrefix = prefix ? `${prefix}.${key}` : key;
         const value = obj[key];
-        if (typeof value === "object" && value !== null) {
+        if (typeof value === 'object' && value !== null) {
           paths.push(...extractPaths(value, newPrefix));
         } else {
           paths.push(newPrefix);
@@ -185,24 +211,26 @@ export const ApiImport: FC = () => {
   }, []);
 
   // Function to extract all possible paths from an array of objects (combining all fields)
-  const extractAllPathsFromArray = useCallback((array: any[]): string[] => {
-    const allPaths = new Set<string>();
-    
-    array.forEach((item) => {
-      if (typeof item === "object" && item !== null) {
-        const paths = extractPaths(item);
-        paths.forEach(path => allPaths.add(path));
-      }
-    });
-    
-    return Array.from(allPaths);
-  }, [extractPaths]);
+  const extractAllPathsFromArray = useCallback(
+    (array: any[]): string[] => {
+      const allPaths = new Set<string>();
+
+      array.forEach((item) => {
+        if (typeof item === 'object' && item !== null) {
+          const paths = extractPaths(item);
+          paths.forEach((path) => allPaths.add(path));
+        }
+      });
+
+      return Array.from(allPaths);
+    },
+    [extractPaths],
+  );
 
   // Update available paths when response changes
   useEffect(() => {
     if (response && recordArrayPath) {
-      const arrayData =
-        recordArrayPath === "." ? response : _.get(response, recordArrayPath);
+      const arrayData = recordArrayPath === '.' ? response : _.get(response, recordArrayPath);
       if (Array.isArray(arrayData) && arrayData.length > 0) {
         const paths = extractAllPathsFromArray(arrayData);
         const sortedPaths = paths.sort((a, b) => a.localeCompare(b));
@@ -217,25 +245,40 @@ export const ApiImport: FC = () => {
 
   // Populate form when a table is selected
   useEffect(() => {
-    if (selectedTable) {
+    if (selectedConnector && selectedConnector.id) {
       // Populate the AI prompt - always set to table's prompt value (could be null/undefined)
-      setAiPrompt(selectedTable.prompt || "");
-      
+      setAiPrompt(selectedConnector.prompt || '');
+
       // Populate the API key
-      setApiKey(selectedTable.apiKey || "");
-      
-      // Populate the schema configuration
-      setFetchSchemaFunction(selectedTable.fetchSchema || "");
-      setSchema(selectedTable.schema as any[] || null);
-      
-      // Populate the fetch configuration
-      if (selectedTable.pollRecords) {
-        setPollRecordsFunction(selectedTable.pollRecords);
+      setApiKey(selectedConnector.apiKey || '');
+
+      // Populate the list tables configuration
+      setListTablesFunction(selectedConnector.listTables || '');
+      if (selectedConnector.tables && Array.isArray(selectedConnector.tables)) {
+        const parsedTables = selectedConnector.tables.map((tableId: string) => {
+          const parts = tableId.split(':');
+          return {
+            id: parts,
+            displayName: `Table ${parts.join(' - ')}`,
+          };
+        });
+        setTables(parsedTables);
+      } else {
+        setTables(null);
       }
-      
+
+      // Populate the schema configuration
+      setFetchSchemaFunction(selectedConnector.fetchSchema || '');
+      setSchema((selectedConnector.schema as any[]) || null);
+
+      // Populate the fetch configuration
+      if (selectedConnector.pollRecords) {
+        setPollRecordsFunction(selectedConnector.pollRecords);
+      }
+
       // Populate the mapping configuration
-      if (selectedTable.mapping && typeof selectedTable.mapping === 'object') {
-        const mapping = selectedTable.mapping as any;
+      if (selectedConnector.mapping && typeof selectedConnector.mapping === 'object') {
+        const mapping = selectedConnector.mapping as any;
         if (mapping.recordArrayPath) {
           setRecordArrayPath(mapping.recordArrayPath);
         }
@@ -253,78 +296,94 @@ export const ApiImport: FC = () => {
           nextMappingId.current = newMappings.length;
         }
       }
-      
+
       // Set the table name
-      setTableName(selectedTable.name);
-      
+      setConnectorName(selectedConnector.name);
+
       // Load saved response data if it exists
-      if (selectedTable.pollRecordsResponse) {
-        setResponse(selectedTable.pollRecordsResponse as any);
+      if (selectedConnector.pollRecordsResponse) {
+        setResponse(selectedConnector.pollRecordsResponse as any);
       } else {
         setResponse(null);
       }
-      
+
       // Load saved delete function if it exists
-      if (selectedTable.deleteRecord) {
-        setDeleteFunction(selectedTable.deleteRecord);
+      if (selectedConnector.deleteRecord) {
+        setDeleteFunction(selectedConnector.deleteRecord);
       } else {
-        setDeleteFunction("");
+        setDeleteFunction('');
       }
-      
+
       // Load saved create function if it exists
-      if (selectedTable.createRecord) {
-        setCreateFunction(selectedTable.createRecord);
+      if (selectedConnector.createRecord) {
+        setCreateFunction(selectedConnector.createRecord);
       } else {
-        setCreateFunction("");
+        setCreateFunction('');
       }
-      
+
       // Initialize create record data text
       setCreateRecordDataText(JSON.stringify(createRecordData, null, 2));
-      
+
       // Load saved update function if it exists
-      if (selectedTable.updateRecord) {
-        setUpdateFunction(selectedTable.updateRecord);
+      if (selectedConnector.updateRecord) {
+        setUpdateFunction(selectedConnector.updateRecord);
       } else {
-        setUpdateFunction("");
+        setUpdateFunction('');
       }
-      
+
       // Clear mapped data when selecting an existing table
       setMappedRecords(null);
     }
-  }, [selectedTable]);
+  }, [
+    selectedConnector?.id,
+    selectedConnector?.listTables,
+    selectedConnector?.tables,
+    selectedConnector?.pollRecords,
+    selectedConnector?.fetchSchema,
+    selectedConnector?.schema,
+    selectedConnector?.mapping,
+    selectedConnector?.pollRecordsResponse,
+    selectedConnector?.deleteRecord,
+    selectedConnector?.createRecord,
+    selectedConnector?.updateRecord,
+    selectedConnector?.prompt,
+    selectedConnector?.apiKey,
+    selectedConnector?.name,
+    createRecordData,
+  ]);
 
   // Handle tab switching after table creation
   const [pendingTabSwitch, setPendingTabSwitch] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    if (pendingTabSwitch && genericTables) {
-      const tableExists = genericTables.some(table => table.id === pendingTabSwitch);
-      if (tableExists) {
-        setSelectedTableId(pendingTabSwitch);
+    if (pendingTabSwitch && customConnectors) {
+      const connectorExists = customConnectors.some((connector) => connector.id === pendingTabSwitch);
+      if (connectorExists) {
+        setSelectedConnectorId(pendingTabSwitch);
         setPendingTabSwitch(null);
       }
     }
-  }, [pendingTabSwitch, genericTables]);
+  }, [pendingTabSwitch, customConnectors]);
 
   // Auto-select first table when tables are loaded and no table is selected
   useEffect(() => {
-    if (genericTables && genericTables.length > 0 && !selectedTableId) {
-      setSelectedTableId(genericTables[0].id);
+    if (customConnectors && customConnectors.length > 0 && !selectedConnectorId) {
+      setSelectedConnectorId(customConnectors[0].id);
     }
-  }, [genericTables, selectedTableId]);
+  }, [customConnectors, selectedConnectorId]);
 
   // Function to extract all possible array paths from an object
-  const extractArrayPaths = useCallback((obj: any, prefix = ""): string[] => {
+  const extractArrayPaths = useCallback((obj: any, prefix = ''): string[] => {
     const paths: string[] = [];
     if (Array.isArray(obj)) {
-      paths.push(prefix || ".");
-    } else if (typeof obj === "object" && obj !== null) {
+      paths.push(prefix || '.');
+    } else if (typeof obj === 'object' && obj !== null) {
       Object.keys(obj).forEach((key) => {
         const newPrefix = prefix ? `${prefix}.${key}` : key;
         const value = obj[key];
         if (Array.isArray(value)) {
           paths.push(newPrefix);
-        } else if (typeof value === "object" && value !== null) {
+        } else if (typeof value === 'object' && value !== null) {
           paths.push(...extractArrayPaths(value, newPrefix));
         }
       });
@@ -333,11 +392,11 @@ export const ApiImport: FC = () => {
   }, []);
 
   const save = async (): Promise<void> => {
-    if (!selectedTableId) {
+    if (!selectedConnectorId) {
       notifications.show({
-        title: "No table selected",
-        message: "Please select a table to update",
-        color: "red",
+        title: 'No table selected',
+        message: 'Please select a table to update',
+        color: 'red',
       });
       return;
     }
@@ -351,7 +410,7 @@ export const ApiImport: FC = () => {
       //   // If pollRecordsFunction is invalid JSON, use empty object
       //   fetchConfig = {};
       // }
-      
+
       // Create the mapping configuration from the current mappings (optional)
       const fields = mappings
         .filter((m) => m.destination && m.source)
@@ -362,37 +421,40 @@ export const ApiImport: FC = () => {
         }));
 
       // Update the existing table with current data
-      const updateTableDto: CreateGenericTableDto = {
-        name: tableName ,
+      const updateConnectorDto: CreateCustomConnectorDto = {
+        name: connectorName,
         pollRecords: pollRecordsFunction.trim() ? pollRecordsFunction : undefined,
         prompt: aiPrompt.trim() ? aiPrompt : undefined,
         apiKey: apiKey.trim() ? apiKey : undefined,
+        listTables: listTablesFunction.trim() ? listTablesFunction : undefined,
+        tables: tables ? tables.map((table: any) => table.id.join(':')) : [],
         ...(fetchSchemaFunction.trim() && { fetchSchema: fetchSchemaFunction }),
         ...(schema && { schema: schema as unknown as Record<string, unknown> }),
-        ...(recordArrayPath && fields.length > 0 && {
-          mapping: {
-            recordArrayPath,
-            idPath: idPath.trim() || undefined,
-            fields,
-          },
-        }),
+        ...(recordArrayPath &&
+          fields.length > 0 && {
+            mapping: {
+              recordArrayPath,
+              idPath: idPath.trim() || undefined,
+              fields,
+            },
+          }),
         ...(response && { pollRecordsResponse: response as unknown as Record<string, unknown> }),
         ...(deleteFunction.trim() && { deleteRecord: deleteFunction }),
         ...(createFunction.trim() && { createRecord: createFunction }),
         ...(updateFunction.trim() && { updateRecord: updateFunction }),
       };
-      const updatedTable = await updateGenericTable(selectedTableId, updateTableDto);
+      const updatedConnector = await updateCustomConnector(selectedConnectorId, updateConnectorDto);
       notifications.show({
-        title: "Table updated successfully",
-        message: `Successfully updated table "${updatedTable.name}"!`,
-        color: "green",
+        title: 'Table updated successfully',
+        message: `Successfully updated table "${updatedConnector.name}"!`,
+        color: 'green',
       });
       // Don't clear the result - keep the mapped data visible
     } catch (err: any) {
       notifications.show({
-        title: "Error updating table",
+        title: 'Error updating table',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -403,20 +465,32 @@ export const ApiImport: FC = () => {
     setResponse(null);
     setLoading(true);
     try {
+      if (!selectedTableFromList) {
+        notifications.show({
+          title: 'No table selected',
+          message: 'Please select a table from the list in step 2 first.',
+          color: 'red',
+        });
+        return;
+      }
+
       // Make a direct call to the NestJS backend
-      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/execute-poll-records", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ function: pollRecordsFunction, apiKey }),
-      });
+      const resp = await fetch(
+        process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/execute-poll-records',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ function: pollRecordsFunction, apiKey, tableId: selectedTableFromList }),
+        },
+      );
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setResponse(data);
     } catch (err: any) {
       notifications.show({
-        title: "Fetch error",
+        title: 'Fetch error',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -425,23 +499,23 @@ export const ApiImport: FC = () => {
 
   const handleApplyMapping = async (): Promise<void> => {
     try {
-      if (!response) throw new Error("No API response available.");
-      if (!schema || !Array.isArray(schema) || schema.length === 0) throw new Error("No schema available.");
+      if (!response) throw new Error('No API response available.');
+      if (!schema || !Array.isArray(schema) || schema.length === 0) throw new Error('No schema available.');
 
       // Response is always an array of records with {id, fields} structure
-      if (!Array.isArray(response)) throw new Error("Response is not an array.");
+      if (!Array.isArray(response)) throw new Error('Response is not an array.');
 
       // Filter to only valid records
       const mapped = response.filter(
-        (item) => item && typeof item.id === "string" && typeof item.fields === "object" && item.fields !== null
+        (item) => item && typeof item.id === 'string' && typeof item.fields === 'object' && item.fields !== null,
       );
       setMappedRecords(mapped);
 
       // Columns: ID column first, then columns from schema
       const newColumns: GridColumn[] = [
         {
-          title: "ID",
-          id: "__id",
+          title: 'ID',
+          id: '__id',
           width: 150,
         },
         ...schema.map((col: any) => ({
@@ -453,9 +527,9 @@ export const ApiImport: FC = () => {
       setColumns(newColumns);
     } catch (err: any) {
       notifications.show({
-        title: "Mapping error",
+        title: 'Mapping error',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     }
   };
@@ -466,8 +540,8 @@ export const ApiImport: FC = () => {
       if (!mappedRecords || !mappedRecords[row] || !columns[col]) {
         return {
           kind: GridCellKind.Text,
-          data: "",
-          displayData: "",
+          data: '',
+          displayData: '',
           allowOverlay: false,
           readonly: true,
         };
@@ -478,21 +552,21 @@ export const ApiImport: FC = () => {
       if (!colId) {
         return {
           kind: GridCellKind.Text,
-          data: "",
-          displayData: "",
+          data: '',
+          displayData: '',
           allowOverlay: false,
           readonly: true,
         };
       }
-      let cellData = "";
-      if (colId === "__id") {
+      let cellData = '';
+      if (colId === '__id') {
         cellData = record.id;
       } else {
         // Map column ID to field key - they should match
-        cellData = record.fields ? record.fields[colId] : "";
+        cellData = record.fields ? record.fields[colId] : '';
       }
-      const displayValue = String(cellData ?? "");
-      
+      const displayValue = String(cellData ?? '');
+
       return {
         kind: GridCellKind.Text,
         data: displayValue,
@@ -501,7 +575,7 @@ export const ApiImport: FC = () => {
         readonly: false,
       };
     },
-    [mappedRecords, columns]
+    [mappedRecords, columns],
   );
 
   const onCellEdited = useCallback(
@@ -517,7 +591,7 @@ export const ApiImport: FC = () => {
         return newResult;
       });
     },
-    [columns]
+    [columns],
   );
 
   const onDelete = useCallback(
@@ -540,7 +614,7 @@ export const ApiImport: FC = () => {
       });
       return true;
     },
-    [mappedRecords]
+    [mappedRecords],
   );
 
   const openPathModal = (mappingId: string): void => {
@@ -548,20 +622,14 @@ export const ApiImport: FC = () => {
     setPathModalOpened(true);
   };
 
-  const handleMappingChange = (
-    id: string,
-    field: "destination" | "source" | "pgType",
-    value: string
-  ) => {
-    setMappings((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
-    );
+  const handleMappingChange = (id: string, field: 'destination' | 'source' | 'pgType', value: string) => {
+    setMappings((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
   };
 
   const addMappingRow = () => {
     setMappings((prev) => [
       ...prev,
-      { id: `mapping-${nextMappingId.current++}`, destination: "", source: "", pgType: "text" },
+      { id: `mapping-${nextMappingId.current++}`, destination: '', source: '', pgType: 'text' },
     ]);
   };
 
@@ -574,22 +642,19 @@ export const ApiImport: FC = () => {
     setLoading(true);
     try {
       // Make a direct call to the NestJS backend
-      const resp = await fetch(
-        process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/generate-schema",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: aiPrompt }),
-        }
-      );
+      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/generate-schema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setFetchSchemaFunction(data.function);
     } catch (err: any) {
       notifications.show({
-        title: "Schema generation failed",
+        title: 'Schema generation failed',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -600,20 +665,29 @@ export const ApiImport: FC = () => {
     setSchema(null);
     setLoading(true);
     try {
+      if (!selectedTableFromList) {
+        notifications.show({
+          title: 'No table selected',
+          message: 'Please select a table from the list in step 2 first.',
+          color: 'red',
+        });
+        return;
+      }
+
       // Make a direct call to the NestJS backend
-      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/execute-schema", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ functionString: fetchSchemaFunction, apiKey }),
+      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/execute-schema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ functionString: fetchSchemaFunction, apiKey, tableId: selectedTableFromList }),
       });
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setSchema(data);
     } catch (err: any) {
       notifications.show({
-        title: "Schema test failed",
+        title: 'Schema test failed',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -626,21 +700,21 @@ export const ApiImport: FC = () => {
     try {
       // Make a direct call to the NestJS backend
       const resp = await fetch(
-        process.env.NEXT_PUBLIC_API_URL+"/rest/api-import/generate-poll-records",
+        process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/generate-poll-records',
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: aiPrompt }),
-        }
+        },
       );
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setPollRecordsFunction(data.function);
     } catch (err: any) {
       notifications.show({
-        title: "AI generation failed",
+        title: 'AI generation failed',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -650,9 +724,9 @@ export const ApiImport: FC = () => {
   const handleGenerateDeleteFunction = async (): Promise<void> => {
     if (!aiPrompt.trim()) {
       notifications.show({
-        title: "AI Prompt Required",
-        message: "Please enter a description in step 1 first.",
-        color: "red",
+        title: 'AI Prompt Required',
+        message: 'Please enter a description in step 1 first.',
+        color: 'red',
       });
       return;
     }
@@ -662,15 +736,15 @@ export const ApiImport: FC = () => {
       const result = await generateDeleteRecord(aiPrompt);
       setDeleteFunction(result);
       notifications.show({
-        title: "Delete Function Generated",
-        message: "AI has generated a delete function based on your description.",
-        color: "green",
+        title: 'Delete Function Generated',
+        message: 'AI has generated a delete function based on your description.',
+        color: 'green',
       });
     } catch (err: any) {
       notifications.show({
-        title: "Generation Failed",
+        title: 'Generation Failed',
         message: err.message,
-        color: "red",
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -680,32 +754,41 @@ export const ApiImport: FC = () => {
   const handleDeleteRecord = async (): Promise<void> => {
     if (!selectedDeleteId) {
       notifications.show({
-        title: "No ID Selected",
-        message: "Please select an ID to delete.",
-        color: "red",
+        title: 'No ID Selected',
+        message: 'Please select an ID to delete.',
+        color: 'red',
       });
       return;
     }
 
     if (!deleteFunction.trim()) {
       notifications.show({
-        title: "No Delete Function",
-        message: "Please generate or enter a delete function first.",
-        color: "red",
+        title: 'No Delete Function',
+        message: 'Please generate or enter a delete function first.',
+        color: 'red',
+      });
+      return;
+    }
+
+    if (!selectedTableFromList) {
+      notifications.show({
+        title: 'No table selected',
+        message: 'Please select a table from the list in step 2 first.',
+        color: 'red',
       });
       return;
     }
 
     setLoading(true);
     try {
-      await executeDeleteRecord(deleteFunction, selectedDeleteId, apiKey);
-      
+      await executeDeleteRecord(deleteFunction, selectedDeleteId, apiKey, selectedTableFromList);
+
       notifications.show({
-        title: "Delete Successful",
-        message: `Successfully deleted record with ID: ${selectedDeleteId}`,
-        color: "green",
+        title: 'Delete successful',
+        message: 'Successfully deleted record',
+        color: 'green',
       });
-      
+
       // Remove the deleted record from the mapped records
       setMappedRecords((prev) => {
         if (!prev) return prev;
@@ -714,14 +797,66 @@ export const ApiImport: FC = () => {
           return String(recordId) !== selectedDeleteId;
         });
       });
-      
+
       // Clear the selected ID
-      setSelectedDeleteId("");
+      setSelectedDeleteId('');
     } catch (err: any) {
       notifications.show({
-        title: "Delete Failed",
+        title: 'Delete Failed',
         message: err.message,
-        color: "red",
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateListTables = async (): Promise<void> => {
+    if (!aiPrompt.trim()) {
+      notifications.show({
+        title: 'AI Prompt Required',
+        message: 'Please enter a description in step 1 first.',
+        color: 'red',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await generateListTables(aiPrompt);
+      setListTablesFunction(result);
+      notifications.show({
+        title: 'List Tables Function Generated',
+        message: 'AI has generated a list tables function based on your description.',
+        color: 'green',
+      });
+    } catch (err: any) {
+      notifications.show({
+        title: 'Generation Failed',
+        message: err.message,
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestListTables = async (): Promise<void> => {
+    setTables(null);
+    setLoading(true);
+    try {
+      const data = await executeListTables(listTablesFunction, apiKey);
+      setTables(data as any[]);
+      notifications.show({
+        title: 'List Tables Successful',
+        message: 'Successfully retrieved list of tables.',
+        color: 'green',
+      });
+    } catch (err: any) {
+      notifications.show({
+        title: 'List Tables Failed',
+        message: err.message,
+        color: 'red',
       });
     } finally {
       setLoading(false);
@@ -729,16 +864,16 @@ export const ApiImport: FC = () => {
   };
 
   return (
-    <Box style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Sticky top section */}
       <Box
         style={{
-          position: "sticky",
+          position: 'sticky',
           top: 0,
           zIndex: 100,
-          backgroundColor: "white",
-          borderBottom: "1px solid #e0e0e0",
-          padding: "16px 0",
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '16px 0',
         }}
       >
         <Container size="xl">
@@ -749,40 +884,44 @@ export const ApiImport: FC = () => {
                 variant="light"
                 onClick={() => {
                   setTableNameModalOpened(true);
-                  setNewTableName("");
+                  setNewTableName('');
                 }}
                 leftSection={<Plus size={16} />}
               >
-                Create New Table
+                Create New Connector
               </Button>
               <Group gap="sm">
                 <Button
                   variant="outline"
                   color="red"
                   onClick={async () => {
-                    if (!selectedTableId) {
+                    if (!selectedConnectorId) {
                       notifications.show({
-                        title: "No table selected",
-                        message: "Please select a table to delete",
-                        color: "red",
+                        title: 'No table selected',
+                        message: 'Please select a table to delete',
+                        color: 'red',
                       });
                       return;
                     }
-                    if (confirm(`Are you sure you want to delete the table "${selectedTable?.name}"? This action cannot be undone.`)) {
+                    if (
+                      confirm(
+                        `Are you sure you want to delete the table "${selectedConnector?.name}"? This action cannot be undone.`,
+                      )
+                    ) {
                       setLoading(true);
                       try {
-                        await deleteGenericTable(selectedTableId);
+                        await deleteCustomConnector(selectedConnectorId);
                         notifications.show({
-                          title: "Table deleted",
-                          message: `Successfully deleted table "${selectedTable?.name}"`,
-                          color: "green",
+                          title: 'Table deleted',
+                          message: `Successfully deleted table "${selectedConnector?.name}"`,
+                          color: 'green',
                         });
-                        setSelectedTableId(null);
+                        setSelectedConnectorId(null);
                       } catch (err: any) {
                         notifications.show({
-                          title: "Error deleting table",
+                          title: 'Error deleting table',
                           message: err.message,
-                          color: "red",
+                          color: 'red',
                         });
                       } finally {
                         setLoading(false);
@@ -790,55 +929,40 @@ export const ApiImport: FC = () => {
                     }
                   }}
                   loading={loading}
-                  disabled={!selectedTableId}
+                  disabled={!selectedConnectorId}
                   leftSection={<Trash size={16} />}
                 >
                   Delete
                 </Button>
-                <Button
-                  variant="filled"
-                  onClick={save}
-                  loading={loading}
-                  disabled={!selectedTableId}
-                >
+                <Button variant="filled" onClick={save} loading={loading} disabled={!selectedConnectorId}>
                   Save
                 </Button>
               </Group>
             </Group>
 
             {/* Tabs for table selection */}
-            {genericTables && genericTables.length > 0 ? (
+            {customConnectors && customConnectors.length > 0 ? (
               <Group justify="space-between" align="center">
-                <Tabs 
-                  key={selectedTableId} 
-                  value={selectedTableId} 
+                <Tabs
+                  key={selectedConnectorId}
+                  value={selectedConnectorId}
                   onChange={(value) => {
-                    setSelectedTableId(value);
+                    setSelectedConnectorId(value);
                   }}
                 >
                   <Tabs.List>
-                    {genericTables.map((table) => (
-                      <Tabs.Tab key={table.id} value={table.id} disabled={tablesLoading}>
-                        {table.name}
+                    {customConnectors.map((connector) => (
+                      <Tabs.Tab key={connector.id} value={connector.id} disabled={connectorsLoading}>
+                        {connector.name}
                       </Tabs.Tab>
                     ))}
                   </Tabs.List>
                 </Tabs>
                 <Group gap="xs">
-                  <Button
-                    variant="light"
-                    size="xs"
-                    onClick={expandAll}
-                    leftSection={<CaretDown size={16} />}
-                  >
+                  <Button variant="light" size="xs" onClick={expandAll} leftSection={<CaretDown size={16} />}>
                     Expand All
                   </Button>
-                  <Button
-                    variant="light"
-                    size="xs"
-                    onClick={collapseAll}
-                    leftSection={<CaretUp size={16} />}
-                  >
+                  <Button variant="light" size="xs" onClick={collapseAll} leftSection={<CaretUp size={16} />}>
                     Collapse All
                   </Button>
                 </Group>
@@ -855,32 +979,32 @@ export const ApiImport: FC = () => {
       </Box>
 
       {/* Scrollable content section */}
-      <Box style={{ flex: 1, overflow: "auto" }}>
-        <Container size="xl" py="xl" style={{ position: "relative" }}>
+      <Box style={{ flex: 1, overflow: 'auto' }}>
+        <Container size="xl" py="xl" style={{ position: 'relative' }}>
           {loading && (
             <Box
               style={{
-                position: "fixed",
+                position: 'fixed',
                 top: 0,
                 left: 0,
-                width: "100vw",
-                height: "100vh",
-                background: "rgba(255,255,255,0.6)",
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(255,255,255,0.6)',
                 zIndex: 9999,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <Center style={{ width: "100vw", height: "100vh" }}>
+              <Center style={{ width: '100vw', height: '100vh' }}>
                 <Loader size={64} color="blue" />
               </Center>
             </Box>
           )}
           <Stack gap="md">
             {/* Main content area */}
-            {genericTables && genericTables.length > 0 && (
-                              <Accordion value={accordionValue} onChange={setAccordionValue} variant="contained" multiple>
+            {customConnectors && customConnectors.length > 0 && (
+              <Accordion value={accordionValue} onChange={setAccordionValue} variant="contained" multiple>
                 {/* Step 1: Describe the data you are trying to import */}
                 <Accordion.Item value="step1">
                   <Accordion.Control>
@@ -904,7 +1028,7 @@ export const ApiImport: FC = () => {
                         placeholder="I want to work with data from my Airtable base with id: 123, table id: 456"
                         value={aiPrompt}
                         onChange={(e) => setAiPrompt(e.target.value)}
-                        styles={{ input: { height: "120px" } }}
+                        styles={{ input: { height: '120px' } }}
                       />
                       <Stack gap="xs">
                         <Text size="sm" fw={500}>
@@ -923,7 +1047,7 @@ export const ApiImport: FC = () => {
                           onClick={() => {
                             // TODO: Implement "I am feeling lucky" functionality
                           }}
-                          style={{ width: "fit-content" }}
+                          style={{ width: 'fit-content' }}
                         >
                           I am feeling lucky
                         </Button>
@@ -932,12 +1056,108 @@ export const ApiImport: FC = () => {
                   </Accordion.Panel>
                 </Accordion.Item>
 
-                {/* Step 2: Generate Table Schema */}
+                {/* Step 2: List Tables */}
                 <Accordion.Item value="step2">
                   <Accordion.Control>
                     <Group gap="xs" align="center">
                       <Text size="lg" fw={600}>
-                        2. Configure Schema Fetching
+                        2. List Available Tables
+                      </Text>
+                      <Tooltip label="Generate a function to list all available tables from your API. This will help you select which table to work with.">
+                        <Text size="sm" c="dimmed">
+                          (What is list tables?)
+                        </Text>
+                      </Tooltip>
+                    </Group>
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack gap="sm">
+                      <Group align="flex-start" gap="md">
+                        <Stack style={{ flex: 1 }} gap="sm">
+                          <Textarea
+                            label="List Tables Function"
+                            placeholder="async function listTables(apiKey) { ... }"
+                            value={listTablesFunction}
+                            onChange={(e) => setListTablesFunction(e.target.value)}
+                            styles={{
+                              input: {
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
+                              },
+                            }}
+                          />
+                          <Button
+                            leftSection={<Sparkle size={16} />}
+                            onClick={handleGenerateListTables}
+                            loading={loading}
+                            disabled={!aiPrompt.trim()}
+                            size="sm"
+                            variant="light"
+                            style={{ width: 'fit-content' }}
+                          >
+                            Generate List Tables Function
+                          </Button>
+                        </Stack>
+                        <Stack style={{ flex: 1 }} gap="sm">
+                          <Textarea
+                            label="Available Tables"
+                            value={
+                              tables
+                                ? JSON.stringify(tables, null, 2)
+                                : 'No tables yet. Click "Test List Tables" to get started.'
+                            }
+                            styles={{
+                              input: {
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
+                              },
+                            }}
+                            readOnly
+                          />
+                          <Button
+                            onClick={handleTestListTables}
+                            disabled={!listTablesFunction.trim()}
+                            leftSection={<ArrowRight size={16} />}
+                            style={{ width: 'fit-content' }}
+                          >
+                            Test List Tables
+                          </Button>
+                          {tables && tables.length > 0 && (
+                            <Stack gap="xs">
+                              <Text size="sm" fw={500}>
+                                Select a table to work with:
+                              </Text>
+                              <Select
+                                placeholder="Choose a table from the list above"
+                                value={selectedTableFromList ? selectedTableFromList.join(':') : null}
+                                onChange={(value) => {
+                                  if (value) {
+                                    setSelectedTableFromList(value.split(':'));
+                                  } else {
+                                    setSelectedTableFromList(null);
+                                  }
+                                }}
+                                data={tables.map((table: any) => ({
+                                  value: table.id.join(':'),
+                                  label: table.displayName,
+                                }))}
+                              />
+                            </Stack>
+                          )}
+                        </Stack>
+                      </Group>
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+
+                {/* Step 3: Generate Table Schema */}
+                <Accordion.Item value="step3">
+                  <Accordion.Control>
+                    <Group gap="xs" align="center">
+                      <Text size="lg" fw={600}>
+                        3. Configure Schema Fetching
                       </Text>
                       <Tooltip label="Generate a schema that defines the structure of your table. This includes field names, types, and how they should be stored in the database.">
                         <Text size="sm" c="dimmed">
@@ -948,18 +1168,23 @@ export const ApiImport: FC = () => {
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Stack gap="sm">
+                      {!selectedTableFromList && (
+                        <Text size="sm" c="orange" fw={500}>
+                          ⚠️ Please select a table from step 2 before testing the schema function.
+                        </Text>
+                      )}
                       <Group align="flex-start" gap="md">
                         <Stack style={{ flex: 1 }} gap="sm">
                           <Textarea
                             label="Schema Generation Function"
-                            placeholder='async function fetchSchema() { ... }'
+                            placeholder="async function fetchSchema() { ... }"
                             value={fetchSchemaFunction}
                             onChange={(e) => setFetchSchemaFunction(e.target.value)}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                           />
@@ -970,7 +1195,7 @@ export const ApiImport: FC = () => {
                             disabled={!aiPrompt.trim()}
                             size="sm"
                             variant="light"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Generate Schema Function
                           </Button>
@@ -985,9 +1210,9 @@ export const ApiImport: FC = () => {
                             }
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                             readOnly
@@ -996,7 +1221,7 @@ export const ApiImport: FC = () => {
                             onClick={handleTestSchema}
                             disabled={!fetchSchemaFunction.trim()}
                             leftSection={<ArrowRight size={16} />}
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Test Schema
                           </Button>
@@ -1006,12 +1231,12 @@ export const ApiImport: FC = () => {
                   </Accordion.Panel>
                 </Accordion.Item>
 
-                {/* Step 3: Configure Record Polling */}
-                <Accordion.Item value="step3">
+                {/* Step 4: Configure Record Polling */}
+                <Accordion.Item value="step4">
                   <Accordion.Control>
                     <Group gap="xs" align="center">
                       <Text size="lg" fw={600}>
-                        3. Configure Record Polling
+                        4. Configure Record Polling
                       </Text>
                       <Tooltip label="Polling refers to the process of periodically checking for updates or new data from a source. This is typically used for real-time data or when you need to refresh data at regular intervals.">
                         <Text size="sm" c="dimmed">
@@ -1022,18 +1247,23 @@ export const ApiImport: FC = () => {
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Stack gap="sm">
+                      {!selectedTableFromList && (
+                        <Text size="sm" c="orange" fw={500}>
+                          ⚠️ Please select a table from step 2 before testing the poll records function.
+                        </Text>
+                      )}
                       <Group align="flex-start" gap="md">
                         <Stack style={{ flex: 1 }} gap="sm">
                           <Textarea
                             label="Poll Records Function"
-                            placeholder='async function pollRecords() { ... }'
+                            placeholder="async function pollRecords() { ... }"
                             value={pollRecordsFunction}
                             onChange={(e) => setPollRecordsFunction(e.target.value)}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                           />
@@ -1044,7 +1274,7 @@ export const ApiImport: FC = () => {
                             disabled={!aiPrompt.trim()}
                             size="sm"
                             variant="light"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Generate Poll Records Function
                           </Button>
@@ -1059,9 +1289,9 @@ export const ApiImport: FC = () => {
                             }
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                             readOnly
@@ -1070,7 +1300,7 @@ export const ApiImport: FC = () => {
                             onClick={handleTestPollRecords}
                             disabled={!pollRecordsFunction.trim()}
                             leftSection={<ArrowRight size={16} />}
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Test Poll Records
                           </Button>
@@ -1103,11 +1333,11 @@ export const ApiImport: FC = () => {
                         onClick={handleApplyMapping}
                         disabled={!response || !schema || !Array.isArray(schema) || schema.length === 0}
                         leftSection={<ArrowRight size={16} />}
-                        style={{ width: "140px" }}
+                        style={{ width: '140px' }}
                       >
                         Preview Records
                       </Button>
-                      
+
                       {mappedRecords && mappedRecords.length > 0 && (
                         <Stack gap="xs">
                           <Group justify="space-between" align="center">
@@ -1139,7 +1369,11 @@ export const ApiImport: FC = () => {
                             <DataEditor
                               columns={mappedRecords && mappedRecords.length > 0 ? columns : []}
                               rows={mappedRecords && mappedRecords.length > 0 ? mappedRecords.length : 1}
-                              getCellContent={mappedRecords && mappedRecords.length > 0 ? getCellContent : () => ({ kind: GridCellKind.Text, data: "", displayData: "", allowOverlay: false })}
+                              getCellContent={
+                                mappedRecords && mappedRecords.length > 0
+                                  ? getCellContent
+                                  : () => ({ kind: GridCellKind.Text, data: '', displayData: '', allowOverlay: false })
+                              }
                               onCellEdited={mappedRecords && mappedRecords.length > 0 ? onCellEdited : undefined}
                               onDelete={mappedRecords && mappedRecords.length > 0 ? onDelete : undefined}
                               width="100%"
@@ -1185,9 +1419,9 @@ export const ApiImport: FC = () => {
                             onChange={(e) => setDeleteFunction(e.target.value)}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                           />
@@ -1198,7 +1432,7 @@ export const ApiImport: FC = () => {
                             disabled={!aiPrompt.trim()}
                             size="sm"
                             variant="light"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Generate Delete Function
                           </Button>
@@ -1211,7 +1445,7 @@ export const ApiImport: FC = () => {
                             label="Select ID to Delete"
                             placeholder="Choose an ID from the mapped data above"
                             value={selectedDeleteId}
-                            onChange={(value) => setSelectedDeleteId(value || "")}
+                            onChange={(value) => setSelectedDeleteId(value || '')}
                             data={
                               mappedRecords && mappedRecords.length > 0
                                 ? mappedRecords.map((item: any, index: number) => {
@@ -1231,7 +1465,7 @@ export const ApiImport: FC = () => {
                             leftSection={<Trash size={16} />}
                             color="red"
                             variant="outline"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Delete Record
                           </Button>
@@ -1271,9 +1505,9 @@ export const ApiImport: FC = () => {
                             onChange={(e) => setCreateFunction(e.target.value)}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                           />
@@ -1282,9 +1516,9 @@ export const ApiImport: FC = () => {
                             onClick={async () => {
                               if (!aiPrompt.trim()) {
                                 notifications.show({
-                                  title: "No prompt provided",
-                                  message: "Please enter a description of your data in step 1.",
-                                  color: "red",
+                                  title: 'No prompt provided',
+                                  message: 'Please enter a description of your data in step 1.',
+                                  color: 'red',
                                 });
                                 return;
                               }
@@ -1294,16 +1528,16 @@ export const ApiImport: FC = () => {
                                 const result = await generateCreateRecord(aiPrompt);
                                 setCreateFunction(result);
                                 notifications.show({
-                                  title: "Create function generated",
-                                  message: "The create function has been generated successfully.",
-                                  color: "green",
+                                  title: 'Create function generated',
+                                  message: 'The create function has been generated successfully.',
+                                  color: 'green',
                                 });
                               } catch (error) {
-                                console.error("Error generating create function:", error);
+                                console.error('Error generating create function:', error);
                                 notifications.show({
-                                  title: "Error generating create function",
-                                  message: error instanceof Error ? error.message : "An unknown error occurred",
-                                  color: "red",
+                                  title: 'Error generating create function',
+                                  message: error instanceof Error ? error.message : 'An unknown error occurred',
+                                  color: 'red',
                                 });
                               } finally {
                                 setLoading(false);
@@ -1313,7 +1547,7 @@ export const ApiImport: FC = () => {
                             disabled={!aiPrompt.trim()}
                             size="sm"
                             variant="light"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Generate Create Function
                           </Button>
@@ -1338,9 +1572,9 @@ export const ApiImport: FC = () => {
                             }}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "200px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '200px',
                               },
                             }}
                           />
@@ -1348,27 +1582,41 @@ export const ApiImport: FC = () => {
                             onClick={async () => {
                               if (!createFunction.trim()) {
                                 notifications.show({
-                                  title: "No create function",
-                                  message: "Please generate or enter a create function first.",
-                                  color: "red",
+                                  title: 'No create function',
+                                  message: 'Please generate or enter a create function first.',
+                                  color: 'red',
+                                });
+                                return;
+                              }
+
+                              if (!selectedTableFromList) {
+                                notifications.show({
+                                  title: 'No table selected',
+                                  message: 'Please select a table from the list in step 2 first.',
+                                  color: 'red',
                                 });
                                 return;
                               }
 
                               setLoading(true);
                               try {
-                                await executeCreateRecord(createFunction, createRecordData, apiKey);
+                                await executeCreateRecord(
+                                  createFunction,
+                                  createRecordData,
+                                  apiKey,
+                                  selectedTableFromList,
+                                );
                                 notifications.show({
-                                  title: "Create successful",
-                                  message: "Successfully created new record",
-                                  color: "green",
+                                  title: 'Create successful',
+                                  message: 'Successfully created new record',
+                                  color: 'green',
                                 });
                               } catch (error) {
-                                console.error("Error creating record:", error);
+                                console.error('Error creating record:', error);
                                 notifications.show({
-                                  title: "Create failed",
-                                  message: error instanceof Error ? error.message : "An unknown error occurred",
-                                  color: "red",
+                                  title: 'Create failed',
+                                  message: error instanceof Error ? error.message : 'An unknown error occurred',
+                                  color: 'red',
                                 });
                               } finally {
                                 setLoading(false);
@@ -1378,7 +1626,7 @@ export const ApiImport: FC = () => {
                             leftSection={<Plus size={16} />}
                             color="green"
                             variant="outline"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Create Record
                           </Button>
@@ -1413,9 +1661,9 @@ export const ApiImport: FC = () => {
                             onChange={(e) => setUpdateFunction(e.target.value)}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "400px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '400px',
                               },
                             }}
                           />
@@ -1424,9 +1672,9 @@ export const ApiImport: FC = () => {
                             onClick={async () => {
                               if (!aiPrompt.trim()) {
                                 notifications.show({
-                                  title: "No prompt provided",
-                                  message: "Please enter a description of your data in step 1.",
-                                  color: "red",
+                                  title: 'No prompt provided',
+                                  message: 'Please enter a description of your data in step 1.',
+                                  color: 'red',
                                 });
                                 return;
                               }
@@ -1436,16 +1684,16 @@ export const ApiImport: FC = () => {
                                 const result = await generateUpdateRecord(aiPrompt);
                                 setUpdateFunction(result);
                                 notifications.show({
-                                  title: "Update function generated",
-                                  message: "The update function has been generated successfully.",
-                                  color: "green",
+                                  title: 'Update function generated',
+                                  message: 'The update function has been generated successfully.',
+                                  color: 'green',
                                 });
                               } catch (error) {
-                                console.error("Error generating update function:", error);
+                                console.error('Error generating update function:', error);
                                 notifications.show({
-                                  title: "Error generating update function",
-                                  message: error instanceof Error ? error.message : "An unknown error occurred",
-                                  color: "red",
+                                  title: 'Error generating update function',
+                                  message: error instanceof Error ? error.message : 'An unknown error occurred',
+                                  color: 'red',
                                 });
                               } finally {
                                 setLoading(false);
@@ -1455,7 +1703,7 @@ export const ApiImport: FC = () => {
                             disabled={!aiPrompt.trim()}
                             size="sm"
                             variant="light"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Generate Update Function
                           </Button>
@@ -1468,7 +1716,7 @@ export const ApiImport: FC = () => {
                             label="Select ID to Update"
                             placeholder="Choose an ID from the mapped data above"
                             value={selectedUpdateId}
-                            onChange={(value) => setSelectedUpdateId(value || "")}
+                            onChange={(value) => setSelectedUpdateId(value || '')}
                             data={
                               mappedRecords && mappedRecords.length > 0
                                 ? mappedRecords.map((item: any, index: number) => {
@@ -1498,9 +1746,9 @@ export const ApiImport: FC = () => {
                             }}
                             styles={{
                               input: {
-                                fontFamily: "monospace",
-                                fontSize: "12px",
-                                height: "150px",
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                height: '150px',
                               },
                             }}
                           />
@@ -1508,27 +1756,42 @@ export const ApiImport: FC = () => {
                             onClick={async () => {
                               if (!updateFunction.trim()) {
                                 notifications.show({
-                                  title: "No update function",
-                                  message: "Please generate or enter an update function first.",
-                                  color: "red",
+                                  title: 'No update function',
+                                  message: 'Please generate or enter an update function first.',
+                                  color: 'red',
+                                });
+                                return;
+                              }
+
+                              if (!selectedTableFromList) {
+                                notifications.show({
+                                  title: 'No table selected',
+                                  message: 'Please select a table from the list in step 2 first.',
+                                  color: 'red',
                                 });
                                 return;
                               }
 
                               setLoading(true);
                               try {
-                               await executeUpdateRecord(updateFunction, selectedUpdateId, updateRecordData, apiKey);
+                                await executeUpdateRecord(
+                                  updateFunction,
+                                  selectedUpdateId,
+                                  updateRecordData,
+                                  apiKey,
+                                  selectedTableFromList,
+                                );
                                 notifications.show({
-                                  title: "Update successful",
-                                  message: "Successfully updated record",
-                                  color: "green",
+                                  title: 'Update successful',
+                                  message: 'Successfully updated record',
+                                  color: 'green',
                                 });
                               } catch (error) {
-                                console.error("Error updating record:", error);
+                                console.error('Error updating record:', error);
                                 notifications.show({
-                                  title: "Update failed",
-                                  message: error instanceof Error ? error.message : "An unknown error occurred",
-                                  color: "red",
+                                  title: 'Update failed',
+                                  message: error instanceof Error ? error.message : 'An unknown error occurred',
+                                  color: 'red',
                                 });
                               } finally {
                                 setLoading(false);
@@ -1538,7 +1801,7 @@ export const ApiImport: FC = () => {
                             leftSection={<PencilSimple size={16} />}
                             color="blue"
                             variant="outline"
-                            style={{ width: "fit-content" }}
+                            style={{ width: 'fit-content' }}
                           >
                             Update Record
                           </Button>
@@ -1587,8 +1850,8 @@ export const ApiImport: FC = () => {
                                 style={{ flex: 1 }}
                                 styles={{
                                   input: {
-                                    fontFamily: "monospace",
-                                    fontSize: "12px",
+                                    fontFamily: 'monospace',
+                                    fontSize: '12px',
                                   },
                                 }}
                               />
@@ -1598,9 +1861,10 @@ export const ApiImport: FC = () => {
                                 onClick={() => {
                                   if (!response) {
                                     notifications.show({
-                                      title: "No data available",
-                                      message: "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
-                                      color: "red",
+                                      title: 'No data available',
+                                      message:
+                                        "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
+                                      color: 'red',
                                     });
                                     return;
                                   }
@@ -1630,8 +1894,8 @@ export const ApiImport: FC = () => {
                                 style={{ flex: 1 }}
                                 styles={{
                                   input: {
-                                    fontFamily: "monospace",
-                                    fontSize: "12px",
+                                    fontFamily: 'monospace',
+                                    fontSize: '12px',
                                   },
                                 }}
                               />
@@ -1641,18 +1905,20 @@ export const ApiImport: FC = () => {
                                 onClick={() => {
                                   if (!response) {
                                     notifications.show({
-                                      title: "No data available",
-                                      message: "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
-                                      color: "red",
+                                      title: 'No data available',
+                                      message:
+                                        "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
+                                      color: 'red',
                                     });
                                     return;
                                   }
-                                  const arrayData = recordArrayPath === "." ? response : _.get(response, recordArrayPath);
+                                  const arrayData =
+                                    recordArrayPath === '.' ? response : _.get(response, recordArrayPath);
                                   if (!Array.isArray(arrayData)) {
                                     notifications.show({
-                                      title: "Invalid array path",
-                                      message: "The selected record array path does not point to an array.",
-                                      color: "red",
+                                      title: 'Invalid array path',
+                                      message: 'The selected record array path does not point to an array.',
+                                      color: 'red',
                                     });
                                     return;
                                   }
@@ -1679,9 +1945,10 @@ export const ApiImport: FC = () => {
                                   onClick={() => {
                                     if (!response) {
                                       notifications.show({
-                                        title: "No data available",
-                                        message: "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
-                                        color: "red",
+                                        title: 'No data available',
+                                        message:
+                                          "Please fetch data first to see available paths. Click 'Fetch Data' in step 2.",
+                                        color: 'red',
                                       });
                                       return;
                                     }
@@ -1693,36 +1960,30 @@ export const ApiImport: FC = () => {
                                 <TextInput
                                   placeholder="Source path from API"
                                   value={mapping.source}
-                                  onChange={(e) =>
-                                    handleMappingChange(mapping.id, "source", e.target.value)
-                                  }
+                                  onChange={(e) => handleMappingChange(mapping.id, 'source', e.target.value)}
                                   style={{ flex: 1 }}
                                 />
                                 <Text size="sm">→</Text>
                                 <TextInput
                                   placeholder="Destination field name"
                                   value={mapping.destination}
-                                  onChange={(e) =>
-                                    handleMappingChange(mapping.id, "destination", e.target.value)
-                                  }
+                                  onChange={(e) => handleMappingChange(mapping.id, 'destination', e.target.value)}
                                   style={{ flex: 1 }}
                                 />
                                 <Select
                                   placeholder="Type"
                                   value={mapping.pgType}
-                                  onChange={(value) =>
-                                    handleMappingChange(mapping.id, "pgType", value || "text")
-                                  }
+                                  onChange={(value) => handleMappingChange(mapping.id, 'pgType', value || 'text')}
                                   data={[
-                                    { value: "text", label: "Text" },
-                                    { value: "text[]", label: "Text Array" },
-                                    { value: "numeric", label: "Numeric" },
-                                    { value: "numeric[]", label: "Numeric Array" },
-                                    { value: "boolean", label: "Boolean" },
-                                    { value: "boolean[]", label: "Boolean Array" },
-                                    { value: "jsonb", label: "JSONB" },
+                                    { value: 'text', label: 'Text' },
+                                    { value: 'text[]', label: 'Text Array' },
+                                    { value: 'numeric', label: 'Numeric' },
+                                    { value: 'numeric[]', label: 'Numeric Array' },
+                                    { value: 'boolean', label: 'Boolean' },
+                                    { value: 'boolean[]', label: 'Boolean Array' },
+                                    { value: 'jsonb', label: 'JSONB' },
                                   ]}
-                                  style={{ width: "120px" }}
+                                  style={{ width: '120px' }}
                                 />
                                 <ActionIcon
                                   variant="light"
@@ -1739,12 +2000,11 @@ export const ApiImport: FC = () => {
                               size="sm"
                               leftSection={<Plus size={16} />}
                               onClick={addMappingRow}
-                              style={{ width: "fit-content" }}
+                              style={{ width: 'fit-content' }}
                             >
                               Add Field Mapping
                             </Button>
                           </Stack>
-
                         </Stack>
                       </Group>
                     </Stack>
@@ -1767,7 +2027,7 @@ export const ApiImport: FC = () => {
           <Text size="sm" c="dimmed">
             Click on a path to use it for the selected field:
           </Text>
-          <Stack gap="xs" style={{ maxHeight: "400px", overflowY: "auto" }}>
+          <Stack gap="xs" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {availablePaths.map((path) => (
               <Button
                 key={path}
@@ -1775,18 +2035,14 @@ export const ApiImport: FC = () => {
                 justify="flex-start"
                 onClick={() => {
                   if (currentMappingId) {
-                    handleMappingChange(currentMappingId, "source", path);
+                    handleMappingChange(currentMappingId, 'source', path);
                     // Auto-populate destination field by replacing dots with underscores
-                    const destinationField = path.replace(/\./g, "_");
-                    handleMappingChange(
-                      currentMappingId,
-                      "destination",
-                      destinationField
-                    );
+                    const destinationField = path.replace(/\./g, '_');
+                    handleMappingChange(currentMappingId, 'destination', destinationField);
                   }
                   setPathModalOpened(false);
                 }}
-                style={{ fontFamily: "monospace", fontSize: "12px" }}
+                style={{ fontFamily: 'monospace', fontSize: '12px' }}
               >
                 {path}
               </Button>
@@ -1806,7 +2062,7 @@ export const ApiImport: FC = () => {
           <Text size="sm" c="dimmed">
             Click on a path to select the array containing your records:
           </Text>
-          <Stack gap="xs" style={{ maxHeight: "400px", overflowY: "auto" }}>
+          <Stack gap="xs" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {availableArrayPaths.map((path) => (
               <Button
                 key={path}
@@ -1816,9 +2072,9 @@ export const ApiImport: FC = () => {
                   setRecordArrayPath(path);
                   setRecordArrayPathModalOpened(false);
                 }}
-                style={{ fontFamily: "monospace", fontSize: "12px" }}
+                style={{ fontFamily: 'monospace', fontSize: '12px' }}
               >
-                {path === "." ? "(root level array)" : path}
+                {path === '.' ? '(root level array)' : path}
               </Button>
             ))}
           </Stack>
@@ -1826,17 +2082,12 @@ export const ApiImport: FC = () => {
       </Modal>
 
       {/* ID Path Selection Modal */}
-      <Modal
-        opened={idPathModalOpened}
-        onClose={() => setIdPathModalOpened(false)}
-        title="Select ID Path"
-        size="lg"
-      >
+      <Modal opened={idPathModalOpened} onClose={() => setIdPathModalOpened(false)} title="Select ID Path" size="lg">
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
             Click on a path to use it as the ID field:
           </Text>
-          <Stack gap="xs" style={{ maxHeight: "400px", overflowY: "auto" }}>
+          <Stack gap="xs" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {availablePaths.map((path) => (
               <Button
                 key={path}
@@ -1846,7 +2097,7 @@ export const ApiImport: FC = () => {
                   setIdPath(path);
                   setIdPathModalOpened(false);
                 }}
-                style={{ fontFamily: "monospace", fontSize: "12px" }}
+                style={{ fontFamily: 'monospace', fontSize: '12px' }}
               >
                 {path}
               </Button>
@@ -1859,7 +2110,7 @@ export const ApiImport: FC = () => {
       <Modal
         opened={tableNameModalOpened}
         onClose={() => setTableNameModalOpened(false)}
-        title="Create New Table"
+        title="Create New Connector"
         size="md"
       >
         <Stack gap="sm">
@@ -1873,36 +2124,33 @@ export const ApiImport: FC = () => {
             autoFocus
           />
           <Group justify="flex-end" gap="sm">
-            <Button
-              variant="light"
-              onClick={() => setTableNameModalOpened(false)}
-            >
+            <Button variant="light" onClick={() => setTableNameModalOpened(false)}>
               Cancel
             </Button>
             <Button
               onClick={async () => {
                 if (!newTableName.trim()) {
                   notifications.show({
-                    title: "Table name required",
-                    message: "Please enter a table name",
-                    color: "red",
+                    title: 'Table name required',
+                    message: 'Please enter a table name',
+                    color: 'red',
                   });
                   return;
                 }
                 setLoading(true);
                 try {
-                  const createTableDto: CreateGenericTableDto = {
+                  const createConnectorDto: CreateCustomConnectorDto = {
                     name: newTableName.trim(),
                   };
-                  const createdTable = await createGenericTable(createTableDto);
+                  const createdConnector = await createCustomConnector(createConnectorDto);
                   setTableNameModalOpened(false);
-                  setNewTableName("");
-                  setSelectedTableId(createdTable.id);
+                  setNewTableName('');
+                  setSelectedConnectorId(createdConnector.id);
                 } catch (err: any) {
                   notifications.show({
-                    title: "Error creating table",
+                    title: 'Error creating table',
                     message: err.message,
-                    color: "red",
+                    color: 'red',
                   });
                 } finally {
                   setLoading(false);
@@ -1919,4 +2167,3 @@ export const ApiImport: FC = () => {
     </Box>
   );
 };
-

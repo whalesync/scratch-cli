@@ -12,14 +12,14 @@ export interface MappingConfig {
   fields: MappingField[];
 }
 
-export interface GenericTableSchemaField {
+export interface CustomConnectorSchemaField {
   id: string;
   displayName: string;
   type: PostgresColumnType;
 }
 
-export interface GenericTable {
-  id: string; // GenericTableId
+export interface CustomConnector {
+  id: string; // CustomConnectorId
   createdAt: string; // DateTime
   updatedAt: string; // DateTime
   name: string;
@@ -39,7 +39,7 @@ export interface GenericTable {
 
   // Schema generation
   fetchSchema?: string | null;
-  schema?: GenericTableSchemaField[] | null;
+  schema?: CustomConnectorSchemaField[] | null;
 
   // CRUD operation function bodies
   getRecord?: string | null;
@@ -52,7 +52,7 @@ export interface GenericTable {
   getRecordResponse?: Record<string, unknown> | null;
 }
 
-export interface CreateGenericTableDto {
+export interface CreateCustomConnectorDto {
   name: string;
   pollRecords?: string;
   mapping?: MappingConfig;

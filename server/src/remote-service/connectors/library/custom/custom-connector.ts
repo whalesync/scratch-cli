@@ -1,13 +1,19 @@
-import { Service } from '@prisma/client';
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { ConnectorAccount, Service } from '@prisma/client';
 import * as _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import {
   executeCreateRecord,
   executeDeleteRecord,
+  executeListTables,
   executePollRecords,
   executeSchema,
   executeUpdateRecord,
-} from '../../../../api-import/function-executor';
+} from '../../../../custom-connector-builder/function-executor';
 import { DbService } from '../../../../db/db.service';
 import { Connector } from '../../connector';
 import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
@@ -34,28 +40,77 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     // Don't throw.
   }
 
-  async listTables(): Promise<TablePreview[]> {
-    const tables = await this.db.client.genericTable.findMany({
-      where: { userId: this.userId },
+  async listTables(account: ConnectorAccount): Promise<TablePreview[]> {
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
+
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         id: true,
         name: true,
+        listTables: true,
+        tables: true,
       },
     });
 
-    return tables.map((table) => ({
-      id: {
-        wsId: table.id,
-        remoteId: [table.id],
-      },
-      displayName: table.name,
-    }));
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
+    }
+
+    // If we have a listTables function, execute it to get the tables
+    if (customConnector.listTables) {
+      try {
+        const data = await executeListTables(customConnector.listTables, this.apiKey);
+
+        // Check if the data is in the expected format
+        if (Array.isArray(data)) {
+          return data.map((table: any) => ({
+            id: {
+              wsId: table.id.join(':'), // Convert array to string for wsId
+              remoteId: table.id, // Keep as array for remoteId
+            },
+            displayName: table.displayName,
+          }));
+        }
+      } catch (error) {
+        WSLogger.error({
+          source: 'CustomConnector.listTables',
+          message: 'Error executing listTables function',
+          error,
+        });
+        // Fall back to stored tables if available
+      }
+    }
+
+    // Fall back to stored tables if no function or error
+    if (customConnector.tables && customConnector.tables.length > 0) {
+      return customConnector.tables.map((tableId: string) => {
+        const parts = tableId.split(':');
+        return {
+          id: {
+            wsId: tableId,
+            remoteId: parts,
+          },
+          displayName: `Table ${tableId}`,
+        };
+      });
+    }
+
+    // If no tables found, return empty array
+    return [];
   }
 
-  async fetchTableSpec(id: EntityId): Promise<CustomTableSpec> {
-    const [tableId] = id.remoteId;
-    const table = await this.db.client.genericTable.findUnique({
-      where: { id: tableId },
+  async fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<CustomTableSpec> {
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
+
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         id: true,
         name: true,
@@ -63,14 +118,14 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       },
     });
 
-    if (!table) {
-      throw new Error(`Table with id ${tableId} not found`);
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
     }
 
     // If we have a fetch schema function, call it to get the schema
-    if (table.fetchSchema) {
+    if (customConnector.fetchSchema) {
       try {
-        const schemaData = await executeSchema(table.fetchSchema, this.apiKey);
+        const schemaData = await executeSchema(customConnector.fetchSchema, this.apiKey, id.remoteId);
 
         // Check if the data is in the expected schema format
         if (Array.isArray(schemaData)) {
@@ -99,7 +154,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
           return {
             id,
-            name: table.name,
+            name: customConnector.name,
             columns,
           };
         }
@@ -116,7 +171,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     // Fall back to empty columns if no schema function or error
     return {
       id,
-      name: table.name,
+      name: customConnector.name,
       columns: [],
     };
   }
@@ -124,22 +179,25 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
   async downloadTableRecords(
     tableSpec: CustomTableSpec,
     callback: (records: ConnectorRecord[]) => Promise<void>,
+    account: ConnectorAccount,
   ): Promise<void> {
-    const [tableId] = tableSpec.id.remoteId;
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
 
-    // Get the table configuration from the database
-    const table = await this.db.client.genericTable.findUnique({
-      where: { id: tableId },
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         pollRecords: true,
       },
     });
 
-    if (!table) {
-      throw new Error(`Table with id ${tableId} not found`);
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
     }
 
-    if (!table.pollRecords) {
+    if (!customConnector.pollRecords) {
       throw new Error('No poll records function configured for this table');
     }
 
@@ -147,7 +205,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     let data: unknown;
     try {
       // Use the standalone execution function
-      data = await executePollRecords(table.pollRecords, this.apiKey);
+      data = await executePollRecords(customConnector.pollRecords, this.apiKey, tableSpec.id.remoteId);
     } catch (error) {
       WSLogger.error({
         source: 'CustomConnector.downloadTableRecords',
@@ -218,22 +276,25 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
   async createRecords(
     tableSpec: CustomTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
+    account: ConnectorAccount,
   ): Promise<{ wsId: string; remoteId: string }[]> {
-    const [tableId] = tableSpec.id.remoteId;
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
 
-    // Get the table configuration from the database
-    const table = await this.db.client.genericTable.findUnique({
-      where: { id: tableId },
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         createRecord: true,
       },
     });
 
-    if (!table) {
-      throw new Error(`Table with id ${tableId} not found`);
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
     }
 
-    if (!table.createRecord) {
+    if (!customConnector.createRecord) {
       throw new Error('No create function configured for this table');
     }
 
@@ -244,7 +305,12 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       for (const record of records) {
         try {
           // Use the standalone execution function
-          const result = await executeCreateRecord(table.createRecord, record.fields, this.apiKey);
+          const result = await executeCreateRecord(
+            customConnector.createRecord,
+            record.fields,
+            this.apiKey,
+            tableSpec.id.remoteId,
+          );
           WSLogger.debug({ source: 'CustomConnector.createRecords', message: 'Successfully created record', record });
 
           // Extract the created record ID from the result
@@ -295,22 +361,25 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
     }[],
+    account: ConnectorAccount,
   ): Promise<void> {
-    const [tableId] = tableSpec.id.remoteId;
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
 
-    // Get the table configuration from the database
-    const table = await this.db.client.genericTable.findUnique({
-      where: { id: tableId },
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         updateRecord: true,
       },
     });
 
-    if (!table) {
-      throw new Error(`Table with id ${tableId} not found`);
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
     }
 
-    if (!table.updateRecord) {
+    if (!customConnector.updateRecord) {
       throw new Error('No update function configured for this table');
     }
 
@@ -319,7 +388,13 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       for (const record of records) {
         try {
           // Use the standalone execution function
-          await executeUpdateRecord(table.updateRecord, record.id.remoteId, record.partialFields, this.apiKey);
+          await executeUpdateRecord(
+            customConnector.updateRecord,
+            record.id.remoteId,
+            record.partialFields,
+            this.apiKey,
+            tableSpec.id.remoteId,
+          );
           WSLogger.debug({
             source: 'CustomConnector.updateRecords',
             message: 'Successfully updated record',
@@ -351,22 +426,28 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     }
   }
 
-  async deleteRecords(tableSpec: CustomTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
-    const [tableId] = tableSpec.id.remoteId;
+  async deleteRecords(
+    tableSpec: CustomTableSpec,
+    recordIds: { wsId: string; remoteId: string }[],
+    account: ConnectorAccount,
+  ): Promise<void> {
+    // Get the custom connector configuration using the modifier field
+    if (!account.modifier) {
+      throw new Error('No custom connector specified for this account');
+    }
 
-    // Get the table configuration from the database
-    const table = await this.db.client.genericTable.findUnique({
-      where: { id: tableId },
+    const customConnector = await this.db.client.customConnector.findUnique({
+      where: { id: account.modifier },
       select: {
         deleteRecord: true,
       },
     });
 
-    if (!table) {
-      throw new Error(`Table with id ${tableId} not found`);
+    if (!customConnector) {
+      throw new Error(`Custom connector with id ${account.modifier} not found`);
     }
 
-    if (!table.deleteRecord) {
+    if (!customConnector.deleteRecord) {
       throw new Error('No delete function configured for this table');
     }
 
@@ -375,7 +456,12 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       for (const recordId of recordIds) {
         try {
           // Use the standalone execution function
-          await executeDeleteRecord(table.deleteRecord, recordId.remoteId, this.apiKey);
+          await executeDeleteRecord(
+            customConnector.deleteRecord,
+            recordId.remoteId,
+            this.apiKey,
+            tableSpec.id.remoteId,
+          );
           WSLogger.debug({
             source: 'CustomConnector.deleteRecords',
             message: 'Successfully deleted record',

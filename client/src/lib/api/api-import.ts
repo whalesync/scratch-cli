@@ -23,7 +23,7 @@ export interface ExecuteDeleteRecordRequest {
 }
 
 export const generatePollRecords = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/generate-poll-records`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-poll-records`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,17 +36,18 @@ export const generatePollRecords = async (prompt: string): Promise<string> => {
     throw new Error('Failed to generate poll records function');
   }
 
-  return response.text();
+  const data = await response.json();
+  return data.function;
 };
 
-export const executePollRecords = async (functionString: string, apiKey: string): Promise<unknown> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/execute-poll-records`, {
+export const executePollRecords = async (functionString: string, apiKey: string, tableId: string[]): Promise<unknown> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-poll-records`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...API_CONFIG.getAuthHeaders(),
     },
-    body: JSON.stringify({ function: functionString, apiKey }),
+    body: JSON.stringify({ function: functionString, apiKey, tableId }),
   });
 
   if (!response.ok) {
@@ -57,7 +58,7 @@ export const executePollRecords = async (functionString: string, apiKey: string)
 };
 
 export const generateDeleteRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/generate-delete-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-delete-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -70,21 +71,23 @@ export const generateDeleteRecord = async (prompt: string): Promise<string> => {
     throw new Error('Failed to generate delete record function');
   }
 
-  return response.text();
+  const data = await response.json();
+  return data.function;
 };
 
 export const executeDeleteRecord = async (
   functionString: string,
   recordId: string,
   apiKey: string,
+  tableId: string[],
 ): Promise<unknown> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/execute-delete-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-delete-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...API_CONFIG.getAuthHeaders(),
     },
-    body: JSON.stringify({ functionString, recordId, apiKey }),
+    body: JSON.stringify({ functionString, recordId, apiKey, tableId }),
   });
 
   if (!response.ok) {
@@ -95,7 +98,7 @@ export const executeDeleteRecord = async (
 };
 
 export const generateCreateRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/generate-create-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-create-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -108,21 +111,23 @@ export const generateCreateRecord = async (prompt: string): Promise<string> => {
     throw new Error('Failed to generate create record function');
   }
 
-  return response.text();
+  const data = await response.json();
+  return data.function;
 };
 
 export const executeCreateRecord = async (
   functionString: string,
   recordData: Record<string, unknown>,
   apiKey: string,
+  tableId: string[],
 ): Promise<unknown> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/execute-create-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-create-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...API_CONFIG.getAuthHeaders(),
     },
-    body: JSON.stringify({ functionString, recordData, apiKey }),
+    body: JSON.stringify({ functionString, recordData, apiKey, tableId }),
   });
 
   if (!response.ok) {
@@ -133,7 +138,7 @@ export const executeCreateRecord = async (
 };
 
 export const generateUpdateRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/generate-update-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-update-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -146,7 +151,8 @@ export const generateUpdateRecord = async (prompt: string): Promise<string> => {
     throw new Error('Failed to generate update record function');
   }
 
-  return response.text();
+  const data = await response.json();
+  return data.function;
 };
 
 export const executeUpdateRecord = async (
@@ -154,18 +160,73 @@ export const executeUpdateRecord = async (
   recordId: string,
   recordData: Record<string, unknown>,
   apiKey: string,
+  tableId: string[],
 ): Promise<unknown> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/api-import/execute-update-record`, {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-update-record`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...API_CONFIG.getAuthHeaders(),
     },
-    body: JSON.stringify({ functionString, recordId, recordData, apiKey }),
+    body: JSON.stringify({ functionString, recordId, recordData, apiKey, tableId }),
   });
 
   if (!response.ok) {
     throw new Error('Failed to execute update record function');
+  }
+
+  return response.json();
+};
+
+export const generateListTables = async (prompt: string): Promise<string> => {
+  debugger;
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-list-tables`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...API_CONFIG.getAuthHeaders(),
+    },
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!response.ok) {
+    debugger;
+    throw new Error('Failed to generate list tables function');
+  }
+
+  const data = await response.json();
+  return data.function;
+};
+
+export const executeListTables = async (functionString: string, apiKey: string): Promise<unknown> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-list-tables`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...API_CONFIG.getAuthHeaders(),
+    },
+    body: JSON.stringify({ functionString, apiKey }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to execute list tables function');
+  }
+
+  return response.json();
+};
+
+export const executeSchema = async (functionString: string, apiKey: string, tableId: string[]): Promise<unknown> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/execute-schema`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...API_CONFIG.getAuthHeaders(),
+    },
+    body: JSON.stringify({ functionString, apiKey, tableId }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to execute schema function');
   }
 
   return response.json();

@@ -19,16 +19,19 @@ export interface ConnectorAccount {
   apiKey: string;
   healthStatus: ConnectorHealthStatus | null;
   healthStatusLastCheckedAt: string | null; // DateTime
+  modifier: string | null; // ID of the custom connector or other modifier entity
 }
 
 export interface CreateConnectorAccountDto {
   service: Service;
   apiKey: string;
+  modifier?: string; // Optional custom connector ID
 }
 
 export interface UpdateConnectorAccountDto {
   displayName?: string;
   apiKey?: string;
+  modifier?: string; // Optional custom connector ID
 }
 
 export type TestConnectionResponse =

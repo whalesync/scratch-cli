@@ -15,7 +15,7 @@ export enum IdPrefixes {
   CONNECTOR_ACCOUNT = 'coa_',
   SNAPSHOT = 'sna_',
   SNAPSHOT_RECORD = 'sre_',
-  GENERIC_TABLE = 'gct_',
+  CUSTOM_CONNECTOR = 'cuc_',
   SNAPSHOT_TABLE_VIEW = 'stv_',
   STYLE_GUIDE = 'sgd_',
   VIEW = 'vew_',
@@ -102,15 +102,15 @@ export function createSnapshotRecordId(): SnapshotRecordId {
   return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
 }
 
-// ------- GenericTable -------
-export type GenericTableId = PrefixedId<IdPrefixes.GENERIC_TABLE>;
+// ------- CustomConnector -------
+export type CustomConnectorId = PrefixedId<IdPrefixes.CUSTOM_CONNECTOR>;
 
-export function isGenericTableId(id: unknown): id is GenericTableId {
-  return isId(id, IdPrefixes.GENERIC_TABLE);
+export function isCustomConnectorId(id: unknown): id is CustomConnectorId {
+  return isId(id, IdPrefixes.CUSTOM_CONNECTOR);
 }
 
-export function createGenericTableId(): GenericTableId {
-  return createId(IdPrefixes.GENERIC_TABLE) as GenericTableId;
+export function createCustomConnectorId(): CustomConnectorId {
+  return createId(IdPrefixes.CUSTOM_CONNECTOR) as CustomConnectorId;
 }
 
 // ------- SnapshotTableViews -------

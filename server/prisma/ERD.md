@@ -34,6 +34,7 @@ erDiagram
   String apiKey
   ConnectorHealthStatus healthStatus "nullable"
   DateTime healthStatusLastCheckedAt "nullable"
+  String modifier "nullable"
 }
 "Snapshot" {
   String id PK
@@ -45,7 +46,7 @@ erDiagram
   Json tableContexts
   Json activeRecordFilter "nullable"
 }
-"GenericTable" {
+"CustomConnector" {
   String id PK
   DateTime createdAt
   DateTime updatedAt
@@ -54,6 +55,8 @@ erDiagram
   String userId FK
   String prompt "nullable"
   String apiKey "nullable"
+  String listTables "nullable"
+  String tables
   String fetchSchema "nullable"
   Json schema "nullable"
   String pollRecords "nullable"
@@ -93,7 +96,7 @@ erDiagram
 "APIToken" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
-"GenericTable" }o--|| "User" : user
+"CustomConnector" }o--|| "User" : user
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
 ```
@@ -133,6 +136,7 @@ Properties as follows:
 - `apiKey`:
 - `healthStatus`:
 - `healthStatusLastCheckedAt`:
+- `modifier`:
 
 ### `Snapshot`
 
@@ -147,7 +151,7 @@ Properties as follows:
 - `tableContexts`:
 - `activeRecordFilter`:
 
-### `GenericTable`
+### `CustomConnector`
 
 Properties as follows:
 
@@ -159,6 +163,8 @@ Properties as follows:
 - `userId`:
 - `prompt`:
 - `apiKey`:
+- `listTables`:
+- `tables`:
 - `fetchSchema`:
 - `schema`:
 - `pollRecords`:

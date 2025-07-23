@@ -4,7 +4,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 export enum AiModel {
   GEMINI2_0_FLASH = 'gemini-2.0-flash',
-  GEMINI2_5_FLASH = 'gemini-2.5-flash-preview-04-17', // TODO: Update once in GA.
+  GEMINI2_5_FLASH = 'gemini-2.5-flash', // TODO: Update once in GA.
 }
 
 /**
