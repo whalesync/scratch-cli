@@ -22,9 +22,12 @@ export class User {
     this.isAdmin = user.role === UserRole.ADMIN;
 
     if (user.apiTokens) {
+      // TODO remove the generic token and return the scope specific tokens instead
+      // needs to be one once we start generating these tokens properly in the UserService
       this.apiToken = findValidToken(user, TokenType.AGENT);
       this.agentToken = findValidToken(user, TokenType.AGENT);
-      this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
+      this.websocketToken = findValidToken(user, TokenType.AGENT);
+      // this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
     }
   }
 }

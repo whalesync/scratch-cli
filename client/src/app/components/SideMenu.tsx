@@ -103,15 +103,15 @@ export function SideMenu() {
                   )}
                 </CopyButton>
               </Group>
-              {user.apiToken && (
+              {user.agentToken && (
                 <>
                   <Group wrap="nowrap" gap="xs">
                     <Text c="dimmed" size="xs">
                       API Token
                     </Text>
-                    <CopyButton value={user.apiToken} timeout={2000}>
+                    <CopyButton value={user.agentToken} timeout={2000}>
                       {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : `${user.apiToken}`} withArrow position="right">
+                        <Tooltip label={copied ? 'Copied' : `${user.agentToken}`} withArrow position="right">
                           <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
                             {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
                           </ActionIcon>
