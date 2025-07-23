@@ -18,6 +18,7 @@ export enum IdPrefixes {
   CUSTOM_CONNECTOR = 'cuc_',
   SNAPSHOT_TABLE_VIEW = 'stv_',
   STYLE_GUIDE = 'sgd_',
+  CSV_FILE = 'csv_',
   VIEW = 'vew_',
 }
 
@@ -133,6 +134,17 @@ export function isStyleGuideId(id: unknown): id is StyleGuideId {
 
 export function createStyleGuideId(): StyleGuideId {
   return createId(IdPrefixes.STYLE_GUIDE) as StyleGuideId;
+}
+
+// ------- CsvFile -------
+export type CsvFileId = PrefixedId<IdPrefixes.CSV_FILE>;
+
+export function isCsvFileId(id: unknown): id is CsvFileId {
+  return isId(id, IdPrefixes.CSV_FILE);
+}
+
+export function createCsvFileId(): CsvFileId {
+  return createId(IdPrefixes.CSV_FILE) as CsvFileId;
 }
 
 // ------- View -------

@@ -37,13 +37,17 @@ export default function ConnectorAccountsPage() {
   const [testingId, setTestingId] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!newService || !newApiKey) {
-      alert('Service and API key are required.');
+    if (!newService) {
+      alert('Service is required.');
+      return;
+    }
+    if (newService !== Service.CSV && !newApiKey) {
+      alert('API key is required for this service.');
       return;
     }
     const newAccount = await createConnectorAccount({
       service: newService,
-      apiKey: newApiKey,
+      apiKey: newService === Service.CSV ? '' : newApiKey,
       modifier: newModifier || undefined,
     });
     setNewApiKey('');
@@ -67,7 +71,7 @@ export default function ConnectorAccountsPage() {
 
     await updateConnectorAccount(selectedConnectorAccount.id, {
       displayName: updatedName,
-      apiKey: updatedApiKey,
+      apiKey: selectedConnectorAccount.service === Service.CSV ? '' : updatedApiKey,
       modifier: updatedModifier || undefined,
     });
     close();
@@ -115,7 +119,13 @@ export default function ConnectorAccountsPage() {
       <Modal opened={opened} onClose={close} title="Update Connection">
         <Stack>
           <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
-          <TextInput label="API Key" value={updatedApiKey} onChange={(e) => setUpdatedApiKey(e.currentTarget.value)} />
+          {selectedConnectorAccount?.service !== Service.CSV && (
+            <TextInput
+              label="API Key"
+              value={updatedApiKey}
+              onChange={(e) => setUpdatedApiKey(e.currentTarget.value)}
+            />
+          )}
           {selectedConnectorAccount?.service === Service.CUSTOM && customConnectors && (
             <Select
               label="Custom Connector"
@@ -170,12 +180,19 @@ export default function ConnectorAccountsPage() {
                 value={newService}
                 onChange={(value) => setNewService(value as Service)}
               />
-              <TextInput
-                label="API Key"
-                placeholder="Enter API Key"
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.currentTarget.value)}
-              />
+              {newService === Service.CSV && (
+                <Alert color="blue" title="CSV Connection">
+                  CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
+                </Alert>
+              )}
+              {newService !== Service.CSV && (
+                <TextInput
+                  label="API Key"
+                  placeholder="Enter API Key"
+                  value={newApiKey}
+                  onChange={(e) => setNewApiKey(e.currentTarget.value)}
+                />
+              )}
               {newService === Service.CUSTOM && customConnectors && (
                 <Select
                   label="Custom Connector"

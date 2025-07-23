@@ -8,6 +8,7 @@ import {
   BookOpenIcon,
   CheckIcon,
   CopyIcon,
+  FileTextIcon,
   PlugsIcon,
   RobotIcon,
   TableIcon,
@@ -36,6 +37,11 @@ const links = [
     href: RouteUrls.styleGuidesPageUrl,
     label: 'Style Guides',
     icon: <BookOpenIcon size={16} />,
+  },
+  {
+    href: RouteUrls.csvFilesPageUrl,
+    label: 'CSV Files',
+    icon: <FileTextIcon size={16} />,
   },
   {
     href: RouteUrls.healthPageUrl,

@@ -179,7 +179,6 @@ export const executeUpdateRecord = async (
 };
 
 export const generateListTables = async (prompt: string): Promise<string> => {
-  debugger;
   const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-list-tables`, {
     method: 'POST',
     headers: {

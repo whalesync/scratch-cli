@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
+import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { DbModule } from './db/db.module';
 import { CustomConnectorModule } from './generic-table/generic-table.module';
@@ -26,6 +27,7 @@ import { ViewModule } from './view/view.module';
     RestApiImportModule,
     CustomConnectorModule,
     StyleGuideModule,
+    CsvFileModule,
     ViewModule,
     HealthModule,
   ],

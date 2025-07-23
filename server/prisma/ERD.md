@@ -85,6 +85,14 @@ erDiagram
   String body
   String userId FK
 }
+"CsvFile" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String name
+  String body
+  String userId FK
+}
 "ColumnView" {
   String id PK
   String name "nullable"
@@ -99,6 +107,7 @@ erDiagram
 "CustomConnector" }o--|| "User" : user
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
+"CsvFile" }o--|| "User" : user
 ```
 
 ### `User`
@@ -189,6 +198,17 @@ Properties as follows:
 - `config`:
 
 ### `StyleGuide`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `name`:
+- `body`:
+- `userId`:
+
+### `CsvFile`
 
 Properties as follows:
 
