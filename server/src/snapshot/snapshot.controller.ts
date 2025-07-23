@@ -59,17 +59,21 @@ export class SnapshotController {
       return (await this.service.findAll(connectorAccountId, req.user.id)).map((s) => new Snapshot(s));
     }
 
-    return (await this.service.findAllForUser(req.user.id)).map((s) => new Snapshot(s));
+    return (await this.service.findAllForUser(req.user.id)).map((s) => new Snapshot(s, false));
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
-  async findOne(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<Snapshot | null> {
+  async findOne(
+    @Param('id') id: SnapshotId,
+    @Req() req: RequestWithUser,
+    @Query('includeFilters') includeFilters?: boolean,
+  ): Promise<Snapshot | null> {
     const snapshot = await this.service.findOne(id, req.user.id);
     if (!snapshot) {
       return null;
     }
-    return new Snapshot(snapshot);
+    return new Snapshot(snapshot, includeFilters ?? false);
   }
 
   @UseGuards(ScratchpadAuthGuard)

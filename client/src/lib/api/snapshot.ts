@@ -24,7 +24,7 @@ export const snapshotApi = {
   },
 
   detail: async (id: string): Promise<Snapshot> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}?includeFilters=true`, {
       method: "GET",
       headers: {
         ...API_CONFIG.getAuthHeaders(),

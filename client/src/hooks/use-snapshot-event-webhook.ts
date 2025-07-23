@@ -26,10 +26,13 @@ export interface SnapshotRecordEvent {
 
 export interface SnapshotEventWebhookProps {
   snapshotId: string;
-  tableId: string;
+  tableId?: string;
+  watchSnapshot?: boolean;
+  watchRecords?: boolean;
   onSnapshotEvent?: (event: SnapshotEvent) => void;
   onRecordEvent?: (event: SnapshotRecordEvent) => void;
   onCloseConnection?: () => void;
+  onError?: (error: Error) => void;
 }
 
 export interface UseSnapshotEventWebhookReturn {
@@ -37,7 +40,6 @@ export interface UseSnapshotEventWebhookReturn {
     subscriptions: Subscriptions;
     sendPing: () => void;
     messageLog: string[];
-    error: string | null;
 }
 
 type Subscriptions = {
@@ -46,10 +48,21 @@ type Subscriptions = {
 }
 
 const log = (message: string, data?: unknown) => {
-  console.debug(message, data);
+  if(data) {
+    console.debug(message, data);
+  } else {
+    console.debug(message);
+  }
 }
 
-export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, onRecordEvent, onCloseConnection}: SnapshotEventWebhookProps) : UseSnapshotEventWebhookReturn => {
+export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseSnapshotEventWebhookReturn => {
+ const {
+  snapshotId, 
+  tableId, 
+  watchSnapshot, 
+  watchRecords, 
+  onSnapshotEvent, onRecordEvent, onCloseConnection, onError} = props;
+
  const {user} = useScratchPadUser();
 
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -59,7 +72,6 @@ export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, o
     tables: [],
   })
   const [messageLog, setMessageLog] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Create Socket.IO connection
@@ -67,7 +79,7 @@ export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, o
       transports: ['websocket'],
       path: '/snapshot-events',
       auth: {
-        token: user?.apiToken || '',
+        token: user?.websocketToken || user?.apiToken || '',
       },
     });
 
@@ -84,12 +96,12 @@ export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, o
 
     newSocket.on('connect_error', (error) => {
       log('Socket connection error', error);
-      setError(error.message);
+      onError?.(error);
     });
 
     newSocket.on('exception', (error) => {
       log('Socket exception', error);
-      setError(error.message);
+      onError?.(error);
     });
 
     // Handly different messages:
@@ -136,16 +148,20 @@ export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, o
 
   const subscribeToRecords = useCallback((snapshotId: string, tableId: string) => {
     if (socket && isConnected) {
-      socket.emit('subscribe-to-table', {snapshotId, tableId});
+      socket.emit('subscribe-to-record-events', {snapshotId, tableId});
     }
   }, [socket, isConnected]);
 
   useEffect(() => {
     if (socket && isConnected) {
-      subscribeToSnapshot(snapshotId);
-      subscribeToRecords(snapshotId, tableId);
+      if (watchSnapshot) {
+        subscribeToSnapshot(snapshotId);
+      }
+      if (watchRecords && tableId) {
+        subscribeToRecords(snapshotId, tableId);
+      }
     }
-  }, [socket, isConnected, snapshotId, tableId, subscribeToSnapshot, subscribeToRecords]);
+  }, [socket, isConnected, snapshotId, tableId, subscribeToSnapshot, subscribeToRecords, watchSnapshot, watchRecords]);
 
   const sendPing = () => {
     if (socket && isConnected) {
@@ -158,6 +174,5 @@ export const useSnapshotEventWebhook = ({snapshotId, tableId, onSnapshotEvent, o
     subscriptions,
     sendPing,
     messageLog,
-    error,
   };
 };

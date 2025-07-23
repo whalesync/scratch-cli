@@ -1755,7 +1755,7 @@ export interface SnapshotTableGridContextValue {
   setHoveredRow: (row: number | undefined) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modalStack: any;
-  error: Error | null;
+  error: Error | undefined;
   isLoading: boolean;
   records: SnapshotRecord[] | undefined;
   readFocus: FocusedCell[];

@@ -1,16 +1,17 @@
+import { SWR_KEYS } from '@/lib/api/keys';
+import { viewApi } from '@/lib/api/view';
+import { ViewConfig } from '@/types/server-entities/view';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { viewApi } from '@/lib/api/view';
-import { SWR_KEYS } from '@/lib/api/keys';
-import { ViewConfig } from '@/types/server-entities/view';
 
-export const useViews = (snapshotId: string) => {
+
+export const useViews = (snapshotId: string, refreshIntervalMS: number = 30000) => {
   const { data, error, isLoading, mutate } = useSWR(
     SWR_KEYS.view.list(snapshotId),
     () => viewApi.getBySnapshot(snapshotId),
     {
       revalidateOnFocus: false,
-      refreshInterval: 2000,
+      refreshInterval: refreshIntervalMS,
     }
   );
 
@@ -18,7 +19,9 @@ export const useViews = (snapshotId: string) => {
     views: data,
     isLoading,
     error,
-    refreshViews: mutate,
+    refreshViews: async () => {
+      return await mutate();
+    },
   };
 };
 

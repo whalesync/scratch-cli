@@ -81,6 +81,51 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   @SubscribeMessage('subscribe-to-snapshot')
   async handleSubscribeToSnapshot(
     @ConnectedSocket() client: SocketWithUser,
+    @MessageBody() data: { snapshotId: string },
+  ): Promise<void> {
+    WSLogger.info({
+      message: 'Subscribe to snapshot message received',
+      source: 'snapshot.gateway',
+      data,
+    });
+
+    // the auth guard should have setup the user on the client
+    if (!client.user) {
+      WSLogger.error({
+        message: 'User not found',
+        source: 'snapshot.gateway',
+        data,
+      });
+      throw new WsException('User not found');
+    }
+
+    const snapshotId = data.snapshotId as SnapshotId;
+    const snapshot = await this.snapshotService.findOne(snapshotId, client.user.id);
+    if (!snapshot) {
+      WSLogger.error({
+        message: 'Snapshot not found',
+        source: 'snapshot.gateway',
+        data,
+      });
+      throw new WsException('Snapshot not found');
+    }
+
+    const snapshotObservable = this.snapshotEventService.getSnapshotEvents(snapshot);
+    snapshotObservable.subscribe((event) => {
+      // todo repackage the event and send to the client
+      client.emit('snapshot-event', event);
+    });
+
+    // send a confirmation message to the client
+    client.emit('snapshot-event-subscription-confirmed', {
+      snapshotId,
+      message: 'subscribed to snapshot events',
+    });
+  }
+
+  @SubscribeMessage('subscribe-to-record-events')
+  async handleSubscribeToRecordEvents(
+    @ConnectedSocket() client: SocketWithUser,
     @MessageBody() data: { snapshotId: string; tableId: string },
   ): Promise<void> {
     WSLogger.info({
@@ -119,18 +164,6 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       });
       throw new WsException('Table not found in snapshot');
     }
-
-    const snapshotObservable = this.snapshotEventService.getSnapshotEvents(snapshot);
-    snapshotObservable.subscribe((event) => {
-      // todo repackage the event and send to the client
-      client.emit('snapshot-event', event);
-    });
-
-    // send a confirmation message to the client
-    client.emit('snapshot-event-subscription-confirmed', {
-      snapshotId,
-      message: 'subscribed to snapshot events',
-    });
 
     const recordObservable = this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
     recordObservable.subscribe((event) => {

@@ -11,12 +11,11 @@ export class Snapshot {
   connectorAccountId: string;
   connectorDisplayName: string | null;
   connectorService: string | null;
-
   tables: AnyTableSpec[];
-
   tableContexts: SnapshotTableContext[];
+  activeFiltersByTable?: Record<string, string[]>;
 
-  constructor(snapshot: SnapshotCluster.Snapshot) {
+  constructor(snapshot: SnapshotCluster.Snapshot, includeActiveFilters: boolean = false) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? null;
     this.createdAt = snapshot.createdAt;
@@ -26,9 +25,18 @@ export class Snapshot {
     this.connectorDisplayName = snapshot.connectorAccount.displayName;
     this.connectorService = snapshot.connectorAccount.service;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
+
+    if (includeActiveFilters && snapshot.activeRecordFilter) {
+      this.activeFiltersByTable = {};
+      const temp = snapshot.activeRecordFilter as { [tableId: string]: string[] };
+      for (const tableId in temp) {
+        this.activeFiltersByTable[tableId] = temp[tableId] ?? [];
+      }
+    }
   }
 }
 
+// @deprecated
 export class SnapshotTableView {
   id: string;
   name: string;

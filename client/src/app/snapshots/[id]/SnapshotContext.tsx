@@ -16,6 +16,7 @@ interface SnapshotContextValue {
   currentView: ColumnView | undefined;
   isLoading: boolean;
   error: Error | undefined;
+  isConnectedLive: boolean;
   refreshViews: (() => Promise<ColumnView[] | undefined>) | undefined;
   publish: (() => Promise<void>) | undefined;
   setCurrentViewId: (viewId: string | null) => void;
@@ -35,7 +36,13 @@ interface SnapshotProviderProps {
 }
 
 export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps) => {
-  const { snapshot, isLoading: snapshotLoading, error: snapshotError, publish } = useSnapshot(snapshotId);
+  const {
+    snapshot,
+    isLoading: snapshotLoading,
+    error: snapshotError,
+    publish,
+    isConnected: isConnectedLive,
+  } = useSnapshot(snapshotId);
   const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
   const { upsertView } = useUpsertView();
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
@@ -139,6 +146,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     updateTableInCurrentView,
     // Filter management
     clearActiveRecordFilter,
+    isConnectedLive,
   };
 
   return <SnapshotContext.Provider value={value}>{children}</SnapshotContext.Provider>;

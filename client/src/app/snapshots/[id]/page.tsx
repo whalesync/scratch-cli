@@ -8,7 +8,6 @@ import {
   Button,
   Center,
   CheckIcon,
-  CopyButton,
   Group,
   Loader,
   Menu,
@@ -24,8 +23,8 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
   BugIcon,
+  CellTowerIcon,
   DownloadSimpleIcon,
-  HeadCircuitIcon,
   RobotIcon,
   TableIcon,
   TrashIcon,
@@ -49,7 +48,7 @@ function SnapshotPageContent() {
   const id = params.id as string;
   const router = useRouter();
 
-  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
+  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId, isConnectedLive } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -398,9 +397,14 @@ function SnapshotPageContent() {
   return (
     <Stack h="100%" gap={0}>
       <Group p="xs" bg="gray.0">
-        <Group>
+        <Group gap="xs" align="center" wrap="nowrap">
           <Title order={2}>{snapshot?.name ?? 'Snapshot'}</Title>
-          <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
+          {isConnectedLive && (
+            <Tooltip label="Connected to snapshot events websocket">
+              <CellTowerIcon size={16} color="green" weight="fill" />
+            </Tooltip>
+          )}
+          {/* <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied' : `Copy prompt for Cursor`} withArrow position="right">
                 <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
@@ -408,22 +412,26 @@ function SnapshotPageContent() {
                 </ActionIcon>
               </Tooltip>
             )}
-          </CopyButton>
+          </CopyButton> */}
         </Group>
         <Group ml="auto">
-          <Button onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
-            Download from remote
-          </Button>
-          <Button onClick={toggleChat} leftSection={<RobotIcon />} variant={showChat ? 'filled' : 'light'}>
+          <Tooltip label="Download fresh snapshot from remote source">
+            <Button size="xs" onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
+              Download
+            </Button>
+          </Tooltip>
+          <Button size="xs" onClick={toggleChat} leftSection={<RobotIcon />} variant={showChat ? 'filled' : 'light'}>
             {showChat ? 'Close AI' : 'Edit with AI'}
           </Button>
 
-          <Button variant="outline" onClick={handlePublish} leftSection={<UploadIcon />}>
+          <Button size="xs" variant="outline" onClick={handlePublish} leftSection={<UploadIcon />}>
             Publish
           </Button>
-          <Button variant="outline" color="red" onClick={handleAbandon} leftSection={<TrashIcon />}>
-            Abandon snapshot
-          </Button>
+          <Tooltip label="Delete snapshot and all data">
+            <Button size="xs" variant="outline" color="red" onClick={handleAbandon} leftSection={<TrashIcon />}>
+              Abandon
+            </Button>
+          </Tooltip>
         </Group>
       </Group>
 

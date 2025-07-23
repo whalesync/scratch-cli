@@ -4,5 +4,8 @@ export interface User {
   role: string;
   createdAt: Date;
   updatedAt: Date;
+  // @deprecated - use agentToken or websocketToken instead
   apiToken?: string;
+  agentToken?: string;
+  websocketToken?: string;
 }

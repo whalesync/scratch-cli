@@ -151,6 +151,11 @@ export const ViewData = ({
 
   const currentView = views?.find((v) => v.id === currentViewId);
 
+  const currentTableFilter =
+    currentTableId && snapshot && snapshot.activeFiltersByTable && currentTableId in snapshot.activeFiltersByTable
+      ? snapshot.activeFiltersByTable[currentTableId]
+      : undefined;
+
   return (
     <Box p="xs" bg="blue.0">
       <Group gap="md" align="center">
@@ -245,22 +250,22 @@ export const ViewData = ({
           |
         </Text>
 
-        {/* Filtered Records Count */}
-        {/* {filteredRecordsCount > 0 && ( */}
-        <Group gap="xs" align="center">
-          <Text size="sm" fw={500} c="red">
-            ? filtered
-          </Text>
-          <Button
-            size="xs"
-            variant="light"
-            color="red"
-            onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
-          >
-            Clear Filter
-          </Button>
-        </Group>
-        {/* )} */}
+        {/* Filtered Records Widget */}
+        {currentTableFilter && (
+          <Group gap="xs" align="center">
+            <Text size="sm" fw={500} c="red">
+              {currentTableFilter.length} filtered
+            </Text>
+            <Button
+              size="xs"
+              variant="light"
+              color="red"
+              onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
+            >
+              Clear Filter
+            </Button>
+          </Group>
+        )}
       </Group>
 
       {/* Rename Modal */}
