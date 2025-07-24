@@ -11,7 +11,6 @@ import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../types/server-entities/records";
-import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebhook } from "./use-snapshot-event-webhook";
 
 export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
@@ -42,7 +41,6 @@ export const useSnapshots = (connectorAccountId?: string) => {
 
 export interface UseSnapshotReturn {
   snapshot: Snapshot | undefined;
-  isConnected: boolean;
   isLoading: boolean;
   error: Error | undefined;
   publish: () => Promise<void>;
@@ -63,25 +61,6 @@ export const useSnapshot = (id: string): UseSnapshotReturn => {
   const refreshSnapshot = useCallback(async () => {
     await mutate();
   }, [mutate]);
-
-  const handleSnapshotEvent = useCallback((event: SnapshotEvent) => {
-    console.log("Snapshot event", event);
-    if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
-      mutate();
-    }
-  }, [mutate]);
-
-
-  const handleWebsocketError = useCallback((error: Error) => {
-    console.error("Websocket error", error);
-  }, []);
-
-  const {isConnected} = useSnapshotEventWebhook({
-    snapshotId: id,
-    watchSnapshot: true,
-    onSnapshotEvent: handleSnapshotEvent,
-    onError: handleWebsocketError,
-  });
 
   const publish = useCallback(async () => {
     if (!data) {
@@ -110,7 +89,6 @@ export const useSnapshot = (id: string): UseSnapshotReturn => {
     error,
     publish,
     refreshSnapshot,
-    isConnected,
   };
 };
 
@@ -120,7 +98,6 @@ export interface UseSnapshotRecordsReturn {
   error: Error | undefined;
   bulkUpdateRecords: (dto: BulkUpdateRecordsDto) => Promise<void>;
   refreshRecords: () => Promise<void>;
-  isWebsocketConnected: boolean;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   filteredRecordsInTableCount: number;
@@ -137,7 +114,7 @@ export const useSnapshotRecords = (args: {
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
 
   const { mutate } = useSWRConfig();
-  const { data, error, isLoading, mutate: mutateRecords } = useSWR(swrKey, () =>
+  const { data, error, isLoading } = useSWR(swrKey, () =>
     snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
     {
       revalidateOnFocus: false,
@@ -147,33 +124,7 @@ export const useSnapshotRecords = (args: {
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);
   }, [mutate, swrKey]);
-
-  const handleRecordEvent = useCallback((event: SnapshotRecordEvent) => {
-    console.log("Record event", event);
-    mutateRecords();
-  }, [mutateRecords]);
-
-  const handleSnapshotEvent = useCallback((event: SnapshotEvent) => {
-    console.log("Snapshot event", event);
-    if (event.type === 'filter-changed') {
-      mutateRecords();
-    }
-  }, [mutateRecords]);
-
-  const handleWebsocketError = useCallback((error: Error) => {
-    console.error("Websocket error", error);
-  }, []);
-
-  const {isConnected} = useSnapshotEventWebhook({
-    snapshotId,
-    tableId,
-    watchSnapshot: true,
-    watchRecords: true,
-    onSnapshotEvent: handleSnapshotEvent,
-    onRecordEvent: handleRecordEvent,
-    onError: handleWebsocketError,
-  });
-
+  
   const bulkUpdateRecords = useCallback(
     async (dto: BulkUpdateRecordsDto) => {
       // Optimistic update.
@@ -308,6 +259,5 @@ export const useSnapshotRecords = (args: {
     acceptCellValues,
     rejectCellValues,
     filteredRecordsInTableCount: data?.filteredRecordsCount || 0,
-    isWebsocketConnected: isConnected,
   };
 };

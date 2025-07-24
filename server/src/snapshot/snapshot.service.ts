@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -150,6 +147,9 @@ export class SnapshotService {
   ): Promise<SnapshotCluster.Snapshot> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
     // TODO: Update the snapshot if there's anything in the DTO.
+
+    this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
+
     return snapshot;
   }
 
@@ -308,6 +308,7 @@ export class SnapshotService {
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
       data: {
+        tableId,
         numRecords: 1,
         changeType: type,
         source: type === 'suggested' ? 'agent' : 'user',
@@ -363,6 +364,7 @@ export class SnapshotService {
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
       data: {
+        tableId,
         numRecords: 1,
         changeType: type,
         source: type === 'suggested' ? 'agent' : 'user',
@@ -407,6 +409,7 @@ export class SnapshotService {
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
       data: {
+        tableId,
         numRecords: filteredOps.length,
         changeType: type,
         source: type === 'suggested' ? 'agent' : 'user',

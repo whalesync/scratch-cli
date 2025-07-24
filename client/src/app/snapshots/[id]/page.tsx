@@ -8,6 +8,7 @@ import {
   Button,
   Center,
   CheckIcon,
+  Divider,
   Group,
   Loader,
   Menu,
@@ -34,6 +35,7 @@ import { useParams, useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
+import { SnapshotEventProvider, useSnapshotEventContext } from '@/contexts/snapshot-event-context';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
@@ -48,15 +50,15 @@ function SnapshotPageContent() {
   const id = params.id as string;
   const router = useRouter();
 
-  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId, isConnectedLive } = useSnapshotContext();
+  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-
+  const { isConnected: isConnectedLive, messageLog } = useSnapshotEventContext();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
   const [filterToView, setFilterToView] = useState(false);
-  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug']);
+  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   const [showChat, setShowChat] = useState(true);
 
@@ -390,6 +392,21 @@ function SnapshotPageContent() {
             </ScrollArea>
           </Modal>
         )}
+        <Modal {...modalStack.register('snapshotEventLog')} title="Websocket Event Log" size="xl" centered>
+          <Stack gap="2px">
+            <Text size="xs" c="dimmed">
+              Newest events at the top
+            </Text>
+            <Divider my="xs" />
+            <Stack gap="xs">
+              {messageLog.map((message, index) => (
+                <Text size="sm" key={index}>
+                  {message}
+                </Text>
+              ))}
+            </Stack>
+          </Stack>
+        </Modal>
       </Stack>
     );
   };
@@ -400,9 +417,13 @@ function SnapshotPageContent() {
         <Group gap="xs" align="center" wrap="nowrap">
           <Title order={2}>{snapshot?.name ?? 'Snapshot'}</Title>
           {isConnectedLive && (
-            <Tooltip label="Connected to snapshot events websocket">
-              <CellTowerIcon size={16} color="green" weight="fill" />
-            </Tooltip>
+            <>
+              <Tooltip label="Connected to snapshot events websocket">
+                <ActionIcon onClick={() => modalStack.open('snapshotEventLog')} variant="subtle" color="gray" size="xs">
+                  <CellTowerIcon size={16} color="green" weight="fill" />
+                </ActionIcon>
+              </Tooltip>
+            </>
           )}
           {/* <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
             {({ copied, copy }) => (
@@ -456,12 +477,14 @@ export default function SnapshotPage() {
   const id = params.id as string;
 
   return (
-    <SnapshotProvider snapshotId={id}>
-      <FocusedCellsProvider>
-        <AIPromptProvider>
-          <SnapshotPageContent />
-        </AIPromptProvider>
-      </FocusedCellsProvider>
-    </SnapshotProvider>
+    <SnapshotEventProvider snapshotId={id}>
+      <SnapshotProvider snapshotId={id}>
+        <FocusedCellsProvider>
+          <AIPromptProvider>
+            <SnapshotPageContent />
+          </AIPromptProvider>
+        </FocusedCellsProvider>
+      </SnapshotProvider>
+    </SnapshotEventProvider>
   );
 }

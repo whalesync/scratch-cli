@@ -331,6 +331,7 @@ export class SnapshotController {
     const event: SnapshotRecordEvent = {
       type: 'record-changes',
       data: {
+        tableId,
         numRecords: 1,
         changeType: 'suggested',
         source: 'agent',

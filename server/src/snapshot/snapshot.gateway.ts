@@ -78,7 +78,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     this.server.emit('pong', 'pong');
   }
 
-  @SubscribeMessage('subscribe-to-snapshot')
+  @SubscribeMessage('subscribe')
   async handleSubscribeToSnapshot(
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() data: { snapshotId: string },
@@ -121,61 +121,20 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       snapshotId,
       message: 'subscribed to snapshot events',
     });
-  }
 
-  @SubscribeMessage('subscribe-to-record-events')
-  async handleSubscribeToRecordEvents(
-    @ConnectedSocket() client: SocketWithUser,
-    @MessageBody() data: { snapshotId: string; tableId: string },
-  ): Promise<void> {
-    WSLogger.info({
-      message: 'Subscribe to snapshot message received',
-      source: 'snapshot.gateway',
-      data,
-    });
-
-    // the auth guard should have setup the user on the client
-    if (!client.user) {
-      WSLogger.error({
-        message: 'User not found',
-        source: 'snapshot.gateway',
-        data,
-      });
-      throw new WsException('User not found');
-    }
-
-    const snapshotId = data.snapshotId as SnapshotId;
-    const snapshot = await this.snapshotService.findOne(snapshotId, client.user.id);
-    if (!snapshot) {
-      WSLogger.error({
-        message: 'Snapshot not found',
-        source: 'snapshot.gateway',
-        data,
-      });
-      throw new WsException('Snapshot not found');
-    }
-
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === data.tableId);
-    if (!tableSpec) {
-      WSLogger.error({
-        message: 'Table not found in snapshot',
-        source: 'snapshot.gateway',
-        data,
-      });
-      throw new WsException('Table not found in snapshot');
-    }
-
-    const recordObservable = this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
-    recordObservable.subscribe((event) => {
-      // todo repackage the event and send to the client
-      client.emit('record-event', event);
-    });
-
-    // send a confirmation message to the client
-    client.emit('record-event-subscription-confirmed', {
-      snapshotId,
-      tableId: data.tableId,
-      message: 'subscribed to record events',
+    (snapshot.tableSpecs as AnyTableSpec[]).forEach((tableSpec) => {
+      const tableObservable = this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
+      if (tableObservable) {
+        tableObservable.subscribe((event) => {
+          // send a confirmation message to the client
+          client.emit('record-event', event);
+        });
+        client.emit('record-event-subscription-confirmed', {
+          snapshotId,
+          tableId: tableSpec.id.wsId,
+          message: 'subscribed to record events',
+        });
+      }
     });
   }
 }

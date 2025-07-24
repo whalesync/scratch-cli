@@ -6,6 +6,7 @@ import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-
 export interface SnapshotRecordEvent {
   type: 'record-changes';
   data: {
+    tableId: string;
     numRecords: number;
     changeType: 'suggested' | 'accepted';
     source: 'user' | 'agent';

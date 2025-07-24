@@ -57,14 +57,14 @@ export const RecordDetails = ({
   const handleTextSelectionChange = useCallback(
     (selection: TextSelection) => {
       setCurrentTextSelection(selection);
-      console.debug('RecordDetails: text selection changed', selection);
+      // console.debug('RecordDetails: text selection changed', selection);
     },
     [setCurrentTextSelection],
   );
 
   const handleTextAreaCursorChange = useCallback((cursor: CursorPosition) => {
     setCurrentCursorPosition(cursor);
-    console.debug('RecordDetails: cursor position changed', cursor);
+    // console.debug('RecordDetails: cursor position changed', cursor);
   }, []);
 
   const updateField = useCallback(
@@ -324,7 +324,7 @@ export const RecordDetails = ({
 
       if (hasSuggestion && isBigTextField(column, currentValue)) {
         const changes = diffWordsWithSpace(currentValue, currentRecord.__suggested_values?.[field] as string);
-        console.log(changes);
+        // console.log(changes);
 
         return (
           <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">

@@ -4,7 +4,7 @@
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';
 import { useSetState } from '@mantine/hooks';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 export interface SnapshotEvent {
@@ -18,17 +18,21 @@ export interface SnapshotEvent {
 export interface SnapshotRecordEvent {
     type: 'record-changes';
     data: {
+      tableId: string;
       numRecords: number;
       changeType: 'suggested' | 'accepted';
       source: 'user' | 'agent';
     };
   }
 
-export interface SnapshotEventWebhookProps {
+export interface SubscriptionConfirmedEvent {
   snapshotId: string;
   tableId?: string;
-  watchSnapshot?: boolean;
-  watchRecords?: boolean;
+  message: string;
+}
+
+export interface SnapshotEventWebhookProps {
+  snapshotId: string;
   onSnapshotEvent?: (event: SnapshotEvent) => void;
   onRecordEvent?: (event: SnapshotRecordEvent) => void;
   onCloseConnection?: () => void;
@@ -55,12 +59,11 @@ const log = (message: string, data?: unknown) => {
   }
 }
 
+
+
 export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseSnapshotEventWebhookReturn => {
  const {
   snapshotId, 
-  tableId, 
-  watchSnapshot, 
-  watchRecords, 
   onSnapshotEvent, onRecordEvent, onCloseConnection, onError} = props;
 
  const {user} = useScratchPadUser();
@@ -72,6 +75,10 @@ export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseS
     tables: [],
   })
   const [messageLog, setMessageLog] = useState<string[]>([]);
+  
+  const addToMessageLog = (message: string) => {
+    setMessageLog((prev: string[]) => [message, ...prev].slice(0, 30));
+  }
 
   useEffect(() => {
     // Create Socket.IO connection
@@ -101,32 +108,38 @@ export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseS
 
     newSocket.on('exception', (error) => {
       log('Socket exception', error);
+      addToMessageLog('Socket exception: ' + (error.message || 'Unknown error'));
       onError?.(error);
     });
 
     // Handly different messages:
     newSocket.on('pong', (data) => {
       log('Received message:', data);
-      setMessageLog((prev) => [...prev, typeof data === 'string' ? data : JSON.stringify(data)]);
+      addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
     });
 
     newSocket.on('snapshot-event-subscription-confirmed', (data) => {
-        setMessageLog((prev) => [...prev, typeof data === 'string' ? data : JSON.stringify(data)]);
+      const confirmedEvent = data as SubscriptionConfirmedEvent;
+        addToMessageLog(confirmedEvent.message);
         setSubscriptions({snapshot: true});
     });
 
     newSocket.on('record-event-subscription-confirmed', (data) => {
-        setMessageLog((prev) => [...prev, typeof data === 'string' ? data : JSON.stringify(data)]);
-        setSubscriptions((current) => ({tables: [...current.tables, data.tableId]}));
+      const confirmedEvent = data as SubscriptionConfirmedEvent;
+        addToMessageLog(confirmedEvent.message);
+        const tableId = confirmedEvent.tableId;
+        if(tableId) {
+          setSubscriptions((current) => ({tables: [...current.tables, tableId]}));
+        } 
     });
 
     newSocket.on('snapshot-event', (data) => {
-        setMessageLog((prev) => [...prev, typeof data === 'string' ? data : JSON.stringify(data)]);
+        addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
         onSnapshotEvent?.(data as SnapshotEvent);
     });
 
     newSocket.on('record-event', (data) => {
-        setMessageLog((prev) => [...prev, typeof data === 'string' ? data : JSON.stringify(data)]);
+        addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
         onRecordEvent?.(data as SnapshotRecordEvent);
     });
 
@@ -139,29 +152,12 @@ export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseS
     };
   }, [user]);
 
-
-  const subscribeToSnapshot = useCallback( (snapshotId: string) => {
-    if (socket && isConnected) {
-      socket.emit('subscribe-to-snapshot', {snapshotId});
-    }
-  }, [socket, isConnected]);
-
-  const subscribeToRecords = useCallback((snapshotId: string, tableId: string) => {
-    if (socket && isConnected) {
-      socket.emit('subscribe-to-record-events', {snapshotId, tableId});
-    }
-  }, [socket, isConnected]);
-
   useEffect(() => {
     if (socket && isConnected) {
-      if (watchSnapshot) {
-        subscribeToSnapshot(snapshotId);
+        socket.emit('subscribe', {snapshotId});
       }
-      if (watchRecords && tableId) {
-        subscribeToRecords(snapshotId, tableId);
-      }
-    }
-  }, [socket, isConnected, snapshotId, tableId, subscribeToSnapshot, subscribeToRecords, watchSnapshot, watchRecords]);
+    
+  }, [socket, isConnected, snapshotId]);
 
   const sendPing = () => {
     if (socket && isConnected) {
