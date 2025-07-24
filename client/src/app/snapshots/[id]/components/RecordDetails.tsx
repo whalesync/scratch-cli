@@ -1,11 +1,30 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
-import { PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { Button, Checkbox, Divider, Group, Loader, NumberInput, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { ColumnSpec, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import {
+  ActionIcon,
+  Button,
+  Checkbox,
+  CheckIcon,
+  CopyButton,
+  Divider,
+  Group,
+  Loader,
+  NumberInput,
+  ScrollArea,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
+import { diffWordsWithSpace } from 'diff';
+import _ from 'lodash';
 import { useCallback, useState } from 'react';
+import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer';
 import { useAIPromptContext } from '../AIPromptContext';
 
 interface RecordDetailsProps {
@@ -99,11 +118,7 @@ export const RecordDetails = ({
           }
         : undefined;
 
-      if (
-        column.markdown ||
-        column.pgType === PostgresColumnType.JSONB ||
-        (column.pgType === PostgresColumnType.TEXT && value && value.length > 200)
-      ) {
+      if (isBigTextField(column, value)) {
         if (focusedView && !hasSuggestion) {
           // the text area should try and fill the full height of the parent stack
           return (
@@ -144,7 +159,7 @@ export const RecordDetails = ({
                 minRows={3}
                 maxRows={10}
                 resize="vertical"
-                readOnly={column.readonly}
+                readOnly={column.readonly || hasSuggestion}
                 styles={greenBackgroundStyle}
                 onSelectionChange={handleTextSelectionChange}
                 onCursorChange={handleTextAreaCursorChange}
@@ -162,7 +177,7 @@ export const RecordDetails = ({
             label={column.name}
             value={currentRecord.fields[field] as number}
             onChange={(value) => updateField(field, value.toString())}
-            readOnly={column.readonly}
+            readOnly={column.readonly || hasSuggestion}
             styles={greenBackgroundStyle}
           />
         );
@@ -174,7 +189,7 @@ export const RecordDetails = ({
             label={column.name}
             checked={value === 'true'}
             onChange={(e) => updateField(field, e.target.checked.toString())}
-            readOnly={column.readonly}
+            readOnly={column.readonly || hasSuggestion}
           />
         );
       }
@@ -194,7 +209,7 @@ export const RecordDetails = ({
               minRows={3}
               maxRows={10}
               onChange={(e) => updateField(field, e.target.value)}
-              readOnly={column.readonly}
+              readOnly={column.readonly || hasSuggestion}
               styles={greenBackgroundStyle}
               resize="vertical"
               onSelectionChange={handleTextSelectionChange}
@@ -210,7 +225,7 @@ export const RecordDetails = ({
           label={column.name}
           value={value ?? ''}
           onChange={(e) => updateField(field, e.target.value)}
-          readOnly={column.readonly}
+          readOnly={column.readonly || hasSuggestion}
           styles={greenBackgroundStyle}
         />
       );
@@ -280,35 +295,63 @@ export const RecordDetails = ({
       };
 
       const hasEditedValue = !!currentRecord.__edited_fields?.[field];
+      const currentValue = currentRecord.fields[field] as string;
 
-      return (
-        <Stack key={field} gap="xs" h={focusedView ? '100%' : 'auto'}>
-          {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
-          {hasSuggestion && (
-            <>
-              <Group gap="xs" justify="center">
-                <Button
-                  size="xs"
-                  variant="outline"
-                  color="red"
-                  leftSection={<XIcon size={14} />}
-                  onClick={handleRejectSuggestion}
-                  loading={saving}
-                >
-                  Reject
-                </Button>
-                <Button
-                  size="xs"
-                  variant="filled"
-                  color="green"
-                  leftSection={<ArrowUpIcon size={14} />}
-                  onClick={handleAcceptSuggestion}
-                  loading={saving}
-                >
-                  Accept
-                </Button>
-              </Group>
+      const suggestionButtons = hasSuggestion ? (
+        <Group gap="xs" justify="center">
+          <Button
+            size="xs"
+            variant="outline"
+            color="red"
+            leftSection={<XIcon size={14} />}
+            onClick={handleRejectSuggestion}
+            loading={saving}
+          >
+            Reject
+          </Button>
+          <Button
+            size="xs"
+            variant="filled"
+            color="green"
+            leftSection={<ArrowUpIcon size={14} />}
+            onClick={handleAcceptSuggestion}
+            loading={saving}
+          >
+            Accept
+          </Button>
+        </Group>
+      ) : null;
+
+      if (hasSuggestion && isBigTextField(column, currentValue)) {
+        const changes = diffWordsWithSpace(currentValue, currentRecord.__suggested_values?.[field] as string);
+        console.log(changes);
+
+        return (
+          <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
+            <Text size="sm" fw={500}>
+              {column.name}
+            </Text>
+            <ScrollArea h="70%" w="100%" type="hover">
+              <ReactDiffViewer
+                oldValue={currentValue}
+                newValue={currentRecord.__suggested_values?.[field] as string}
+                splitView={true}
+                leftTitle="Current"
+                rightTitle="Suggested"
+                hideLineNumbers
+                compareMethod={DiffMethod.WORDS_WITH_SPACE}
+              />
+            </ScrollArea>
+            {suggestionButtons}
+          </Stack>
+        );
+      } else if (hasSuggestion) {
+        return (
+          <Stack key={field} gap="xs" h={focusedView ? '100%' : undefined}>
+            <Group gap="xs" align="flex-end" grow>
+              {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
               <Textarea
+                label="Suggested change"
                 value={currentRecord.__suggested_values?.[field] as string}
                 disabled
                 autosize
@@ -322,8 +365,15 @@ export const RecordDetails = ({
                   },
                 }}
               />
-            </>
-          )}
+            </Group>
+            {suggestionButtons}
+          </Stack>
+        );
+      }
+
+      return (
+        <Stack key={field} gap="xs" h={focusedView ? '100%' : undefined}>
+          {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
         </Stack>
       );
     },
@@ -362,6 +412,15 @@ export const RecordDetails = ({
       <Group justify="space-between" align="center">
         <Group gap="xs">
           <Text>Record Details</Text>
+          <CopyButton value={currentRecord.id.wsId} timeout={2000}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy record ID'} withArrow position="right">
+                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
           {saving && (
             <Group gap="3px" ml="auto">
               <Loader size="xs" />
@@ -402,3 +461,11 @@ export const RecordDetails = ({
     </Stack>
   );
 };
+
+function isBigTextField(column: ColumnSpec, value: string | undefined | null) {
+  return (
+    column.markdown ||
+    column.pgType === PostgresColumnType.JSONB ||
+    (column.pgType === PostgresColumnType.TEXT && value && _.isString(value) && value.length > 200)
+  );
+}
