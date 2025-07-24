@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AiService } from 'src/ai/ai.service';
+import { CustomConnectorService } from 'src/custom-connector/custom-connector.service';
 import {
   executeCreateRecord as executeCreateRecordFn,
   executeDeleteRecord as executeDeleteRecordFn,
@@ -33,7 +34,10 @@ export class RestApiImportService {
 - Use tableId[1] for the table ID only if the service has multiple accounts/bases
 - DO NOT hardcode any table IDs in the function body - always use the tableId parameter`;
 
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly customConnectorService: CustomConnectorService,
+  ) {}
 
   async executePollRecords(functionString: string, apiKey: string, tableId: string[]): Promise<unknown> {
     return executePollRecordsFn(functionString, apiKey, tableId);
@@ -214,7 +218,13 @@ Generate only the JavaScript function:
     return cleanedResponse;
   }
 
-  async generateFetchSchemaFunction(request: GenerateFetchSchemaFunctionRequest): Promise<string> {
+  async generateFetchSchemaFunction(userId: string, connectorId: string): Promise<string> {
+    // Load the connector to get the prompt
+    const connector = await this.customConnectorService.findOne(userId, connectorId);
+    if (!connector.prompt) {
+      throw new Error('Connector does not have a prompt configured');
+    }
+
     const aiPrompt = `
 You are a JavaScript function generator for fetching table schemas from APIs. 
 Based on the user's request, generate a JavaScript function that uses fetch() to retrieve the table schema and returns it in a standardized format.
@@ -282,7 +292,7 @@ ${this.tableIdGuidelines}
 - Do NOT include \`\`\`javascript or \`\`\` code blocks
 - The function should be valid JavaScript that can be executed directly
 
-User request: ${request.prompt}
+User request: ${connector.prompt}
 
 Generate only the JavaScript function:
     `;
@@ -625,10 +635,6 @@ export type ApiImportData = {
 };
 
 export type GeneratePollRecordsFunctionRequest = {
-  prompt: string;
-};
-
-export type GenerateFetchSchemaFunctionRequest = {
   prompt: string;
 };
 

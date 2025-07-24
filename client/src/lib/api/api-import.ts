@@ -22,8 +22,8 @@ export interface ExecuteDeleteRecordRequest {
   apiKey: string;
 }
 
-export const generatePollRecords = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-poll-records`, {
+export const generatePollRecords = async (prompt: string, connectorId: string): Promise<string> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-poll-records/${connectorId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -57,8 +57,8 @@ export const executePollRecords = async (functionString: string, apiKey: string,
   return response.json();
 };
 
-export const generateDeleteRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-delete-record`, {
+export const generateDeleteRecord = async (prompt: string, connectorId: string): Promise<string> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-delete-record/${connectorId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -97,8 +97,8 @@ export const executeDeleteRecord = async (
   return response.json();
 };
 
-export const generateCreateRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-create-record`, {
+export const generateCreateRecord = async (prompt: string, connectorId: string): Promise<string> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-create-record/${connectorId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -137,8 +137,8 @@ export const executeCreateRecord = async (
   return response.json();
 };
 
-export const generateUpdateRecord = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-update-record`, {
+export const generateUpdateRecord = async (prompt: string, connectorId: string): Promise<string> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-update-record/${connectorId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -178,8 +178,8 @@ export const executeUpdateRecord = async (
   return response.json();
 };
 
-export const generateListTables = async (prompt: string): Promise<string> => {
-  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-list-tables`, {
+export const generateListTables = async (prompt: string, connectorId: string): Promise<string> => {
+  const response = await fetch(`${API_CONFIG.getApiUrl()}/rest/custom-connector-builder/generate-list-tables/${connectorId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

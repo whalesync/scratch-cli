@@ -1,8 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { RequestWithUser } from '../auth/types';
 import {
   GenerateCreateRecordFunctionRequest,
   GenerateDeleteRecordFunctionRequest,
-  GenerateFetchSchemaFunctionRequest,
   GenerateListTablesFunctionRequest,
   GeneratePollRecordsFunctionRequest,
   GenerateUpdateRecordFunctionRequest,
@@ -60,12 +61,19 @@ export class ExecuteListTablesRequest {
 }
 
 @Controller('rest/custom-connector-builder')
+@UseGuards(ScratchpadAuthGuard)
 export class RestApiImportController {
   constructor(private readonly restApiImportService: RestApiImportService) {}
 
-  @Post('/generate-schema')
-  async generateSchema(@Body() data: GenerateFetchSchemaFunctionRequest): Promise<{ function: string }> {
-    const result = await this.restApiImportService.generateFetchSchemaFunction(data);
+  @Post('/generate-schema/:connectorId')
+  async generateSchema(
+    @Req() req: RequestWithUser,
+    @Param('connectorId') connectorId: string,
+  ): Promise<{ function: string }> {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+    const result = await this.restApiImportService.generateFetchSchemaFunction(req.user.id, connectorId);
     return { function: result };
   }
 

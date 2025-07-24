@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCustomConnector, useCustomConnectors } from '@/hooks/use-custom-connector';
 import { executeDeleteRecord, executeListTables, generateDeleteRecord, generateListTables } from '@/lib/api/api-import';
+import { API_CONFIG } from '@/lib/api/config';
 import { CreateCustomConnectorDto, CustomConnector } from '@/types/server-entities/custom-connector';
 import { EditableGridCell, GridCell, GridCellKind, GridColumn, GridSelection, Item } from '@glideapps/glide-data-grid';
 import { notifications } from '@mantine/notifications';
@@ -143,24 +144,19 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     return paths;
   }, []);
 
-  // // Function to extract all possible paths from an array of objects (combining all fields)
-  // const extractAllPathsFromArray = useCallback(
-  //   (array: any[]): string[] => {
-  //     const allPaths = new Set<string>();
+  // Validation function for AI prompt requirement
+  const validateAiPrompt = (): boolean => {
+    if (!aiPrompt.trim()) {
+      notifications.show({
+        title: 'AI Prompt Required',
+        message: 'Please enter a description in step 1 first.',
+        color: 'red',
+      });
+      return false;
+    }
+    return true;
+  };
 
-  //     array.forEach((item) => {
-  //       if (typeof item === 'object' && item !== null) {
-  //         const paths = extractPaths(item);
-  //         paths.forEach((path) => allPaths.add(path));
-  //       }
-  //     });
-
-  //     return Array.from(allPaths);
-  //   },
-  //   [extractPaths],
-  // );
-
-  // Populate form when a table is selected
   useEffect(() => {
     if (selectedConnector && selectedConnector.id) {
       // Populate the AI prompt - always set to table's prompt value (could be null/undefined)
@@ -246,6 +242,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
       // Clear mapped data when selecting an existing table
       setMappedRecords(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedConnector?.id,
     selectedConnector?.listTables,
@@ -365,7 +362,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleTestPollRecords = async (): Promise<void> => {
+  const handleExecutePollRecordsFunction = async (): Promise<void> => {
     setResponse(null);
     setLoading(true);
     try {
@@ -383,7 +380,10 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
         process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/execute-poll-records',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            ...API_CONFIG.getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ function: pollRecordsFunction, apiKey, tableId: selectedTableFromList }),
         },
       );
@@ -541,16 +541,30 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     setMappings((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const handleGenerateSchema = async (): Promise<void> => {
-    if (!aiPrompt.trim()) return;
+  const handleGenerateFetchSchemaFunction = async (): Promise<void> => {
+    if (!validateAiPrompt()) return;
+    if (!selectedConnectorId) {
+      notifications.show({
+        title: 'No connector selected',
+        message: 'Please select a connector first.',
+        color: 'red',
+      });
+      return;
+    }
+    await save();
     setLoading(true);
     try {
       // Make a direct call to the NestJS backend
-      const resp = await fetch(process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/generate-schema', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      });
+      const resp = await fetch(
+        process.env.NEXT_PUBLIC_API_URL + `/rest/custom-connector-builder/generate-schema/${selectedConnectorId}`,
+        {
+          method: 'POST',
+          headers: {
+            ...API_CONFIG.getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        },
+      );
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
       const data = await resp.json();
       setFetchSchemaFunction(data.function);
@@ -565,7 +579,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleTestSchema = async (): Promise<void> => {
+  const handleExecuteFetchSchemaFunction = async (): Promise<void> => {
     setSchema(null);
     setLoading(true);
     try {
@@ -581,7 +595,10 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
       // Make a direct call to the NestJS backend
       const resp = await fetch(process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/execute-schema', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ functionString: fetchSchemaFunction, apiKey, tableId: selectedTableFromList }),
       });
       if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
@@ -598,16 +615,28 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleAiGenerate = async (): Promise<void> => {
-    if (!aiPrompt.trim()) return;
+  const handleGeneratePollRecordsFunction = async (): Promise<void> => {
+    if (!validateAiPrompt()) return;
+    if (!selectedConnectorId) {
+      notifications.show({
+        title: 'No connector selected',
+        message: 'Please select a connector first.',
+        color: 'red',
+      });
+      return;
+    }
+    await save();
     setLoading(true);
     try {
       // Make a direct call to the NestJS backend
       const resp = await fetch(
-        process.env.NEXT_PUBLIC_API_URL + '/rest/custom-connector-builder/generate-poll-records',
+        process.env.NEXT_PUBLIC_API_URL + `/rest/custom-connector-builder/generate-poll-records/${selectedConnectorId}`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            ...API_CONFIG.getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ prompt: aiPrompt }),
         },
       );
@@ -625,19 +654,20 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleGenerateDeleteFunction = async (): Promise<void> => {
-    if (!aiPrompt.trim()) {
+  const handleGenerateDeleteRecordFunction = async (): Promise<void> => {
+    if (!validateAiPrompt()) return;
+    if (!selectedConnectorId) {
       notifications.show({
-        title: 'AI Prompt Required',
-        message: 'Please enter a description in step 1 first.',
+        title: 'No connector selected',
+        message: 'Please select a connector first.',
         color: 'red',
       });
       return;
     }
-
+    await save();
     setLoading(true);
     try {
-      const result = await generateDeleteRecord(aiPrompt);
+      const result = await generateDeleteRecord(aiPrompt, selectedConnectorId);
       setDeleteFunction(result);
       notifications.show({
         title: 'Delete Function Generated',
@@ -655,7 +685,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleDeleteRecord = async (): Promise<void> => {
+  const handleExecuteDeleteRecordFunction = async (): Promise<void> => {
     if (!selectedDeleteId) {
       notifications.show({
         title: 'No ID Selected',
@@ -715,19 +745,20 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleGenerateListTables = async (): Promise<void> => {
-    if (!aiPrompt.trim()) {
+  const handleGenerateListTablesFunction = async (): Promise<void> => {
+    if (!validateAiPrompt()) return;
+    if (!selectedConnectorId) {
       notifications.show({
-        title: 'AI Prompt Required',
-        message: 'Please enter a description in step 1 first.',
+        title: 'No connector selected',
+        message: 'Please select a connector first.',
         color: 'red',
       });
       return;
     }
-
+    await save();
     setLoading(true);
     try {
-      const result = await generateListTables(aiPrompt);
+      const result = await generateListTables(aiPrompt, selectedConnectorId);
       setListTablesFunction(result);
       notifications.show({
         title: 'List Tables Function Generated',
@@ -745,7 +776,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     }
   };
 
-  const handleTestListTables = async (): Promise<void> => {
+  const handleExecuteListTablesFunction = async (): Promise<void> => {
     setTables(null);
     setLoading(true);
     try {
@@ -786,7 +817,6 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     setConnectorName,
     setApiKey,
     setAiPrompt,
-    // setIdPath,
     setMappings,
     setCurrentMappingId,
     setDeleteFunction,
@@ -796,22 +826,18 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     setUpdateFunction,
     setSelectedUpdateId,
     setUpdateRecordData,
-
-    // extractPaths,
-    // extractAllPathsFromArray,
     onDelete,
-    // openPathModal,
     handleMappingChange,
     addMappingRow,
     removeMappingRow,
-    handleGenerateSchema,
-    handleTestSchema,
-    handleAiGenerate,
-    handleGenerateDeleteFunction,
-    handleDeleteRecord,
-    handleGenerateListTables,
-    handleTestListTables,
-    handleTestPollRecords,
+    handleGenerateFetchSchemaFunction,
+    handleExecuteFetchSchemaFunction,
+    handleGeneratePollRecordsFunction,
+    handleGenerateDeleteRecordFunction,
+    handleExecuteDeleteRecordFunction,
+    handleGenerateListTablesFunction,
+    handleExecuteListTablesFunction,
+    handleExecutePollRecordsFunction,
     handleApplyMapping,
     save,
     aiPrompt,
@@ -820,16 +846,10 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
     tables,
     selectedTableFromList,
     fetchSchemaFunction,
-    // idPath,
-    // idPathModalOpened,
     mappings,
     currentMappingId,
     gridSelection,
     setGridSelection,
-    // pathModalOpened,
-    // availablePaths,
-
-    // setIdPathModalOpened,
     createRecordDataText,
     selectedUpdateId,
     updateRecordDataText,
@@ -884,9 +904,6 @@ type AiConnectorBuilderContextType = {
   setConnectorName: (value: string) => void;
   setApiKey: (value: string) => void;
   setAiPrompt: (value: string) => void;
-  // setRecordArrayPath: (value: string) => void;
-  // setRecordArrayPathModalOpened: (value: boolean) => void;
-  // setIdPath: (value: string) => void;
   setMappings: (value: MappingRow[]) => void;
   setCurrentMappingId: (value: string | null) => void;
   setDeleteFunction: (value: string) => void;
@@ -896,21 +913,18 @@ type AiConnectorBuilderContextType = {
   setUpdateFunction: (value: string) => void;
   setSelectedUpdateId: (value: string) => void;
   setUpdateRecordData: (value: Record<string, unknown>) => void;
-  // extractPaths: (obj: any, prefix?: string) => string[];
-  // extractAllPathsFromArray: (array: any[]) => string[];
   onDelete: (selection: GridSelection) => boolean;
-  // openPathModal: (mappingId: string) => void;
   handleMappingChange: (id: string, field: 'destination' | 'source' | 'pgType', value: string) => void;
   addMappingRow: () => void;
   removeMappingRow: (id: string) => void;
-  handleGenerateSchema: () => Promise<void>;
-  handleTestSchema: () => Promise<void>;
-  handleAiGenerate: () => Promise<void>;
-  handleGenerateDeleteFunction: () => Promise<void>;
-  handleDeleteRecord: () => Promise<void>;
-  handleGenerateListTables: () => Promise<void>;
-  handleTestListTables: () => Promise<void>;
-  handleTestPollRecords: () => Promise<void>;
+  handleGenerateFetchSchemaFunction: () => Promise<void>;
+  handleExecuteFetchSchemaFunction: () => Promise<void>;
+  handleGeneratePollRecordsFunction: () => Promise<void>;
+  handleGenerateDeleteRecordFunction: () => Promise<void>;
+  handleExecuteDeleteRecordFunction: () => Promise<void>;
+  handleGenerateListTablesFunction: () => Promise<void>;
+  handleExecuteListTablesFunction: () => Promise<void>;
+  handleExecutePollRecordsFunction: () => Promise<void>;
   handleApplyMapping: () => Promise<void>;
   save: () => Promise<void>;
   aiPrompt: string;
@@ -919,16 +933,10 @@ type AiConnectorBuilderContextType = {
   tables: any[] | null;
   selectedTableFromList: string[] | null;
   fetchSchemaFunction: string;
-  // idPath: string;
-  // idPathModalOpened: boolean;
   mappings: MappingRow[];
   currentMappingId: string | null;
   gridSelection: GridSelection | undefined;
   setGridSelection: (value: GridSelection | undefined) => void;
-  // pathModalOpened: boolean;
-
-  // setAvailableArrayPaths: (value: string[]) => void;
-  // setIdPathModalOpened: (value: boolean) => void;
   createRecordDataText: string;
   selectedUpdateId: string;
   updateRecordDataText: string;
@@ -954,9 +962,6 @@ type AiConnectorBuilderContextType = {
   setColumns: (value: GridColumn[]) => void;
   setCreateRecordDataText: (value: string) => void;
   setUpdateRecordDataText: (value: string) => void;
-  // setAvailablePaths: (value: string[]) => void;
-  // setPathModalOpened: (value: boolean) => void;
-  // extractArrayPaths: (obj: any, prefix?: string) => string[];
 };
 
 export const useAiConnectorBuilderContext = (): AiConnectorBuilderContextType => {

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from 'src/db/db.module';
-import { CustomConnectorController } from './generic-table.controller';
-import { CustomConnectorService } from './generic-table.service';
+import { CustomConnectorController } from './custom-connector.controller';
+import { CustomConnectorService } from './custom-connector.service';
 
 @Module({
   imports: [DbModule],

@@ -101,6 +101,7 @@ function CsvFileContent({ id }: { id: string }) {
           onChange={(e) => setBody(e.target.value)}
           placeholder="Enter CSV content here..."
           minRows={20}
+          rows={20}
           styles={{
             input: {
               fontFamily: 'monospace',
