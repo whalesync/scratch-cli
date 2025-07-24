@@ -22,3 +22,9 @@ Error Handling & Logging
 
 - For the server we need a decent error management pattern - everything just uses exceptions right now
 - Add a standardized logger, like Winston, from the start
+
+AI Agent sessions
+
+- There is no session security to the Pydantic AI agent from the client
+- Anyone can connect and start poking at our system
+- need some kind of user session management to authenticate incoming requests and websockets

@@ -3,11 +3,15 @@
  */
 class ApiConfig {
   private apiUrl: string;
+  private aiAgentApiUrl: string;
   private authToken: string | null;
+  private agentAuthToken: string | null;
 
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010";
+    this.aiAgentApiUrl = process.env.NEXT_PUBLIC_AI_AGENT_API_URL || "http://localhost:8000";
     this.authToken = null;
+    this.agentAuthToken = null;
   }
 
   public getApiUrl() {
@@ -25,6 +29,24 @@ class ApiConfig {
   getAuthHeaders(): HeadersInit {
     return {
       Authorization: `Bearer ${this.authToken}`,
+    };
+  }
+
+  public getAiAgentApiUrl() {
+    return this.aiAgentApiUrl;
+  }
+
+  public setAiAgentApiToken(token: string) {
+    this.agentAuthToken = token;
+  }
+
+  public getAiAgentApiToken() {
+    return this.agentAuthToken;
+  }
+
+  getAiAgentAuthHeaders(): HeadersInit {
+    return {
+      Authorization: `Bearer ${this.agentAuthToken}`,
     };
   }
 

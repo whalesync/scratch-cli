@@ -1,11 +1,12 @@
-import { useAuth, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
-import useSWR from "swr";
-import { UserResource } from "@clerk/types";
-import { User } from "@/types/server-entities/users";
-import { usersApi } from "@/lib/api/users";
+import { API_CONFIG } from "@/lib/api/config";
 import { SWR_KEYS } from "@/lib/api/keys";
+import { usersApi } from "@/lib/api/users";
+import { User } from "@/types/server-entities/users";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { UserResource } from "@clerk/types";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect } from "react";
+import useSWR from "swr";
 
 export interface ScratchPadUser {
   isLoading: boolean;
@@ -43,6 +44,12 @@ export const useScratchPadUser = (): ScratchPadUser => {
         .finally(() => router.push("/sign-in"));
     }
   }, [router, signOut]);
+
+  useEffect(() => {
+    if (user) {
+      API_CONFIG.setAiAgentApiToken(user.agentToken || '');
+    } 
+  }, [user]);
 
   return {
     isLoading: isLoading || !isLoaded,

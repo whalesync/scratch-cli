@@ -1,8 +1,10 @@
 'use client';
 
 import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
+import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { aiAgentApi } from '@/lib/api/ai-agent';
 import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
@@ -19,31 +21,12 @@ import {
   TextInput,
   Textarea,
 } from '@mantine/core';
-import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
+import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  message: string;
-  timestamp: string;
-}
-
-interface ChatSession {
-  id: string;
-  name: string;
-  chat_history: ChatMessage[];
-  summary_history: Array<{
-    requestSummary: string;
-    responseSummary: string;
-  }>;
-  created_at: string;
-  last_activity: string;
-  snapshot_id?: string;
-}
 
 interface FocusedCell {
   recordWsId: string;
@@ -57,16 +40,7 @@ interface AIChatPanelProps {
   currentViewId?: string | null;
 }
 
-interface AgentErrorResponse {
-  detail: string;
-}
-
-const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
-
 export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
-  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [sessionData, setSessionData] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +48,6 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const [resetInputFocus, setResetInputFocus] = useState(false);
   const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
   const [showModelSelector, setShowModelSelector] = useState(false);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const { readFocus, writeFocus } = useFocusedCellsContext();
@@ -96,13 +69,17 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
   }, [scrollAreaRef]);
 
-  // Load sessions on mount
-  useEffect(() => {
-    if (isOpen) {
-      loadSessions();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  const {
+    sessions,
+    activeSessionId,
+    activeSession: sessionData,
+    createSession,
+    deleteSession,
+    refreshActiveSession,
+    addToActiveChatHistory,
+    activateSession,
+    clearActiveSession,
+  } = useAIAgentSessionManagerContext();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -125,46 +102,15 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
   }, [promptQueue, clearPromptQueue, message]);
 
-  const loadSessions = async () => {
-    if (isLoadingSessions) return; // Prevent multiple simultaneous loads
-
-    setIsLoadingSessions(true);
+  const reloadSession = async () => {
     try {
-      console.debug('Loading sessions from:', `${AI_CHAT_SERVER_URL}/sessions`);
-      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions`);
-      const data = await response.json();
-      console.debug('Sessions response:', data);
-      setSessions(data.sessions);
-      console.debug('Set sessions:', data.sessions);
-    } catch (error) {
-      setError('Failed to load sessions');
-      console.error('Error loading sessions:', error);
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  };
-
-  const loadSession = async (sessionId: string) => {
-    try {
-      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${sessionId}`);
-      if (response.ok) {
-        const data = (await response.json()) as ChatSession;
-        setSessionData(data);
-        scrollToBottom();
-      } else {
-        setError('Failed to load session');
-      }
+      await refreshActiveSession();
+      scrollToBottom();
     } catch (error) {
       setError('Failed to load session');
       console.error('Error loading session:', error);
     }
   };
-
-  useEffect(() => {
-    if (currentSessionId) {
-      loadSession(currentSessionId);
-    }
-  }, [currentSessionId]);
 
   const createNewSession = async () => {
     if (!snapshotId) {
@@ -173,64 +119,25 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
 
     try {
-      const url = new URL(`${AI_CHAT_SERVER_URL}/sessions`);
-      url.searchParams.append('snapshot_id', snapshotId);
+      const { available_capabilities } = await createSession(snapshotId);
 
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSessions((prev) => [...prev, data.session]);
-        setCurrentSessionId(data.session.id);
-        setAvailableCapabilities(data.available_capabilities);
-        // Preselect capabilities that have enabledByDefault=true
-        const defaultCapabilities = data.available_capabilities
-          .filter((cap: Capability) => cap.enabledByDefault)
-          .map((cap: Capability) => cap.code);
-        setSelectedCapabilities(defaultCapabilities);
-        setError(null);
-        console.debug('Created new session with snapshot ID:', snapshotId);
-        console.debug('Available capabilities:', data.available_capabilities);
-        console.debug('Default selected capabilities:', defaultCapabilities);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        setError(`Failed to create session: ${errorData.detail || response.statusText}`);
-      }
+      setAvailableCapabilities(available_capabilities);
+      // Preselect capabilities that have enabledByDefault=true
+      const defaultCapabilities = available_capabilities
+        .filter((cap: Capability) => cap.enabledByDefault)
+        .map((cap: Capability) => cap.code);
+      setSelectedCapabilities(defaultCapabilities);
+      setError(null);
+      console.debug('Created new session with snapshot ID:', snapshotId);
+      console.debug('Available capabilities:', available_capabilities);
+      console.debug('Default selected capabilities:', defaultCapabilities);
     } catch (error) {
-      setError('Failed to create session');
-      console.error('Error creating session:', error);
-    }
-  };
-
-  const deleteSession = async (sessionId: string) => {
-    try {
-      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${sessionId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setSessions((prev) => prev.filter((session) => session.id !== sessionId));
-        if (currentSessionId === sessionId) {
-          setCurrentSessionId(null);
-          setSessionData(null);
-        }
-        setError(null);
-      } else {
-        setError('Failed to delete session');
-      }
-    } catch (error) {
-      setError('Failed to delete session');
-      console.error('Error deleting session:', error);
+      setError(`Failed to create session: ${error}}`);
     }
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || !currentSessionId || isLoading) return;
+    if (!message.trim() || !activeSessionId || isLoading) return;
 
     // Optimistically update chat history
     if (sessionData) {
@@ -239,10 +146,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         message: message.trim(),
         timestamp: new Date().toISOString(),
       };
-      setSessionData({
-        ...sessionData,
-        chat_history: [...sessionData.chat_history, optimisticMessage],
-      });
+      addToActiveChatHistory(optimisticMessage);
       scrollToBottom();
     }
 
@@ -251,7 +155,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
 
     console.debug('Message data:', {
       message: message.trim(),
-      currentSessionId,
+      activeSessionId,
       historyLength: sessionData?.chat_history.length || 0,
       hasApiToken: !!user?.apiToken,
       snapshotId: snapshotId,
@@ -275,12 +179,10 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         model: selectedModel,
       };
 
+      const apiToken = user?.agentToken || user?.apiToken;
       // Include API token if available
-      if (user?.apiToken) {
+      if (apiToken) {
         messageData.api_token = user.apiToken;
-        console.debug('Including API token in request');
-      } else {
-        console.debug('No API token available');
       }
 
       // Include style guide content if selected
@@ -314,25 +216,15 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         console.debug('Including write focus:', writeFocus.length, 'cells');
       }
 
-      const response = await fetch(`${AI_CHAT_SERVER_URL}/sessions/${currentSessionId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messageData),
-      });
+      const response = await aiAgentApi.sendMessage(activeSessionId, JSON.stringify(messageData));
 
-      if (response.ok) {
-        setMessage('');
-
-        // Reload session to get updated history
-        await loadSession(currentSessionId);
-        console.debug('Message sent successfully, reloaded session');
-      } else {
+      if (response.type === 'agent_error') {
         setError('Failed to send message');
-        const errorText = (await response.json()) as AgentErrorResponse;
-        setErrorDetails(errorText.detail);
-        console.error('Error from agent server: ', errorText.detail);
+        setErrorDetails(response.detail);
+      } else {
+        setMessage('');
+        // Reload session to get updated history
+        await reloadSession();
       }
     } catch (error) {
       setError('Failed to send agent message');
@@ -401,10 +293,13 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       <Group mb="md" gap="xs" style={{}}>
         <Select
           placeholder="Select session"
-          value={currentSessionId}
+          value={activeSessionId}
           onChange={(value) => {
-            console.debug('Select onChange called with:', value);
-            setCurrentSessionId(value);
+            if (value) {
+              activateSession(value);
+            } else {
+              clearActiveSession();
+            }
             // Reset capabilities when switching sessions
             setAvailableCapabilities([]);
             setSelectedCapabilities([]);
@@ -426,24 +321,24 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           }}
         />
         <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
-          <Plus size={14} />
+          <PlusIcon size={14} />
         </ActionIcon>
-        {currentSessionId && (
+        {activeSessionId && (
           <ActionIcon
-            onClick={() => deleteSession(currentSessionId)}
+            onClick={() => deleteSession(activeSessionId)}
             size="sm"
             variant="subtle"
             color="red"
             title="Delete session"
           >
-            <X size={14} />
+            <XIcon size={14} />
           </ActionIcon>
         )}
       </Group>
 
       {/* Debug info */}
       <Text size="xs" c="dimmed" mb="xs">
-        Sessions: {sessions.length} | Current: {currentSessionId || 'none'} | Model: {selectedModel}
+        Sessions: {sessions.length} | Current: {activeSessionId || 'none'} | Model: {selectedModel}
         {currentViewId && (
           <Text span size="xs" c="green" ml="xs">
             | View: {currentViewId.slice(0, 8)}...
@@ -467,7 +362,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
 
       {/* Messages */}
       <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
-        {currentSessionId ? (
+        {activeSessionId ? (
           <Stack gap="xs">
             {sessionData?.chat_history.map((msg, index) => (
               <Paper
@@ -545,7 +440,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
-          disabled={isLoading || !currentSessionId}
+          disabled={isLoading || !activeSessionId}
           size="xs"
           minRows={5}
           maxRows={5}
@@ -589,12 +484,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
               setMessage('update');
               // Trigger send after setting the message
               setTimeout(() => {
-                if (currentSessionId && !isLoading) {
+                if (activeSessionId && !isLoading) {
                   sendMessage();
                 }
               }, 0);
             }}
-            disabled={isLoading || !currentSessionId}
+            disabled={isLoading || !activeSessionId}
             size="sm"
             variant="light"
             color="blue"
@@ -606,7 +501,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           </ActionIcon>
           <ActionIcon
             onClick={sendMessage}
-            disabled={!message.trim() || isLoading || !currentSessionId}
+            disabled={!message.trim() || isLoading || !activeSessionId}
             loading={isLoading}
             size="md"
           >

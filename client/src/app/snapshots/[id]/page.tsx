@@ -35,6 +35,7 @@ import { useParams, useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
+import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { SnapshotEventProvider, useSnapshotEventContext } from '@/contexts/snapshot-event-context';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
@@ -481,7 +482,9 @@ export default function SnapshotPage() {
       <SnapshotProvider snapshotId={id}>
         <FocusedCellsProvider>
           <AIPromptProvider>
-            <SnapshotPageContent />
+            <AIAgentSessionManagerProvider>
+              <SnapshotPageContent />
+            </AIAgentSessionManagerProvider>
           </AIPromptProvider>
         </FocusedCellsProvider>
       </SnapshotProvider>
