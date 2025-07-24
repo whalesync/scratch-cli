@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from server.chat_controller import router, chat_service
-from websocket_handler import websocket_endpoint
+from server.websocket_handler import websocket_endpoint
 from logger import log_info
 
 # Load environment variables
@@ -39,9 +39,9 @@ app.include_router(router)
 
 # WebSocket endpoint
 @app.websocket("/ws/{session_id}")
-async def websocket_endpoint_handler(websocket: WebSocket, session_id: str):
+async def websocket_endpoint_handler(websocket: WebSocket, session_id: str, api_token: Optional[str] = None):
     """WebSocket endpoint for real-time chat"""
-    await websocket_endpoint(websocket, session_id, chat_service)
+    await websocket_endpoint(websocket, session_id, chat_service, api_token)
 
 
 if __name__ == "__main__":
