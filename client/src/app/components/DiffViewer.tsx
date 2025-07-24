@@ -1,0 +1,34 @@
+import { Group, Text } from '@mantine/core';
+import { diffWordsWithSpace } from 'diff';
+
+export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: string; suggestedValue: string }) => {
+  // Run the diff and included whitespace in the changes
+  const changes = diffWordsWithSpace(originalValue, suggestedValue);
+
+  return (
+    <Group gap="0" align="flex-start">
+      {changes.map((change, idx) => {
+        // do this to preserve newlines in the diff viewer
+        const value = change.value.replaceAll('\n', '<br/>');
+
+        if (change.added) {
+          return <Text span key={idx} c="green" dangerouslySetInnerHTML={{ __html: value }}></Text>;
+        }
+
+        if (change.removed) {
+          return (
+            <Text
+              span
+              key={idx}
+              c="red"
+              style={{ textDecoration: 'line-through' }}
+              dangerouslySetInnerHTML={{ __html: value }}
+            ></Text>
+          );
+        }
+
+        return <Text span key={idx} dangerouslySetInnerHTML={{ __html: value }}></Text>;
+      })}
+    </Group>
+  );
+};

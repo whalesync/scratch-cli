@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { DiffViewer } from '@/app/components/DiffViewer';
 import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { ColumnSpec, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -21,10 +22,8 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
-import { diffWordsWithSpace } from 'diff';
 import _ from 'lodash';
 import { useCallback, useState } from 'react';
-import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer';
 import { useAIPromptContext } from '../AIPromptContext';
 
 interface RecordDetailsProps {
@@ -323,23 +322,15 @@ export const RecordDetails = ({
       ) : null;
 
       if (hasSuggestion && isBigTextField(column, currentValue)) {
-        const changes = diffWordsWithSpace(currentValue, currentRecord.__suggested_values?.[field] as string);
-        // console.log(changes);
-
         return (
           <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
             <Text size="sm" fw={500}>
               {column.name}
             </Text>
-            <ScrollArea h="70%" w="100%" type="hover">
-              <ReactDiffViewer
-                oldValue={currentValue}
-                newValue={currentRecord.__suggested_values?.[field] as string}
-                splitView={true}
-                leftTitle="Current"
-                rightTitle="Suggested"
-                hideLineNumbers
-                compareMethod={DiffMethod.WORDS_WITH_SPACE}
+            <ScrollArea mah="80%" w="100%" type="hover" styles={{ root: { border: '1px solid #e0e0e0' } }} mb="xs">
+              <DiffViewer
+                originalValue={currentValue}
+                suggestedValue={currentRecord.__suggested_values?.[field] as string}
               />
             </ScrollArea>
             {suggestionButtons}
