@@ -3,6 +3,7 @@
 WebSocket Handler for real-time chat
 """
 
+import asyncio
 import json
 from datetime import datetime
 from typing import Dict, Optional
@@ -101,9 +102,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                 )
 
             if message_type == "message":   
-                request : SendMessageRequestDTO = message_data.get("data", {});
+                data_payload = message_data.get("data", {});
+                request = SendMessageRequestDTO(**data_payload);
                 
                 log_info("Message received", session_id=session_id, message_length=len(request.message), has_api_token=request.api_token is not None, style_guides_count=len(request.style_guides) if request.style_guides else 0, capabilities_count=len(request.capabilities) if request.capabilities else 0)
+                
                 print(f"💬 Processing message for session: {session_id}")
                 print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
                 print(f"📝 Message: {request.message}")
@@ -161,7 +164,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                     else:
                         print(f"   No style guides to convert, keeping as None")
                     
-                    agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
+                    async def progress_callback(message: str):
+                        await manager.send_personal_message(
+                            json.dumps({
+                                "type": "message_progress",
+                                "data": {
+                                    "message": message,
+                                },
+                                "timestamp": datetime.now().isoformat()
+                            }),
+                            session_id
+                        )
+
+                    agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, progress_callback)
                     
                     log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
                     
@@ -190,12 +205,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                     await manager.send_personal_message(
                         json.dumps({
                             "type": "message_response",
-                            "data": agent_response,
+                            "data": agent_response.model_dump(),
                             "timestamp": datetime.now().isoformat()
                         }),
                         session_id
-                    ) 
-                    
+                    )
                 except Exception as e:
                     log_error("Message processing failed", session_id=session_id, error=str(e), snapshot_id=session.snapshot_id)
                     print(f"❌ Error processing message: {e}")
@@ -212,6 +226,6 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                         session_id
                     ) 
                 
+                
     except WebSocketDisconnect:
         manager.disconnect(session_id) 
-

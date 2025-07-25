@@ -6,10 +6,9 @@ Chat Service for handling agent communication and session management
 import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
 from pydantic_ai.usage import UsageLimits
-
 from agents.data_agent.models import ChatRunContext, ChatSession, FocusedCell, ResponseFromAgent
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
@@ -51,7 +50,8 @@ class ChatService:
         view_id: Optional[str] = None,
         read_focus: Optional[List[FocusedCell]] = None,
         write_focus: Optional[List[FocusedCell]] = None,
-        capabilities: Optional[List[str]] = None
+        capabilities: Optional[List[str]] = None,
+        progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         print(f"🤖 Starting agent processing for session: {session.id}")
@@ -160,6 +160,8 @@ class ChatService:
                         # Fetch snapshot details
                         from scratchpad_api import get_snapshot, list_records
                         from agents.data_agent.data_agent_utils import convert_scratchpad_snapshot_to_ai_snapshot
+                        if progress_callback:
+                            await progress_callback("Pre-loading snapshot data and records")
                         
                         snapshot_data = get_snapshot(session.snapshot_id, api_token)
                         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, session)
@@ -262,6 +264,9 @@ class ChatService:
                 print(f"   style_guides: {style_guides}")
                 print(f"   style_guides type: {type(style_guides)}")
                 
+                if progress_callback:
+                    await progress_callback(f"Creating agent with {model} model")
+
                 agent = create_agent(model_name=model, capabilities=capabilities, style_guides=style_guides)
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 

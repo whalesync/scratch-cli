@@ -10,9 +10,12 @@ export interface SessionListResponse {
 }
 
 export interface ChatMessage {
+  id:string;
   role: 'user' | 'assistant';
   message: string;
   timestamp: string;
+  payload?: object;
+  variant: 'admin' | 'message' | 'progress' | 'error';
 }
 
 export interface ChatSession {

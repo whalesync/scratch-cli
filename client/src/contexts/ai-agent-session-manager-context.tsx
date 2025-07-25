@@ -75,6 +75,7 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
 
       setSessions([...sessions, newSession]);
       setActiveSessionId(newSession.id);
+
       return {
         session: newSession,
         available_capabilities,

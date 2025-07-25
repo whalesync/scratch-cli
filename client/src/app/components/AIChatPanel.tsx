@@ -2,13 +2,14 @@
 
 import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
+import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { aiAgentApi } from '@/lib/api/ai-agent';
-import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
+import { Capability } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
   Alert,
+  Badge,
   Box,
   Group,
   Modal,
@@ -18,10 +19,10 @@ import {
   Select,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
 } from '@mantine/core';
-import { ChatCircle, MagnifyingGlass, PaperPlaneRightIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
+import { ChatCircleIcon, MagnifyingGlassIcon, PaperPlaneRightIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
@@ -42,7 +43,6 @@ interface AIChatPanelProps {
 
 export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
@@ -52,6 +52,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const { readFocus, writeFocus } = useFocusedCellsContext();
   const { promptQueue, clearPromptQueue } = useAIPromptContext();
+  const [agentQueryRunning, setAgentQueryRunning] = useState<boolean>(false);
 
   // Get user data including API token
   const { user } = useScratchPadUser();
@@ -75,11 +76,32 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     activeSession: sessionData,
     createSession,
     deleteSession,
-    refreshActiveSession,
-    addToActiveChatHistory,
     activateSession,
     clearActiveSession,
   } = useAIAgentSessionManagerContext();
+
+  const handleWebsocketMessage = useCallback(
+    (message: WebSocketMessage) => {
+      // this is just to handle some flow control for the UI.
+      // The hook already tracks the message history and we can use that for the UI
+      if (message.type === 'message_progress') {
+        console.debug('Message progress:', message.data);
+      } else if (message.type === 'message_response') {
+        console.debug('Message response:', message.data);
+        setAgentQueryRunning(false);
+      } else if (message.type === 'agent_error') {
+        setAgentQueryRunning(false);
+      }
+      // got a message, try to scroll to the bottom
+      scrollToBottom();
+    },
+    [scrollToBottom],
+  );
+
+  const { connectionStatus, connectionError, connect, disconnect, messageHistory, sendPing, sendAiAgentMessage } =
+    useAIAgentChatWebSocket({
+      onMessage: handleWebsocketMessage,
+    });
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -87,6 +109,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       scrollToBottom();
     }
   }, [sessionData?.chat_history, scrollToBottom]);
+
+  useEffect(() => {
+    if (messageHistory && messageHistory.length > 0) {
+      scrollToBottom();
+    }
+  }, [messageHistory, scrollToBottom]);
 
   useEffect(() => {
     if (resetInputFocus) {
@@ -102,16 +130,6 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
   }, [promptQueue, clearPromptQueue, message]);
 
-  const reloadSession = async () => {
-    try {
-      await refreshActiveSession();
-      scrollToBottom();
-    } catch (error) {
-      setError('Failed to load session');
-      console.error('Error loading session:', error);
-    }
-  };
-
   const createNewSession = async () => {
     if (!snapshotId) {
       setError('Snapshot ID is required to create a session');
@@ -119,7 +137,9 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
 
     try {
-      const { available_capabilities } = await createSession(snapshotId);
+      disconnect();
+      const { session, available_capabilities } = await createSession(snapshotId);
+      connect(session.id);
 
       setAvailableCapabilities(available_capabilities);
       // Preselect capabilities that have enabledByDefault=true
@@ -137,29 +157,22 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || !activeSessionId || isLoading) return;
+    if (!message.trim() || !activeSessionId || agentQueryRunning) return;
+    const messageCleaned = message.trim();
 
-    // Optimistically update chat history
-    if (sessionData) {
-      const optimisticMessage = {
-        role: 'user' as const,
-        message: message.trim(),
-        timestamp: new Date().toISOString(),
-      };
-      addToActiveChatHistory(optimisticMessage);
+    // handle slash (/) and (@) commands
+    if (messageCleaned.startsWith('/') || messageCleaned.startsWith('@')) {
+      if (messageCleaned === '/ping') {
+        sendPing();
+      }
+
+      setMessage('');
       scrollToBottom();
+      return;
     }
 
-    setIsLoading(true);
+    setAgentQueryRunning(true);
     setError(null);
-
-    console.debug('Message data:', {
-      message: message.trim(),
-      activeSessionId,
-      historyLength: sessionData?.chat_history.length || 0,
-      hasApiToken: !!user?.apiToken,
-      snapshotId: snapshotId,
-    });
 
     try {
       // Get selected style guide content
@@ -216,22 +229,15 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         console.debug('Including write focus:', writeFocus.length, 'cells');
       }
 
-      const response = await aiAgentApi.sendMessage(activeSessionId, JSON.stringify(messageData));
-
-      if (response.type === 'agent_error') {
-        setError('Failed to send message');
-        setErrorDetails(response.detail);
-      } else {
-        setMessage('');
-        // Reload session to get updated history
-        await reloadSession();
-      }
+      sendAiAgentMessage(messageData);
+      // clear the current message
+      setMessage('');
     } catch (error) {
       setError('Failed to send agent message');
       setErrorDetails(error instanceof Error ? error.message : 'Unknown error');
       console.error('Exception while sending message:', error);
+      setAgentQueryRunning(false);
     } finally {
-      setIsLoading(false);
       setResetInputFocus(true);
     }
   };
@@ -243,13 +249,27 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     }
   };
 
-  const formatSessionLabel = (session: ChatSessionSummary) => {
-    return session.name;
-    // const date = new Date(parseInt(sessionId.split('_')[1]));
-    // return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-  };
-
   if (!isOpen) return null;
+
+  // combine the historical session data and the current websocket message history
+  const chatHistory = [...(sessionData?.chat_history || []), ...(messageHistory || [])];
+
+  const chatInputEnabled = activeSessionId && connectionStatus === 'connected' && !agentQueryRunning;
+
+  const connectionBadge =
+    connectionStatus === 'connected' ? (
+      <Badge size="xs" color="green">
+        Connected
+      </Badge>
+    ) : connectionStatus === 'connecting' ? (
+      <Badge size="xs" color="yellow">
+        Connecting...
+      </Badge>
+    ) : (
+      <Badge size="xs" color="grey">
+        Offline
+      </Badge>
+    );
 
   return (
     <Paper
@@ -257,7 +277,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       p="md"
       style={{
         width: '30%',
-        height: '100%',
+        height: '95%',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',
@@ -289,16 +309,27 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         </Alert>
       )}
 
+      {connectionError && (
+        <Alert color="red" mb="sm" p="xs" title="Websocket error">
+          <Text size="xs" c="dimmed">
+            {connectionError}
+          </Text>
+        </Alert>
+      )}
+
       {/* Session Management */}
       <Group mb="md" gap="xs" style={{}}>
         <Select
           placeholder="Select session"
           value={activeSessionId}
-          onChange={(value) => {
+          onChange={async (value) => {
             if (value) {
+              await disconnect();
               activateSession(value);
+              await connect(value);
             } else {
               clearActiveSession();
+              await disconnect();
             }
             // Reset capabilities when switching sessions
             setAvailableCapabilities([]);
@@ -306,7 +337,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           }}
           data={sessions.map((session) => ({
             value: session.id,
-            label: formatSessionLabel(session),
+            label: session.name,
           }))}
           size="xs"
           style={{ flex: 1, zIndex: 1001 }}
@@ -325,7 +356,10 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         </ActionIcon>
         {activeSessionId && (
           <ActionIcon
-            onClick={() => deleteSession(activeSessionId)}
+            onClick={async () => {
+              await disconnect();
+              await deleteSession(activeSessionId);
+            }}
             size="sm"
             variant="subtle"
             color="red"
@@ -337,13 +371,21 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       </Group>
 
       {/* Debug info */}
-      <Text size="xs" c="dimmed" mb="xs">
-        Sessions: {sessions.length} | Current: {activeSessionId || 'none'} | Model: {selectedModel}
+      <Group align="center" gap="4px" mb="xs">
+        <Text size="xs" c="dimmed">
+          Sessions: {sessions.length} | Current: {activeSessionId || 'none'}
+        </Text>
+        <Text size="xs" c="dimmed">
+          Model: {selectedModel}
+        </Text>
+        {connectionBadge}
+
         {currentViewId && (
           <Text span size="xs" c="green" ml="xs">
             | View: {currentViewId.slice(0, 8)}...
           </Text>
         )}
+
         {selectedStyleGuideIds.length > 0 && (
           <Text span size="xs" c="blue" ml="xs">
             | Style Guides ({selectedStyleGuideIds.length}):{' '}
@@ -358,31 +400,34 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
             | Capabilities ({selectedCapabilities.length}): {selectedCapabilities.join(', ')}
           </Text>
         )}
-      </Text>
+      </Group>
 
       {/* Messages */}
       <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
         {activeSessionId ? (
           <Stack gap="xs">
-            {sessionData?.chat_history.map((msg, index) => (
+            {chatHistory.map((msg, index) => (
               <Paper
                 key={index}
                 p="xs"
                 bg={msg.role === 'user' ? 'blue.0' : 'gray.0'}
+                bd={msg.variant === 'error' ? '1px solid red' : '1px solid transparent'}
                 style={{
                   alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '90%',
                 }}
               >
-                <Stack gap="xs">
+                <Stack gap="6px">
                   {msg.role === 'user' ? (
                     <Text size="xs">{msg.message}</Text>
+                  ) : msg.variant === 'progress' ? (
+                    <Text size="xs">🧠... {msg.message}</Text>
                   ) : (
                     <Box fz="xs">
                       <MarkdownRenderer>{msg.message}</MarkdownRenderer>
                     </Box>
                   )}
-                  <Text size="xs" c="dimmed">
+                  <Text c="dimmed" fz="8px">
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </Text>
                 </Stack>
@@ -391,7 +436,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           </Stack>
         ) : (
           <Stack align="center" justify="center" h="100%">
-            <ChatCircle size={32} color="#00A2E9" />
+            <ChatCircleIcon size={32} color="#00A2E9" />
             <Text size="sm" fw={500} ta="center">
               Select a session or create a new one to start chatting
             </Text>
@@ -440,7 +485,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
-          disabled={isLoading || !activeSessionId}
+          disabled={!chatInputEnabled}
           size="xs"
           minRows={5}
           maxRows={5}
@@ -461,7 +506,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
                 backgroundColor: 'transparent',
               }}
             >
-              <MagnifyingGlass size={14} />
+              <MagnifyingGlassIcon size={14} />
             </ActionIcon>
             <TextInput
               placeholder="Model"
@@ -484,12 +529,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
               setMessage('update');
               // Trigger send after setting the message
               setTimeout(() => {
-                if (activeSessionId && !isLoading) {
+                if (activeSessionId && !agentQueryRunning) {
                   sendMessage();
                 }
               }, 0);
             }}
-            disabled={isLoading || !activeSessionId}
+            disabled={!chatInputEnabled}
             size="sm"
             variant="light"
             color="blue"
@@ -501,8 +546,8 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           </ActionIcon>
           <ActionIcon
             onClick={sendMessage}
-            disabled={!message.trim() || isLoading || !activeSessionId}
-            loading={isLoading}
+            disabled={!message.trim() || !chatInputEnabled}
+            loading={agentQueryRunning}
             size="md"
           >
             <PaperPlaneRightIcon size={16} />
