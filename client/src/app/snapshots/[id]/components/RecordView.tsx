@@ -2,7 +2,7 @@ import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { ActionIcon, Anchor, Center, Divider, Group, Loader, Stack, Tabs, Text } from '@mantine/core';
+import { ActionIcon, Anchor, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { RecordDetails } from './RecordDetails';
@@ -133,18 +133,20 @@ export const RecordView = ({
         </Stack>
         <Divider orientation="vertical" w={10} />
         <Stack h="100%" gap="xs" p="xs" flex={1}>
-          <Tabs value={currentRecordId} h="100%">
+          <Tabs value={currentRecordId} flex={1}>
             {records?.map((record) => (
               <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%">
-                <RecordDetails
-                  snapshotId={snapshot?.id ?? ''}
-                  currentRecord={record}
-                  table={table}
-                  currentColumnId={currentColumnId}
-                  acceptCellValues={acceptCellValues}
-                  rejectCellValues={rejectCellValues}
-                  bulkUpdateRecord={bulkUpdateRecords}
-                />
+                <ScrollArea h="calc(100vh - 250px)" type="hover">
+                  <RecordDetails
+                    snapshotId={snapshot?.id ?? ''}
+                    currentRecord={record}
+                    table={table}
+                    currentColumnId={currentColumnId}
+                    acceptCellValues={acceptCellValues}
+                    rejectCellValues={rejectCellValues}
+                    bulkUpdateRecord={bulkUpdateRecords}
+                  />
+                </ScrollArea>
               </Tabs.Panel>
             ))}
           </Tabs>

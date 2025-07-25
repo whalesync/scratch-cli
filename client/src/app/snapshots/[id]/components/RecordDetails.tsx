@@ -129,18 +129,14 @@ export const RecordDetails = ({
                 onChange={(e) => {
                   updateField(field, e.target.value);
                 }}
-                minRows={10}
+                minRows={3}
+                autosize
                 resize="vertical"
                 styles={{
-                  wrapper: {
-                    height: '95%',
-                  },
                   input: {
-                    height: '95%',
                     ...greenBackgroundStyle?.input,
                   },
                 }}
-                h="95%"
                 onSelectionChange={handleTextSelectionChange}
                 onCursorChange={handleTextAreaCursorChange}
               />
@@ -156,7 +152,6 @@ export const RecordDetails = ({
                 onChange={(e) => updateField(field, e.target.value)}
                 autosize
                 minRows={3}
-                maxRows={10}
                 resize="vertical"
                 readOnly={column.readonly || hasSuggestion}
                 styles={greenBackgroundStyle}
@@ -206,7 +201,6 @@ export const RecordDetails = ({
               value={value ?? ''}
               autosize
               minRows={3}
-              maxRows={10}
               onChange={(e) => updateField(field, e.target.value)}
               readOnly={column.readonly || hasSuggestion}
               styles={greenBackgroundStyle}
@@ -229,7 +223,7 @@ export const RecordDetails = ({
         />
       );
     },
-    [currentRecord, updateField],
+    [currentRecord.fields, handleTextAreaCursorChange, handleTextSelectionChange, updateField],
   );
 
   let content = null;
@@ -399,7 +393,7 @@ export const RecordDetails = ({
   }
 
   return (
-    <Stack h="100%">
+    <Stack h="calc(100% - 5px)">
       <Group justify="space-between" align="center">
         <Group gap="xs">
           <Text>Record Details</Text>
@@ -439,11 +433,16 @@ export const RecordDetails = ({
         </Group>
       </Group>
       {content}
+
       {currentTextSelection && currentTextSelection.text.length > 0 ? (
         <>
           <Divider />
           <Group gap="md">
-            <Button variant="outline" onClick={() => addToPrompt(currentTextSelection?.text)}>
+            <Button
+              variant="outline"
+              onClick={() => addToPrompt(currentTextSelection?.text || '')}
+              disabled={!currentTextSelection?.text}
+            >
               Add to prompt
             </Button>
           </Group>
