@@ -42,6 +42,11 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
         // Invalidate snapshot detail cache
         globalMutate(SWR_KEYS.snapshot.detail(snapshotId));
         globalMutate(SWR_KEYS.snapshot.list('all'));
+
+        if (event.data.tableId) {
+          const key = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId);
+          globalMutate(key);
+        }
       }
     },
     [snapshotId, globalMutate],

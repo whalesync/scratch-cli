@@ -118,6 +118,7 @@ export const useSnapshotRecords = (args: {
     snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
     {
       revalidateOnFocus: false,
+      revalidateOnReconnect: true,
     }
   );
 
