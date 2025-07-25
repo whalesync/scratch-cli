@@ -127,15 +127,17 @@ model CustomConnector {
   schema      Json? // Store the result of schema generation
 
   // CRUD operation function bodies
-  pollRecords  String? // Store the function body as text
-  getRecord    String?
-  deleteRecord String?
-  createRecord String?
+  pollRecords         String? // Store the function body as text
+  pollRecordsResponse Json?
+
+  getRecord         String? // Store the function body as text
+  getRecordResponse Json?
+
+  deleteRecord String? // Store the function body as text
+  createRecord String? // Store the function body as text
   updateRecord String?
 
   // Response schemas
-  pollRecordsResponse Json?
-  getRecordResponse   Json?
 
   @@index([userId])
 }

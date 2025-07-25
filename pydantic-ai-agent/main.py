@@ -17,6 +17,7 @@ import uvicorn
 
 from server.chat_controller import router, chat_service
 from server.websocket_handler import websocket_endpoint
+from connector_builder.connector_builder_controller import router as connector_builder_router
 from logger import log_info
 
 # Load environment variables
@@ -34,8 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include the router
+# Include the routers
 app.include_router(router)
+app.include_router(connector_builder_router, prefix="/connector-builder")
 
 # WebSocket endpoint
 @app.websocket("/ws/{session_id}")
