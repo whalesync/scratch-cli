@@ -9,6 +9,16 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
 from pydantic_ai.usage import UsageLimits
+from pydantic_ai import Agent
+from pydantic_ai.messages import (
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    PartStartEvent,
+    TextPartDelta,
+    ToolCallPartDelta,
+)
 from agents.data_agent.models import ChatRunContext, ChatSession, FocusedCell, ResponseFromAgent
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
@@ -270,17 +280,77 @@ class ChatService:
                     await progress_callback(f"Creating agent with {model} model")
 
                 agent = create_agent(model_name=model, capabilities=capabilities, style_guides=style_guides)
-                result = await asyncio.wait_for(agent.run(
-                    full_prompt, 
-                    deps=chatRunContext,
-                    message_history=session.message_history,
-                    usage_limits=UsageLimits(
-                        request_limit=10,  # Maximum 20 requests per agent run
-                        # request_tokens_limit=10000,  # Maximum 10k tokens per request
-                        # response_tokens_limit=5000,  # Maximum 5k tokens per response
-                        # total_tokens_limit=15000  # Maximum 15k tokens total
-                    )
-                ), timeout=60.0)  # 30 second timeout
+
+                result = None
+                
+                # Runs the agent in streaming mode so we can wrap it in the timeout function blow
+                # Final result will get set into the result above
+                async def process_stream():
+                    nonlocal result
+                    nodes = []
+                    async with agent.iter(
+                        full_prompt, 
+                        deps=chatRunContext,
+                        usage_limits=UsageLimits(
+                            request_limit=10,  # Maximum 20 requests per agent run
+                            # request_tokens_limit=10000,  # Maximum 10k tokens per request
+                            # response_tokens_limit=5000,  # Maximum 5k tokens per response
+                            # total_tokens_limit=15000  # Maximum 15k tokens total
+                        )
+                    ) as agent_run:
+                        async for node in agent_run:
+                            if progress_callback:
+                                print(f"Processing node: {node}")
+
+                                if Agent.is_user_prompt_node(node):
+                                    # A user prompt node => The user has provided input
+                                    await progress_callback(f'User prompt constructed')
+                                elif Agent.is_model_request_node(node):
+                                    # A model request node => We can stream tokens from the model's request
+                                    await progress_callback(f'Model request sent to LLM')
+                                    # async with node.stream(agent_run.ctx) as request_stream:
+                                        # async for event in request_stream:
+                                        #     if isinstance(event, PartStartEvent):
+                                        #         output_messages.append(
+                                        #             f'[Request] Starting part {event.index}: {event.part!r}'
+                                        #         )
+                                        #     elif isinstance(event, PartDeltaEvent):
+                                        #         if isinstance(event.delta, TextPartDelta):
+                                        #             output_messages.append(
+                                        #                 f'[Request] Part {event.index} text delta: {event.delta.content_delta!r}'
+                                        #             )
+                                        #         elif isinstance(event.delta, ToolCallPartDelta):
+                                        #             output_messages.append(
+                                        #                 f'[Request] Part {event.index} args_delta={event.delta.args_delta}'
+                                        #             )
+                                        #     elif isinstance(event, FinalResultEvent):
+                                        #         output_messages.append(
+                                        #             f'[Result] The model produced a final output (tool_name={event.tool_name})'
+                                        #         )
+                                elif Agent.is_call_tools_node(node):
+                                    # A handle-response node => The model returned some data, potentially calls a tool
+
+                                    model_response = node.model_response
+                                    if model_response.parts:
+                                        model_response_part = model_response.parts[0]
+                                        if model_response_part.tool_name and model_response_part.tool_name == "final_result": # type: ignore
+                                            continue
+
+                                    async with node.stream(agent_run.ctx) as handle_stream:
+                                        async for event in handle_stream:
+                                            if isinstance(event, FunctionToolCallEvent):
+                                                await progress_callback(f'Tool call {event.part.tool_name!r} with args={event.part.args} (tool_call_id={event.part.tool_call_id!r})')
+                                            elif isinstance(event, FunctionToolResultEvent):
+                                                await progress_callback(f'Tool call {event.tool_call_id!r} returned => {event.result.content}')
+                                                
+                                elif Agent.is_end_node(node):
+                                    await progress_callback(f'Constructing final agent response')
+
+                        result = agent_run.result
+
+                
+                # Run the streaming with timeout
+                await asyncio.wait_for(process_stream(), timeout=60.0)
                 print(f"✅ Agent.run() completed")
                 session.message_history = result.all_messages()
             except asyncio.TimeoutError:
