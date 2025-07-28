@@ -1,4 +1,4 @@
-import { Group, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
 
 export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: string; suggestedValue: string }) => {
@@ -6,7 +6,7 @@ export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: s
   const changes = diffWordsWithSpace(originalValue, suggestedValue);
 
   return (
-    <Group gap="0" align="flex-start">
+    <Text size="xs">
       {changes.map((change, idx) => {
         // do this to preserve newlines in the diff viewer
         const value = change.value.replaceAll('\n', '<br/>');
@@ -29,6 +29,6 @@ export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: s
 
         return <Text span key={idx} dangerouslySetInnerHTML={{ __html: value }}></Text>;
       })}
-    </Group>
+    </Text>
   );
 };
