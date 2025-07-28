@@ -1,13 +1,12 @@
+import { API_CONFIG } from '@/lib/api/config';
 import { NextRequest, NextResponse } from 'next/server';
-
-const NEST_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // This handler will forward requests from the client to the NestJS backend
 // to avoid CORS issues in the browser.
 async function handler(req: NextRequest) {
   try {
     const path = req.nextUrl.pathname.replace('/api/proxy', '');
-    const url = `${NEST_API_URL}${path}`;
+    const url = `${API_CONFIG.getApiUrl()}${path}`;
 
     const response = await fetch(url, {
       method: req.method,
@@ -31,4 +30,4 @@ async function handler(req: NextRequest) {
   }
 }
 
-export { handler as GET, handler as POST, handler as PUT, handler as DELETE }; 
+export { handler as DELETE, handler as GET, handler as POST, handler as PUT };

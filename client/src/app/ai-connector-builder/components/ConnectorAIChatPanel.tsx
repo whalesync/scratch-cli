@@ -5,6 +5,7 @@ import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import ModelPicker from '@/app/components/ModelPicker';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { API_CONFIG } from '@/lib/api/config';
 import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
@@ -50,7 +51,7 @@ interface AgentErrorResponse {
   detail: string;
 }
 
-const AI_CHAT_SERVER_URL = process.env.NEXT_PUBLIC_AI_CHAT_SERVER_URL || 'http://localhost:8000';
+const AI_CHAT_SERVER_URL = API_CONFIG.getAiAgentApiUrl();
 
 export default function ConnectorAIChatPanel({
   isOpen,

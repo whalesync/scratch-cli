@@ -1,5 +1,6 @@
 'use client';
 
+import { API_CONFIG } from '@/lib/api/config';
 import { Alert, Badge, Button, Container, Group, Paper, Stack, Text, TextInput, Textarea, Title } from '@mantine/core';
 import { CheckCircleIcon, PaperPlaneRightIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
@@ -60,7 +61,7 @@ export default function AgentWebSocketTestPage() {
     try {
       // Assuming the WebSocket server is running on the same host but different port
       // You may need to adjust this URL based on your setup
-      const wsUrl = `ws://localhost:8000/ws/${sessionId}?api_token=1234567890`;
+      const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?api_token=1234567890`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
