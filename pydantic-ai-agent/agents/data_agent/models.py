@@ -33,3 +33,14 @@ class ChatRunContext(BaseModel):
     read_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of read-focused cells")
     write_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of write-focused cells")
 
+
+class WithTableName(BaseModel):
+    """Input for the update_records tool"""
+    table_name: str = Field(description="The name of the table")
+
+common_field_descriptions = {
+    "table_name": "The name of the table",
+    "record_updates": "List of record updates, each containing 'wsId' and 'data' keys",
+    "wsId": "The ID of the record to update",
+    "data": "Field names and their new values"
+}

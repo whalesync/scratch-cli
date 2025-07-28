@@ -47,6 +47,7 @@ def create_connector_builder_agent(model_name: Optional[str] = None, capabilitie
             name="ConnectorBuilderAgent",
             instructions=get_connector_builder_instructions(capabilities, style_guides),
             output_type=ResponseFromConnectorBuilderAgent,
+            # history_processors=[connector_builder_history_processors],
             model=model,
             deps_type=ConnectorBuilderRunContext
         )

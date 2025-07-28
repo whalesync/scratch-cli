@@ -15,8 +15,10 @@ from agents.data_agent.models import ResponseFromAgent, ChatRunContext
 from agents.data_agent.data_agent_prompts import get_data_agent_instructions
 from logger import log_info, log_error
 from utils.response_extractor import extract_response
-from agents.data_agent.data_tools import define_data_tools
+from agents.data_agent.data_tools import define_data_tools, get_data_tools
 from agents.data_agent.view_tools import define_view_tools
+from agents.data_agent.data_agent_hisrory_processor import data_agent_history_processor
+
 
 def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Optional[List[Dict[str, str]]] = None):
     """Create and return a configured agent"""
@@ -52,8 +54,10 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
             name="ChatServerAgent",
             instructions=get_data_agent_instructions(capabilities, style_guides),
             output_type=ResponseFromAgent,
+            history_processors=[data_agent_history_processor],
             model=model,
-            deps_type=ChatRunContext
+            deps_type=ChatRunContext,
+            tools=get_data_tools(capabilities) + [] # TODO: add view tools
         )
         
         define_data_tools(agent, capabilities);

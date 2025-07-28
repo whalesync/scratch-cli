@@ -2,14 +2,17 @@
 """
 PydanticAI Tools for the Chat Server
 """
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName
 from agents.data_agent.data_agent_utils import format_records_for_display
 
 from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
+from pydantic_ai._function_schema import FunctionSchema
+from pydantic_core import core_schema, SchemaValidator
 from scratchpad_api import list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
+from agents.data_agent.tools.update_records_tool import update_records_tool
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -17,20 +20,21 @@ class GetRecordsInput(BaseModel):
     limit: Optional[int] = Field(default=100, description="The maximum number of records to retrieve")
 
 # TODO: Use table id
-class WithTableName(BaseModel):
-    """Input for the update_records tool"""
-    table_name: str = Field(description="The name of the table")
 
-
-class UpdateRecordsInput(WithTableName):
-    """Input for the update_records tool"""
-    record_updates: List[Dict[str, Any]] = Field(description="List of record updates, each containing 'wsId' and 'data' keys")
 
 class AppendFieldValueInput(WithTableName):
     """Input for the append_field_value tool"""
     wsId: str = Field(description="The ID of the record to update")
     field_name: str = Field(description="The name of the field to append a value to")
     value: str = Field(description="The data value to append to the field")
+
+
+def get_data_tools(capabilities: Optional[List[str]] = None):
+    tools = []
+    if capabilities is None or 'data:update' in capabilities:
+        tools.append(update_records_tool);
+    return tools;
+
 
 def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
     
@@ -130,139 +134,139 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"❌ {error_msg}")
                 return error_msg
 
-    if capabilities is None or 'data:update' in capabilities:
-        @agent.tool
-        async def update_records_tool(ctx: RunContext[ChatRunContext], input_data: UpdateRecordsInput) -> str:  # type: ignore
-            """
-            Update existing records in a table in the active snapshot.
+    # if capabilities is None or 'data:update' in capabilities:
+        # @agent.tool
+        # async def update_records_tool(ctx: RunContext[ChatRunContext], input_data: UpdateRecordsInput) -> str:  # type: ignore
+        #     """
+        #     Update existing records in a table in the active snapshot.
             
-            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+        #     IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
-            Use this tool when the user asks to modify or edit existing records in a table.
-            The table_name should be the name of the table you want to update records in.
-            The record_updates should be a list of dictionaries, where each dictionary contains:
-            - 'wsId': the record ID to update
-            - 'data': a dictionary of field names and new values to set
+        #     Use this tool when the user asks to modify or edit existing records in a table.
+        #     The table_name should be the name of the table you want to update records in.
+        #     The record_updates should be a list of dictionaries, where each dictionary contains:
+        #     - 'wsId': the record ID to update
+        #     - 'data': a dictionary of field names and new values to set
             
-            CRITICAL: Pass record_updates as a proper list object, NOT as a JSON string.
-            Example: [{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]
-            NOT: "[{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]"
+        #     CRITICAL: Pass record_updates as a proper list object, NOT as a JSON string.
+        #     Example: [{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]
+        #     NOT: "[{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]"
             
-            You should first use get_records_tool to see the current records and identify which ones to update
-            based on the user's criteria. Then create the update data for each matching record.
+        #     You should first use get_records_tool to see the current records and identify which ones to update
+        #     based on the user's criteria. Then create the update data for each matching record.
             
-            Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
+        #     Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
             
-            """
-            try:
-                # Extract data from input
-                table_name = input_data.table_name
-                record_updates = input_data.record_updates
+        #     """
+        #     try:
+        #         # Extract data from input
+        #         table_name = input_data.table_name
+        #         record_updates = input_data.record_updates
                 
-                # Handle case where record_updates is passed as a JSON string
-                if isinstance(record_updates, str):
-                    import json
-                    try:
-                        record_updates = json.loads(record_updates)
-                    except json.JSONDecodeError as e:
-                        return f"Error: Invalid JSON string for record_updates: {e}"
-                # Validate that record_updates is now a list
-                if not isinstance(record_updates, list):
-                    return f"Error: record_updates must be a list, got {type(record_updates)}"
-                # Get the active snapshot
-                chatRunContext: ChatRunContext = ctx.deps 
-                chatSession: ChatSession = chatRunContext.session
+        #         # Handle case where record_updates is passed as a JSON string
+        #         if isinstance(record_updates, str):
+        #             import json
+        #             try:
+        #                 record_updates = json.loads(record_updates)
+        #             except json.JSONDecodeError as e:
+        #                 return f"Error: Invalid JSON string for record_updates: {e}"
+        #         # Validate that record_updates is now a list
+        #         if not isinstance(record_updates, list):
+        #             return f"Error: record_updates must be a list, got {type(record_updates)}"
+        #         # Get the active snapshot
+        #         chatRunContext: ChatRunContext = ctx.deps 
+        #         chatSession: ChatSession = chatRunContext.session
                 
-                if not chatRunContext.snapshot:
-                    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        #         if not chatRunContext.snapshot:
+        #             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
-                # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
+        #         # Find the table by name
+        #         table = None
+        #         for t in chatRunContext.snapshot.tables:
+        #             if t.name.lower() == table_name.lower():
+        #                 table = t
+        #                 break
                 
-                if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        #         if not table:
+        #             available_tables = [t.name for t in chatRunContext.snapshot.tables]
+        #             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
                 
-                # Set the API token for authentication
-                # API_CONFIG.set_api_token(chatRunContext.api_token)
+        #         # Set the API token for authentication
+        #         # API_CONFIG.set_api_token(chatRunContext.api_token)
                 
-                # Import the RecordOperation class
-                from scratchpad_api import RecordOperation
+        #         # Import the RecordOperation class
+        #         from scratchpad_api import RecordOperation
                 
-                # Validate that record_updates is provided
-                if not record_updates:
-                    return "Error: No record updates provided. Please provide a list of record updates."
+        #         # Validate that record_updates is provided
+        #         if not record_updates:
+        #             return "Error: No record updates provided. Please provide a list of record updates."
                 
-                # Create RecordOperation objects for update operations
-                update_operations = []
-                for i, update in enumerate(record_updates):
-                    if not isinstance(update, dict):
-                        return f"Error: Record update at index {i} must be a dictionary, got {type(update)}"
+        #         # Create RecordOperation objects for update operations
+        #         update_operations = []
+        #         for i, update in enumerate(record_updates):
+        #             if not isinstance(update, dict):
+        #                 return f"Error: Record update at index {i} must be a dictionary, got {type(update)}"
                     
-                    if 'wsId' not in update:
-                        return f"Error: Record update at index {i} must contain 'wsId' key"
+        #             if 'wsId' not in update:
+        #                 return f"Error: Record update at index {i} must contain 'wsId' key"
                     
-                    if 'data' not in update:
-                        return f"Error: Record update at index {i} must contain 'data' key"
+        #             if 'data' not in update:
+        #                 return f"Error: Record update at index {i} must contain 'data' key"
                     
-                    wsId = update['wsId']
-                    data = update['data']
+        #             wsId = update['wsId']
+        #             data = update['data']
                     
-                    if not isinstance(wsId, str):
-                        return f"Error: wsId in record update at index {i} must be a string, got {type(wsId)}"
+        #             if not isinstance(wsId, str):
+        #                 return f"Error: wsId in record update at index {i} must be a string, got {type(wsId)}"
                     
-                    if not isinstance(data, dict):
-                        return f"Error: data in record update at index {i} must be a dictionary, got {type(data)}"
+        #             if not isinstance(data, dict):
+        #                 return f"Error: data in record update at index {i} must be a dictionary, got {type(data)}"
                     
-                    # Create proper RecordOperation objects for update
-                    update_operations.append(RecordOperation(
-                        op="update",
-                        wsId=wsId,
-                        data=data
-                    ))
+        #             # Create proper RecordOperation objects for update
+        #             update_operations.append(RecordOperation(
+        #                 op="update",
+        #                 wsId=wsId,
+        #                 data=data
+        #             ))
                 
-                log_info("Updating records via bulk update", 
-                        table_name=table_name,
-                        table_id=table.id.wsId,
-                        record_count=len(update_operations),
-                        snapshot_id=chatRunContext.session.snapshot_id)
+        #         log_info("Updating records via bulk update", 
+        #                 table_name=table_name,
+        #                 table_id=table.id.wsId,
+        #                 record_count=len(update_operations),
+        #                 snapshot_id=chatRunContext.session.snapshot_id)
                 
-                # Import the bulk update function
-                from scratchpad_api import bulk_update_records
+        #         # Import the bulk update function
+        #         from scratchpad_api import bulk_update_records
                 
-                # Call the bulk update endpoint
-                bulk_update_records(
-                    snapshot_id=chatRunContext.session.snapshot_id,
-                    table_id=table.id.wsId,
-                    operations=update_operations,
-                    api_token=chatRunContext.api_token,
-                    view_id=chatRunContext.view_id
-                )
+        #         # Call the bulk update endpoint
+        #         bulk_update_records(
+        #             snapshot_id=chatRunContext.session.snapshot_id,
+        #             table_id=table.id.wsId,
+        #             operations=update_operations,
+        #             api_token=chatRunContext.api_token,
+        #             view_id=chatRunContext.view_id
+        #         )
                 
-                print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")
-                print(f"📋 Table ID: {table.id.wsId}")
-                print(f"✏️ Updated records:")
-                for i, operation in enumerate(update_operations):
-                    print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+        #         print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")
+        #         print(f"📋 Table ID: {table.id.wsId}")
+        #         print(f"✏️ Updated records:")
+        #         for i, operation in enumerate(update_operations):
+        #             print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
                 
-                log_info("Successfully updated records", 
-                        table_name=table_name,
-                        table_id=table.id.wsId,
-                        record_count=len(update_operations),
-                        snapshot_id=chatRunContext.session.snapshot_id)
+        #         log_info("Successfully updated records", 
+        #                 table_name=table_name,
+        #                 table_id=table.id.wsId,
+        #                 record_count=len(update_operations),
+        #                 snapshot_id=chatRunContext.session.snapshot_id)
                 
-                return f"Successfully updated {len(update_operations)} records in table '{table_name}'. Updated record IDs: {[op.wsId for op in update_operations]}"      
-            except Exception as e:
-                error_msg = f"Failed to update records in table '{table_name}': {str(e)}"
-                log_error("Error updating records", 
-                        table_name=table_name,
-                        error=str(e))
-                print(f"❌ {error_msg}")
-                return error_msg
+        #         return f"Successfully updated {len(update_operations)} records in table '{table_name}'. Updated record IDs: {[op.wsId for op in update_operations]}"      
+        #     except Exception as e:
+        #         error_msg = f"Failed to update records in table '{table_name}': {str(e)}"
+        #         log_error("Error updating records", 
+        #                 table_name=table_name,
+        #                 error=str(e))
+        #         print(f"❌ {error_msg}")
+        #         return error_msg
         
         @agent.tool
         async def append_field_value_tool(ctx: RunContext[ChatRunContext], input_data: AppendFieldValueInput) -> str:  # type: ignore

@@ -112,11 +112,11 @@ class ChatService:
                 print(f"ℹ️ No style guides to include")
             
             # Include summary history for agent context
-            if session.summary_history:
-                context += f"\n\nSUMMARY OF RECENT USER REQUESTS AND ASSISTANT ACTIONS:\n"
-                for summary in session.summary_history:
-                    context += f"User: {summary.request_summary}\n"
-                    context += f"Agent: {summary.response_summary}\n\n"
+            # if session.summary_history:
+            #     context += f"\n\nSUMMARY OF RECENT USER REQUESTS AND ASSISTANT ACTIONS:\n"
+            #     for summary in session.summary_history:
+            #         context += f"User: {summary.request_summary}\n"
+            #         context += f"Agent: {summary.response_summary}\n\n"
             
             # Include recent chat history for user context (last 5 messages)
             # if session.chat_history:
@@ -206,7 +206,7 @@ class ChatService:
 
                 # Add pre-loaded snapshot data and records to the prompt
                 if chatRunContext.snapshot:
-                    snapshot_context = f"\n\nCURRENT SNAPSHOT DATA:\n"
+                    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA START --\n"
                     snapshot_context += f"Snapshot: {chatRunContext.snapshot.name or chatRunContext.snapshot.id}\n"
                     snapshot_context += f"Tables: {len(chatRunContext.snapshot.tables)}\n\n"
                     
@@ -240,6 +240,8 @@ class ChatService:
                     # Update the full prompt with snapshot data
                     full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
 
+                    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA END --\n"
+
                     # Add focus cells information to the prompt if they exist
                     if read_focus or write_focus:
                         focus_context = "\n\nFOCUS CELLS:\n"
@@ -271,14 +273,17 @@ class ChatService:
                 result = await asyncio.wait_for(agent.run(
                     full_prompt, 
                     deps=chatRunContext,
+                    message_history=session.message_history,
+                    res=context,
                     usage_limits=UsageLimits(
                         request_limit=10,  # Maximum 20 requests per agent run
                         # request_tokens_limit=10000,  # Maximum 10k tokens per request
                         # response_tokens_limit=5000,  # Maximum 5k tokens per response
                         # total_tokens_limit=15000  # Maximum 15k tokens total
                     )
-                ), timeout=30.0)  # 30 second timeout
+                ), timeout=60.0)  # 30 second timeout
                 print(f"✅ Agent.run() completed")
+                session.message_history = result.all_messages()
             except asyncio.TimeoutError:
                 log_error("Agent processing timeout", session_id=session.id, timeout_seconds=30, snapshot_id=session.snapshot_id)
                 print(f"❌ Agent.run() timed out after 30 seconds")

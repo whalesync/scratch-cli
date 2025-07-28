@@ -26,4 +26,5 @@ class ChatSession(BaseModel):
     last_activity: datetime
     created_at: datetime
     snapshot_id: str = Field(description="Associated snapshot ID")
+    message_history: List[ChatMessage] = Field(default=[], description="Message history for agent context (keep all)")
     
