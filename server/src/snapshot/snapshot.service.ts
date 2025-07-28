@@ -153,6 +153,21 @@ export class SnapshotService {
     return snapshot;
   }
 
+  async findOneRecord(
+    snapshotId: SnapshotId,
+    tableId: string,
+    recordId: string,
+    userId: string,
+  ): Promise<SnapshotRecord | null> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    return this.snapshotDbService.getRecord(snapshotId, tableId, recordId);
+  }
+
   async listRecords(
     snapshotId: SnapshotId,
     tableId: string,

@@ -119,6 +119,21 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/tables/:tableId/records/:recordId')
+  async getRecord(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Param('recordId') recordId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<SnapshotRecord> {
+    const record = await this.service.findOneRecord(snapshotId, tableId, recordId, req.user.id);
+    if (!record) {
+      throw new NotFoundException('Record not found');
+    }
+    return record;
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/bulk')
   @HttpCode(204)
   async bulkUpdateRecords(

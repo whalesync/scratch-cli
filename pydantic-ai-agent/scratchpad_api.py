@@ -295,6 +295,14 @@ class SnapshotApi:
         return result
     
     @staticmethod
+    def get_record(snapshot_id: str, table_id: str, record_id: str, api_token: str) -> SnapshotRecord:
+        """Get a single record from a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/{record_id}"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
+        data = _handle_response(response, "Failed to get record")
+        return build_snapshot_record(data)
+
+    @staticmethod
     def bulk_update_records(snapshot_id: str, table_id: str, dto: BulkUpdateRecordsDto, api_token: str, view_id: Optional[str] = None) -> None:
         """Bulk update records in a table"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
@@ -506,6 +514,10 @@ def inject_value(snapshot_id: str, table_id: str, dto: InjectFieldValueDto, api_
     """Inject a value into a field in a record."""
     SnapshotApi.inject_value(snapshot_id, table_id, dto, api_token, view_id)
 
+def get_record(snapshot_id: str, table_id: str, record_id: str, api_token: str) -> SnapshotRecord:
+    """Get a single record from a table in a snapshot"""
+    return SnapshotApi.get_record(snapshot_id, table_id, record_id, api_token)
+
 def check_server_health() -> bool:
     """Check if the Scratchpad server is healthy"""
     try:
@@ -514,3 +526,15 @@ def check_server_health() -> bool:
         return response.ok
     except Exception:
         return False 
+
+
+
+def build_snapshot_record(record_dict: Dict[str, Any]) -> SnapshotRecord:
+    """Build a SnapshotRecord from a dictionary"""
+    return SnapshotRecord(
+        id=RecordId(wsId=record_dict["id"]["wsId"], remoteId=record_dict["id"]["remoteId"]),
+        fields=record_dict.get("fields", {}),
+        edited_fields=record_dict.get("__edited_fields"),
+        suggested_fields=record_dict.get("__suggested_values"),  # Note: server uses __suggested_values
+        dirty=record_dict.get("__dirty", False)
+    )

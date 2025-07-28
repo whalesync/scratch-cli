@@ -1,4 +1,4 @@
-import { AppendFieldValueDto, CreateSnapshotDto, InjectFieldValueDto, Snapshot } from "@/types/server-entities/snapshot";
+import { AppendFieldValueDto, CreateSnapshotDto, InjectFieldValueDto, Snapshot, SnapshotRecord } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -135,6 +135,26 @@ export const snapshotApi = {
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to list records");
+    }
+    return res.json();
+  },
+
+  async getRecord(
+    snapshotId: string,
+    tableId: string,
+    recordId: string
+  ): Promise<SnapshotRecord> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/${recordId}`,
+      {
+        method: "GET",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to get record");
     }
     return res.json();
   },

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import core_schema, SchemaValidator
-from scratchpad_api import list_records, get_snapshot, API_CONFIG
+from scratchpad_api import RecordId, SnapshotRecord, TableSpec, list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
 from agents.data_agent.tools.update_records_tool import update_records_tool
 
@@ -28,6 +28,12 @@ class AppendFieldValueInput(WithTableName):
     field_name: str = Field(description="The name of the field to append a value to")
     value: str = Field(description="The data value to append to the field")
 
+class SearchAndReplaceInFieldInput(WithTableName):
+    """Input for the search_and_replace tool"""
+    search_value: str = Field(description="The value to search for")
+    replace_value: str = Field(description="The value to replace the search value with")
+    wsId: str = Field(description="The ID of the record to update")
+    field_name: str = Field(description="The name of the field to search and replace in")
 
 def get_data_tools(capabilities: Optional[List[str]] = None):
     tools = []
@@ -585,9 +591,162 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 return error_msg
 
 
+        @agent.tool
+        async def search_and_replace_tool(ctx: RunContext[ChatRunContext], input_data: SearchAndReplaceInFieldInput) -> str:  # type: ignore
+            """
+            Perform a search and replace operation on a field of a record in a table. All occurrences of the search_value will be replaced with the replace_value.
+            
+            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+            
+            Use this tool when the user asks to replace a value in a field of a record/
+            The table_name should be the name of the table you want to update records in.
+            The wsId should be the ID of the record to update.
+            The field_name should be the name of the field to search and replace in.
+            The search_value should be the value to search for.
+            The replace_value should be the value to replace the search_value with.
+            
+            CRITICAL: The search_value and replace_value should always be a string and should not be empty.
+            
+            Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
+            """
+            try:
+                # Extract data from input
+                table_name = input_data.table_name
+                wsId = input_data.wsId
+                field_name = input_data.field_name
+                search_value = input_data.search_value
+                replace_value = input_data.replace_value
+
+                # Validate that wsId is a string
+                if not isinstance(wsId, str):
+                    return f"Error: wsId must be a string, got {type(wsId)}"
+                
+                # Validate that field_name is a string
+                if not isinstance(field_name, str):
+                    return f"Error: field_name must be a string, got {type(field_name)}"
+                
+                # Validate that value is a string
+                if not isinstance(search_value, str):
+                    return f"Error: value must be a string, got {type(search_value)}"
+
+                # Validate that replace_value is a string
+                if not isinstance(replace_value, str):
+                    return f"Error: replace_value must be a string, got {type(replace_value)}"
+                
+                # Get the active snapshot
+                chatRunContext: ChatRunContext = ctx.deps 
+                chatSession: ChatSession = chatRunContext.session
+                
+                if not chatRunContext.snapshot:
+                    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+                
+                # Find the table by name
+                table: TableSpec | None = None
+                for t in chatRunContext.snapshot.tables:
+                    if t.name.lower() == table_name.lower():
+                        table = t
+                        break
+                
+                if not table:
+                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
+                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+
+                print(f"🔍 Table: {table}")
+
+                field_id = None
+                for column in table.columns:
+                    if column.name.lower() == field_name.lower():
+                        field_id = column.id.wsId
+                        break
+                
+                if not field_id:
+                    available_columns = [c.name for c in table.columns]
+                    return f"Error: Field '{field_name}' not found. Available columns: {available_columns}"
+
+                print(f"🔍 Field ID: {field_id}")
+
+                from scratchpad_api import bulk_update_records, get_record, RecordOperation
+
+                record = get_record(
+                    snapshot_id=chatRunContext.session.snapshot_id,
+                    table_id=table.id.wsId,
+                    record_id=wsId,
+                    api_token=chatRunContext.api_token
+                )
+
+                # # Get the record from the preloaded records
+                # record = find_record_by_wsId(chatRunContext, table.id.wsId, wsId)
+
+                if not record:
+                    return f"Error: Record '{wsId}' not found."
+
+                print(f"🔍 Record: {record}")
+
+                # Get the field from the record
+                current_value: str = str(record.fields[field_id])
+
+                # Programtically replace the value before create the suggestion
+                updated_value: str = current_value.replace(search_value, replace_value)
+
+
+                update_operations = [
+                    RecordOperation(
+                        op="update",
+                        wsId=wsId,
+                        data={
+                            field_id: updated_value
+                        }
+                    )
+                ]
+
+                # Call the bulk update endpoint
+                bulk_update_records(
+                    snapshot_id=chatRunContext.session.snapshot_id,
+                    table_id=table.id.wsId,
+                    operations=update_operations,
+                    api_token=chatRunContext.api_token,
+                    view_id=chatRunContext.view_id
+                )
+                
+                print(f"✅ Successfully updated {len(update_operations)} in table '{table_name}'")
+                print(f"📋 Table ID: {table.id.wsId}")
+                print(f"✏️ Updated records:")
+                for i, operation in enumerate(update_operations):
+                    print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+                
+                return f"Successfully replaced {search_value} with {replace_value} in field {field_name} in record {wsId} in table '{table_name}'"    
+
+            except Exception as e:
+                error_msg = f"Failed to replace {search_value} with {replace_value} in field {field_name} in record {wsId} in table '{table_name}': {str(e)}"
+                log_error("Error replacing values in field in record", 
+                        table_name=table_name,
+                        error=str(e))
+                print(f"❌ {error_msg}")
+                return error_msg
 
 
 
+def find_record_by_wsId(chatRunContext: ChatRunContext, table_id: str, rec_id: str) -> SnapshotRecord | None:
+    if not chatRunContext.preloaded_records:
+        return None
+
+    records = chatRunContext.preloaded_records[table_id]
+
+    print(f"🔍 All records in table {table_id}: {records}")
+
+    if not records:
+        return None
+
+    for record in records:
+        if record['id']['wsId'] == rec_id:
+            return SnapshotRecord(
+                id=RecordId(wsId=record['id']['wsId'], remoteId=record['id']['remoteId']),
+                fields=record['fields'],
+                edited_fields=record['edited_fields'],
+                suggested_fields=record['suggested_fields'],
+                dirty=record['dirty']   
+            )
+    return None
 
 
 
