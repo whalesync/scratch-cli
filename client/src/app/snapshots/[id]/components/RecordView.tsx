@@ -70,6 +70,11 @@ export const RecordView = ({
     [focusRecord, setCurrentColumnId],
   );
 
+  const handleExistRecordView = useCallback(() => {
+    setWriteFocus([]);
+    onSwitchToSpreadsheetView();
+  }, [onSwitchToSpreadsheetView]);
+
   if (error) {
     return (
       <Center h="100%">
@@ -89,7 +94,7 @@ export const RecordView = ({
   return (
     <Stack h="100%" w="100%" gap={0} p={0}>
       <Group p="xs">
-        <ActionIcon variant="subtle" onClick={onSwitchToSpreadsheetView} c="black">
+        <ActionIcon variant="subtle" onClick={handleExistRecordView} c="black">
           <ArrowLeftIcon />
         </ActionIcon>
         <Text>Record View</Text>
