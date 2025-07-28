@@ -274,7 +274,6 @@ class ChatService:
                     full_prompt, 
                     deps=chatRunContext,
                     message_history=session.message_history,
-                    res=context,
                     usage_limits=UsageLimits(
                         request_limit=10,  # Maximum 20 requests per agent run
                         # request_tokens_limit=10000,  # Maximum 10k tokens per request
