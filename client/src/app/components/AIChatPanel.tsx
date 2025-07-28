@@ -5,7 +5,7 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { Capability } from '@/types/server-entities/chat-session';
+import { Capability, ChatMessage } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
   Alert,
@@ -407,31 +407,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         {activeSessionId ? (
           <Stack gap="xs">
             {chatHistory.map((msg, index) => (
-              <Paper
-                key={index}
-                p="xs"
-                bg={msg.role === 'user' ? 'blue.0' : 'gray.0'}
-                bd={msg.variant === 'error' ? '1px solid red' : '1px solid transparent'}
-                style={{
-                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '90%',
-                }}
-              >
-                <Stack gap="6px">
-                  {msg.role === 'user' ? (
-                    <Text size="xs">{msg.message}</Text>
-                  ) : msg.variant === 'progress' ? (
-                    <Text size="xs">🧠... {msg.message}</Text>
-                  ) : (
-                    <Box fz="xs">
-                      <MarkdownRenderer>{msg.message}</MarkdownRenderer>
-                    </Box>
-                  )}
-                  <Text c="dimmed" fz="8px">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </Text>
-                </Stack>
-              </Paper>
+              <ChatMessageElement key={index} msg={msg} />
             ))}
           </Stack>
         ) : (
@@ -574,3 +550,41 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     </Paper>
   );
 }
+
+const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
+  const bgColor = msg.role === 'user' ? 'blue.0' : 'gray.0';
+  const borderColor = msg.variant === 'error' ? '1px solid red' : '1px solid transparent';
+  const alignment = msg.role === 'user' ? 'flex-end' : 'flex-start';
+
+  let content = null;
+  if (msg.role === 'user') {
+    content = <Text size="xs">{msg.message}</Text>;
+  } else if (msg.variant === 'progress') {
+    content = <Text size="xs">🧠... {msg.message}</Text>;
+  } else {
+    content = (
+      <Box fz="xs">
+        <MarkdownRenderer>{msg.message}</MarkdownRenderer>
+      </Box>
+    );
+  }
+
+  return (
+    <Paper
+      p="xs"
+      bg={bgColor}
+      bd={borderColor}
+      style={{
+        alignSelf: alignment,
+        maxWidth: '90%',
+      }}
+    >
+      <Stack gap="6px">
+        {content}
+        <Text c="dimmed" fz="8px">
+          {new Date(msg.timestamp).toLocaleTimeString()}
+        </Text>
+      </Stack>
+    </Paper>
+  );
+};

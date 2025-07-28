@@ -17,7 +17,6 @@ import {
   Stack,
   Text,
   Textarea,
-  TextInput,
   Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -117,52 +116,6 @@ export const RecordDetails = ({
           }
         : undefined;
 
-      if (isBigTextField(column, value)) {
-        if (focusedView && !hasSuggestion) {
-          // the text area should try and fill the full height of the parent stack
-          return (
-            <>
-              <EnhancedTextArea
-                key={field}
-                label={column.name}
-                value={value || ''}
-                onChange={(e) => {
-                  updateField(field, e.target.value);
-                }}
-                minRows={3}
-                autosize
-                resize="vertical"
-                styles={{
-                  input: {
-                    ...greenBackgroundStyle?.input,
-                  },
-                }}
-                onSelectionChange={handleTextSelectionChange}
-                onCursorChange={handleTextAreaCursorChange}
-              />
-            </>
-          );
-        } else {
-          return (
-            <>
-              <EnhancedTextArea
-                key={field}
-                label={column.name}
-                value={value || ''}
-                onChange={(e) => updateField(field, e.target.value)}
-                autosize
-                minRows={3}
-                resize="vertical"
-                readOnly={column.readonly || hasSuggestion}
-                styles={greenBackgroundStyle}
-                onSelectionChange={handleTextSelectionChange}
-                onCursorChange={handleTextAreaCursorChange}
-              />
-            </>
-          );
-        }
-      }
-
       if (column.pgType === PostgresColumnType.NUMERIC) {
         // this needs to be handled differently
         return (
@@ -188,38 +141,19 @@ export const RecordDetails = ({
         );
       }
 
-      if (
-        column.pgType === PostgresColumnType.TEXT_ARRAY ||
-        column.pgType === PostgresColumnType.NUMERIC_ARRAY ||
-        column.pgType === PostgresColumnType.BOOLEAN_ARRAY
-      ) {
-        return (
-          <>
-            <EnhancedTextArea
-              key={field}
-              label={column.name}
-              value={value ?? ''}
-              autosize
-              minRows={3}
-              onChange={(e) => updateField(field, e.target.value)}
-              readOnly={column.readonly || hasSuggestion}
-              styles={greenBackgroundStyle}
-              resize="vertical"
-              onSelectionChange={handleTextSelectionChange}
-              onCursorChange={handleTextAreaCursorChange}
-            />
-          </>
-        );
-      }
-
       return (
-        <TextInput
+        <EnhancedTextArea
           key={field}
           label={column.name}
           value={value ?? ''}
+          autosize
+          minRows={1}
+          resize="vertical"
           onChange={(e) => updateField(field, e.target.value)}
           readOnly={column.readonly || hasSuggestion}
           styles={greenBackgroundStyle}
+          onSelectionChange={handleTextSelectionChange}
+          onCursorChange={handleTextAreaCursorChange}
         />
       );
     },
@@ -341,7 +275,6 @@ export const RecordDetails = ({
                 disabled
                 autosize
                 minRows={1}
-                maxRows={10}
                 styles={{
                   input: {
                     color: '#b8860b',
