@@ -55,7 +55,7 @@ class ChatService:
         session: ChatSession, 
         user_message: str, 
         api_token: str,
-        style_guides: Optional[List[Dict[str, str]]] = None,
+        style_guides: Dict[str, str],
         model: Optional[str] = None,
         view_id: Optional[str] = None,
         read_focus: Optional[List[FocusedCell]] = None,
@@ -98,12 +98,11 @@ class ChatService:
         
         # Log style guides if provided
         if style_guides:
-            log_info("Style guides provided for session", session_id=session.id, style_guides_count=len(style_guides), style_guide_names=[g.get('name') for g in style_guides], snapshot_id=session.snapshot_id)
+            log_info("Style guides provided for session", session_id=session.id, style_guides_count=len(style_guides), style_guide_names=list(style_guides.keys()), snapshot_id=session.snapshot_id)
             print(f"📋 Style guides provided: {len(style_guides)} style guides")
-            for i, style_guide in enumerate(style_guides, 1):
-                content = str(style_guide.get('content', ''))
+            for i, (key, content) in enumerate(style_guides.items(), 1):
                 truncated_content = content[:50] + "..." if len(content) > 50 else content
-                print(f"   Style guide {i}: {style_guide.get('name')} - {truncated_content}")
+                print(f"   Style guide {i}: {key} - {truncated_content}")
         else:
             log_info("No style guides provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No style guides provided")
@@ -116,8 +115,8 @@ class ChatService:
             # Style guides are now handled in the system prompt, not user prompt context
             if style_guides:
                 print(f"📚 Style guides will be included in system prompt: {len(style_guides)} style guides")
-                for i, style_guide in enumerate(style_guides, 1):
-                    print(f"   Style Guide {i}: {style_guide.get('name')}")
+                for i, key in enumerate(style_guides.keys(), 1):
+                    print(f"   Style Guide {i}: {key}")
             else:
                 print(f"ℹ️ No style guides to include")
             

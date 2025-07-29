@@ -159,12 +159,12 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         print(f"   request.style_guides: {request.style_guides}")
         print(f"   request.style_guides type: {type(request.style_guides)}")
         
-        style_guides_dict = None
+        style_guides_dict = {}
         if request.style_guides:
-            style_guides_dict = [{"name": g.name, "content": g.content} for g in request.style_guides]
+            style_guides_dict = {g.name: g.content for g in request.style_guides}
             print(f"   Converted to: {style_guides_dict}")
         else:
-            print(f"   No style guides to convert, keeping as None")
+            print(f"   No style guides provided, using empty dict")
         
         agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
         

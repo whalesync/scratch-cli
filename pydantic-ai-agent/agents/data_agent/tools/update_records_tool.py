@@ -11,6 +11,7 @@ from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
 from scratchpad_api import list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
+import json
 
 
 field_descriptions = {
@@ -139,18 +140,36 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
         print(f"❌ {error_msg}")
         return error_msg
 
+tool_name = "update_records"
 
-
-update_records_tool = Tool(
-    name="update_records",
-    description=description,
-    function=update_records_implementation,
-    function_schema=FunctionSchema(
+def create_update_records_tool(style_guides: Dict[str, str] = None):
+    if style_guides is None:
+        style_guides = {}
+    
+    custom_name = style_guides.get(f"TOOLS_{tool_name}_name", tool_name)
+    custom_description = style_guides.get(f"TOOLS_{tool_name}_description", description)
+    
+    # Get custom JSON schema from style guides if available
+    custom_json_schema = json_schema
+    json_schema_key = f"TOOLS_{tool_name}_json_schema"
+    if json_schema_key in style_guides:
+        try:
+            custom_json_schema = json.loads(style_guides[json_schema_key])
+            print(f"🔧 Using custom JSON schema for {tool_name}")
+        except json.JSONDecodeError as e:
+            print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
+            print(f"   Using default schema instead")
+    
+    return Tool(
+        name=custom_name,
+        description=custom_description,
         function=update_records_implementation,
-        description=description,
-        json_schema=json_schema,
-        takes_ctx=True,
-        is_async=True,
-        validator=SchemaValidator(schema=core_schema.any_schema()),
+        function_schema=FunctionSchema(
+            function=update_records_implementation,
+            description=custom_description,
+            json_schema=custom_json_schema,
+            takes_ctx=True,
+            is_async=True,
+            validator=SchemaValidator(schema=core_schema.any_schema()),
+        )
     )
-)

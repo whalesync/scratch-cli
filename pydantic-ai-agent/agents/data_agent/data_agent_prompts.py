@@ -108,7 +108,7 @@ When you receive snapshot data, each record has this structure:
 """
 
 
-def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: list[dict] | None = None) -> str:
+def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: dict[str, str] | None = None) -> str:
     print(f"🔍 get_data_agent_instructions called with capabilities: {capabilities}")
     print(f"🔍 style_guides: {style_guides}")
     
@@ -126,16 +126,8 @@ def get_data_agent_instructions(capabilities: list[str] | None = None, style_gui
         if not style_guides:
             return default_content
         
-        # Find style guides that match the variable name exactly
-        matching_style_guides = [g for g in style_guides if g.get('name') == variable_name]
-        
-        if len(matching_style_guides) == 1:
-            # Use the style guide content instead of the default
-            print(f"   Using style guide content for '{variable_name}'")
-            return matching_style_guides[0]['content']
-        else:
-            # No matching style guides or multiple matches, use default
-            return default_content
+        # Get the style guide content directly from the dictionary
+        return style_guides.get(variable_name, default_content)
     
     # Get each section, potentially overridden by style guides
     base_instructions = get_section("BASE_INSTRUCTIONS", BASE_INSTRUCTIONS)
@@ -150,16 +142,16 @@ def get_data_agent_instructions(capabilities: list[str] | None = None, style_gui
     
     # Add non-matching style guides as a STYLE GUIDES section
     if style_guides:
-        non_matching_style_guides = [
-            g for g in style_guides 
-            if g.get('name') not in variable_names
-        ]
+        non_matching_style_guides = {
+            key: value for key, value in style_guides.items() 
+            if key not in variable_names
+        }
         
         if non_matching_style_guides:
             print(f"   Adding {len(non_matching_style_guides)} non-matching style guides as STYLE GUIDES section")
             style_guides_section = "\n\n# STYLE GUIDES\n"
-            for style_guide in non_matching_style_guides:
-                style_guides_section += f"\n## {style_guide.get('name')}\n\n{style_guide.get('content', '')}\n"
+            for key, content in non_matching_style_guides.items():
+                style_guides_section += f"\n## {key}\n\n{content}\n"
             main_prompt += style_guides_section
     
     return main_prompt

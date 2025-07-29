@@ -157,12 +157,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                     print(f"   request.style_guides: {request.style_guides}")
                     print(f"   request.style_guides type: {type(request.style_guides)}")
                     
-                    style_guides_dict = None
+                    style_guides_dict = {}
                     if request.style_guides:
-                        style_guides_dict = [{"name": g.name, "content": g.content} for g in request.style_guides]
+                        style_guides_dict = {g.name: g.content for g in request.style_guides}
                         print(f"   Converted to: {style_guides_dict}")
                     else:
-                        print(f"   No style guides to convert, keeping as None")
+                        print(f"   No style guides provided, using empty dict")
                     
                     async def progress_callback(message: str):
                         await manager.send_personal_message(

@@ -12,7 +12,7 @@ from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import core_schema, SchemaValidator
 from scratchpad_api import RecordId, SnapshotRecord, TableSpec, list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
-from agents.data_agent.tools.update_records_tool import update_records_tool
+from agents.data_agent.tools.update_records_tool import create_update_records_tool
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -35,10 +35,10 @@ class SearchAndReplaceInFieldInput(WithTableName):
     wsId: str = Field(description="The ID of the record to update")
     field_name: str = Field(description="The name of the field to search and replace in")
 
-def get_data_tools(capabilities: Optional[List[str]] = None):
+def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = None):
     tools = []
     if capabilities is None or 'data:update' in capabilities:
-        tools.append(update_records_tool);
+        tools.append(create_update_records_tool(style_guides));
     return tools;
 
 

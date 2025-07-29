@@ -20,7 +20,7 @@ from agents.data_agent.view_tools import define_view_tools
 from agents.data_agent.data_agent_hisrory_processor import data_agent_history_processor
 
 
-def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Optional[List[Dict[str, str]]] = None):
+def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = {}):
     """Create and return a configured agent"""
     print(f"🔍 create_agent called with:")
     print(f"   model_name: {model_name}")
@@ -57,7 +57,7 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
             history_processors=[data_agent_history_processor],
             model=model,
             deps_type=ChatRunContext,
-            tools=get_data_tools(capabilities) + [] # TODO: add view tools
+            tools=get_data_tools(capabilities, style_guides) + [] # TODO: add view tools
         )
         
         define_data_tools(agent, capabilities);
