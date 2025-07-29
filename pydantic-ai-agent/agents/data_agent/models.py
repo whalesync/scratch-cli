@@ -5,7 +5,7 @@ Data models for the chat server
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from scratchpad_api import ScratchpadSnapshot
+from scratchpad_api import ColumnSpec, SnapshotRecord, RecordId, TableSpec
 from typing import List, Optional, Dict, Any
 from session import ChatSession
 from agents.data_agent.data_agent_utils import SnapshotForAi

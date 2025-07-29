@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 from scratchpad_api import ScratchpadSnapshot
@@ -113,12 +114,13 @@ def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100) 
     records_summary = []
     for i, record in enumerate(records[:limit]):
         # Map from flat structure to our desired format
+        # make sure to deepcopy so we don't modify the original record in the context
         record_data = {
             "wsid": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
             "id": record.get('id', {}).get('wsId', record.get('wsId', 'unknown')),
-            "fields": record.get('fields', {}),
-            "edited_fields": record.get('edited_fields', {}),
-            "suggested_fields": record.get('suggested_fields', {})
+            "fields": copy.deepcopy(record.get('fields', {})),
+            "edited_fields": copy.deepcopy(record.get('edited_fields', {})),
+            "suggested_fields": copy.deepcopy(record.get('suggested_fields', {}))
         }
         
         # Truncate long string values in fields for readability

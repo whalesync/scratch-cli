@@ -358,6 +358,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           <ActionIcon
             onClick={async () => {
               await disconnect();
+              await clearActiveSession();
               await deleteSession(activeSessionId);
             }}
             size="sm"
