@@ -13,6 +13,7 @@ from pydantic_core import core_schema, SchemaValidator
 from scratchpad_api import RecordId, SnapshotRecord, TableSpec, list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
 from agents.data_agent.tools.update_records_tool import create_update_records_tool
+import re
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -624,8 +625,17 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 else:
                     current_value: str = str(record.fields[field_id])
 
-                # Programtically replace the value before create the suggestion
-                updated_value: str = current_value.replace(search_value, replace_value)
+                
+                
+                # Create a regex pattern that matches the search_value as a whole word
+                # This ensures we match complete words, not parts of other words
+                # The pattern uses word boundaries (\b) to match word boundaries
+                # and escapes any special regex characters in the search_value
+                escaped_search_value = re.escape(search_value)
+                pattern = r'\b' + escaped_search_value + r'\b'
+                
+                # Replace all occurrences of the pattern with the replace_value
+                updated_value: str = re.sub(pattern, replace_value, current_value)
 
                 update_operations = [
                     RecordOperation(
