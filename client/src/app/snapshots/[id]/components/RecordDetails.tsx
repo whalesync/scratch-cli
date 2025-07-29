@@ -22,7 +22,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
 import _ from 'lodash';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAIPromptContext } from '../AIPromptContext';
 
 interface RecordDetailsProps {
@@ -33,6 +33,11 @@ interface RecordDetailsProps {
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   bulkUpdateRecord: (dto: BulkUpdateRecordsDto) => Promise<void>;
+}
+
+interface PendingUpdate {
+  field: string;
+  value: string;
 }
 
 export const RecordDetails = ({
@@ -49,6 +54,7 @@ export const RecordDetails = ({
   const [currentTextSelection, setCurrentTextSelection] = useState<TextSelection | undefined>(undefined);
   const [currentCursorPosition, setCurrentCursorPosition] = useState<CursorPosition | undefined>(undefined);
   const { addToPrompt } = useAIPromptContext();
+  const [pendingUpdates, setPendingUpdates] = useState<PendingUpdate[]>([]);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
 
@@ -65,33 +71,58 @@ export const RecordDetails = ({
     // console.debug('RecordDetails: cursor position changed', cursor);
   }, []);
 
+  const savePendingUpdates = useCallback(async () => {
+    if (pendingUpdates.length === 0) return;
+    if (!currentRecord) return;
+
+    const ops: RecordOperation[] = pendingUpdates.map((update) => ({
+      op: 'update',
+      wsId: currentRecord.id.wsId,
+      data: { [update.field]: update.value },
+    }));
+
+    try {
+      setSaving(true);
+      await bulkUpdateRecord({ ops });
+      setPendingUpdates([]);
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: 'Error updating field',
+        message: error.message,
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [pendingUpdates, bulkUpdateRecord, currentRecord]);
+
+  // Auto-save pending updates every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      savePendingUpdates();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [savePendingUpdates]);
+
   const updateField = useCallback(
     async (field: string, value: string) => {
       if (!currentRecord) return;
 
-      const ops: RecordOperation[] = [
-        {
-          op: 'update',
-          wsId: currentRecord.id.wsId,
-          data: { [field]: value },
-        },
-      ];
+      // Update the local in-memory copy of the record
+      currentRecord.fields[field] = value;
 
-      try {
-        setSaving(true);
-        await bulkUpdateRecord({ ops });
-      } catch (e) {
-        const error = e as Error;
-        notifications.show({
-          title: 'Error updating field',
-          message: error.message,
-          color: 'red',
-        });
-      } finally {
-        setSaving(false);
+      const existing = pendingUpdates.findIndex((update) => update.field === field);
+      if (existing !== -1) {
+        const newPendingUpdates = [...pendingUpdates];
+        newPendingUpdates[existing] = { field, value };
+        setPendingUpdates(newPendingUpdates);
+      } else {
+        setPendingUpdates([...pendingUpdates, { field, value }]);
       }
     },
-    [currentRecord, bulkUpdateRecord],
+    [currentRecord, pendingUpdates, saving],
   );
 
   const fieldToInput = useCallback(
