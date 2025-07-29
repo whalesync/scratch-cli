@@ -2,7 +2,6 @@
 
 # Create custom JSON schema without $ref references
 from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName, common_field_descriptions
-from agents.data_agent.data_agent_utils import format_records_for_display
 
 from typing import Optional, Dict, Any, List, Union, TypedDict
 from pydantic import BaseModel, Field

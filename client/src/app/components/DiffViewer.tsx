@@ -6,7 +6,7 @@ export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: s
   const changes = diffWordsWithSpace(originalValue, suggestedValue);
 
   return (
-    <Text size="xs">
+    <Text size="xs" p="xs">
       {changes.map((change, idx) => {
         // do this to preserve newlines in the diff viewer
         const value = change.value.replaceAll('\n', '<br/>');

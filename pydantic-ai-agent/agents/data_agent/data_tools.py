@@ -3,8 +3,7 @@
 PydanticAI Tools for the Chat Server
 """
 from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName
-from agents.data_agent.data_agent_utils import format_records_for_display
-from agents.data_agent.model_utils import is_in_write_focus
+from agents.data_agent.model_utils import find_record_by_wsId, is_in_write_focus
 
 from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field
@@ -578,20 +577,13 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not is_in_write_focus(chatRunContext, field_id, wsId):
                     return f"Error: Field '{field_name}' is not in write focus."
 
-                from scratchpad_api import bulk_update_records, get_record, RecordOperation
+                from scratchpad_api import bulk_update_records, RecordOperation
 
-                record = get_record(
-                    snapshot_id=chatRunContext.session.snapshot_id,
-                    table_id=table.id.wsId,
-                    record_id=wsId,
-                    api_token=chatRunContext.api_token
-                )
-
-                # # Get the record from the preloaded records
-                # record = find_record_by_wsId(chatRunContext, table.id.wsId, wsId)
+                # Get the record from the preloaded records
+                record = find_record_by_wsId(chatRunContext, table.id.wsId, wsId)
 
                 if not record:
-                    return f"Error: Record '{wsId}' not found."
+                    return f"Error: Record '{wsId}' does not exist in the current context."
 
                 print(f"🔍 Record: {record}")
 
@@ -712,22 +704,13 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not is_in_write_focus(chatRunContext, field_id, recordWsId):
                     return f"Error: Field '{field_name}' is not in write focus."
 
-                from scratchpad_api import bulk_update_records, get_record, RecordOperation
+                from scratchpad_api import bulk_update_records, RecordOperation
 
-                # Get the most recent version of the record
-                # TODO - This should get the value from the context, not from the server
-                record = get_record(
-                    snapshot_id=chatRunContext.session.snapshot_id,
-                    table_id=table.id.wsId,
-                    record_id=recordWsId,
-                    api_token=chatRunContext.api_token
-                )
-
-                # # Get the record from the preloaded records
-                # record = find_record_by_wsId(chatRunContext, table.id.wsId, wsId)
+                  # Get the record from the preloaded records
+                record = find_record_by_wsId(chatRunContext, table.id.wsId, recordWsId)
 
                 if not record:
-                    return f"Error: Record '{recordWsId}' not found."
+                    return f"Error: Record '{recordWsId}' does not exist in the current context."
 
                 print(f"🔍 Record: {record}")
 
