@@ -683,11 +683,14 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"🔍 Record: {record}")
 
                 # Get the field from the record
-                current_value: str = str(record.fields[field_id])
+                # TODO - first check the suggested_fields field for the value, then fall back to the fields field
+                if(field_id in record.suggested_fields):
+                    current_value: str = str(record.suggested_fields[field_id])
+                else:
+                    current_value: str = str(record.fields[field_id])
 
                 # Programtically replace the value before create the suggestion
                 updated_value: str = current_value.replace(search_value, replace_value)
-
 
                 update_operations = [
                     RecordOperation(
