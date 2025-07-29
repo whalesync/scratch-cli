@@ -106,7 +106,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, chatSession) -> Sn
     return snapshot
 
 
-def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100) -> str:
+def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100, truncate_record_content: bool = True) -> str:
     """Format records for display in a consistent way for both prompt and tool output"""
     if not records:
         return "No records found"
@@ -124,9 +124,10 @@ def format_records_for_display(records: List[Dict[str, Any]], limit: int = 100) 
         }
         
         # Truncate long string values in fields for readability
-        for key, value in record_data["fields"].items():
-            if isinstance(value, str) and len(value) > 100:
-                record_data["fields"][key] = value[:100] + "..."
+        if truncate_record_content:
+            for key, value in record_data["fields"].items():
+                if isinstance(value, str) and len(value) > 100:
+                    record_data["fields"][key] = value[:100] + "..."
         
         records_summary.append(record_data)
     

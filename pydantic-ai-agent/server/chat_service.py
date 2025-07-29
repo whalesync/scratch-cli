@@ -243,7 +243,7 @@ class ChatService:
                             
                             # Format records using the shared function
                             from agents.data_agent.data_agent_utils import format_records_for_display
-                            records_summary = format_records_for_display(records, limit=50)
+                            records_summary = format_records_for_display(records, limit=50, truncate_record_content=False)
                             snapshot_context += f"RECORDS:\n{records_summary}\n"
                         else:
                             snapshot_context += "Records: Not loaded\n"
