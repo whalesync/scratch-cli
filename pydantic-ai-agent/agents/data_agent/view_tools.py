@@ -210,6 +210,8 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             Use this tool when the user asks to filter out specific records from a table or hide records from view.
             The table_name should be the name of the table you want to add records to the filter for.
             The record_ids should be a list of record IDs (wsId) to add to the filter.
+
+            CRITICAL: The record_ids must be a list of strings and cannot be empty. The list should not contain duplicate values. The list should not contain empty values.
             
             You should first use get_records_tool to see all the records in the table and identify which ones to filter.
             Then extract the wsId values from the records you want to filter out to use as the record_ids.
@@ -230,6 +232,9 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not chatRunContext.snapshot:
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
+                if(table_name is None or table_name == ""):
+                    return "Error: The table name is empty. Please provide a non-empty table name"
+
                 # Find the table by name
                 table = None
                 for t in chatRunContext.snapshot.tables:
@@ -244,6 +249,7 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 # Validate that record_ids is provided
                 if not record_ids:
                     return "Error: No record IDs provided. Please provide a list of record IDs to add to the filter."
+
                 
                 # Import the add_records_to_active_filter function
                 from scratchpad_api import add_records_to_active_filter

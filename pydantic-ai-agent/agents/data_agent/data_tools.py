@@ -23,23 +23,37 @@ class GetRecordsInput(BaseModel):
 
 
 class AppendFieldValueInput(WithTableName):
-    """Input for the append_field_value tool"""
+    """
+    Input for the append_field_value_tool
+    """
     wsId: str = Field(description="The ID of the record to update")
     field_name: str = Field(description="The name of the field to append a value to")
     value: str = Field(description="The data value to append to the field")
 
+class InsertFieldValueInput(WithTableName):
+    """
+    Input for the insert_value_tool
+    """
+    wsId: str = Field(description="The ID of the record to update")
+    field_name: str = Field(description="The name of the field to insert a value into")
+    value: str = Field(description="The data value to insert into the field")
+
 class SearchAndReplaceInFieldInput(WithTableName):
-    """Input for the search_and_replace tool"""
-    search_value: str = Field(description="The value to search for")
-    replace_value: str = Field(description="The value to replace the search value with")
+    """
+    Input for the search_and_replace_field_value_tool
+    """
     wsId: str = Field(description="The ID of the record to update")
     field_name: str = Field(description="The name of the field to search and replace in")
-
-class EditFieldValueInput(WithTableName):
-    """Input for the edit_field_value tool"""
-    wsId: str = Field(description="The ID of the record to update")
-    field_name: str = Field(description="The name of the field to edit")
-    value: str = Field(description="The data value to set in the field")
+    search_value: str = Field(description="The value to search for")
+    replace_value: str = Field(description="The value to replace the search value with")
+   
+# class EditFieldValueInput(WithTableName):
+#     """
+#     Input for the edit_field_value tool
+#     """
+#     wsId: str = Field(description="The ID of the record to update")
+#     field_name: str = Field(description="The name of the field to edit")
+#     value: str = Field(description="The data value to set in the field")
 
 def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = None):
     tools = []
@@ -146,7 +160,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"❌ {error_msg}")
                 return error_msg
 
-    # if capabilities is None or 'data:update' in capabilities:
+    if capabilities is None or 'data:update' in capabilities:
         # @agent.tool
         # async def update_records_tool(ctx: RunContext[ChatRunContext], input_data: UpdateRecordsInput) -> str:  # type: ignore
         #     """
@@ -320,6 +334,9 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not isinstance(value, str):
                     return f"Error: value must be a string, got {type(value)}"
                 
+                if(value is None or value == ""):
+                    return "Error: The value to append is empty. Please provide a non-empty value"
+                
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps 
                 chatSession: ChatSession = chatRunContext.session
@@ -343,8 +360,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 
                 # Import the RecordOperation class
                 from scratchpad_api import RecordOperation
-                
-            
                 
                 log_info("Appending value to field in record", 
                         table_name=table_name,
@@ -394,13 +409,13 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 return error_msg
 
         @agent.tool
-        async def inject_field_value_tool(ctx: RunContext[ChatRunContext], input_data: AppendFieldValueInput) -> str:  # type: ignore
+        async def insert_value_tool(ctx: RunContext[ChatRunContext], input_data: InsertFieldValueInput) -> str:  # type: ignore
             """
-            Inserts a value inside of an existing field for a record in a table.
+            Inserts a value into the an existing field for a record in a table at a specific placeholder.
             
             IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
-            Use this tool when the user asks to insert or inject data to a single record field without replacing the existing value.
+            Use this tool when the user asks to insert data to a single record field
             The table_name should be the name of the table you want to update records in.
             The wsId should be the ID of the record to update.
             The field_name should be the name of the field to append a value to.
@@ -424,14 +439,23 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 # Validate that wsId is a string
                 if not isinstance(wsId, str):
                     return f"Error: wsId must be a string, got {type(wsId)}"
+
+                if(wsId is None or wsId == ""):
+                    return "Error: The wsId is empty. Please provide a non-empty wsId"
                 
                 # Validate that field_name is a string
                 if not isinstance(field_name, str):
                     return f"Error: field_name must be a string, got {type(field_name)}"
+
+                if(field_name is None or field_name == ""):
+                    return "Error: The field name is empty. Please provide a non-empty field name"
                 
                 # Validate that value is a string
                 if not isinstance(value, str):
                     return f"Error: value must be a string, got {type(value)}"
+
+                if(value is None or value == ""):
+                    return "Error: The value to insert is empty. Please provide a non-empty value"
                 
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps 
@@ -501,20 +525,20 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
 
 
         @agent.tool
-        async def search_and_replace_tool(ctx: RunContext[ChatRunContext], input_data: SearchAndReplaceInFieldInput) -> str:  # type: ignore
+        async def search_and_replace_field_value_tool(ctx: RunContext[ChatRunContext], input_data: SearchAndReplaceInFieldInput) -> str:  # type: ignore
             """
             Perform a search and replace operation on a field of a record in a table. All occurrences of the search_value will be replaced with the replace_value.
             
             IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
-            Use this tool when the user asks to replace a value in a field of a record/
+            Use this tool when the user asks to replace a value in a field of a record
             The table_name should be the name of the table you want to update records in.
             The wsId should be the ID of the record to update.
             The field_name should be the name of the field to search and replace in.
-            The search_value should be the value to search for.
+            The search_value should be the value to search for and cannot be empty
             The replace_value should be the value to replace the search_value with.
             
-            CRITICAL: The search_value and replace_value should always be a string and should not be empty.
+            CRITICAL: The search_value must be a string and cannot be empty. The replace_value must be a string and can be empty.
             
             Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
             """
@@ -538,9 +562,15 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not isinstance(search_value, str):
                     return f"Error: value must be a string, got {type(search_value)}"
 
+                if(search_value is None or search_value == ""):
+                    return "Error: The search value is empty. Please provide a non-empty search value"
+
                 # Validate that replace_value is a string
                 if not isinstance(replace_value, str):
                     return f"Error: replace_value must be a string, got {type(replace_value)}"
+
+                if(replace_value is None):
+                    return "Error: The replace value is missing"
                 
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps 
@@ -632,122 +662,122 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"❌ {error_msg}")
                 return error_msg
 
-        @agent.tool
-        async def edit_field_value_tool(ctx: RunContext[ChatRunContext], input_data: EditFieldValueInput) -> str:  # type: ignore
-            """
-            Update the value of one field of a record in a table. 
+        # @agent.tool
+        # async def edit_field_value_tool(ctx: RunContext[ChatRunContext], input_data: EditFieldValueInput) -> str:  # type: ignore
+        #     """
+        #     Update the value of one field of a record in a table. 
             
-            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+        #     IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
-            Use this tool when the user wants to update the value of a single field in a single record.
-            The table_name should be the name of the table you want to update records in.
-            The wsId should be the ID of the record to update.
-            The field_name should be the name of the field to edit.
-            The field_name should be the name of the field that currently has write focus
-            The value should be the value to set in the field.
+        #     Use this tool when the user wants to update the value of a single field in a single record.
+        #     The table_name should be the name of the table you want to update records in.
+        #     The wsId should be the ID of the record to update.
+        #     The field_name should be the name of the field to edit.
+        #     The field_name should be the name of the field that currently has write focus
+        #     The value should be the value to set in the field.
             
-            CRITICAL: The value should always be a string and should not be empty.
+        #     CRITICAL: The value should always be a string and should not be empty.
             
-            Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
-            """
-            try:
-                # Extract data from input
-                table_name = input_data.table_name
-                recordWsId = input_data.wsId
-                field_name = input_data.field_name
-                value = input_data.value
+        #     Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
+        #     """
+        #     try:
+        #         # Extract data from input
+        #         table_name = input_data.table_name
+        #         recordWsId = input_data.wsId
+        #         field_name = input_data.field_name
+        #         value = input_data.value
 
-                # Validate that wsId is a string
-                if not isinstance(recordWsId, str):
-                    return f"Error: wsId must be a string, got {type(recordWsId)}"
+        #         # Validate that wsId is a string
+        #         if not isinstance(recordWsId, str):
+        #             return f"Error: wsId must be a string, got {type(recordWsId)}"
                 
-                # Validate that field_name is a string
-                if not isinstance(field_name, str):
-                    return f"Error: field_name must be a string, got {type(field_name)}"
+        #         # Validate that field_name is a string
+        #         if not isinstance(field_name, str):
+        #             return f"Error: field_name must be a string, got {type(field_name)}"
                 
-                # Validate that value is a string
-                if not isinstance(value, str):
-                    return f"Error: value must be a string, got {type(value)}"
+        #         # Validate that value is a string
+        #         if not isinstance(value, str):
+        #             return f"Error: value must be a string, got {type(value)}"
                 
-                # Get the active snapshot
-                chatRunContext: ChatRunContext = ctx.deps 
-                chatSession: ChatSession = chatRunContext.session
+        #         # Get the active snapshot
+        #         chatRunContext: ChatRunContext = ctx.deps 
+        #         chatSession: ChatSession = chatRunContext.session
                 
-                if not chatRunContext.snapshot:
-                    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+        #         if not chatRunContext.snapshot:
+        #             return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
-                # Find the table by name
-                table: TableSpec | None = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
+        #         # Find the table by name
+        #         table: TableSpec | None = None
+        #         for t in chatRunContext.snapshot.tables:
+        #             if t.name.lower() == table_name.lower():
+        #                 table = t
+        #                 break
                 
-                if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+        #         if not table:
+        #             available_tables = [t.name for t in chatRunContext.snapshot.tables]
+        #             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
 
-                print(f"🔍 Table: {table}")
+        #         print(f"🔍 Table: {table}")
 
-                field_id = None
-                for column in table.columns:
-                    if column.name.lower() == field_name.lower():
-                        field_id = column.id.wsId
-                        break
+        #         field_id = None
+        #         for column in table.columns:
+        #             if column.name.lower() == field_name.lower():
+        #                 field_id = column.id.wsId
+        #                 break
                 
-                if not field_id:
-                    available_columns = [c.name for c in table.columns]
-                    return f"Error: Field '{field_name}' not found. Available columns: {available_columns}"
+        #         if not field_id:
+        #             available_columns = [c.name for c in table.columns]
+        #             return f"Error: Field '{field_name}' not found. Available columns: {available_columns}"
 
-                print(f"🔍 Field ID: {field_id}")
+        #         print(f"🔍 Field ID: {field_id}")
 
-                if not is_in_write_focus(chatRunContext, field_id, recordWsId):
-                    return f"Error: Field '{field_name}' is not in write focus."
+        #         if not is_in_write_focus(chatRunContext, field_id, recordWsId):
+        #             return f"Error: Field '{field_name}' is not in write focus."
 
-                from scratchpad_api import bulk_update_records, RecordOperation
+        #         from scratchpad_api import bulk_update_records, RecordOperation
 
-                  # Get the record from the preloaded records
-                record = find_record_by_wsId(chatRunContext, table.id.wsId, recordWsId)
+        #           # Get the record from the preloaded records
+        #         record = find_record_by_wsId(chatRunContext, table.id.wsId, recordWsId)
 
-                if not record:
-                    return f"Error: Record '{recordWsId}' does not exist in the current context."
+        #         if not record:
+        #             return f"Error: Record '{recordWsId}' does not exist in the current context."
 
-                print(f"🔍 Record: {record}")
+        #         print(f"🔍 Record: {record}")
 
-                update_operations = [
-                    RecordOperation(
-                        op="update",
-                        wsId=recordWsId,
-                        data={
-                            field_id: value
-                        }
-                    )
-                ]
+        #         update_operations = [
+        #             RecordOperation(
+        #                 op="update",
+        #                 wsId=recordWsId,
+        #                 data={
+        #                     field_id: value
+        #                 }
+        #             )
+        #         ]
 
-                # Call the bulk update endpoint
-                bulk_update_records(
-                    snapshot_id=chatRunContext.session.snapshot_id,
-                    table_id=table.id.wsId,
-                    operations=update_operations,
-                    api_token=chatRunContext.api_token,
-                    view_id=chatRunContext.view_id
-                )
+        #         # Call the bulk update endpoint
+        #         bulk_update_records(
+        #             snapshot_id=chatRunContext.session.snapshot_id,
+        #             table_id=table.id.wsId,
+        #             operations=update_operations,
+        #             api_token=chatRunContext.api_token,
+        #             view_id=chatRunContext.view_id
+        #         )
                 
-                print(f"✅ Successfully updated {len(update_operations)} in table '{table_name}'")
-                print(f"📋 Table ID: {table.id.wsId}")
-                print(f"✏️ Updated records:")
-                for i, operation in enumerate(update_operations):
-                    print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+        #         print(f"✅ Successfully updated {len(update_operations)} in table '{table_name}'")
+        #         print(f"📋 Table ID: {table.id.wsId}")
+        #         print(f"✏️ Updated records:")
+        #         for i, operation in enumerate(update_operations):
+        #             print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
                 
-                return f"Successfully edited the value of the field {field_name} in record {recordWsId} in table '{table_name}'"    
+        #         return f"Successfully edited the value of the field {field_name} in record {recordWsId} in table '{table_name}'"    
 
-            except Exception as e:
-                error_msg = f"Failed to edit the value of the field {field_name} in record {recordWsId} in table '{table_name}': {str(e)}"
-                log_error("Error editing the value of the field in record", 
-                        table_name=table_name,
-                        error=str(e))
-                print(f"❌ {error_msg}")
-                return error_msg
+        #     except Exception as e:
+        #         error_msg = f"Failed to edit the value of the field {field_name} in record {recordWsId} in table '{table_name}': {str(e)}"
+        #         log_error("Error editing the value of the field in record", 
+        #                 table_name=table_name,
+        #                 error=str(e))
+        #         print(f"❌ {error_msg}")
+        #         return error_msg
 
 
 

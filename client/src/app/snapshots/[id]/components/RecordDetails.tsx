@@ -178,7 +178,7 @@ export const RecordDetails = ({
           label={column.name}
           value={value ?? ''}
           autosize
-          minRows={1}
+          minRows={10}
           resize="vertical"
           onChange={(e) => updateField(field, e.target.value)}
           readOnly={column.readonly || hasSuggestion}
@@ -305,7 +305,7 @@ export const RecordDetails = ({
                 value={currentRecord.__suggested_values?.[field] as string}
                 disabled
                 autosize
-                minRows={1}
+                minRows={10}
                 styles={{
                   input: {
                     color: '#b8860b',

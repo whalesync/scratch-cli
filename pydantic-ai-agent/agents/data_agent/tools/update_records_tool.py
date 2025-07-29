@@ -73,7 +73,17 @@ description = """
 
 async def update_records_implementation(ctx: RunContext[ChatRunContext], table_name: str, record_updates: List[RecordUpdateDict]) -> str:
     try:
-        
+        if(record_updates is None or len(record_updates) == 0):
+            return "Error: The list of record updates is empty. Provide at least one record update"
+
+        for update in record_updates:
+            if( update.get('wsId') is None):
+                return "Error: The wsId is required for each record update"
+
+            if(update.get('data') is None or len(update.get('data')) == 0):
+                return f"Error: The data is empty for update {update.get('wsId')}. The data dictionary must include at least one field to update"
+
+
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps 
         

@@ -17,7 +17,7 @@ from logger import log_info, log_error
 from utils.response_extractor import extract_response
 from agents.data_agent.data_tools import define_data_tools, get_data_tools
 from agents.data_agent.view_tools import define_view_tools
-from agents.data_agent.data_agent_hisrory_processor import data_agent_history_processor
+from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 
 
 def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = {}):
