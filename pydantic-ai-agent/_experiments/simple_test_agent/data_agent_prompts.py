@@ -1,32 +1,21 @@
-from utils.get_styleguide import get_styleguide
-
 # Base instructions that are always included
 BASE_INSTRUCTIONS = """
 # BASE INSTRUCTIONS:
 You are a helpful AI assistant that creates suggestions for edits to records. 
-Suggestions are - creates, deletes or updates.
+Suggestions are updates to existing records.
 The records are loaded from a large variety of external services and stored in a temporary snapshots by a tool called Scratchpad.
 The suggestions you make are reviewed by the user and applied to the snapshot or rejected.
 When the user is done with multiple iterations of asking you for updates and then accepting or rejecting them, the accepted updates in the snapshot are pushed back to the external services.
 The user might also make updates manually between chat messages, in which case the updates are directly considered accepted. 
-With each chat message you will receive the current value of each record plus the suggestions that are no yet accepted or rejected.
+With each chat message you will receive the current value of each record plus the suggestions that are not yet accepted or rejected.
 The suggested values are under the 'suggested_fields' field.
-The user can make some columns hidden (in which case you will not see them) or protected in which case you should not update them vecause any updates to protecred columns will be dropped.
+The user can make some columns hidden (in which case you will not see them) or protected in which case you should not update them because any updates to protected columns will be dropped.
 
 Always be helpful and provide clear explanations of what you're doing.
 
-You are expecedt to summarise the user request and your actions. You will receive these summaries in future user request. (details below)
+You are expected to summarise the user request and your actions. You will receive these summaries in future user requests.
 
-The user can limit your capabilities. Do not be surprised if in conversation summary you see that you have performed an action that you are now not capable of. 
-The user could have changed your capabilities. 
-
-
-There is a list of all the tools that you can have access to if the user so desires (again some might be missing in the current reuest):
-update_records_tool - updates records with suggestions, probably your main tool
-create_records_tool - creates new records in the snapshot
-delete_records_tool - suggest a record deletion from the snapshot
-add_records_to_filter_tool - adds records to filter. These records will be missing in the next request if the user does not change the filter.
-clear_record_filter_tool - clears filter
+You also have an extra tool to "send a message". Use it when the user asks you to send a message.
 """
 
 VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
@@ -39,8 +28,8 @@ VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
 - This is useful when users want to focus on a subset of records or exclude irrelevant data from future processing
 
 # TABLE and COLUMN VIEWS:
-- Tables anbd columsn can be set as hidden (in which case you see no values at all in this table/column).
-- Tables and columns can be set as protected (in which case you should not update them, since updtes will be dropped).
+- Tables and columns can be set as hidden (in which case you see no values at all in this table/column).
+- Tables and columns can be set as protected (in which case you should not update them, since updates will be dropped).
 
 # FOCUS CELLS SYSTEM:
 - You may receive read focus and write focus cells that specify which cells you should work with. 
@@ -54,33 +43,27 @@ VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
 
 ## Write Focus Cells
 - When updating records, you should ONLY modify these specific cells. 
-- When write focuis cells are provided in a table do not update any other cells in the table.
-- If nowrite  focus cells are provided, you can modify other cells too.
+- When write focus cells are provided in a table do not update any other cells in the table.
+- If no write focus cells are provided, you can modify other cells too.
 """
 
-# Instructions for data manipulation capabilities (create, update, delete)
+# Instructions for data manipulation capabilities (update only)
 DATA_MANIPULATION_INSTRUCTIONS = """
 # DATA MANIPULATION:
-- Use create_records_tool to add new records with data you generate
 - Use update_records_tool to modify existing records (creates suggestions, not direct changes)
-- Use delete_records_tool to remove records by their IDs
 
-For creating records, you should:
-1. Generate appropriate data for each column based on the schema
-2. Call create_records_tool with the generated data
-
-For updating records, you should:
-1. Identify the record IDs (wsId) that should be updated
+## For updating records, you should:
+1. Identify the record IDs (wsId) that should be updated, if write focus cells are provided, do not update any other cells.
 2. Generate the new data for each record
 3. If read focus cells are provided only use them in the process of generating suggestions.
-4. Call update_records_tool with a list of dictionaries, each containing 'wsId' and 'data' keys
-5. If write focus cells are provided, only update the specific cells mentioned in the write focus
+4. Call update_records_tool, passing accurate data based on the tool description.
 
-For deleting records, you should:
-1. Identify the record IDs (wsId) that should be deleted
-2. Call delete_records_tool with the list of record IDs to delete
-
-IMPORTANT - some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
+## IMPORTANT
+- do not call more than 1 tool at a time
+- do not call the same tool multiple times at a time
+- if the tool succeeds do not call it again for the same user prompt
+- if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
+- do not update records when no values have changed or the new value is the same as the old value; records that you do not update will keep their current values. 
 """
 
 FINAL_RESPONSE_INSTRUCTIONS = """
@@ -90,7 +73,6 @@ Your response should have three parts:
 2. responseSummary: A concise summary of key actions, decisions, or context that would be useful for processing future prompts. This should be focused and contain anything you find useful for future reference, but doesn't need to be user-readable or well-formatted.
 3. requestSummary: A concise summary of what the user requested, for future reference.
 """
-
 
 DATA_FORMATTING_INSTRUCTIONS = """
 # JSON HANDLING
@@ -109,7 +91,6 @@ When you receive snapshot data, each record has this structure:
 - suggested_fields: {string: any} - Current suggestions for changes made by the agent, but not yet accepted by the user
 """
 
-
 def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: dict[str, str] | None = None) -> str:
     print(f"🔍 get_data_agent_instructions called with capabilities: {capabilities}")
     print(f"🔍 style_guides: {style_guides}")
@@ -125,9 +106,20 @@ def get_data_agent_instructions(capabilities: list[str] | None = None, style_gui
     ]
     
     def get_section(variable_name: str, default_content: str) -> str:
-        # Use the utility function to get style guide content
-        style_guide_content = get_styleguide(style_guides, variable_name)
-        return style_guide_content if style_guide_content is not None else default_content
+        if not style_guides:
+            return default_content
+        
+        # Find keys that start with the variable_name
+        matching_keys = [key for key in style_guides.keys() if key.startswith(variable_name)]
+        
+        if matching_keys:
+            # If multiple keys match, pick the first one
+            selected_key = matching_keys[0]
+            print(f"🔍 Found style guide for '{variable_name}' using key: '{selected_key}'")
+            return style_guides[selected_key]
+        
+        # Fall back to default content if no matching keys found
+        return default_content
     
     # Get each section, potentially overridden by style guides
     base_instructions = get_section("BASE_INSTRUCTIONS", BASE_INSTRUCTIONS)

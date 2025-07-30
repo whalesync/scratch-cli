@@ -11,6 +11,7 @@ from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import find_table_by_name, missing_table_error
 from logger import log_info, log_error
 import json
+from utils.get_styleguide import get_styleguide
 
 
 field_descriptions = {
@@ -186,15 +187,16 @@ def create_update_records_tool(style_guides: Dict[str, str] = None):
     if style_guides is None:
         style_guides = {}
     
-    custom_name = style_guides.get(f"TOOLS_{tool_name}_name", tool_name)
-    custom_description = style_guides.get(f"TOOLS_{tool_name}_description", description)
+    # Use utility function to get custom name, description, and JSON schema
+    custom_name = get_styleguide(style_guides, f"TOOLS_{tool_name}_name") or tool_name
+    custom_description = get_styleguide(style_guides, f"TOOLS_{tool_name}_description") or description
     
     # Get custom JSON schema from style guides if available
     custom_json_schema = json_schema
-    json_schema_key = f"TOOLS_{tool_name}_json_schema"
-    if json_schema_key in style_guides:
+    json_schema_content = get_styleguide(style_guides, f"TOOLS_{tool_name}_json_schema")
+    if json_schema_content:
         try:
-            custom_json_schema = json.loads(style_guides[json_schema_key])
+            custom_json_schema = json.loads(json_schema_content)
             print(f"🔧 Using custom JSON schema for {tool_name}")
         except json.JSONDecodeError as e:
             print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")

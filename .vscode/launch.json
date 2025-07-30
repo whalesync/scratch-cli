@@ -1,18 +1,31 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Debug Chat Server",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/pydantic-ai-agent/main.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/pydantic-ai-agent",
-       
-            "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Chat Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/pydantic-ai-agent/main.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/pydantic-ai-agent",
 
-            "justMyCode": false,
-            "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
-        }
-    ]
-} 
+      "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
+
+      "justMyCode": false,
+      "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
+    },
+    {
+      "name": "Debug Test Agent",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/pydantic-ai-agent/_experiments/simple_test_agent/main.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/pydantic-ai-agent",
+
+      "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
+
+      "justMyCode": false,
+      "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
+    }
+  ]
+}
