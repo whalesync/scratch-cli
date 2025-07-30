@@ -8,10 +8,11 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from agents.data_agent.model_utils import find_table_by_name, missing_table_error
+from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
+from scratchpad_api import RecordOperation
 
 
 field_descriptions = {
@@ -114,12 +115,12 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
         chatRunContext: ChatRunContext = ctx.deps 
         
         # Find the table by name
-        table = find_table_by_name(chatRunContext, table_name);
+        # table = find_table_by_name(chatRunContext, table_name);
         
-        if not table:
-            return missing_table_error(chatRunContext, table_name)
-        
-        from scratchpad_api import RecordOperation
+        # if not table:
+        #     return missing_table_error(chatRunContext, table_name)
+
+        table = get_active_table(chatRunContext)
         
         # TODO: apply read_focus and write_focus to the records to eliminate some fields
 

@@ -91,6 +91,7 @@ DATA_MANIPULATION_INSTRUCTIONS = """
 - do not call more than 1 tool at a time
 - do not call the same tool multiple times at a time
 - if the tool succeeds do not call it again for the same user prompt
+- if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
 - if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
 """
 

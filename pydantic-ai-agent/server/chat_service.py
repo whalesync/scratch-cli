@@ -24,7 +24,10 @@ from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
 # from tools import set_api_token, set_session_data
-
+from server.user_prompt_utils import build_snapshot_context
+from scratchpad_api import get_snapshot, list_records
+from agents.data_agent.data_agent_utils import convert_scratchpad_snapshot_to_ai_snapshot
+ 
 class ChatService:
     def __init__(self):
         self.sessions: Dict[str, ChatSession] = {}
@@ -120,28 +123,10 @@ class ChatService:
             else:
                 print(f"ℹ️ No style guides to include")
             
-            # Include summary history for agent context
-            # if session.summary_history:
-            #     context += f"\n\nSUMMARY OF RECENT USER REQUESTS AND ASSISTANT ACTIONS:\n"
-            #     for summary in session.summary_history:
-            #         context += f"User: {summary.request_summary}\n"
-            #         context += f"Agent: {summary.response_summary}\n\n"
-            
-            # Include recent chat history for user context (last 5 messages)
-            # if session.chat_history:
-            #     recent_history = session.chat_history[-5:]
-            #     context += f"\n\nRECENT CONVERSATION:\n"
-            #     for msg in recent_history:
-            #         truncated_msg = msg.message[:100] + "..." if len(msg.message) > 100 else msg.message
-            #         context += f"{msg.role.capitalize()}: {truncated_msg}\n"
             
             # Create the full prompt with memory
             full_prompt = f"RESPOND TO: {user_message} {context}"
             
-            print(f"DEBUG - Context length: {len(context)}")
-            print(f"DEBUG - Chat history length: {len(session.chat_history)}")
-            print(f"DEBUG - Summary history length: {len(session.summary_history)}")
-            print(f"DEBUG - Full prompt length: {len(full_prompt)}")
             
             # Log agent processing details
             log_debug("Agent processing details", 
@@ -163,12 +148,11 @@ class ChatService:
                 print(f"🔄 Pre-loading snapshot data and records...")
                 snapshot_data = None
                 preloaded_records = {}
+                filtered_counts = {}
                 
                 if session.snapshot_id and api_token:
                     try:
                         # Fetch snapshot details
-                        from scratchpad_api import get_snapshot, list_records
-                        from agents.data_agent.data_agent_utils import convert_scratchpad_snapshot_to_ai_snapshot
                         if progress_callback:
                             await progress_callback("Pre-loading snapshot data and records")
                         
@@ -180,6 +164,7 @@ class ChatService:
                         for table in snapshot.tables:
                             try:
                                 records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
+                                filtered_counts[table.name] = records_result.filteredRecordsCount
                                 preloaded_records[table.name] = [
                                     {
                                         'id': {'wsId': record.id.wsId, 'remoteId': record.id.remoteId},
@@ -215,66 +200,37 @@ class ChatService:
                 )
 
                 # Add pre-loaded snapshot data and records to the prompt
-                if chatRunContext.snapshot:
-                    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA START --\n"
-                    snapshot_context += f"Snapshot: {chatRunContext.snapshot.name or chatRunContext.snapshot.id}\n"
-                    snapshot_context += f"Tables: {len(chatRunContext.snapshot.tables)}\n\n"
+                
+                # Prepare records and filtered counts for the utility function
+                preloaded_records = chatRunContext.preloaded_records
+
+                
+                snapshot_context = build_snapshot_context(
+                    snapshot=snapshot,
+                    preloaded_records=preloaded_records,
+                    filtered_counts=filtered_counts
+                )
+                
+                # Update the full prompt with snapshot data
+                full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
+
+                # Add focus cells information to the prompt if they exist
+                if read_focus or write_focus:
+                    focus_context = "\n\nFOCUS CELLS:\n"
                     
-                    for table in chatRunContext.snapshot.tables:
-                        snapshot_context += f"TABLE: {table.name} (ID: {table.id.wsId})\n"
-                        snapshot_context += f"Columns: {[col.name for col in table.columns]}\n"
-                        
-                        # Add records if available
-                        if chatRunContext.preloaded_records and table.name in chatRunContext.preloaded_records:
-                            records = chatRunContext.preloaded_records[table.name]
-                            snapshot_context += f"Records ({len(records)}):\n\n"
-                            
-                            # Add filtered records information if available
-                            try:
-                                records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
-                                if records_result.filteredRecordsCount > 0:
-                                    snapshot_context += f"Note: {records_result.filteredRecordsCount} records are currently filtered out and not shown in this list.\n\n"
-                            except:
-                                pass  # If we can't get the filtered count, just continue
-                            
-                            # Record structure is now explained in the system prompt
-                            
-                            # Format records using the shared function
-                            from agents.data_agent.data_agent_utils import format_records_for_display
-                            records_summary = format_records_for_display(records, limit=50, truncate_record_content=False)
-                            snapshot_context += f"RECORDS:\n{records_summary}\n"
-                        else:
-                            snapshot_context += "Records: Not loaded\n"
-                        snapshot_context += "\n"
+                    if read_focus:
+                        focus_context += "Read Focus Cells:\n"
+                        for cell in read_focus:
+                            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+                        focus_context += "\n"
                     
-                    # Update the full prompt with snapshot data
-                    full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
-
-                    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA END --\n"
-
-                    # Add focus cells information to the prompt if they exist
-                    if read_focus or write_focus:
-                        focus_context = "\n\nFOCUS CELLS:\n"
-                        
-                        if read_focus:
-                            focus_context += "Read Focus Cells:\n"
-                            for cell in read_focus:
-                                focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
-                            focus_context += "\n"
-                        
-                        if write_focus:
-                            focus_context += "Write Focus Cells:\n"
-                            for cell in write_focus:
-                                focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
-                            focus_context += "\n"
-                        
-                        full_prompt += focus_context
-
-                print(f"🔍 About to call create_agent with:")
-                print(f"   model: {model}")
-                print(f"   capabilities: {capabilities}")
-                print(f"   style_guides: {style_guides}")
-                print(f"   style_guides type: {type(style_guides)}")
+                    if write_focus:
+                        focus_context += "Write Focus Cells:\n"
+                        for cell in write_focus:
+                            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+                        focus_context += "\n"
+                    
+                    full_prompt += focus_context
                 
                 if progress_callback:
                     await progress_callback(f"Creating agent with {model} model")

@@ -22,8 +22,6 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
     #     The table_name should be the name of the table you want to create a filtered view for.
     #     The record_ids should be a list of record IDs (wsId) include in the view.
         
-    #     You should first use get_records_tool to see all the records in the table and filter them based on the user's criteria.
-    #     Then extract the wsId values from the matching records to use as the record_ids.
 
     #     Do not use use this tool if there are no records to filter.      
 
@@ -212,23 +210,15 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             The record_ids should be a list of record IDs (wsId) to add to the filter.
 
             CRITICAL: The record_ids must be a list of strings and cannot be empty. The list should not contain duplicate values. The list should not contain empty values.
-            
-            You should first use get_records_tool to see all the records in the table and identify which ones to filter.
-            Then extract the wsId values from the records you want to filter out to use as the record_ids.
-
+      
             IMPORTANT: Only call this tool ONCE per table per conversation. Collect all records you want to filter 
             and add them in a single call rather than making multiple calls for the same table.
 
             Do not use this tool if there are no records to filter.
-
-            You must connect to a snapshot first using connect_snapshot_tool.
-            However if snapshot data has already been connected, you can skip this step.
             """
             try:
                 # Get the active snapshot
-                chatRunContext: ChatRunContext = ctx.deps 
-                chatSession: ChatSession = chatRunContext.session
-                
+                chatRunContext: ChatRunContext = ctx.deps                 
                 if not chatRunContext.snapshot:
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
@@ -282,9 +272,6 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             The table_name should be the name of the table you want to clear the filter for.
 
             Do not use this tool if there is no active record filter for the table.
-
-            You must connect to a snapshot first using connect_snapshot_tool.
-            However if snapshot data has already been connected, you can skip this step.
             """
             try:
                 # Get the active snapshot

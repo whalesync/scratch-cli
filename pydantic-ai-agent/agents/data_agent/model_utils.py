@@ -68,3 +68,9 @@ def find_record_by_wsId(chatRunContext: ChatRunContext, table_id: str, rec_id: s
 def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str) -> str:
     available_tables = [t.name for t in chatRunContext.snapshot.tables]
     return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"
+
+def get_active_table(chatRunContext: ChatRunContext) -> TableSpec:
+    if not chatRunContext.snapshot or not chatRunContext.snapshot.tables or len(chatRunContext.snapshot.tables) == 0:
+        return None
+    return chatRunContext.snapshot.tables[0]
+    
