@@ -61,3 +61,10 @@ def find_record_by_wsId(chatRunContext: ChatRunContext, table_id: str, rec_id: s
                 dirty=record['dirty']   
             )
     return None
+
+
+# Error Generators
+
+def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str) -> str:
+    available_tables = [t.name for t in chatRunContext.snapshot.tables]
+    return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"

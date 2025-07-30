@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from scratchpad_api import list_records, get_snapshot, API_CONFIG
+from agents.data_agent.model_utils import find_table_by_name, missing_table_error
 from logger import log_info, log_error
 import json
 
@@ -17,10 +17,15 @@ field_descriptions = {
     "a": "",
 }
 
+class FieldUpdate(TypedDict):
+    """Dictionary type for a single field update"""
+    field: str = Field(description=common_field_descriptions["field"])
+    value: Any = Field(description="The new value for the field")
+
 class RecordUpdateDict(TypedDict):
     """Dictionary type for record updates"""
     wsId: str = Field(description=common_field_descriptions["wsId"])
-    data: Dict[str, Any] = Field(description="Field names and their new values")
+    updates: List[FieldUpdate] = Field(description="List of field updates, each containing 'field' and 'value' keys")
 
 json_schema = {
     "type": "object",
@@ -31,8 +36,7 @@ json_schema = {
         },
         "record_updates": {
             "type": "array",
-            "description": "List of record updates, each containing 'wsId' and 'data' keys",
-            "minItems": 1,
+            "description": "List of record updates. Each update should have a wsId (record ID) and data (field updates)",
             "items": {
                 "type": "object",
                 "properties": {
@@ -40,12 +44,26 @@ json_schema = {
                         "type": "string",
                         "description": "The ID of the record to update"
                     },
-                    "data": {
-                        "type": "object",
-                        "description": "Field names and their new values"
+                    "updates": {
+                        "type": "array",
+                        "description": "List of field updates. Each update should have field name and new value",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string",
+                                    "description": "The name of the field to update"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": "The new value for the field"
+                                }
+                            },
+                            "required": ["field", "value"]
+                        }
                     }
                 },
-                "required": ["wsId", "data"]
+                "required": ["wsId", "updates"]
             }
         }
     },
@@ -61,15 +79,14 @@ description = """
     The table_name should be the name of the table you want to update records in.
     The record_updates should be a list of entities with the following fields:
     - 'wsId': the record ID to update
-    - 'data': a dictionary of field names and new values to set
+    - 'updates': a list of field updates, each containing 'field' and 'value' keys
 
     CRITICAL: Pass record_updates as a proper list object, NOT as a JSON string.
-    Example: [{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]
-    NOT: "[{'wsId': 'record_id_1', 'data': {'status': 'active', 'priority': 'high'}}]"
+    Example: [{'wsId': 'record_id_1', 'updates': [{'field': 'status', 'value': 'active'}, {'field': 'priority', 'value': 'high'}]}]
+    NOT: "[{'wsId': 'record_id_1', 'updates': [{'field': 'status', 'value': 'active'}, {'field': 'priority', 'value': 'high'}]}]"
 
     If calling this tool always include the table_name and non empty record_updates.
 """
-
 
 async def update_records_implementation(ctx: RunContext[ChatRunContext], table_name: str, record_updates: List[RecordUpdateDict]) -> str:
     try:
@@ -80,32 +97,43 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
             if( update.get('wsId') is None):
                 return "Error: The wsId is required for each record update"
 
-            if(update.get('data') is None or len(update.get('data')) == 0):
-                return f"Error: The data is empty for update {update.get('wsId')}. The data dictionary must include at least one field to update"
-
+            if(update.get('updates') is None or len(update.get('updates')) == 0):
+                return f"Error: The updates is empty for update {update.get('wsId')}. The updates list must include at least one field update"
+            
+            # Validate each field update has required properties
+            for field_update in update.get('updates', []):
+                if not isinstance(field_update, dict):
+                    return f"Error: Each field update must be an object with 'field' and 'value' properties for update {update.get('wsId')}"
+                if 'field' not in field_update or field_update.get('field') is None or field_update.get('field') == "":
+                    return f"Error: Each field update must include a valid 'field' property for update {update.get('wsId')}"
+                if 'value' not in field_update:
+                    return f"Error: Each field update must include a 'value' property for update {update.get('wsId')}"
 
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps 
         
         # Find the table by name
-        table = None
-        for t in chatRunContext.snapshot.tables:
-            if t.name.lower() == table_name.lower():
-                table = t
-                break
+        table = find_table_by_name(chatRunContext, table_name);
         
         if not table:
-            available_tables = [t.name for t in chatRunContext.snapshot.tables]
-            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+            return missing_table_error(chatRunContext, table_name)
         
         from scratchpad_api import RecordOperation
         
+        # TODO: apply read_focus and write_focus to the records to eliminate some fields
+
+        if(chatRunContext.write_focus is not None or len(chatRunContext.write_focus) > 0):
+            # TODO: apply write_focus to the records to eliminate some fields
+            pass
+
+        # TODO: Translate field_name to the actual field ids
+
         # Create RecordOperation objects for update operations using map
         update_operations = list(map(
             lambda update: RecordOperation(
                 op="update",
                 wsId=update['wsId'],
-                data=update['data']
+                data={field_update['field']: field_update['value'] for field_update in update['updates']}
             ),
             record_updates
         ))
@@ -133,6 +161,9 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
         print(f"✏️ Updated records:")
         for i, operation in enumerate(update_operations):
             print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+            # Also show the original field updates for clarity
+            original_update = record_updates[i]
+            print(f"    Field updates: {original_update['updates']}")
         
         log_info("Successfully updated records", 
                 table_name=table_name,

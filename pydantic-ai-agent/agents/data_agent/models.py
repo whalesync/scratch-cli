@@ -42,5 +42,6 @@ common_field_descriptions = {
     "table_name": "The name of the table",
     "record_updates": "List of record updates, each containing 'wsId' and 'data' keys",
     "wsId": "The ID of the record to update",
-    "data": "Field names and their new values"
+    "data": "Field names and their new values",
+    "field": "The name of a field in a table"
 }
