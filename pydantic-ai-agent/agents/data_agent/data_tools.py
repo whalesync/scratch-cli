@@ -46,7 +46,7 @@ class SearchAndReplaceInFieldInput(WithTableName):
     wsId: str = Field(description="The ID of the record to update")
     field_name: str = Field(description="The name of the field to search and replace in")
     search_value: str = Field(description="The value to search for")
-    replace_value: str = Field(description="The value to replace the search value with")
+    new_value: str = Field(description="The value to replace the search value with")
    
 # class EditFieldValueInput(WithTableName):
 #     """
@@ -167,7 +167,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             """
             Append a value to a field in a record in a table in the active snapshot.
             
-            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. The updated value is stored in the suggested_fields field of the record and require user approval before being applied to the actual record data.
             
             Use this tool when the user asks to append data to a single record field
             The table_name should be the name of the table you want to update a record in.
@@ -264,9 +264,9 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         value=value,
                         snapshot_id=chatRunContext.session.snapshot_id)
                 
-                return f"Successfully appended the value to the field in record"      
+                return f"Successfully appended the value to the {input_data.field_name} field in record {input_data.wsId} in table {input_data.table_name}"
             except Exception as e:
-                error_msg = f"Failed to append value to field in record in table '{table_name}': {str(e)}"
+                error_msg = f"Failed to append value to the {input_data.field_name} field in record {input_data.wsId} in table {input_data.table_name}: {str(e)}"
                 log_error("Error appending value to field in record", 
                         table_name=table_name,
                         error=str(e))
@@ -389,18 +389,18 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
         @agent.tool
         async def search_and_replace_field_value_tool(ctx: RunContext[ChatRunContext], input_data: SearchAndReplaceInFieldInput) -> str:  # type: ignore
             """
-            Perform a search and replace operation on a field of a record in a table. All occurrences of the search_value will be replaced with the replace_value.
+            Use this tool when the user wants to perform a search and replace for a word or phrase inside a field of a record. All occurrences of the search_value will be replaced with the new_value.
             
-            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+            IMPORTANT: This tool creates SUGGESTIONS, not direct changes. The updated field value the suggested_fields field of the record and require user approval before being applied to the actual record data.
             
             Use this tool when the user asks to replace a value in a field of a record
             The table_name should be the name of the table you want to update records in.
             The wsId should be the ID of the record to update.
-            The field_name should be the name of the field to search and replace in.
+            The field_name should be the name of the field to modify.
             The search_value should be the value to search for and cannot be empty
-            The replace_value should be the value to replace the search_value with.
+            The new_value should be the value to replace the search_value with.
             
-            CRITICAL: The search_value must be a string and cannot be empty. The replace_value must be a string and can be empty.
+            CRITICAL: The search_value must be a string and cannot be empty. The new_value must be a string and may be empty.
             
             Note: When reading records later, you'll see both the original values (in the main fields) and any pending suggestions (in the suggested_fields field).
             """
@@ -410,7 +410,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 wsId = input_data.wsId
                 field_name = input_data.field_name
                 search_value = input_data.search_value
-                replace_value = input_data.replace_value
+                new_value = input_data.new_value
 
                 # Validate that wsId is a string
                 if not isinstance(wsId, str):
@@ -428,10 +428,10 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     return "Error: The search value is empty. Please provide a non-empty search value"
 
                 # Validate that replace_value is a string
-                if not isinstance(replace_value, str):
-                    return f"Error: replace_value must be a string, got {type(replace_value)}"
+                if not isinstance(new_value, str):
+                    return f"Error: new_value must be a string, got {type(new_value)}"
 
-                if(replace_value is None):
+                if(new_value is None):
                     return "Error: The replace value is missing"
                 
                 # Get the active snapshot
@@ -485,8 +485,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     current_value: str = str(record.suggested_fields[field_id])
                 else:
                     current_value: str = str(record.fields[field_id])
-
-                
                 
                 # Create a regex pattern that matches the search_value as a whole word
                 # This ensures we match complete words, not parts of other words
@@ -495,8 +493,8 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 escaped_search_value = re.escape(search_value)
                 pattern = r'\b' + escaped_search_value + r'\b'
                 
-                # Replace all occurrences of the pattern with the replace_value
-                updated_value: str = re.sub(pattern, replace_value, current_value)
+                # Replace all occurrences of the pattern with the new_value
+                updated_value, replace_count = re.subn(pattern, new_value, current_value)
 
                 update_operations = [
                     RecordOperation(
@@ -523,14 +521,14 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 for i, operation in enumerate(update_operations):
                     print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
                 
-                return f"Successfully replaced {search_value} with {replace_value} in field {field_name} in record {wsId} in table '{table_name}'"    
+                return f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {field_name} field. Record {wsId} now contains an updated suggested value containing the changes."
 
             except Exception as e:
-                error_msg = f"Failed to replace {search_value} with {replace_value} in field {field_name} in record {wsId} in table '{table_name}': {str(e)}"
+                error_msg = f"Failed to replace {search_value} with {new_value} in field {field_name} in record {wsId} in table '{table_name}': {str(e)}"
                 log_error("Error replacing values in field in record", 
                         table_name=table_name,
                         error=str(e))
-                print(f"❌ {error_msg}")
+                print(f"❌ {error_msg} - Exception: {str(e)}")
                 return error_msg
 
         # @agent.tool

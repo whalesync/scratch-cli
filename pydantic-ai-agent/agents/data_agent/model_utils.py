@@ -46,9 +46,9 @@ def find_record_by_wsId(chatRunContext: ChatRunContext, table_name: str, rec_id:
         return None
 
     # records are stored in lists, keyed to table ID
-    records = chatRunContext.preloaded_records[table_name]
+    records = chatRunContext.preloaded_records.get(table_name)
 
-    if not records:
+    if records is None or len(records) == 0:
         return None
 
     for record in records:

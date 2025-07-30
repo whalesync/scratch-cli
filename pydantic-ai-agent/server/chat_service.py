@@ -243,7 +243,7 @@ class ChatService:
                 # Final result will get set into the result above
                 async def process_stream():
                     nonlocal result
-                    nodes = []
+                   
                     async with agent.iter(
                         full_prompt, 
                         deps=chatRunContext,

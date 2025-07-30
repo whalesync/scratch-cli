@@ -101,7 +101,11 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
 
   const deleteSession = useCallback(
     async (sessionId: string) => {
-      await aiAgentApi.deleteSession(sessionId);
+      try {
+        await aiAgentApi.deleteSession(sessionId);
+      } catch (error) {
+        console.log('Error deleting session from server:', sessionId, error);
+      }
       setSessions(sessions.filter((session) => session.id !== sessionId));
       if (activeSessionId === sessionId) {
         setActiveSessionId(null);

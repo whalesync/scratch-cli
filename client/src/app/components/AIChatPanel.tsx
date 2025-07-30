@@ -325,8 +325,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           onChange={async (value) => {
             if (value) {
               await disconnect();
-              activateSession(value);
-              await connect(value);
+              try {
+                await activateSession(value);
+                await connect(value);
+              } catch (error) {
+                setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              }
             } else {
               clearActiveSession();
               await disconnect();
