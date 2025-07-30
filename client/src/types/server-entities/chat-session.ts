@@ -1,3 +1,5 @@
+import { FocusedCell } from "@/app/snapshots/[id]/components/types";
+
 export interface ChatSessionSummary {
   id: string;
   name: string;
@@ -7,6 +9,19 @@ export interface ChatSessionSummary {
 
 export interface SessionListResponse {
   sessions: ChatSessionSummary[];
+}
+
+// The DTO for sending a message to the agent
+export interface SendMessageRequestDTO {
+  message: string;
+  api_token?: string;
+  style_guides?: { name: string; content: string }[];
+  capabilities?: string[];
+  model?: string;
+  view_id?: string;
+  read_focus?: FocusedCell[];
+  write_focus?: FocusedCell[];
+  active_table_id?: string;
 }
 
 export interface ChatMessage {

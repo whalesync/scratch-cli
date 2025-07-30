@@ -25,6 +25,7 @@ class SendMessageRequestDTO(BaseModel):
     view_id: Optional[str] = Field(default=None, description="ID of the currently selected view")
     read_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of read-focused cells")
     write_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of write-focused cells")
+    active_table_id: Optional[str] = Field(default=None, description="ID of the currently active table")
 
 class SendMessageResponseDTO(BaseModel):
     """Response from sending a message"""

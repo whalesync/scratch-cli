@@ -64,6 +64,7 @@ class ChatService:
         read_focus: Optional[List[FocusedCell]] = None,
         write_focus: Optional[List[FocusedCell]] = None,
         capabilities: Optional[List[str]] = None,
+        active_table_id: Optional[str] = None,
         progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
@@ -197,6 +198,7 @@ class ChatService:
                     read_focus=read_focus,
                     write_focus=write_focus,
                     preloaded_records=preloaded_records,
+                    active_table_id=active_table_id
                 )
 
                 # Add pre-loaded snapshot data and records to the prompt

@@ -128,6 +128,9 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
     else:
         print(f"ℹ️ No style guides provided")
     
+    if request.active_table_id:
+        print(f"📊 Active table: {request.active_table_id}")
+
     if session_id not in chat_service.sessions:
         log_error("Message failed - session not found", session_id=session_id, available_sessions=list(chat_service.sessions.keys()))
         print(f"❌ Session {session_id} not found!")
@@ -149,7 +152,6 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         role="user",
         timestamp=datetime.now()
     )
-    
  
     session.chat_history.append(user_message)
     print(f"📝 Added user message to chat history. New length: {len(session.chat_history)}")
@@ -171,7 +173,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         else:
             print(f"   No style guides provided, using empty dict")
         
-        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities)
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, request.active_table_id)
         
         log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         

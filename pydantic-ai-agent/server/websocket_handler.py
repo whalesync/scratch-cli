@@ -176,7 +176,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, chat_service
                             session_id
                         )
 
-                    agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, progress_callback)
+                    agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, request.active_table_id, progress_callback)
                     
                     log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
                     

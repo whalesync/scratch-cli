@@ -372,7 +372,13 @@ function SnapshotPageContent() {
             )}
           </Stack>
 
-          <AIChatPanel isOpen={showChat} onClose={toggleChat} snapshotId={id} currentViewId={currentViewId} />
+          <AIChatPanel
+            isOpen={showChat}
+            onClose={toggleChat}
+            snapshotId={id}
+            currentViewId={currentViewId}
+            activeTableId={selectedTableId}
+          />
         </Group>
 
         {selectedTable && (

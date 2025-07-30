@@ -5,7 +5,7 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { Capability, ChatMessage } from '@/types/server-entities/chat-session';
+import { Capability, ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import {
   ActionIcon,
   Alert,
@@ -29,19 +29,15 @@ import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
 
-interface FocusedCell {
-  recordWsId: string;
-  columnWsId: string;
-}
-
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   snapshotId?: string;
   currentViewId?: string | null;
+  activeTableId?: string | null;
 }
 
-export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId, activeTableId }: AIChatPanelProps) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -178,16 +174,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       // Get selected style guide content
       const selectedStyleGuides = styleGuides.filter((sg) => selectedStyleGuideIds.includes(sg.id));
 
-      const messageData: {
-        message: string;
-        api_token?: string;
-        style_guides?: Array<{ name: string; content: string }>;
-        capabilities?: string[];
-        model?: string;
-        view_id?: string;
-        read_focus?: FocusedCell[];
-        write_focus?: FocusedCell[];
-      } = {
+      const messageData: SendMessageRequestDTO = {
         message: message.trim(),
         model: selectedModel,
       };
@@ -227,6 +214,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       if (writeFocus && writeFocus.length > 0) {
         messageData.write_focus = writeFocus;
         console.debug('Including write focus:', writeFocus.length, 'cells');
+      }
+
+      if (activeTableId) {
+        messageData.active_table_id = activeTableId;
+        console.debug('Including active table ID:', activeTableId);
       }
 
       sendAiAgentMessage(messageData);
