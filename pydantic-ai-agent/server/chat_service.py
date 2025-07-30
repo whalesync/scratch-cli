@@ -176,6 +176,7 @@ class ChatService:
                         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(snapshot_data, session)
                         
                         # Pre-load records for each table
+                        # TODO: apply read_focus and write_focus to the records to eliminate some fields
                         for table in snapshot.tables:
                             try:
                                 records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
@@ -202,9 +203,6 @@ class ChatService:
                         snapshot = None
                         preloaded_records = {}
                 
-                # print(f"🤯🤯🤯🤯 PRELOADED RECORDS: {preloaded_records}")
-
-
                 # Create context with pre-loaded data
                 chatRunContext:ChatRunContext = ChatRunContext(
                     session=session,
@@ -293,6 +291,7 @@ class ChatService:
                     async with agent.iter(
                         full_prompt, 
                         deps=chatRunContext,
+                        message_history=session.message_history,
                         usage_limits=UsageLimits(
                             request_limit=10,  # Maximum 20 requests per agent run
                             # request_tokens_limit=10000,  # Maximum 10k tokens per request
@@ -331,7 +330,6 @@ class ChatService:
                                         #         )
                                 elif Agent.is_call_tools_node(node):
                                     # A handle-response node => The model returned some data, potentially calls a tool
-
                                     model_response = node.model_response
                                     if model_response.parts:
                                         model_response_part = model_response.parts[0]
