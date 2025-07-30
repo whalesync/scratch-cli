@@ -123,9 +123,10 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
         
         # TODO: apply read_focus and write_focus to the records to eliminate some fields
 
-        if(chatRunContext.write_focus is not None or len(chatRunContext.write_focus) > 0):
-            # TODO: apply write_focus to the records to eliminate some fields
-            pass
+        # Commented out - breaks the method.
+        # if(chatRunContext.write_focus is not None or len(chatRunContext.write_focus) > 0):
+        #     # TODO: apply write_focus to the records to eliminate some fields
+        #     pass
 
         # TODO: Translate field_name to the actual field ids
 
