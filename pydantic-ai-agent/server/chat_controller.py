@@ -38,6 +38,11 @@ AVAILABLE_CAPABILITIES = [
         description='Delete records from a table in the active snapshot by their IDs.'
     ),
     Capability(
+        code='data:field-tools', 
+        enabledByDefault=True,
+        description='Tools to edit specific fields'
+    ),
+    Capability(
         code='views:filter-out-records', 
         enabledByDefault=True,
         description='Add records to the active record filter for a table in the current snapshot.'

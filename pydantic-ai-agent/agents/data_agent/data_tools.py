@@ -159,7 +159,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"❌ {error_msg}")
                 return error_msg
 
-    if capabilities is None or 'data:update' in capabilities:
+    if capabilities is None or 'data:field-tools' in capabilities:
    
         
         @agent.tool
@@ -272,6 +272,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         error=str(e))
                 print(f"❌ {error_msg}")
                 return error_msg
+
 
         @agent.tool
         async def insert_value_tool(ctx: RunContext[ChatRunContext], input_data: InsertFieldValueInput) -> str:  # type: ignore

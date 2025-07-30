@@ -41,12 +41,12 @@ def is_in_read_focus(chatRunContext: ChatRunContext, column_id: str, rec_id: str
 
 
 # Extract a specific record from the preloaded records in the context
-def find_record_by_wsId(chatRunContext: ChatRunContext, table_id: str, rec_id: str) -> SnapshotRecord | None:
+def find_record_by_wsId(chatRunContext: ChatRunContext, table_name: str, rec_id: str) -> SnapshotRecord | None:
     if not chatRunContext.preloaded_records:
         return None
 
     # records are stored in lists, keyed to table ID
-    records = chatRunContext.preloaded_records[table_id]
+    records = chatRunContext.preloaded_records[table_name]
 
     if not records:
         return None
