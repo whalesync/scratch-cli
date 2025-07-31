@@ -65,6 +65,7 @@ class ChatService:
         write_focus: Optional[List[FocusedCell]] = None,
         capabilities: Optional[List[str]] = None,
         active_table_id: Optional[str] = None,
+        timeout_seconds: float = 60.0,
         progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
@@ -308,8 +309,12 @@ class ChatService:
 
                 
                 # Run the streaming with timeout
-                await asyncio.wait_for(process_stream(), timeout=60.0)
-                print(f"✅ Agent.run() completed")
+                print(f"🤖 Running agent with timeout of {timeout_seconds} seconds")
+                start_time = asyncio.get_event_loop().time()
+                await asyncio.wait_for(process_stream(), timeout=timeout_seconds)
+                end_time = asyncio.get_event_loop().time()
+                execution_time = end_time - start_time
+                print(f"✅ Agent.run() completed in {execution_time:.2f} seconds")
                 session.message_history = result.all_messages()
             except asyncio.TimeoutError:
                 log_error("Agent processing timeout", session_id=session.id, timeout_seconds=30, snapshot_id=session.snapshot_id)
