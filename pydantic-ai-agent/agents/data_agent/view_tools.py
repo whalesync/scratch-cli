@@ -8,6 +8,7 @@ from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAg
 from typing import List, Optional
 from pydantic_ai import Agent, RunContext
 from scratchpad_api import API_CONFIG
+from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error, unable_to_identify_active_table_error
 from logger import log_error
 
 
@@ -201,12 +202,11 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
 
     if capabilities is None or 'views:filter-out-records' in capabilities:
         @agent.tool
-        async def add_records_to_filter_tool(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str]) -> str:  # type: ignore
+        async def add_records_to_filter_tool(ctx: RunContext[ChatRunContext], record_ids: List[str]) -> str:  # type: ignore
             """
-            Add records to the active record filter for a table in the current snapshot.
+            Add records to the current record filter for the active table in the current snapshot. 
             
             Use this tool when the user asks to filter out specific records from a table or hide records from view.
-            The table_name should be the name of the table you want to add records to the filter for.
             The record_ids should be a list of record IDs (wsId) to add to the filter.
 
             CRITICAL: The record_ids must be a list of strings and cannot be empty. The list should not contain duplicate values. The list should not contain empty values.
@@ -216,26 +216,23 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
 
             Do not use this tool if there are no records to filter.
             """
+            table_name = None
             try:
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps                 
                 if not chatRunContext.snapshot:
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
-                if(table_name is None or table_name == ""):
-                    return "Error: The table name is empty. Please provide a non-empty table name"
-
                 # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
-                
+                # table = find_table_by_name(chatRunContext, table_name);
+
+                table = get_active_table(chatRunContext)
+
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+                    return unable_to_identify_active_table_error(chatRunContext)
                 
+                table_name = table.name
+
                 # Validate that record_ids is provided
                 if not record_ids:
                     return "Error: No record IDs provided. Please provide a list of record IDs to add to the filter."
@@ -252,7 +249,7 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     chatRunContext.api_token
                 )
                 
-                return f"Successfully added {len(record_ids)} records to the filter for table '{table_name}'."
+                return f"Successfully filtered out {len(record_ids)} records from the table."
                 
             except Exception as e:
                 error_msg = f"Failed to add records to filter for table '{table_name}': {str(e)}"
@@ -264,15 +261,15 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
 
     if capabilities is None or 'views:clear-filters' in capabilities:
         @agent.tool
-        async def clear_record_filter_tool(ctx: RunContext[ChatRunContext], table_name: str) -> str:  # type: ignore
+        async def clear_record_filter_tool(ctx: RunContext[ChatRunContext]) -> str:  # type: ignore
             """
-            Clear the active record filter for a table in the current snapshot.
+            Clear the active record filter for the active table in the current snapshot.
             
             Use this tool when the user asks to clear the record filter for a table or show all records again.
-            The table_name should be the name of the table you want to clear the filter for.
 
             Do not use this tool if there is no active record filter for the table.
             """
+            table_name = None
             try:
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps 
@@ -282,15 +279,12 @@ def define_view_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
                 # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
+                table = get_active_table(chatRunContext)
                 
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+                    return unable_to_identify_active_table_error(chatRunContext)
+                
+                table_name = table.name
                 
                 # Import the clear_active_record_filter function
                 from scratchpad_api import clear_active_record_filter

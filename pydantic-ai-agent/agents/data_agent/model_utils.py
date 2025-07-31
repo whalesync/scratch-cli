@@ -63,8 +63,19 @@ def find_record_by_wsId(chatRunContext: ChatRunContext, table_name: str, rec_id:
     return None
 
 
-# Error Generators
+def get_active_table(chatRunContext: ChatRunContext) -> TableSpec | None:
+    if not chatRunContext.snapshot or not chatRunContext.snapshot.tables or len(chatRunContext.snapshot.tables) == 0:
+        return None
 
+    if chatRunContext.active_table_id:
+        for table in chatRunContext.snapshot.tables:
+            if table.id.wsId == chatRunContext.active_table_id:
+                return table
+
+    return chatRunContext.snapshot.tables[0]
+
+
+# Error Generators
 def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str) -> str:
     available_tables = [t.name for t in chatRunContext.snapshot.tables]
     return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"
@@ -73,8 +84,6 @@ def missing_field_error(table: TableSpec, missing_field_name: str) -> str:
     available_fields = [c.name for c in table.columns]
     return f"Error: Field '{missing_field_name}' not found. Available fields: {available_fields}"
 
-def get_active_table(chatRunContext: ChatRunContext) -> TableSpec:
-    if not chatRunContext.snapshot or not chatRunContext.snapshot.tables or len(chatRunContext.snapshot.tables) == 0:
-        return None
-    return chatRunContext.snapshot.tables[0]
+def unable_to_identify_active_table_error(chatRunContext: ChatRunContext) -> str:
+    return f"Error: Unable to identify the active table from the context. The snapshot may not be loaded or the active table may not be set."
     

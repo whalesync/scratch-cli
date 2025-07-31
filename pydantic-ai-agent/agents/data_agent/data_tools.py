@@ -3,7 +3,7 @@
 PydanticAI Tools for the Chat Server
 """
 from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName
-from agents.data_agent.model_utils import find_record_by_wsId, is_in_write_focus, missing_table_error, find_table_by_name, missing_field_error, find_column_by_name
+from agents.data_agent.model_utils import find_record_by_wsId, is_in_write_focus, missing_table_error, find_table_by_name, missing_field_error, find_column_by_name, unable_to_identify_active_table_error, get_active_table
 
 from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field
@@ -669,18 +669,14 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
 
     if capabilities is None or 'data:delete' in capabilities:
         @agent.tool
-        async def delete_records_tool(ctx: RunContext[ChatRunContext], table_name: str, record_ids: List[str]) -> str:  # type: ignore
+        async def delete_records_tool(ctx: RunContext[ChatRunContext], record_ids: List[str]) -> str:  # type: ignore
             """
-            Delete records from a table in the active snapshot by their IDs.
+            Delete records from the active table in the current snapshot by their record IDs.
             
-            Use this tool when the user asks to delete records from a table.
-            The table_name should be the name of the table you want to delete records from.
+            Use this tool when the user asks to delete records from the active table.
             The record_ids should be a list of record IDs (wsId) to delete.
-            
-            You should first use get_records_tool to see the current records and identify which ones to delete
-            based on the user's criteria. Then extract the wsId values from the matching records.
-
             """
+            table_name = None
             try:
                 # Get the active snapshot
                 chatRunContext: ChatRunContext = ctx.deps 
@@ -690,18 +686,11 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
                 # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
+                table = get_active_table(chatRunContext)
+                table_name = table.name
                 
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
-                
-                # Set the API token for authentication
-                # API_CONFIG.set_api_token(chatRunContext.api_token)
+                    return unable_to_identify_active_table_error(chatRunContext)
                 
                 # Import the RecordOperation class
                 from scratchpad_api import RecordOperation
@@ -709,6 +698,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 # Validate that record_ids is provided
                 if not record_ids:
                     return "Error: No record IDs provided. Please provide a list of record IDs to delete."
+                
                 
                 # Create RecordOperation objects for delete operations
                 delete_operations = []
