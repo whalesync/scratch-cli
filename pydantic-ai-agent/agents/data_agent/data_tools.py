@@ -13,6 +13,7 @@ from pydantic_core import core_schema, SchemaValidator
 from scratchpad_api import RecordId, SnapshotRecord, TableSpec, list_records, get_snapshot, API_CONFIG
 from logger import log_info, log_error
 from agents.data_agent.tools.update_records_tool import create_update_records_tool
+from agents.data_agent.tools.create_records_tool import create_create_records_tool
 import re
 
 class GetRecordsInput(BaseModel):
@@ -60,110 +61,14 @@ def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[
     tools = []
     if capabilities is None or 'data:update' in capabilities:
         tools.append(create_update_records_tool(style_guides));
+    if capabilities is None or 'data:create' in capabilities:
+        tools.append(create_create_records_tool(style_guides));
     return tools;
 
 
 def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
-    
-    if capabilities is None or 'data:create' in capabilities:
-        @agent.tool
-        async def create_records_tool(ctx: RunContext[ChatRunContext], table_name: str, record_data_list: List[Dict[str, Any]]) -> str:  # type: ignore
-            """
-            Create new records for a table in the active snapshot using data provided by the LLM.
-            
-            Use this tool when the user asks to create new records or add data to a table.
-            The table_name should be the name of the table you want to create records for.
-            The record_data_list should be a list of dictionaries, where each dictionary contains field names as keys and appropriate values based on the column types.
-            The record_data_list must contain at least one entry.
-            """
-            try:
-                # Get the active snapshot
-                chatRunContext: ChatRunContext = ctx.deps 
-                chatSession: ChatSession = chatRunContext.session
-                
-                if not chatRunContext.snapshot:
-                    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
-                
-                # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
-                
-                if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
-                
-                # Set the API token for authentication
-                # API_CONFIG.set_api_token(chatRunContext.api_token)
-                
-                # Import the RecordOperation class
-                from scratchpad_api import RecordOperation
-                
-                # Validate that record_data_list is provided
-                if not record_data_list:
-                    return "Error: No record_data_list provided. You must provide a list of record data dictionaries that includes at least one element."
-                
-                if len(record_data_list) == 0:
-                    return "Error: The record_data_list is empty. You must provide a list of record data dictionaries that includes at least one element."
-                
-                # Create RecordOperation objects from the provided data
-                sample_records = []
-                for i, record_data in enumerate(record_data_list):
-                    if not isinstance(record_data, dict):
-                        return f"Error: Record data at index {i} must be a dictionary, got {type(record_data)}"
-                    
-                    # Create proper RecordOperation objects
-                    sample_records.append(RecordOperation(
-                        op="create",
-                        wsId=f"temp_id_{i+1}",  # Temporary ID for create operations
-                        data=record_data
-                    ))
-                
-                log_info("Creating records via bulk update", 
-                        table_name=table_name,
-                        table_id=table.id.wsId,
-                        record_count=len(sample_records),
-                        snapshot_id=chatRunContext.session.snapshot_id)
-                
-                # Import the bulk update function
-                from scratchpad_api import bulk_update_records
-                
-                # Call the bulk update endpoint
-                bulk_update_records(
-                    snapshot_id=chatRunContext.session.snapshot_id,
-                    table_id=table.id.wsId,
-                    operations=sample_records,
-                    api_token=chatRunContext.api_token,
-                    view_id=chatRunContext.view_id
-                )
-                
-                print(f"✅ Successfully created {len(sample_records)} records for table '{table_name}'")
-                print(f"📋 Table ID: {table.id.wsId}")
-                print(f"📊 Records created:")
-                for i, record in enumerate(sample_records):
-                    print(f"  Record {i+1}: {record.data}")
-                
-                log_info("Successfully created records", 
-                        table_name=table_name,
-                        table_id=table.id.wsId,
-                        record_count=len(sample_records),
-                        snapshot_id=chatRunContext.session.snapshot_id)
-                
-                return f"Successfully created {len(sample_records)} records for table '{table_name}'. Records have been logged to console."
-                
-            except Exception as e:
-                error_msg = f"Failed to create records for table '{table_name}': {str(e)}"
-                log_error("Error creating records", 
-                        table_name=table_name,
-                        error=str(e))
-                print(f"❌ {error_msg}")
-                return error_msg
 
     if capabilities is None or 'data:field-tools' in capabilities:
-   
-        
         @agent.tool
         async def append_field_value_tool(ctx: RunContext[ChatRunContext], input_data: AppendFieldValueInput) -> str:  # type: ignore
             """
