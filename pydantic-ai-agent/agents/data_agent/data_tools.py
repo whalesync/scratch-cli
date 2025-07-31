@@ -382,7 +382,9 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 else:
                     current_value: str = str(record.fields[column.id.wsId])
 
-                if(current_value.find('@@') == -1):
+                placeholder_count = current_value.count('@@')
+
+                if(placeholder_count == 0):
                     return f"Error: No values inserted. The field {field_name} in record {wsId} does not contain the @@ placeholder marker."
 
                 updated_value = current_value.replace('@@', value)
@@ -418,7 +420,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         value=value,
                         snapshot_id=chatRunContext.session.snapshot_id)
                 
-                return f"Successfully inserted {value} into the {field_name} field. Record {wsId} now contains an updated suggested value containing the changes."
+                return f"Successfully inserted {value} into the {field_name} field in {placeholder_count} places. Record {wsId} now contains an updated suggested value containing the changes."
             except Exception as e:
                 error_msg = f"Failed to insert the suggested value into the field in record in table '{table_name}': {str(e)}"
                 log_error("Error inserting the suggested value into the field in record", 
@@ -517,6 +519,9 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 
                 # Replace all occurrences of the pattern with the new_value
                 updated_value, replace_count = re.subn(pattern, new_value, current_value)
+
+                if(replace_count == 0):
+                    return f"Error: No occurrences of {search_value} found in the {field_name} field of record {wsId}."
 
                 update_operations = [
                     RecordOperation(
