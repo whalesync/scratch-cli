@@ -181,12 +181,20 @@ export const RecordDetails = ({
           resize="vertical"
           onChange={(e) => updateField(field, e.target.value)}
           readOnly={column.readonly || hasSuggestion}
-          styles={greenBackgroundStyle}
+          styles={{
+            input: {
+              border: 'none',
+              fontSize: '1rem',
+              padding: '2rem',
+              backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
+            },
+          }}
           onSelectionChange={handleTextSelectionChange}
           onCursorChange={handleTextAreaCursorChange}
         />
       );
     },
+
     [currentRecord.fields, handleTextAreaCursorChange, handleTextSelectionChange, updateField],
   );
 
