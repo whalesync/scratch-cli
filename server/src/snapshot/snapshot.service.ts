@@ -555,7 +555,7 @@ export class SnapshotService {
       }
     }
 
-    return this.snapshotDbService.acceptCellValues(snapshotId, tableId, items);
+    return this.snapshotDbService.acceptCellValues(snapshotId, tableId, items, tableSpec);
   }
 
   async rejectValues(

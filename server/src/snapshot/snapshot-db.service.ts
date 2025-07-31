@@ -421,8 +421,15 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     snapshotId: SnapshotId,
     tableId: string,
     items: { wsId: string; columnId: string }[],
+    tableSpec: AnyTableSpec,
   ): Promise<void> {
     const now = new Date().toISOString();
+
+    // Create a map of column ID to column type
+    const columnTypes = new Map<string, PostgresColumnType>();
+    for (const column of tableSpec.columns) {
+      columnTypes.set(column.id.wsId, column.pgType);
+    }
 
     // Group items by wsId
     const groupedByWsId = items.reduce(
@@ -441,9 +448,35 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
         const updatePayload: Record<string, any> = {};
 
-        // For each column, copy the suggested value to the actual column
+        // For each column, copy the suggested value to the actual column with proper casting
         for (const columnId of columnIds) {
-          updatePayload[columnId] = trx.raw(`??->>?`, [SUGGESTED_FIELDS_COLUMN, columnId]);
+          const columnType = columnTypes.get(columnId);
+          if (!columnType) {
+            console.warn(`Column type not found for ${columnId}, using text`);
+          }
+
+          // Cast based on column type
+          let castExpression: string;
+          switch (columnType) {
+            case PostgresColumnType.NUMERIC:
+            case PostgresColumnType.NUMERIC_ARRAY:
+              castExpression = `(??->>?)::numeric`;
+              break;
+            case PostgresColumnType.BOOLEAN:
+            case PostgresColumnType.BOOLEAN_ARRAY:
+              castExpression = `(??->>?)::boolean`;
+              break;
+            case PostgresColumnType.JSONB:
+              castExpression = `(??->>?)::jsonb`;
+              break;
+            case PostgresColumnType.TEXT:
+            case PostgresColumnType.TEXT_ARRAY:
+            default:
+              castExpression = `??->>?`;
+              break;
+          }
+
+          updatePayload[columnId] = trx.raw(castExpression, [SUGGESTED_FIELDS_COLUMN, columnId]);
         }
 
         // Remove all suggestions for these columns using JSON deletion operator

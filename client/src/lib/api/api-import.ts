@@ -189,7 +189,6 @@ export const generateListTables = async (prompt: string, connectorId: string): P
   });
 
   if (!response.ok) {
-    debugger;
     throw new Error('Failed to generate list tables function');
   }
 
