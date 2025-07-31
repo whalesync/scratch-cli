@@ -12,6 +12,7 @@ from agents.data_agent.tools.insert_value_tool import define_insert_value_tool
 from agents.data_agent.tools.search_and_replace_field_value_tool import define_search_and_replace_field_value_tool
 from agents.data_agent.tools.delete_records_tool import define_delete_records_tool
 from agents.data_agent.tools.create_records_tool import create_create_records_tool
+from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -34,6 +35,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
         define_append_field_value_tool(agent)
         define_insert_value_tool(agent)
         define_search_and_replace_field_value_tool(agent)
+        define_set_field_value_tool(agent)
     
     if capabilities is None or 'data:delete' in capabilities:
         define_delete_records_tool(agent)
