@@ -21,7 +21,6 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
-import _ from 'lodash';
 import { useCallback, useEffect, useState } from 'react';
 import { useAIPromptContext } from '../AIPromptContext';
 
@@ -280,7 +279,7 @@ export const RecordDetails = ({
         </Group>
       ) : null;
 
-      if (hasSuggestion && isBigTextField(column, currentValue)) {
+      if (hasSuggestion && isTextField(column, currentValue)) {
         return (
           <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
             <Text size="sm" fw={500}>
@@ -416,10 +415,6 @@ export const RecordDetails = ({
   );
 };
 
-function isBigTextField(column: ColumnSpec, value: string | undefined | null) {
-  return (
-    column.markdown ||
-    column.pgType === PostgresColumnType.JSONB ||
-    (column.pgType === PostgresColumnType.TEXT && value && _.isString(value) && value.length > 200)
-  );
+function isTextField(column: ColumnSpec, value: string | undefined | null) {
+  return column.markdown || column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
 }
