@@ -3,7 +3,7 @@
 PydanticAI Tools for the Chat Server
 """
 from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName
-from agents.data_agent.model_utils import find_record_by_wsId, is_in_write_focus
+from agents.data_agent.model_utils import find_record_by_wsId, is_in_write_focus, missing_table_error, find_table_by_name, missing_field_error, find_column_by_name
 
 from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field
@@ -73,9 +73,8 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
             
             Use this tool when the user asks to create new records or add data to a table.
             The table_name should be the name of the table you want to create records for.
-            The record_data_list should be a list of dictionaries, where each dictionary contains
-            field names as keys and appropriate values based on the column types.
-
+            The record_data_list should be a list of dictionaries, where each dictionary contains field names as keys and appropriate values based on the column types.
+            The record_data_list must contain at least one entry.
             """
             try:
                 # Get the active snapshot
@@ -104,7 +103,10 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 
                 # Validate that record_data_list is provided
                 if not record_data_list:
-                    return "Error: No record data provided. Please provide a list of record data dictionaries."
+                    return "Error: No record_data_list provided. You must provide a list of record data dictionaries that includes at least one element."
+                
+                if len(record_data_list) == 0:
+                    return "Error: The record_data_list is empty. You must provide a list of record data dictionaries that includes at least one element."
                 
                 # Create RecordOperation objects from the provided data
                 sample_records = []
@@ -209,22 +211,39 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not chatRunContext.snapshot:
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
-                # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
-                
+                table = find_table_by_name(chatRunContext, table_name)
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+                    return missing_table_error(table_name)
+
+                column = find_column_by_name(table, field_name)
                 
-                # Set the API token for authentication
-                # API_CONFIG.set_api_token(chatRunContext.api_token)
+                if not column:
+                    return missing_field_error(table, field_name)
+
+                log_info("Appending value to field in record", 
+                        table_name=table_name,
+                        table_id=table.id.wsId,
+                        wsId=wsId,
+                        field_name=field_name,
+                        value=value,
+                        snapshot_id=chatRunContext.session.snapshot_id)
                 
-                # Import the RecordOperation class
-                from scratchpad_api import RecordOperation
+                # Import the inject value  function
+                from scratchpad_api import bulk_update_records, RecordOperation
+                
+                # Get the record from the preloaded records
+                record = find_record_by_wsId(chatRunContext, table_name, wsId)
+
+                if not record:
+                    return f"Error: Record '{wsId}' does not exist in the current context."
+
+                if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
+                    return f"Error: Field '{field_name}' is not in write focus."
+
+                if(column.id.wsId in record.suggested_fields):
+                    current_value: str = str(record.suggested_fields[column.id.wsId])
+                else:
+                    current_value: str = str(record.fields[column.id.wsId])
                 
                 log_info("Appending value to field in record", 
                         table_name=table_name,
@@ -234,27 +253,26 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         value=value,
                         snapshot_id=chatRunContext.session.snapshot_id)
                 
-                # Import the bulk update function
-                from scratchpad_api import append_value, AppendFieldValueDto
-                
-                # Call the bulk update endpoint
-                append_value(
+
+                updated_value = current_value + ' ' + value
+
+                update_operations = [   
+                    RecordOperation(
+                        op="update",
+                        wsId=wsId,
+                        data={
+                            column.id.wsId: updated_value
+                        }
+                    )
+                ]
+
+                bulk_update_records(
                     snapshot_id=chatRunContext.session.snapshot_id,
                     table_id=table.id.wsId,
-                    dto=AppendFieldValueDto(
-                        wsId=wsId,
-                        columnId=field_name,
-                        value=value
-                    ),
+                    operations=update_operations,
                     api_token=chatRunContext.api_token,
                     view_id=chatRunContext.view_id
                 )
-                
-                print(f"✅ Successfully appended value to field in record")
-                print(f"📋 Table ID: {table.id.wsId}")
-                print(f"✏️ wsId: {wsId}")
-                print(f"✏️ Field name: {field_name}")
-                print(f"✏️ Value: {value}")
                 
                 log_info("Successfully appended value to field in record", 
                         table_name=table_name,
@@ -277,11 +295,12 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
         @agent.tool
         async def insert_value_tool(ctx: RunContext[ChatRunContext], input_data: InsertFieldValueInput) -> str:  # type: ignore
             """
-            Inserts a value into the an existing field for a record in a table at a specific placeholder.
+            Inserts a value into the an field for a record in a table at the @@ placeholder marker.
             
             IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
             
             Use this tool when the user asks to insert data to a single record field
+            Do not use this tool for search and replace operations.
             The table_name should be the name of the table you want to update records in.
             The wsId should be the ID of the record to update.
             The field_name should be the name of the field to append a value to.
@@ -328,16 +347,16 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
                 # Find the table by name
-                table = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
+                table = find_table_by_name(chatRunContext, table_name)
                 
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
-                                                
+                    return missing_table_error(table_name)
+
+                column = find_column_by_name(table, field_name)
+                
+                if not column:
+                    return missing_field_error(table, field_name)
+
                 log_info("Injecting value into field in record", 
                         table_name=table_name,
                         table_id=table.id.wsId,
@@ -347,18 +366,41 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         snapshot_id=chatRunContext.session.snapshot_id)
                 
                 # Import the inject value  function
-                from scratchpad_api import inject_value, InjectFieldValueDto
+                from scratchpad_api import bulk_update_records, RecordOperation
                 
-                # Call the inject value endpoint
-                inject_value(
+                # Get the record from the preloaded records
+                record = find_record_by_wsId(chatRunContext, table_name, wsId)
+
+                if not record:
+                    return f"Error: Record '{wsId}' does not exist in the current context."
+
+                if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
+                    return f"Error: Field '{field_name}' is not in write focus."
+
+                if(column.id.wsId in record.suggested_fields):
+                    current_value: str = str(record.suggested_fields[column.id.wsId])
+                else:
+                    current_value: str = str(record.fields[column.id.wsId])
+
+                if(current_value.find('@@') == -1):
+                    return f"Error: No values inserted. The field {field_name} in record {wsId} does not contain the @@ placeholder marker."
+
+                updated_value = current_value.replace('@@', value)
+
+                update_operations = [
+                    RecordOperation(
+                        op="update",
+                        wsId=wsId,
+                        data={
+                            column.id.wsId: updated_value
+                        }
+                    )
+                ]
+
+                bulk_update_records(
                     snapshot_id=chatRunContext.session.snapshot_id,
                     table_id=table.id.wsId,
-                    dto=InjectFieldValueDto(
-                        wsId=wsId,
-                        columnId=field_name,
-                        value=value,
-                        targetKey='@@'
-                    ),
+                    operations=update_operations,
                     api_token=chatRunContext.api_token,
                     view_id=chatRunContext.view_id
                 )
@@ -368,7 +410,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 print(f"✏️ wsId: {wsId}")
                 print(f"✏️ Field name: {field_name}")
                 
-                
                 log_info("Successfully inserted the suggested value into the record", 
                         table_name=table_name,
                         table_id=table.id.wsId,
@@ -377,7 +418,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         value=value,
                         snapshot_id=chatRunContext.session.snapshot_id)
                 
-                return f"Successfully inserted the suggested value into the field in record"      
+                return f"Successfully inserted {value} into the {field_name} field. Record {wsId} now contains an updated suggested value containing the changes."
             except Exception as e:
                 error_msg = f"Failed to insert the suggested value into the field in record in table '{table_name}': {str(e)}"
                 log_error("Error inserting the suggested value into the field in record", 
@@ -442,31 +483,15 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
                 
                 # Find the table by name
-                table: TableSpec | None = None
-                for t in chatRunContext.snapshot.tables:
-                    if t.name.lower() == table_name.lower():
-                        table = t
-                        break
-                
+                table = find_table_by_name(chatRunContext, table_name)
                 if not table:
-                    available_tables = [t.name for t in chatRunContext.snapshot.tables]
-                    return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+                    return missing_table_error(table_name)
 
-                print(f"🔍 Table: {table}")
+                column = find_column_by_name(table, field_name)
+                if not column:
+                    return missing_field_error(table, field_name)
 
-                field_id = None
-                for column in table.columns:
-                    if column.name.lower() == field_name.lower():
-                        field_id = column.id.wsId
-                        break
-                
-                if not field_id:
-                    available_columns = [c.name for c in table.columns]
-                    return f"Error: Field '{field_name}' not found. Available columns: {available_columns}"
-
-                print(f"🔍 Field ID: {field_id}")
-
-                if not is_in_write_focus(chatRunContext, field_id, wsId):
+                if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
                     return f"Error: Field '{field_name}' is not in write focus."
 
                 from scratchpad_api import bulk_update_records, RecordOperation
@@ -477,14 +502,11 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                 if not record:
                     return f"Error: Record '{wsId}' does not exist in the current context."
 
-                print(f"🔍 Record: {record}")
-
                 # Get the field from the record
-                # TODO - first check the suggested_fields field for the value, then fall back to the fields field
-                if(field_id in record.suggested_fields):
-                    current_value: str = str(record.suggested_fields[field_id])
+                if(column.id.wsId in record.suggested_fields):
+                    current_value: str = str(record.suggested_fields[column.id.wsId])
                 else:
-                    current_value: str = str(record.fields[field_id])
+                    current_value: str = str(record.fields[column.id.wsId])
                 
                 # Create a regex pattern that matches the search_value as a whole word
                 # This ensures we match complete words, not parts of other words
@@ -501,7 +523,7 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                         op="update",
                         wsId=wsId,
                         data={
-                            field_id: updated_value
+                            column.id.wsId: updated_value
                         }
                     )
                 ]
@@ -514,12 +536,6 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
                     api_token=chatRunContext.api_token,
                     view_id=chatRunContext.view_id
                 )
-                
-                print(f"✅ Successfully updated {len(update_operations)} in table '{table_name}'")
-                print(f"📋 Table ID: {table.id.wsId}")
-                print(f"✏️ Updated records:")
-                for i, operation in enumerate(update_operations):
-                    print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
                 
                 return f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {field_name} field. Record {wsId} now contains an updated suggested value containing the changes."
 

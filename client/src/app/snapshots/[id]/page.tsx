@@ -341,7 +341,7 @@ function SnapshotPageContent() {
         {/* View List Band */}
 
         <Group h="100%" justify="flex-start" align="flex-start" w="100%">
-          <Stack h="100%" w="100%" flex={1}>
+          <Stack h="99%" w="100%" flex={1}>
             <ViewData
               currentViewId={currentViewId}
               onViewChange={setCurrentViewId}

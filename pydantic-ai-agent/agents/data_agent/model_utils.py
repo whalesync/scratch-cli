@@ -23,7 +23,7 @@ def is_in_write_focus(chatRunContext: ChatRunContext, column_id: str, rec_id: st
     # if the write focus is not provided, then we don't care
     if not chatRunContext.write_focus:
         return True
-    
+        
     for focus in chatRunContext.write_focus:
         if focus.columnWsId == column_id and focus.recordWsId == rec_id:
             return True
@@ -68,6 +68,10 @@ def find_record_by_wsId(chatRunContext: ChatRunContext, table_name: str, rec_id:
 def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str) -> str:
     available_tables = [t.name for t in chatRunContext.snapshot.tables]
     return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"
+
+def missing_field_error(table: TableSpec, missing_field_name: str) -> str:
+    available_fields = [c.name for c in table.columns]
+    return f"Error: Field '{missing_field_name}' not found. Available fields: {available_fields}"
 
 def get_active_table(chatRunContext: ChatRunContext) -> TableSpec:
     if not chatRunContext.snapshot or not chatRunContext.snapshot.tables or len(chatRunContext.snapshot.tables) == 0:
