@@ -100,43 +100,47 @@ export const RecordView = ({
         <Text>Record View</Text>
       </Group>
       <Group gap={0} p={0} h="100%">
-        <Stack h="100%" w="20%" gap="xs" p="xs">
-          {records?.map((record) => (
-            <Stack key={record.id.wsId} gap="3px">
-              <Anchor
-                component="span"
-                key={record.id.wsId}
-                onClick={() => handleSelectRecord(record)}
-                underline="never"
-              >
-                <Text fw={currentRecordId === record.id.wsId ? 'bold' : 'normal'}>{buildRecordTitle(record)}</Text>
-              </Anchor>
-              {currentRecordId === record.id.wsId ? (
-                <Stack pl="md" gap="2px" h="100%">
-                  {table.columns.map((c) => (
-                    <Anchor
-                      component="span"
-                      fz="sm"
-                      fw={currentColumnId === c.id.wsId ? 'bold' : 'normal'}
-                      key={c.id.wsId}
-                      onClick={() => {
-                        if (currentColumnId === c.id.wsId) {
-                          handleSelectColumn(record, undefined);
-                        } else {
-                          handleSelectColumn(record, c.id.wsId);
-                        }
-                      }}
-                      underline="never"
-                    >
-                      {c.name}
-                    </Anchor>
-                  ))}
+        <Stack h="100%" w="25%">
+          <ScrollArea h="100%" type="hover" scrollbars="y">
+            <Stack h="calc(100vh - 250px)" gap="sm" p="xs">
+              {records?.map((record) => (
+                <Stack key={record.id.wsId} gap="3px">
+                  <Anchor
+                    component="span"
+                    key={record.id.wsId}
+                    onClick={() => handleSelectRecord(record)}
+                    underline="hover"
+                  >
+                    <Text fw={currentRecordId === record.id.wsId ? 'bold' : 'normal'}>{buildRecordTitle(record)}</Text>
+                  </Anchor>
+                  {currentRecordId === record.id.wsId ? (
+                    <Stack pl="md" gap="2px" h="100%">
+                      {table.columns.map((c) => (
+                        <Anchor
+                          component="span"
+                          fz="sm"
+                          fw={currentColumnId === c.id.wsId ? 'bold' : 'normal'}
+                          key={c.id.wsId}
+                          onClick={() => {
+                            if (currentColumnId === c.id.wsId) {
+                              handleSelectColumn(record, undefined);
+                            } else {
+                              handleSelectColumn(record, c.id.wsId);
+                            }
+                          }}
+                          underline="never"
+                        >
+                          {c.name}
+                        </Anchor>
+                      ))}
+                    </Stack>
+                  ) : null}
                 </Stack>
-              ) : null}
+              ))}
             </Stack>
-          ))}
+          </ScrollArea>
         </Stack>
-        <Divider orientation="vertical" w={10} />
+        <Divider orientation="vertical" px="3px" />
         <Stack h="100%" gap="xs" p="xs" flex={1}>
           <Tabs value={currentRecordId} flex={1}>
             {records?.map((record) => (

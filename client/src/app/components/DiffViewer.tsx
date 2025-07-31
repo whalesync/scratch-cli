@@ -10,13 +10,13 @@ export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: s
   const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
 
   return (
-    <Text size="xs" p="xs">
+    <Text size="xs" p="2rem" fz="1rem" style={{ border: 'none' }}>
       {changes.map((change, idx) => {
         // do this to preserve newlines in the diff viewer
         const value = change.value.replaceAll('\n', '<br/>');
 
         if (change.added) {
-          return <Text span key={idx} c="green" dangerouslySetInnerHTML={{ __html: value }}></Text>;
+          return <Text span key={idx} c="green" fz="1rem" dangerouslySetInnerHTML={{ __html: value }}></Text>;
         }
 
         if (change.removed) {
@@ -25,13 +25,14 @@ export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: s
               span
               key={idx}
               c="red"
+              fz="1rem"
               style={{ textDecoration: 'line-through' }}
               dangerouslySetInnerHTML={{ __html: value }}
             ></Text>
           );
         }
 
-        return <Text span key={idx} dangerouslySetInnerHTML={{ __html: value }}></Text>;
+        return <Text span key={idx} fz="1rem" dangerouslySetInnerHTML={{ __html: value }}></Text>;
       })}
     </Text>
   );
