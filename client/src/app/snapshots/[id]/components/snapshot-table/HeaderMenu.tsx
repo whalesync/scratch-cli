@@ -9,7 +9,7 @@ export const HeaderMenu = () => {
 
   return (
     <Menu
-      opened={headerMenu.visible}
+      opened={true}
       onClose={closeHeaderMenu}
       position="bottom-start"
       offset={0}

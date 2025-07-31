@@ -88,7 +88,6 @@ export const SnapshotTableGridProvider = ({
   const [sort, setSort] = useState<SortState | undefined>();
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [headerMenu, setHeaderMenu] = useState<{
-    visible: boolean;
     x: number;
     y: number;
     col: number;
@@ -547,7 +546,6 @@ export const SnapshotTableGridProvider = ({
 
       // Show the header menu at the mouse position
       setHeaderMenu({
-        visible: true,
         x: mouseX,
         y: mouseY,
         col,
@@ -812,84 +810,6 @@ export const SnapshotTableGridProvider = ({
           const error = e as Error;
           notifications.show({
             title: 'Error rejecting cell',
-            message: error.message,
-            color: 'red',
-          });
-        }
-      } else if (action.startsWith('Accept Record')) {
-        if (!singleCellRecord) return;
-
-        // Get all columns that have suggestions for this record
-        const suggestedValues = singleCellRecord.__suggested_values || {};
-        const columnsWithSuggestions = Object.keys(suggestedValues).filter(
-          (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
-        );
-
-        if (columnsWithSuggestions.length === 0) {
-          notifications.show({
-            title: 'Accept Record',
-            message: 'No suggestions found for this record',
-            color: 'yellow',
-          });
-          return;
-        }
-
-        try {
-          // Create items array for all columns with suggestions
-          const items = columnsWithSuggestions.map((columnId) => ({
-            wsId: singleCellRecord.id.wsId,
-            columnId,
-          }));
-
-          await acceptCellValues(items);
-          notifications.show({
-            title: 'Accept Record',
-            message: `Accepted ${columnsWithSuggestions.length} suggestion${columnsWithSuggestions.length > 1 ? 's' : ''} for this record`,
-            color: 'green',
-          });
-        } catch (e) {
-          const error = e as Error;
-          notifications.show({
-            title: 'Error accepting record',
-            message: error.message,
-            color: 'red',
-          });
-        }
-      } else if (action.startsWith('Reject Record')) {
-        if (!singleCellRecord) return;
-
-        // Get all columns that have suggestions for this record
-        const suggestedValues = singleCellRecord.__suggested_values || {};
-        const columnsWithSuggestions = Object.keys(suggestedValues).filter(
-          (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
-        );
-
-        if (columnsWithSuggestions.length === 0) {
-          notifications.show({
-            title: 'Reject Record',
-            message: 'No suggestions found for this record',
-            color: 'yellow',
-          });
-          return;
-        }
-
-        try {
-          // Create items array for all columns with suggestions
-          const items = columnsWithSuggestions.map((columnId) => ({
-            wsId: singleCellRecord.id.wsId,
-            columnId,
-          }));
-
-          await rejectCellValues(items);
-          notifications.show({
-            title: 'Reject Record',
-            message: `Rejected ${columnsWithSuggestions.length} suggestion${columnsWithSuggestions.length > 1 ? 's' : ''} for this record`,
-            color: 'green',
-          });
-        } catch (e) {
-          const error = e as Error;
-          notifications.show({
-            title: 'Error rejecting record',
             message: error.message,
             color: 'red',
           });
@@ -1238,6 +1158,218 @@ export const SnapshotTableGridProvider = ({
     ],
   );
 
+  const handleAcceptCell = useCallback(async () => {
+    if (!contextMenu) return;
+
+    // For cell-specific actions, check if only a single cell is selected
+    const isSingleCellSelected =
+      currentSelection?.current &&
+      currentSelection.current.range.width === 1 &&
+      currentSelection.current.range.height === 1;
+
+    if (!isSingleCellSelected) {
+      notifications.show({
+        title: 'Invalid Selection',
+        message: 'This action requires selecting exactly one cell',
+        color: 'yellow',
+      });
+      setContextMenu(null);
+      return;
+    }
+
+    // Get the single selected cell for cell-specific actions
+    const singleCellRange = currentSelection.current.range;
+    const singleCellCol = singleCellRange.x;
+    const singleCellRow = singleCellRange.y;
+    const singleCellRecord = sortedRecords?.[singleCellRow];
+    const singleCellColumn = table.columns[singleCellCol - FAKE_LEFT_COLUMNS];
+
+    if (
+      isActionsColumn(singleCellCol, table.columns.length) ||
+      isIdColumn(singleCellCol) ||
+      isRecordStatusColumn(singleCellCol)
+    ) {
+      return;
+    }
+
+    if (!singleCellRecord || isIdColumn(singleCellCol)) return;
+
+    const columnId = singleCellColumn?.id.wsId;
+    if (!columnId) return;
+
+    const columnName = singleCellColumn?.name;
+
+    try {
+      await acceptCellValues([{ wsId: singleCellRecord.id.wsId, columnId }]);
+      notifications.show({
+        title: 'Accept Cell',
+        message: `Accepted suggestion for "${columnName}"`,
+        color: 'green',
+      });
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: 'Error accepting cell',
+        message: error.message,
+        color: 'red',
+      });
+    }
+  }, [contextMenu, currentSelection, sortedRecords, table.columns, acceptCellValues, setContextMenu]);
+
+  const handleAcceptRecords = useCallback(async () => {
+    if (!contextMenu || !currentSelection) return;
+
+    // Get all selected records
+    const selectedRecords: SnapshotRecord[] = [];
+
+    if (currentSelection.current) {
+      const { range } = currentSelection.current;
+      for (let r = range.y; r < range.y + range.height; r++) {
+        const record = sortedRecords?.[r];
+        if (record) {
+          selectedRecords.push(record);
+        }
+      }
+    }
+
+    if (currentSelection.rows) {
+      for (const row of currentSelection.rows) {
+        const record = sortedRecords?.[row];
+        if (record) {
+          selectedRecords.push(record);
+        }
+      }
+    }
+
+    if (selectedRecords.length === 0) {
+      notifications.show({
+        title: 'No Records Selected',
+        message: 'Please select one or more records to accept',
+        color: 'yellow',
+      });
+      setContextMenu(null);
+      return;
+    }
+
+    // Collect all items to accept across all selected records
+    const itemsToAccept: { wsId: string; columnId: string }[] = [];
+    let totalSuggestions = 0;
+
+    for (const record of selectedRecords) {
+      const suggestedValues = record.__suggested_values || {};
+      const columnsWithSuggestions = Object.keys(suggestedValues).filter(
+        (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
+      );
+
+      for (const columnId of columnsWithSuggestions) {
+        itemsToAccept.push({ wsId: record.id.wsId, columnId });
+        totalSuggestions++;
+      }
+    }
+
+    if (itemsToAccept.length === 0) {
+      notifications.show({
+        title: 'Accept Records',
+        message: 'No suggestions found for the selected records',
+        color: 'yellow',
+      });
+      return;
+    }
+
+    try {
+      await acceptCellValues(itemsToAccept);
+      notifications.show({
+        title: 'Accept Records',
+        message: `Accepted ${totalSuggestions} suggestion${totalSuggestions > 1 ? 's' : ''} across ${selectedRecords.length} record${selectedRecords.length > 1 ? 's' : ''}`,
+        color: 'green',
+      });
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: 'Error accepting records',
+        message: error.message,
+        color: 'red',
+      });
+    }
+  }, [contextMenu, currentSelection, sortedRecords, acceptCellValues, notifications, setContextMenu]);
+
+  const handleRejectRecords = useCallback(async () => {
+    if (!contextMenu || !currentSelection) return;
+
+    // Get all selected records
+    const selectedRecords: SnapshotRecord[] = [];
+
+    if (currentSelection.current) {
+      const { range } = currentSelection.current;
+      for (let r = range.y; r < range.y + range.height; r++) {
+        const record = sortedRecords?.[r];
+        if (record) {
+          selectedRecords.push(record);
+        }
+      }
+    }
+
+    if (currentSelection.rows) {
+      for (const row of currentSelection.rows) {
+        const record = sortedRecords?.[row];
+        if (record) {
+          selectedRecords.push(record);
+        }
+      }
+    }
+
+    if (selectedRecords.length === 0) {
+      notifications.show({
+        title: 'No Records Selected',
+        message: 'Please select one or more records to reject',
+        color: 'yellow',
+      });
+      setContextMenu(null);
+      return;
+    }
+
+    // Collect all items to reject across all selected records
+    const itemsToReject: { wsId: string; columnId: string }[] = [];
+    let totalSuggestions = 0;
+
+    for (const record of selectedRecords) {
+      const suggestedValues = record.__suggested_values || {};
+      const columnsWithSuggestions = Object.keys(suggestedValues).filter(
+        (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
+      );
+
+      for (const columnId of columnsWithSuggestions) {
+        itemsToReject.push({ wsId: record.id.wsId, columnId });
+        totalSuggestions++;
+      }
+    }
+
+    if (itemsToReject.length === 0) {
+      notifications.show({
+        title: 'Reject Records',
+        message: 'No suggestions found for the selected records',
+        color: 'yellow',
+      });
+      return;
+    }
+
+    try {
+      await rejectCellValues(itemsToReject);
+      notifications.show({
+        title: 'Reject Records',
+        message: `Rejected ${totalSuggestions} suggestion${totalSuggestions > 1 ? 's' : ''} across ${selectedRecords.length} record${selectedRecords.length > 1 ? 's' : ''}`,
+        color: 'green',
+      });
+    } catch (e) {
+      const error = e as Error;
+      notifications.show({
+        title: 'Error rejecting records',
+        message: error.message,
+        color: 'red',
+      });
+    }
+  }, [contextMenu, currentSelection, sortedRecords, rejectCellValues, notifications, setContextMenu]);
+
   const getContextMenuItems = useCallback(() => {
     if (!contextMenu) return [];
 
@@ -1473,6 +1605,60 @@ export const SnapshotTableGridProvider = ({
       currentSelection.current.range.width === 1 &&
       currentSelection.current.range.height === 1;
 
+    // Check if any selected records have suggestions (for Accept/Reject Record actions)
+    const selectedRecordsWithSuggestions: SnapshotRecord[] = [];
+    if (currentSelection) {
+      if (currentSelection.current) {
+        const { range } = currentSelection.current;
+        for (let r = range.y; r < range.y + range.height; r++) {
+          const record = sortedRecords?.[r];
+          if (record && record.__suggested_values && Object.keys(record.__suggested_values).length > 0) {
+            selectedRecordsWithSuggestions.push(record);
+          }
+        }
+      }
+
+      if (currentSelection.rows) {
+        for (const row of currentSelection.rows) {
+          const record = sortedRecords?.[row];
+          if (record && record.__suggested_values && Object.keys(record.__suggested_values).length > 0) {
+            selectedRecordsWithSuggestions.push(record);
+          }
+        }
+      }
+    }
+
+    // Add Accept/Reject Record actions if any selected records have suggestions
+    if (selectedRecordsWithSuggestions.length > 0) {
+      const totalSuggestions = selectedRecordsWithSuggestions.reduce((total, record) => {
+        const suggestedValues = record.__suggested_values || {};
+        return (
+          total +
+          Object.keys(suggestedValues).filter(
+            (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
+          ).length
+        );
+      }, 0);
+
+      const suggestionText = totalSuggestions === 1 ? 'suggestion' : 'suggestions';
+      const recordText = selectedRecordsWithSuggestions.length === 1 ? 'record' : 'records';
+
+      items.push({
+        label: `Accept ${recordText} (${totalSuggestions} ${suggestionText})`,
+        disabled: false,
+        group: ACCEPT_REJECT_GROUP_NAME,
+        leftSection: <ListChecksIcon size={MENU_ICON_SIZE} color="#00aa00" />,
+        handler: handleAcceptRecords,
+      });
+      items.push({
+        label: `Reject ${recordText} (${totalSuggestions} ${suggestionText})`,
+        disabled: false,
+        group: ACCEPT_REJECT_GROUP_NAME,
+        leftSection: <ListBulletsIcon size={MENU_ICON_SIZE} color="#ff0000" />,
+        handler: handleRejectRecords,
+      });
+    }
+
     if (isSingleCellSelected) {
       // Get the single selected cell for cell-specific actions
       const singleCellRange = currentSelection.current.range;
@@ -1491,41 +1677,19 @@ export const SnapshotTableGridProvider = ({
         // Check if there's a suggested value for this specific cell
         const hasCellSuggestion = !!singleCellRecord.__suggested_values?.[singleCellColumn.id.wsId];
 
-        // Check if there are any suggested values for any field in this record
-        const recordSuggestions = singleCellRecord.__suggested_values
-          ? Object.keys(singleCellRecord.__suggested_values)
-          : [];
-        const hasRecordSuggestions = recordSuggestions.length > 0;
-
         if (hasCellSuggestion) {
           items.push({
             label: 'Accept Cell',
             disabled: false,
             group: ACCEPT_REJECT_GROUP_NAME,
             leftSection: <CheckIcon size={MENU_ICON_SIZE} color="#00aa00" />,
+            handler: handleAcceptCell,
           });
           items.push({
             label: 'Reject Cell',
             disabled: false,
             group: ACCEPT_REJECT_GROUP_NAME,
             leftSection: <XIcon size={MENU_ICON_SIZE} color="#ff0000" />,
-          });
-        }
-
-        if (hasRecordSuggestions) {
-          const suggestionCount = recordSuggestions.length;
-          const suggestionText = suggestionCount === 1 ? 'suggestion' : 'suggestions';
-          items.push({
-            label: `Accept Record (${suggestionCount} ${suggestionText})`,
-            disabled: false,
-            group: ACCEPT_REJECT_GROUP_NAME,
-            leftSection: <ListChecksIcon size={MENU_ICON_SIZE} color="#00aa00" />,
-          });
-          items.push({
-            label: `Reject Record (${suggestionCount} ${suggestionText})`,
-            disabled: false,
-            group: ACCEPT_REJECT_GROUP_NAME,
-            leftSection: <ListBulletsIcon size={MENU_ICON_SIZE} color="#ff0000" />,
           });
         }
       }
@@ -1545,6 +1709,9 @@ export const SnapshotTableGridProvider = ({
     writeFocus,
     getGetSelectedRecordsAndColumns,
     checkSelectedCellsFocus,
+    handleAcceptCell,
+    handleAcceptRecords,
+    handleRejectRecords,
   ]);
 
   const getHeaderMenuItems = useCallback((): Array<{
@@ -1778,7 +1945,7 @@ export interface SnapshotTableGridContextValue {
   contextMenu: ContextMenu | null;
   getContextMenuItems: () => MenuItem[];
   getHeaderMenuItems: () => Array<{ label: string; disabled: boolean; leftSection?: React.ReactNode; group?: string }>;
-  headerMenu: { visible: boolean; x: number; y: number } | null;
+  headerMenu: { x: number; y: number } | null;
   hoveredRow: number | undefined;
   handleContextMenuAction: (action: string) => void;
   handleHeaderMenuAction: (action: string) => void;
