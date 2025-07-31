@@ -2,8 +2,12 @@ import { Text } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
 
 export const DiffViewer = ({ originalValue, suggestedValue }: { originalValue: string; suggestedValue: string }) => {
+  // diff functions don't work with null values or undefined values
+  const originalValueSafe = originalValue ?? '';
+  const suggestedValueSafe = suggestedValue ?? '';
+
   // Run the diff and included whitespace in the changes
-  const changes = diffWordsWithSpace(originalValue, suggestedValue);
+  const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
 
   return (
     <Text size="xs" p="xs">
