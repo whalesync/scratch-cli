@@ -1,5 +1,5 @@
 import {Snapshot, TableSpec} from '@/types/server-entities/snapshot';
-export interface FocusedCell {
+export interface RecordCell {
   recordWsId: string;
   columnWsId: string;
 }
@@ -18,4 +18,9 @@ export type MenuItem = {
   leftSection?: React.ReactNode;
   group?: string;
   handler?: () => Promise<unknown>;
+};
+
+export type ContextMenu = {
+  x: number;
+  y: number;
 };

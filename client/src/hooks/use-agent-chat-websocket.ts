@@ -1,4 +1,4 @@
-import { FocusedCell } from '@/app/snapshots/[id]/components/types';
+import { RecordCell } from '@/app/snapshots/[id]/components/types';
 import { API_CONFIG } from '@/lib/api/config';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
@@ -37,8 +37,8 @@ export type AIAgentMessage = {
   capabilities?: string[];
   model?: string;
   view_id?: string;
-  read_focus?: FocusedCell[];
-  write_focus?: FocusedCell[];
+  read_focus?: RecordCell[];
+  write_focus?: RecordCell[];
 }
 
 export function useAIAgentChatWebSocket({

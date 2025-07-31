@@ -1,23 +1,23 @@
 import { Menu } from '@mantine/core';
-import { ACCEPT_REJECT_GROUP_NAME, FILTERING_GROUP_NAME } from './contextMenu.ts/constants';
-import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';
+import { useSnapshotTableGridContext } from '../SnapshotTableGridProvider';
+import { ACCEPT_REJECT_GROUP_NAME, FILTERING_GROUP_NAME, FOCUS_GROUP_NAME } from './constants';
 
-export const HeaderMenu = () => {
-  const { headerMenu, closeHeaderMenu, getHeaderMenuItems, handleHeaderMenuAction } = useSnapshotTableGridContext();
+export const ContextMenu = () => {
+  const { contextMenu, closeContextMenu, getContextMenuItems, handleContextMenuAction } = useSnapshotTableGridContext();
 
-  if (!headerMenu) return null;
+  if (!contextMenu) return null;
 
   return (
     <Menu
       opened={true}
-      onClose={closeHeaderMenu}
+      onClose={closeContextMenu}
       position="bottom-start"
       offset={0}
       styles={{
         dropdown: {
           position: 'fixed',
-          left: headerMenu.x,
-          top: headerMenu.y,
+          left: contextMenu.x,
+          top: contextMenu.y,
           zIndex: 1000,
         },
       }}
@@ -26,8 +26,8 @@ export const HeaderMenu = () => {
         <div
           style={{
             position: 'fixed',
-            left: headerMenu.x,
-            top: headerMenu.y,
+            left: contextMenu.x,
+            top: contextMenu.y,
             width: 1,
             height: 1,
             pointerEvents: 'none',
@@ -36,22 +36,53 @@ export const HeaderMenu = () => {
       </Menu.Target>
 
       <Menu.Dropdown>
-        {getHeaderMenuItems().map((item, index) => {
-          // Check if this is a filtering item using the group property
+        {getContextMenuItems().map((item, index) => {
+          // Check if this is a focus item using the group property
+          const isFocusItem = item.group === FOCUS_GROUP_NAME;
           const isFilteringItem = item.group === FILTERING_GROUP_NAME;
           const isAcceptRejectItem = item.group === ACCEPT_REJECT_GROUP_NAME;
 
+          // If this is the first focus item, add the Focus section header
+          if (isFocusItem && index === getContextMenuItems().findIndex((i) => i.group === FOCUS_GROUP_NAME)) {
+            return (
+              <div key={`focus-section-${index}`}>
+                <Menu.Divider />
+                <Menu.Label>{FOCUS_GROUP_NAME}</Menu.Label>
+                <Menu.Item
+                  disabled={item.disabled}
+                  leftSection={item.leftSection}
+                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
+                >
+                  {item.label}
+                </Menu.Item>
+              </div>
+            );
+          }
+
+          // If this is a focus item but not the first one, render normally
+          if (isFocusItem) {
+            return (
+              <Menu.Item
+                key={index}
+                disabled={item.disabled}
+                leftSection={item.leftSection}
+                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
+              >
+                {item.label}
+              </Menu.Item>
+            );
+          }
+
           // If this is the first filtering item, add the Filtering section header
-          if (isFilteringItem && index === getHeaderMenuItems().findIndex((i) => i.group === FILTERING_GROUP_NAME)) {
+          if (isFilteringItem && index === getContextMenuItems().findIndex((i) => i.group === FILTERING_GROUP_NAME)) {
             return (
               <div key={`filtering-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Label>{FILTERING_GROUP_NAME}</Menu.Label>
                 <Menu.Item
-                  key={index}
                   disabled={item.disabled}
                   leftSection={item.leftSection}
-                  onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
                 >
                   {item.label}
                 </Menu.Item>
@@ -66,7 +97,7 @@ export const HeaderMenu = () => {
                 key={index}
                 disabled={item.disabled}
                 leftSection={item.leftSection}
-                onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
               >
                 {item.label}
               </Menu.Item>
@@ -76,17 +107,16 @@ export const HeaderMenu = () => {
           // If this is the first accept/reject item, add the Accept/Reject Changes section header
           if (
             isAcceptRejectItem &&
-            index === getHeaderMenuItems().findIndex((i) => i.group === ACCEPT_REJECT_GROUP_NAME)
+            index === getContextMenuItems().findIndex((i) => i.group === ACCEPT_REJECT_GROUP_NAME)
           ) {
             return (
               <div key={`accept-reject-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Label>{ACCEPT_REJECT_GROUP_NAME}</Menu.Label>
                 <Menu.Item
-                  key={index}
                   disabled={item.disabled}
                   leftSection={item.leftSection}
-                  onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
                 >
                   {item.label}
                 </Menu.Item>
@@ -101,7 +131,7 @@ export const HeaderMenu = () => {
                 key={index}
                 disabled={item.disabled}
                 leftSection={item.leftSection}
-                onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
               >
                 {item.label}
               </Menu.Item>
@@ -109,15 +139,19 @@ export const HeaderMenu = () => {
           }
 
           // For non-grouped items, add a divider before the first non-grouped item
-          if (!isFilteringItem && !isAcceptRejectItem && index === getHeaderMenuItems().findIndex((i) => !i.group)) {
+          if (
+            !isFocusItem &&
+            !isFilteringItem &&
+            !isAcceptRejectItem &&
+            index === getContextMenuItems().findIndex((i) => !i.group)
+          ) {
             return (
               <div key={`other-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Item
-                  key={index}
                   disabled={item.disabled}
                   leftSection={item.leftSection}
-                  onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
                 >
                   {item.label}
                 </Menu.Item>
@@ -131,7 +165,7 @@ export const HeaderMenu = () => {
               key={index}
               disabled={item.disabled}
               leftSection={item.leftSection}
-              onClick={item.disabled ? undefined : () => handleHeaderMenuAction(item.label)}
+              onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
             >
               {item.label}
             </Menu.Item>

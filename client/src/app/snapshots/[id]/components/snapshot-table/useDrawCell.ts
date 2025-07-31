@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';
-import { FAKE_LEFT_COLUMNS } from './helpers';
+import { FAKE_LEFT_COLUMNS } from './utils/helpers';
 
 export const useDrawCell = () => {
   const { readFocus, writeFocus } = useFocusedCellsContext();

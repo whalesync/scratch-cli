@@ -1,4 +1,4 @@
-import { FocusedCell } from "@/app/snapshots/[id]/components/types";
+import { RecordCell } from "@/app/snapshots/[id]/components/types";
 
 export interface ChatSessionSummary {
   id: string;
@@ -19,8 +19,8 @@ export interface SendMessageRequestDTO {
   capabilities?: string[];
   model?: string;
   view_id?: string;
-  read_focus?: FocusedCell[];
-  write_focus?: FocusedCell[];
+  read_focus?: RecordCell[];
+  write_focus?: RecordCell[];
   active_table_id?: string;
 }
 

@@ -1,17 +1,17 @@
 'use client';
 
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
-import { FocusedCell } from './components/types';
+import { RecordCell } from './components/types';
 
 interface FocusedCellsContextValue {
-  readFocus: FocusedCell[];
-  writeFocus: FocusedCell[];
-  setReadFocus: (focus: FocusedCell[]) => void;
-  setWriteFocus: (focus: FocusedCell[]) => void;
-  addReadFocus: (cells: FocusedCell[]) => void;
-  addWriteFocus: (cells: FocusedCell[]) => void;
-  removeReadFocus: (cells: FocusedCell[]) => void;
-  removeWriteFocus: (cells: FocusedCell[]) => void;
+  readFocus: RecordCell[];
+  writeFocus: RecordCell[];
+  setReadFocus: (focus: RecordCell[]) => void;
+  setWriteFocus: (focus: RecordCell[]) => void;
+  addReadFocus: (cells: RecordCell[]) => void;
+  addWriteFocus: (cells: RecordCell[]) => void;
+  removeReadFocus: (cells: RecordCell[]) => void;
+  removeWriteFocus: (cells: RecordCell[]) => void;
   clearReadFocus: () => void;
   clearWriteFocus: () => void;
   clearAllFocus: () => void;
@@ -24,10 +24,10 @@ interface FocusedCellsProviderProps {
 }
 
 export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) => {
-  const [readFocus, setReadFocus] = useState<FocusedCell[]>([]);
-  const [writeFocus, setWriteFocus] = useState<FocusedCell[]>([]);
+  const [readFocus, setReadFocus] = useState<RecordCell[]>([]);
+  const [writeFocus, setWriteFocus] = useState<RecordCell[]>([]);
 
-  const addReadFocus = useCallback((cells: FocusedCell[]) => {
+  const addReadFocus = useCallback((cells: RecordCell[]) => {
     setReadFocus((prev) => {
       const newFocus = [...prev];
       cells.forEach((cell) => {
@@ -41,7 +41,7 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     });
   }, []);
 
-  const addWriteFocus = useCallback((cells: FocusedCell[]) => {
+  const addWriteFocus = useCallback((cells: RecordCell[]) => {
     setWriteFocus((prev) => {
       const newFocus = [...prev];
       cells.forEach((cell) => {
@@ -55,13 +55,13 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     });
   }, []);
 
-  const removeReadFocus = useCallback((cells: FocusedCell[]) => {
+  const removeReadFocus = useCallback((cells: RecordCell[]) => {
     setReadFocus((prev) =>
       prev.filter((f) => !cells.some((c) => c.recordWsId === f.recordWsId && c.columnWsId === f.columnWsId)),
     );
   }, []);
 
-  const removeWriteFocus = useCallback((cells: FocusedCell[]) => {
+  const removeWriteFocus = useCallback((cells: RecordCell[]) => {
     setWriteFocus((prev) =>
       prev.filter((f) => !cells.some((c) => c.recordWsId === f.recordWsId && c.columnWsId === f.columnWsId)),
     );

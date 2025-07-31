@@ -4,15 +4,16 @@ import { DataEditor } from '@glideapps/glide-data-grid';
 import { ActionIcon, Box, Center, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { PlusIcon } from '@phosphor-icons/react';
 import { SnapshotTableGridProps } from '../types';
-import { ContextMenu } from './ContextMenu';
 import { FocusedCellsDebugModal } from './FocusedCellsDebugModal';
-import { HeaderMenu } from './HeaderMenu';
+import { ContextMenu } from './menus/ContextMenu';
+import { HeaderMenu } from './menus/HeaderMenu';
 import { SnapshotTableGridProvider, useSnapshotTableGridContext } from './SnapshotTableGridProvider';
 import { useDrawCell } from './useDrawCell';
 
 export const SnapshotTableGridInternal = () => {
   const {
-    setHoveredRow,
+    coreGridState,
+    gridHandlers,
     error,
     isLoading,
     sortedRecords,
@@ -20,10 +21,8 @@ export const SnapshotTableGridInternal = () => {
     currentSelection,
     getCellContent,
     onCellEdited,
-    onColumnResize,
     onHeaderClicked,
     onHeaderMenuClick,
-    onGridSelectionChange,
     onCellClicked,
     onCellContextMenu,
     handleKeyDown,
@@ -61,22 +60,26 @@ export const SnapshotTableGridInternal = () => {
       >
         <Stack p={0} h="100%" gap={0}>
           <DataEditor
+            // Layout
             width="100%"
             height="100%"
             columns={columns}
             rows={sortedRecords?.length ?? 0}
+            // Core grid state
             gridSelection={currentSelection}
+            onGridSelectionChange={coreGridState.setCurrentSelection}
+            // Cell rendering
             getCellContent={getCellContent}
             onCellEdited={onCellEdited}
-            onColumnResize={onColumnResize}
+            // Event handlers
+            onColumnResize={gridHandlers.onColumnResize}
             onHeaderClicked={onHeaderClicked}
             onHeaderMenuClick={onHeaderMenuClick}
-            onGridSelectionChange={onGridSelectionChange}
             onCellClicked={onCellClicked}
             onCellContextMenu={onCellContextMenu}
             onKeyDown={handleKeyDown}
             onMouseMove={(e) => {
-              setHoveredRow(e.location[1]);
+              coreGridState.setHoveredRow(e.location[1]);
             }}
             theme={{
               headerIconSize: 24,
