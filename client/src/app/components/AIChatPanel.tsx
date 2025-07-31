@@ -22,6 +22,7 @@ import {
   Textarea,
   TextInput,
 } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
 import { ChatCircleIcon, MagnifyingGlassIcon, PaperPlaneRightIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
@@ -42,13 +43,16 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useLocalStorage({
+    key: 'selectedModel',
+    defaultValue: 'openai/gpt-4o-mini',
+  });
   const [showModelSelector, setShowModelSelector] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const { readFocus, writeFocus } = useFocusedCellsContext();
   const { promptQueue, clearPromptQueue } = useAIPromptContext();
-  const [agentQueryRunning, setAgentQueryRunning] = useState<boolean>(false);
+  const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
 
   // Get user data including API token
   const { user } = useScratchPadUser();
@@ -84,9 +88,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         console.debug('Message progress:', message.data);
       } else if (message.type === 'message_response') {
         console.debug('Message response:', message.data);
-        setAgentQueryRunning(false);
+        setAgentTaskRunning(false);
+        setResetInputFocus(true);
       } else if (message.type === 'agent_error') {
-        setAgentQueryRunning(false);
+        setAgentTaskRunning(false);
+        setResetInputFocus(true);
       }
       // got a message, try to scroll to the bottom
       scrollToBottom();
@@ -113,11 +119,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   }, [messageHistory, scrollToBottom]);
 
   useEffect(() => {
-    if (resetInputFocus) {
+    if (resetInputFocus && connectionStatus === 'connected') {
       textInputRef.current?.focus();
       setResetInputFocus(false);
     }
-  }, [resetInputFocus]);
+  }, [resetInputFocus, connectionStatus]);
 
   useEffect(() => {
     if (promptQueue.length > 0) {
@@ -144,6 +150,8 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         .map((cap: Capability) => cap.code);
       setSelectedCapabilities(defaultCapabilities);
       setError(null);
+      setMessage('');
+      setResetInputFocus(true);
       console.debug('Created new session with snapshot ID:', snapshotId);
       console.debug('Available capabilities:', available_capabilities);
       console.debug('Default selected capabilities:', defaultCapabilities);
@@ -153,7 +161,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || !activeSessionId || agentQueryRunning) return;
+    if (!message.trim() || !activeSessionId || agentTaskRunning) return;
     const messageCleaned = message.trim();
 
     // handle slash (/) and (@) commands
@@ -167,7 +175,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       return;
     }
 
-    setAgentQueryRunning(true);
+    setAgentTaskRunning(true);
     setError(null);
 
     try {
@@ -228,9 +236,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       setError('Failed to send agent message');
       setErrorDetails(error instanceof Error ? error.message : 'Unknown error');
       console.error('Exception while sending message:', error);
-      setAgentQueryRunning(false);
-    } finally {
-      setResetInputFocus(true);
+      setAgentTaskRunning(false);
     }
   };
 
@@ -246,7 +252,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   // combine the historical session data and the current websocket message history
   const chatHistory = [...(sessionData?.chat_history || []), ...(messageHistory || [])];
 
-  const chatInputEnabled = activeSessionId && connectionStatus === 'connected' && !agentQueryRunning;
+  const chatInputEnabled = activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
   const connectionBadge =
     connectionStatus === 'connected' ? (
@@ -320,6 +326,8 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
               try {
                 await activateSession(value);
                 await connect(value);
+                setMessage('');
+                setResetInputFocus(true);
               } catch (error) {
                 setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
               }
@@ -502,7 +510,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
               setMessage('update');
               // Trigger send after setting the message
               setTimeout(() => {
-                if (activeSessionId && !agentQueryRunning) {
+                if (activeSessionId && !agentTaskRunning) {
                   sendMessage();
                 }
               }, 0);
@@ -520,7 +528,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           <ActionIcon
             onClick={sendMessage}
             disabled={!message.trim() || !chatInputEnabled}
-            loading={agentQueryRunning}
+            loading={agentTaskRunning}
             size="md"
           >
             <PaperPlaneRightIcon size={16} />
