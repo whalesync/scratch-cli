@@ -16,12 +16,20 @@ class FocusedCell(BaseModel):
     recordWsId: str = Field(description="Record ID of the focused cell")
     columnWsId: str = Field(description="Column ID of the focused cell")
 
+class UsageStats(BaseModel):
+    """Usage stats for the agent"""
+    requests: int = Field(description="The number of requests made to the agent")
+    request_tokens: int = Field(description="The number of tokens in the requests")
+    response_tokens: int = Field(description="The number of tokens in the responses")
+    total_tokens: int = Field(description="The total number of tokens in the requests and responses")
+
 
 class ResponseFromAgent(BaseModel):
     """Simple chat response model"""
     response_message: str = Field(description="The agent's response message - should be well-formatted, human-readable with careful and full explanations of what the model did or thinks")
     response_summary: str = Field(description="A concise summary of key actions, decisions, or context that would be useful for processing future prompts. Should be focused and contain anything the model finds useful for future reference, and does not need to be formated for human readability.")
     request_summary: str = Field(description="A concise summary of what the user requested, for future reference")
+    usage_stats: Optional[UsageStats] = Field(description="Usage stats for the agent")
 
 
 class ChatRunContext(BaseModel):

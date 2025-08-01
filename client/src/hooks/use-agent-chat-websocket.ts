@@ -2,6 +2,7 @@ import { RecordCell } from '@/app/snapshots/[id]/components/types';
 import { API_CONFIG } from '@/lib/api/config';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
+import pluralize from 'pluralize';
 import { useCallback, useRef, useState } from 'react';
 
 type ClientMessageType = 'message' | 'ping' | 'echo_error';
@@ -74,10 +75,10 @@ export function useAIAgentChatWebSocket({
         try {
           console.debug('Received event:', event);
           const wsMessage: WebSocketMessage = JSON.parse(event.data);
-          const chatMessage = buildResponseChatMessage(wsMessage);
+          const chatMessages = buildResponseChatMessages(wsMessage);
           setMessageHistory((prev) => [
             ...prev,
-            chatMessage,
+            ...chatMessages,
           ]);
           onMessage?.(wsMessage);
 
@@ -222,15 +223,24 @@ interface AgentErrorResponseDataPayload {
   detail: string;
 }
 
+interface UsageStats {
+  requests: number;
+  request_tokens: number;
+  response_tokens: number;
+  total_tokens: number;
+}
+
 interface AgentResponseDataPayload {
   response_message: string;
   response_summary: string;
   request_summary: string;
+  usage_stats: UsageStats;
 }
 
-function buildResponseChatMessage(message: WebSocketMessage): ChatMessage {
+function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
   let displayMessage = '';
   let variant: ChatMessage['variant'] = 'message';
+  const additionalMessages: ChatMessage[] = [];
   if (message.type === 'connection_confirmed' || message.type === 'pong' || message.type === 'message_progress') {
     const x = message.data as BasicAgentMessageDataPayload;
     displayMessage = x.message;
@@ -247,17 +257,25 @@ function buildResponseChatMessage(message: WebSocketMessage): ChatMessage {
   } else if (message.type === 'message_response') {
     const x = message.data as AgentResponseDataPayload;
     displayMessage = x.response_message;
+    additionalMessages.push({
+      id: new Date().getTime().toString(),
+      role: 'assistant',
+      message: `LLM Usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
+      timestamp: message.timestamp || new Date().toISOString(),
+      payload: x.usage_stats,
+      variant: 'admin',
+    });
   } else {
     displayMessage = 'Unknown message type';
   }
 
-  return {
+  return [{
     id: new Date().getTime().toString(),
     role: 'assistant',
     message: displayMessage,
     timestamp: message.timestamp || new Date().toISOString(),
     payload: message.data,
     variant,
-  };
+  }, ...additionalMessages];
 }
 

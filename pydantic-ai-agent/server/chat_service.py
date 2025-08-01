@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai import Agent
+from pydantic_ai.usage import Usage
 from pydantic_ai.messages import (
     FinalResultEvent,
     FunctionToolCallEvent,
@@ -19,7 +20,7 @@ from pydantic_ai.messages import (
     TextPartDelta,
     ToolCallPartDelta,
 )
-from agents.data_agent.models import ChatRunContext, ChatSession, FocusedCell, ResponseFromAgent
+from agents.data_agent.models import ChatRunContext, ChatSession, FocusedCell, ResponseFromAgent, UsageStats
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
@@ -361,16 +362,16 @@ class ChatService:
                          had_api_token=api_token is not None,
                          snapshot_id=session.snapshot_id)
                 print(f"✅ Valid ResponseFromAgent received")
-                # Return both the SendMessageResponse and the original ResponseFromAgent
-                # send_response = SendMessageResponseDTO(
-                #     response_message=response_message,  # type: ignore
-                #     response_summary=response_summary,  # type: ignore
-                #     request_summary=request_summary,  # type: ignore
-                # )
-                
-                # # Store the original response for access to summaries
-                # send_response.original_response = actual_response  # type: ignore
-                
+
+                usage: Usage = result.usage()
+                if usage:
+                    actual_response.usage_stats = UsageStats(
+                        requests=usage.requests,
+                        request_tokens=usage.request_tokens,
+                        response_tokens=usage.response_tokens,
+                        total_tokens=usage.total_tokens
+                    )
+
                 return actual_response
             else:
                 log_error("Invalid agent response", session_id=session.id, response_type=type(response), snapshot_id=session.snapshot_id)
