@@ -1,6 +1,6 @@
 import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
-import { useSnapshotRecords } from '@/hooks/use-snapshot';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Anchor, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
@@ -29,7 +29,7 @@ export const RecordView = ({
 
   const activeView = currentView;
 
-  const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotRecords({
+  const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
     viewId: filterToView && activeView ? activeView.id : undefined,

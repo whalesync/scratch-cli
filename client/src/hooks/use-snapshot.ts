@@ -103,7 +103,7 @@ export interface UseSnapshotRecordsReturn {
   filteredRecordsInTableCount: number;
 }
 
-export const useSnapshotRecords = (args: {
+export const useSnapshotTableRecords = (args: {
   snapshotId: string,
   tableId: string,
   cursor?: string,

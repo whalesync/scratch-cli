@@ -2,7 +2,7 @@
 
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
-import { ColumnSpec, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
   CellClickedEventArgs,
   EditableGridCell,
@@ -20,16 +20,17 @@ import { useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ListBulletsIcon, ListChecksIcon } from '@phosphor-icons/react';
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
-import { useSnapshotRecords } from '../../../../../hooks/use-snapshot';
+import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { ICONS } from '../../icons';
 import { ContextMenu, MenuItem, RecordCell } from '../types';
 import { ACCEPT_REJECT_GROUP_NAME, COLUMN_VIEW_GROUP_NAME, MENU_ICON_SIZE } from './menus/constants';
 import { useContextMenuItems } from './useContextMenuItems';
+import { useCoreGridHandlers } from './useCoreGridHandlers';
 import { useCoreGridState } from './useCoreGridState';
-import { useGridHandlers } from './useGridHandlers';
 import { useMousePosition } from './useMousePosition';
+import { useProcessedSelection } from './useProcessedSelection';
 import {
   FAKE_LEFT_COLUMNS,
   generatePendingId,
@@ -60,12 +61,22 @@ export const SnapshotTableGridProvider = ({
   onSwitchToRecordView,
   filterToView,
 }: SnapshotTableGridProps & { children: ReactNode }) => {
+  // From higher level contexts
+  const { refreshViews, setCurrentViewId, currentView } = useSnapshotContext();
+  const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
+    useFocusedCellsContext();
+
+  // State from hooks on this level
   const coreGridState = useCoreGridState();
-  const gridHandlers = useGridHandlers(coreGridState);
+  const coreGridHandlers = useCoreGridHandlers(coreGridState);
   const { currentSelection, columnWidths } = coreGridState;
 
+  // Internal state
   const mousePosition = useMousePosition();
   const modalStack = useModalsStack(['focusedCellsDebug']);
+
+  // SWR:
+  const { upsertView } = useUpsertView();
 
   const [sort, setSort] = useState<SortState | undefined>();
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
@@ -75,20 +86,12 @@ export const SnapshotTableGridProvider = ({
     col: number;
   } | null>(null);
 
-  const { refreshViews, setCurrentViewId, currentView } = useSnapshotContext();
-  const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
-    useFocusedCellsContext();
-
-  const activeView = currentView;
-
   const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues, refreshRecords } =
-    useSnapshotRecords({
+    useSnapshotTableRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
-      viewId: filterToView && activeView ? activeView.id : undefined,
+      viewId: filterToView && currentView ? currentView.id : undefined,
     });
-
-  const { upsertView } = useUpsertView();
 
   const sortedRecords = useMemo(() => {
     if (!records) return undefined;
@@ -121,6 +124,89 @@ export const SnapshotTableGridProvider = ({
 
     return sortedOthers;
   }, [records, sort]);
+
+  const columns: GridColumn[] = useMemo(() => {
+    const baseColumns: GridColumn[] = table.columns.map((c) => {
+      // Only show icons if the column is present in the view config
+      let titleWithIcons = titleWithSort(c, sort);
+
+      if (currentView && currentView.config[table.id.wsId]) {
+        const tableConfig = currentView.config[table.id.wsId];
+        const columnConfig = tableConfig.columns?.find((col: { wsId: string }) => col.wsId === c.id.wsId);
+
+        if (columnConfig) {
+          // Column is in the config, show icons only for explicitly overridden properties
+          let icons = '';
+
+          // Only show hidden icon if explicitly set
+          if ('hidden' in columnConfig) {
+            const hiddenIcon = columnConfig.hidden ? ICONS.hidden : ICONS.visible;
+            icons += hiddenIcon;
+          }
+
+          // Only show protected icon if explicitly set
+          if ('protected' in columnConfig) {
+            const protectedIcon = columnConfig.protected ? ICONS.protected : ICONS.editable;
+            icons += protectedIcon;
+          }
+
+          if (icons) {
+            titleWithIcons = `${titleWithSort(c, sort)} ${icons}`;
+          }
+        }
+        // If column is not in config, don't show any icons
+      }
+
+      return {
+        title: titleWithIcons,
+        id: c.id.wsId,
+        width: columnWidths[c.id.wsId] ?? 150,
+        menuIcon: GridColumnMenuIcon.Dots,
+        icon: getColumnIcon(c),
+        hasMenu: true,
+        ...(c.readonly && {
+          themeOverride: {
+            bgCell: '#F7F7F7',
+          },
+        }),
+      } satisfies GridColumn;
+    });
+
+    const result = [
+      {
+        title: '',
+        id: 'record-status',
+        width: 60,
+        themeOverride: { bgCell: '#F7F7F7' },
+        // menuIcon: GridColumnMenuIcon.Dots,
+        // icon: GridColumnIcon.HeaderRowID,
+        // hasMenu: true,
+      },
+      {
+        title: 'ID',
+        id: 'id',
+        width: 150,
+        themeOverride: { bgCell: '#F7F7F7' },
+        // menuIcon: GridColumnMenuIcon.Dots,
+        icon: GridColumnIcon.HeaderRowID, // ID is typically a string identifier
+        // hasMenu: true,
+      },
+      ...baseColumns,
+      {
+        id: 'actions',
+        title: '',
+        width: 35,
+        // No menu icon for actions column
+      },
+    ];
+
+    console.debug('Columns created:', result);
+    return result;
+  }, [table.columns, table.id.wsId, sort, currentView, columnWidths]);
+
+  const processedSelection = useProcessedSelection(currentSelection, sortedRecords, table);
+  const { selectedRecordsAndColumns, singleCellColumn, singleCellColIndex } = processedSelection;
+  const { records: selectedRecords, columns: selectedColumns } = selectedRecordsAndColumns;
 
   const onCellClicked = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
@@ -338,46 +424,6 @@ export const SnapshotTableGridProvider = ({
     [sortedRecords, table.columns, coreGridState.hoveredRow, readFocus],
   );
 
-  const getGetSelectedRecordsAndColumns = useCallback(() => {
-    const result: {
-      records: SnapshotRecord[];
-      columns: ColumnSpec[];
-    } = {
-      records: [],
-      columns: [],
-    };
-
-    if (currentSelection && currentSelection.current) {
-      const range = currentSelection.current.range;
-      const startRow = range.y;
-      const endRow = range.y + range.height; // not inclusive endpoint
-
-      for (let row = startRow; row < endRow; row++) {
-        const record = sortedRecords?.[row];
-        if (record) {
-          result.records.push(record);
-        }
-      }
-      const startCol = range.x - FAKE_LEFT_COLUMNS;
-      const endCol = range.x + range.width - FAKE_LEFT_COLUMNS;
-
-      result.columns = table.columns.filter((c, idx) => {
-        return idx >= startCol && idx < endCol;
-      });
-    }
-
-    if (currentSelection && currentSelection.rows) {
-      for (const row of currentSelection.rows) {
-        const record = sortedRecords?.[row];
-        if (record) {
-          result.records.push(record);
-        }
-      }
-    }
-
-    return result;
-  }, [currentSelection, table.columns, sortedRecords]);
-
   const onAddRow = useCallback(() => {
     const newRecordId = generatePendingId();
 
@@ -504,8 +550,7 @@ export const SnapshotTableGridProvider = ({
         e.preventDefault();
         e.stopPropagation();
 
-        const { records } = getGetSelectedRecordsAndColumns();
-        const { columns } = getGetSelectedRecordsAndColumns();
+        const { records, columns } = processedSelection.selectedRecordsAndColumns;
 
         if (records.length > 0 && columns.length > 0) {
           let addedCount = 0;
@@ -564,18 +609,18 @@ export const SnapshotTableGridProvider = ({
         e.preventDefault();
         e.stopPropagation();
 
-        const { records } = getGetSelectedRecordsAndColumns();
-        const { columns } = getGetSelectedRecordsAndColumns();
+        // const { records } = getGetSelectedRecordsAndColumns();
+        // const { columns } = getGetSelectedRecordsAndColumns();
 
-        if (records.length > 0 && columns.length > 0) {
+        if (selectedRecords.length > 0 && selectedColumns.length > 0) {
           let addedCount = 0;
           let removedCount = 0;
 
           const cellsToToggle: RecordCell[] = [];
           const cellsToRemove: RecordCell[] = [];
 
-          records.forEach((record) => {
-            columns.forEach((column) => {
+          selectedRecords.forEach((record) => {
+            selectedColumns.forEach((column) => {
               const cell: RecordCell = { recordWsId: record.id.wsId, columnWsId: column.id.wsId };
               const cellKey = `${record.id.wsId}-${column.id.wsId}`;
               const existingIndex = writeFocus.findIndex((fc) => `${fc.recordWsId}-${fc.columnWsId}` === cellKey);
@@ -636,12 +681,14 @@ export const SnapshotTableGridProvider = ({
     },
     [
       currentSelection,
-      getGetSelectedRecordsAndColumns,
+      processedSelection.selectedRecordsAndColumns,
       readFocus,
-      writeFocus,
       addReadFocus,
-      addWriteFocus,
       removeReadFocus,
+      selectedRecords,
+      selectedColumns,
+      writeFocus,
+      addWriteFocus,
       removeWriteFocus,
       clearAllFocus,
     ],
@@ -649,19 +696,9 @@ export const SnapshotTableGridProvider = ({
 
   const onCellContextMenu = useCallback(
     (cell: Item, event: CellClickedEventArgs) => {
-      const [col, row] = cell;
-      console.debug('Cell context menu clicked:', { col, row, event });
-
-      // Prevent the default browser context menu
       event.preventDefault?.();
-
-      // if (isRecordStatusColumn(col) || isIdColumn(col)) return;
-
-      // Use the stored mouse position from the global mouse move handler
       const mouseX = mousePosition?.x || 0;
       const mouseY = mousePosition?.y || 0;
-
-      console.debug('Using mouse position:', { mouseX, mouseY, mousePosition });
       setContextMenu({ x: mouseX, y: mouseY });
     },
     [mousePosition],
@@ -670,9 +707,6 @@ export const SnapshotTableGridProvider = ({
   const handleContextMenuAction = useCallback(
     async (action: string) => {
       if (!contextMenu) return;
-
-      // Get the selected records and columns from the current selection
-      getGetSelectedRecordsAndColumns();
 
       // For cell-specific actions, check if only a single cell is selected
       const isSingleCellSelected =
@@ -690,34 +724,27 @@ export const SnapshotTableGridProvider = ({
         return;
       }
 
-      // Get the single selected cell for cell-specific actions
-      const singleCellRange = currentSelection.current.range;
-      const singleCellCol = singleCellRange.x;
-      const singleCellRow = singleCellRange.y;
-      const singleCellRecord = sortedRecords?.[singleCellRow];
-      const singleCellColumn = table.columns[singleCellCol - FAKE_LEFT_COLUMNS];
-
       if (
-        isActionsColumn(singleCellCol, table.columns.length) ||
-        isIdColumn(singleCellCol) ||
-        isRecordStatusColumn(singleCellCol)
+        isActionsColumn(singleCellColIndex, table.columns.length) ||
+        isIdColumn(singleCellColIndex) ||
+        isRecordStatusColumn(singleCellColIndex)
       ) {
         return;
       }
 
-      const columnName = isIdColumn(singleCellCol) ? 'ID' : singleCellColumn?.name;
-      const cellValue = isIdColumn(singleCellCol)
-        ? singleCellRecord?.id.remoteId
-        : singleCellRecord?.fields[singleCellColumn?.id.wsId];
+      const columnName = isIdColumn(singleCellColIndex) ? 'ID' : singleCellColumn?.name;
+      const cellValue = isIdColumn(singleCellColIndex)
+        ? selectedRecords[0]?.id.remoteId
+        : selectedRecords[0]?.fields[singleCellColumn!.id.wsId];
 
       if (action === 'Accept Cell') {
-        if (!singleCellRecord || isIdColumn(singleCellCol)) return;
+        if (!selectedRecords[0] || isIdColumn(singleCellColIndex)) return;
 
         const columnId = singleCellColumn?.id.wsId;
         if (!columnId) return;
 
         try {
-          await acceptCellValues([{ wsId: singleCellRecord.id.wsId, columnId }]);
+          await acceptCellValues([{ wsId: selectedRecords[0].id.wsId, columnId }]);
           notifications.show({
             title: 'Accept Cell',
             message: `Accepted suggestion for "${columnName}"`,
@@ -732,13 +759,13 @@ export const SnapshotTableGridProvider = ({
           });
         }
       } else if (action === 'Reject Cell') {
-        if (!singleCellRecord || isIdColumn(singleCellCol)) return;
+        if (!selectedRecords[0] || isIdColumn(singleCellColIndex)) return;
 
         const columnId = singleCellColumn?.id.wsId;
         if (!columnId) return;
 
         try {
-          await rejectCellValues([{ wsId: singleCellRecord.id.wsId, columnId }]);
+          await rejectCellValues([{ wsId: selectedRecords[0].id.wsId, columnId }]);
           notifications.show({
             title: 'Reject Cell',
             message: `Rejected suggestion for "${columnName}"`,
@@ -765,10 +792,11 @@ export const SnapshotTableGridProvider = ({
     },
     [
       contextMenu,
-      getGetSelectedRecordsAndColumns,
       currentSelection,
-      sortedRecords,
-      table.columns,
+      singleCellColIndex,
+      table.columns.length,
+      singleCellColumn,
+      selectedRecords,
       acceptCellValues,
       rejectCellValues,
     ],
@@ -901,9 +929,9 @@ export const SnapshotTableGridProvider = ({
             return;
           }
 
-          if (currentViewId && activeView) {
+          if (currentViewId && currentView) {
             // Update existing view
-            const existingConfig = activeView.config;
+            const existingConfig = currentView.config;
             const tableConfig = existingConfig[table.id.wsId] || {
               hidden: false,
               protected: false,
@@ -975,8 +1003,8 @@ export const SnapshotTableGridProvider = ({
             };
 
             await upsertView({
-              id: activeView.id,
-              name: activeView.name || undefined,
+              id: currentView.id,
+              name: currentView.name || undefined,
               snapshotId: snapshot.id,
               config: updatedConfig,
             });
@@ -1074,15 +1102,15 @@ export const SnapshotTableGridProvider = ({
     [
       headerMenu,
       table.columns,
+      table.id.wsId,
       sortedRecords,
       acceptCellValues,
       rejectCellValues,
-      upsertView,
-      refreshViews,
-      snapshot.id,
-      table.id.wsId,
       currentViewId,
-      activeView,
+      currentView,
+      refreshViews,
+      upsertView,
+      snapshot.id,
       setCurrentViewId,
     ],
   );
@@ -1352,7 +1380,7 @@ export const SnapshotTableGridProvider = ({
     }
 
     // Get table defaults and current column status
-    const tableConfig = activeView?.config[table.id.wsId];
+    const tableConfig = currentView?.config[table.id.wsId];
 
     // COLUMN CONTEXT MENU LOGIC
     const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === column.id.wsId);
@@ -1397,90 +1425,11 @@ export const SnapshotTableGridProvider = ({
     }
 
     return items;
-  }, [headerMenu, sortedRecords, table.columns, activeView, table.id.wsId]);
-
-  const columns: GridColumn[] = useMemo(() => {
-    const baseColumns: GridColumn[] = table.columns.map((c) => {
-      // Only show icons if the column is present in the view config
-      let titleWithIcons = titleWithSort(c, sort);
-
-      if (activeView && activeView.config[table.id.wsId]) {
-        const tableConfig = activeView.config[table.id.wsId];
-        const columnConfig = tableConfig.columns?.find((col: { wsId: string }) => col.wsId === c.id.wsId);
-
-        if (columnConfig) {
-          // Column is in the config, show icons only for explicitly overridden properties
-          let icons = '';
-
-          // Only show hidden icon if explicitly set
-          if ('hidden' in columnConfig) {
-            const hiddenIcon = columnConfig.hidden ? ICONS.hidden : ICONS.visible;
-            icons += hiddenIcon;
-          }
-
-          // Only show protected icon if explicitly set
-          if ('protected' in columnConfig) {
-            const protectedIcon = columnConfig.protected ? ICONS.protected : ICONS.editable;
-            icons += protectedIcon;
-          }
-
-          if (icons) {
-            titleWithIcons = `${titleWithSort(c, sort)} ${icons}`;
-          }
-        }
-        // If column is not in config, don't show any icons
-      }
-
-      return {
-        title: titleWithIcons,
-        id: c.id.wsId,
-        width: columnWidths[c.id.wsId] ?? 150,
-        menuIcon: GridColumnMenuIcon.Dots,
-        icon: getColumnIcon(c),
-        hasMenu: true,
-        ...(c.readonly && {
-          themeOverride: {
-            bgCell: '#F7F7F7',
-          },
-        }),
-      } satisfies GridColumn;
-    });
-
-    const result = [
-      {
-        title: '',
-        id: 'record-status',
-        width: 60,
-        themeOverride: { bgCell: '#F7F7F7' },
-        // menuIcon: GridColumnMenuIcon.Dots,
-        // icon: GridColumnIcon.HeaderRowID,
-        // hasMenu: true,
-      },
-      {
-        title: 'ID',
-        id: 'id',
-        width: 150,
-        themeOverride: { bgCell: '#F7F7F7' },
-        // menuIcon: GridColumnMenuIcon.Dots,
-        icon: GridColumnIcon.HeaderRowID, // ID is typically a string identifier
-        // hasMenu: true,
-      },
-      ...baseColumns,
-      {
-        id: 'actions',
-        title: '',
-        width: 35,
-        // No menu icon for actions column
-      },
-    ];
-
-    console.debug('Columns created:', result);
-    return result;
-  }, [table.columns, table.id.wsId, sort, activeView, columnWidths]);
+  }, [headerMenu, sortedRecords, table.columns, currentView, table.id.wsId]);
 
   const value: SnapshotTableGridContextValue = {
     coreGridState,
-    gridHandlers,
+    coreGridHandlers,
     mousePosition,
     modalStack,
     error,
@@ -1515,7 +1464,7 @@ export const SnapshotTableGridProvider = ({
 
 export interface SnapshotTableGridContextValue {
   coreGridState: ReturnType<typeof useCoreGridState>;
-  gridHandlers: ReturnType<typeof useGridHandlers>;
+  coreGridHandlers: ReturnType<typeof useCoreGridHandlers>;
   mousePosition: { x: number; y: number } | null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

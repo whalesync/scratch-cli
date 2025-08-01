@@ -13,7 +13,7 @@ import { useDrawCell } from './useDrawCell';
 export const SnapshotTableGridInternal = () => {
   const {
     coreGridState,
-    gridHandlers,
+    coreGridHandlers,
     error,
     isLoading,
     sortedRecords,
@@ -72,7 +72,7 @@ export const SnapshotTableGridInternal = () => {
             getCellContent={getCellContent}
             onCellEdited={onCellEdited}
             // Event handlers
-            onColumnResize={gridHandlers.onColumnResize}
+            onColumnResize={coreGridHandlers.onColumnResize}
             onHeaderClicked={onHeaderClicked}
             onHeaderMenuClick={onHeaderMenuClick}
             onCellClicked={onCellClicked}
