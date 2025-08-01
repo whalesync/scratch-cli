@@ -592,6 +592,16 @@ export class SnapshotService {
 
         for (const [field, value] of Object.entries(op.data)) {
           const columnSpec = columnMap.get(field);
+
+          if (!columnSpec) {
+            errors.push({
+              wsId: 'wsId' in op ? op.wsId : undefined,
+              field,
+              message: `Field '${field}' not found in table`,
+            });
+            continue;
+          }
+
           if (columnSpec?.pgType === PostgresColumnType.NUMERIC) {
             if (value !== null && typeof value !== 'number' && typeof value !== 'string') {
               errors.push({

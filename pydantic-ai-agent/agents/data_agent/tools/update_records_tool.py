@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error
+from agents.data_agent.model_utils import find_column_by_name, find_table_by_name, get_active_table, missing_table_error
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -129,17 +129,24 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
         #     # TODO: apply write_focus to the records to eliminate some fields
         #     pass
 
-        # TODO: Translate field_name to the actual field ids
+        # Create RecordOperation objects for update operations translating field_name to the actual field ids
+        update_operations = []
+        data_errors = []
+        for update in record_updates:
+            data_payload = {}
+            for field_update in update['updates']:
+                column = find_column_by_name(table, field_update['field'])
+                if column:
+                    data_payload[column.id.wsId] = field_update['value']
+                else:
+                    data_errors.append(f"Field '{field_update['field']}' not found in table '{table.name}'")
 
-        # Create RecordOperation objects for update operations using map
-        update_operations = list(map(
-            lambda update: RecordOperation(
+            update_operations.append(RecordOperation(
                 op="update",
                 wsId=update['wsId'],
-                data={field_update['field']: field_update['value'] for field_update in update['updates']}
-            ),
-            record_updates
-        ))
+                data=data_payload
+            ))
+
         
         log_info("Updating records via bulk update", 
                 table_name=table_name,
