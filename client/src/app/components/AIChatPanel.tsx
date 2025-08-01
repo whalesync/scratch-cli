@@ -6,6 +6,7 @@ import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-cha
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
+import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
   Alert,
@@ -33,12 +34,12 @@ import ModelPicker from './ModelPicker';
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  snapshotId?: string;
+  snapshot?: Snapshot;
+  activeTable: TableSpec | null;
   currentViewId?: string | null;
-  activeTableId?: string | null;
 }
 
-export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId, activeTableId }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, activeTable }: AIChatPanelProps) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -133,14 +134,14 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
   }, [promptQueue, clearPromptQueue, message]);
 
   const createNewSession = async () => {
-    if (!snapshotId) {
+    if (!snapshot) {
       setError('Snapshot ID is required to create a session');
       return;
     }
 
     try {
       disconnect();
-      const { session, available_capabilities } = await createSession(snapshotId);
+      const { session, available_capabilities } = await createSession(snapshot.id);
       connect(session.id);
 
       setAvailableCapabilities(available_capabilities);
@@ -152,7 +153,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
       setError(null);
       setMessage('');
       setResetInputFocus(true);
-      console.debug('Created new session with snapshot ID:', snapshotId);
+      console.debug('Created new session with snapshot ID:', snapshot.id);
       console.debug('Available capabilities:', available_capabilities);
       console.debug('Default selected capabilities:', defaultCapabilities);
     } catch (error) {
@@ -224,9 +225,9 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
         console.debug('Including write focus:', writeFocus.length, 'cells');
       }
 
-      if (activeTableId) {
-        messageData.active_table_id = activeTableId;
-        console.debug('Including active table ID:', activeTableId);
+      if (activeTable) {
+        messageData.active_table_id = activeTable.id.wsId;
+        console.debug('Including active table ID:', activeTable.id.wsId);
       }
 
       sendAiAgentMessage(messageData);
@@ -283,14 +284,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
     >
       {/* Header */}
       <Group justify="space-between" mb="md">
-        <Text fw={500} size="sm">
-          AI Chat
-          {snapshotId && (
-            <Text span size="xs" c="dimmed" ml="xs">
-              (Snapshot: {snapshotId.slice(0, 8)}...)
-            </Text>
-          )}
-        </Text>
+        <Group gap="xs">
+          <Text fw={500} size="sm">
+            AI Chat
+          </Text>
+        </Group>
         <ActionIcon onClick={onClose} size="sm" variant="subtle">
           <XIcon size={16} />
         </ActionIcon>
@@ -424,6 +422,27 @@ export default function AIChatPanel({ isOpen, onClose, snapshotId, currentViewId
           </Stack>
         )}
       </ScrollArea>
+
+      <Group gap="xs">
+        <Text size="xs" c="dimmed">
+          Context:
+        </Text>
+        {activeTable && (
+          <Badge size="xs" color="purple" variant="outline" radius="sm">
+            {activeTable.name}
+          </Badge>
+        )}
+        {readFocus && readFocus.length > 0 && (
+          <Badge size="xs" color="yellow" variant="outline" radius="sm">
+            Read focus {readFocus.length}
+          </Badge>
+        )}
+        {writeFocus && writeFocus.length > 0 && (
+          <Badge size="xs" color="blue" variant="outline" radius="sm">
+            Write focus {writeFocus.length}
+          </Badge>
+        )}
+      </Group>
 
       {/* Bottom Input Area */}
       <Stack gap="xs">
