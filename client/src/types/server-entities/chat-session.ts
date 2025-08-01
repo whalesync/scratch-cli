@@ -11,6 +11,8 @@ export interface SessionListResponse {
   sessions: ChatSessionSummary[];
 }
 
+export type DataScope = 'table' | 'record' | 'column';
+
 // The DTO for sending a message to the agent
 export interface SendMessageRequestDTO {
   message: string;
@@ -22,6 +24,9 @@ export interface SendMessageRequestDTO {
   read_focus?: RecordCell[];
   write_focus?: RecordCell[];
   active_table_id?: string;
+  data_scope?: DataScope;
+  record_id?: string;
+  column_id?: string;
 }
 
 export interface ChatMessage {

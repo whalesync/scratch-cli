@@ -49,6 +49,8 @@ AVAILABLE_CAPABILITIES = [
     ),
 ]
 
+
+
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
 async def create_session(snapshot_id: str):
     """Create a new chat session"""

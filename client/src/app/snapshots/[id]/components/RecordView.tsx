@@ -23,7 +23,7 @@ export const RecordView = ({
   filterToView,
 }: RecordViewProps) => {
   const { snapshot, currentView } = useSnapshotContext();
-  const { setWriteFocus } = useFocusedCellsContext();
+  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope } = useFocusedCellsContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
 
@@ -42,8 +42,13 @@ export const RecordView = ({
         : Object.keys(record.fields).map((field) => ({ recordWsId: record.id.wsId, columnWsId: field }));
 
       setWriteFocus(cells);
+      if (columnId) {
+        setColumnScope(record.id.wsId, columnId);
+      } else {
+        setRecordScope(record.id.wsId);
+      }
     },
-    [setWriteFocus],
+    [setWriteFocus, setColumnScope, setRecordScope],
   );
 
   useEffect(() => {
@@ -72,8 +77,9 @@ export const RecordView = ({
 
   const handleExistRecordView = useCallback(() => {
     setWriteFocus([]);
+    setTableScope();
     onSwitchToSpreadsheetView();
-  }, [onSwitchToSpreadsheetView]);
+  }, [onSwitchToSpreadsheetView, setTableScope, setWriteFocus]);
 
   if (error) {
     return (

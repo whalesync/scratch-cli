@@ -18,7 +18,7 @@ interface ActiveRecord {
 
 export const TableContent = ({ table, currentViewId, filterToView }: TableContentProps) => {
   const { snapshot } = useSnapshotContext();
-  const { setWriteFocus } = useFocusedCellsContext();
+  const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useFocusedCellsContext();
   const [currentView, setCurrentView] = useState<string | null>('spreadsheet');
   const [currentRecord, setCurrentRecord] = useState<ActiveRecord>({ recordId: undefined, columnId: undefined });
 
@@ -26,8 +26,18 @@ export const TableContent = ({ table, currentViewId, filterToView }: TableConten
     setCurrentView(view);
     setCurrentRecord({ recordId, columnId });
 
-    if (view === 'record' && recordId && columnId) {
-      setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
+    if (view === 'record' && recordId) {
+      if (columnId) {
+        setColumnScope(recordId, columnId);
+        setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
+      } else {
+        setRecordScope(recordId);
+      }
+    }
+
+    if (view === 'spreadsheet') {
+      setTableScope();
+      setWriteFocus([]);
     }
   };
 

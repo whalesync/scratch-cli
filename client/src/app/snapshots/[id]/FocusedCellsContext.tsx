@@ -1,11 +1,15 @@
 'use client';
 
+import { DataScope } from '@/types/server-entities/chat-session';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { RecordCell } from './components/types';
 
 interface FocusedCellsContextValue {
   readFocus: RecordCell[];
   writeFocus: RecordCell[];
+  dataScope: DataScope;
+  activeRecordId: string | undefined;
+  activeColumnId: string | undefined;
   setReadFocus: (focus: RecordCell[]) => void;
   setWriteFocus: (focus: RecordCell[]) => void;
   addReadFocus: (cells: RecordCell[]) => void;
@@ -15,6 +19,9 @@ interface FocusedCellsContextValue {
   clearReadFocus: () => void;
   clearWriteFocus: () => void;
   clearAllFocus: () => void;
+  setTableScope: () => void;
+  setRecordScope: (recordId: string) => void;
+  setColumnScope: (recordId: string, columnId: string) => void;
 }
 
 export const FocusedCellsContext = createContext<FocusedCellsContextValue | undefined>(undefined);
@@ -24,6 +31,9 @@ interface FocusedCellsProviderProps {
 }
 
 export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) => {
+  const [dataScope, setDataScope] = useState<DataScope>('table');
+  const [activeRecordId, setActiveRecordId] = useState<string | undefined>(undefined);
+  const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
   const [readFocus, setReadFocus] = useState<RecordCell[]>([]);
   const [writeFocus, setWriteFocus] = useState<RecordCell[]>([]);
 
@@ -80,6 +90,24 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     setWriteFocus([]);
   }, []);
 
+  const setTableScope = useCallback(() => {
+    setDataScope('table');
+    setActiveRecordId(undefined);
+    setActiveColumnId(undefined);
+  }, []);
+
+  const setRecordScope = useCallback((recordId: string) => {
+    setDataScope('record');
+    setActiveRecordId(recordId);
+    setActiveColumnId(undefined);
+  }, []);
+
+  const setColumnScope = useCallback((recordId: string, columnId: string) => {
+    setDataScope('column');
+    setActiveRecordId(recordId);
+    setActiveColumnId(columnId);
+  }, []);
+
   const value: FocusedCellsContextValue = {
     readFocus,
     writeFocus,
@@ -92,6 +120,12 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     clearReadFocus,
     clearWriteFocus,
     clearAllFocus,
+    dataScope,
+    activeRecordId,
+    activeColumnId,
+    setTableScope,
+    setRecordScope,
+    setColumnScope,
   };
 
   return <FocusedCellsContext.Provider value={value}>{children}</FocusedCellsContext.Provider>;

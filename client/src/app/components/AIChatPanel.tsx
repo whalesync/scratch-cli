@@ -24,9 +24,20 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-import { ChatCircleIcon, MagnifyingGlassIcon, PaperPlaneRightIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
+import {
+  BinocularsIcon,
+  ChatCircleIcon,
+  MagnifyingGlassIcon,
+  PaperPlaneRightIcon,
+  PlusIcon,
+  TableIcon,
+  TagSimpleIcon,
+  VinylRecordIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
+import { BadgeWithTooltip } from './BadgeWithTooltip';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
@@ -51,7 +62,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
   const [showModelSelector, setShowModelSelector] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
-  const { readFocus, writeFocus } = useFocusedCellsContext();
+  const { readFocus, writeFocus, dataScope, activeRecordId, activeColumnId } = useFocusedCellsContext();
   const { promptQueue, clearPromptQueue } = useAIPromptContext();
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
 
@@ -228,6 +239,12 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
       if (activeTable) {
         messageData.active_table_id = activeTable.id.wsId;
         console.debug('Including active table ID:', activeTable.id.wsId);
+      }
+
+      if (dataScope) {
+        messageData.data_scope = dataScope;
+        messageData.record_id = activeRecordId;
+        messageData.column_id = activeColumnId;
       }
 
       sendAiAgentMessage(messageData);
@@ -428,19 +445,52 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
           Context:
         </Text>
         {activeTable && (
-          <Badge size="xs" color="purple" variant="outline" radius="sm">
+          <BadgeWithTooltip
+            size="xs"
+            color="purple"
+            variant="outline"
+            radius="sm"
+            tooltip="The current table being viewed"
+            leftSection={<TableIcon size={12} />}
+          >
             {activeTable.name}
-          </Badge>
+          </BadgeWithTooltip>
         )}
-        {readFocus && readFocus.length > 0 && (
-          <Badge size="xs" color="yellow" variant="outline" radius="sm">
-            Read focus {readFocus.length}
-          </Badge>
+        {dataScope && (
+          <BadgeWithTooltip
+            size="xs"
+            color="green"
+            variant="outline"
+            radius="sm"
+            leftSection={<BinocularsIcon size={12} />}
+            tooltip="The current scope of the AI context"
+          >
+            {dataScope}
+          </BadgeWithTooltip>
         )}
-        {writeFocus && writeFocus.length > 0 && (
-          <Badge size="xs" color="blue" variant="outline" radius="sm">
-            Write focus {writeFocus.length}
-          </Badge>
+        {dataScope === 'record' || dataScope === 'column' ? (
+          <BadgeWithTooltip
+            size="xs"
+            color="blue"
+            variant="outline"
+            radius="sm"
+            leftSection={<VinylRecordIcon size={12} />}
+            tooltip="The record being focused on in the AI context"
+          >
+            {activeRecordId}
+          </BadgeWithTooltip>
+        ) : null}
+        {dataScope === 'column' && (
+          <BadgeWithTooltip
+            size="xs"
+            color="blue"
+            variant="outline"
+            radius="sm"
+            leftSection={<TagSimpleIcon size={12} />}
+            tooltip="The column being focused on in the AI context"
+          >
+            {activeColumnId}
+          </BadgeWithTooltip>
         )}
       </Group>
 
