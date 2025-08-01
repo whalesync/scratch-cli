@@ -13,6 +13,8 @@ from agents.data_agent.tools.search_and_replace_field_value_tool import define_s
 from agents.data_agent.tools.delete_records_tool import define_delete_records_tool
 from agents.data_agent.tools.create_records_tool import create_create_records_tool
 from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
+from agents.data_agent.tools.add_records_to_filter_tool import define_add_records_to_filter_tool
+from agents.data_agent.tools.clear_record_filter_tool import define_clear_record_filter_tool
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -30,7 +32,10 @@ def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[
     return tools;
 
 
-def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
+
+def configure_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
+    """Configure the tools for the agent based on the capabilities"""
+    
     if capabilities is None or 'data:field-tools' in capabilities:
         define_append_field_value_tool(agent)
         define_insert_value_tool(agent)
@@ -40,3 +45,8 @@ def define_data_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilit
     if capabilities is None or 'data:delete' in capabilities:
         define_delete_records_tool(agent)
 
+    if capabilities is None or 'views:filter-out-records' in capabilities:
+        define_add_records_to_filter_tool(agent)
+
+    if capabilities is None or 'views:clear-filters' in capabilities:
+        define_clear_record_filter_tool(agent)

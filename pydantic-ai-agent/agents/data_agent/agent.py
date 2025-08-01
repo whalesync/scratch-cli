@@ -15,8 +15,7 @@ from agents.data_agent.models import ResponseFromAgent, ChatRunContext
 from agents.data_agent.data_agent_prompts import get_data_agent_instructions
 from logger import log_info, log_error
 from utils.response_extractor import extract_response
-from agents.data_agent.data_tools import define_data_tools, get_data_tools
-from agents.data_agent.view_tools import define_view_tools
+from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 
 
@@ -60,11 +59,8 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
             tools=get_data_tools(capabilities, style_guides) + [] # TODO: add view tools
         )
         
-        define_data_tools(agent, capabilities);
-        define_view_tools(agent, capabilities);
-        
+        configure_tools(agent, capabilities);
  
-
         print(f"✅ Agent created successfully with model: {model_name}")
         print(f"🔧 Agent has tools: connect_snapshot_tool, get_records_tool, create_records_tool, update_records_tool, delete_records_tool")
         return agent
