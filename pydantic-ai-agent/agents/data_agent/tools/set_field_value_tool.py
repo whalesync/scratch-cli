@@ -93,8 +93,22 @@ def define_set_field_value_tool(agent: Agent[ChatRunContext, ResponseFromAgent])
                     new_value=new_value,
                     snapshot_id=chatRunContext.session.snapshot_id)
 
+            # Get the record from the preloaded records
+            record = find_record_by_wsId(chatRunContext, table_name, wsId)
+
+            if not record:
+                return f"Error: Record '{wsId}' does not exist in the current context."
+
             if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
                 return f"Error: Field '{field_name}' is not in write focus."
+
+            if(column.id.wsId in record.suggested_fields):
+                current_value: str = str(record.suggested_fields[column.id.wsId])
+            else:
+                current_value: str = str(record.fields[column.id.wsId])
+
+            if(current_value == new_value):
+                return f"Error: The new value is the same as the current value. No change needed."
 
             update_operations = [
                 RecordOperation(

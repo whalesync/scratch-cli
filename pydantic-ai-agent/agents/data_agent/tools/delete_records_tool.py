@@ -7,6 +7,8 @@ from agents.data_agent.model_utils import get_active_table, unable_to_identify_a
 from typing import List
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
+from scratchpad_api import RecordOperation, bulk_update_records
+
 
 
 def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
@@ -36,9 +38,6 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             if not table:
                 return unable_to_identify_active_table_error(chatRunContext)
             
-            # Import the RecordOperation class
-            from scratchpad_api import RecordOperation
-            
             # Validate that record_ids is provided
             if not record_ids:
                 return "Error: No record IDs provided. Please provide a list of record IDs to delete."
@@ -62,9 +61,6 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                     table_id=table.id.wsId,
                     record_count=len(delete_operations),
                     snapshot_id=chatRunContext.session.snapshot_id)
-            
-            # Import the bulk update function
-            from scratchpad_api import bulk_update_records
             
             # Call the bulk update endpoint
             bulk_update_records(

@@ -8,7 +8,7 @@ from typing import Optional
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
-
+from scratchpad_api import bulk_update_records, RecordOperation
 
 class InsertFieldValueInput(WithTableName):
     """
@@ -95,8 +95,6 @@ def define_insert_value_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                     value=value,
                     snapshot_id=chatRunContext.session.snapshot_id)
             
-            # Import the inject value  function
-            from scratchpad_api import bulk_update_records, RecordOperation
             
             # Get the record from the preloaded records
             record = find_record_by_wsId(chatRunContext, table_name, wsId)

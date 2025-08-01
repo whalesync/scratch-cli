@@ -7,7 +7,7 @@ from agents.data_agent.model_utils import get_active_table, unable_to_identify_a
 from typing import Optional, List
 from pydantic_ai import Agent, RunContext
 from logger import log_error
-
+from scratchpad_api import clear_active_record_filter
 
 def define_clear_record_filter_tool(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
     """Clear the active record filter for the active table in the current snapshot."""
@@ -38,9 +38,6 @@ def define_clear_record_filter_tool(agent: Agent[ChatRunContext, ResponseFromAge
             
             table_name = table.name
             
-            # Import the clear_active_record_filter function
-            from scratchpad_api import clear_active_record_filter
-
             # Call the clear_active_record_filter API
             clear_active_record_filter(
                 chatRunContext.session.snapshot_id,

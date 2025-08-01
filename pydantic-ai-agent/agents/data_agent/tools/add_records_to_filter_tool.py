@@ -8,6 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_error
+from scratchpad_api import add_records_to_active_filter
 
 
 class AddRecordsToFilterInput(BaseModel):
@@ -56,10 +57,6 @@ def define_add_records_to_filter_tool(agent: Agent[ChatRunContext, ResponseFromA
             # Validate that record_ids is provided
             if not record_ids:
                 return "Error: No record IDs provided. Please provide a list of record IDs to add to the filter."
-
-            
-            # Import the add_records_to_active_filter function
-            from scratchpad_api import add_records_to_active_filter
 
             # Call the add_records_to_active_filter API
             add_records_to_active_filter(

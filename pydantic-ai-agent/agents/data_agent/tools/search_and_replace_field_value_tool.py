@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
 import re
+from scratchpad_api import bulk_update_records, RecordOperation
 
 
 class SearchAndReplaceInFieldInput(WithTableName):
@@ -90,8 +91,6 @@ def define_search_and_replace_field_value_tool(agent: Agent[ChatRunContext, Resp
 
             if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
                 return f"Error: Field '{field_name}' is not in write focus."
-
-            from scratchpad_api import bulk_update_records, RecordOperation
 
             # Get the record from the preloaded records
             record = find_record_by_wsId(chatRunContext, table_name, wsId)
