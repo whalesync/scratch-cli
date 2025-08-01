@@ -10,8 +10,9 @@ export type BulkUpdateRecordsDto = {
   ops: RecordOperation[];
 };
 
-export type ListRecordsResponse = {
+export interface ListRecordsResponse {
   records: SnapshotRecord[];
   nextCursor?: string;
-  filteredRecordsCount: number;
-};
+  count: number;
+  filteredCount: number;
+}

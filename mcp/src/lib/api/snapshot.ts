@@ -1,4 +1,4 @@
-import { CreateSnapshotTableViewDto, CreateSnapshotDto, Snapshot, SnapshotTableView } from "./types/snapshot.js";
+import { CreateSnapshotDto, Snapshot, SnapshotTableView } from "./types/snapshot.js";
 import { API_CONFIG } from "./config.js";
 import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
 
@@ -183,31 +183,6 @@ export const snapshotApi = {
       }
       throw new Error(res.statusText ?? "Failed to bulk update records");
     }
-  },
-
-  async activateView(
-    snapshotId: string,
-    tableId: string,
-    dto: CreateSnapshotTableViewDto
-  ): Promise<string> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/activate-view`,
-      {
-        method: "POST",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(dto),
-      }
-    );
-    
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to activate view");
-    }
-
-    const view = await res.json();
-    return view.id;
   },
 
   async clearActiveView(

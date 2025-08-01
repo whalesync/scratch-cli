@@ -37,6 +37,7 @@ import AIChatPanel from '../../components/AIChatPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { SnapshotEventProvider, useSnapshotEventContext } from '@/contexts/snapshot-event-context';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { useConnectorAccount } from '../../../hooks/use-connector-account';
@@ -62,6 +63,13 @@ function SnapshotPageContent() {
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   const [showChat, setShowChat] = useState(true);
+
+  // Get count information for the current table
+  const { count, filteredCount } = useSnapshotTableRecords({
+    snapshotId: id,
+    tableId: selectedTableId || '',
+    viewId: filterToView && currentViewId ? currentViewId : undefined,
+  });
 
   useEffect(() => {
     if (!selectedTableId) {
@@ -348,6 +356,8 @@ function SnapshotPageContent() {
               filterToView={filterToView}
               onFilterToViewChange={setFilterToView}
               currentTableId={selectedTableId}
+              count={count}
+              filteredCount={filteredCount}
             />
 
             <Tabs

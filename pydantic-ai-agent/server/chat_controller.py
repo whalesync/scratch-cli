@@ -43,14 +43,9 @@ AVAILABLE_CAPABILITIES = [
         description='Tools to edit specific fields'
     ),
     Capability(
-        code='views:filter-out-records', 
+        code='views:filtering',
         enabledByDefault=True,
-        description='Add records to the active record filter for a table in the current snapshot.'
-    ),
-    Capability(
-        code='views:clear-filters', 
-        enabledByDefault=False,
-        description='Clear the active record filter for a table in the current snapshot.'
+        description='Set or clear SQL-based filters on tables to show/hide specific records.'
     ),
 ]
 

@@ -23,7 +23,6 @@ import {
   BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION,
   bulkUpdateRecords,
 } from "./handlers/update-records.js";
-import { CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION, createFilteredView } from "./handlers/create-filtered-view.js";
 import { CLEAR_FILTERED_VIEW_MCP_TOOL_DEFINITION, clearFilteredView } from "./handlers/clear-active-filter.js";
 import { LIST_FILTERED_VIEWS_MCP_TOOL_DEFINITION, listFilteredViews } from "./handlers/list-filtered-views.js";
 
@@ -36,7 +35,6 @@ export const addHandlers = (server: Server) => {
         DISCONNECT_SNAPSHOT_MCP_TOOL_DEFINITION,
         GET_RECORDS_MCP_TOOL_DEFINITION,
         BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION,
-        CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION,
         CLEAR_FILTERED_VIEW_MCP_TOOL_DEFINITION,
         LIST_FILTERED_VIEWS_MCP_TOOL_DEFINITION,
       ],
@@ -64,9 +62,6 @@ export const addHandlers = (server: Server) => {
     }
     if (name === BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION.name) {
       return await bulkUpdateRecords(args);
-    }
-    if (name === CREATE_FILTERED_VIEW_MCP_TOOL_DEFINITION.name) {
-      return await createFilteredView(args);
     }
     if (name === CLEAR_FILTERED_VIEW_MCP_TOOL_DEFINITION.name) {
       return await clearFilteredView(args);

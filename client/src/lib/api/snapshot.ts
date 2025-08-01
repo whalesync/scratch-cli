@@ -162,7 +162,7 @@ export const snapshotApi = {
   async setActiveRecordsFilter(
     snapshotId: string,
     tableId: string,
-    recordIds: string[]
+    sqlWhereClause?: string
   ): Promise<void> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/set-active-records-filter`,
@@ -172,32 +172,11 @@ export const snapshotApi = {
           ...API_CONFIG.getAuthHeaders(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ recordIds }),
+        body: JSON.stringify({ sqlWhereClause }),
       }
     );
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to set active records filter");
-    }
-  },
-
-  async addRecordsToActiveFilter(
-    snapshotId: string,
-    tableId: string,
-    recordIds: string[]
-  ): Promise<void> {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/add-records-to-active-filter`,
-      {
-        method: "POST",
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ recordIds }),
-      }
-    );
-    if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to add records to active filter");
     }
   },
 

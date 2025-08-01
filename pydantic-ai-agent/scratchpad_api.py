@@ -63,6 +63,7 @@ class ScratchpadSnapshot:
     connectorAccountId: str
     tables: List[TableSpec]
     tableContexts: List[TableContext]
+    activeRecordSqlFilter: Optional[Dict[str, str]] = None
 
 @dataclass
 class CreateSnapshotDto:
@@ -378,11 +379,11 @@ class SnapshotApi:
             raise ScratchpadApiError(f"Failed to add records to active filter: {response.status_code} - {response.text}")
 
     @staticmethod
-    def set_active_records_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
-        """Set the active records filter for a table (replaces existing filter)"""
+    def set_active_records_filter(snapshot_id: str, table_id: str, sql_where_clause: Optional[str], api_token: str) -> None:
+        """Set the active records filter for a table using SQL WHERE clause (replaces existing filter)"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/set-active-records-filter"
         payload = {
-            "recordIds": record_ids
+            "sqlWhereClause": sql_where_clause
         }
         response = requests.post(url, headers=API_CONFIG.get_api_headers(api_token), json=payload)
         if not response.ok:
@@ -498,9 +499,9 @@ def add_records_to_active_filter(snapshot_id: str, table_id: str, record_ids: Li
     """Add records to the active record filter for a table"""
     SnapshotApi.add_records_to_active_filter(snapshot_id, table_id, record_ids, api_token)
 
-def set_active_records_filter(snapshot_id: str, table_id: str, record_ids: List[str], api_token: str) -> None:
-    """Set the active records filter for a table (replaces existing filter)"""
-    SnapshotApi.set_active_records_filter(snapshot_id, table_id, record_ids, api_token)
+def set_active_records_filter(snapshot_id: str, table_id: str, sql_where_clause: Optional[str], api_token: str) -> None:
+    """Set the active records filter for a table using SQL WHERE clause (replaces existing filter)"""
+    SnapshotApi.set_active_records_filter(snapshot_id, table_id, sql_where_clause, api_token)
 
 def clear_active_record_filter(snapshot_id: str, table_id: str, api_token: str) -> None:
     """Clear the active record filter for a table"""

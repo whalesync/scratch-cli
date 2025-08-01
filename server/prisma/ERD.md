@@ -45,6 +45,7 @@ erDiagram
   Json tableSpecs
   Json tableContexts
   Json activeRecordFilter "nullable"
+  Json activeRecordSqlFilter "nullable"
 }
 "CustomConnector" {
   String id PK
@@ -60,12 +61,12 @@ erDiagram
   String fetchSchema "nullable"
   Json schema "nullable"
   String pollRecords "nullable"
+  Json pollRecordsResponse "nullable"
   String getRecord "nullable"
+  Json getRecordResponse "nullable"
   String deleteRecord "nullable"
   String createRecord "nullable"
   String updateRecord "nullable"
-  Json pollRecordsResponse "nullable"
-  Json getRecordResponse "nullable"
 }
 "SnapshotTableView" {
   String id PK
@@ -159,6 +160,7 @@ Properties as follows:
 - `tableSpecs`:
 - `tableContexts`:
 - `activeRecordFilter`:
+- `activeRecordSqlFilter`:
 
 ### `CustomConnector`
 
@@ -177,12 +179,12 @@ Properties as follows:
 - `fetchSchema`:
 - `schema`:
 - `pollRecords`:
+- `pollRecordsResponse`:
 - `getRecord`:
+- `getRecordResponse`:
 - `deleteRecord`:
 - `createRecord`:
 - `updateRecord`:
-- `pollRecordsResponse`:
-- `getRecordResponse`:
 
 ### `SnapshotTableView`
 

@@ -1,7 +1,7 @@
 import { SnapshotTableView as PrismaSnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { SnapshotTableContext, SnapshotTableViewConfig } from '../types';
+import { ActiveRecordSqlFilter, SnapshotTableContext, SnapshotTableViewConfig } from '../types';
 
 export class Snapshot {
   id: string;
@@ -13,8 +13,9 @@ export class Snapshot {
   connectorService: string | null;
   tables: AnyTableSpec[];
   tableContexts: SnapshotTableContext[];
-  activeFiltersByTable?: Record<string, string[]>;
+  activeRecordSqlFilter?: Record<string, string>;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(snapshot: SnapshotCluster.Snapshot, includeActiveFilters: boolean = false) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? null;
@@ -26,13 +27,9 @@ export class Snapshot {
     this.connectorService = snapshot.connectorAccount.service;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
 
-    if (includeActiveFilters && snapshot.activeRecordFilter) {
-      this.activeFiltersByTable = {};
-      const temp = snapshot.activeRecordFilter as { [tableId: string]: string[] };
-      for (const tableId in temp) {
-        this.activeFiltersByTable[tableId] = temp[tableId] ?? [];
-      }
-    }
+    this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
+    // if (includeActiveFilters && snapshot.activeRecordSqlFilter) {
+    // }
   }
 }
 

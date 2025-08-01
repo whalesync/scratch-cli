@@ -3,21 +3,19 @@ import { Service, SnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
-import { createSnapshotId, createSnapshotTableViewId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
-import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
-import { AddRecordsToActiveFilterDto } from './dto/add-active-record-filter.dto';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { ActiveRecordFilter, SnapshotTableContext } from './types';
+import { ActiveRecordSqlFilter, SnapshotTableContext } from './types';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
@@ -175,7 +173,7 @@ export class SnapshotService {
     cursor: string | undefined,
     take: number,
     viewId: string | undefined,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; filteredRecordsCount: number }> {
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
@@ -193,30 +191,29 @@ export class SnapshotService {
       }
     }
 
-    const records = await this.snapshotDbService.listRecords(
+    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
+
+    const result = await this.snapshotDbService.listRecords(
       snapshotId,
       tableId,
       cursor,
       take + 1,
       viewConfig,
       tableSpec,
-      snapshot.activeRecordFilter as ActiveRecordFilter,
+      activeRecordSqlFilter,
     );
 
     let nextCursor: string | undefined;
-    if (records.length === take + 1) {
-      const nextRecord = records.pop();
+    if (result.records.length === take + 1) {
+      const nextRecord = result.records.pop();
       nextCursor = nextRecord!.id.wsId;
     }
 
-    // Get the number of filtered records from activeRecordFilter
-    const activeRecordFilter = (snapshot.activeRecordFilter as ActiveRecordFilter) || {};
-    const filteredRecordsCount = activeRecordFilter[tableId]?.length || 0;
-
     return {
-      records,
+      records: result.records,
       nextCursor,
-      filteredRecordsCount,
+      count: result.count,
+      filteredCount: result.filteredCount,
     };
   }
 
@@ -231,7 +228,7 @@ export class SnapshotService {
     readFocus?: Array<{ recordWsId: string; columnWsId: string }>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; filteredRecordsCount: number }> {
+  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
@@ -249,30 +246,29 @@ export class SnapshotService {
       }
     }
 
-    const records = await this.snapshotDbService.listRecords(
+    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
+
+    const result = await this.snapshotDbService.listRecords(
       snapshotId,
       tableId,
       cursor,
       take + 1,
       viewConfig,
       tableSpec,
-      snapshot.activeRecordFilter as ActiveRecordFilter,
+      activeRecordSqlFilter,
     );
 
     let nextCursor: string | undefined;
-    if (records.length === take + 1) {
-      const nextRecord = records.pop();
+    if (result.records.length === take + 1) {
+      const nextRecord = result.records.pop();
       nextCursor = nextRecord!.id.wsId;
     }
 
-    // Get the number of filtered records from activeRecordFilter
-    const activeRecordFilter = (snapshot.activeRecordFilter as ActiveRecordFilter) || {};
-    const filteredRecordsCount = activeRecordFilter[tableId]?.length || 0;
-
     return {
-      records,
+      records: result.records,
       nextCursor,
-      filteredRecordsCount,
+      count: result.count,
+      filteredCount: result.filteredCount,
     };
   }
 
@@ -786,51 +782,6 @@ export class SnapshotService {
     }
   }
 
-  async activateView(
-    snapshotId: SnapshotId,
-    tableId: string, // wsId for the table
-    dto: CreateSnapshotTableViewDto,
-    userId: string,
-  ): Promise<SnapshotTableView> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
-    }
-
-    const config = { ids: dto.recordIds };
-
-    const view = await this.db.client.snapshotTableView.upsert({
-      where: { snapshotId_tableId: { snapshotId, tableId } },
-      update: { source: dto.source, config },
-      create: {
-        id: createSnapshotTableViewId(),
-        snapshotId,
-        tableId,
-        source: dto.source,
-        name: dto.name,
-        config,
-      },
-    });
-
-    const contexts = snapshot.tableContexts as SnapshotTableContext[];
-
-    const tableContext = contexts.find((c) => c.id.wsId === tableId);
-    if (tableContext) {
-      // set the active ID
-      tableContext.activeViewId = view.id;
-
-      await this.db.client.snapshot.update({
-        where: { id: snapshotId },
-        data: {
-          tableContexts: contexts,
-        },
-      });
-    }
-
-    return view;
-  }
-
   async listViews(snapshotId: SnapshotId, tableId: string, userId: string): Promise<SnapshotTableView[]> {
     await this.verifiySnapshotAndTable(snapshotId, tableId, userId);
 
@@ -885,65 +836,19 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    // Load existing activeRecordFilter or create empty object
-    const currentFilter = (snapshot.activeRecordFilter as ActiveRecordFilter) || {};
+    // Load existing activeRecordSqlFilter or create empty object
+    const currentFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
 
-    // Update the filter for the specific table
+    // Update the filter for the specific table with SQL WHERE clause
     const updatedFilter = {
       ...currentFilter,
-      [tableId]: dto.recordIds,
+      [tableId]: dto.sqlWhereClause,
     };
 
     await this.db.client.snapshot.update({
       where: { id: snapshotId },
       data: {
-        activeRecordFilter: updatedFilter,
-      },
-    });
-
-    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
-      type: 'filter-changed',
-      data: {
-        tableId,
-        source: 'user',
-      },
-    });
-  }
-
-  async addRecordsToActiveFilter(
-    snapshotId: SnapshotId,
-    tableId: string,
-    dto: AddRecordsToActiveFilterDto,
-    userId: string,
-  ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
-    }
-
-    // Load existing activeRecordFilter or create empty object
-    const currentFilter = (snapshot.activeRecordFilter as ActiveRecordFilter) || {};
-
-    // Create a Set from existing records to ensure uniqueness
-    const existingRecords = new Set(currentFilter[tableId] || []);
-
-    // Add new records to the Set (duplicates will be automatically ignored)
-    dto.recordIds.forEach((recordId) => existingRecords.add(recordId));
-
-    // Convert back to array
-    const updatedRecords = Array.from(existingRecords);
-
-    // Update the filter for the specific table
-    const updatedFilter = {
-      ...currentFilter,
-      [tableId]: updatedRecords,
-    };
-
-    await this.db.client.snapshot.update({
-      where: { id: snapshotId },
-      data: {
-        activeRecordFilter: updatedFilter,
+        activeRecordSqlFilter: updatedFilter,
       },
     });
 
@@ -963,19 +868,19 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    // Load existing activeRecordFilter or create empty object
-    const currentFilter = (snapshot.activeRecordFilter as ActiveRecordFilter) || {};
+    // Load existing activeRecordSqlFilter or create empty object
+    const currentFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
 
-    // Remove the table from the filter (or set to empty array)
+    // Remove the table from the filter (or set to empty string)
     const updatedFilter = {
       ...currentFilter,
-      [tableId]: [],
+      [tableId]: '',
     };
 
     await this.db.client.snapshot.update({
       where: { id: snapshotId },
       data: {
-        activeRecordFilter: updatedFilter,
+        activeRecordSqlFilter: updatedFilter,
       },
     });
 

@@ -242,10 +242,14 @@ export const useContextMenuItems = (
           }
 
           try {
-            await snapshotApi.addRecordsToActiveFilter(snapshot.id, table.id.wsId, selectedRecordIds);
+            // Create SQL WHERE clause to exclude selected records
+            const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
+            const sqlWhereClause = `"wsId" NOT IN (${recordIdsList})`;
+
+            await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id.wsId, sqlWhereClause);
             notifications.show({
               title: 'Filter Updated',
-              message: `Added ${selectedRecordIds.length} record(s) to active filter`,
+              message: `Filtered out ${selectedRecordIds.length} record(s)`,
               color: 'green',
             });
             // Refresh the records to update the filtered count

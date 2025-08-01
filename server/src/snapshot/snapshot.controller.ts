@@ -16,15 +16,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { WSLogger } from 'src/logger';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
-import { CreateSnapshotTableViewDto } from './dto/activate-view.dto';
-import { AddRecordsToActiveFilterDto } from './dto/add-active-record-filter.dto';
 import { AppendFieldValueDto } from './dto/append-field-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
@@ -183,25 +180,6 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/tables/:tableId/activate-view')
-  async activateView(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Body() activateViewDto: CreateSnapshotTableViewDto,
-    @Req() req: RequestWithUser,
-  ): Promise<{ id: string }> {
-    WSLogger.debug({
-      source: 'SnapshotController.activateView',
-      message: 'Creating a new view',
-      snapshotId,
-      tableId,
-      activateViewDto,
-    });
-    const view = await this.service.activateView(snapshotId, tableId, activateViewDto, req.user.id);
-    return { id: view.id };
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/clear-activate-view')
   @HttpCode(204)
   async clearActiveView(
@@ -256,18 +234,6 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.setActiveRecordsFilter(snapshotId, tableId, setActiveRecordsFilterDto, req.user.id);
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/tables/:tableId/add-records-to-active-filter')
-  @HttpCode(204)
-  async addRecordsToActiveFilter(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Body() addRecordsToActiveFilterDto: AddRecordsToActiveFilterDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.addRecordsToActiveFilter(snapshotId, tableId, addRecordsToActiveFilterDto, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

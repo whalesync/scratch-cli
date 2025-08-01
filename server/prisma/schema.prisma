@@ -98,7 +98,8 @@ model Snapshot {
 
   tableContexts Json[] // SnapshotTableContext[]
 
-  activeRecordFilter Json? // {[tableId: string]: string[]}
+  activeRecordFilter    Json? // {[tableId: string]: string[]}
+  activeRecordSqlFilter Json? // {[tableId: string]: string}
 
   @@index([connectorAccountId])
 }

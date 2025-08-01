@@ -1,12 +1,25 @@
 'use client';
 
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
 import { ColumnView } from '@/types/server-entities/view';
-import { ActionIcon, Box, Button, Checkbox, Group, Loader, Modal, Select, Text, TextInput } from '@mantine/core';
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Checkbox,
+  Group,
+  Loader,
+  Modal,
+  Select,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { BugIcon, FloppyDiskIcon, Trash } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 import { useFocusedCellsContext } from '../FocusedCellsContext';
 
@@ -16,6 +29,8 @@ interface ViewDataProps {
   filterToView?: boolean;
   onFilterToViewChange?: (filterToView: boolean) => void;
   currentTableId?: string | null;
+  count?: number;
+  filteredCount?: number;
 }
 
 export const ViewData = ({
@@ -24,6 +39,8 @@ export const ViewData = ({
   filterToView = false,
   onFilterToViewChange,
   currentTableId,
+  count,
+  filteredCount,
 }: ViewDataProps) => {
   const { views, isLoading, error, refreshViews, snapshot, clearActiveRecordFilter } = useSnapshotContext();
   const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useFocusedCellsContext();
@@ -36,6 +53,21 @@ export const ViewData = ({
   const [renaming, setRenaming] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sqlFilterModalOpen, setSqlFilterModalOpen] = useState(false);
+  const [sqlFilterText, setSqlFilterText] = useState('');
+
+  const currentView = views?.find((v) => v.id === currentViewId);
+
+  const currentTableFilter =
+    currentTableId && snapshot && snapshot.activeRecordSqlFilter && currentTableId in snapshot.activeRecordSqlFilter
+      ? snapshot.activeRecordSqlFilter[currentTableId]
+      : undefined;
+
+  useEffect(() => {
+    if (sqlFilterModalOpen) {
+      setSqlFilterText(currentTableFilter || '');
+    }
+  }, [sqlFilterModalOpen, currentTableFilter]);
 
   const handleRenameView = async () => {
     if (!currentView) return;
@@ -99,15 +131,12 @@ export const ViewData = ({
     setDeleting(true);
     try {
       await viewApi.delete(currentView.id);
-
       notifications.show({
         title: 'View Deleted',
         message: `View "${formatViewName(currentView)}" has been deleted`,
         color: 'green',
       });
-
       setDeleteModalOpen(false);
-      onViewChange?.(null); // Clear the current view selection
       await refreshViews?.();
     } catch (error) {
       console.error('Error deleting view:', error);
@@ -118,6 +147,28 @@ export const ViewData = ({
       });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleSetSqlFilter = async () => {
+    if (!currentTableId || !snapshot) return;
+
+    try {
+      await snapshotApi.setActiveRecordsFilter(snapshot.id, currentTableId, sqlFilterText || undefined);
+      notifications.show({
+        title: 'Filter Updated',
+        message: 'SQL filter has been applied',
+        color: 'green',
+      });
+      setSqlFilterModalOpen(false);
+      setSqlFilterText('');
+    } catch (error) {
+      console.error('Error setting SQL filter:', error);
+      notifications.show({
+        title: 'Error Setting Filter',
+        message: error instanceof Error ? error.message : 'Failed to set SQL filter',
+        color: 'red',
+      });
     }
   };
 
@@ -148,13 +199,6 @@ export const ViewData = ({
     }
     return view.name;
   };
-
-  const currentView = views?.find((v) => v.id === currentViewId);
-
-  const currentTableFilter =
-    currentTableId && snapshot && snapshot.activeFiltersByTable && currentTableId in snapshot.activeFiltersByTable
-      ? snapshot.activeFiltersByTable[currentTableId]
-      : undefined;
 
   return (
     <Box p="xs" bg="blue.0">
@@ -251,21 +295,22 @@ export const ViewData = ({
         </Text>
 
         {/* Filtered Records Widget */}
-        {currentTableFilter && (
-          <Group gap="xs" align="center">
-            <Text size="sm" fw={500} c="red">
-              {currentTableFilter.length} filtered
-            </Text>
-            <Button
-              size="xs"
-              variant="light"
-              color="red"
-              onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
-            >
-              Clear Filter
-            </Button>
-          </Group>
-        )}
+        <Group gap="xs" align="center">
+          <Text size="sm" fw={500} c="red">
+            {count !== undefined && filteredCount !== undefined ? `${count - filteredCount} filtered` : 'Filtered'}
+          </Text>
+          <Button size="xs" variant="light" color="blue" onClick={() => setSqlFilterModalOpen(true)}>
+            Set SQL Filter
+          </Button>
+          <Button
+            size="xs"
+            variant="light"
+            color="red"
+            onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
+          >
+            Clear Filter
+          </Button>
+        </Group>
       </Group>
 
       {/* Rename Modal */}
@@ -310,6 +355,34 @@ export const ViewData = ({
       {/* Debug Modal */}
       <Modal opened={!!debugView} onClose={() => setDebugView(null)} title="Debug View" size="lg">
         {debugView && <JsonTreeViewer jsonData={debugView} />}
+      </Modal>
+
+      {/* SQL Filter Modal */}
+      <Modal opened={sqlFilterModalOpen} onClose={() => setSqlFilterModalOpen(false)} title="Set SQL Filter" size="md">
+        <Box>
+          <Text size="sm" mb="xs">
+            Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.
+          </Text>
+          <Text size="xs" c="dimmed" mb="md">
+            Example: name = &apos;John&apos; AND age &gt; 25
+          </Text>
+          <Textarea
+            label="SQL WHERE Clause"
+            value={sqlFilterText}
+            onChange={(e) => setSqlFilterText(e.target.value)}
+            placeholder="Enter SQL WHERE clause..."
+            minRows={3}
+            mb="md"
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={() => setSqlFilterModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSetSqlFilter} loading={false}>
+              Apply Filter
+            </Button>
+          </Group>
+        </Box>
       </Modal>
     </Box>
   );

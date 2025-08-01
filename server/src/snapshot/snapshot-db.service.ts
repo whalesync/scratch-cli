@@ -9,7 +9,7 @@ import { ViewConfig } from 'src/view/types';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
-import { ActiveRecordFilter } from './types';
+import { ActiveRecordSqlFilter } from './types';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -214,8 +214,8 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     take: number,
     view: ViewConfig | undefined,
     tableSpec?: AnyTableSpec,
-    activeRecordFilter?: ActiveRecordFilter,
-  ): Promise<SnapshotRecord[]> {
+    activeRecordSqlFilter?: ActiveRecordSqlFilter,
+  ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number }> {
     // const query = this.knex<DbRecord>(tableId);
 
     const query = this.knex<DbRecord>(tableId).withSchema(snapshotId).orderBy('id').limit(take);
@@ -224,11 +224,12 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       query.where('wsId', '>=', cursor);
     }
 
-    // Apply active record filter to exclude filtered records
-    if (activeRecordFilter && activeRecordFilter[tableId] && activeRecordFilter[tableId].length > 0) {
-      const filteredRecordIds = activeRecordFilter[tableId];
-      if (Array.isArray(filteredRecordIds) && filteredRecordIds.length > 0) {
-        query.whereNotIn('wsId', filteredRecordIds);
+    // Apply active record filter using SQL WHERE clauses
+    if (activeRecordSqlFilter && activeRecordSqlFilter[tableId] && activeRecordSqlFilter[tableId].trim() !== '') {
+      const sqlWhereClause = activeRecordSqlFilter[tableId];
+      if (sqlWhereClause && sqlWhereClause.trim() !== '') {
+        // Apply the SQL WHERE clause directly
+        query.whereRaw(sqlWhereClause);
       }
     }
 
@@ -280,7 +281,36 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
     const reqult = await query;
 
-    return reqult.map((r) => this.mapDbRecordToSnapshotRecord(r));
+    // Calculate counts
+    let count: number;
+    let filteredCount: number;
+
+    const sqlWhereClause = activeRecordSqlFilter?.[tableId];
+
+    if (sqlWhereClause && sqlWhereClause.trim() !== '') {
+      // Count total records without filter
+      const totalQuery = this.knex<DbRecord>(tableId).withSchema(snapshotId);
+      const totalRecords = await totalQuery.select('wsId');
+      count = totalRecords.length;
+
+      // Count filtered records with filter
+      const filteredQuery = this.knex<DbRecord>(tableId).withSchema(snapshotId);
+      filteredQuery.whereRaw(sqlWhereClause);
+      const filteredRecords = await filteredQuery.select('wsId');
+      filteredCount = filteredRecords.length;
+    } else {
+      // No filter, so both counts are the same
+      const totalQuery = this.knex<DbRecord>(tableId).withSchema(snapshotId);
+      const totalRecords = await totalQuery.select('wsId');
+      count = totalRecords.length;
+      filteredCount = count;
+    }
+
+    return {
+      records: reqult.map((r) => this.mapDbRecordToSnapshotRecord(r)),
+      count,
+      filteredCount,
+    };
   }
 
   private mapDbRecordToSnapshotRecord(record: DbRecord): SnapshotRecord {

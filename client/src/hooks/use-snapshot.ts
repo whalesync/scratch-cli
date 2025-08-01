@@ -100,7 +100,8 @@ export interface UseSnapshotRecordsReturn {
   refreshRecords: () => Promise<void>;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
-  filteredRecordsInTableCount: number;
+  count: number;
+  filteredCount: number;
 }
 
 export const useSnapshotTableRecords = (args: {
@@ -259,6 +260,7 @@ export const useSnapshotTableRecords = (args: {
     refreshRecords,
     acceptCellValues,
     rejectCellValues,
-    filteredRecordsInTableCount: data?.filteredRecordsCount || 0,
+    count: data?.count || 0,
+    filteredCount: data?.filteredCount || 0,
   };
 };

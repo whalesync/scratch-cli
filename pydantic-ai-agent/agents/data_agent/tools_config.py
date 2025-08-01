@@ -13,8 +13,7 @@ from agents.data_agent.tools.search_and_replace_field_value_tool import define_s
 from agents.data_agent.tools.delete_records_tool import define_delete_records_tool
 from agents.data_agent.tools.create_records_tool import create_create_records_tool
 from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
-from agents.data_agent.tools.add_records_to_filter_tool import define_add_records_to_filter_tool
-from agents.data_agent.tools.clear_record_filter_tool import define_clear_record_filter_tool
+from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
 
 class GetRecordsInput(BaseModel):
     """Input for the get_records tool"""
@@ -45,8 +44,7 @@ def configure_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilitie
     if capabilities is None or 'data:delete' in capabilities:
         define_delete_records_tool(agent)
 
-    if capabilities is None or 'views:filter-out-records' in capabilities:
-        define_add_records_to_filter_tool(agent)
+    if capabilities is None or 'views:filtering' in capabilities:
+        define_set_filter_tool(agent)
 
-    if capabilities is None or 'views:clear-filters' in capabilities:
-        define_clear_record_filter_tool(agent)
+   

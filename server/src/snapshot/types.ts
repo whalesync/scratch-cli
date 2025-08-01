@@ -28,3 +28,10 @@ export type SnapshotTableViewConfig = {
 export type ActiveRecordFilter = {
   [tableId: string]: string[];
 };
+
+/**
+ * Maps tableId to an SQL WHERE clause that filters records.
+ */
+export type ActiveRecordSqlFilter = {
+  [tableId: string]: string;
+};

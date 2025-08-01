@@ -47,7 +47,7 @@ export interface Snapshot {
   connectorDisplayName: string | null;
   connectorService: string | null;
   tableContexts: SnapshotTableContext[];
-  activeFiltersByTable?: Record<string, string[]>;
+  activeRecordSqlFilter?: Record<string, string>;
 }
 
 export interface CreateSnapshotDto {
