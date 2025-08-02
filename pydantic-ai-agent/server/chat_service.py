@@ -26,9 +26,10 @@ from logger import log_info, log_error, log_debug, log_warning
 from scratchpad_api import API_CONFIG, check_server_health
 # from tools import set_api_token, set_session_data
 from server.user_prompt_utils import build_snapshot_context
-from scratchpad_api import get_snapshot, list_records
+from scratchpad_api import get_snapshot, list_records, get_record
 from agents.data_agent.data_agent_utils import convert_scratchpad_snapshot_to_ai_snapshot
- 
+from traceback import print_exc
+
 class ChatService:
     def __init__(self):
         self.sessions: Dict[str, ChatSession] = {}
@@ -66,6 +67,9 @@ class ChatService:
         write_focus: Optional[List[FocusedCell]] = None,
         capabilities: Optional[List[str]] = None,
         active_table_id: Optional[str] = None,
+        data_scope: Optional[str] = None,
+        record_id: Optional[str] = None,
+        column_id: Optional[str] = None,
         timeout_seconds: float = 60.0,
         progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
@@ -113,6 +117,14 @@ class ChatService:
             log_info("No style guides provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
             print(f"ℹ️ No style guides provided")
         
+
+        if data_scope:
+            log_info("Data scope provided for session", session_id=session.id, data_scope=data_scope, snapshot_id=session.snapshot_id)
+            print(f"📊 Data scope provided: {data_scope}, record_id: {record_id}, column_id: {column_id}")
+        else:
+            log_info("No data scope provided for session", session_id=session.id, snapshot_id=session.snapshot_id)
+            print(f"ℹ️ No data scope provided")
+
         
         try:
             # Build context from session history
@@ -129,8 +141,7 @@ class ChatService:
             
             # Create the full prompt with memory
             full_prompt = f"RESPOND TO: {user_message} {context}"
-            
-            
+                        
             # Log agent processing details
             log_debug("Agent processing details", 
                      session_id=session.id,
@@ -144,8 +155,6 @@ class ChatService:
                      has_api_token=api_token is not None,
                      snapshot_id=session.snapshot_id)
             
-            # Get structured response from agent with timeout
-            print(f"🤖 Calling agent.run() with timeout...")
             try:
                 # Pre-load snapshot data and records for efficiency
                 print(f"🔄 Pre-loading snapshot data and records...")
@@ -165,31 +174,54 @@ class ChatService:
                         # Pre-load records for each table
                         # TODO: apply read_focus and write_focus to the records to eliminate some fields
                         for table in snapshot.tables:
-                            try:
-                                records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
-                                filtered_counts[table.name] = records_result.filteredRecordsCount
-                                preloaded_records[table.name] = [
-                                    {
+                            if active_table_id and active_table_id != table.id.wsId:
+                                continue
+
+                            if record_id and (data_scope == 'record' or data_scope == 'column'):
+                                # just preload the one record form the table
+                                try:
+                                    record = get_record(session.snapshot_id, table.id.wsId, record_id, api_token)
+                                    preloaded_records[table.name] = [{
                                         'id': {'wsId': record.id.wsId, 'remoteId': record.id.remoteId},
                                         'fields': record.fields,
                                         'suggested_fields': record.suggested_fields,
                                         'edited_fields': record.edited_fields,
                                         'dirty': record.dirty
-                                    }
-                                    for record in records_result.records
-                                ]
-                                print(f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'")
-                                if records_result.filteredRecordsCount > 0:
-                                    print(f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'")
-                            except Exception as e:
-                                print(f"⚠️ Failed to pre-load records for table '{table.name}': {e}")
-                                preloaded_records[table.name] = []
+                                    }]
+                                    print(f"📊 Pre-loaded {len(preloaded_records[table.name])} record for table '{table.name}': {record.id.wsId}")
+                                except Exception as e:
+                                    print(f"⚠️ Failed to pre-load record {record_id} for table '{table.name}': {e}")
+                                    print_exc()
+                                    preloaded_records[table.name] = []
+                            else:
+                                try:
+                                    records_result = list_records(session.snapshot_id, table.id.wsId, api_token, view_id=view_id)
+                                    filtered_counts[table.name] = records_result.filteredRecordsCount
+                                    preloaded_records[table.name] = [
+                                        {
+                                            'id': {'wsId': record.id.wsId, 'remoteId': record.id.remoteId},
+                                            'fields': record.fields,
+                                            'suggested_fields': record.suggested_fields,
+                                            'edited_fields': record.edited_fields,
+                                            'dirty': record.dirty
+                                        }
+                                        for record in records_result.records
+                                    ]
+                                    print(f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'")
+                                    if records_result.filteredRecordsCount > 0:
+                                        print(f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'")
+                                except Exception as e:
+                                    print(f"⚠️ Failed to pre-load records for table '{table.name}': {e}")
+                                    print_exc()
+                                    preloaded_records[table.name] = []
                         
-                        print(f"✅ Pre-loaded data for {len(snapshot.tables)} tables")
+                        print(f"✅ Data preload complete")
                     except Exception as e:
                         print(f"⚠️ Failed to pre-load snapshot data: {e}")
+                        print_exc()
                         snapshot = None
                         preloaded_records = {}
+                        return None
                 
                 # Create context with pre-loaded data
                 chatRunContext:ChatRunContext = ChatRunContext(
@@ -200,14 +232,16 @@ class ChatService:
                     read_focus=read_focus,
                     write_focus=write_focus,
                     preloaded_records=preloaded_records,
-                    active_table_id=active_table_id
+                    active_table_id=active_table_id,
+                    data_scope=data_scope,
+                    record_id=record_id,
+                    column_id=column_id
                 )
 
                 # Add pre-loaded snapshot data and records to the prompt
                 
                 # Prepare records and filtered counts for the utility function
                 preloaded_records = chatRunContext.preloaded_records
-
                 
                 snapshot_context = build_snapshot_context(
                     snapshot=snapshot,
@@ -239,7 +273,7 @@ class ChatService:
                 if progress_callback:
                     await progress_callback(f"Creating agent with {model} model")
 
-                agent = create_agent(model_name=model, capabilities=capabilities, style_guides=style_guides)
+                agent = create_agent(model_name=model, capabilities=capabilities, style_guides=style_guides, data_scope=data_scope)
 
                 result = None
                 

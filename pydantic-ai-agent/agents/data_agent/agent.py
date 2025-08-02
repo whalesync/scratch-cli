@@ -19,13 +19,14 @@ from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 
 
-def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = {}):
+def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = {}, data_scope: Optional[str] = None):
     """Create and return a configured agent"""
     print(f"🔍 create_agent called with:")
     print(f"   model_name: {model_name}")
     print(f"   capabilities: {capabilities}")
     print(f"   style_guides: {style_guides}")
     print(f"   style_guides type: {type(style_guides)}")
+    print(f"   data_scope: {data_scope}")
     if style_guides:
         print(f"   style_guides length: {len(style_guides)}")
         for i, g in enumerate(style_guides):
@@ -59,7 +60,7 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
             tools=get_data_tools(capabilities, style_guides) + [] # TODO: add view tools
         )
         
-        configure_tools(agent, capabilities);
+        configure_tools(agent, capabilities, data_scope);
  
         print(f"✅ Agent created successfully with model: {model_name}")
         print(f"🔧 Agent has tools: connect_snapshot_tool, get_records_tool, create_records_tool, update_records_tool, delete_records_tool")

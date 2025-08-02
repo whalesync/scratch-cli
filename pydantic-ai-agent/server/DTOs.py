@@ -16,11 +16,6 @@ class Guideline(BaseModel):
     name: str = Field(description="The name of the system prompt section to override (e.g., 'BASE_INSTRUCTIONS')")
     content: str = Field(description="The content to use instead of the default section")
 
-class DataScope(str, Enum):
-    table = "table"
-    record = "record"
-    column = "column"
-
 class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
     message: str
@@ -32,7 +27,7 @@ class SendMessageRequestDTO(BaseModel):
     read_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of read-focused cells")
     write_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of write-focused cells")
     active_table_id: Optional[str] = Field(default=None, description="ID of the currently active table")
-    data_scope: Optional[DataScope] = Field(default=DataScope.table, description="Data scope for the message")
+    data_scope: Optional[str] = Field(default='table', description="Data scope for the message")
     record_id: Optional[str] = Field(default=None, description="ID of the record to scope the data to")
     column_id: Optional[str] = Field(default=None, description="ID of the column to scope the data to")
 

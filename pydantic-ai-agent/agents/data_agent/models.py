@@ -3,6 +3,7 @@
 Data models for the chat server
 """
 
+from enum import Enum
 from pydantic import BaseModel, Field
 from datetime import datetime
 from scratchpad_api import ColumnSpec, SnapshotRecord, RecordId, TableSpec
@@ -31,7 +32,6 @@ class ResponseFromAgent(BaseModel):
     request_summary: str = Field(description="A concise summary of what the user requested, for future reference")
     usage_stats: Optional[UsageStats] = Field(description="Usage stats for the agent")
 
-
 class ChatRunContext(BaseModel):
     session: ChatSession
     api_token: str
@@ -41,6 +41,9 @@ class ChatRunContext(BaseModel):
     read_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of read-focused cells")
     write_focus: Optional[List[FocusedCell]] = Field(default=None, description="List of write-focused cells")
     active_table_id: Optional[str] = Field(default=None, description="ID of the table that has active focus in the context")
+    data_scope: Optional[str] = Field(default=None, description="Data scope for the message")
+    record_id: Optional[str] = Field(default=None, description="ID of the record to scope the data to")
+    column_id: Optional[str] = Field(default=None, description="ID of the column to scope the data to")
 
 class WithTableName(BaseModel):
     """Input for the update_records tool"""

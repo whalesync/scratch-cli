@@ -32,7 +32,7 @@ def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[
 
 
 
-def configure_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None):
+def configure_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None, data_scope: Optional[str] = None):
     """Configure the tools for the agent based on the capabilities"""
     
     if capabilities is None or 'data:field-tools' in capabilities:

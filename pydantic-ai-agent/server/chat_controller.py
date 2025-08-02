@@ -170,7 +170,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         else:
             print(f"   No style guides provided, using empty dict")
         
-        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, request.active_table_id, 60.0)
+        agent_response = await chat_service.process_message_with_agent(session, request.message, request.api_token, style_guides_dict, request.model, request.view_id, request.read_focus, request.write_focus, request.capabilities, request.active_table_id, request.data_scope, request.record_id, request.column_id, 60.0)
         
         log_info("Agent response received", session_id=session_id, response_length=len(agent_response.response_message), snapshot_id=session.snapshot_id)
         
