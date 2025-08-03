@@ -3,6 +3,7 @@ import { DiffViewer } from '@/app/components/DiffViewer';
 import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { ColumnSpec, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import {
   ActionIcon,
   Button,
@@ -23,6 +24,8 @@ import { notifications } from '@mantine/notifications';
 import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAIPromptContext } from '../AIPromptContext';
+import { useSnapshotContext } from '../SnapshotContext';
+import { ICONS } from '../icons';
 
 interface RecordDetailsProps {
   snapshotId: string;
@@ -47,6 +50,7 @@ export const RecordDetails = ({
   rejectCellValues,
   bulkUpdateRecord,
 }: RecordDetailsProps) => {
+  const { currentView } = useSnapshotContext();
   const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
   const [showEditedOnly, setShowEditedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -136,7 +140,9 @@ export const RecordDetails = ({
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
       if (!record) return null;
+      if (currentView && isColumnHidden(table.id.wsId, field, currentView)) return null;
 
+      const isProtected = currentView && isColumnProtected(table.id.wsId, field, currentView);
       const value = record.fields[field] as string;
       const greenBackgroundStyle = hasEditedValue
         ? {
@@ -154,7 +160,7 @@ export const RecordDetails = ({
             label={column.name}
             value={currentRecord.fields[field] as number}
             onChange={(value) => updateField(field, value.toString())}
-            readOnly={column.readonly || hasSuggestion}
+            readOnly={column.readonly || hasSuggestion || isProtected}
             styles={greenBackgroundStyle}
           />
         );
@@ -163,10 +169,10 @@ export const RecordDetails = ({
         return (
           <Checkbox
             key={field}
-            label={column.name}
+            label={`${column.name} ${isProtected ? ICONS.protected : ''}`}
             checked={value === 'true'}
             onChange={(e) => updateField(field, e.target.checked.toString())}
-            readOnly={column.readonly || hasSuggestion}
+            readOnly={column.readonly || hasSuggestion || isProtected}
           />
         );
       }
@@ -174,13 +180,13 @@ export const RecordDetails = ({
       return (
         <EnhancedTextArea
           key={field}
-          label={column.name}
+          label={`${column.name} ${isProtected ? ICONS.protected : ''}`}
           value={value ?? ''}
           autosize
           minRows={10}
           resize="vertical"
           onChange={(e) => updateField(field, e.target.value)}
-          readOnly={column.readonly || hasSuggestion}
+          readOnly={column.readonly || hasSuggestion || isProtected}
           styles={{
             input: {
               border: 'none',
@@ -315,6 +321,8 @@ export const RecordDetails = ({
                 minRows={10}
                 styles={{
                   input: {
+                    fontSize: '1rem',
+                    padding: '2rem',
                     color: '#b8860b',
                     backgroundColor: '#fefefe',
                     borderColor: '#e0e0e0',

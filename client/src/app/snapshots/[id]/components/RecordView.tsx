@@ -2,9 +2,11 @@ import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { ActionIcon, Anchor, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
+import { ICONS } from '../icons';
 import { RecordDetails } from './RecordDetails';
 
 interface RecordViewProps {
@@ -27,12 +29,10 @@ export const RecordView = ({
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
 
-  const activeView = currentView;
-
   const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
-    viewId: filterToView && activeView ? activeView.id : undefined,
+    viewId: filterToView && currentView ? currentView.id : undefined,
   });
 
   const focusRecord = useCallback(
@@ -121,24 +121,29 @@ export const RecordView = ({
                   </Anchor>
                   {currentRecordId === record.id.wsId ? (
                     <Stack pl="md" gap="2px" h="100%">
-                      {table.columns.map((c) => (
-                        <Anchor
-                          component="span"
-                          fz="sm"
-                          fw={currentColumnId === c.id.wsId ? 'bold' : 'normal'}
-                          key={c.id.wsId}
-                          onClick={() => {
-                            if (currentColumnId === c.id.wsId) {
-                              handleSelectColumn(record, undefined);
-                            } else {
-                              handleSelectColumn(record, c.id.wsId);
-                            }
-                          }}
-                          underline="never"
-                        >
-                          {c.name}
-                        </Anchor>
-                      ))}
+                      {table.columns.map((c) =>
+                        currentView && isColumnHidden(table.id.wsId, c.id.wsId, currentView) ? null : (
+                          <Anchor
+                            component="span"
+                            fz="sm"
+                            fw={currentColumnId === c.id.wsId ? 'bold' : 'normal'}
+                            key={c.id.wsId}
+                            onClick={() => {
+                              if (currentColumnId === c.id.wsId) {
+                                handleSelectColumn(record, undefined);
+                              } else {
+                                handleSelectColumn(record, c.id.wsId);
+                              }
+                            }}
+                            underline="never"
+                          >
+                            {c.name}{' '}
+                            {currentView && isColumnProtected(table.id.wsId, c.id.wsId, currentView)
+                              ? ICONS.protected
+                              : null}
+                          </Anchor>
+                        ),
+                      )}
                     </Stack>
                   ) : null}
                 </Stack>
