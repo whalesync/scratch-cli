@@ -22,26 +22,25 @@ class GetRecordsInput(BaseModel):
 
 # TODO: Use table id
 
-def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = None):
+def get_data_tools(capabilities: Optional[List[str]] = None, style_guides: Dict[str, str] = None, data_scope: Optional[str] = None):
     tools = []
-    if capabilities is None or 'data:update' in capabilities:
+    
+    if (capabilities is None or 'data:update' in capabilities) and data_scope == 'table':
         tools.append(create_update_records_tool(style_guides));
-    if capabilities is None or 'data:create' in capabilities:
+    if (capabilities is None or 'data:create' in capabilities) and data_scope == 'table':
         tools.append(create_create_records_tool(style_guides));
     return tools;
-
-
 
 def configure_tools(agent: Agent[ChatRunContext, ResponseFromAgent], capabilities: Optional[List[str]] = None, data_scope: Optional[str] = None):
     """Configure the tools for the agent based on the capabilities"""
     
     if capabilities is None or 'data:field-tools' in capabilities:
-        define_append_field_value_tool(agent)
-        define_insert_value_tool(agent)
-        define_search_and_replace_field_value_tool(agent)
-        define_set_field_value_tool(agent)
+        define_append_field_value_tool(agent, data_scope)
+        define_insert_value_tool(agent, data_scope)
+        define_search_and_replace_field_value_tool(agent, data_scope)
+        define_set_field_value_tool(agent, data_scope)
     
-    if capabilities is None or 'data:delete' in capabilities:
+    if (capabilities is None or 'data:delete' in capabilities) and data_scope == 'table':
         define_delete_records_tool(agent)
 
     if capabilities is None or 'views:filtering' in capabilities:

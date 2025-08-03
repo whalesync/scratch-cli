@@ -86,6 +86,10 @@ DATA_MANIPULATION_INSTRUCTIONS = """
 - Use create_records_tool to add new records with data you generate
 - Use update_records_tool to modify existing records (creates suggestions, not direct changes)
 - Use delete_records_tool to suggest removal of records by their IDs
+- Use set_field_value_tool to set a value in a specific field in a record.
+- Use append_field_value_tool to append a value to a specific field in a record.
+- Use insert_value_tool to insert a value into a specific field in a record.
+- Use search_and_replace_field_value_tool to search and replace a value in a specific field in a record.
 
 ## For creating records, you should:
 1. Generate appropriate data for each column based on the schema
@@ -113,6 +117,54 @@ DATA_MANIPULATION_INSTRUCTIONS = """
 - if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
 - if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
 """
+
+DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED = """
+# DATA MANIPULATION:
+- Use set_field_value_tool to set a value in a record of the active table.
+- Use append_field_value_tool to append a value to a field in a record of the active table.
+- Use insert_value_tool to insert a value into a field in a record of the active table.
+- Use search_and_replace_field_value_tool to search and replace a value in a field in a record of the active table.
+
+## For updating records, you should do the following actions:
+1. Generate the new data for the field you want to update
+2. If read focus cells are provided only use them in the process of generating suggestions.
+3. Call the tool matching the operation you want to perform with the parameters in it's schema/description
+4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+
+## IMPORTANT
+- some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
+- do not call tools that are not available to you.
+- do not call more than 1 tool at a time
+- do not call the same tool multiple times at a time for the same user prompt and parameters
+- if the tool succeeds do not call it again for the same user prompt and parameters
+- if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
+- if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
+"""
+
+DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED = """
+# DATA MANIPULATION:
+- Use set_field_value_tool to set a value in a record of the active table.
+- Use append_field_value_tool to append a value to a field in a record of the active table.
+- Use insert_value_tool to insert a value into a field in a record of the active table.
+- Use search_and_replace_field_value_tool to search and replace a value in a field in a record of the active table.
+
+## For updating records, you should do the following actions:
+1. Identify the field name that should be updated
+2. Generate the new data for the field you want to update
+3. If read focus cells are provided only use them in the process of generating suggestions.
+4. Call the tool matching the operation you want to perform with the parameters in it's schema/description
+5. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+
+## IMPORTANT
+- some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
+- do not call tools that are not available to you.
+- do not call more than 1 tool at a time
+- do not call the same tool multiple times at a time for the same user prompt and parameters
+- if the tool succeeds do not call it again for the same user prompt and parameters
+- if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
+- if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
+"""
+
 
 FINAL_RESPONSE_INSTRUCTIONS = """
 # FINAL RESPONSE: 
@@ -145,7 +197,7 @@ When you receive snapshot data, each record has this structure:
 """
 
 
-def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: dict[str, str] | None = None) -> str:
+def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: dict[str, str] | None = None, data_scope: str | None = None) -> str:
     print(f"🔍 get_data_agent_instructions called with capabilities: {capabilities}")
     print(f"🔍 style_guides: {style_guides}")
     
@@ -164,10 +216,16 @@ def get_data_agent_instructions(capabilities: list[str] | None = None, style_gui
         style_guide_content = get_styleguide(style_guides, variable_name)
         return style_guide_content if style_guide_content is not None else default_content
     
+    data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS
+    if data_scope == 'record':
+        data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED
+    elif data_scope == 'column':
+        data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED
+
     # Get each section, potentially overridden by style guides
     base_instructions = get_section("BASE_INSTRUCTIONS", BASE_INSTRUCTIONS)
     views_filtering = get_section("VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS", VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS)
-    data_manipulation = get_section("DATA_MANIPULATION_INSTRUCTIONS", DATA_MANIPULATION_INSTRUCTIONS)
+    data_manipulation = get_section("DATA_MANIPULATION_INSTRUCTIONS", data_manipulation_instructions)
     final_response = get_section("FINAL_RESPONSE_INSTRUCTIONS", FINAL_RESPONSE_INSTRUCTIONS)
     data_formatting = get_section("DATA_FORMATTING_INSTRUCTIONS", DATA_FORMATTING_INSTRUCTIONS)
     data_structure = get_section("DATA_STRUCTURE_INSTRUCTIONS", DATA_STRUCTURE_INSTRUCTIONS)

@@ -3,7 +3,7 @@
 Delete Records Tool for the Data Agent
 """
 from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
-from agents.data_agent.model_utils import get_active_table, unable_to_identify_active_table_error
+from agents.data_agent.model_utils import get_active_table, unable_to_identify_active_table_error, unable_to_identify_active_snapshot_error
 from typing import List
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
@@ -26,10 +26,9 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
         try:
             # Get the active snapshot
             chatRunContext: ChatRunContext = ctx.deps 
-            chatSession: ChatSession = chatRunContext.session
             
             if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+                return unable_to_identify_active_snapshot_error(chatRunContext)
             
             # Find the table by name
             table = get_active_table(chatRunContext)

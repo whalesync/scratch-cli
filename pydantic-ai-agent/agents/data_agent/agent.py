@@ -48,22 +48,20 @@ def create_agent(model_name: Optional[str] = None, capabilities: Optional[List[s
             model_name,
             provider=OpenRouterProvider(api_key=api_key),
         )
-        
         # Create the agent
         agent = Agent(
             name="ChatServerAgent",
-            instructions=get_data_agent_instructions(capabilities, style_guides),
+            instructions=get_data_agent_instructions(capabilities, style_guides, data_scope),
             output_type=ResponseFromAgent,
             history_processors=[data_agent_history_processor],
             model=model,
             deps_type=ChatRunContext,
-            tools=get_data_tools(capabilities, style_guides) + [] # TODO: add view tools
+            tools=get_data_tools(capabilities, style_guides, data_scope) + [] # TODO: add view tools
         )
         
         configure_tools(agent, capabilities, data_scope);
  
         print(f"✅ Agent created successfully with model: {model_name}")
-        print(f"🔧 Agent has tools: connect_snapshot_tool, get_records_tool, create_records_tool, update_records_tool, delete_records_tool")
         return agent
         
     except Exception as e:

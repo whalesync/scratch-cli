@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error
+from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error, unable_to_identify_active_snapshot_error
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -105,7 +105,7 @@ async def create_records_implementation(ctx: RunContext[ChatRunContext], table_n
         chatRunContext: ChatRunContext = ctx.deps 
         
         if not chatRunContext.snapshot:
-            return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            return unable_to_identify_active_snapshot_error(chatRunContext)
         
         # Find the table by name
         table = None

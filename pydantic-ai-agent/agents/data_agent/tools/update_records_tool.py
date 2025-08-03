@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from agents.data_agent.model_utils import find_column_by_name, find_table_by_name, get_active_table, missing_table_error
+from agents.data_agent.model_utils import find_column_by_name, find_table_by_name, get_active_table, is_in_write_focus, missing_table_error, unable_to_identify_active_table_error
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -32,10 +32,6 @@ class RecordUpdateDict(TypedDict):
 json_schema = {
     "type": "object",
     "properties": {
-        "table_name": {
-            "type": "string",
-            "description": "The name of the table to update records in"
-        },
         "record_updates": {
             "type": "array",
             "description": "List of record updates. Each update should have a wsId (record ID) and data (field updates)",
@@ -69,7 +65,7 @@ json_schema = {
             }
         }
     },
-    "required": ["table_name", "record_updates"]
+    "required": ["record_updates"]
 }
 
 description = """
@@ -78,7 +74,6 @@ description = """
     IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
 
     Use this tool when the user asks to modify or edit existing records in a table.
-    The table_name should be the name of the table you want to update records in.
     The record_updates should be a list of entities with the following fields:
     - 'wsId': the record ID to update
     - 'updates': a list of field updates, each containing 'field' and 'value' keys
@@ -87,10 +82,10 @@ description = """
     Example: [{'wsId': 'record_id_1', 'updates': [{'field': 'status', 'value': 'active'}, {'field': 'priority', 'value': 'high'}]}]
     NOT: "[{'wsId': 'record_id_1', 'updates': [{'field': 'status', 'value': 'active'}, {'field': 'priority', 'value': 'high'}]}]"
 
-    If calling this tool always include the table_name and non empty record_updates.
+    If calling this tool always include a non empty list of record_updates.
 """
 
-async def update_records_implementation(ctx: RunContext[ChatRunContext], table_name: str, record_updates: List[RecordUpdateDict]) -> str:
+async def update_records_implementation(ctx: RunContext[ChatRunContext], record_updates: List[RecordUpdateDict]) -> str:
     try:
         if(record_updates is None or len(record_updates) == 0):
             return "Error: The list of record updates is empty. Provide at least one record update"
@@ -113,22 +108,12 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
 
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps 
-        
-        # Find the table by name
-        # table = find_table_by_name(chatRunContext, table_name);
-        
-        # if not table:
-        #     return missing_table_error(chatRunContext, table_name)
 
         table = get_active_table(chatRunContext)
+
+        if not table:
+            return unable_to_identify_active_table_error(chatRunContext)
         
-        # TODO: apply read_focus and write_focus to the records to eliminate some fields
-
-        # Commented out - breaks the method.
-        # if(chatRunContext.write_focus is not None or len(chatRunContext.write_focus) > 0):
-        #     # TODO: apply write_focus to the records to eliminate some fields
-        #     pass
-
         # Create RecordOperation objects for update operations translating field_name to the actual field ids
         update_operations = []
         data_errors = []
@@ -137,9 +122,17 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
             for field_update in update['updates']:
                 column = find_column_by_name(table, field_update['field'])
                 if column:
+                    if(not is_in_write_focus(chatRunContext, column.id.wsId, update['wsId'])):
+                        data_errors.append(f"Field '{field_update['field']}' is not in write focus and cannot be updated.")
+                        continue
+                    
                     data_payload[column.id.wsId] = field_update['value']
                 else:
                     data_errors.append(f"Field '{field_update['field']}' not found in table '{table.name}'")
+
+            if not data_payload:
+                data_errors.append(f"No valid fields to update for record {update['wsId']}")
+                continue
 
             update_operations.append(RecordOperation(
                 op="update",
@@ -147,9 +140,14 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
                 data=data_payload
             ))
 
+        if(len(data_errors) > 0):
+            return f"Error: {', '.join(data_errors)}"
         
+        if(len(update_operations) == 0):
+            return "Error: No valid records to update"
+
         log_info("Updating records via bulk update", 
-                table_name=table_name,
+                table_name=table.name,
                 table_id=table.id.wsId,
                 record_count=len(update_operations),
                 snapshot_id=chatRunContext.session.snapshot_id)
@@ -166,7 +164,7 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
             view_id=chatRunContext.view_id
         )
         
-        print(f"✅ Successfully updated {len(update_operations)} records in table '{table_name}'")
+        print(f"✅ Successfully updated {len(update_operations)} records in table '{table.name}'")
         print(f"📋 Table ID: {table.id.wsId}")
         print(f"✏️ Updated records:")
         for i, operation in enumerate(update_operations):
@@ -176,16 +174,16 @@ async def update_records_implementation(ctx: RunContext[ChatRunContext], table_n
             print(f"    Field updates: {original_update['updates']}")
         
         log_info("Successfully updated records", 
-                table_name=table_name,
+                table_name=table.name,
                 table_id=table.id.wsId,
                 record_count=len(update_operations),
                 snapshot_id=chatRunContext.session.snapshot_id)
         
-        return f"Successfully updated {len(update_operations)} records in table '{table_name}'. Updated record IDs: {[op.wsId for op in update_operations]}"      
+        return f"Successfully updated {len(update_operations)} records in table '{table.name}'. Updated record IDs: {[op.wsId for op in update_operations]}"      
     except Exception as e:
-        error_msg = f"Failed to update records in table '{table_name}': {str(e)}"
+        error_msg = f"Failed to update records in table '{table.name}': {str(e)}"
         log_error("Error updating records", 
-                table_name=table_name,
+                table_name=table.name,
                 error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
