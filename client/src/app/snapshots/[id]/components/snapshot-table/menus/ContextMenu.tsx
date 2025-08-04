@@ -3,7 +3,7 @@ import { useSnapshotTableGridContext } from '../SnapshotTableGridProvider';
 import { ACCEPT_REJECT_GROUP_NAME, FILTERING_GROUP_NAME, FOCUS_GROUP_NAME } from './constants';
 
 export const ContextMenu = () => {
-  const { contextMenu, closeContextMenu, getContextMenuItems, handleContextMenuAction } = useSnapshotTableGridContext();
+  const { contextMenu, closeContextMenu, getContextMenuItems } = useSnapshotTableGridContext();
 
   if (!contextMenu) return null;
 
@@ -48,11 +48,7 @@ export const ContextMenu = () => {
               <div key={`focus-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Label>{FOCUS_GROUP_NAME}</Menu.Label>
-                <Menu.Item
-                  disabled={item.disabled}
-                  leftSection={item.leftSection}
-                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-                >
+                <Menu.Item disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                   {item.label}
                 </Menu.Item>
               </div>
@@ -62,12 +58,7 @@ export const ContextMenu = () => {
           // If this is a focus item but not the first one, render normally
           if (isFocusItem) {
             return (
-              <Menu.Item
-                key={index}
-                disabled={item.disabled}
-                leftSection={item.leftSection}
-                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-              >
+              <Menu.Item key={index} disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                 {item.label}
               </Menu.Item>
             );
@@ -79,11 +70,7 @@ export const ContextMenu = () => {
               <div key={`filtering-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Label>{FILTERING_GROUP_NAME}</Menu.Label>
-                <Menu.Item
-                  disabled={item.disabled}
-                  leftSection={item.leftSection}
-                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-                >
+                <Menu.Item disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                   {item.label}
                 </Menu.Item>
               </div>
@@ -93,12 +80,7 @@ export const ContextMenu = () => {
           // If this is a filtering item but not the first one, render normally
           if (isFilteringItem) {
             return (
-              <Menu.Item
-                key={index}
-                disabled={item.disabled}
-                leftSection={item.leftSection}
-                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-              >
+              <Menu.Item key={index} disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                 {item.label}
               </Menu.Item>
             );
@@ -113,11 +95,7 @@ export const ContextMenu = () => {
               <div key={`accept-reject-section-${index}`}>
                 <Menu.Divider />
                 <Menu.Label>{ACCEPT_REJECT_GROUP_NAME}</Menu.Label>
-                <Menu.Item
-                  disabled={item.disabled}
-                  leftSection={item.leftSection}
-                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-                >
+                <Menu.Item disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                   {item.label}
                 </Menu.Item>
               </div>
@@ -127,12 +105,7 @@ export const ContextMenu = () => {
           // If this is an accept/reject item but not the first one, render normally
           if (isAcceptRejectItem) {
             return (
-              <Menu.Item
-                key={index}
-                disabled={item.disabled}
-                leftSection={item.leftSection}
-                onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-              >
+              <Menu.Item key={index} disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                 {item.label}
               </Menu.Item>
             );
@@ -148,11 +121,7 @@ export const ContextMenu = () => {
             return (
               <div key={`other-section-${index}`}>
                 <Menu.Divider />
-                <Menu.Item
-                  disabled={item.disabled}
-                  leftSection={item.leftSection}
-                  onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-                >
+                <Menu.Item disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
                   {item.label}
                 </Menu.Item>
               </div>
@@ -161,12 +130,7 @@ export const ContextMenu = () => {
 
           // Regular items
           return (
-            <Menu.Item
-              key={index}
-              disabled={item.disabled}
-              leftSection={item.leftSection}
-              onClick={() => (item.handler ? item.handler() : handleContextMenuAction(item.label))}
-            >
+            <Menu.Item key={index} disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
               {item.label}
             </Menu.Item>
           );

@@ -21,7 +21,7 @@ import { CheckIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Eye, EyeSlash, ListBulletsIcon, ListChecksIcon, Pencil, PencilSlash, XIcon } from '@phosphor-icons/react';
 import { useCallback } from 'react';
-import { checkSelectedCellsFocus } from './utils/selectionUtils';
+import { checkSelectedCellsFocus, findSelectedCellsAndRecordsWithSuggestions } from './utils/selectionUtils';
 export const useContextMenuItems = (
   contextMenu: ContextMenu | null,
   setContextMenu: (contextMenu: ContextMenu | null) => void,
@@ -32,6 +32,7 @@ export const useContextMenuItems = (
   handleAcceptRecords: () => Promise<unknown>,
   handleRejectRecords: () => Promise<unknown>,
   handleAcceptCell: () => Promise<unknown>,
+  handleRejectCell: () => Promise<unknown>,
   refreshRecords: () => void,
 ) => {
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus } =
@@ -267,46 +268,13 @@ export const useContextMenuItems = (
       });
     }
 
-    // For cell-specific actions, check if only a single cell is selected
-    const isSingleCellSelected =
-      currentSelection?.current &&
-      currentSelection.current.range.width === 1 &&
-      currentSelection.current.range.height === 1;
-
     // Check if any selected records have suggestions (for Accept/Reject Record actions)
-    const selectedRecordsWithSuggestions: SnapshotRecord[] = [];
-    if (currentSelection) {
-      if (currentSelection.current) {
-        const { range } = currentSelection.current;
-        for (let r = range.y; r < range.y + range.height; r++) {
-          const record = sortedRecords?.[r];
-          if (record && record.__suggested_values && Object.keys(record.__suggested_values).length > 0) {
-            selectedRecordsWithSuggestions.push(record);
-          }
-        }
-      }
-
-      if (currentSelection.rows) {
-        for (const row of currentSelection.rows) {
-          const record = sortedRecords?.[row];
-          if (record && record.__suggested_values && Object.keys(record.__suggested_values).length > 0) {
-            selectedRecordsWithSuggestions.push(record);
-          }
-        }
-      }
-    }
+    const { records: selectedRecordsWithSuggestions, allSuggestedCellsForSelectedRecords } =
+      findSelectedCellsAndRecordsWithSuggestions(currentSelection, sortedRecords);
 
     // Add Accept/Reject Record actions if any selected records have suggestions
     if (selectedRecordsWithSuggestions.length > 0) {
-      const totalSuggestions = selectedRecordsWithSuggestions.reduce((total, record) => {
-        const suggestedValues = record.__suggested_values || {};
-        return (
-          total +
-          Object.keys(suggestedValues).filter(
-            (columnId) => suggestedValues[columnId] !== null && suggestedValues[columnId] !== undefined,
-          ).length
-        );
-      }, 0);
+      const totalSuggestions = allSuggestedCellsForSelectedRecords.length;
 
       const suggestionText = totalSuggestions === 1 ? 'suggestion' : 'suggestions';
       const recordText = selectedRecordsWithSuggestions.length === 1 ? 'record' : 'records';
@@ -327,40 +295,33 @@ export const useContextMenuItems = (
       });
     }
 
-    if (isSingleCellSelected) {
-      // Get the single selected cell for cell-specific actions
-      const singleCellRange = currentSelection.current.range;
-      const singleCellCol = singleCellRange.x;
-      const singleCellRow = singleCellRange.y;
-      const singleCellRecord = sortedRecords?.[singleCellRow];
-      const singleCellColumn = table.columns[singleCellCol - FAKE_LEFT_COLUMNS];
+    // Check if any selected cells have suggestions (for Accept/Reject Selected Suggestions actions)
+    const { cells: selectedCellsWithSuggestions } = findSelectedCellsAndRecordsWithSuggestions(
+      currentSelection,
+      sortedRecords,
+    );
+    const hasSelectedCellsWithSuggestions = selectedCellsWithSuggestions.length > 0;
 
-      if (
-        singleCellRecord &&
-        singleCellColumn &&
-        !isActionsColumn(singleCellCol, table.columns.length) &&
-        !isIdColumn(singleCellCol) &&
-        !isRecordStatusColumn(singleCellCol)
-      ) {
-        // Check if there's a suggested value for this specific cell
-        const hasCellSuggestion = !!singleCellRecord.__suggested_values?.[singleCellColumn.id.wsId];
+    if (hasSelectedCellsWithSuggestions) {
+      // Count total suggestions for better UX
+      const totalSuggestions = selectedCellsWithSuggestions.length;
 
-        if (hasCellSuggestion) {
-          items.push({
-            label: 'Accept Cell',
-            disabled: false,
-            group: ACCEPT_REJECT_GROUP_NAME,
-            leftSection: <CheckIcon size={MENU_ICON_SIZE} color="#00aa00" />,
-            handler: handleAcceptCell,
-          });
-          items.push({
-            label: 'Reject Cell',
-            disabled: false,
-            group: ACCEPT_REJECT_GROUP_NAME,
-            leftSection: <XIcon size={MENU_ICON_SIZE} color="#ff0000" />,
-          });
-        }
-      }
+      const suggestionText = totalSuggestions === 1 ? 'cell' : 'cells';
+
+      items.push({
+        label: `Accept Selected Suggestions (${totalSuggestions} ${suggestionText})`,
+        disabled: false,
+        group: ACCEPT_REJECT_GROUP_NAME,
+        leftSection: <CheckIcon size={MENU_ICON_SIZE} color="#00aa00" />,
+        handler: handleAcceptCell,
+      });
+      items.push({
+        label: `Reject Selected Suggestions (${totalSuggestions} ${suggestionText})`,
+        disabled: false,
+        group: ACCEPT_REJECT_GROUP_NAME,
+        leftSection: <XIcon size={MENU_ICON_SIZE} color="#ff0000" />,
+        handler: handleRejectCell,
+      });
     }
 
     if (items.length === 0) {
@@ -385,6 +346,7 @@ export const useContextMenuItems = (
     handleAcceptRecords,
     handleRejectRecords,
     handleAcceptCell,
+    handleRejectCell,
   ]);
 
   return {

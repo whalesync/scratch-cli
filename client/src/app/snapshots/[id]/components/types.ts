@@ -12,9 +12,15 @@ export interface SnapshotTableGridProps {
   filterToView: boolean;
 }
 
-export type MenuItem = {
-  label: string;
+type MenuItemHandlerProps = {
+  disabled: true;
+} | {
   disabled: boolean;
+  handler: () => Promise<unknown>;
+};
+
+export type MenuItem = MenuItemHandlerProps & {
+  label: string;
   leftSection?: React.ReactNode;
   group?: string;
   handler?: () => Promise<unknown>;
