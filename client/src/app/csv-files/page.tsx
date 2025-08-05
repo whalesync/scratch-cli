@@ -1,11 +1,12 @@
 'use client';
 
 import { useCsvFiles } from '@/hooks/use-csv-file';
-import { ActionIcon, Alert, Button, Group, Modal, Paper, Stack, Table, Text, TextInput, Title } from '@mantine/core';
+import { ActionIcon, Alert, Button, Group, Modal, Paper, Stack, Table, Text, TextInput } from '@mantine/core';
 import { PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ContentContainer } from '../components/ContentContainer';
 
 export default function CsvFilesPage() {
   const { csvFiles, isLoading, error, createCsvFile, deleteCsvFile } = useCsvFiles();
@@ -62,15 +63,14 @@ export default function CsvFilesPage() {
     );
   }
 
-  return (
-    <Paper p="md">
-      <Group justify="space-between" mb="md">
-        <Title order={2}>CSV Files</Title>
-        <Button leftSection={<Plus size={16} />} onClick={() => setIsCreateModalOpen(true)}>
-          New CSV File
-        </Button>
-      </Group>
+  const headerActions = (
+    <Button size="xs" leftSection={<Plus size={16} />} onClick={() => setIsCreateModalOpen(true)}>
+      New CSV File
+    </Button>
+  );
 
+  return (
+    <ContentContainer title="CSV Files" actions={headerActions}>
       {isLoading ? (
         <Text>Loading...</Text>
       ) : (
@@ -138,6 +138,6 @@ export default function CsvFilesPage() {
           </Group>
         </Stack>
       </Modal>
-    </Paper>
+    </ContentContainer>
   );
 }

@@ -14,7 +14,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <Notifications />
       <ClerkProvider>
         <ClerkAuthContextProvider>
-          <AppShell navbar={{ width: 200, breakpoint: 'sm' }}>
+          <AppShell navbar={{ width: 50, breakpoint: 'sm' }}>
             <AppShell.Navbar p={0} style={{ backgroundColor: 'hsla(50, 25%, 96%)' }}>
               <SideMenu />
             </AppShell.Navbar>

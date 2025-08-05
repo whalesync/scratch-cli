@@ -312,7 +312,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
       p="md"
       style={{
         width: '30%',
-        height: '95%',
+        height: '99%',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',

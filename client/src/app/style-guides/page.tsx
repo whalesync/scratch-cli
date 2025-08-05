@@ -1,30 +1,19 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Paper,
-  Title,
-  Button,
-  Group,
-  Table,
-  Text,
-  ActionIcon,
-  Modal,
-  TextInput,
-  Stack,
-  Alert,
-} from "@mantine/core";
-import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
-import Link from "next/link";
-import { useStyleGuides } from "@/hooks/use-style-guide";
-import { styleGuideApi } from "@/lib/api/style-guide";
-import { RouteUrls } from "@/utils/route-urls";
-import { useRouter } from "next/navigation";
+import { useStyleGuides } from '@/hooks/use-style-guide';
+import { styleGuideApi } from '@/lib/api/style-guide';
+import { RouteUrls } from '@/utils/route-urls';
+import { ActionIcon, Alert, Button, Group, Modal, Paper, Stack, Table, Text, TextInput } from '@mantine/core';
+import { PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ContentContainer } from '../components/ContentContainer';
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newStyleGuideName, setNewStyleGuideName] = useState("");
+  const [newStyleGuideName, setNewStyleGuideName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const router = useRouter();
@@ -38,29 +27,29 @@ export default function StyleGuidesPage() {
     try {
       const styleGuide = await styleGuideApi.create({
         name: newStyleGuideName.trim(),
-        body: "",
+        body: '',
       });
-      
-      setNewStyleGuideName("");
+
+      setNewStyleGuideName('');
       setIsCreateModalOpen(false);
       mutate();
       router.push(RouteUrls.styleGuidePage(styleGuide.id));
     } catch (error) {
-      setCreateError("Failed to create style guide");
-      console.error("Error creating style guide:", error);
+      setCreateError('Failed to create style guide');
+      console.error('Error creating style guide:', error);
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleDeleteStyleGuide = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this style guide?")) return;
+    if (!confirm('Are you sure you want to delete this style guide?')) return;
 
     try {
       await styleGuideApi.delete(id);
       mutate();
     } catch (error) {
-      console.error("Error deleting style guide:", error);
+      console.error('Error deleting style guide:', error);
     }
   };
 
@@ -78,18 +67,14 @@ export default function StyleGuidesPage() {
     );
   }
 
-  return (
-    <Paper p="md">
-      <Group justify="space-between" mb="md">
-        <Title order={2}>Style Guides</Title>
-        <Button
-          leftSection={<Plus size={16} />}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          New Style Guide
-        </Button>
-      </Group>
+  const headerActions = (
+    <Button leftSection={<Plus size={16} />} onClick={() => setIsCreateModalOpen(true)}>
+      New Style Guide
+    </Button>
+  );
 
+  return (
+    <ContentContainer title="Style Guides" actions={headerActions}>
       {isLoading ? (
         <Text>Loading...</Text>
       ) : (
@@ -108,7 +93,7 @@ export default function StyleGuidesPage() {
                 <Table.Td>
                   <Link
                     href={RouteUrls.styleGuidePage(styleGuide.id)}
-                    style={{ textDecoration: "none", color: "inherit" }}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
                   >
                     {styleGuide.name}
                   </Link>
@@ -141,11 +126,7 @@ export default function StyleGuidesPage() {
         </Table>
       )}
 
-      <Modal
-        opened={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Style Guide"
-      >
+      <Modal opened={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create New Style Guide">
         <Stack>
           {createError && (
             <Alert color="red" title="Error">
@@ -158,7 +139,7 @@ export default function StyleGuidesPage() {
             value={newStyleGuideName}
             onChange={(e) => setNewStyleGuideName(e.target.value)}
             onKeyUp={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === 'Enter') {
                 handleCreateStyleGuide();
               }
             }}
@@ -167,16 +148,12 @@ export default function StyleGuidesPage() {
             <Button variant="subtle" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreateStyleGuide}
-              loading={isCreating}
-              disabled={!newStyleGuideName.trim()}
-            >
+            <Button onClick={handleCreateStyleGuide} loading={isCreating} disabled={!newStyleGuideName.trim()}>
               Create
             </Button>
           </Group>
         </Stack>
       </Modal>
-    </Paper>
+    </ContentContainer>
   );
-} 
+}

@@ -7,7 +7,7 @@ import { EditableGridCell, GridCell, GridCellKind, GridColumn, GridSelection, It
 import { notifications } from '@mantine/notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { MappingRow } from './types';
-import { useConnectorAccordeon } from './useConnectorAccordeon';
+import { useConnectorAccordion } from './useConnectorAccordion';
 
 const AiConnectorBuilderContext = createContext<AiConnectorBuilderContextType | undefined>(undefined);
 
@@ -37,7 +37,7 @@ export const AiConnectorBuilderProvider = ({ children }: AiConnectorBuilderProvi
   const { data: selectedConnector } = useCustomConnector(selectedConnectorId || '');
   const [connectorName, setConnectorName] = useState('');
 
-  const connectorAccordeon = useConnectorAccordeon();
+  const connectorAccordeon = useConnectorAccordion();
 
   // State for schema generation
   const [fetchSchemaFunction, setFetchSchemaFunction] = useState(`async function fetchSchema() {
@@ -889,7 +889,7 @@ type AiConnectorBuilderContextType = {
   setLoading: (value: boolean) => void;
   tableNameModalOpened: boolean;
   newTableName: string;
-  connectorAccordeon: ReturnType<typeof useConnectorAccordeon>;
+  connectorAccordeon: ReturnType<typeof useConnectorAccordion>;
   customConnectors: CustomConnector[] | undefined;
   selectedConnectorId: string | null;
   selectedConnector: CustomConnector | null | undefined;

@@ -1,6 +1,6 @@
-import {useState} from 'react';
+import { useState } from 'react';
 
-export const useConnectorAccordeon = () => {
+export const useConnectorAccordion = () => {
   // State for accordion control
   const [accordionValue, setAccordionValue] = useState<string[]>([
     'step1',

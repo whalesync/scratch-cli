@@ -38,64 +38,48 @@ cache:
     - .pip-cache/
     - client/node_modules/
     - server/node_modules/
-    - mcp/node_modules/
-    - pydantic-ai-agent/venv/
 
 # =============================================================================
 # CLIENT SUBPROJECT
 # =============================================================================
 
-client:install:
-  stage: setup
-  <<: *node_before_script
-  script:
-    - cd client
-    - yarn install --frozen-lockfile
-  artifacts:
-    paths:
-      - client/node_modules/
-    expire_in: 1 hour
-  only:
-    changes:
-      - client/package.json
-      - client/yarn.lock
-    refs:
-      - merge_requests
-      - master
+# client:install:
+#   stage: setup
+#   <<: *node_before_script
+#   script:
+#     - cd client
+#     - yarn install --frozen-lockfile
+#   artifacts:
+#     paths:
+#       - client/node_modules/
+#     expire_in: 1 hour
+#   only:
+#     changes:
+#       - client/package.json
+#       - client/yarn.lock
+#     refs:
+#       - merge_requests
+#       - master
 
-client:lint:
-  stage: test
-  <<: *node_before_script
-  script:
-    - cd client
-    - yarn lint
-  dependencies:
-    - client:install
-  only:
-    changes:
-      - client/**/*
-    refs:
-      - merge_requests
-      - master
-
-client:build:
-  stage: build
-  <<: *node_before_script
-  script:
-    - cd client
-    - yarn build
-  artifacts:
-    paths:
-      - client/.next/
-    expire_in: 1 week
-  dependencies:
-    - client:install
-  only:
-    changes:
-      - client/**/*
-    refs:
-      - merge_requests
-      - master
+# client:build:
+#   stage: build
+#   <<: *node_before_script
+#   script:
+#     - cd client
+#     - yarn lint
+#     - yarn build
+#   artifacts:
+#     paths:
+#       - client/.next/
+#     expire_in: 1 week
+#   dependencies:
+#     - client:install
+#   only:
+#     changes:
+#       - client/**/*
+#     refs:
+#       - merge_requests
+#       - master
 
 # =============================================================================
 # SERVER SUBPROJECT
@@ -122,21 +106,6 @@ server:install:
       - merge_requests
       - master
 
-server:lint:
-  stage: test
-  <<: *node_before_script
-  script:
-    - cd server
-    - yarn lint
-  dependencies:
-    - server:install
-  only:
-    changes:
-      - server/**/*
-    refs:
-      - merge_requests
-      - master
-
 server:test:
   stage: test
   <<: *node_before_script
@@ -157,6 +126,7 @@ server:build:
   <<: *node_before_script
   script:
     - cd server
+    - yarn lint
     - yarn build
   artifacts:
     paths:
@@ -170,47 +140,46 @@ server:build:
     refs:
       - merge_requests
       - master
+# # =============================================================================
+# # MCP SUBPROJECT
+# # =============================================================================
 
-# =============================================================================
-# MCP SUBPROJECT
-# =============================================================================
+# mcp:install:
+#   stage: setup
+#   <<: *node_before_script
+#   script:
+#     - cd mcp
+#     - yarn install --frozen-lockfile
+#   artifacts:
+#     paths:
+#       - mcp/node_modules/
+#     expire_in: 1 hour
+#   only:
+#     changes:
+#       - mcp/package.json
+#       - mcp/yarn.lock
+#     refs:
+#       - merge_requests
+#       - master
 
-mcp:install:
-  stage: setup
-  <<: *node_before_script
-  script:
-    - cd mcp
-    - yarn install --frozen-lockfile
-  artifacts:
-    paths:
-      - mcp/node_modules/
-    expire_in: 1 hour
-  only:
-    changes:
-      - mcp/package.json
-      - mcp/yarn.lock
-    refs:
-      - merge_requests
-      - master
-
-mcp:build:
-  stage: build
-  <<: *node_before_script
-  script:
-    - cd mcp
-    - yarn build
-  artifacts:
-    paths:
-      - mcp/dist/
-    expire_in: 1 week
-  dependencies:
-    - mcp:install
-  only:
-    changes:
-      - mcp/**/*
-    refs:
-      - merge_requests
-      - master
+# mcp:build:
+#   stage: build
+#   <<: *node_before_script
+#   script:
+#     - cd mcp
+#     - yarn build
+#   artifacts:
+#     paths:
+#       - mcp/dist/
+#     expire_in: 1 week
+#   dependencies:
+#     - mcp:install
+#   only:
+#     changes:
+#       - mcp/**/*
+#     refs:
+#       - merge_requests
+#       - master
 # =============================================================================
 # PYDANTIC-AI-AGENT SUBPROJECT
 # =============================================================================

@@ -1,135 +1,96 @@
 'use client';
 
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
-import { ActionIcon, CopyButton, Group, Image, NavLink, Stack, Text, Tooltip } from '@mantine/core';
-import {
-  BookOpenIcon,
-  CheckIcon,
-  CopyIcon,
-  FileTextIcon,
-  PlugsIcon,
-  RobotIcon,
-  TableIcon,
-  TestTubeIcon,
-} from '@phosphor-icons/react';
+import { Center, Divider, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import { BookOpenIcon, FileTextIcon, GearIcon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+import styles from './SideMenu.module.css';
 
 const links = [
   {
     href: RouteUrls.snapshotsPageUrl,
     label: 'Snapshots',
-    icon: <TableIcon size={16} />,
+    icon: <TableIcon size={24} />,
+    enabled: true,
   },
   {
     href: RouteUrls.connectionsPageUrl,
     label: 'Connections',
-    icon: <PlugsIcon size={16} />,
+    icon: <PlugsIcon size={24} />,
+    enabled: true,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
     label: 'AI Connector Builder',
-    icon: <RobotIcon size={16} />,
+    icon: <RobotIcon size={24} />,
+    enabled: true,
   },
   {
     href: RouteUrls.styleGuidesPageUrl,
     label: 'Style Guides',
-    icon: <BookOpenIcon size={16} />,
+    icon: <BookOpenIcon size={24} />,
+    enabled: true,
   },
   {
     href: RouteUrls.csvFilesPageUrl,
     label: 'CSV Files',
-    icon: <FileTextIcon size={16} />,
+    icon: <FileTextIcon size={24} />,
+    enabled: true,
   },
   {
-    href: RouteUrls.healthPageUrl,
-    label: 'Health',
-    icon: <TestTubeIcon size={16} />,
+    href: RouteUrls.settingsPageUrl,
+    label: 'Settings',
+    icon: <GearIcon size={24} />,
+    enabled: true,
   },
 ];
 
 export function SideMenu() {
   const pathname = usePathname();
-  const { user } = useScratchPadUser();
 
   return (
-    <Stack gap={0} h="100%">
-      <Group justify="flex-start" align="center" p="xs" mb="md" gap="xs">
-        <Image
-          src="/dolphin-svgrepo-com.svg"
-          alt="Scratchpad.ai"
-          w={40}
-          h={40}
-          styles={{
-            root: {
-              fill: 'd262c1',
-            },
-          }}
-        />
-        <Stack p={0} gap={0}>
-          <Text size="xl" fw={700}>
-            Scratchpad
-          </Text>
-          <Text size="xs" ml="auto">
-            by Whalesync
-          </Text>
-        </Stack>
-      </Group>
-
-      {links.map((link) => (
-        <NavLink
-          key={link.href}
-          href={link.href}
-          label={link.label}
-          component={Link}
-          active={pathname === link.href}
-          leftSection={link.icon}
-        />
-      ))}
+    <Stack gap={0} h="100%" align="center">
+      <Tooltip label="Scratchpad.ai by Whalesync">
+        <Center h={50} w={50}>
+          <Image
+            src="/dolphin-svgrepo-com.svg"
+            alt="Scratchpad.ai"
+            w={30}
+            h={30}
+            styles={{
+              root: {
+                fill: 'd262c1',
+              },
+            }}
+          />
+        </Center>
+      </Tooltip>
+      <Divider w="100%" mb="md" />
+      <Stack gap="md">
+        {links
+          .filter((link) => link.enabled)
+          .map((link) => (
+            <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
+              <UnstyledButton
+                component={Link}
+                href={link.href}
+                data-active={pathname.startsWith(link.href) || undefined}
+                className={styles.link}
+              >
+                {link.icon}
+              </UnstyledButton>
+            </Tooltip>
+          ))}
+      </Stack>
       <Stack justify="center" mt="auto" p="xs">
         <SignedOut>
           <SignUpButton />
         </SignedOut>
         <SignedIn>
-          {user && (
-            <Stack gap="xs" pl="xs">
-              <Group wrap="nowrap" gap="xs">
-                <Text c="dimmed" size="xs">
-                  User ID
-                </Text>
-                <CopyButton value={user.id} timeout={2000}>
-                  {({ copied, copy }) => (
-                    <Tooltip label={copied ? 'Copied' : `${user.id}`} withArrow position="right">
-                      <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                        {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                      </ActionIcon>
-                    </Tooltip>
-                  )}
-                </CopyButton>
-              </Group>
-              {user.agentToken && (
-                <>
-                  <Group wrap="nowrap" gap="xs">
-                    <Text c="dimmed" size="xs">
-                      API Token
-                    </Text>
-                    <CopyButton value={user.agentToken} timeout={2000}>
-                      {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : `${user.agentToken}`} withArrow position="right">
-                          <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                            {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </CopyButton>
-                  </Group>
-                </>
-              )}
-            </Stack>
-          )}
-          <UserButton showName />
+          <UserButton />
         </SignedIn>
       </Stack>
     </Stack>

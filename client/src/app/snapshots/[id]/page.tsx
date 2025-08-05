@@ -22,15 +22,7 @@ import {
   useModalsStack,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import {
-  BugIcon,
-  CellTowerIcon,
-  DownloadSimpleIcon,
-  RobotIcon,
-  TableIcon,
-  TrashIcon,
-  UploadIcon,
-} from '@phosphor-icons/react';
+import { BugIcon, DownloadSimpleIcon, RobotIcon, TableIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
 import { useParams, useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
@@ -54,7 +46,7 @@ function SnapshotPageContent() {
 
   const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-  const { isConnected: isConnectedLive, messageLog } = useSnapshotEventContext();
+  const { messageLog } = useSnapshotEventContext();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
@@ -348,18 +340,8 @@ function SnapshotPageContent() {
       <Stack h="100%" gap={0}>
         {/* View List Band */}
 
-        <Group h="100%" justify="flex-start" align="flex-start" w="100%">
-          <Stack h="99%" w="100%" flex={1}>
-            <ViewData
-              currentViewId={currentViewId}
-              onViewChange={setCurrentViewId}
-              filterToView={filterToView}
-              onFilterToViewChange={setFilterToView}
-              currentTableId={selectedTableId}
-              count={count}
-              filteredCount={filteredCount}
-            />
-
+        <Group h="100%" justify="flex-start" align="flex-start" w="100%" gap="4px">
+          <Stack h="99%" w="100%" flex={1} gap={0}>
             <Tabs
               value={selectedTableId}
               onChange={(value) => {
@@ -380,6 +362,15 @@ function SnapshotPageContent() {
             {selectedTable && (
               <TableContent table={selectedTable} currentViewId={currentViewId} filterToView={filterToView} />
             )}
+            <ViewData
+              currentViewId={currentViewId}
+              onViewChange={setCurrentViewId}
+              filterToView={filterToView}
+              onFilterToViewChange={setFilterToView}
+              currentTableId={selectedTableId}
+              count={count}
+              filteredCount={filteredCount}
+            />
           </Stack>
 
           <AIChatPanel
@@ -433,7 +424,7 @@ function SnapshotPageContent() {
       <Group p="xs" bg="gray.0">
         <Group gap="xs" align="center" wrap="nowrap">
           <Title order={2}>{snapshot?.name ?? 'Snapshot'}</Title>
-          {isConnectedLive && (
+          {/* {isConnectedLive && (
             <>
               <Tooltip label="Connected to snapshot events websocket">
                 <ActionIcon onClick={() => modalStack.open('snapshotEventLog')} variant="subtle" color="gray" size="xs">
@@ -441,7 +432,7 @@ function SnapshotPageContent() {
                 </ActionIcon>
               </Tooltip>
             </>
-          )}
+          )} */}
           {/* <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied' : `Copy prompt for Cursor`} withArrow position="right">

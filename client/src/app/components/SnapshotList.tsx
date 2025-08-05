@@ -1,16 +1,9 @@
-"use client";
+'use client';
 
-import {
-  Loader,
-  Center,
-  Stack,
-  Title,
-  Text,
-  Group,
-  SimpleGrid,
-} from "@mantine/core";
-import { useSnapshots } from "@/hooks/use-snapshot";
-import { SnapshotCard } from "./SnapshotCard";
+import { useSnapshots } from '@/hooks/use-snapshot';
+import { Center, Loader, SimpleGrid, Text } from '@mantine/core';
+import { ContentContainer } from './ContentContainer';
+import { SnapshotCard } from './SnapshotCard';
 
 export const SnapshotsList = () => {
   const { snapshots, isLoading, error } = useSnapshots();
@@ -32,22 +25,16 @@ export const SnapshotsList = () => {
   }
 
   return (
-    <Stack p="lg" h="100%">
-      <Group justify="space-between">
-        <Title order={2}>Snapshots</Title>
-      </Group>
-
+    <ContentContainer title="Snapshots">
       <SimpleGrid cols={1} spacing="md" maw="600px">
         {snapshots && snapshots.length > 0 ? (
-          snapshots.map((snapshot) => (
-            <SnapshotCard key={snapshot.id} snapshot={snapshot} />
-          ))
+          snapshots.map((snapshot) => <SnapshotCard key={snapshot.id} snapshot={snapshot} />)
         ) : (
-          <Text c="dimmed" style={{ textAlign: "center" }}>
+          <Text c="dimmed" style={{ textAlign: 'center' }}>
             No snapshots found.
           </Text>
         )}
       </SimpleGrid>
-    </Stack>
+    </ContentContainer>
   );
-}
+};

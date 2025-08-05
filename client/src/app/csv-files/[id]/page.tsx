@@ -1,18 +1,17 @@
-/* eslint-disable @next/next/no-async-client-component */
 'use client';
 
+import { ContentContainer } from '@/app/components/ContentContainer';
 import { useCsvFile } from '@/hooks/use-csv-file';
 import { csvFileApi } from '@/lib/api/csv-file';
-import { Alert, Button, Group, LoadingOverlay, Paper, Stack, TextInput, Textarea, Title } from '@mantine/core';
-import { ArrowLeft, FloppyDisk } from '@phosphor-icons/react';
-import Link from 'next/link';
+import { RouteUrls } from '@/utils/route-urls';
+import { Alert, Button, LoadingOverlay, Paper, Stack, TextInput, Textarea } from '@mantine/core';
+import { FloppyDiskIcon } from '@phosphor-icons/react';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function CsvFilePage({ params }: any) {
-  const { id } = params;
-
-  return <CsvFileContent id={id} />;
+export default function CsvFilePage() {
+  const params = useParams<{ id: string }>();
+  return <CsvFileContent id={params.id} />;
 }
 
 function CsvFileContent({ id }: { id: string }) {
@@ -21,9 +20,10 @@ function CsvFileContent({ id }: { id: string }) {
   const [body, setBody] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    if (csvFile) {
+    if (csvFile && !isLoading && !csvFile.body && !csvFile.name) {
       setName(csvFile.name);
       setBody(csvFile.body);
     }
@@ -67,21 +67,15 @@ function CsvFileContent({ id }: { id: string }) {
     );
   }
 
-  return (
-    <Paper p="md">
-      <Stack gap="md">
-        <Group justify="space-between" align="center">
-          <Group gap="sm">
-            <Button variant="light" leftSection={<ArrowLeft size={16} />} component={Link} href="/csv-files">
-              Back
-            </Button>
-            <Title order={2}>{csvFile.name}</Title>
-          </Group>
-          <Button leftSection={<FloppyDisk size={16} />} onClick={handleSave} loading={isSaving}>
-            Save
-          </Button>
-        </Group>
+  const actions = (
+    <Button leftSection={<FloppyDiskIcon size={16} />} onClick={handleSave} loading={isSaving}>
+      Save
+    </Button>
+  );
 
+  return (
+    <ContentContainer title={csvFile.name} actions={actions} onBack={() => router.push(RouteUrls.csvFilesPageUrl)}>
+      <Stack gap="md">
         {saveError && (
           <Alert color="red" title="Error">
             {saveError}
@@ -110,6 +104,6 @@ function CsvFileContent({ id }: { id: string }) {
           }}
         />
       </Stack>
-    </Paper>
+    </ContentContainer>
   );
 }

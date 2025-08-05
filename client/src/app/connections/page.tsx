@@ -148,69 +148,67 @@ export default function ConnectorAccountsPage() {
         </Stack>
       </Modal>
 
-      <Container>
-        <Stack>
-          <Title order={1}>Connection Management</Title>
+      <Stack p="lg">
+        <Title order={2}>Connections</Title>
 
-          {connectorAccounts && connectorAccounts.length > 0 && (
-            <>
-              <Title order={2}>Existing Connections</Title>
-              <Stack>
-                {connectorAccounts?.map((conn) => (
-                  <ConnectorAccountRow
-                    key={conn.id}
-                    connectorAccount={conn}
-                    onTest={handleTest}
-                    onUpdate={handleOpenUpdateModal}
-                    onDelete={deleteConnectorAccount}
-                    testingId={testingId}
-                  />
-                ))}
-              </Stack>
-            </>
-          )}
-
-          <Paper withBorder shadow="md" p="md">
+        {connectorAccounts && connectorAccounts.length > 0 && (
+          <>
+            <Title order={3}>Existing </Title>
             <Stack>
-              <Title order={2}>Create New Connection</Title>
-              <Select
-                label="Service"
-                placeholder="Pick a service"
-                data={Object.values(Service)}
-                value={newService}
-                onChange={(value) => setNewService(value as Service)}
-              />
-              {newService === Service.CSV && (
-                <Alert color="blue" title="CSV Connection">
-                  CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
-                </Alert>
-              )}
-              {newService !== Service.CSV && (
-                <TextInput
-                  label="API Key"
-                  placeholder="Enter API Key"
-                  value={newApiKey}
-                  onChange={(e) => setNewApiKey(e.currentTarget.value)}
+              {connectorAccounts?.map((conn) => (
+                <ConnectorAccountRow
+                  key={conn.id}
+                  connectorAccount={conn}
+                  onTest={handleTest}
+                  onUpdate={handleOpenUpdateModal}
+                  onDelete={deleteConnectorAccount}
+                  testingId={testingId}
                 />
-              )}
-              {newService === Service.CUSTOM && customConnectors && (
-                <Select
-                  label="Custom Connector"
-                  placeholder="Select a custom connector (optional)"
-                  data={customConnectors.map((connector) => ({
-                    value: connector.id,
-                    label: connector.name,
-                  }))}
-                  value={newModifier}
-                  onChange={setNewModifier}
-                  clearable
-                />
-              )}
-              <Button onClick={handleCreate}>Create</Button>
+              ))}
             </Stack>
-          </Paper>
-        </Stack>
-      </Container>
+          </>
+        )}
+
+        <Paper withBorder shadow="md" p="md">
+          <Stack>
+            <Title order={2}>Create New Connection</Title>
+            <Select
+              label="Service"
+              placeholder="Pick a service"
+              data={Object.values(Service)}
+              value={newService}
+              onChange={(value) => setNewService(value as Service)}
+            />
+            {newService === Service.CSV && (
+              <Alert color="blue" title="CSV Connection">
+                CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
+              </Alert>
+            )}
+            {newService !== Service.CSV && (
+              <TextInput
+                label="API Key"
+                placeholder="Enter API Key"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.currentTarget.value)}
+              />
+            )}
+            {newService === Service.CUSTOM && customConnectors && (
+              <Select
+                label="Custom Connector"
+                placeholder="Select a custom connector (optional)"
+                data={customConnectors.map((connector) => ({
+                  value: connector.id,
+                  label: connector.name,
+                }))}
+                value={newModifier}
+                onChange={setNewModifier}
+                clearable
+              />
+            )}
+            <Button onClick={handleCreate}>Create</Button>
+          </Stack>
+        </Paper>
+      </Stack>
     </>
   );
 }

@@ -15,7 +15,7 @@ export class RouteUrls {
   }
 
   // Authenticated Routes & Route Generators
-  static connectionsPageUrl = "/connector-accounts";
+  static connectionsPageUrl = "/connections";
   static apiImportDemoPageUrl = "/ai-connector-builder";
   static healthPageUrl = "/health";
   static snapshotPage = (id: string) => `/snapshots/${id}`;
@@ -24,4 +24,5 @@ export class RouteUrls {
   static styleGuidePage = (id: string) => `/style-guides/${id}`;
   static csvFilesPageUrl = "/csv-files";
   static csvFilePage = (id: string) => `/csv-files/${id}`;
+  static settingsPageUrl = "/settings";
 }
