@@ -76,6 +76,9 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
       setSessions([...sessions, newSession]);
       setActiveSessionId(newSession.id);
 
+      const fullSession = await aiAgentApi.getSession(newSession.id);
+      setActiveSession(fullSession);
+
       return {
         session: newSession,
         available_capabilities,

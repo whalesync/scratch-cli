@@ -7,6 +7,7 @@ import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
+import { sleep } from '@/utils/helpers';
 import {
   ActionIcon,
   Alert,
@@ -112,10 +113,18 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
     [scrollToBottom],
   );
 
-  const { connectionStatus, connectionError, connect, disconnect, messageHistory, sendPing, sendAiAgentMessage } =
-    useAIAgentChatWebSocket({
-      onMessage: handleWebsocketMessage,
-    });
+  const {
+    connectionStatus,
+    connectionError,
+    connect,
+    disconnect,
+    messageHistory,
+    sendPing,
+    sendAiAgentMessage,
+    clearChat,
+  } = useAIAgentChatWebSocket({
+    onMessage: handleWebsocketMessage,
+  });
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -151,7 +160,8 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
     }
 
     try {
-      disconnect();
+      await disconnect();
+      await sleep(100);
       const { session, available_capabilities } = await createSession(snapshot.id);
       connect(session.id);
 
@@ -180,6 +190,15 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
     if (messageCleaned.startsWith('/') || messageCleaned.startsWith('@')) {
       if (messageCleaned === '/ping') {
         sendPing();
+      }
+
+      if (messageCleaned === '/clear') {
+        clearChat();
+      }
+
+      if (messageCleaned === '/new') {
+        await disconnect();
+        await createNewSession();
       }
 
       setMessage('');
