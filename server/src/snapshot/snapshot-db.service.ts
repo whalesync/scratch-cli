@@ -482,7 +482,11 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
         for (const columnId of columnIds) {
           const columnType = columnTypes.get(columnId);
           if (!columnType) {
-            console.warn(`Column type not found for ${columnId}, using text`);
+            WSLogger.warn({
+              source: 'SnapshotDbService',
+              message: `Column type not found for ${columnId}, using text`,
+              columnTypes: JSON.stringify(columnTypes),
+            });
           }
 
           // Cast based on column type

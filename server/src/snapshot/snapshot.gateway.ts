@@ -39,7 +39,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   afterInit(server: Server) {
     WSLogger.info({
       message: 'Snapshot data gateway initialized',
-      source: 'snapshot.gateway',
+      source: 'SnapshotDataGateway',
       server: server.eventNames(),
     });
   }
@@ -47,7 +47,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   handleConnection(client: SocketWithUser) {
     WSLogger.info({
       message: 'Client connected to snapshot data gateway',
-      source: 'snapshot.gateway',
+      source: 'SnapshotDataGateway',
       userId: client.user?.id || 'unknown',
       auth: client.handshake.auth,
     });
@@ -61,7 +61,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   handleDisconnect(client: SocketWithUser) {
     WSLogger.info({
       message: 'Client disconnected from snapshot data gateway',
-      source: 'snapshot.gateway',
+      source: 'SnapshotDataGateway',
       userId: client.user?.id || 'unknown',
     });
   }
@@ -70,7 +70,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   handleSnapshotEvents(client: SocketWithUser, data: string): void {
     WSLogger.info({
       message: 'Snapshot events message received',
-      source: 'snapshot.gateway',
+      source: 'SnapshotDataGateway',
       data,
       userId: client.user?.id,
     });
@@ -85,7 +85,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   ): Promise<void> {
     WSLogger.info({
       message: 'Subscribe to snapshot message received',
-      source: 'snapshot.gateway',
+      source: 'SnapshotDataGateway',
       data,
     });
 
@@ -93,7 +93,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     if (!client.user) {
       WSLogger.error({
         message: 'User not found',
-        source: 'snapshot.gateway',
+        source: 'SnapshotDataGateway',
         data,
       });
       throw new WsException('User not found');
@@ -104,7 +104,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     if (!snapshot) {
       WSLogger.error({
         message: 'Snapshot not found',
-        source: 'snapshot.gateway',
+        source: 'SnapshotDataGateway',
         data,
       });
       throw new WsException('Snapshot not found');

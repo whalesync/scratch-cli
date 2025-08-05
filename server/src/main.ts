@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
-import { WSLoggerShim } from './logger';
+import { WSLogger, WSLoggerShim } from './logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,7 +20,7 @@ async function bootstrap() {
 
   app.useLogger(new WSLoggerShim());
   const port = process.env.PORT ?? 3010;
-  console.log('Listening on port: ', port);
+  WSLogger.info({ source: 'main', message: `Listening on port: ${port}` });
   await app.listen(port);
 }
 void bootstrap();
