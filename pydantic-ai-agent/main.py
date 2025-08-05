@@ -3,6 +3,7 @@
 Main FastAPI Chat Server - Modular Version
 """
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import os
@@ -17,7 +18,9 @@ import uvicorn
 
 from server.chat_controller import router, chat_service
 from server.websocket_handler import websocket_endpoint
-from connector_builder.connector_builder_controller import router as connector_builder_router
+from connector_builder.connector_builder_controller import (
+    router as connector_builder_router,
+)
 from logger import log_info
 
 # Load environment variables
@@ -39,9 +42,12 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(connector_builder_router, prefix="/connector-builder")
 
+
 # WebSocket endpoint
 @app.websocket("/ws/{session_id}")
-async def websocket_endpoint_handler(websocket: WebSocket, session_id: str, api_token: Optional[str] = None):
+async def websocket_endpoint_handler(
+    websocket: WebSocket, session_id: str, api_token: Optional[str] = None
+):
     """WebSocket endpoint for real-time chat"""
     await websocket_endpoint(websocket, session_id, chat_service, api_token)
 
@@ -52,9 +58,9 @@ if __name__ == "__main__":
         while True:
             time_module.sleep(3600)  # 1 hour
             chat_service.cleanup_inactive_sessions()
-    
+
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
-    
+
     # Start the server
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

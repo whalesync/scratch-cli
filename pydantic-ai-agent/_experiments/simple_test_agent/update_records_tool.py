@@ -1,5 +1,3 @@
-
-
 # Create custom JSON schema without $ref references
 
 from typing import Dict, Any, List, TypedDict
@@ -14,17 +12,20 @@ field_descriptions = {
     "a": "",
 }
 
+
 class RecordUpdateDict(TypedDict):
     """Dictionary type for record updates"""
+
     wsId: str = Field(description="Id of the record to update")
     data: Dict[str, Any] = Field(description="Field names and their new values")
+
 
 json_schema = {
     "type": "object",
     "properties": {
         "table_name": {
             "type": "string",
-            "description": "The name of the table to update records in"
+            "description": "The name of the table to update records in",
         },
         "record_updates": {
             "type": "array",
@@ -35,18 +36,18 @@ json_schema = {
                 "properties": {
                     "wsId": {
                         "type": "string",
-                        "description": "The ID of the record to update"
+                        "description": "The ID of the record to update",
                     },
                     "data": {
                         "type": "object",
-                        "description": "Field names and their new values"
-                    }
+                        "description": "Field names and their new values",
+                    },
                 },
-                "required": ["wsId", "data"]
-            }
-        }
+                "required": ["wsId", "data"],
+            },
+        },
     },
-    "required": ["table_name", "record_updates"]
+    "required": ["table_name", "record_updates"],
 }
 
 description = """
@@ -70,23 +71,27 @@ description = """
 """
 
 
-async def update_records_implementation(table_name: str, record_updates: List[RecordUpdateDict]) -> str:
+async def update_records_implementation(
+    table_name: str, record_updates: List[RecordUpdateDict]
+) -> str:
     try:
-        return f"Successfully updated"      
+        return f"Successfully updated"
     except Exception as e:
         error_msg = f"Failed to update records in table '{table_name}': {str(e)}"
         print(f"❌ {error_msg}")
         return error_msg
 
+
 tool_name = "update_records"
+
 
 def create_update_records_tool(style_guides: Dict[str, str] = None):
     if style_guides is None:
         style_guides = {}
-    
+
     custom_name = style_guides.get(f"TOOLS_{tool_name}_name", tool_name)
     custom_description = style_guides.get(f"TOOLS_{tool_name}_description", description)
-    
+
     # Get custom JSON schema from style guides if available
     custom_json_schema = json_schema
     json_schema_key = f"TOOLS_{tool_name}_json_schema"
@@ -97,7 +102,7 @@ def create_update_records_tool(style_guides: Dict[str, str] = None):
         except json.JSONDecodeError as e:
             print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
             print(f"   Using default schema instead")
-    
+
     return Tool(
         name=custom_name,
         description=custom_description,
@@ -109,5 +114,5 @@ def create_update_records_tool(style_guides: Dict[str, str] = None):
             takes_ctx=False,
             is_async=True,
             validator=SchemaValidator(schema=core_schema.any_schema()),
-        )
+        ),
     )

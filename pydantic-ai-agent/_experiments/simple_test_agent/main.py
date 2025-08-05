@@ -5,7 +5,12 @@ from pathlib import Path
 from typing import List
 from pydantic_ai import Agent, Tool
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import ModelMessage, ModelResponse, SystemPromptPart, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    SystemPromptPart,
+    ToolReturnPart,
+)
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from dotenv import load_dotenv
@@ -18,17 +23,16 @@ load_dotenv()
 
 api_key = os.getenv("OPENROUTER_API_KEY")
 model = OpenAIModel(
-    'openai/gpt-4o-mini',
+    "openai/gpt-4o-mini",
     # 'google/gemini-2.5-pro',
     provider=OpenRouterProvider(api_key=api_key),
 )
 logfire_token = os.getenv("LOGFIRE_TOKEN")
 logfire_module.configure(
-    token=logfire_token, 
-    service_name="pydantic-ai-chat-server",
-    scrubbing=False
+    token=logfire_token, service_name="pydantic-ai-chat-server", scrubbing=False
 )
 logfire_module.instrument_pydantic_ai()
+
 
 def send_message(message: str) -> str:
     """
@@ -42,11 +46,12 @@ def send_message(message: str) -> str:
 obsidian_agent = Agent(
     model=model,
     tools=[
-        Tool(send_message),   
+        Tool(send_message),
         create_update_records_tool(),
     ],
     system_prompt=get_data_agent_instructions(),
 )
+
 
 def main():
     message_history: list[ModelMessage] = []
@@ -61,7 +66,7 @@ def main():
                 continue
             result = obsidian_agent.run_sync(
                 "RESPOND TO " + prompt + "\n" + user_prompt_snapshot,
-                message_history=message_history
+                message_history=message_history,
             )
             message_history = result.all_messages()
 

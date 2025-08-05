@@ -10,27 +10,31 @@ from typing import Optional, Any
 _logger: Optional[Any] = None
 _logfire_available: bool = False
 
+
 def initialize_logger() -> None:
     """Initialize the logger with Logfire if available"""
     global _logger, _logfire_available
-    
+
     logfire_token = os.getenv("LOGFIRE_TOKEN")
-    
+
     if logfire_token:
         try:
             import logfire as logfire_module
+
             logfire_module.configure(
-                token=logfire_token, 
+                token=logfire_token,
                 service_name="pydantic-ai-chat-server",
-                scrubbing=False  # Disable scrubbing to see full data including auth tokens
+                scrubbing=False,  # Disable scrubbing to see full data including auth tokens
             )
             _logger = logfire_module
             _logfire_available = True
-            
+
             # Enable Logfire's AI instrumentation for automatic LLM logging
             logfire_module.instrument_pydantic_ai()
             print("✅ Logfire configured successfully")
-            print("🔍 Logfire AI instrumentation enabled - will capture LLM interactions automatically")
+            print(
+                "🔍 Logfire AI instrumentation enabled - will capture LLM interactions automatically"
+            )
         except ImportError:
             print("⚠️ Logfire not installed. Install with: pip install logfire")
             _logfire_available = False
@@ -41,10 +45,11 @@ def initialize_logger() -> None:
         print("⚠️ LOGFIRE_TOKEN not found in environment. Logging to console only.")
         _logfire_available = False
 
+
 def log_event(message: str, level: str = "info", **attributes) -> None:
     """
     Log an event to Logfire if available, otherwise print to console
-    
+
     Args:
         message: The log message
         level: Log level (debug, info, warning, error)
@@ -69,21 +74,26 @@ def log_event(message: str, level: str = "info", **attributes) -> None:
             attr_str = f" | {', '.join(f'{k}={v}' for k, v in attributes.items())}"
         print(f"[{level_upper}] {message}{attr_str}")
 
+
 def log_debug(message: str, **attributes) -> None:
     """Log a debug message"""
     log_event(message, level="debug", **attributes)
+
 
 def log_info(message: str, **attributes) -> None:
     """Log an info message"""
     log_event(message, level="info", **attributes)
 
+
 def log_warning(message: str, **attributes) -> None:
     """Log a warning message"""
     log_event(message, level="warning", **attributes)
+
 
 def log_error(message: str, **attributes) -> None:
     """Log an error message"""
     log_event(message, level="error", **attributes)
 
+
 # Initialize logger on module import
-initialize_logger() 
+initialize_logger()

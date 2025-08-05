@@ -7,7 +7,9 @@ from typing import List
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
 
 
-def connector_builder_history_processors(messages: List[ModelMessage]) -> List[ModelMessage]:
+def connector_builder_history_processors(
+    messages: List[ModelMessage],
+) -> List[ModelMessage]:
     """
     A simple history processor to replace the content of tool outputs
     that are longer than 1000 characters with a placeholder message.
@@ -21,7 +23,9 @@ def connector_builder_history_processors(messages: List[ModelMessage]) -> List[M
             for part in msg.parts:
                 # Check if the part is a tool return and if its content is too long
                 if isinstance(part, ToolReturnPart) and len(str(part.content)) > 1000:
-                    print(f"Truncating long connector builder tool output from '{part.tool_name}' (length: {len(str(part.content))})")
+                    print(
+                        f"Truncating long connector builder tool output from '{part.tool_name}' (length: {len(str(part.content))})"
+                    )
                     # Replace the long content with a placeholder
                     new_parts.append(
                         ToolReturnPart(
@@ -34,10 +38,14 @@ def connector_builder_history_processors(messages: List[ModelMessage]) -> List[M
                     # Keep the part as is
                     new_parts.append(part)
             # Reconstruct the ModelResponse with the potentially modified parts
-            new_messages.append(ModelResponse(parts=new_parts, model_name=msg.model_name))
+            new_messages.append(
+                ModelResponse(parts=new_parts, model_name=msg.model_name)
+            )
         else:
             # Keep non-ModelResponse messages (like ModelRequest) as they are
             new_messages.append(msg)
-    
-    print(f"Processed {len(messages)} connector builder messages, returning {len(new_messages)} messages")
-    return new_messages 
+
+    print(
+        f"Processed {len(messages)} connector builder messages, returning {len(new_messages)} messages"
+    )
+    return new_messages

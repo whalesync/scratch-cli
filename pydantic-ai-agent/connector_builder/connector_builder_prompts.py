@@ -6,9 +6,12 @@ Prompts for the Connector Builder Agent
 from typing import List, Optional, Dict
 
 
-def get_connector_builder_instructions(capabilities: Optional[List[str]] = None, style_guides: Optional[List[Dict[str, str]]] = None) -> str:
+def get_connector_builder_instructions(
+    capabilities: Optional[List[str]] = None,
+    style_guides: Optional[List[Dict[str, str]]] = None,
+) -> str:
     """Get the system instructions for the connector builder agent"""
-    
+
     base_instructions = """
 You are a Connector Builder Agent that helps users create and test custom connector functions for external APIs.
 
@@ -187,4 +190,4 @@ When generating new functions, consider the existing functions and their outputs
             style_guides_text += f"\n### {guide.get('name', 'Style Guide')}:\n{guide.get('content', '')}\n"
         base_instructions += style_guides_text
 
-    return base_instructions 
+    return base_instructions

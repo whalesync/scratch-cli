@@ -197,54 +197,80 @@ When you receive snapshot data, each record has this structure:
 """
 
 
-def get_data_agent_instructions(capabilities: list[str] | None = None, style_guides: dict[str, str] | None = None, data_scope: str | None = None) -> str:
+def get_data_agent_instructions(
+    capabilities: list[str] | None = None,
+    style_guides: dict[str, str] | None = None,
+    data_scope: str | None = None,
+) -> str:
     print(f"🔍 get_data_agent_instructions called with capabilities: {capabilities}")
     print(f"🔍 style_guides: {style_guides}")
-    
+
     # Define the variable names that can be overridden
     variable_names = [
         "BASE_INSTRUCTIONS",
-        "VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS", 
+        "VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS",
         "DATA_MANIPULATION_INSTRUCTIONS",
         "FINAL_RESPONSE_INSTRUCTIONS",
         "DATA_FORMATTING_INSTRUCTIONS",
-        "DATA_STRUCTURE_INSTRUCTIONS"
+        "DATA_STRUCTURE_INSTRUCTIONS",
     ]
-    
+
     def get_section(variable_name: str, default_content: str) -> str:
         # Use the utility function to get style guide content
         style_guide_content = get_styleguide(style_guides, variable_name)
-        return style_guide_content if style_guide_content is not None else default_content
-    
+        return (
+            style_guide_content if style_guide_content is not None else default_content
+        )
+
     data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS
-    if data_scope == 'record':
+    if data_scope == "record":
         data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED
-    elif data_scope == 'column':
+    elif data_scope == "column":
         data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED
 
     # Get each section, potentially overridden by style guides
     base_instructions = get_section("BASE_INSTRUCTIONS", BASE_INSTRUCTIONS)
-    views_filtering = get_section("VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS", VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS)
-    data_manipulation = get_section("DATA_MANIPULATION_INSTRUCTIONS", data_manipulation_instructions)
-    final_response = get_section("FINAL_RESPONSE_INSTRUCTIONS", FINAL_RESPONSE_INSTRUCTIONS)
-    data_formatting = get_section("DATA_FORMATTING_INSTRUCTIONS", DATA_FORMATTING_INSTRUCTIONS)
-    data_structure = get_section("DATA_STRUCTURE_INSTRUCTIONS", DATA_STRUCTURE_INSTRUCTIONS)
-    
+    views_filtering = get_section(
+        "VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS", VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS
+    )
+    data_manipulation = get_section(
+        "DATA_MANIPULATION_INSTRUCTIONS", data_manipulation_instructions
+    )
+    final_response = get_section(
+        "FINAL_RESPONSE_INSTRUCTIONS", FINAL_RESPONSE_INSTRUCTIONS
+    )
+    data_formatting = get_section(
+        "DATA_FORMATTING_INSTRUCTIONS", DATA_FORMATTING_INSTRUCTIONS
+    )
+    data_structure = get_section(
+        "DATA_STRUCTURE_INSTRUCTIONS", DATA_STRUCTURE_INSTRUCTIONS
+    )
+
     # Build the main prompt
-    main_prompt = base_instructions + views_filtering + data_manipulation + final_response + data_formatting + data_structure
-    
+    main_prompt = (
+        base_instructions
+        + views_filtering
+        + data_manipulation
+        + final_response
+        + data_formatting
+        + data_structure
+    )
+
     # Add non-matching style guides as a STYLE GUIDES section
     if style_guides:
         non_matching_style_guides = {
-            key: value for key, value in style_guides.items() 
+            key: value
+            for key, value in style_guides.items()
             if key not in variable_names
         }
-        
+
         if non_matching_style_guides:
-            print(f"   Adding {len(non_matching_style_guides)} non-matching style guides as STYLE GUIDES section")
+            print(
+                f"   Adding {len(non_matching_style_guides)} non-matching style guides as STYLE GUIDES section"
+            )
             style_guides_section = "\n\n# STYLE GUIDES\n"
             for key, content in non_matching_style_guides.items():
                 style_guides_section += f"\n## {key}\n\n{content}\n"
             main_prompt += style_guides_section
-    
+
     return main_prompt

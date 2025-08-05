@@ -1,12 +1,23 @@
 # Create custom JSON schema without $ref references
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent, WithTableName, common_field_descriptions
+from agents.data_agent.models import (
+    ChatRunContext,
+    ChatSession,
+    ResponseFromAgent,
+    WithTableName,
+    common_field_descriptions,
+)
 
 from typing import Optional, Dict, Any, List, Union, TypedDict
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
-from agents.data_agent.model_utils import find_table_by_name, get_active_table, missing_table_error, unable_to_identify_active_snapshot_error
+from agents.data_agent.model_utils import (
+    find_table_by_name,
+    get_active_table,
+    missing_table_error,
+    unable_to_identify_active_snapshot_error,
+)
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -17,21 +28,28 @@ field_descriptions = {
     "a": "",
 }
 
+
 class FieldData(TypedDict):
     """Dictionary type for a single field data"""
+
     field: str = Field(description=common_field_descriptions["field"])
     value: Any = Field(description="The value for the field")
 
+
 class RecordDataDict(TypedDict):
     """Dictionary type for record data"""
-    data: List[FieldData] = Field(description="List of field data, each containing 'field' and 'value' keys")
+
+    data: List[FieldData] = Field(
+        description="List of field data, each containing 'field' and 'value' keys"
+    )
+
 
 json_schema = {
     "type": "object",
     "properties": {
         "table_name": {
             "type": "string",
-            "description": "The name of the table to create records in"
+            "description": "The name of the table to create records in",
         },
         "record_data_list": {
             "type": "array",
@@ -48,22 +66,22 @@ json_schema = {
                             "properties": {
                                 "field": {
                                     "type": "string",
-                                    "description": "The name of the field"
+                                    "description": "The name of the field",
                                 },
                                 "value": {
                                     "type": "string",
-                                    "description": "The value for the field"
-                                }
+                                    "description": "The value for the field",
+                                },
                             },
-                            "required": ["field", "value"]
-                        }
+                            "required": ["field", "value"],
+                        },
                     }
                 },
-                "required": ["data"]
-            }
-        }
+                "required": ["data"],
+            },
+        },
     },
-    "required": ["table_name", "record_data_list"]
+    "required": ["table_name", "record_data_list"],
 }
 
 description = """
@@ -83,71 +101,89 @@ description = """
     If calling this tool always include the table_name and non empty record_data_list.
 """
 
-async def create_records_implementation(ctx: RunContext[ChatRunContext], table_name: str, record_data_list: List[RecordDataDict]) -> str:
+
+async def create_records_implementation(
+    ctx: RunContext[ChatRunContext],
+    table_name: str,
+    record_data_list: List[RecordDataDict],
+) -> str:
     try:
-        if(record_data_list is None or len(record_data_list) == 0):
+        if record_data_list is None or len(record_data_list) == 0:
             return "Error: The list of record data is empty. Provide at least one record data"
 
         for i, record_data in enumerate(record_data_list):
-            if(record_data.get('data') is None or len(record_data.get('data')) == 0):
+            if record_data.get("data") is None or len(record_data.get("data")) == 0:
                 return f"Error: The data is empty for record {i+1}. The data list must include at least one field data"
-            
+
             # Validate each field data has required properties
-            for field_data in record_data.get('data', []):
+            for field_data in record_data.get("data", []):
                 if not isinstance(field_data, dict):
                     return f"Error: Each field data must be an object with 'field' and 'value' properties for record {i+1}"
-                if 'field' not in field_data or field_data.get('field') is None or field_data.get('field') == "":
+                if (
+                    "field" not in field_data
+                    or field_data.get("field") is None
+                    or field_data.get("field") == ""
+                ):
                     return f"Error: Each field data must include a valid 'field' property for record {i+1}"
-                if 'value' not in field_data:
+                if "value" not in field_data:
                     return f"Error: Each field data must include a 'value' property for record {i+1}"
 
         # Get the active snapshot
-        chatRunContext: ChatRunContext = ctx.deps 
-        
+        chatRunContext: ChatRunContext = ctx.deps
+
         if not chatRunContext.snapshot:
             return unable_to_identify_active_snapshot_error(chatRunContext)
-        
+
         # Find the table by name
         table = None
         for t in chatRunContext.snapshot.tables:
             if t.name.lower() == table_name.lower():
                 table = t
                 break
-        
+
         if not table:
             available_tables = [t.name for t in chatRunContext.snapshot.tables]
             return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
 
         # Create RecordOperation objects for create operations using map
-        create_operations = list(map(
-            lambda record_data, index: RecordOperation(
-                op="create",
-                wsId=f"temp_id_{index+1}",  # Temporary ID for create operations
-                data={field_data['field']: field_data['value'] for field_data in record_data['data']}
-            ),
-            record_data_list,
-            range(len(record_data_list))
-        ))
-        
-        log_info("Creating records via bulk update", 
-                table_name=table_name,
-                table_id=table.id.wsId,
-                record_count=len(create_operations),
-                snapshot_id=chatRunContext.session.snapshot_id)
-        
+        create_operations = list(
+            map(
+                lambda record_data, index: RecordOperation(
+                    op="create",
+                    wsId=f"temp_id_{index+1}",  # Temporary ID for create operations
+                    data={
+                        field_data["field"]: field_data["value"]
+                        for field_data in record_data["data"]
+                    },
+                ),
+                record_data_list,
+                range(len(record_data_list)),
+            )
+        )
+
+        log_info(
+            "Creating records via bulk update",
+            table_name=table_name,
+            table_id=table.id.wsId,
+            record_count=len(create_operations),
+            snapshot_id=chatRunContext.session.snapshot_id,
+        )
+
         # Import the bulk update function
         from scratchpad_api import bulk_update_records
-        
+
         # Call the bulk update endpoint
         bulk_update_records(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=create_operations,
             api_token=chatRunContext.api_token,
-            view_id=chatRunContext.view_id
+            view_id=chatRunContext.view_id,
         )
-        
-        print(f"✅ Successfully created {len(create_operations)} records in table '{table_name}'")
+
+        print(
+            f"✅ Successfully created {len(create_operations)} records in table '{table_name}'"
+        )
         print(f"📋 Table ID: {table.id.wsId}")
         print(f"📊 Created records:")
         for i, operation in enumerate(create_operations):
@@ -155,32 +191,36 @@ async def create_records_implementation(ctx: RunContext[ChatRunContext], table_n
             # Also show the original field data for clarity
             original_record = record_data_list[i]
             print(f"    Field data: {original_record['data']}")
-        
-        log_info("Successfully created records", 
-                table_name=table_name,
-                table_id=table.id.wsId,
-                record_count=len(create_operations),
-                snapshot_id=chatRunContext.session.snapshot_id)
-        
-        return f"Successfully created {len(create_operations)} records in table '{table_name}'. Records have been logged to console."      
+
+        log_info(
+            "Successfully created records",
+            table_name=table_name,
+            table_id=table.id.wsId,
+            record_count=len(create_operations),
+            snapshot_id=chatRunContext.session.snapshot_id,
+        )
+
+        return f"Successfully created {len(create_operations)} records in table '{table_name}'. Records have been logged to console."
     except Exception as e:
         error_msg = f"Failed to create records in table '{table_name}': {str(e)}"
-        log_error("Error creating records", 
-                table_name=table_name,
-                error=str(e))
+        log_error("Error creating records", table_name=table_name, error=str(e))
         print(f"❌ {error_msg}")
         return error_msg
 
+
 tool_name = "create_records"
+
 
 def create_create_records_tool(style_guides: Dict[str, str] = None):
     if style_guides is None:
         style_guides = {}
-    
+
     # Use utility function to get custom name, description, and JSON schema
     custom_name = get_styleguide(style_guides, f"TOOLS_{tool_name}_name") or tool_name
-    custom_description = get_styleguide(style_guides, f"TOOLS_{tool_name}_description") or description
-    
+    custom_description = (
+        get_styleguide(style_guides, f"TOOLS_{tool_name}_description") or description
+    )
+
     # Get custom JSON schema from style guides if available
     custom_json_schema = json_schema
     json_schema_content = get_styleguide(style_guides, f"TOOLS_{tool_name}_json_schema")
@@ -191,7 +231,7 @@ def create_create_records_tool(style_guides: Dict[str, str] = None):
         except json.JSONDecodeError as e:
             print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
             print(f"   Using default schema instead")
-    
+
     return Tool(
         name=custom_name,
         description=custom_description,
@@ -203,5 +243,5 @@ def create_create_records_tool(style_guides: Dict[str, str] = None):
             takes_ctx=True,
             is_async=True,
             validator=SchemaValidator(schema=core_schema.any_schema()),
-        )
-    ) 
+        ),
+    )

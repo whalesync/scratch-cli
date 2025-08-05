@@ -21,7 +21,9 @@ def data_agent_history_processor(messages: List[ModelMessage]) -> List[ModelMess
             for part in msg.parts:
                 # Check if the part is a tool return and if its content is too long
                 if isinstance(part, ToolReturnPart) and len(str(part.content)) > 1000:
-                    print(f"Truncating long tool output from '{part.tool_name}' (length: {len(str(part.content))})")
+                    print(
+                        f"Truncating long tool output from '{part.tool_name}' (length: {len(str(part.content))})"
+                    )
                     # Replace the long content with a placeholder
                     new_parts.append(
                         ToolReturnPart(
@@ -34,10 +36,12 @@ def data_agent_history_processor(messages: List[ModelMessage]) -> List[ModelMess
                     # Keep the part as is
                     new_parts.append(part)
             # Reconstruct the ModelResponse with the potentially modified parts
-            new_messages.append(ModelResponse(parts=new_parts, model_name=msg.model_name))
+            new_messages.append(
+                ModelResponse(parts=new_parts, model_name=msg.model_name)
+            )
         else:
             # Keep non-ModelResponse messages (like ModelRequest) as they are
             new_messages.append(msg)
-    
+
     print(f"Processed {len(messages)} messages, returning {len(new_messages)} messages")
     return new_messages
