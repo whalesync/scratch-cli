@@ -19,7 +19,7 @@ export default function StyleGuidesPage() {
 
     try {
       await styleGuideApi.delete(id);
-      mutate();
+      await mutate();
     } catch (error) {
       console.error('Error deleting style guide:', error);
     }
@@ -56,6 +56,8 @@ export default function StyleGuidesPage() {
     </Button>
   );
 
+  const sortedStyleGuides = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <ContentContainer title="Style Guides" actions={headerActions}>
       {isLoading ? (
@@ -71,7 +73,7 @@ export default function StyleGuidesPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {styleGuides.map((styleGuide) => (
+            {sortedStyleGuides.map((styleGuide) => (
               <Table.Tr key={styleGuide.id}>
                 <Table.Td>
                   <UnstyledButton fz="sm" onClick={() => handleEditStyleGuide(styleGuide)}>
@@ -110,10 +112,14 @@ export default function StyleGuidesPage() {
 
       <EditResourceModal
         opened={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          mutate();
+        onClose={() => {
           setIsCreateModalOpen(false);
+          setActiveStyleGuide(null);
+        }}
+        onSuccess={async () => {
+          await mutate();
+          setIsCreateModalOpen(false);
+          setActiveStyleGuide(null);
         }}
         styleGuide={activeStyleGuide}
       />

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface EditResourceModalProps extends ModalProps {
   styleGuide?: StyleGuide | null;
-  onSuccess?: (updatedStyleGuide: StyleGuide) => void;
+  onSuccess?: (updatedStyleGuide: StyleGuide, isNewResource: boolean) => void;
 }
 
 export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResourceModalProps) {
@@ -56,13 +56,12 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
         updatedStyleGuide = await styleGuideApi.create(newData);
       } else {
         const updateData: UpdateStyleGuideDto = {
-          name: isNewResource ? name.trim() : undefined,
           body: content,
         };
         updatedStyleGuide = await styleGuideApi.update(styleGuide.id, updateData);
       }
 
-      onSuccess?.(updatedStyleGuide);
+      onSuccess?.(updatedStyleGuide, isNewResource);
       notifications.show({
         message: isNewResource ? `Successfully created resource.` : `Successfully updated resource.`,
         color: 'green',

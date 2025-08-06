@@ -1,4 +1,4 @@
-import { StyleGuide, CreateStyleGuideDto, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
+import { CreateStyleGuideDto, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { API_CONFIG } from './config';
 
 export const styleGuideApi = {
@@ -73,7 +73,7 @@ export const styleGuideApi = {
         'Content-Type': 'application/json',
       },
     });
-    if (res.status !== 204) {
+    if (!res.ok) {
       throw new Error(res.statusText ?? 'Failed to delete style guide');
     }
   },

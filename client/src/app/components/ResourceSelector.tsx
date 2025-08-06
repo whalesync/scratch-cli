@@ -48,10 +48,13 @@ export function ResourceSelector(props: ResourceSelectorProps) {
           setResourceToEdit(null);
         }}
         styleGuide={resourceToEdit}
-        onSuccess={(newStyleGuide) => {
-          refreshResourceList();
+        onSuccess={async (newStyleGuide, isNewResource) => {
+          await refreshResourceList();
           setIsEditResourceModalOpen(false);
-          setSelectedStyleGuideIds([...selectedStyleGuideIds, newStyleGuide.id]);
+
+          if (isNewResource && !selectedStyleGuideIds.includes(newStyleGuide.id)) {
+            setSelectedStyleGuideIds([...selectedStyleGuideIds, newStyleGuide.id]);
+          }
         }}
       />
 
