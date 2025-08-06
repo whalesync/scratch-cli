@@ -425,7 +425,7 @@ export const SnapshotTableGridProvider = ({
     [sortedRecords, table.columns, coreGridState.hoveredRow, readFocus],
   );
 
-  const onAddRow = useCallback(() => {
+  const onAddRow = useCallback(async () => {
     const newRecordId = generatePendingId();
 
     const newRecordData: Record<string, unknown> = {
@@ -448,7 +448,7 @@ export const SnapshotTableGridProvider = ({
       ],
     };
     try {
-      bulkUpdateRecords(dto);
+      await bulkUpdateRecords(dto);
     } catch (e) {
       const error = e as Error;
       notifications.show({
