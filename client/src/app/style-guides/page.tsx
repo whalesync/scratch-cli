@@ -2,45 +2,17 @@
 
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
-import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Alert, Button, Group, Modal, Paper, Stack, Table, Text, TextInput } from '@mantine/core';
-import { PencilSimple, Plus, Trash } from '@phosphor-icons/react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { StyleGuide } from '@/types/server-entities/style-guide';
+import { ActionIcon, Alert, Button, Group, Paper, Table, Text, UnstyledButton } from '@mantine/core';
+import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { ContentContainer } from '../components/ContentContainer';
+import { EditResourceModal } from '../components/EditResourceModal';
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newStyleGuideName, setNewStyleGuideName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleCreateStyleGuide = async () => {
-    if (!newStyleGuideName.trim()) return;
-
-    setIsCreating(true);
-    setCreateError(null);
-
-    try {
-      const styleGuide = await styleGuideApi.create({
-        name: newStyleGuideName.trim(),
-        body: '',
-      });
-
-      setNewStyleGuideName('');
-      setIsCreateModalOpen(false);
-      mutate();
-      router.push(RouteUrls.styleGuidePage(styleGuide.id));
-    } catch (error) {
-      setCreateError('Failed to create style guide');
-      console.error('Error creating style guide:', error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  const [activeStyleGuide, setActiveStyleGuide] = useState<StyleGuide | null>(null);
 
   const handleDeleteStyleGuide = async (id: string) => {
     if (!confirm('Are you sure you want to delete this style guide?')) return;
@@ -67,8 +39,19 @@ export default function StyleGuidesPage() {
     );
   }
 
+  const handleEditStyleGuide = (styleGuide: StyleGuide) => {
+    setActiveStyleGuide(styleGuide);
+    setIsCreateModalOpen(true);
+  };
+
   const headerActions = (
-    <Button leftSection={<Plus size={16} />} onClick={() => setIsCreateModalOpen(true)}>
+    <Button
+      leftSection={<PlusIcon size={16} />}
+      onClick={() => {
+        setActiveStyleGuide(null);
+        setIsCreateModalOpen(true);
+      }}
+    >
       New Style Guide
     </Button>
   );
@@ -91,24 +74,23 @@ export default function StyleGuidesPage() {
             {styleGuides.map((styleGuide) => (
               <Table.Tr key={styleGuide.id}>
                 <Table.Td>
-                  <Link
-                    href={RouteUrls.styleGuidePage(styleGuide.id)}
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
+                  <UnstyledButton fz="sm" onClick={() => handleEditStyleGuide(styleGuide)}>
                     {styleGuide.name}
-                  </Link>
+                  </UnstyledButton>
                 </Table.Td>
                 <Table.Td>{formatDate(styleGuide.createdAt)}</Table.Td>
                 <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
                 <Table.Td>
                   <Group gap="xs">
                     <ActionIcon
-                      component={Link}
-                      href={RouteUrls.styleGuidePage(styleGuide.id)}
+                      onClick={async () => {
+                        setActiveStyleGuide(styleGuide);
+                        setIsCreateModalOpen(true);
+                      }}
                       variant="subtle"
                       size="sm"
                     >
-                      <PencilSimple size={16} />
+                      <PencilSimpleIcon size={16} />
                     </ActionIcon>
                     <ActionIcon
                       variant="subtle"
@@ -116,7 +98,7 @@ export default function StyleGuidesPage() {
                       size="sm"
                       onClick={() => handleDeleteStyleGuide(styleGuide.id)}
                     >
-                      <Trash size={16} />
+                      <TrashIcon size={16} />
                     </ActionIcon>
                   </Group>
                 </Table.Td>
@@ -126,34 +108,15 @@ export default function StyleGuidesPage() {
         </Table>
       )}
 
-      <Modal opened={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create New Style Guide">
-        <Stack>
-          {createError && (
-            <Alert color="red" title="Error">
-              {createError}
-            </Alert>
-          )}
-          <TextInput
-            label="Name"
-            placeholder="Enter style guide name"
-            value={newStyleGuideName}
-            onChange={(e) => setNewStyleGuideName(e.target.value)}
-            onKeyUp={(e) => {
-              if (e.key === 'Enter') {
-                handleCreateStyleGuide();
-              }
-            }}
-          />
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateStyleGuide} loading={isCreating} disabled={!newStyleGuideName.trim()}>
-              Create
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <EditResourceModal
+        opened={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          mutate();
+          setIsCreateModalOpen(false);
+        }}
+        styleGuide={activeStyleGuide}
+      />
     </ContentContainer>
   );
 }

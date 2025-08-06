@@ -15,7 +15,6 @@ import {
   Box,
   Group,
   Modal,
-  MultiSelect,
   Paper,
   ScrollArea,
   Select,
@@ -42,6 +41,7 @@ import { BadgeWithTooltip } from './BadgeWithTooltip';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
+import { ResourceSelector } from './ResourceSelector';
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -516,26 +516,9 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
       {/* Bottom Input Area */}
       <Stack gap="xs">
         {/* Style Guide Selection */}
-        <MultiSelect
-          placeholder={selectedStyleGuideIds.length === 0 ? 'Select style guides (optional)' : ''}
-          value={selectedStyleGuideIds}
-          onChange={setSelectedStyleGuideIds}
-          data={styleGuides.map((styleGuide) => ({
-            value: styleGuide.id,
-            label: styleGuide.name,
-          }))}
-          size="xs"
-          searchable={false}
-          clearable={false}
-          maxDropdownHeight={200}
-          comboboxProps={{ position: 'top', middlewares: { flip: false, shift: false } }}
-          styles={{
-            input: {
-              border: 'none',
-              backgroundColor: 'transparent',
-              paddingLeft: '0px',
-            },
-          }}
+        <ResourceSelector
+          selectedStyleGuideIds={selectedStyleGuideIds}
+          setSelectedStyleGuideIds={setSelectedStyleGuideIds}
         />
 
         {/* Capabilities Selection */}

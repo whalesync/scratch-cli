@@ -10,6 +10,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ContentContainer } from '../../components/ContentContainer';
 
+/** @deprecated - moved this into a modal instead */
+
 export default function StyleGuideEditPage() {
   const params = useParams();
   const id = params.id as string;
