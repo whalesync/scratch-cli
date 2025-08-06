@@ -1,8 +1,8 @@
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
-import { Divider, Group, MultiSelect, MultiSelectProps, Text } from '@mantine/core';
 import { FileIcon, PlusIcon } from '@phosphor-icons/react';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { CustomPillMultiSelect, CustomPillMultiSelectData } from './CustomPillMultiSelect';
 import { EditResourceModal } from './EditResourceModal';
 
 interface ResourceSelectorProps {
@@ -16,13 +16,14 @@ export function ResourceSelector(props: ResourceSelectorProps) {
   const [isEditResourceModalOpen, setIsEditResourceModalOpen] = useState(false);
   const [resourceToEdit, setResourceToEdit] = useState<StyleGuide | null>(null);
 
-  const listValues = useMemo(() => {
-    const list = styleGuides
+  const listValues = useMemo<CustomPillMultiSelectData[]>(() => {
+    const list: CustomPillMultiSelectData[] = styleGuides
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((styleGuide) => ({
         value: styleGuide.id,
         label: styleGuide.name,
         disabled: false,
+        icon: <FileIcon />,
       }));
     list.push({
       value: 'divider',
@@ -33,42 +34,19 @@ export function ResourceSelector(props: ResourceSelectorProps) {
       value: 'new',
       label: 'New',
       disabled: false,
+      icon: <PlusIcon />,
     });
     return list;
   }, [styleGuides]);
-
-  const handleSelect = (value: string[]) => {
-    if (value.includes('new')) {
-      setIsEditResourceModalOpen(true);
-      setResourceToEdit(null);
-    } else {
-      setSelectedStyleGuideIds(value);
-    }
-  };
-  const renderMultiSelectOption: MultiSelectProps['renderOption'] = useCallback(
-    ({ option }: { option: { value: string; label: string } }) => {
-      if (option.value === 'divider') {
-        return <Divider w="100%" />;
-      }
-      const styleGuide = styleGuides.find((sg) => sg.id === option.value);
-      const icon = styleGuide ? <FileIcon /> : <PlusIcon />;
-      return (
-        <Group gap="xs">
-          {icon}
-          <div>
-            <Text size="sm">{option.label}</Text>
-          </div>
-        </Group>
-      );
-    },
-    [styleGuides],
-  );
 
   return (
     <>
       <EditResourceModal
         opened={isEditResourceModalOpen}
-        onClose={() => setIsEditResourceModalOpen(false)}
+        onClose={() => {
+          setIsEditResourceModalOpen(false);
+          setResourceToEdit(null);
+        }}
         styleGuide={resourceToEdit}
         onSuccess={(newStyleGuide) => {
           refreshResourceList();
@@ -76,24 +54,33 @@ export function ResourceSelector(props: ResourceSelectorProps) {
           setSelectedStyleGuideIds([...selectedStyleGuideIds, newStyleGuide.id]);
         }}
       />
-      <MultiSelect
-        placeholder={selectedStyleGuideIds.length === 0 ? 'Select resources (optional)' : ''}
-        value={selectedStyleGuideIds}
-        onChange={handleSelect}
+
+      <CustomPillMultiSelect
+        values={selectedStyleGuideIds}
         data={listValues}
-        size="sm"
-        searchable={false}
-        clearable={false}
-        maxDropdownHeight={200}
-        comboboxProps={{ position: 'top', middlewares: { flip: false, shift: false } }}
-        renderOption={renderMultiSelectOption}
+        placeholder="Select resources (optional)"
         hidePickedOptions
-        styles={{
-          input: {
-            border: 'none',
-            backgroundColor: 'transparent',
-            paddingLeft: '0px',
-          },
+        onPillClick={(value) => {
+          if (value !== 'new') {
+            const styleGuide = styleGuides.find((sg) => sg.id === value);
+            if (styleGuide) {
+              setResourceToEdit(styleGuide);
+              setIsEditResourceModalOpen(true);
+            }
+          }
+        }}
+        onSelect={(value) => {
+          if (value === 'new') {
+            setIsEditResourceModalOpen(true);
+            setResourceToEdit(null);
+          } else if (value !== 'divider') {
+            setSelectedStyleGuideIds([...selectedStyleGuideIds, value]);
+          }
+        }}
+        onRemove={(value) => {
+          if (value !== 'new') {
+            setSelectedStyleGuideIds(selectedStyleGuideIds.filter((id) => id !== value));
+          }
         }}
       />
     </>

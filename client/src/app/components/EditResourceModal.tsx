@@ -4,7 +4,7 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { CreateStyleGuideDto, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { Alert, Button, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface EditResourceModalProps extends ModalProps {
   styleGuide?: StyleGuide | null;
@@ -17,15 +17,27 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [resetInputFocus, setResetInputFocus] = useState(false);
+
   useEffect(() => {
     if (styleGuide) {
       setContent(styleGuide.body);
       setName(styleGuide.name);
+      setResetInputFocus(true);
     } else {
       setName('');
       setContent('');
     }
   }, [styleGuide]);
+
+  useEffect(() => {
+    // Focus on textarea when modal opens or style guide changes
+    if (resetInputFocus && textareaRef.current) {
+      textareaRef.current?.focus();
+      setResetInputFocus(false);
+    }
+  }, [resetInputFocus]);
 
   const isNewResource = !styleGuide;
 
@@ -95,7 +107,14 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
           />
         )}
 
-        <Textarea label="Content" value={content} onChange={(e) => setContent(e.target.value)} minRows={20} autosize />
+        <Textarea
+          ref={textareaRef}
+          label="Content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          minRows={20}
+          autosize
+        />
 
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" onClick={handleClose} disabled={isUpdating}>
