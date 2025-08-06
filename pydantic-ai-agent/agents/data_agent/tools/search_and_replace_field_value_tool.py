@@ -23,13 +23,20 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_record_error,
     record_not_in_context_error,
     not_in_write_focus_error,
+    update_record_in_context,
 )
 from typing import Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
 import re
-from scratchpad_api import bulk_update_records, RecordOperation, ColumnSpec, TableSpec
+from scratchpad_api import (
+    bulk_update_records,
+    RecordOperation,
+    ColumnSpec,
+    TableSpec,
+    get_record,
+)
 
 
 class SearchAndReplaceInFieldInput(BaseModel):
@@ -117,6 +124,16 @@ def search_and_replace_field_value_tool_implementation(
             api_token=chatRunContext.api_token,
             view_id=chatRunContext.view_id,
         )
+
+        updated_record = get_record(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            record_id=wsId,
+            api_token=chatRunContext.api_token,
+        )
+
+        if updated_record:
+            update_record_in_context(chatRunContext, table.id.wsId, updated_record)
 
         return f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {column.name} field. Record {wsId} now contains an updated suggested value containing the changes."
 

@@ -20,11 +20,18 @@ from agents.data_agent.model_utils import (
     record_not_in_context_error,
     not_in_write_focus_error,
     unable_to_identify_active_snapshot_error,
+    update_record_in_context,
 )
 from typing import Optional
 from pydantic import Field, BaseModel
 from pydantic_ai import Agent, RunContext
-from scratchpad_api import bulk_update_records, RecordOperation, ColumnSpec, TableSpec
+from scratchpad_api import (
+    bulk_update_records,
+    RecordOperation,
+    ColumnSpec,
+    TableSpec,
+    get_record,
+)
 from logger import log_info, log_error
 
 
@@ -94,6 +101,16 @@ def set_field_value_tool_implementation(
             api_token=chatRunContext.api_token,
             view_id=chatRunContext.view_id,
         )
+
+        updated_record = get_record(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            record_id=wsId,
+            api_token=chatRunContext.api_token,
+        )
+
+        if updated_record:
+            update_record_in_context(chatRunContext, table.id.wsId, updated_record)
 
         print(f"✅ Successfully set the value in the field")
         print(f"📋 Table ID: {table.id.wsId}")

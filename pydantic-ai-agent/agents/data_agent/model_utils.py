@@ -88,6 +88,26 @@ def find_record_by_wsId(
     return None
 
 
+def update_record_in_context(
+    chatRunContext: ChatRunContext, table_id: str, record: SnapshotRecord
+) -> None:
+    if not chatRunContext.preloaded_records:
+        return
+
+    records = chatRunContext.preloaded_records.get(table_id)
+    if records is None:
+        return
+
+    for cached_record in records:
+        if cached_record["id"]["wsId"] == record.id.wsId:
+            # update the values in the cached record with new data
+            cached_record["fields"] = record.fields
+            cached_record["edited_fields"] = record.edited_fields
+            cached_record["suggested_fields"] = record.suggested_fields
+            cached_record["dirty"] = record.dirty
+            break
+
+
 def get_active_table(chatRunContext: ChatRunContext) -> TableSpec | None:
     if (
         not chatRunContext.snapshot
