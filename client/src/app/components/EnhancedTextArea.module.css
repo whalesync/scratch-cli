@@ -1,0 +1,6 @@
+.input {
+  &::selection {
+    background-color: #ffff00;
+    color: black;
+  }
+}

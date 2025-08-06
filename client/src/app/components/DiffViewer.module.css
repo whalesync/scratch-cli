@@ -1,0 +1,19 @@
+.diffViewer {
+  border: none;
+  border-radius: 8px;
+  background-color: white;
+
+  &::selection {
+    background-color: #ffff00;
+    color: black;
+  }
+}
+
+.added {
+  color: green;
+}
+
+.removed {
+  color: red;
+  text-decoration: line-through;
+}

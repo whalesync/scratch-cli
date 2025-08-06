@@ -349,7 +349,7 @@ function SnapshotPageContent() {
                 setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value) ?? null);
                 setSelectedTableContext(snapshot.tableContexts.find((t) => t.id.wsId === value) ?? null);
               }}
-              variant="outline"
+              variant="default"
             >
               <Tabs.List px="sm" style={{ paddingRight: 0 }}>
                 {snapshot.tables.map((table: TableSpec) => (

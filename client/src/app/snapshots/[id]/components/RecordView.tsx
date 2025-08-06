@@ -3,8 +3,9 @@ import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
-import { ActionIcon, Anchor, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
+import { Anchor, Button, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
+import _ from 'lodash';
 import { useCallback, useEffect, useState } from 'react';
 import { ICONS } from '../icons';
 import { RecordDetails } from './RecordDetails';
@@ -99,14 +100,17 @@ export const RecordView = ({
 
   return (
     <Stack h="100%" w="100%" gap={0} p={0}>
-      <Group p="xs">
-        <ActionIcon variant="subtle" onClick={handleExistRecordView} c="black">
-          <ArrowLeftIcon />
-        </ActionIcon>
-        <Text>Record View</Text>
-      </Group>
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="25%">
+          <Button
+            variant="subtle"
+            w="fit-content"
+            leftSection={<ArrowLeftIcon />}
+            onClick={handleExistRecordView}
+            c="black"
+          >
+            Return to table
+          </Button>
           <ScrollArea h="100%" type="hover" scrollbars="y">
             <Stack h="calc(100vh - 250px)" gap="sm" p="xs">
               {records?.map((record) => (
@@ -180,8 +184,12 @@ function buildRecordTitle(record: SnapshotRecord): string {
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        return record.fields[key] as string;
+        return _.truncate(record.fields[key] as string, { length: 40 });
       }
+    }
+    const firstValue = Object.values(record.fields)[0];
+    if (firstValue) {
+      return _.truncate(firstValue as string, { length: 40 });
     }
   }
   return record.id.wsId;

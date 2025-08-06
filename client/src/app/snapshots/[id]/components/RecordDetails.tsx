@@ -2,7 +2,13 @@
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
-import { ColumnSpec, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import {
+  isLargeTextColumn,
+  isTextColumn,
+  PostgresColumnType,
+  SnapshotRecord,
+  TableSpec,
+} from '@/types/server-entities/snapshot';
 import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import {
   ActionIcon,
@@ -21,11 +27,10 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { ArrowUpIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, CopyIcon, LockIcon, PencilCircleIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAIPromptContext } from '../AIPromptContext';
 import { useSnapshotContext } from '../SnapshotContext';
-import { ICONS } from '../icons';
 
 interface RecordDetailsProps {
   snapshotId: string;
@@ -144,60 +149,92 @@ export const RecordDetails = ({
 
       const isProtected = currentView && isColumnProtected(table.id.wsId, field, currentView);
       const value = record.fields[field] as string;
-      const greenBackgroundStyle = hasEditedValue
-        ? {
-            input: {
-              backgroundColor: '#e0fde0',
-            },
-          }
-        : undefined;
 
       if (column.pgType === PostgresColumnType.NUMERIC) {
         // this needs to be handled differently
         return (
-          <NumberInput
-            key={field}
-            label={column.name}
-            value={currentRecord.fields[field] as number}
-            onChange={(value) => updateField(field, value.toString())}
-            readOnly={column.readonly || hasSuggestion || isProtected}
-            styles={greenBackgroundStyle}
-          />
+          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+            <NumberInput
+              key={field}
+              value={currentRecord.fields[field] as number}
+              onChange={(value) => updateField(field, value.toString())}
+              readOnly={column.readonly || hasSuggestion || isProtected}
+              hideControls
+              styles={{
+                input: {
+                  border: 'none',
+                  fontSize: '1rem',
+                },
+              }}
+            />
+          </FieldRow>
         );
       }
       if (column.pgType === PostgresColumnType.BOOLEAN) {
         return (
-          <Checkbox
-            key={field}
-            label={`${column.name} ${isProtected ? ICONS.protected : ''}`}
-            checked={value === 'true'}
-            onChange={(e) => updateField(field, e.target.checked.toString())}
-            readOnly={column.readonly || hasSuggestion || isProtected}
-          />
+          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+            <Checkbox
+              key={field}
+              checked={value === 'true'}
+              onChange={(e) => updateField(field, e.target.checked.toString())}
+              readOnly={column.readonly || hasSuggestion || isProtected}
+            />
+          </FieldRow>
+        );
+      }
+      if (isLargeTextColumn(column, value)) {
+        return (
+          <Stack align="flex-start" gap="xs" w="100%">
+            <FieldLabel fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} />
+            <EnhancedTextArea
+              flex={1}
+              inputWrapperOrder={['input', 'label', 'description', 'error']}
+              key={field}
+              value={value ?? ''}
+              autosize
+              minRows={10}
+              w="100%"
+              resize="vertical"
+              onChange={(e) => updateField(field, e.target.value)}
+              readOnly={column.readonly || hasSuggestion || isProtected}
+              styles={{
+                input: {
+                  border: 'none',
+                  fontSize: '1rem',
+                  padding: '2rem',
+                },
+              }}
+              onSelectionChange={handleTextSelectionChange}
+              onCursorChange={handleTextAreaCursorChange}
+            />
+          </Stack>
         );
       }
 
       return (
-        <EnhancedTextArea
-          key={field}
-          label={`${column.name} ${isProtected ? ICONS.protected : ''}`}
-          value={value ?? ''}
-          autosize
-          minRows={10}
-          resize="vertical"
-          onChange={(e) => updateField(field, e.target.value)}
-          readOnly={column.readonly || hasSuggestion || isProtected}
-          styles={{
-            input: {
-              border: 'none',
-              fontSize: '1rem',
-              padding: '2rem',
-              backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
-            },
-          }}
-          onSelectionChange={handleTextSelectionChange}
-          onCursorChange={handleTextAreaCursorChange}
-        />
+        <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+          <EnhancedTextArea
+            flex={1}
+            inputWrapperOrder={['input', 'label', 'description', 'error']}
+            key={field}
+            value={value ?? ''}
+            autosize
+            minRows={1}
+            resize="vertical"
+            onChange={(e) => updateField(field, e.target.value)}
+            readOnly={column.readonly || hasSuggestion || isProtected}
+            styles={{
+              input: {
+                border: 'none',
+                fontSize: '1rem',
+                // padding: '2rem',
+                // backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
+              },
+            }}
+            onSelectionChange={handleTextSelectionChange}
+            onCursorChange={handleTextAreaCursorChange}
+          />
+        </FieldRow>
       );
     },
 
@@ -267,6 +304,7 @@ export const RecordDetails = ({
 
       const hasEditedValue = !!currentRecord.__edited_fields?.[field];
       const currentValue = currentRecord.fields[field] as string;
+      const isProtected = currentView && isColumnProtected(table.id.wsId, column.id.wsId, currentView);
 
       const suggestionButtons = hasSuggestion ? (
         <Group gap="xs" justify="center">
@@ -293,18 +331,32 @@ export const RecordDetails = ({
         </Group>
       ) : null;
 
-      if (hasSuggestion && isTextField(column, currentValue)) {
+      if (hasSuggestion && isTextColumn(column)) {
+        if (isLargeTextColumn(column, currentValue)) {
+          return (
+            <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
+              <FieldLabel fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} />
+              <ScrollArea mah="80%" w="100%" type="hover" mb="xs">
+                <DiffViewer
+                  originalValue={currentValue}
+                  suggestedValue={currentRecord.__suggested_values?.[field] as string}
+                />
+              </ScrollArea>
+              {suggestionButtons}
+            </Stack>
+          );
+        }
         return (
-          <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
-            <Text size="sm" fw={500}>
-              {column.name}
-            </Text>
-            <ScrollArea mah="80%" w="100%" type="hover" styles={{ root: { border: '1px solid #e0e0e0' } }} mb="xs">
-              <DiffViewer
-                originalValue={currentValue}
-                suggestedValue={currentRecord.__suggested_values?.[field] as string}
-              />
-            </ScrollArea>
+          <Stack key={field} gap="xs">
+            <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+              <Group flex={1} grow>
+                <DiffViewer
+                  originalValue={currentValue}
+                  suggestedValue={currentRecord.__suggested_values?.[field] as string}
+                  p="xs"
+                />
+              </Group>
+            </FieldRow>
             {suggestionButtons}
           </Stack>
         );
@@ -318,7 +370,7 @@ export const RecordDetails = ({
                 value={currentRecord.__suggested_values?.[field] as string}
                 disabled
                 autosize
-                minRows={10}
+                minRows={1}
                 styles={{
                   input: {
                     fontSize: '1rem',
@@ -341,7 +393,7 @@ export const RecordDetails = ({
         </Stack>
       );
     },
-    [currentRecord, fieldToInput, saving, acceptCellValues, rejectCellValues],
+    [currentRecord, fieldToInput, saving, acceptCellValues, rejectCellValues, currentView],
   );
 
   if (currentRecord && currentColumn) {
@@ -368,7 +420,7 @@ export const RecordDetails = ({
       }
     });
 
-    content = <>{fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}</>;
+    content = fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false));
   }
 
   return (
@@ -411,7 +463,7 @@ export const RecordDetails = ({
           )}
         </Group>
       </Group>
-      {content}
+      <Stack p={0}>{content}</Stack>
 
       {currentTextSelection && currentTextSelection.text.length > 0 ? (
         <>
@@ -431,6 +483,51 @@ export const RecordDetails = ({
   );
 };
 
-function isTextField(column: ColumnSpec, value: string | undefined | null) {
-  return column.markdown || column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
-}
+const FieldLabel = ({
+  fieldName,
+  hasEditedValue,
+  isProtected,
+  w = '15%',
+}: {
+  fieldName: string;
+  hasEditedValue?: boolean;
+  isProtected?: boolean;
+  w?: string;
+}) => {
+  return (
+    <Group w={w} align="center" justify="flex-start" gap="xs">
+      <Text size="md" fw={500}>
+        {fieldName}
+      </Text>
+      {hasEditedValue && (
+        <Tooltip label="This field contains an upated value">
+          <PencilCircleIcon size={12} />
+        </Tooltip>
+      )}
+      {isProtected && (
+        <Tooltip label="Protected">
+          <LockIcon size={12} />
+        </Tooltip>
+      )}
+    </Group>
+  );
+};
+
+const FieldRow = ({
+  fieldName,
+  hasEditedValue,
+  isProtected,
+  children,
+}: {
+  fieldName: string;
+  hasEditedValue?: boolean;
+  isProtected?: boolean;
+  children: React.ReactNode;
+}) => {
+  return (
+    <Group align="flex-start" wrap="nowrap" gap="xs" w="100%">
+      <FieldLabel w="15%" fieldName={fieldName} hasEditedValue={hasEditedValue} isProtected={isProtected} />
+      {children}
+    </Group>
+  );
+};

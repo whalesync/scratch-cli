@@ -1,6 +1,8 @@
 import { Group, Text, Textarea, TextareaProps } from '@mantine/core';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 
+import styles from './EnhancedTextArea.module.css';
+
 export type TextSelection = {
   start: number;
   end: number;
@@ -67,7 +69,7 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
       onCursorChange?.({ position: start });
     }, [textareaRef, onSelectionChange, onCursorChange]);
 
-    const label = (
+    const label = props.label ? (
       <Group gap="xs" wrap="nowrap">
         <Text span fw="500">
           {props.label}
@@ -83,7 +85,7 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
           </Text>
         )}
       </Group>
-    );
+    ) : null;
 
     return (
       <>
@@ -96,6 +98,7 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
           onMouseUp={handleSelectionChange}
           onKeyUp={handleSelectionChange}
           onClick={handleSelectionChange}
+          classNames={styles}
         />
       </>
     );
