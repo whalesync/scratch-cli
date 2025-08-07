@@ -189,35 +189,35 @@ class ChatService:
             )
             print(f"ℹ️ No data scope provided")
 
-        user_open_router_credentials = None
+        # user_open_router_credentials = None
 
-        try:
-            # load agent credentials for the user, this both verifies the api_token is active AND gets any
-            # openrouter credentials for the user has access to
-            agent_credentials = get_agent_credentials(api_token)
-            user_open_router_credentials = find_first_matching(
-                agent_credentials,
-                lambda c: c.service == "openrouter"
-                and c.apiKey is not None
-                and c.apiKey.strip() != ""
-                and c.enabled,
-            )
-            if user_open_router_credentials:
-                print(
-                    f"🔑 User has personal openrouter credentials: {mask_string(user_open_router_credentials.apiKey, 8, '*', 15)}"
-                )
-        except Exception as e:
-            log_error(
-                "Failed to verify user credentials",
-                session_id=session.id,
-                error=str(e),
-            )
-            print(f"❌ Failed to get agent credentials: {e}")
-            print_exc()
-            raise HTTPException(
-                status_code=500,
-                detail="Error authenticating credentials for agent processing",
-            )
+        # try:
+        #     # load agent credentials for the user, this both verifies the api_token is active AND gets any
+        #     # openrouter credentials for the user has access to
+        #     agent_credentials = get_agent_credentials(api_token)
+        #     user_open_router_credentials = find_first_matching(
+        #         agent_credentials,
+        #         lambda c: c.service == "openrouter"
+        #         and c.apiKey is not None
+        #         and c.apiKey.strip() != ""
+        #         and c.enabled,
+        #     )
+        #     if user_open_router_credentials:
+        #         print(
+        #             f"🔑 User has personal openrouter credentials: {mask_string(user_open_router_credentials.apiKey, 8, '*', 15)}"
+        #         )
+        # except Exception as e:
+        #     log_error(
+        #         "Failed to verify user credentials",
+        #         session_id=session.id,
+        #         error=str(e),
+        #     )
+        #     print(f"❌ Failed to get agent credentials: {e}")
+        #     print_exc()
+        #     raise HTTPException(
+        #         status_code=500,
+        #         detail="Error authenticating credentials for agent processing",
+        #     )
 
         try:
             # Build context from session history
@@ -403,24 +403,25 @@ class ChatService:
                     full_prompt += focus_context
 
                 if progress_callback:
-                    if (
-                        user_open_router_credentials
-                        and user_open_router_credentials.apiKey
-                    ):
-                        await progress_callback(
-                            f"Creating agent using the {model} model with user OpenRouter credentials"
-                        )
-                    else:
-                        await progress_callback(
-                            f"Creating agent using the {model} model"
-                        )
+                    await progress_callback(f"Creating agent using the {model} model")
+                    # if (
+                    #     user_open_router_credentials
+                    #     and user_open_router_credentials.apiKey
+                    # ):
+                    #     await progress_callback(
+                    #         f"Creating agent using the {model} model with user OpenRouter credentials"
+                    #     )
+                    # else:
+                    #     await progress_callback(
+                    #         f"Creating agent using the {model} model"
+                    #     )
 
                 agent = create_agent(
                     model_name=model,
                     capabilities=capabilities,
                     style_guides=style_guides,
                     data_scope=data_scope,
-                    open_router_credentials=user_open_router_credentials,
+                    # open_router_credentials=user_open_router_credentials,
                 )
 
                 result = None
