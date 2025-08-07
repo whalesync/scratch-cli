@@ -443,7 +443,7 @@ class ChatService:
                     ) as agent_run:
                         async for node in agent_run:
                             if progress_callback:
-                                # print(f"Processing node: {node}")
+                                print(f"Processing node: {node}")
 
                                 if Agent.is_user_prompt_node(node):
                                     # A user prompt node => The user has provided input

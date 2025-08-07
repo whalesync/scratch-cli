@@ -498,7 +498,7 @@ class SnapshotApi:
         return [AgentCredential(**credential) for credential in data]
 
     @staticmethod
-    def get_agent_credentials_by_id(id: str, api_token: str) -> AgentCredential | None:
+    def get_agent_credentials_by_id(id: str, api_token: str) -> AgentCredential:
         """Get agent credentials"""
         url = f"{API_CONFIG.get_api_url()}/user/credentials/{id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
@@ -673,3 +673,8 @@ def build_snapshot_record(record_dict: Dict[str, Any]) -> SnapshotRecord:
 def get_agent_credentials(api_token: str) -> List[AgentCredential]:
     """Get agent credentials"""
     return SnapshotApi.get_agent_credentials(api_token)
+
+
+def get_agent_credentials_by_id(id: str, api_token: str) -> AgentCredential:
+    """Get agent credentials by id"""
+    return SnapshotApi.get_agent_credentials_by_id(id, api_token)
