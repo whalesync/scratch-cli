@@ -33,11 +33,12 @@ from scratchpad_api import API_CONFIG, check_server_health
 
 # from tools import set_api_token, set_session_data
 from server.user_prompt_utils import build_snapshot_context
-from scratchpad_api import get_snapshot, list_records, get_record
+from scratchpad_api import get_agent_credentials, get_snapshot, list_records, get_record
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
 )
 from traceback import print_exc
+from utils.helpers import find_first_matching, mask_string
 
 
 class ChatService:
@@ -187,6 +188,35 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
             print(f"ℹ️ No data scope provided")
+
+        user_open_router_credentials = None
+
+        try:
+            # load agent credentials for the user, this both verifies the api_token is active AND gets any
+            # openrouter credentials for the user has access to
+            agent_credentials = get_agent_credentials(api_token)
+            user_open_router_credentials = find_first_matching(
+                agent_credentials,
+                lambda c: c.service == "openrouter"
+                and c.apiKey is not None
+                and c.apiKey.strip() != "",
+            )
+            if user_open_router_credentials:
+                print(
+                    f"🔑 User has personal openrouter credentials: {mask_string(user_open_router_credentials.apiKey, 8, '*', 15)}"
+                )
+        except Exception as e:
+            log_error(
+                "Failed to verify user credentials",
+                session_id=session.id,
+                error=str(e),
+            )
+            print(f"❌ Failed to get agent credentials: {e}")
+            print_exc()
+            raise HTTPException(
+                status_code=500,
+                detail="Error authenticating credentials for agent processing",
+            )
 
         try:
             # Build context from session history
@@ -379,6 +409,7 @@ class ChatService:
                     capabilities=capabilities,
                     style_guides=style_guides,
                     data_scope=data_scope,
+                    open_router_credentials=user_open_router_credentials,
                 )
 
                 result = None

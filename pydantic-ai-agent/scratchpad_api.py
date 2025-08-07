@@ -116,6 +116,17 @@ class SnapshotTableView:
     recordIds: List[str]
 
 
+@dataclass
+class AgentCredential:
+    id: str
+    userId: str
+    service: str
+    apiKey: str
+    description: str
+    createdAt: str
+    updatedAt: str
+
+
 class ScratchpadApiConfig:
     """Configuration for Scratchpad API calls"""
 
@@ -477,6 +488,22 @@ class SnapshotApi:
                 f"Failed to clear active record filter: {response.status_code} - {response.text}"
             )
 
+    @staticmethod
+    def get_agent_credentials(api_token: str) -> List[AgentCredential]:
+        """Get agent credentials"""
+        url = f"{API_CONFIG.get_api_url()}/user/credentials"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
+        data = _handle_response(response, "Failed to get agent credentials")
+        return [AgentCredential(**credential) for credential in data]
+
+    @staticmethod
+    def get_agent_credentials_by_id(id: str, api_token: str) -> AgentCredential | None:
+        """Get agent credentials"""
+        url = f"{API_CONFIG.get_api_url()}/user/credentials/{id}"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
+        data = _handle_response(response, "Failed to get agent credentials")
+        return AgentCredential(**data) if data else None
+
 
 # Convenience functions for easy access
 def list_snapshots(
@@ -640,3 +667,8 @@ def build_snapshot_record(record_dict: Dict[str, Any]) -> SnapshotRecord:
         ),  # Note: server uses __suggested_values
         dirty=record_dict.get("__dirty", False),
     )
+
+
+def get_agent_credentials(api_token: str) -> List[AgentCredential]:
+    """Get agent credentials"""
+    return SnapshotApi.get_agent_credentials(api_token)
