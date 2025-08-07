@@ -141,6 +141,7 @@ export const RecordDetails = ({
       focusedView?: boolean,
       hasEditedValue?: boolean,
       hasSuggestion?: boolean,
+      align?: React.CSSProperties['alignItems'],
     ) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
@@ -153,7 +154,7 @@ export const RecordDetails = ({
       if (column.pgType === PostgresColumnType.NUMERIC) {
         // this needs to be handled differently
         return (
-          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
             <NumberInput
               key={field}
               value={currentRecord.fields[field] as number}
@@ -172,7 +173,7 @@ export const RecordDetails = ({
       }
       if (column.pgType === PostgresColumnType.BOOLEAN) {
         return (
-          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
             <Checkbox
               key={field}
               checked={value === 'true'}
@@ -212,7 +213,7 @@ export const RecordDetails = ({
       }
 
       return (
-        <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected}>
+        <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
           <EnhancedTextArea
             flex={1}
             inputWrapperOrder={['input', 'label', 'description', 'error']}
@@ -238,7 +239,7 @@ export const RecordDetails = ({
       );
     },
 
-    [currentRecord.fields, handleTextAreaCursorChange, handleTextSelectionChange, updateField],
+    [currentRecord.fields, handleTextAreaCursorChange, handleTextSelectionChange, updateField, currentView],
   );
 
   let content = null;
@@ -364,7 +365,7 @@ export const RecordDetails = ({
         return (
           <Stack key={field} gap="xs" h={focusedView ? '100%' : undefined}>
             <Group gap="xs" align="flex-end" grow>
-              {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
+              {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion, 'flex-end')}
               <Textarea
                 label="Suggested change"
                 value={currentRecord.__suggested_values?.[field] as string}
@@ -373,8 +374,6 @@ export const RecordDetails = ({
                 minRows={1}
                 styles={{
                   input: {
-                    fontSize: '1rem',
-                    padding: '2rem',
                     color: '#b8860b',
                     backgroundColor: '#fefefe',
                     borderColor: '#e0e0e0',
@@ -517,15 +516,17 @@ const FieldRow = ({
   fieldName,
   hasEditedValue,
   isProtected,
+  align = 'flex-start',
   children,
 }: {
   fieldName: string;
   hasEditedValue?: boolean;
   isProtected?: boolean;
+  align?: React.CSSProperties['alignItems'];
   children: React.ReactNode;
 }) => {
   return (
-    <Group align="flex-start" wrap="nowrap" gap="xs" w="100%">
+    <Group align={align} wrap="nowrap" gap="xs" w="100%">
       <FieldLabel w="15%" fieldName={fieldName} hasEditedValue={hasEditedValue} isProtected={isProtected} />
       {children}
     </Group>

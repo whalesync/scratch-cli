@@ -90,16 +90,6 @@ def append_field_value_tool_implementation(
         else:
             current_value: str = str(record.fields[column.id.wsId])
 
-        log_info(
-            "Appending value to field in record",
-            table_name=table.name,
-            table_id=table.id.wsId,
-            wsId=wsId,
-            field_name=column.name,
-            value=value,
-            snapshot_id=chatRunContext.session.snapshot_id,
-        )
-
         updated_value = current_value + " " + value
 
         update_operations = [

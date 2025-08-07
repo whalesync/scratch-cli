@@ -96,7 +96,7 @@ export type CreateSnapshotTableViewDto = {
 
 
 export function isTextColumn(column: ColumnSpec) {
-  return column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT || column.pgType === PostgresColumnType.TEXT_ARRAY;
+  return column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
 }
 
 export function isLargeTextColumn(column: ColumnSpec, value: string | undefined | null) {
