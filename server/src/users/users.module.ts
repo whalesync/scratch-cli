@@ -2,13 +2,15 @@ import { Module } from '@nestjs/common';
 
 import { DbModule } from '../db/db.module';
 
+import { AgentCredentialsController } from './agent-credentials.controller';
+import { AgentCredentialsService } from './agent-credentials.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService],
+  providers: [UsersService, AgentCredentialsService],
   imports: [DbModule],
-  exports: [UsersService], //export this service to use in other modules
-  controllers: [UsersController],
+  exports: [UsersService, AgentCredentialsService], //export this service to use in other modules
+  controllers: [UsersController, AgentCredentialsController],
 })
 export class UserModule {}

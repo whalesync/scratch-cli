@@ -24,6 +24,15 @@ erDiagram
   DateTime expiresAt
   TokenType type
 }
+"AiAgentCredential" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String userId FK
+  String service
+  String apiKey
+  String description "nullable"
+}
 "ConnectorAccount" {
   String id PK
   DateTime createdAt
@@ -103,6 +112,7 @@ erDiagram
   DateTime updatedAt
 }
 "APIToken" }o--|| "User" : user
+"AiAgentCredential" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 "CustomConnector" }o--|| "User" : user
@@ -132,6 +142,18 @@ Properties as follows:
 - `createdAt`:
 - `expiresAt`:
 - `type`:
+
+### `AiAgentCredential`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `userId`:
+- `service`:
+- `apiKey`:
+- `description`:
 
 ### `ConnectorAccount`
 

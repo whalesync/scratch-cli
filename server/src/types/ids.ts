@@ -20,6 +20,7 @@ export enum IdPrefixes {
   STYLE_GUIDE = 'sgd_',
   CSV_FILE = 'csv_',
   VIEW = 'vew_',
+  AI_AGENT_CREDENTIAL = 'aac_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -156,4 +157,15 @@ export function isViewId(id: unknown): id is ViewId {
 
 export function createViewId(): ViewId {
   return createId(IdPrefixes.VIEW) as ViewId;
+}
+
+// ------- AiAgentCredential -------
+export type AiAgentCredentialId = PrefixedId<IdPrefixes.AI_AGENT_CREDENTIAL>;
+
+export function isAiAgentCredentialId(id: unknown): id is AiAgentCredentialId {
+  return isId(id, IdPrefixes.AI_AGENT_CREDENTIAL);
+}
+
+export function createAiAgentCredentialId(): AiAgentCredentialId {
+  return createId(IdPrefixes.AI_AGENT_CREDENTIAL) as AiAgentCredentialId;
 }
