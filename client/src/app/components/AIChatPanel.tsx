@@ -70,7 +70,10 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
   // Get user data including API token
   const { user } = useScratchPadUser();
   const { styleGuides } = useStyleGuides();
-  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
+  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useLocalStorage<string[]>({
+    key: `selectedStyleGuideIds-${snapshot?.id}`,
+    defaultValue: [],
+  });
   const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
