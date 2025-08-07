@@ -38,7 +38,6 @@ cache:
     - .pip-cache/
     - client/node_modules/
     - server/node_modules/
-
 # =============================================================================
 # CLIENT SUBPROJECT
 # =============================================================================
@@ -85,61 +84,61 @@ cache:
 # SERVER SUBPROJECT
 # =============================================================================
 
-server:install:
-  stage: setup
-  <<: *node_before_script
-  script:
-    - cd server
-    - yarn install --frozen-lockfile
-    - yarn prisma generate
-  artifacts:
-    paths:
-      - server/node_modules/
-      - server/prisma/
-    expire_in: 1 hour
-  only:
-    changes:
-      - server/package.json
-      - server/yarn.lock
-      - server/prisma/schema.prisma
-    refs:
-      - merge_requests
-      - master
+# server:install:
+#   stage: setup
+#   <<: *node_before_script
+#   script:
+#     - cd server
+#     - yarn install --frozen-lockfile
+#     - yarn prisma generate
+#   artifacts:
+#     paths:
+#       - server/node_modules/
+#       - server/prisma/
+#     expire_in: 1 hour
+#   only:
+#     changes:
+#       - server/package.json
+#       - server/yarn.lock
+#       - server/prisma/schema.prisma
+#     refs:
+#       - merge_requests
+#       - master
 
-server:test:
-  stage: test
-  <<: *node_before_script
-  script:
-    - cd server
-    - yarn test
-  dependencies:
-    - server:install
-  only:
-    changes:
-      - server/**/*
-    refs:
-      - merge_requests
-      - master
+# server:test:
+#   stage: test
+#   <<: *node_before_script
+#   script:
+#     - cd server
+#     - yarn test
+#   dependencies:
+#     - server:install
+#   only:
+#     changes:
+#       - server/**/*
+#     refs:
+#       - merge_requests
+#       - master
 
-server:build:
-  stage: build
-  <<: *node_before_script
-  script:
-    - cd server
-    - yarn lint
-    - yarn build
-  artifacts:
-    paths:
-      - server/dist/
-    expire_in: 1 week
-  dependencies:
-    - server:install
-  only:
-    changes:
-      - server/**/*
-    refs:
-      - merge_requests
-      - master
+# server:build:
+#   stage: build
+#   <<: *node_before_script
+#   script:
+#     - cd server
+#     - yarn lint
+#     - yarn build
+#   artifacts:
+#     paths:
+#       - server/dist/
+#     expire_in: 1 week
+#   dependencies:
+#     - server:install
+#   only:
+#     changes:
+#       - server/**/*
+#     refs:
+#       - merge_requests
+#       - master
 # # =============================================================================
 # # MCP SUBPROJECT
 # # =============================================================================

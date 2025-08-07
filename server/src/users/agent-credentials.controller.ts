@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
 import { AgentCredentialsService } from './agent-credentials.service';
@@ -46,11 +58,18 @@ export class AgentCredentialsController {
     @Body() updateAgentCredentialDto: UpdateAgentCredentialDto,
     @Req() req: RequestWithUser,
   ): Promise<AiAgentCredential> {
-    return new AiAgentCredential(await this.service.update(id, req.user.id, updateAgentCredentialDto));
+    const updatedCredential = await this.service.update(id, req.user.id, updateAgentCredentialDto);
+
+    if (!updatedCredential) {
+      throw new NotFoundException();
+    }
+
+    return new AiAgentCredential(updatedCredential);
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Delete(':id')
+  @HttpCode(204)
   async delete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
     await this.service.delete(id, req.user.id);
   }
