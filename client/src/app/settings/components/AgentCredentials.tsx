@@ -1,11 +1,14 @@
+import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import {
   ActionIcon,
   Alert,
+  Badge,
   Button,
   Card,
   Center,
+  Checkbox,
   Grid,
   Group,
   Loader,
@@ -29,10 +32,12 @@ export const AgentCredentials = () => {
     service: 'openrouter',
     apiKey: '',
     description: '',
+    enabled: true,
   });
   const [updateData, setUpdateData] = useSetState<UpdateAiAgentCredentialDto>({
     apiKey: '',
     description: '',
+    enabled: true,
   });
   const [updateId, setUpdateId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -84,6 +89,11 @@ export const AgentCredentials = () => {
             placeholder="Optional description"
             value={updateData.description}
             onChange={(event) => setUpdateData({ description: event.target.value })}
+          />
+          <Checkbox
+            label="Enabled"
+            checked={updateData.enabled}
+            onChange={(event) => setUpdateData({ enabled: event.target.checked })}
           />
           <Group justify="flex-end">
             <Button variant="outline" onClick={() => modalStack.close('update')}>
@@ -144,7 +154,23 @@ export const AgentCredentials = () => {
       {agentCredentials?.map((credential) => (
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
-            <Text fw={500}>{getServiceIcon(credential.service)}</Text>
+            <Group gap="xs">
+              <Text fw={500}>{getServiceIcon(credential.service)}</Text>
+              {credential.enabled ? (
+                <Badge color="green" variant="light" size="xs">
+                  Enabled
+                </Badge>
+              ) : (
+                <BadgeWithTooltip
+                  color="gray"
+                  variant="light"
+                  size="xs"
+                  tooltip="These credentials are not active and will not be used by the agent."
+                >
+                  Disabled
+                </BadgeWithTooltip>
+              )}
+            </Group>
           </Grid.Col>
           <Grid.Col span={7}>
             <Stack gap="xs">
@@ -163,6 +189,11 @@ export const AgentCredentials = () => {
                 variant="subtle"
                 onClick={() => {
                   setUpdateId(credential.id);
+                  setUpdateData({
+                    apiKey: credential.apiKey,
+                    description: credential.description ?? '',
+                    enabled: credential.enabled,
+                  });
                   modalStack.open('update');
                 }}
               >

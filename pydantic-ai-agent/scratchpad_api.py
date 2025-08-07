@@ -125,6 +125,7 @@ class AgentCredential:
     description: str
     createdAt: str
     updatedAt: str
+    enabled: bool
 
 
 class ScratchpadApiConfig:

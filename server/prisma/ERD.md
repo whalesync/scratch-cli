@@ -32,6 +32,7 @@ erDiagram
   String service
   String apiKey
   String description "nullable"
+  Boolean enabled
 }
 "ConnectorAccount" {
   String id PK
@@ -154,6 +155,7 @@ Properties as follows:
 - `service`:
 - `apiKey`:
 - `description`:
+- `enabled`:
 
 ### `ConnectorAccount`
 

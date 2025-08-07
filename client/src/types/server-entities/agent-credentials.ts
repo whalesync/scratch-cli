@@ -6,15 +6,18 @@ export interface AiAgentCredential {
     service: AgentService;
     apiKey: string;
     description?: string;
+    enabled: boolean;
   }
   
   export interface CreateAiAgentCredentialDto {
     service: string;
     apiKey: string;
     description?: string;
+    enabled: boolean;
   }
   
   export interface UpdateAiAgentCredentialDto {
     apiKey?: string;
     description?: string;
+    enabled?: boolean;
   }

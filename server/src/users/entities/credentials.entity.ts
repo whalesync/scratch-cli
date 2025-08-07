@@ -9,6 +9,7 @@ export class AiAgentCredential {
   service: AgentService;
   apiKey: string;
   description: string | null;
+  enabled: boolean;
 
   constructor(credential: PrismaAiAgentCredential) {
     this.id = credential.id;
@@ -18,5 +19,6 @@ export class AiAgentCredential {
     this.service = credential.service as AgentService;
     this.apiKey = credential.apiKey;
     this.description = credential.description ?? null;
+    this.enabled = credential.enabled ?? false;
   }
 }

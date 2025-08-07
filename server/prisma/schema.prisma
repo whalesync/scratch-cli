@@ -67,6 +67,7 @@ model AiAgentCredential {
   service   String
   apiKey    String
   description String?
+  enabled     Boolean  @default(true)
 
   @@index([userId])
 }

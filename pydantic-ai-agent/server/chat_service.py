@@ -199,7 +199,8 @@ class ChatService:
                 agent_credentials,
                 lambda c: c.service == "openrouter"
                 and c.apiKey is not None
-                and c.apiKey.strip() != "",
+                and c.apiKey.strip() != ""
+                and c.enabled,
             )
             if user_open_router_credentials:
                 print(
@@ -402,7 +403,17 @@ class ChatService:
                     full_prompt += focus_context
 
                 if progress_callback:
-                    await progress_callback(f"Creating agent with {model} model")
+                    if (
+                        user_open_router_credentials
+                        and user_open_router_credentials.apiKey
+                    ):
+                        await progress_callback(
+                            f"Creating agent using the {model} model with user OpenRouter credentials"
+                        )
+                    else:
+                        await progress_callback(
+                            f"Creating agent using the {model} model"
+                        )
 
                 agent = create_agent(
                     model_name=model,
