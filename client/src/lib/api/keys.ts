@@ -1,4 +1,8 @@
 export const SWR_KEYS = {
+  agentCredentials: {
+    list: () => ["agent-credentials"],
+    detail: (id: string) => ["agent-credentials", "detail", id],
+  },
   connectorAccounts: {
     list: () => ["connector-accounts"],
     detail: (id: string) => ["connector-accounts", "detail", id],
