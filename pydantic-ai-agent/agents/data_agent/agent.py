@@ -26,7 +26,7 @@ def create_agent(
     capabilities: Optional[List[str]] = None,
     style_guides: Dict[str, str] = {},
     data_scope: Optional[str] = None,
-    # open_router_credentials: Optional[AgentCredential] = None,
+    open_router_credentials: Optional[AgentCredential] = None,
 ):
     """Create and return a configured agent"""
     print(f"🔍 create_agent called with:")
@@ -44,11 +44,11 @@ def create_agent(
         # OpenRouter API key from environment
         api_key = os.getenv("OPENROUTER_API_KEY")
 
-        # if open_router_credentials and open_router_credentials.apiKey:
-        #     print(
-        #         f"🔑 Using personal openrouter credentials: {mask_string(open_router_credentials.apiKey, 8, '*', 15)}"
-        #     )
-        #     api_key = open_router_credentials.apiKey
+        if open_router_credentials and open_router_credentials.apiKey:
+            print(
+                f"🔑 Using personal openrouter credentials: {mask_string(open_router_credentials.apiKey, 8, '*', 15)}"
+            )
+            api_key = open_router_credentials.apiKey
 
         if not api_key:
             raise ValueError(
