@@ -6,14 +6,18 @@ import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-cha
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
-import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
+import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import {
   ActionIcon,
   Alert,
   Badge,
   Box,
+  Center,
+  CloseButton,
+  Divider,
   Group,
+  Loader,
   Modal,
   Paper,
   ScrollArea,
@@ -22,23 +26,29 @@ import {
   Text,
   Textarea,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import {
   BinocularsIcon,
+  CellTowerIcon,
   ChatCircleIcon,
-  MagnifyingGlassIcon,
+  EyeIcon,
+  HeadCircuitIcon,
   PaperPlaneRightIcon,
   PlusIcon,
   TableIcon,
   TagSimpleIcon,
+  TrashIcon,
   VinylRecordIcon,
-  XIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
+import { useSnapshotContext } from '../snapshots/[id]/SnapshotContext';
 import { BadgeWithTooltip } from './BadgeWithTooltip';
+import { TextTitleSm } from './base/text';
 import CapabilitiesPicker from './CapabilitiesPicker';
+import { StyledIcon } from './Icons/StyledIcon';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import ModelPicker from './ModelPicker';
 import { ResourceSelector } from './ResourceSelector';
@@ -46,12 +56,12 @@ import { ResourceSelector } from './ResourceSelector';
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  snapshot?: Snapshot;
   activeTable: TableSpec | null;
-  currentViewId?: string | null;
 }
 
-export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, activeTable }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPanelProps) {
+  const { snapshot, currentView } = useSnapshotContext();
+
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -233,12 +243,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
           name: sg.name,
           content: sg.body,
         }));
-        console.debug('Including style guides:', selectedStyleGuides.map((sg) => sg.name).join(', '));
       }
 
       // Include view ID if available
-      if (currentViewId) {
-        messageData.view_id = currentViewId;
+      if (currentView) {
+        messageData.view_id = currentView.id;
       }
 
       // Include capabilities if selected
@@ -296,26 +305,22 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
 
   const connectionBadge =
     connectionStatus === 'connected' ? (
-      <Badge size="xs" color="green">
+      <Badge size="xs" variant="light" color="green" leftSection={<CellTowerIcon size={12} />}>
         Connected
       </Badge>
     ) : connectionStatus === 'connecting' ? (
-      <Badge size="xs" color="yellow">
+      <Badge size="xs" variant="light" color="yellow" leftSection={<Loader size="xs" />}>
         Connecting...
       </Badge>
-    ) : (
-      <Badge size="xs" color="grey">
-        Offline
-      </Badge>
-    );
+    ) : null;
 
   return (
     <Paper
-      shadow="md"
       p="md"
       style={{
+        height: '100%',
         width: '30%',
-        height: '95%',
+        minWidth: '300px',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',
@@ -323,14 +328,11 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
     >
       {/* Header */}
       <Group justify="space-between" mb="md">
-        <Group gap="xs">
-          <Text fw={500} size="sm">
-            AI Chat
-          </Text>
+        <Group justify="space-between" style={{ flex: 1 }}>
+          <TextTitleSm>Scratchpad Chat</TextTitleSm>
+          {connectionBadge}
         </Group>
-        <ActionIcon onClick={onClose} size="sm" variant="subtle">
-          <XIcon size={16} />
-        </ActionIcon>
+        <CloseButton onClick={onClose} size="sm" />
       </Group>
 
       {/* Error Alert */}
@@ -395,134 +397,55 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
         <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
           <PlusIcon size={14} />
         </ActionIcon>
-        {activeSessionId && (
-          <ActionIcon
-            onClick={async () => {
-              await disconnect();
-              await clearActiveSession();
-              await deleteSession(activeSessionId);
-            }}
-            size="sm"
-            variant="subtle"
-            color="red"
-            title="Delete session"
-          >
-            <XIcon size={14} />
-          </ActionIcon>
-        )}
-      </Group>
-
-      {/* Debug info */}
-      <Group align="center" gap="4px" mb="xs">
-        <Text size="xs" c="dimmed">
-          Sessions: {sessions.length} | Current: {activeSessionId || 'none'}
-        </Text>
-        <Text size="xs" c="dimmed">
-          Model: {selectedModel}
-        </Text>
-        {connectionBadge}
-
-        {currentViewId && (
-          <Text span size="xs" c="green" ml="xs">
-            | View: {currentViewId.slice(0, 8)}...
-          </Text>
-        )}
-
-        {selectedStyleGuideIds.length > 0 && (
-          <Text span size="xs" c="blue" ml="xs">
-            | Style Guides ({selectedStyleGuideIds.length}):{' '}
-            {selectedStyleGuideIds
-              .map((id) => styleGuides.find((sg) => sg.id === id)?.name)
-              .filter(Boolean)
-              .join(', ')}
-          </Text>
-        )}
-        {selectedCapabilities.length > 0 && (
-          <Text span size="xs" c="purple" ml="xs">
-            | Capabilities ({selectedCapabilities.length}): {selectedCapabilities.join(', ')}
-          </Text>
-        )}
+        <ActionIcon
+          onClick={async () => {
+            if (!activeSessionId) return;
+            await disconnect();
+            await clearActiveSession();
+            await deleteSession(activeSessionId);
+          }}
+          size="sm"
+          variant="subtle"
+          color="red"
+          title="Delete session"
+          disabled={!activeSessionId}
+        >
+          <TrashIcon size={14} />
+        </ActionIcon>
       </Group>
 
       {/* Messages */}
-      <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
-        {activeSessionId ? (
+
+      {activeSessionId ? (
+        <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
           <Stack gap="xs">
             {chatHistory.map((msg, index) => (
               <ChatMessageElement key={index} msg={msg} />
             ))}
           </Stack>
-        ) : (
-          <Stack align="center" justify="center" h="100%">
-            <ChatCircleIcon size={32} color="#00A2E9" />
-            <Text size="sm" fw={500} ta="center">
-              Select a session or create a new one to start chatting
-            </Text>
-          </Stack>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      ) : (
+        <Center h="100%">
+          <ChatCircleIcon size={32} color="#00A2E9" />
+          <Text size="sm" fw={500} ta="center" mt="xs">
+            Select a session or create a new one to start chatting
+          </Text>
+        </Center>
+      )}
 
-      <Group gap="xs">
-        <Text size="xs" c="dimmed">
-          Context:
-        </Text>
-        {activeTable && (
-          <BadgeWithTooltip
-            size="xs"
-            color="purple"
-            variant="outline"
-            radius="sm"
-            tooltip="The current table being viewed"
-            leftSection={<TableIcon size={12} />}
-          >
-            {activeTable.name}
-          </BadgeWithTooltip>
-        )}
-        {dataScope && (
-          <BadgeWithTooltip
-            size="xs"
-            color="green"
-            variant="outline"
-            radius="sm"
-            leftSection={<BinocularsIcon size={12} />}
-            tooltip="The current scope of the AI context"
-          >
-            {dataScope}
-          </BadgeWithTooltip>
-        )}
-        {dataScope === 'record' || dataScope === 'column' ? (
-          <BadgeWithTooltip
-            size="xs"
-            color="blue"
-            variant="outline"
-            radius="sm"
-            leftSection={<VinylRecordIcon size={12} />}
-            tooltip="The record being focused on in the AI context"
-          >
-            {activeRecordId}
-          </BadgeWithTooltip>
-        ) : null}
-        {dataScope === 'column' && (
-          <BadgeWithTooltip
-            size="xs"
-            color="blue"
-            variant="outline"
-            radius="sm"
-            leftSection={<TagSimpleIcon size={12} />}
-            tooltip="The column being focused on in the AI context"
-          >
-            {activeColumnId}
-          </BadgeWithTooltip>
-        )}
-      </Group>
-
+      <Divider />
       {/* Bottom Input Area */}
       <Stack gap="xs">
         {/* Style Guide Selection */}
-        <ResourceSelector
-          selectedStyleGuideIds={selectedStyleGuideIds}
-          setSelectedStyleGuideIds={setSelectedStyleGuideIds}
-        />
+        <Group gap="xs">
+          <Text size="xs" c="dimmed">
+            Resources:
+          </Text>
+          <ResourceSelector
+            selectedStyleGuideIds={selectedStyleGuideIds}
+            setSelectedStyleGuideIds={setSelectedStyleGuideIds}
+          />
+        </Group>
 
         {/* Capabilities Selection */}
         {availableCapabilities.length > 0 && (
@@ -532,6 +455,69 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
             onCapabilitiesChange={setSelectedCapabilities}
           />
         )}
+
+        <Group gap="xs">
+          {activeTable && (
+            <BadgeWithTooltip
+              size="sm"
+              color="purple"
+              variant="outline"
+              radius="sm"
+              tooltip="The current table being viewed"
+              leftSection={<TableIcon size={14} />}
+            >
+              {activeTable.name}
+            </BadgeWithTooltip>
+          )}
+          {dataScope && (
+            <BadgeWithTooltip
+              size="sm"
+              color="green"
+              variant="outline"
+              radius="sm"
+              leftSection={<BinocularsIcon size={14} />}
+              tooltip="The agent can work all active records in the table"
+            >
+              {dataScope}
+            </BadgeWithTooltip>
+          )}
+          {dataScope === 'record' || dataScope === 'column' ? (
+            <BadgeWithTooltip
+              size="sm"
+              color="blue"
+              variant="outline"
+              radius="sm"
+              leftSection={<VinylRecordIcon size={14} />}
+              tooltip="The agent is just working on this record"
+            >
+              {activeRecordId}
+            </BadgeWithTooltip>
+          ) : null}
+          {dataScope === 'column' && (
+            <BadgeWithTooltip
+              size="sm"
+              color="blue"
+              variant="outline"
+              radius="sm"
+              leftSection={<TagSimpleIcon size={14} />}
+              tooltip="The column being focused on by the agent"
+            >
+              {activeColumnId}
+            </BadgeWithTooltip>
+          )}
+          {currentView && (
+            <BadgeWithTooltip
+              size="sm"
+              color="green"
+              variant="outline"
+              radius="sm"
+              leftSection={<EyeIcon size={14} />}
+              tooltip="The active column view used by the agent"
+            >
+              {currentView.name || currentView.id}
+            </BadgeWithTooltip>
+          )}
+        </Group>
 
         {/* Input Area */}
         <Textarea
@@ -550,27 +536,21 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
 
         {/* Model and Submit Row */}
         <Group gap="xs" align="center">
-          <Group gap="xs" style={{ flex: 1 }}>
-            <ActionIcon
-              onClick={() => setShowModelSelector(true)}
-              size="sm"
-              variant="subtle"
-              title="Browse models"
-              style={{
-                color: '#ccc',
-                backgroundColor: 'transparent',
-              }}
-            >
-              <MagnifyingGlassIcon size={14} />
-            </ActionIcon>
+          <Group gap="6px" style={{ flex: 1 }}>
+            <Tooltip label="Browse LLM models">
+              <ActionIcon variant="subtle" onClick={() => setShowModelSelector(true)} size="sm">
+                <StyledIcon Icon={HeadCircuitIcon} size={14} c="gray.9" />
+              </ActionIcon>
+            </Tooltip>
             <TextInput
-              placeholder="Model"
+              placeholder="Enter model name"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               size="xs"
               style={{ flex: 1 }}
               styles={{
                 input: {
+                  padding: '0px',
                   border: 'none',
                   '&:focus': {
                     border: '1px solid #228be6',
@@ -579,26 +559,6 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
               }}
             />
           </Group>
-          <ActionIcon
-            onClick={() => {
-              setMessage('update');
-              // Trigger send after setting the message
-              setTimeout(() => {
-                if (activeSessionId && !agentTaskRunning) {
-                  sendMessage();
-                }
-              }, 0);
-            }}
-            disabled={!chatInputEnabled}
-            size="sm"
-            variant="light"
-            color="blue"
-            title="Send 'update' message"
-          >
-            <Text size="xs" fw={500}>
-              update
-            </Text>
-          </ActionIcon>
           <ActionIcon
             onClick={sendMessage}
             disabled={!message.trim() || !chatInputEnabled}

@@ -15,7 +15,7 @@ import {
   TextProps,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { ArrowUpRight, ArrowsClockwise, Info as InfoIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { ArrowsClockwiseIcon, ArrowUpRightIcon, InfoIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { PrimaryButton } from '../base/buttons';
@@ -64,7 +64,7 @@ const LoaderWidget = (): JSX.Element => {
 
 const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <Text fw={500} c="gray.11" mb="2px" {...props}>
+    <Text fw={500} c="gray.9" mb="2px" {...props}>
       {children}
     </Text>
   );
@@ -72,7 +72,7 @@ const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Elemen
 
 const Description = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <Text fw={400} c="gray.10" {...props}>
+    <Text fw={400} c="gray.7" {...props}>
       {children}
     </Text>
   );
@@ -96,7 +96,14 @@ const StatusPageDescription = (): JSX.Element => {
 const ReadDocsButton = ({ link }: { link?: string }): JSX.Element => {
   const docsLink = link || 'https://docs.whalesync.com/start-here/quick-start';
   return (
-    <Button href={docsLink} leftSection={<ArrowUpRight />} variant="outline" component="a" size="sm" target="_blank">
+    <Button
+      href={docsLink}
+      leftSection={<ArrowUpRightIcon />}
+      variant="outline"
+      component="a"
+      size="sm"
+      target="_blank"
+    >
       Read docs
     </Button>
   );
@@ -157,7 +164,7 @@ export const ErrorInfo = ({
       {!!error && <Info.DetailsDisclosure>{`${error}`}</Info.DetailsDisclosure>}
       <Info.Actions>
         {retry && (
-          <PrimaryButton leftSection={<ArrowsClockwise />} onClick={retry}>
+          <PrimaryButton leftSection={<ArrowsClockwiseIcon />} onClick={retry}>
             Reload
           </PrimaryButton>
         )}

@@ -16,6 +16,7 @@ export interface CustomPillMultiSelectProps {
   placeholder?: string;
   onPillClick?: (value: string) => void;
   hidePickedOptions?: boolean;
+  flex?: number;
 }
 
 export function CustomPillMultiSelect({
@@ -26,6 +27,7 @@ export function CustomPillMultiSelect({
   placeholder,
   onPillClick,
   hidePickedOptions,
+  flex,
 }: CustomPillMultiSelectProps) {
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
@@ -78,6 +80,9 @@ export function CustomPillMultiSelect({
           pointer
           onClick={() => combobox.toggleDropdown()}
           styles={{
+            root: {
+              flex: flex,
+            },
             input: {
               border: 'none',
               backgroundColor: 'transparent',
@@ -108,7 +113,7 @@ export function CustomPillMultiSelect({
         </PillsInput>
       </Combobox.DropdownTarget>
 
-      <Combobox.Dropdown bd="none">
+      <Combobox.Dropdown>
         <Combobox.Options>{options}</Combobox.Options>
       </Combobox.Dropdown>
     </Combobox>

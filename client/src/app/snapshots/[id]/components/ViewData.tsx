@@ -1,5 +1,8 @@
 'use client';
 
+import { SecondaryButton } from '@/app/components/base/buttons';
+import { TextBookSm, TextTitleXs } from '@/app/components/base/text';
+import { DotSpacer } from '@/app/components/DotSpacer';
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
@@ -16,9 +19,11 @@ import {
   Text,
   TextInput,
   Textarea,
+  Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { BugIcon, FloppyDiskIcon, Trash } from '@phosphor-icons/react';
+import { BugIcon, PencilSimpleLineIcon, TrashIcon } from '@phosphor-icons/react';
+import pluralize from 'pluralize';
 import { useEffect, useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 import { useFocusedCellsContext } from '../FocusedCellsContext';
@@ -201,18 +206,16 @@ export const ViewData = ({
   };
 
   return (
-    <Box p="xs" bg="blue.0">
+    <Box p="6px" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
       <Group gap="md" align="center">
         {/* Column Views Section */}
         <Group gap="xs" align="center">
-          <Text size="sm" fw={500}>
-            Column Views:
-          </Text>
+          <TextTitleXs>Column Views</TextTitleXs>
           <Select
             value={currentViewId || ''}
             onChange={(value) => onViewChange?.(value || null)}
             data={[
-              { value: '', label: 'No view selected' },
+              { value: '', label: 'No active view' },
               ...(views?.map((view) => ({
                 value: view.id,
                 label: formatViewName(view),
@@ -225,7 +228,7 @@ export const ViewData = ({
           {currentView && (
             <>
               <ActionIcon size="sm" variant="subtle" onClick={handleRenameView} title="Rename view">
-                <FloppyDiskIcon size={14} />
+                <PencilSimpleLineIcon size={14} />
               </ActionIcon>
               <ActionIcon size="sm" variant="subtle" onClick={() => setDebugView(currentView)} title="Debug view data">
                 <BugIcon size={14} />
@@ -237,14 +240,11 @@ export const ViewData = ({
                 onClick={() => setDeleteModalOpen(true)}
                 title="Delete view"
               >
-                <Trash size={14} />
+                <TrashIcon size={14} />
               </ActionIcon>
-              <Checkbox
-                checked={filterToView}
-                onChange={(e) => onFilterToViewChange?.(e.target.checked)}
-                size="xs"
-                title="See as AI"
-              />
+              <Tooltip label="View as AI Agent">
+                <Checkbox checked={filterToView} onChange={(e) => onFilterToViewChange?.(e.target.checked)} size="xs" />
+              </Tooltip>
             </>
           )}
         </Group>
@@ -296,20 +296,24 @@ export const ViewData = ({
 
         {/* Filtered Records Widget */}
         <Group gap="xs" align="center">
-          <Text size="sm" fw={500} c="red">
-            {count !== undefined && filteredCount !== undefined ? `${count - filteredCount} filtered` : 'Filtered'}
-          </Text>
-          <Button size="xs" variant="light" color="blue" onClick={() => setSqlFilterModalOpen(true)}>
+          <SecondaryButton size="xs" onClick={() => setSqlFilterModalOpen(true)}>
             Set SQL Filter
-          </Button>
-          <Button
-            size="xs"
-            variant="light"
-            color="red"
-            onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}
-          >
-            Clear Filter
-          </Button>
+          </SecondaryButton>
+          {currentTableFilter && (
+            <SecondaryButton size="xs" onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}>
+              Clear Filter
+            </SecondaryButton>
+          )}
+          {count !== undefined && filteredCount !== undefined ? (
+            <>
+              <DotSpacer mx={0} />
+              <TextBookSm>
+                {count !== undefined && filteredCount !== undefined
+                  ? `${count - filteredCount} ${pluralize('record', count - filteredCount)} filtered`
+                  : 'Filtered'}
+              </TextBookSm>
+            </>
+          ) : null}
         </Group>
       </Group>
 

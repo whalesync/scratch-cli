@@ -6,7 +6,6 @@ import {
   ActionIcon,
   Box,
   Center,
-  Divider,
   Group,
   Loader,
   Menu,
@@ -18,15 +17,19 @@ import {
   useModalsStack,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { BugIcon, TableIcon } from '@phosphor-icons/react';
-import { useParams } from 'next/navigation';
+import { ArrowLeftIcon, BugIcon } from '@phosphor-icons/react';
+import { useParams, useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
+import { PrimaryButton } from '@/app/components/base/buttons';
+import { ErrorInfo } from '@/app/components/InfoPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
-import { SnapshotEventProvider, useSnapshotEventContext } from '@/contexts/snapshot-event-context';
+import { SnapshotEventProvider } from '@/contexts/snapshot-event-context';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
+import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
+import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useState } from 'react';
 import { AIPromptProvider } from './AIPromptContext';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
@@ -38,17 +41,17 @@ import { ICONS } from './icons';
 function SnapshotPageContent() {
   const params = useParams();
   const id = params.id as string;
+  const router = useRouter();
 
   const { snapshot, isLoading, currentViewId, setCurrentViewId } = useSnapshotContext();
-  const { messageLog } = useSnapshotEventContext();
+  const [showChat, { toggle: toggleChat }] = useDisclosure(true);
+
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
   const [filterToView, setFilterToView] = useState(false);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
-
-  const [showChat, setShowChat] = useState(true);
 
   // Get count information for the current table
   const { count, filteredCount } = useSnapshotTableRecords({
@@ -64,10 +67,6 @@ function SnapshotPageContent() {
       setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
     }
   }, [snapshot, selectedTableId]);
-
-  const toggleChat = () => {
-    setShowChat(!showChat);
-  };
 
   const TableTab = ({ table }: { table: TableSpec }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -242,29 +241,59 @@ function SnapshotPageContent() {
 
     if (!snapshot) {
       return (
-        <Center flex={1}>
-          <Text>Snapshot not found.</Text>
-        </Center>
+        <ErrorInfo
+          title="Snapshot not found."
+          error="We were unable to find the snapshot you are looking for."
+          action={
+            <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+              Return to snapshots
+            </PrimaryButton>
+          }
+        />
       );
     }
 
     if (snapshot.tables.length === 0) {
       return (
-        <Center flex={1}>
-          <Stack align="center">
-            <TableIcon size={400} color="#55ff55" />
-            <Text size="md">No tables in this snapshot.</Text>
-          </Stack>
-        </Center>
+        <ErrorInfo
+          title="No tables found"
+          error="There are no tables in this snapshot. You will need to abandon the snapshot and recreate it."
+          action={
+            <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+              Return to snapshots
+            </PrimaryButton>
+          }
+        />
       );
     }
 
-    return (
-      <Stack h="100%" gap={0}>
-        {/* View List Band */}
+    const modals = (
+      <>
+        {selectedTable && (
+          <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${selectedTable?.name}`} size="lg">
+            <ScrollArea h={500}>
+              <JsonTreeViewer jsonData={selectedTable} />
+            </ScrollArea>
+          </Modal>
+        )}
+        {selectedTable && (
+          <Modal
+            {...modalStack.register('tableContextDebug')}
+            title={`Table Context settings for ${selectedTable?.name}`}
+            size="lg"
+          >
+            <ScrollArea h={500}>
+              <JsonTreeViewer jsonData={selectedTableContext ?? {}} />
+            </ScrollArea>
+          </Modal>
+        )}
+      </>
+    );
 
+    return (
+      <>
         <Group h="100%" justify="flex-start" align="flex-start" w="100%" gap="4px">
-          <Stack h="99%" w="100%" flex={1} gap={0}>
+          <Stack h="99%" w="70%" flex={1} gap={0}>
             <Tabs
               value={selectedTableId}
               onChange={(value) => {
@@ -301,49 +330,10 @@ function SnapshotPageContent() {
             />
           </Stack>
 
-          <AIChatPanel
-            isOpen={showChat}
-            onClose={toggleChat}
-            snapshot={snapshot}
-            currentViewId={currentViewId}
-            activeTable={selectedTable}
-          />
+          <AIChatPanel isOpen={showChat} onClose={toggleChat} activeTable={selectedTable} />
         </Group>
-
-        {selectedTable && (
-          <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${selectedTable?.name}`} size="lg">
-            <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTable} />
-            </ScrollArea>
-          </Modal>
-        )}
-        {selectedTable && (
-          <Modal
-            {...modalStack.register('tableContextDebug')}
-            title={`Table Context settings for ${selectedTable?.name}`}
-            size="lg"
-          >
-            <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTableContext ?? {}} />
-            </ScrollArea>
-          </Modal>
-        )}
-        <Modal {...modalStack.register('snapshotEventLog')} title="Websocket Event Log" size="xl" centered>
-          <Stack gap="2px">
-            <Text size="xs" c="dimmed">
-              Newest events at the top
-            </Text>
-            <Divider my="xs" />
-            <Stack gap="xs">
-              {messageLog.map((message, index) => (
-                <Text size="sm" key={index}>
-                  {message}
-                </Text>
-              ))}
-            </Stack>
-          </Stack>
-        </Modal>
-      </Stack>
+        {modals}
+      </>
     );
   };
 

@@ -59,6 +59,7 @@ export function ResourceSelector(props: ResourceSelectorProps) {
       />
 
       <CustomPillMultiSelect
+        flex={1}
         values={selectedStyleGuideIds}
         data={listValues}
         placeholder="Select resources (optional)"
