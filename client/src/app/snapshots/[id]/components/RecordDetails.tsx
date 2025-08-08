@@ -16,7 +16,6 @@ import {
   Checkbox,
   CheckIcon,
   CopyButton,
-  Divider,
   Group,
   Loader,
   NumberInput,
@@ -464,7 +463,7 @@ export const RecordDetails = ({
       </Group>
       <Stack p={0}>{content}</Stack>
 
-      {currentTextSelection && currentTextSelection.text.length > 0 ? (
+      {/* {currentTextSelection && currentTextSelection.text.length > 0 ? (
         <>
           <Divider />
           <Group gap="md">
@@ -477,7 +476,7 @@ export const RecordDetails = ({
             </Button>
           </Group>
         </>
-      ) : null}
+      ) : null} */}
     </Stack>
   );
 };

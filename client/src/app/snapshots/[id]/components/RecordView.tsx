@@ -2,13 +2,10 @@ import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
-import { Anchor, Button, Center, Divider, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
-import _ from 'lodash';
+import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { ICONS } from '../icons';
 import { RecordDetails } from './RecordDetails';
+import { RecordList } from './RecordList';
 
 interface RecordViewProps {
   table: TableSpec;
@@ -60,22 +57,7 @@ export const RecordView = ({
     }
   }, [records, currentRecordId, focusRecord]);
 
-  const handleSelectRecord = useCallback(
-    (record: SnapshotRecord) => {
-      setCurrentRecordId(record.id.wsId);
-      focusRecord(record, currentColumnId);
-    },
-    [focusRecord, currentColumnId, setCurrentRecordId],
-  );
-
-  const handleSelectColumn = useCallback(
-    (record: SnapshotRecord, columnId?: string) => {
-      setCurrentColumnId(columnId);
-      focusRecord(record, columnId);
-    },
-    [focusRecord, setCurrentColumnId],
-  );
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExistRecordView = useCallback(() => {
     setWriteFocus([]);
     setTableScope();
@@ -101,8 +83,8 @@ export const RecordView = ({
   return (
     <Stack h="100%" w="100%" gap={0} p={0}>
       <Group gap={0} p={0} h="100%">
-        <Stack h="100%" w="25%">
-          <Button
+        <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
+          {/* <Button
             variant="subtle"
             w="fit-content"
             leftSection={<ArrowLeftIcon />}
@@ -110,56 +92,33 @@ export const RecordView = ({
             c="black"
           >
             Return to table
-          </Button>
+          </Button> */}
           <ScrollArea h="100%" type="hover" scrollbars="y">
             <Stack h="calc(100vh - 250px)" gap="sm" p="xs">
-              {records?.map((record) => (
-                <Stack key={record.id.wsId} gap="3px">
-                  <Anchor
-                    component="span"
-                    key={record.id.wsId}
-                    onClick={() => handleSelectRecord(record)}
-                    underline="hover"
-                  >
-                    <Text fw={currentRecordId === record.id.wsId ? 'bold' : 'normal'}>{buildRecordTitle(record)}</Text>
-                  </Anchor>
-                  {currentRecordId === record.id.wsId ? (
-                    <Stack pl="md" gap="2px" h="100%">
-                      {table.columns.map((c) =>
-                        currentView && isColumnHidden(table.id.wsId, c.id.wsId, currentView) ? null : (
-                          <Anchor
-                            component="span"
-                            fz="sm"
-                            fw={currentColumnId === c.id.wsId ? 'bold' : 'normal'}
-                            key={c.id.wsId}
-                            onClick={() => {
-                              if (currentColumnId === c.id.wsId) {
-                                handleSelectColumn(record, undefined);
-                              } else {
-                                handleSelectColumn(record, c.id.wsId);
-                              }
-                            }}
-                            underline="never"
-                          >
-                            {c.name}{' '}
-                            {currentView && isColumnProtected(table.id.wsId, c.id.wsId, currentView)
-                              ? ICONS.protected
-                              : null}
-                          </Anchor>
-                        ),
-                      )}
-                    </Stack>
-                  ) : null}
-                </Stack>
-              ))}
+              <RecordList
+                records={records}
+                table={table}
+                selectedRecordId={currentRecordId}
+                selectedFieldId={currentColumnId}
+                onSelect={(record, columnId) => {
+                  if (record.id.wsId !== currentRecordId) {
+                    setCurrentRecordId(record.id.wsId);
+                    focusRecord(record, currentColumnId);
+                  }
+
+                  if (columnId !== currentColumnId) {
+                    setCurrentColumnId(columnId);
+                    focusRecord(record, columnId);
+                  }
+                }}
+              />
             </Stack>
           </ScrollArea>
         </Stack>
-        <Divider orientation="vertical" px="3px" />
-        <Stack h="100%" gap="xs" p="xs" flex={1}>
-          <Tabs value={currentRecordId} flex={1}>
+        <Stack h="100%" gap="xs" flex={1}>
+          <Tabs value={currentRecordId} flex={1} bg={'transparent'}>
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%">
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="xs">
                 <ScrollArea h="calc(100vh - 250px)" type="hover">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
@@ -179,18 +138,3 @@ export const RecordView = ({
     </Stack>
   );
 };
-
-function buildRecordTitle(record: SnapshotRecord): string {
-  if (record.fields) {
-    for (const key of Object.keys(record.fields)) {
-      if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        return _.truncate(record.fields[key] as string, { length: 40 });
-      }
-    }
-    const firstValue = Object.values(record.fields)[0];
-    if (firstValue) {
-      return _.truncate(firstValue as string, { length: 40 });
-    }
-  }
-  return record.id.wsId;
-}
