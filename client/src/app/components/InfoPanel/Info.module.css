@@ -1,0 +1,22 @@
+.container {
+  text-align: center;
+}
+
+.dashedLink {
+  color: var(--mantine-color-gray-10);
+  text-decoration-style: dashed;
+  text-decoration-color: var(--mantine-color-gray-7);
+  text-underline-offset: 5px;
+
+  &:hover {
+    &,
+    & * {
+      color: var(--mantine-color-blue-8) !important;
+      text-decoration-color: var(--mantine-color-blue-6) !important;
+    }
+  }
+
+  *[data-error='true'] {
+    color: var(--mantine-color-red-10);
+  }
+}

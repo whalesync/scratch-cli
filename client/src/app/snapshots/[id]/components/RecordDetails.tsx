@@ -129,7 +129,7 @@ export const RecordDetails = ({
         setPendingUpdates([...pendingUpdates, { field, value }]);
       }
     },
-    [currentRecord, pendingUpdates, saving],
+    [currentRecord, pendingUpdates],
   );
 
   const fieldToInput = useCallback(

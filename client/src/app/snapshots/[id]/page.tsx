@@ -1,13 +1,11 @@
 'use client';
 
 import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
-import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotTableContext, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
-  Button,
+  Box,
   Center,
-  CheckIcon,
   Divider,
   Group,
   Loader,
@@ -17,13 +15,11 @@ import {
   Stack,
   Tabs,
   Text,
-  Title,
-  Tooltip,
   useModalsStack,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { BugIcon, DownloadSimpleIcon, RobotIcon, TableIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
-import { useParams, useRouter } from 'next/navigation';
+import { BugIcon, TableIcon } from '@phosphor-icons/react';
+import { useParams } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
@@ -32,8 +28,8 @@ import { SnapshotEventProvider, useSnapshotEventContext } from '@/contexts/snaps
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
-import { useConnectorAccount } from '../../../hooks/use-connector-account';
 import { AIPromptProvider } from './AIPromptContext';
+import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
 import { FocusedCellsProvider } from './FocusedCellsContext';
@@ -42,10 +38,8 @@ import { ICONS } from './icons';
 function SnapshotPageContent() {
   const params = useParams();
   const id = params.id as string;
-  const router = useRouter();
 
-  const { snapshot, isLoading, publish, currentViewId, setCurrentViewId } = useSnapshotContext();
-  const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
+  const { snapshot, isLoading, currentViewId, setCurrentViewId } = useSnapshotContext();
   const { messageLog } = useSnapshotEventContext();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
@@ -70,77 +64,6 @@ function SnapshotPageContent() {
       setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
     }
   }, [snapshot, selectedTableId]);
-
-  const handleDownload = async () => {
-    try {
-      await snapshotApi.download(id);
-      notifications.show({
-        title: 'Download started',
-        message: 'Your data is being downloaded from the remote source.',
-        color: 'blue',
-      });
-    } catch (e) {
-      console.error(e);
-      notifications.show({
-        title: 'Download failed',
-        message: 'There was an error starting the download.',
-        color: 'red',
-      });
-    }
-  };
-
-  const handlePublish = async () => {
-    try {
-      notifications.show({
-        id: 'publish-notification', // So it gets replaced by below.
-        title: 'Publishing',
-        message: `Your data is being published to ${connectorAccount?.service}`,
-        color: 'blue',
-        loading: true,
-        autoClose: false,
-        withCloseButton: false,
-      });
-      await publish?.();
-      notifications.update({
-        id: 'publish-notification',
-        title: 'Published',
-        message: `Your data has been published to ${connectorAccount?.service}`,
-        color: 'green',
-        icon: <CheckIcon size={18} />,
-        loading: false,
-        autoClose: 2000,
-      });
-    } catch (e) {
-      console.error(e);
-      notifications.update({
-        id: 'publish-notification',
-        title: 'Publish failed',
-        message: (e as Error).message ?? 'There was an error publishing your data',
-        color: 'red',
-        loading: false,
-        autoClose: 2000,
-      });
-    }
-  };
-
-  const handleAbandon = async () => {
-    try {
-      await snapshotApi.delete(id);
-      notifications.show({
-        title: 'Snapshot abandoned',
-        message: 'The snapshot and its data have been deleted.',
-        color: 'green',
-      });
-      router.back();
-    } catch (e) {
-      console.error(e);
-      notifications.show({
-        title: 'Deletion failed',
-        message: 'There was an error deleting the snapshot.',
-        color: 'red',
-      });
-    }
-  };
 
   const toggleChat = () => {
     setShowChat(!showChat);
@@ -351,13 +274,18 @@ function SnapshotPageContent() {
               }}
               variant="default"
             >
-              <Tabs.List px="sm" style={{ paddingRight: 0 }}>
-                {snapshot.tables.map((table: TableSpec) => (
-                  <Tabs.Tab value={table.id.wsId} key={`${table.id.wsId}-${currentViewId}-${lastViewUpdate}`}>
-                    <TableTab table={table} />
-                  </Tabs.Tab>
-                ))}
-              </Tabs.List>
+              <Group>
+                <Tabs.List px="sm" styles={{ list: { flex: 1, lineHeight: 0, borderBottom: '2px solid transparent' } }}>
+                  {snapshot.tables.map((table: TableSpec) => (
+                    <Tabs.Tab value={table.id.wsId} key={`${table.id.wsId}-${currentViewId}-${lastViewUpdate}`}>
+                      <TableTab table={table} />
+                    </Tabs.Tab>
+                  ))}
+                </Tabs.List>
+                <Box ml="auto">
+                  <SnapshotActionsMenu />
+                </Box>
+              </Group>
             </Tabs>
             {selectedTable && (
               <TableContent table={selectedTable} currentViewId={currentViewId} filterToView={filterToView} />
@@ -421,49 +349,6 @@ function SnapshotPageContent() {
 
   return (
     <Stack h="100%" gap={0}>
-      <Group p="xs" bg="gray.0">
-        <Group gap="xs" align="center" wrap="nowrap">
-          <Title order={2}>{snapshot?.name ?? 'Snapshot'}</Title>
-          {/* {isConnectedLive && (
-            <>
-              <Tooltip label="Connected to snapshot events websocket">
-                <ActionIcon onClick={() => modalStack.open('snapshotEventLog')} variant="subtle" color="gray" size="xs">
-                  <CellTowerIcon size={16} color="green" weight="fill" />
-                </ActionIcon>
-              </Tooltip>
-            </>
-          )} */}
-          {/* <CopyButton value={`Connect to snapshot ${id}`} timeout={2000}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : `Copy prompt for Cursor`} withArrow position="right">
-                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                  {copied ? <CheckIcon size={16} /> : <HeadCircuitIcon size={16} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton> */}
-        </Group>
-        <Group ml="auto">
-          <Tooltip label="Download fresh snapshot from remote source">
-            <Button size="xs" onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
-              Download
-            </Button>
-          </Tooltip>
-          <Button size="xs" onClick={toggleChat} leftSection={<RobotIcon />} variant={showChat ? 'filled' : 'light'}>
-            {showChat ? 'Close AI' : 'Edit with AI'}
-          </Button>
-
-          <Button size="xs" variant="outline" onClick={handlePublish} leftSection={<UploadIcon />}>
-            Publish
-          </Button>
-          <Tooltip label="Delete snapshot and all data">
-            <Button size="xs" variant="outline" color="red" onClick={handleAbandon} leftSection={<TrashIcon />}>
-              Abandon
-            </Button>
-          </Tooltip>
-        </Group>
-      </Group>
-
       <Group gap={0} h="100%">
         {/* Main content area */}
         <div

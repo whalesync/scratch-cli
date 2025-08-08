@@ -381,7 +381,7 @@ export default function AIChatPanel({ isOpen, onClose, snapshot, currentViewId, 
             label: session.name,
           }))}
           size="xs"
-          style={{ flex: 1, zIndex: 1001 }}
+          style={{ flex: 1 }}
           searchable={false}
           clearable={false}
           allowDeselect={true}
