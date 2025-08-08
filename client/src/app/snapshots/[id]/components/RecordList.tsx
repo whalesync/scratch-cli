@@ -1,13 +1,8 @@
-import {
-  buildRecordTitle,
-  ColumnSpec,
-  PostgresColumnType,
-  SnapshotRecord,
-  TableSpec,
-} from '@/types/server-entities/snapshot';
-import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
+import { buildRecordTitle, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Group, Stack, Text, useMantineTheme } from '@mantine/core';
 import { FlagIcon, FolderIcon, FolderOpenIcon, HashIcon, IconProps, TextAaIcon } from '@phosphor-icons/react';
+import { useMemo } from 'react';
 import { useSnapshotContext } from '../SnapshotContext';
 import { ICONS } from '../icons';
 
@@ -19,8 +14,28 @@ interface RecordListProps {
   onSelect: (record: SnapshotRecord, columnId?: string) => void;
 }
 
+interface ColumnMetaData {
+  id: string;
+  name: string;
+  dataType: string;
+  isProtected: boolean;
+  isHidden: boolean;
+  isActive: boolean;
+}
+
 export const RecordList = ({ records, table, selectedRecordId, selectedFieldId, onSelect }: RecordListProps) => {
   const { currentView } = useSnapshotContext();
+
+  const columnMetaData: ColumnMetaData[] = useMemo(() => {
+    return table.columns.map((column) => ({
+      id: column.id.wsId,
+      name: column.name,
+      dataType: column.pgType,
+      isProtected: !!(currentView && isColumnProtected(table.id.wsId, column.id.wsId, currentView)),
+      isHidden: !!(currentView && isColumnHidden(table.id.wsId, column.id.wsId, currentView)),
+      isActive: selectedFieldId === column.id.wsId,
+    }));
+  }, [table, currentView, selectedFieldId]);
 
   return (
     <Stack gap="4px">
@@ -28,10 +43,9 @@ export const RecordList = ({ records, table, selectedRecordId, selectedFieldId, 
         <RecordNode
           key={record.id.wsId}
           record={record}
-          table={table}
+          columnMetaData={columnMetaData}
           isActive={selectedRecordId === record.id.wsId}
           activeColumnId={selectedFieldId}
-          currentView={currentView}
           onClick={(columnId) => onSelect(record, columnId)}
         />
       ))}
@@ -41,17 +55,15 @@ export const RecordList = ({ records, table, selectedRecordId, selectedFieldId, 
 
 const RecordNode = ({
   record,
-  table,
+  columnMetaData,
   isActive,
   activeColumnId,
-  currentView,
   onClick,
 }: {
-  table: TableSpec;
   record: SnapshotRecord;
+  columnMetaData: ColumnMetaData[];
   isActive: boolean;
   activeColumnId: string | undefined;
-  currentView: ColumnView | undefined;
   onClick: (columnId?: string) => void;
 }) => {
   const theme = useMantineTheme();
@@ -80,19 +92,9 @@ const RecordNode = ({
       </Group>
       {isActive && (
         <Stack ml="19px" gap="2px">
-          {table.columns.map((column) => {
-            const isProjected = currentView && isColumnProtected(table.id.wsId, column.id.wsId, currentView);
-            const isHidden = currentView && isColumnHidden(table.id.wsId, column.id.wsId, currentView);
-
-            return isHidden ? null : (
-              <ColumnNode
-                key={column.id.wsId}
-                column={column}
-                isActive={activeColumnId === column.id.wsId}
-                isProtected={!!isProjected}
-                isHidden={!!isHidden}
-                onClick={(id) => onClick(id)}
-              />
+          {columnMetaData.map((column) => {
+            return column.isHidden ? null : (
+              <ColumnNode key={column.id} column={column} onClick={(id) => onClick(id)} />
             );
           })}
         </Stack>
@@ -101,45 +103,34 @@ const RecordNode = ({
   );
 };
 
-const ColumnNode = ({
-  column,
-  isActive,
-  isProtected,
-  onClick,
-}: {
-  column: ColumnSpec;
-  isActive: boolean;
-  isProtected: boolean;
-  isHidden: boolean;
-  onClick: (columnId?: string) => void;
-}) => {
+const ColumnNode = ({ column, onClick }: { column: ColumnMetaData; onClick: (columnId?: string) => void }) => {
   const theme = useMantineTheme();
-  const color = isActive ? theme.colors.gray[7] : theme.colors.gray[6];
+  const color = column.isActive ? theme.colors.gray[7] : theme.colors.gray[6];
 
   return (
     <Group
       gap={5}
       onClick={() => {
-        if (isActive) {
+        if (column.isActive) {
           onClick(undefined);
         } else {
-          onClick(column.id.wsId);
+          onClick(column.id);
         }
       }}
       style={{ cursor: 'pointer' }}
     >
-      <DataTypeIcon column={column} color={color} size={14} strokeWidth={isActive ? 2.5 : 1.5} />
-      <Text fz="sm" fw={isActive ? 'bold' : 'normal'} c={color}>
-        {column.name} {isProtected ? ICONS.protected : null}
+      <DataTypeIcon dataType={column.dataType} color={color} size={14} strokeWidth={column.isActive ? 2.5 : 1.5} />
+      <Text fz="sm" fw={column.isActive ? 'bold' : 'normal'} c={color}>
+        {column.name} {column.isProtected ? ICONS.protected : null}
       </Text>
     </Group>
   );
 };
 
-const DataTypeIcon = (props: IconProps & { column: ColumnSpec }) => {
-  if (props.column.pgType === PostgresColumnType.NUMERIC || props.column.pgType === PostgresColumnType.NUMERIC_ARRAY) {
+const DataTypeIcon = (props: IconProps & { dataType: string }) => {
+  if (props.dataType === PostgresColumnType.NUMERIC || props.dataType === PostgresColumnType.NUMERIC_ARRAY) {
     return <HashIcon {...props} />;
-  } else if (props.column.pgType === PostgresColumnType.BOOLEAN) {
+  } else if (props.dataType === PostgresColumnType.BOOLEAN) {
     return <FlagIcon {...props} />;
   } else {
     return <TextAaIcon {...props} />;

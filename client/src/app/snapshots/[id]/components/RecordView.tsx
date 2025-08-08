@@ -58,7 +58,7 @@ export const RecordView = ({
   }, [records, currentRecordId, focusRecord]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleExistRecordView = useCallback(() => {
+  const handleExitRecordView = useCallback(() => {
     setWriteFocus([]);
     setTableScope();
     onSwitchToSpreadsheetView();
@@ -84,17 +84,8 @@ export const RecordView = ({
     <Stack h="100%" w="100%" gap={0} p={0}>
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
-          {/* <Button
-            variant="subtle"
-            w="fit-content"
-            leftSection={<ArrowLeftIcon />}
-            onClick={handleExistRecordView}
-            c="black"
-          >
-            Return to table
-          </Button> */}
           <ScrollArea h="100%" type="hover" scrollbars="y">
-            <Stack h="calc(100vh - 250px)" gap="sm" p="xs">
+            <Stack h="calc(100vh - 105px)" gap="sm" p="xs">
               <RecordList
                 records={records}
                 table={table}
@@ -116,10 +107,10 @@ export const RecordView = ({
           </ScrollArea>
         </Stack>
         <Stack h="100%" gap="xs" flex={1}>
-          <Tabs value={currentRecordId} flex={1} bg={'transparent'}>
+          <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="xs">
-                <ScrollArea h="calc(100vh - 250px)" type="hover">
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="xs" bg="white">
+                <ScrollArea h="calc(100vh - 105px)" type="hover" scrollbars="y">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
                     currentRecord={record}

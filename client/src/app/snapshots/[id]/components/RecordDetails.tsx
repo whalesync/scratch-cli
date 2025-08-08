@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { TextRegularXs } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
-import { CursorPosition, EnhancedTextArea, TextSelection } from '@/app/components/EnhancedTextArea';
+import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import {
   isLargeTextColumn,
@@ -10,12 +11,11 @@ import {
   TableSpec,
 } from '@/types/server-entities/snapshot';
 import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
+import { sleep } from '@/utils/helpers';
 import {
-  ActionIcon,
+  Box,
   Button,
   Checkbox,
-  CheckIcon,
-  CopyButton,
   Group,
   Loader,
   NumberInput,
@@ -25,10 +25,8 @@ import {
   Textarea,
   Tooltip,
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { ArrowUpIcon, CopyIcon, LockIcon, PencilCircleIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, LockIcon, PencilCircleIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
-import { useAIPromptContext } from '../AIPromptContext';
 import { useSnapshotContext } from '../SnapshotContext';
 
 interface RecordDetailsProps {
@@ -55,28 +53,10 @@ export const RecordDetails = ({
   bulkUpdateRecord,
 }: RecordDetailsProps) => {
   const { currentView } = useSnapshotContext();
-  const [showSuggestedOnly, setShowSuggestedOnly] = useState(false);
-  const [showEditedOnly, setShowEditedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [currentTextSelection, setCurrentTextSelection] = useState<TextSelection | undefined>(undefined);
-  const [currentCursorPosition, setCurrentCursorPosition] = useState<CursorPosition | undefined>(undefined);
-  const { addToPrompt } = useAIPromptContext();
   const [pendingUpdates, setPendingUpdates] = useState<PendingUpdate[]>([]);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
-
-  const handleTextSelectionChange = useCallback(
-    (selection: TextSelection) => {
-      setCurrentTextSelection(selection);
-      // console.debug('RecordDetails: text selection changed', selection);
-    },
-    [setCurrentTextSelection],
-  );
-
-  const handleTextAreaCursorChange = useCallback((cursor: CursorPosition) => {
-    setCurrentCursorPosition(cursor);
-    // console.debug('RecordDetails: cursor position changed', cursor);
-  }, []);
 
   const savePendingUpdates = useCallback(async () => {
     if (pendingUpdates.length === 0) return;
@@ -92,12 +72,12 @@ export const RecordDetails = ({
       setSaving(true);
       await bulkUpdateRecord({ ops });
       setPendingUpdates([]);
+      await sleep(200);
     } catch (e) {
       const error = e as Error;
-      notifications.show({
+      ScratchpadNotifications.error({
         title: 'Error updating field',
         message: error.message,
-        color: 'red',
       });
     } finally {
       setSaving(false);
@@ -204,8 +184,6 @@ export const RecordDetails = ({
                   padding: '2rem',
                 },
               }}
-              onSelectionChange={handleTextSelectionChange}
-              onCursorChange={handleTextAreaCursorChange}
             />
           </Stack>
         );
@@ -231,14 +209,12 @@ export const RecordDetails = ({
                 // backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
               },
             }}
-            onSelectionChange={handleTextSelectionChange}
-            onCursorChange={handleTextAreaCursorChange}
           />
         </FieldRow>
       );
     },
 
-    [currentRecord.fields, handleTextAreaCursorChange, handleTextSelectionChange, updateField, currentView],
+    [currentRecord.fields, updateField, currentView],
   );
 
   let content = null;
@@ -257,19 +233,17 @@ export const RecordDetails = ({
         try {
           setSaving(true);
           await acceptCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
-          notifications.show({
+          ScratchpadNotifications.success({
             title: 'Suggestion Accepted',
             message: `Accepted suggestion for ${column.name}`,
-            color: 'green',
           });
           // Refresh the records to get updated state
           // window.location.reload();
         } catch (e) {
           const error = e as Error;
-          notifications.show({
+          ScratchpadNotifications.error({
             title: 'Error accepting suggestion',
-            message: error.message,
-            color: 'red',
+            message: error ? (error as Error).message : 'Unknown error',
           });
         } finally {
           setSaving(false);
@@ -282,20 +256,17 @@ export const RecordDetails = ({
         try {
           setSaving(true);
           await rejectCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
-
-          notifications.show({
+          ScratchpadNotifications.success({
             title: 'Suggestion Rejected',
             message: `Rejected suggestion for ${column.name}`,
-            color: 'green',
           });
           // Refresh the records to get updated state
           // window.location.reload();
         } catch (e) {
           const error = e as Error;
-          notifications.show({
+          ScratchpadNotifications.error({
             title: 'Error rejecting suggestion',
             message: error.message,
-            color: 'red',
           });
         } finally {
           setSaving(false);
@@ -336,7 +307,7 @@ export const RecordDetails = ({
           return (
             <Stack h={focusedView ? '100%' : 'auto'} key={field} gap="2px">
               <FieldLabel fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} />
-              <ScrollArea mah="80%" w="100%" type="hover" mb="xs">
+              <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
                 <DiffViewer
                   originalValue={currentValue}
                   suggestedValue={currentRecord.__suggested_values?.[field] as string}
@@ -398,85 +369,21 @@ export const RecordDetails = ({
     // just show the current active column
     content = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
   } else if (currentRecord) {
-    // Filter fields based on checkbox states
-    const fieldsToShow = Object.keys(currentRecord.fields).filter((fieldName) => {
-      const hasSuggestion = currentRecord.__suggested_values?.[fieldName] !== undefined;
-      const hasEditedValue = currentRecord.__edited_fields?.[fieldName] !== undefined;
-
-      if (showSuggestedOnly && showEditedOnly) {
-        // Both checkboxes checked: show fields that have BOTH suggestion AND edited value
-        return hasSuggestion && hasEditedValue;
-      } else if (showSuggestedOnly) {
-        // Only suggested checkbox checked: show fields with suggestions
-        return hasSuggestion;
-      } else if (showEditedOnly) {
-        // Only edited checkbox checked: show fields with edited values
-        return hasEditedValue;
-      } else {
-        // No checkboxes checked: show all fields
-        return true;
-      }
-    });
-
+    const fieldsToShow = Object.keys(currentRecord.fields);
     content = fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false));
   }
 
   return (
-    <Stack h="calc(100% - 5px)">
-      <Group justify="space-between" align="center">
-        <Group gap="xs">
-          <Text>Record Details</Text>
-          <CopyButton value={currentRecord.id.wsId} timeout={2000}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy record ID'} withArrow position="right">
-                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-          {saving && (
-            <Group gap="3px" ml="auto">
-              <Loader size="xs" />
-              <Text size="xs" c="dimmed">
-                Saving...
-              </Text>
-            </Group>
-          )}
-        </Group>
-        <Group gap="md">
-          {!currentColumn && (
-            <>
-              <Checkbox
-                label="Show fields with suggested changes only"
-                checked={showSuggestedOnly}
-                onChange={(e) => setShowSuggestedOnly(e.target.checked)}
-              />
-              <Checkbox
-                label="Show fields with updated values only"
-                checked={showEditedOnly}
-                onChange={(e) => setShowEditedOnly(e.target.checked)}
-              />
-            </>
-          )}
-        </Group>
-      </Group>
-      <Stack p={0}>{content}</Stack>
-
-      {/* {currentTextSelection && currentTextSelection.text.length > 0 ? (
-        <>
-          <Divider />
-          <Group gap="md">
-            <Button
-              variant="outline"
-              onClick={() => addToPrompt(currentTextSelection?.text || '')}
-              disabled={!currentTextSelection?.text}
-            >
-              Add to prompt
-            </Button>
+    <Stack p={0}>
+      <Box style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10 }}>
+        {saving && (
+          <Group gap="xs">
+            <Loader c="blue.6" size="xs" />
+            <TextRegularXs>Saving...</TextRegularXs>
           </Group>
-        </>
-      ) : null} */}
+        )}
+      </Box>
+      {content}
     </Stack>
   );
 };

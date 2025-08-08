@@ -20,7 +20,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </AppShell.Navbar>
 
             <AppShell.Main style={{ backgroundColor: 'hsla(50, 25%, 96%)' }}>
-              <div style={{ height: 'calc(100vh - 5px)', width: '100%', overflow: 'hidden' }}>{children}</div>
+              <div style={{ height: 'calc(100vh)' }}>{children}</div>
             </AppShell.Main>
           </AppShell>
         </ClerkAuthContextProvider>

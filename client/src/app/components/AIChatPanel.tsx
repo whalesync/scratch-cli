@@ -316,18 +316,22 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
 
   return (
     <Paper
-      p="md"
+      p="xs"
+      bg="transparent"
+      h="100%"
+      w="30%"
+      miw="300px"
+      maw="600px"
       style={{
-        height: '100%',
-        width: '30%',
-        minWidth: '300px',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',
+        borderLeft: '1px solid var(--mantine-color-gray-2)',
+        borderRadius: '0px',
       }}
     >
       {/* Header */}
-      <Group justify="space-between" mb="md">
+      <Group justify="space-between" mb="md" h="50px">
         <Group justify="space-between" style={{ flex: 1 }}>
           <TextTitleSm>Scratchpad Chat</TextTitleSm>
           {connectionBadge}

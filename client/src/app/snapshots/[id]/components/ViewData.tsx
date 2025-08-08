@@ -206,7 +206,7 @@ export const ViewData = ({
   };
 
   return (
-    <Box p="6px" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+    <Box h="50px" p="6px" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
       <Group gap="md" align="center">
         {/* Column Views Section */}
         <Group gap="xs" align="center">

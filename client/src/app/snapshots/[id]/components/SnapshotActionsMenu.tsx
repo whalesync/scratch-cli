@@ -4,12 +4,18 @@ import { snapshotApi } from '@/lib/api/snapshot';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, CheckIcon, Loader, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { DotsThreeVerticalIcon, DownloadSimpleIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
+import { ChatIcon, DotsThreeVerticalIcon, DownloadSimpleIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSnapshotContext } from '../SnapshotContext';
 
-export const SnapshotActionsMenu = () => {
+export const SnapshotActionsMenu = ({
+  aiChatOpen,
+  onChatToggle,
+}: {
+  aiChatOpen: boolean;
+  onChatToggle: () => void;
+}) => {
   const router = useRouter();
   const { snapshot, isLoading, publish } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
@@ -119,6 +125,15 @@ export const SnapshotActionsMenu = () => {
       <Menu.Dropdown>
         <Menu.Label>{snapshot?.name}</Menu.Label>
         <Menu.Divider />
+        {aiChatOpen ? (
+          <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
+            Close AI Chat
+          </Menu.Item>
+        ) : (
+          <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
+            Open AI Chat
+          </Menu.Item>
+        )}
         <Menu.Item disabled onClick={handleRename} leftSection={<DownloadSimpleIcon />}>
           Rename Snapshot
         </Menu.Item>

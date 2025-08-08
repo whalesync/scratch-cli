@@ -292,9 +292,10 @@ function SnapshotPageContent() {
 
     return (
       <>
-        <Group h="100%" justify="flex-start" align="flex-start" w="100%" gap="4px">
-          <Stack h="99%" w="70%" flex={1} gap={0}>
+        <Group h="100%" justify="flex-start" align="flex-start" w="100%" gap={0}>
+          <Stack h="100%" w="70%" flex={1} gap={0}>
             <Tabs
+              h="50px"
               value={selectedTableId}
               onChange={(value) => {
                 setSelectedTableId(value);
@@ -312,7 +313,7 @@ function SnapshotPageContent() {
                   ))}
                 </Tabs.List>
                 <Box ml="auto">
-                  <SnapshotActionsMenu />
+                  <SnapshotActionsMenu aiChatOpen={showChat} onChatToggle={toggleChat} />
                 </Box>
               </Group>
             </Tabs>
