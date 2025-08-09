@@ -1,33 +1,16 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
-import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
-import {
-  isLargeTextColumn,
-  isTextColumn,
-  PostgresColumnType,
-  SnapshotRecord,
-  TableSpec,
-} from '@/types/server-entities/snapshot';
-import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
+import { isLargeTextColumn, isTextColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { isColumnProtected } from '@/types/server-entities/view';
 import { sleep } from '@/utils/helpers';
-import {
-  Box,
-  Button,
-  Checkbox,
-  Group,
-  Loader,
-  NumberInput,
-  ScrollArea,
-  Stack,
-  Text,
-  Textarea,
-  Tooltip,
-} from '@mantine/core';
-import { ArrowUpIcon, LockIcon, PencilCircleIcon, XIcon } from '@phosphor-icons/react';
+import { Box, Button, Group, Loader, ScrollArea, Stack, Textarea } from '@mantine/core';
+import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
-import { useSnapshotContext } from '../SnapshotContext';
+import { useSnapshotContext } from '../../SnapshotContext';
+import { DisplayField } from './DisplayField';
+import { FieldLabel, FieldRow } from './FieldRow';
 
 interface RecordDetailsProps {
   snapshotId: string;
@@ -37,6 +20,7 @@ interface RecordDetailsProps {
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   bulkUpdateRecord: (dto: BulkUpdateRecordsDto) => Promise<void>;
+  onFocusOnField?: (columnId: string | undefined) => void;
 }
 
 interface PendingUpdate {
@@ -51,6 +35,7 @@ export const RecordDetails = ({
   acceptCellValues,
   rejectCellValues,
   bulkUpdateRecord,
+  onFocusOnField,
 }: RecordDetailsProps) => {
   const { currentView } = useSnapshotContext();
   const [saving, setSaving] = useState(false);
@@ -111,116 +96,17 @@ export const RecordDetails = ({
     },
     [currentRecord, pendingUpdates],
   );
-
-  const fieldToInput = useCallback(
-    (
-      record: SnapshotRecord,
-      field: string,
-      table: TableSpec,
-      focusedView?: boolean,
-      hasEditedValue?: boolean,
-      hasSuggestion?: boolean,
-      align?: React.CSSProperties['alignItems'],
-    ) => {
-      const column = table.columns.find((c) => c.id.wsId === field);
-      if (!column) return null;
-      if (!record) return null;
-      if (currentView && isColumnHidden(table.id.wsId, field, currentView)) return null;
-
-      const isProtected = currentView && isColumnProtected(table.id.wsId, field, currentView);
-      const value = record.fields[field] as string;
-
-      if (column.pgType === PostgresColumnType.NUMERIC) {
-        // this needs to be handled differently
-        return (
-          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
-            <NumberInput
-              key={field}
-              value={currentRecord.fields[field] as number}
-              onChange={(value) => updateField(field, value.toString())}
-              readOnly={column.readonly || hasSuggestion || isProtected}
-              hideControls
-              styles={{
-                input: {
-                  border: 'none',
-                  fontSize: '1rem',
-                },
-              }}
-            />
-          </FieldRow>
-        );
-      }
-      if (column.pgType === PostgresColumnType.BOOLEAN) {
-        return (
-          <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
-            <Checkbox
-              key={field}
-              checked={value === 'true'}
-              onChange={(e) => updateField(field, e.target.checked.toString())}
-              readOnly={column.readonly || hasSuggestion || isProtected}
-            />
-          </FieldRow>
-        );
-      }
-      if (isLargeTextColumn(column, value)) {
-        return (
-          <Stack align="flex-start" gap="xs" w="100%">
-            <FieldLabel fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} />
-            <EnhancedTextArea
-              flex={1}
-              inputWrapperOrder={['input', 'label', 'description', 'error']}
-              key={field}
-              value={value ?? ''}
-              autosize
-              minRows={10}
-              w="100%"
-              resize="vertical"
-              onChange={(e) => updateField(field, e.target.value)}
-              readOnly={column.readonly || hasSuggestion || isProtected}
-              styles={{
-                input: {
-                  border: 'none',
-                  fontSize: '1rem',
-                  padding: '2rem',
-                },
-              }}
-            />
-          </Stack>
-        );
-      }
-
-      return (
-        <FieldRow fieldName={column.name} hasEditedValue={hasEditedValue} isProtected={isProtected} align={align}>
-          <EnhancedTextArea
-            flex={1}
-            inputWrapperOrder={['input', 'label', 'description', 'error']}
-            key={field}
-            value={value ?? ''}
-            autosize
-            minRows={1}
-            resize="vertical"
-            onChange={(e) => updateField(field, e.target.value)}
-            readOnly={column.readonly || hasSuggestion || isProtected}
-            styles={{
-              input: {
-                border: 'none',
-                fontSize: '1rem',
-                // padding: '2rem',
-                // backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
-              },
-            }}
-          />
-        </FieldRow>
-      );
+  const handleFocusOnField = useCallback(
+    (columnId: string | undefined) => {
+      onFocusOnField?.(columnId);
     },
-
-    [currentRecord.fields, updateField, currentView],
+    [onFocusOnField],
   );
 
   let content = null;
 
   const fieldToInputAndSuggestion = useCallback(
-    (field: string, table: TableSpec, focusedView?: boolean) => {
+    (field: string, table: TableSpec, focusedView: boolean) => {
       const column = table.columns.find((c) => c.id.wsId === field);
       if (!column) return null;
       if (!currentRecord) return null;
@@ -335,7 +221,14 @@ export const RecordDetails = ({
         return (
           <Stack key={field} gap="xs" h={focusedView ? '100%' : undefined}>
             <Group gap="xs" align="flex-end" grow>
-              {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion, 'flex-end')}
+              <DisplayField
+                table={table}
+                record={currentRecord}
+                columnId={field}
+                mode={focusedView ? 'focus' : 'normal'}
+                updateField={updateField}
+                onFieldLabelClick={() => handleFocusOnField(focusedView ? undefined : field)}
+              />
               <Textarea
                 label="Suggested change"
                 value={currentRecord.__suggested_values?.[field] as string}
@@ -358,11 +251,18 @@ export const RecordDetails = ({
 
       return (
         <Stack key={field} gap="xs" h={focusedView ? '100%' : undefined}>
-          {fieldToInput(currentRecord, field, table, focusedView, hasEditedValue, hasSuggestion)}
+          <DisplayField
+            table={table}
+            record={currentRecord}
+            columnId={field}
+            mode={focusedView ? 'focus' : 'normal'}
+            updateField={updateField}
+            onFieldLabelClick={() => handleFocusOnField(focusedView ? undefined : field)}
+          />
         </Stack>
       );
     },
-    [currentRecord, fieldToInput, saving, acceptCellValues, rejectCellValues, currentView],
+    [currentRecord, currentView, saving, updateField, acceptCellValues, rejectCellValues, handleFocusOnField],
   );
 
   if (currentRecord && currentColumn) {
@@ -385,56 +285,5 @@ export const RecordDetails = ({
       </Box>
       {content}
     </Stack>
-  );
-};
-
-const FieldLabel = ({
-  fieldName,
-  hasEditedValue,
-  isProtected,
-  w = '15%',
-}: {
-  fieldName: string;
-  hasEditedValue?: boolean;
-  isProtected?: boolean;
-  w?: string;
-}) => {
-  return (
-    <Group w={w} align="center" justify="flex-start" gap="xs">
-      <Text size="md" fw={500}>
-        {fieldName}
-      </Text>
-      {hasEditedValue && (
-        <Tooltip label="This field contains an upated value">
-          <PencilCircleIcon size={12} />
-        </Tooltip>
-      )}
-      {isProtected && (
-        <Tooltip label="Protected">
-          <LockIcon size={12} />
-        </Tooltip>
-      )}
-    </Group>
-  );
-};
-
-const FieldRow = ({
-  fieldName,
-  hasEditedValue,
-  isProtected,
-  align = 'flex-start',
-  children,
-}: {
-  fieldName: string;
-  hasEditedValue?: boolean;
-  isProtected?: boolean;
-  align?: React.CSSProperties['alignItems'];
-  children: React.ReactNode;
-}) => {
-  return (
-    <Group align={align} wrap="nowrap" gap="xs" w="100%">
-      <FieldLabel w="15%" fieldName={fieldName} hasEditedValue={hasEditedValue} isProtected={isProtected} />
-      {children}
-    </Group>
   );
 };

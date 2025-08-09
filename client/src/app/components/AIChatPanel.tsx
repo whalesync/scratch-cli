@@ -595,7 +595,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
 }
 
 const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
-  const bgColor = msg.role === 'user' ? 'blue.0' : 'gray.0';
+  const bgColor = msg.role === 'user' ? 'blue.0' : 'white';
   const borderColor = msg.variant === 'error' ? '1px solid red' : '1px solid transparent';
   const alignment = msg.role === 'user' ? 'flex-end' : 'flex-start';
 

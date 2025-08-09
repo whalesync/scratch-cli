@@ -3,8 +3,8 @@ import { isColumnHidden, isColumnProtected } from '@/types/server-entities/view'
 import { Group, Stack, Text, useMantineTheme } from '@mantine/core';
 import { FlagIcon, FolderIcon, FolderOpenIcon, HashIcon, IconProps, TextAaIcon } from '@phosphor-icons/react';
 import { useMemo } from 'react';
-import { useSnapshotContext } from '../SnapshotContext';
-import { ICONS } from '../icons';
+import { useSnapshotContext } from '../../SnapshotContext';
+import { ICONS } from '../../icons';
 
 interface RecordListProps {
   records: SnapshotRecord[] | undefined;

@@ -4,8 +4,8 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { RecordDetails } from './RecordDetails';
-import { RecordList } from './RecordList';
+import { RecordDetails } from './record-details/RecordDetails';
+import { RecordList } from './record-details/RecordList';
 
 interface RecordViewProps {
   table: TableSpec;
@@ -119,6 +119,12 @@ export const RecordView = ({
                     acceptCellValues={acceptCellValues}
                     rejectCellValues={rejectCellValues}
                     bulkUpdateRecord={bulkUpdateRecords}
+                    onFocusOnField={(columnId) => {
+                      if (columnId !== currentColumnId) {
+                        setCurrentColumnId(columnId);
+                        focusRecord(record, columnId);
+                      }
+                    }}
                   />
                 </ScrollArea>
               </Tabs.Panel>
