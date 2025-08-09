@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateStyleGuideDto {
   @IsString()
@@ -8,4 +8,8 @@ export class UpdateStyleGuideDto {
   @IsString()
   @IsOptional()
   body?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  autoInclude?: boolean;
 }

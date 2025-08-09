@@ -2,9 +2,10 @@
 
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { CreateStyleGuideDto, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
-import { Alert, Button, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
+import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useEffect, useRef, useState } from 'react';
+import { PrimaryButton, SecondaryButton } from './base/buttons';
 
 interface EditResourceModalProps extends ModalProps {
   styleGuide?: StyleGuide | null;
@@ -16,7 +17,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
-
+  const [autoInclude, setAutoInclude] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
 
@@ -24,10 +25,12 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
     if (styleGuide) {
       setContent(styleGuide.body);
       setName(styleGuide.name);
+      setAutoInclude(styleGuide.autoInclude);
       setResetInputFocus(true);
     } else {
       setName('');
       setContent('');
+      setAutoInclude(false);
     }
   }, [styleGuide]);
 
@@ -52,11 +55,13 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
         const newData: CreateStyleGuideDto = {
           name: name.trim(),
           body: content,
+          autoInclude,
         };
         updatedStyleGuide = await styleGuideApi.create(newData);
       } else {
         const updateData: UpdateStyleGuideDto = {
           body: content,
+          autoInclude,
         };
         updatedStyleGuide = await styleGuideApi.update(styleGuide.id, updateData);
       }
@@ -115,13 +120,20 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
           autosize
         />
 
+        <Checkbox
+          label="Auto include in conversations"
+          checked={autoInclude}
+          onChange={(e) => setAutoInclude(e.target.checked)}
+          disabled={isUpdating}
+        />
+
         <Group justify="flex-end" gap="sm">
-          <Button variant="subtle" onClick={handleClose} disabled={isUpdating}>
+          <SecondaryButton onClick={handleClose} disabled={isUpdating}>
             Cancel
-          </Button>
-          <Button loading={isUpdating} disabled={!name.trim()} onClick={handleSubmit}>
+          </SecondaryButton>
+          <PrimaryButton loading={isUpdating} disabled={!name.trim()} onClick={handleSubmit}>
             {isNewResource ? 'Create' : 'Save'}
-          </Button>
+          </PrimaryButton>
         </Group>
       </Stack>
     </Modal>

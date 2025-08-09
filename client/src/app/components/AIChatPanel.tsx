@@ -84,6 +84,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     key: `selectedStyleGuideIds-${snapshot?.id}`,
     defaultValue: [],
   });
+  const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
   const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
@@ -165,6 +166,18 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       clearPromptQueue();
     }
   }, [promptQueue, clearPromptQueue, message]);
+
+  useEffect(() => {
+    if (!autoIncludedResourses && styleGuides.length > 0) {
+      const autoIncludeStyleGuides = styleGuides
+        .filter((sg) => sg.autoInclude && !selectedStyleGuideIds.includes(sg.id))
+        .map((sg) => sg.id);
+      if (autoIncludeStyleGuides.length > 0) {
+        setSelectedStyleGuideIds([...selectedStyleGuideIds, ...autoIncludeStyleGuides]);
+        setAutoIncludedResourses(true);
+      }
+    }
+  }, [styleGuides, autoIncludedResourses, selectedStyleGuideIds, setSelectedStyleGuideIds]);
 
   const createNewSession = async () => {
     if (!snapshot) {

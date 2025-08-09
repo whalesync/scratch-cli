@@ -95,6 +95,7 @@ erDiagram
   String name
   String body
   String userId FK
+  Boolean autoInclude
 }
 "CsvFile" {
   String id PK
@@ -233,6 +234,7 @@ Properties as follows:
 - `name`:
 - `body`:
 - `userId`:
+- `autoInclude`:
 
 ### `CsvFile`
 

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateStyleGuideDto {
   @IsString()
@@ -7,4 +7,7 @@ export class CreateStyleGuideDto {
 
   @IsString()
   body: string;
+
+  @IsBoolean()
+  autoInclude: boolean;
 }

@@ -182,6 +182,7 @@ model StyleGuide {
   body      String // Markdown content
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+  autoInclude Boolean @default(false) // Whether to automatically include this style guide in conversations
 
   @@index([userId])
 }

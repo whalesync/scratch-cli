@@ -3,7 +3,7 @@
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
-import { ActionIcon, Alert, Button, Group, Paper, Table, Text, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Alert, Badge, Button, Group, Paper, Table, Text, UnstyledButton } from '@mantine/core';
 import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { ContentContainer } from '../components/ContentContainer';
@@ -76,10 +76,18 @@ export default function StyleGuidesPage() {
             {sortedStyleGuides.map((styleGuide) => (
               <Table.Tr key={styleGuide.id}>
                 <Table.Td>
-                  <UnstyledButton fz="sm" onClick={() => handleEditStyleGuide(styleGuide)}>
-                    {styleGuide.name}
-                  </UnstyledButton>
+                  <Group gap="sm">
+                    <UnstyledButton fz="sm" onClick={() => handleEditStyleGuide(styleGuide)}>
+                      {styleGuide.name}
+                    </UnstyledButton>
+                    {styleGuide.autoInclude ? (
+                      <Badge size="xs" color="blue" variant="light">
+                        Auto Include
+                      </Badge>
+                    ) : null}
+                  </Group>
                 </Table.Td>
+
                 <Table.Td>{formatDate(styleGuide.createdAt)}</Table.Td>
                 <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
                 <Table.Td>
