@@ -21,6 +21,7 @@ export enum IdPrefixes {
   CSV_FILE = 'csv_',
   VIEW = 'vew_',
   AI_AGENT_CREDENTIAL = 'aac_',
+  AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -168,4 +169,15 @@ export function isAiAgentCredentialId(id: unknown): id is AiAgentCredentialId {
 
 export function createAiAgentCredentialId(): AiAgentCredentialId {
   return createId(IdPrefixes.AI_AGENT_CREDENTIAL) as AiAgentCredentialId;
+}
+
+// ------- AiAgentTokenUsageEvent -------
+export type AiAgentTokenUsageEventId = PrefixedId<IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT>;
+
+export function isAiAgentTokenUsageEventId(id: unknown): id is AiAgentTokenUsageEventId {
+  return isId(id, IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT);
+}
+
+export function createAiAgentTokenUsageEventId(): AiAgentTokenUsageEventId {
+  return createId(IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT) as AiAgentTokenUsageEventId;
 }

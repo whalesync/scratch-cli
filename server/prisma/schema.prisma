@@ -37,6 +37,7 @@ model User {
   styleGuides       StyleGuide[]
   csvFiles          CsvFile[]
   aiAgentCredentials AiAgentCredential[]
+  aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
 }
 
 enum TokenType {
@@ -208,4 +209,20 @@ model ColumnView {
   updatedAt  DateTime @updatedAt
 
   @@index([snapshotId])
+}
+
+
+model AiAgentTokenUsageEvent {
+  id        String   @id // type: AiAgentTokenUsageEventId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  model     String
+  requests Int
+  requestTokens Int
+  responseTokens Int
+  totalTokens Int
+  context Json? // additional context for the event
+  @@index([userId])
 }

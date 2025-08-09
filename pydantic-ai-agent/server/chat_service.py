@@ -29,7 +29,7 @@ from agents.data_agent.models import (
 )
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error, log_debug, log_warning
-from scratchpad_api import API_CONFIG, check_server_health
+from scratchpad_api import API_CONFIG, check_server_health, track_token_usage
 
 # from tools import set_api_token, set_session_data
 from server.user_prompt_utils import build_snapshot_context
@@ -577,6 +577,35 @@ class ChatService:
                         response_tokens=usage.response_tokens,
                         total_tokens=usage.total_tokens,
                     )
+
+                try:
+                    track_token_usage(
+                        api_token,
+                        model,
+                        usage.requests,
+                        usage.request_tokens,
+                        usage.response_tokens,
+                        usage.total_tokens,
+                        usage_context={
+                            "session_id": session.id,
+                            "snapshot_id": session.snapshot_id,
+                            "active_table_id": active_table_id,
+                            "data_scope": data_scope,
+                            "record_id": record_id,
+                            "column_id": column_id,
+                            "agent_credentials": (
+                                "user" if user_open_router_credentials else "system"
+                            ),
+                        },
+                    )
+                except Exception as e:
+                    log_error(
+                        "Failed to track token usage through Scratchpad API",
+                        session_id=session.id,
+                        error=str(e),
+                    )
+                    print(f"❌ Failed to track token usage through Scratchpad API: {e}")
+                    print_exc()
 
                 return actual_response
             else:

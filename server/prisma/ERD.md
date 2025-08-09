@@ -113,6 +113,18 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
 }
+"AiAgentTokenUsageEvent" {
+  String id PK
+  DateTime createdAt
+  DateTime updatedAt
+  String userId FK
+  String model
+  Int requests
+  Int requestTokens
+  Int responseTokens
+  Int totalTokens
+  Json context "nullable"
+}
 "APIToken" }o--|| "User" : user
 "AiAgentCredential" }o--|| "User" : user
 "ConnectorAccount" }o--|| "User" : user
@@ -121,6 +133,7 @@ erDiagram
 "SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
 "CsvFile" }o--|| "User" : user
+"AiAgentTokenUsageEvent" }o--|| "User" : user
 ```
 
 ### `User`
@@ -257,3 +270,18 @@ Properties as follows:
 - `config`:
 - `createdAt`:
 - `updatedAt`:
+
+### `AiAgentTokenUsageEvent`
+
+Properties as follows:
+
+- `id`:
+- `createdAt`:
+- `updatedAt`:
+- `userId`:
+- `model`:
+- `requests`:
+- `requestTokens`:
+- `responseTokens`:
+- `totalTokens`:
+- `context`:

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
@@ -30,6 +31,7 @@ import { ViewModule } from './view/view.module';
     CsvFileModule,
     ViewModule,
     HealthModule,
+    AiAgentTokenUsageModule,
   ],
   controllers: [],
   providers: [],

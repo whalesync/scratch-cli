@@ -505,6 +505,31 @@ class SnapshotApi:
         data = _handle_response(response, "Failed to get agent credentials")
         return AgentCredential(**data) if data else None
 
+    @staticmethod
+    def track_token_usage(
+        api_token: str,
+        model: str,
+        num_requests: int,
+        request_tokens: int,
+        response_tokens: int,
+        total_tokens: int,
+        usage_context: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Get AI agent token usage events"""
+        url = f"{API_CONFIG.get_api_url()}/agent-token-usage/track"
+        payload = {
+            "model": model,
+            "requests": num_requests,
+            "requestTokens": request_tokens,
+            "responseTokens": response_tokens,
+            "totalTokens": total_tokens,
+            "context": usage_context,
+        }
+        response = requests.post(
+            url, headers=API_CONFIG.get_api_headers(api_token), json=payload
+        )
+        _handle_response(response, "Failed to track token usage")
+
 
 # Convenience functions for easy access
 def list_snapshots(
@@ -678,3 +703,24 @@ def get_agent_credentials(api_token: str) -> List[AgentCredential]:
 def get_agent_credentials_by_id(id: str, api_token: str) -> AgentCredential:
     """Get agent credentials by id"""
     return SnapshotApi.get_agent_credentials_by_id(id, api_token)
+
+
+def track_token_usage(
+    api_token: str,
+    model: str,
+    requests: int,
+    request_tokens: int,
+    response_tokens: int,
+    total_tokens: int,
+    usage_context: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Track token usage"""
+    SnapshotApi.track_token_usage(
+        api_token,
+        model,
+        requests,
+        request_tokens,
+        response_tokens,
+        total_tokens,
+        usage_context,
+    )
