@@ -1,8 +1,11 @@
+import { TextTitleSm } from '@/app/components/base/text';
+import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
 import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
+import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
@@ -57,7 +60,6 @@ export const RecordView = ({
     }
   }, [records, currentRecordId, focusRecord]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExitRecordView = useCallback(() => {
     setWriteFocus([]);
     setTableScope();
@@ -86,6 +88,14 @@ export const RecordView = ({
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
           <ScrollArea h="100%" type="hover" scrollbars="y">
             <Stack h="calc(100vh - 105px)" gap="sm" p="xs">
+              <Group gap="xs">
+                <Tooltip label="Return to Spreadsheet">
+                  <ActionIcon variant="subtle" color="gray" onClick={handleExitRecordView}>
+                    <StyledIcon Icon={ArrowLeftIcon} weight="bold" size={20} />
+                  </ActionIcon>
+                </Tooltip>
+                <TextTitleSm>Records</TextTitleSm>
+              </Group>
               <RecordList
                 records={records}
                 table={table}
