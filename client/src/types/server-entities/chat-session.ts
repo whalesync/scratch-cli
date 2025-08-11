@@ -1,4 +1,4 @@
-import { RecordCell } from "@/app/snapshots/[id]/components/types";
+import { RecordCell } from "@/types/common";
 
 export interface ChatSessionSummary {
   id: string;

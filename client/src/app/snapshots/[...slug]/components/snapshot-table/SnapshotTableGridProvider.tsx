@@ -1,6 +1,7 @@
 'use client';
 
-import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { RecordCell } from '@/types/common';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
@@ -24,7 +25,7 @@ import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { ICONS } from '../../icons';
-import { ContextMenu, MenuItem, RecordCell } from '../types';
+import { ContextMenu, MenuItem } from '../types';
 import { ACCEPT_REJECT_GROUP_NAME, COLUMN_VIEW_GROUP_NAME, MENU_ICON_SIZE } from './menus/constants';
 import { useContextMenuItems } from './useContextMenuItems';
 import { useCoreGridHandlers } from './useCoreGridHandlers';
@@ -201,7 +202,6 @@ export const SnapshotTableGridProvider = ({
       },
     ];
 
-    console.debug('Columns created:', result);
     return result;
   }, [table.columns, table.id.wsId, sort, currentView, columnWidths]);
 

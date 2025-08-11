@@ -1,7 +1,7 @@
-import {ColumnSpec, SnapshotRecord, TableSpec} from '@/types/server-entities/snapshot';
-import {useCallback, useMemo} from 'react';
-import {FAKE_LEFT_COLUMNS} from '@/app/snapshots/[id]/components/snapshot-table/utils/helpers';
+import { FAKE_LEFT_COLUMNS } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+import { ColumnSpec, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';
+import { useCallback, useMemo } from 'react';
 export const useProcessedSelection = (
     currentSelection: GridSelection | undefined,
     sortedRecords: SnapshotRecord[] | undefined,

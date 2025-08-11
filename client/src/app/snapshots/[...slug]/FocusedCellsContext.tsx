@@ -1,8 +1,8 @@
 'use client';
 
+import { RecordCell } from '@/types/common';
 import { DataScope } from '@/types/server-entities/chat-session';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
-import { RecordCell } from './components/types';
 
 interface FocusedCellsContextValue {
   readFocus: RecordCell[];

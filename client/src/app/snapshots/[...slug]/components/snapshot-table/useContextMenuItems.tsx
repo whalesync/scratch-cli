@@ -3,18 +3,19 @@ import {
   FILTERING_GROUP_NAME,
   FOCUS_GROUP_NAME,
   MENU_ICON_SIZE,
-} from '@/app/snapshots/[id]/components/snapshot-table/menus/constants';
+} from '@/app/snapshots/[...slug]/components/snapshot-table/menus/constants';
 import {
   FAKE_LEFT_COLUMNS,
   getSelectedRowCount,
   isActionsColumn,
   isIdColumn,
   isRecordStatusColumn,
-} from '@/app/snapshots/[id]/components/snapshot-table/utils/helpers';
-import { ContextMenu, MenuItem, RecordCell } from '@/app/snapshots/[id]/components/types';
-import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
-import { ICONS } from '@/app/snapshots/[id]/icons';
+} from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/types';
+import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
+import { ICONS } from '@/app/snapshots/[...slug]/icons';
 import { snapshotApi } from '@/lib/api/snapshot';
+import { RecordCell } from '@/types/common';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';
 import { CheckIcon } from '@mantine/core';

@@ -1,6 +1,6 @@
 'use client';
 
-import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { SnapshotTableContext, TableSpec } from '@/types/server-entities/snapshot';
 import {
   ActionIcon,
@@ -18,7 +18,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, BugIcon } from '@phosphor-icons/react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import AIChatPanel from '../../components/AIChatPanel';
 
 import { PrimaryButton } from '@/app/components/base/buttons';
@@ -36,11 +36,11 @@ import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
 import { FocusedCellsProvider } from './FocusedCellsContext';
+import { useSnapshotParams } from './hooks/use-snapshot-params';
 import { ICONS } from './icons';
 
 function SnapshotPageContent() {
-  const params = useParams();
-  const id = params.id as string;
+  const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
   const router = useRouter();
 
   const { snapshot, isLoading, currentViewId, setCurrentViewId } = useSnapshotContext();
@@ -62,11 +62,20 @@ function SnapshotPageContent() {
 
   useEffect(() => {
     if (!selectedTableId) {
-      setSelectedTableId(snapshot?.tables[0].id.wsId ?? null);
-      setSelectedTable(snapshot?.tables[0] ?? null);
-      setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
+      if (tableId) {
+        const table = snapshot?.tables.find((t) => t.id.wsId === tableId);
+        if (table) {
+          setSelectedTableId(table.id.wsId);
+          setSelectedTable(table);
+          setSelectedTableContext(snapshot?.tableContexts.find((t) => t.id.wsId === tableId) ?? null);
+        }
+      } else {
+        setSelectedTableId(snapshot?.tables[0].id.wsId ?? null);
+        setSelectedTable(snapshot?.tables[0] ?? null);
+        setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
+      }
     }
-  }, [snapshot, selectedTableId]);
+  }, [snapshot, selectedTableId, tableId, updateSnapshotPath]);
 
   const TableTab = ({ table }: { table: TableSpec }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -301,6 +310,7 @@ function SnapshotPageContent() {
                 setSelectedTableId(value);
                 setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value) ?? null);
                 setSelectedTableContext(snapshot.tableContexts.find((t) => t.id.wsId === value) ?? null);
+                updateSnapshotPath(snapshot.id, value ?? undefined);
               }}
               variant="default"
             >
@@ -357,8 +367,7 @@ function SnapshotPageContent() {
 }
 
 export default function SnapshotPage() {
-  const params = useParams();
-  const id = params.id as string;
+  const { snapshotId: id } = useSnapshotParams();
 
   return (
     <SnapshotEventProvider snapshotId={id}>

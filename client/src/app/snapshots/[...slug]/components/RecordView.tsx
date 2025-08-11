@@ -1,12 +1,13 @@
 import { TextTitleSm } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
-import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
-import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
+import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
 
@@ -26,6 +27,7 @@ export const RecordView = ({
   filterToView,
 }: RecordViewProps) => {
   const { snapshot, currentView } = useSnapshotContext();
+  const { updateSnapshotPath } = useSnapshotParams();
   const { setWriteFocus, setRecordScope, setColumnScope, setTableScope } = useFocusedCellsContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
@@ -45,11 +47,13 @@ export const RecordView = ({
       setWriteFocus(cells);
       if (columnId) {
         setColumnScope(record.id.wsId, columnId);
+        updateSnapshotPath(snapshot?.id ?? '', table.id.wsId, record.id.wsId, columnId);
       } else {
         setRecordScope(record.id.wsId);
+        updateSnapshotPath(snapshot?.id ?? '', table.id.wsId, record.id.wsId);
       }
     },
-    [setWriteFocus, setColumnScope, setRecordScope],
+    [setWriteFocus, setColumnScope, updateSnapshotPath, snapshot?.id, table.id.wsId, setRecordScope],
   );
 
   useEffect(() => {

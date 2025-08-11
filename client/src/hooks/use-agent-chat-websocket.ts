@@ -1,5 +1,5 @@
-import { RecordCell } from '@/app/snapshots/[id]/components/types';
 import { API_CONFIG } from '@/lib/api/config';
+import { RecordCell } from '@/types/common';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
 import pluralize from 'pluralize';

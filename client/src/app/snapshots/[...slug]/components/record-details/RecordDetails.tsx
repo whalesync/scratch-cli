@@ -160,6 +160,7 @@ export const RecordDetails = ({
           table={table}
           record={currentRecord}
           columnId={field}
+          key={field}
           mode={focusedView ? 'focus' : 'normal'}
           updateField={updateField}
           onFieldLabelClick={() => handleFocusOnField(focusedView ? undefined : field)}

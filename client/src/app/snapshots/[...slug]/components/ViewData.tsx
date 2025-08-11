@@ -3,7 +3,7 @@
 import { SecondaryButton } from '@/app/components/base/buttons';
 import { TextBookSm, TextTitleXs } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
-import { useSnapshotContext } from '@/app/snapshots/[id]/SnapshotContext';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
 import { ColumnView } from '@/types/server-entities/view';

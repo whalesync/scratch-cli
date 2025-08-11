@@ -1,7 +1,7 @@
-import {RecordCell} from '@/app/snapshots/[id]/components/types';
-import {FAKE_LEFT_COLUMNS, isActionsColumn, isIdColumn, isRecordStatusColumn} from '@/app/snapshots/[id]/components/snapshot-table/utils/helpers';
-import { GridSelection } from '@glideapps/glide-data-grid';
+import { FAKE_LEFT_COLUMNS, isActionsColumn, isIdColumn, isRecordStatusColumn } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+import { RecordCell } from '@/types/common';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { GridSelection } from '@glideapps/glide-data-grid';
  // Helper function to check if selected cells match a focus condition
 export const checkSelectedCellsFocus = (
     focusArray: RecordCell[], 

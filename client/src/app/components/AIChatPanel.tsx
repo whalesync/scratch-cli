@@ -1,6 +1,6 @@
 'use client';
 
-import { useFocusedCellsContext } from '@/app/snapshots/[id]/FocusedCellsContext';
+import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
@@ -43,8 +43,8 @@ import {
   VinylRecordIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAIPromptContext } from '../snapshots/[id]/AIPromptContext';
-import { useSnapshotContext } from '../snapshots/[id]/SnapshotContext';
+import { useAIPromptContext } from '../snapshots/[...slug]/AIPromptContext';
+import { useSnapshotContext } from '../snapshots/[...slug]/SnapshotContext';
 import { BadgeWithTooltip } from './BadgeWithTooltip';
 import { TextTitleSm } from './base/text';
 import CapabilitiesPicker from './CapabilitiesPicker';
