@@ -19,9 +19,10 @@ export const useSnapshots = (connectorAccountId?: string) => {
     () => snapshotApi.list(connectorAccountId)
   );
 
-  const createSnapshot = async (dto: CreateSnapshotDto) => {
-    await snapshotApi.create(dto);
+  const createSnapshot = async (dto: CreateSnapshotDto): Promise<Snapshot> => {
+    const newSnapshot = await snapshotApi.create(dto);
     mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
+    return newSnapshot; // Return the new snapshot to the caller.
   };
 
   const updateSnapshot = async (id: string) => {

@@ -1,12 +1,17 @@
 'use client';
 
 import { useSnapshots } from '@/hooks/use-snapshot';
-import { Center, Loader, SimpleGrid, Text } from '@mantine/core';
+import { RouteUrls } from '@/utils/route-urls';
+import { Center, Loader, SimpleGrid } from '@mantine/core';
+import { useRouter } from 'next/navigation';
 import { ContentContainer } from './ContentContainer';
+import { ErrorInfo, Info } from './InfoPanel';
 import { SnapshotCard } from './SnapshotCard';
+import { PrimaryButton } from './base/buttons';
 
 export const SnapshotsList = () => {
   const { snapshots, isLoading, error } = useSnapshots();
+  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -17,22 +22,23 @@ export const SnapshotsList = () => {
   }
 
   if (error) {
-    return (
-      <Center h="100%">
-        <Text c="red">{error}</Text>
-      </Center>
-    );
+    return <ErrorInfo error={error} title="Error loading snapshots" />;
   }
-
   return (
     <ContentContainer title="Snapshots">
-      <SimpleGrid cols={1} spacing="md" maw="600px">
+      <SimpleGrid cols={1} spacing="md" maw="1000px">
         {snapshots && snapshots.length > 0 ? (
           snapshots.map((snapshot) => <SnapshotCard key={snapshot.id} snapshot={snapshot} />)
         ) : (
-          <Text c="dimmed" style={{ textAlign: 'center' }}>
-            No snapshots found.
-          </Text>
+          <Info>
+            <Info.NotFoundIcon />
+            <Info.Title> No syncs could be found</Info.Title>
+            <Info.Actions>
+              <PrimaryButton onClick={() => router.push(RouteUrls.connectionsPageUrl)} variant="outline" size="sm">
+                Create a snapshot (TODO)
+              </PrimaryButton>
+            </Info.Actions>
+          </Info>
         )}
       </SimpleGrid>
     </ContentContainer>

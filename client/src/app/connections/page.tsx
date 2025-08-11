@@ -1,81 +1,25 @@
 'use client';
 
-import { useCustomConnectors } from '@/hooks/use-custom-connector';
-import { ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
-import { Alert, Button, Container, Group, Loader, Modal, Paper, Select, Stack, TextInput, Title } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
+import { Center, Group, Loader, Modal, Stack, Text, Title, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { WarningCircleIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
-import { ConnectorAccountRow } from './ConnectorAccountRow';
+import { ErrorInfo } from '../components/InfoPanel';
+import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { TextRegularSm } from '../components/base/text';
+import { ConnectorAccountRow } from './components/ConnectorAccountRow';
+import { CreateConnectionModal } from './components/CreateConnectionModal';
+import { UpdateConnectionModal } from './components/UpdateConnectionModal';
 
 export default function ConnectorAccountsPage() {
-  const {
-    isLoading,
-    error,
-    connectorAccounts,
-    createConnectorAccount,
-    deleteConnectorAccount,
-    updateConnectorAccount,
-    testConnection,
-  } = useConnectorAccounts();
-
-  const { data: customConnectors } = useCustomConnectors();
-
-  // State for the creation form
-  const [newApiKey, setNewApiKey] = useState('');
-  const [newService, setNewService] = useState<Service | null>(null);
-  const [newModifier, setNewModifier] = useState<string | null>(null);
+  const { isLoading, error, connectorAccounts, deleteConnectorAccount, testConnection } = useConnectorAccounts();
 
   // State for the update modal
-  const [opened, { open, close }] = useDisclosure(false);
   const [selectedConnectorAccount, setSelectedConnectorAccount] = useState<ConnectorAccount | null>(null);
-  const [updatedName, setUpdatedName] = useState('');
-  const [updatedApiKey, setUpdatedApiKey] = useState('');
-  const [updatedModifier, setUpdatedModifier] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
-
-  const handleCreate = async () => {
-    if (!newService) {
-      alert('Service is required.');
-      return;
-    }
-    if (newService !== Service.CSV && !newApiKey) {
-      alert('API key is required for this service.');
-      return;
-    }
-    const newAccount = await createConnectorAccount({
-      service: newService,
-      apiKey: newService === Service.CSV ? '' : newApiKey,
-      modifier: newModifier || undefined,
-    });
-    setNewApiKey('');
-    setNewService(null);
-    setNewModifier(null);
-    if (newAccount && newAccount.id) {
-      await handleTest(newAccount.id);
-    }
-  };
-
-  const handleOpenUpdateModal = (conn: ConnectorAccount) => {
-    setSelectedConnectorAccount(conn);
-    setUpdatedName(conn.displayName);
-    setUpdatedApiKey(conn.apiKey);
-    setUpdatedModifier(conn.modifier);
-    open();
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedConnectorAccount) return;
-
-    await updateConnectorAccount(selectedConnectorAccount.id, {
-      displayName: updatedName,
-      apiKey: selectedConnectorAccount.service === Service.CSV ? '' : updatedApiKey,
-      modifier: updatedModifier || undefined,
-    });
-    close();
-  };
+  const [isDeleting, setIsDeleting] = useState(false);
+  const modalStack = useModalsStack(['create', 'update', 'confirm-delete']);
 
   const handleTest = async (id: string) => {
     setTestingId(id);
@@ -96,54 +40,50 @@ export default function ConnectorAccountsPage() {
     setTestingId(null);
   };
 
+  const handleDelete = async () => {
+    if (!selectedConnectorAccount) return;
+    setIsDeleting(true);
+    try {
+      await deleteConnectorAccount(selectedConnectorAccount.id);
+      setSelectedConnectorAccount(null);
+    } catch (e) {
+      console.error(e);
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to delete connection.',
+        color: 'red',
+      });
+    } finally {
+      setIsDeleting(false);
+      modalStack.close('confirm-delete');
+    }
+  };
+
   if (isLoading) {
     return (
-      <Container>
+      <Center h="100%">
         <Loader />
-      </Container>
+        <TextRegularSm>Loading connections...</TextRegularSm>
+      </Center>
     );
   }
 
   if (error) {
-    return (
-      <Container>
-        <Alert icon={<WarningCircleIcon size="1rem" />} title="Error!" color="red">
-          Failed to load connections. Please try again later.
-        </Alert>
-      </Container>
-    );
+    return <ErrorInfo error={error} />;
   }
 
   return (
     <>
-      <Modal opened={opened} onClose={close} title="Update Connection">
+      <CreateConnectionModal {...modalStack.register('create')} />
+      <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
+      <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
         <Stack>
-          <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
-          {selectedConnectorAccount?.service !== Service.CSV && (
-            <TextInput
-              label="API Key"
-              value={updatedApiKey}
-              onChange={(e) => setUpdatedApiKey(e.currentTarget.value)}
-            />
-          )}
-          {selectedConnectorAccount?.service === Service.CUSTOM && customConnectors && (
-            <Select
-              label="Custom Connector"
-              placeholder="Select a custom connector (optional)"
-              data={customConnectors.map((connector) => ({
-                value: connector.id,
-                label: connector.name,
-              }))}
-              value={updatedModifier}
-              onChange={setUpdatedModifier}
-              clearable
-            />
-          )}
+          <Text>Are you sure you want to delete this connection and associated snapshots?</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={close}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>Save</Button>
+            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
+            <PrimaryButton onClick={handleDelete} loading={isDeleting}>
+              Delete
+            </PrimaryButton>
           </Group>
         </Stack>
       </Modal>
@@ -160,8 +100,14 @@ export default function ConnectorAccountsPage() {
                   key={conn.id}
                   connectorAccount={conn}
                   onTest={handleTest}
-                  onUpdate={handleOpenUpdateModal}
-                  onDelete={deleteConnectorAccount}
+                  onUpdate={(conn) => {
+                    setSelectedConnectorAccount(conn);
+                    modalStack.open('update');
+                  }}
+                  onDelete={() => {
+                    setSelectedConnectorAccount(conn);
+                    modalStack.open('confirm-delete');
+                  }}
                   testingId={testingId}
                 />
               ))}
@@ -169,45 +115,9 @@ export default function ConnectorAccountsPage() {
           </>
         )}
 
-        <Paper withBorder shadow="md" p="md">
-          <Stack>
-            <Title order={2}>Create New Connection</Title>
-            <Select
-              label="Service"
-              placeholder="Pick a service"
-              data={Object.values(Service)}
-              value={newService}
-              onChange={(value) => setNewService(value as Service)}
-            />
-            {newService === Service.CSV && (
-              <Alert color="blue" title="CSV Connection">
-                CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
-              </Alert>
-            )}
-            {newService !== Service.CSV && (
-              <TextInput
-                label="API Key"
-                placeholder="Enter API Key"
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.currentTarget.value)}
-              />
-            )}
-            {newService === Service.CUSTOM && customConnectors && (
-              <Select
-                label="Custom Connector"
-                placeholder="Select a custom connector (optional)"
-                data={customConnectors.map((connector) => ({
-                  value: connector.id,
-                  label: connector.name,
-                }))}
-                value={newModifier}
-                onChange={setNewModifier}
-                clearable
-              />
-            )}
-            <Button onClick={handleCreate}>Create</Button>
-          </Stack>
-        </Paper>
+        <PrimaryButton w="min-content" onClick={() => modalStack.open('create')}>
+          New Connection
+        </PrimaryButton>
       </Stack>
     </>
   );
