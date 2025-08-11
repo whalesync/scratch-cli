@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { ConnectorAccount, Service } from '@prisma/client';
 import { CsvFileService } from 'src/csv-file/csv-file.service';
 import { Connector } from '../../connector';
@@ -50,7 +47,8 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       },
       name: header,
       pgType: PostgresColumnType.TEXT, // All CSV fields are strings
-      readonly: index === 0, // First field is readonly as it's the identity field
+      markdown: header.toLowerCase().endsWith('_md') || header.toLowerCase().endsWith('.md') ? true : undefined,
+      readonly: index === 0 && (header.toLowerCase() === 'id' || header.toLowerCase().endsWith('_id')), // First field is readonly if it is the identity field
     }));
 
     return {
@@ -84,6 +82,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     await callback(records);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getBatchSize(operation: 'create' | 'update' | 'delete'): number {
     // For CSV, we can process all records at once since they're in memory
     return 1000;

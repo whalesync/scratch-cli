@@ -27,7 +27,7 @@ function CsvFileContent({ id }: { id: string }) {
       setName(csvFile.name);
       setBody(csvFile.body);
     }
-  }, [csvFile]);
+  }, [csvFile, isLoading]);
 
   const handleSave = async () => {
     if (!csvFile) return;

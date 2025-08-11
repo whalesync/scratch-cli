@@ -5,6 +5,7 @@ import { isLargeTextColumn, PostgresColumnType, SnapshotRecord, TableSpec } from
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Checkbox, Group, NumberInput, ScrollArea, Stack, Textarea, TextInput } from '@mantine/core';
 import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
+import styles from './DisplayField.module.css';
 import { FieldLabel, FieldRow } from './FieldRow';
 
 interface DisplayFieldProps {
@@ -277,6 +278,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
       resize="vertical"
       onChange={(e) => updateField(columnId, e.target.value)}
       readOnly={column.readonly || hasSuggestion || isProtected}
+      classNames={styles}
       styles={{
         input: {
           borderColor: 'transparent',

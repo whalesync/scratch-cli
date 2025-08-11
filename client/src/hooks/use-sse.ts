@@ -124,7 +124,7 @@ export const useSSE = <T = unknown>({
 
     // IMPORTANT: Add any function props to the dependency array.
     // The consuming component MUST memoize them with `useCallback`.
-  }, [url, authToken, onOpen, onMessage, onError]);
+  }, [url, authToken, onOpen, onMessage, onError, authType]);
 
   return { data, error, isConnected };
 };
