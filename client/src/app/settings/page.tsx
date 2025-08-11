@@ -5,16 +5,18 @@ import { Group, Stack } from '@mantine/core';
 import { ContentContainer } from '../components/ContentContainer';
 import { AgentCredentials } from './components/AgentCredentials';
 import { DebugInfo } from './components/DebugInfo';
+import { UsageHistory } from './components/UsageHistory';
 
 const SettingsPage = () => {
   return (
     <ContentContainer title="Settings">
       <Group gap="md" align="flex-start">
-        <UserProfile routing="hash" />
         <Stack gap="md">
           <DebugInfo />
           <AgentCredentials />
+          <UsageHistory />
         </Stack>
+        <UserProfile routing="hash" />
       </Group>
     </ContentContainer>
   );

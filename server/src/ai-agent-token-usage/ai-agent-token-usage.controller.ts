@@ -14,7 +14,7 @@ export class AiAgentTokenUsageController {
     return this.aiAgentTokenUsageService.create(createAiAgentTokenUsageEventDto, req.user.id);
   }
 
-  @Get()
+  @Get('/events')
   findAll(@Req() req: RequestWithUser, @Query('take') take?: string, @Query('cursor') cursor?: string) {
     return this.aiAgentTokenUsageService.findAll(req.user.id, take ? parseInt(take) : undefined, cursor);
   }

@@ -43,6 +43,9 @@ export const SWR_KEYS = {
   users: {
     activeUser: () => ["users", "activeUser"],
   },
+  agentUsage: {
+    list: (cursor?: string, take?: number) => ["agent-usage", "list", cursor, take],
+  },
 };
 
 export const API_IMPORT_KEYS = {
