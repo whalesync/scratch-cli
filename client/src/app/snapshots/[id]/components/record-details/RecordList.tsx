@@ -128,11 +128,13 @@ const ColumnNode = ({ column, onClick }: { column: ColumnMetaData; onClick: (col
 };
 
 const DataTypeIcon = (props: IconProps & { dataType: string }) => {
-  if (props.dataType === PostgresColumnType.NUMERIC || props.dataType === PostgresColumnType.NUMERIC_ARRAY) {
-    return <HashIcon {...props} />;
-  } else if (props.dataType === PostgresColumnType.BOOLEAN) {
-    return <FlagIcon {...props} />;
+  const { dataType, ...iconProps } = props;
+
+  if (dataType === PostgresColumnType.NUMERIC || dataType === PostgresColumnType.NUMERIC_ARRAY) {
+    return <HashIcon {...iconProps} />;
+  } else if (dataType === PostgresColumnType.BOOLEAN) {
+    return <FlagIcon {...iconProps} />;
   } else {
-    return <TextAaIcon {...props} />;
+    return <TextAaIcon {...iconProps} />;
   }
 };

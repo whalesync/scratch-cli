@@ -65,7 +65,7 @@ export const FieldRow = ({
         isProtected={isProtected}
         onClick={onFieldLabelClick}
       />
-      {children}
+      <div style={{ flex: 1 }}>{children}</div>
     </Group>
   );
 };
