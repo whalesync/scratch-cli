@@ -3,6 +3,7 @@ import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-u
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
+import { ContentToolsModule } from './content-tools/content-tools.module';
 import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
@@ -32,6 +33,7 @@ import { ViewModule } from './view/view.module';
     ViewModule,
     HealthModule,
     AiAgentTokenUsageModule,
+    ContentToolsModule,
   ],
   controllers: [],
   providers: [],

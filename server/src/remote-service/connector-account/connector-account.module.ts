@@ -8,5 +8,6 @@ import { ConnectorAccountService } from './connector-account.service';
   imports: [DbModule, ConnectorsModule],
   controllers: [ConnectorAccountController],
   providers: [ConnectorAccountService],
+  exports: [ConnectorAccountService],
 })
 export class ConnectorAccountModule {}

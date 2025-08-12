@@ -1,8 +1,5 @@
-import { SnapshotsList } from "./components/SnapshotList";
+import { SnapshotsList } from './snapshots/components/SnapshotList';
 
 export default function HomePage() {
-  
-  return (
-    <SnapshotsList />
-  );
+  return <SnapshotsList />;
 }

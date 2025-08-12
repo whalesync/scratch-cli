@@ -15,6 +15,7 @@ export class RouteUrls {
   }
 
   // Authenticated Routes & Route Generators
+  static homePageUrl = "/";
   static connectionsPageUrl = "/connections";
   static apiImportDemoPageUrl = "/ai-connector-builder";
   static healthPageUrl = "/health";

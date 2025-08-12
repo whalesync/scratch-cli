@@ -1,4 +1,4 @@
-import { CreateSnapshotDto, Snapshot, SnapshotRecord } from "@/types/server-entities/snapshot";
+import { CreateSnapshotDto, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -52,13 +52,14 @@ export const snapshotApi = {
     return res.json();
   },
 
-  update: async (id: string): Promise<Snapshot> => {
+  update: async (id: string, updateDto: UpdateSnapshotDto): Promise<Snapshot> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
       method: "PATCH",
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         "Content-Type": "application/json",
       },
+      body: JSON.stringify(updateDto),
     });
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to update snapshot");

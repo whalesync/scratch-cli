@@ -55,17 +55,19 @@ export function SideMenu() {
     <Stack gap={0} h="100%" align="center">
       <Tooltip label="Scratchpad.ai by Whalesync">
         <Center h={50} w={50}>
-          <Image
-            src="/dolphin-svgrepo-com.svg"
-            alt="Scratchpad.ai"
-            w={30}
-            h={30}
-            styles={{
-              root: {
-                fill: 'd262c1',
-              },
-            }}
-          />
+          <Link href={RouteUrls.homePageUrl}>
+            <Image
+              src="/dolphin-svgrepo-com.svg"
+              alt="Scratchpad.ai"
+              w={30}
+              h={30}
+              styles={{
+                root: {
+                  fill: 'd262c1',
+                },
+              }}
+            />
+          </Link>
         </Center>
       </Tooltip>
       <Divider w="100%" mb="md" />

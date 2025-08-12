@@ -4,6 +4,7 @@ import {
   CreateSnapshotDto,
   Snapshot,
   SnapshotRecord,
+  UpdateSnapshotDto,
 } from "@/types/server-entities/snapshot";
 import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -25,11 +26,22 @@ export const useSnapshots = (connectorAccountId?: string) => {
     return newSnapshot; // Return the new snapshot to the caller.
   };
 
-  const updateSnapshot = async (id: string) => {
-    await snapshotApi.update(id);
+  const updateSnapshot = async (id: string, updateDto: UpdateSnapshotDto): Promise<Snapshot> => {
+    const updatedSnapshot = await snapshotApi.update(id, updateDto);
     mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
     mutate(SWR_KEYS.snapshot.detail(id));
+    return updatedSnapshot;
   };
+
+  const deleteSnapshot = async (id: string): Promise<void> => {
+    await snapshotApi.delete(id);
+    mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
+  };
+
+  const refreshSnapshots = async () => {
+    await mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
+  }
+
 
   return {
     snapshots: data,
@@ -37,6 +49,8 @@ export const useSnapshots = (connectorAccountId?: string) => {
     error,
     createSnapshot,
     updateSnapshot,
+    deleteSnapshot,
+    refreshSnapshots,
   };
 };
 

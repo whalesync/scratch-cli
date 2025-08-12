@@ -143,12 +143,18 @@ export class SnapshotService {
     updateSnapshotDto: UpdateSnapshotDto,
     userId: string,
   ): Promise<SnapshotCluster.Snapshot> {
-    const snapshot = await this.findOneWithConnectorAccount(id, userId);
-    // TODO: Update the snapshot if there's anything in the DTO.
+    // Check that the snapshot exists and belongs to the user.
+    await this.findOneWithConnectorAccount(id, userId);
+
+    const updatedSnapshot = await this.db.client.snapshot.update({
+      where: { id },
+      data: updateSnapshotDto,
+      include: SnapshotCluster._validator.include,
+    });
 
     this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
 
-    return snapshot;
+    return updatedSnapshot;
   }
 
   async findOneRecord(

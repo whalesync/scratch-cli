@@ -57,6 +57,10 @@ export interface CreateSnapshotDto {
   tableIds: EntityId[];
 }
 
+export interface UpdateSnapshotDto {
+  name?: string;
+}
+
 export interface AcceptCellValueItem {
   wsId: string;
   columnId: string;

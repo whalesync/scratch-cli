@@ -9,3 +9,8 @@ export interface User {
   agentToken?: string;
   websocketToken?: string;
 }
+
+export enum UserRole {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
