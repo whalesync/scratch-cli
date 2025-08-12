@@ -18,10 +18,10 @@ from server.DTOs import (
     Capability,
 )
 from server.chat_service import ChatService
-from logger import log_info, log_warning, log_error
+from logger import log_info, log_error
+from logging import getLogger
 
-
-from logger import log_info, log_warning, log_error
+myLogger = getLogger(__name__)
 
 
 class ConnectionManager:
@@ -94,7 +94,7 @@ async def websocket_endpoint(
             # type is a string
             # data is an optional object
 
-            print(f"Received message: {message_data}")
+            myLogger.info(f"Received message: {message_data}")
 
             message_type = message_data.get("type")
 
@@ -145,29 +145,31 @@ async def websocket_endpoint(
                     ),
                 )
 
-                print(f"💬 Processing message for session: {session_id}")
-                print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
-                print(f"📝 Message: {request.message}")
+                myLogger.info(f"💬 Processing message for session: {session_id}")
+                myLogger.info(
+                    f"📋 Available sessions: {list(chat_service.sessions.keys())}"
+                )
+                myLogger.info(f"📝 Message: {request.message}")
                 if request.api_token:
-                    print(
+                    myLogger.info(
                         f"🔑 API token provided: {request.api_token[:8]}..."
                         if len(request.api_token) > 8
                         else request.api_token
                     )
                 else:
-                    print(f"ℹ️ No API token provided")
+                    myLogger.info(f"ℹ️ No API token provided")
 
                 if request.capabilities:
-                    print(
+                    myLogger.info(
                         f"🔧 Capabilities provided: {len(request.capabilities)} capabilities"
                     )
                     for i, capability in enumerate(request.capabilities, 1):
-                        print(f"   Capability {i}: {capability}")
+                        myLogger.info(f"   Capability {i}: {capability}")
                 else:
-                    print(f"ℹ️ No capabilities provided")
+                    myLogger.info(f"ℹ️ No capabilities provided")
 
                 if request.style_guides:
-                    print(
+                    myLogger.info(
                         f"📋 Style guides provided: {len(request.style_guides)} style guides"
                     )
                     for i, style_guide in enumerate(request.style_guides, 1):
@@ -182,11 +184,11 @@ async def websocket_endpoint(
                                 if len(str(content)) > 50
                                 else str(content)
                             )
-                        print(
+                        myLogger.info(
                             f"   Style guide {i}: {style_guide.name} - {truncated_content}"
                         )
                 else:
-                    print(f"ℹ️ No style guides provided")
+                    myLogger.info(f"ℹ️ No style guides provided")
 
                 session = chat_service.sessions[session_id]
                 session.last_activity = datetime.now()
@@ -197,13 +199,13 @@ async def websocket_endpoint(
                 )
 
                 session.chat_history.append(user_message)
-                print(
+                myLogger.info(
                     f"📝 Added user message to chat history. New length: {len(session.chat_history)}"
                 )
 
                 try:
                     # Process with agent
-                    print(f"🤖 Processing with agent...")
+                    myLogger.info(f"🤖 Processing with agent...")
                     log_info(
                         "Agent processing started",
                         session_id=session_id,
@@ -213,18 +215,20 @@ async def websocket_endpoint(
                     )
 
                     # Convert style guides to dict format if provided
-                    print(f"🔍 Converting style guides:")
-                    print(f"   request.style_guides: {request.style_guides}")
-                    print(f"   request.style_guides type: {type(request.style_guides)}")
+                    myLogger.info(f"🔍 Converting style guides:")
+                    myLogger.info(f"   request.style_guides: {request.style_guides}")
+                    myLogger.info(
+                        f"   request.style_guides type: {type(request.style_guides)}"
+                    )
 
                     style_guides_dict = {}
                     if request.style_guides:
                         style_guides_dict = {
                             g.name: g.content for g in request.style_guides
                         }
-                        print(f"   Converted to: {style_guides_dict}")
+                        myLogger.info(f"   Converted to: {style_guides_dict}")
                     else:
-                        print(f"   No style guides provided, using empty dict")
+                        myLogger.info(f"   No style guides provided, using empty dict")
 
                     async def progress_callback(message: str):
                         await manager.send_personal_message(
@@ -273,7 +277,7 @@ async def websocket_endpoint(
                     )
 
                     session.chat_history.append(assistant_message)
-                    print(
+                    myLogger.info(
                         f"📝 Added assistant message to chat history. New length: {len(session.chat_history)}"
                     )
 
@@ -282,14 +286,14 @@ async def websocket_endpoint(
                         response_summary=agent_response.response_summary,
                     )
                     session.summary_history.append(summary_entry)
-                    print(
+                    myLogger.info(
                         f"📋 Added to summary history. New length: {len(session.summary_history)}"
                     )
 
                     # Update session
                     chat_service.sessions[session_id] = session
-                    print(f"💾 Session updated in storage")
-                    print(
+                    myLogger.info(f"💾 Session updated in storage")
+                    myLogger.info(
                         f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
                     )
 
@@ -310,8 +314,8 @@ async def websocket_endpoint(
                         error=str(e),
                         snapshot_id=session.snapshot_id,
                     )
-                    print(f"❌ Error processing message: {e}")
-                    print(
+                    myLogger.info(f"❌ Error processing message: {e}")
+                    myLogger.info(
                         f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
                     )
                     # Don't update the session if there was an error

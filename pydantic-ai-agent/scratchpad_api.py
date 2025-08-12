@@ -9,6 +9,9 @@ from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 from datetime import datetime
 import requests
+from logging import getLogger
+
+myLogger = getLogger(__name__)
 
 
 # Data models equivalent to TypeScript interfaces
@@ -249,15 +252,9 @@ class SnapshotApi:
         )
         data = _handle_response(response, "Failed to list records")
 
-        print(
-            f"🔍 DEBUG: Raw server response has {len(data.get('records', []))} records"
-        )
-
         # Convert raw record dictionaries to SnapshotRecord objects
         records = []
         for i, record_dict in enumerate(data.get("records", [])):
-            print(f"🔍 DEBUG: Converting record {i}: {type(record_dict)}")
-
             record_id = RecordId(
                 wsId=record_dict["id"]["wsId"], remoteId=record_dict["id"]["remoteId"]
             )
@@ -271,7 +268,6 @@ class SnapshotApi:
                 ),  # Note: server uses __suggested_values
                 dirty=record_dict.get("__dirty", False),
             )
-            print(f"🔍 DEBUG: Created SnapshotRecord: {type(snapshot_record)}")
             records.append(snapshot_record)
 
         result = ListRecordsResponse(
@@ -279,7 +275,7 @@ class SnapshotApi:
             nextCursor=data.get("nextCursor"),
             filteredRecordsCount=data.get("filteredRecordsCount", 0),
         )
-        print(
+        myLogger.info(
             f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}"
         )
         return result
@@ -317,15 +313,9 @@ class SnapshotApi:
         )
         data = _handle_response(response, "Failed to list records for AI")
 
-        print(
-            f"🔍 DEBUG: Raw server response has {len(data.get('records', []))} records"
-        )
-
         # Convert raw record dictionaries to SnapshotRecord objects
         records = []
         for i, record_dict in enumerate(data.get("records", [])):
-            print(f"🔍 DEBUG: Converting record {i}: {type(record_dict)}")
-
             record_id = RecordId(
                 wsId=record_dict["id"]["wsId"], remoteId=record_dict["id"]["remoteId"]
             )
@@ -339,7 +329,6 @@ class SnapshotApi:
                 ),  # Note: server uses __suggested_values
                 dirty=record_dict.get("__dirty", False),
             )
-            print(f"🔍 DEBUG: Created SnapshotRecord: {type(snapshot_record)}")
             records.append(snapshot_record)
 
         result = ListRecordsResponse(
@@ -347,8 +336,8 @@ class SnapshotApi:
             nextCursor=data.get("nextCursor"),
             filteredRecordsCount=data.get("filteredRecordsCount", 0),
         )
-        print(
-            f"🔍 DEBUG: Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}"
+        myLogger.info(
+            f"🔍 Returning ListRecordsResponse with {len(result.records)} records of type {type(result.records[0]) if result.records else 'None'}"
         )
         return result
 

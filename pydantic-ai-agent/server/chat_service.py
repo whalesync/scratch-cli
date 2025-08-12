@@ -28,7 +28,8 @@ from agents.data_agent.models import (
     UsageStats,
 )
 from agents.data_agent.agent import create_agent, extract_response
-from logger import log_info, log_error, log_debug, log_warning
+from logger import log_info, log_error
+from logging import getLogger
 from scratchpad_api import API_CONFIG, check_server_health, track_token_usage
 
 # from tools import set_api_token, set_session_data
@@ -37,8 +38,9 @@ from scratchpad_api import get_agent_credentials, get_snapshot, list_records, ge
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
 )
-from traceback import print_exc
 from utils.helpers import find_first_matching, mask_string
+
+myLogger = getLogger(__name__)
 
 
 class ChatService:
@@ -56,14 +58,10 @@ class ChatService:
             snapshot_id=snapshot_id,
         )
 
-        log_info(
-            "Session created and session data set",
-            session_id=session_id,
-            snapshot_id=snapshot_id,
+        myLogger.info(
+            "Session created",
+            extra={"session_id": session_id, "snapshot_id": snapshot_id},
         )
-        print(f"📝 Created session: {session_id}")
-        if snapshot_id:
-            print(f"📊 Session associated with snapshot: {snapshot_id}")
 
         return session
 
@@ -86,67 +84,26 @@ class ChatService:
         progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
-        print(f"🤖 Starting agent processing for session: {session.id}")
-        if session.snapshot_id:
-            print(f"📊 Session associated with snapshot: {session.snapshot_id}")
+        myLogger.info(
+            "Starting agent processing",
+            extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
+        )
         # Set API token in tools' global state for this message
-        if api_token:
-            # set_api_token(api_token)
-            log_info(
-                "API token set for tools",
-                session_id=session.id,
-                token_length=len(api_token),
-                token_preview=(
-                    api_token[:8] + "..." if len(api_token) > 8 else api_token
-                ),
-                snapshot_id=session.snapshot_id,
-            )
-            print(
-                f"🔑 API token set for tools: {api_token[:8]}..."
-                if len(api_token) > 8
-                else api_token
-            )
-        else:
-            log_info(
-                "No API token provided for session",
-                session_id=session.id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"ℹ️ No API token provided")
+        if not api_token:
+            myLogger.info("No API token provided")
 
         # Log view ID if provided
-        if view_id:
-            log_info(
-                "View ID provided for session",
-                session_id=session.id,
-                view_id=view_id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"👁️ View ID provided: {view_id}")
-        else:
-            log_info(
-                "No view ID provided for session",
-                session_id=session.id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"ℹ️ No view ID provided")
+        if not view_id:
+            myLogger.info("No view ID provided")
 
         # Log capabilities if provided
         if capabilities:
             log_info(
-                "Capabilities provided for session",
+                "Capabilities provided",
                 session_id=session.id,
                 capabilities=capabilities,
                 snapshot_id=session.snapshot_id,
             )
-            print(f"🔧 Capabilities provided: {capabilities}")
-        else:
-            log_info(
-                "No capabilities provided for session",
-                session_id=session.id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"ℹ️ No capabilities provided")
 
         # Log style guides if provided
         if style_guides:
@@ -157,19 +114,6 @@ class ChatService:
                 style_guide_names=list(style_guides.keys()),
                 snapshot_id=session.snapshot_id,
             )
-            print(f"📋 Style guides provided: {len(style_guides)} style guides")
-            for i, (key, content) in enumerate(style_guides.items(), 1):
-                truncated_content = (
-                    content[:50] + "..." if len(content) > 50 else content
-                )
-                print(f"   Style guide {i}: {key} - {truncated_content}")
-        else:
-            log_info(
-                "No style guides provided for session",
-                session_id=session.id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"ℹ️ No style guides provided")
 
         if data_scope:
             log_info(
@@ -178,16 +122,6 @@ class ChatService:
                 data_scope=data_scope,
                 snapshot_id=session.snapshot_id,
             )
-            print(
-                f"📊 Data scope provided: {data_scope}, record_id: {record_id}, column_id: {column_id}"
-            )
-        else:
-            log_info(
-                "No data scope provided for session",
-                session_id=session.id,
-                snapshot_id=session.snapshot_id,
-            )
-            print(f"ℹ️ No data scope provided")
 
         user_open_router_credentials = None
 
@@ -203,8 +137,14 @@ class ChatService:
                 and c.enabled,
             )
             if user_open_router_credentials:
-                print(
-                    f"🔑 User has personal openrouter credentials: {mask_string(user_open_router_credentials.apiKey, 8, '*', 15)}"
+                myLogger.info(
+                    "User has personal openrouter credentials",
+                    extra={
+                        "session_id": session.id,
+                        "api_key": mask_string(
+                            user_open_router_credentials.apiKey, 8, "*", 15
+                        ),
+                    },
                 )
         except Exception as e:
             log_error(
@@ -212,8 +152,10 @@ class ChatService:
                 session_id=session.id,
                 error=str(e),
             )
-            print(f"❌ Failed to get agent credentials: {e}")
-            print_exc()
+            myLogger.exception(
+                "Failed to get agent credentials",
+                extra={"session_id": session.id},
+            )
             raise HTTPException(
                 status_code=500,
                 detail="Error authenticating credentials for agent processing",
@@ -223,22 +165,12 @@ class ChatService:
             # Build context from session history
             context = ""
 
-            # Style guides are now handled in the system prompt, not user prompt context
-            if style_guides:
-                print(
-                    f"📚 Style guides will be included in system prompt: {len(style_guides)} style guides"
-                )
-                for i, key in enumerate(style_guides.keys(), 1):
-                    print(f"   Style Guide {i}: {key}")
-            else:
-                print(f"ℹ️ No style guides to include")
-
             # Create the full prompt with memory
             full_prompt = f"RESPOND TO: {user_message} {context}"
 
             # Log agent processing details
-            log_debug(
-                "Agent processing details",
+            log_info(
+                "Agent processing summary",
                 session_id=session.id,
                 context_length=len(context),
                 chat_history_length=len(session.chat_history),
@@ -253,7 +185,9 @@ class ChatService:
 
             try:
                 # Pre-load snapshot data and records for efficiency
-                print(f"🔄 Pre-loading snapshot data and records...")
+                myLogger.info(
+                    "Pre-loading snapshot data and records",
+                )
                 snapshot_data = None
                 preloaded_records = {}
                 filtered_counts = {}
@@ -272,7 +206,6 @@ class ChatService:
                         )
 
                         # Pre-load records for each table
-                        # TODO: apply read_focus and write_focus to the records to eliminate some fields
                         for table in snapshot.tables:
                             if active_table_id and active_table_id != table.id.wsId:
                                 continue
@@ -300,14 +233,13 @@ class ChatService:
                                             "dirty": record.dirty,
                                         }
                                     ]
-                                    print(
+                                    myLogger.info(
                                         f"📊 Pre-loaded {len(preloaded_records[table.name])} record for table '{table.name}': {record.id.wsId}"
                                     )
                                 except Exception as e:
-                                    print(
-                                        f"⚠️ Failed to pre-load record {record_id} for table '{table.name}': {e}"
+                                    myLogger.exception(
+                                        f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
                                     )
-                                    print_exc()
                                     preloaded_records[table.name] = []
                             else:
                                 try:
@@ -333,24 +265,29 @@ class ChatService:
                                         }
                                         for record in records_result.records
                                     ]
-                                    print(
+                                    myLogger.info(
                                         f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'"
                                     )
                                     if records_result.filteredRecordsCount > 0:
-                                        print(
+                                        myLogger.info(
                                             f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'"
                                         )
                                 except Exception as e:
-                                    print(
-                                        f"⚠️ Failed to pre-load records for table '{table.name}': {e}"
+                                    myLogger.exception(
+                                        f"⚠️ Failed to pre-load records for table '{table.name}'"
                                     )
-                                    print_exc()
                                     preloaded_records[table.name] = []
 
-                        print(f"✅ Data preload complete")
+                        myLogger.info(
+                            "Data preload complete",
+                        )
                     except Exception as e:
-                        print(f"⚠️ Failed to pre-load snapshot data: {e}")
-                        print_exc()
+                        log_error(
+                            "Failed to pre-load snapshot data",
+                            session_id=session.id,
+                            error=str(e),
+                            snapshot_id=session.snapshot_id,
+                        )
                         snapshot = None
                         preloaded_records = {}
                         return None
@@ -443,8 +380,6 @@ class ChatService:
                     ) as agent_run:
                         async for node in agent_run:
                             if progress_callback:
-                                # print(f"Processing node: {node}")
-
                                 if Agent.is_user_prompt_node(node):
                                     # A user prompt node => The user has provided input
                                     await progress_callback(f"User prompt constructed")
@@ -503,12 +438,21 @@ class ChatService:
                         result = agent_run.result
 
                 # Run the streaming with timeout
-                print(f"🤖 Running agent with timeout of {timeout_seconds} seconds")
+                myLogger.info(
+                    "Running agent with timeout",
+                    extra={
+                        "session_id": session.id,
+                        "timeout_seconds": timeout_seconds,
+                    },
+                )
                 start_time = asyncio.get_event_loop().time()
                 await asyncio.wait_for(process_stream(), timeout=timeout_seconds)
                 end_time = asyncio.get_event_loop().time()
                 execution_time = end_time - start_time
-                print(f"✅ Agent.run() completed in {execution_time:.2f} seconds")
+                myLogger.info(
+                    "✅ Agent.run() completed",
+                    extra={"session_id": session.id, "execution_time": execution_time},
+                )
                 session.message_history = result.all_messages()
             except asyncio.TimeoutError:
                 log_error(
@@ -517,14 +461,14 @@ class ChatService:
                     timeout_seconds=30,
                     snapshot_id=session.snapshot_id,
                 )
-                print(f"❌ Agent.run() timed out after 30 seconds")
+                myLogger.info(
+                    f"❌ Agent.run() timed out after 30 seconds",
+                )
                 raise HTTPException(status_code=408, detail="Agent response timeout")
 
             # The agent returns an AgentRunResult wrapper, we need to extract the actual response
             response = result
-            print(f"🔍 Agent result: {type(response)}")
-            print(f"🔍 Response class: {response.__class__}")
-            print(f"🔍 ResponseFromAgent class: {ResponseFromAgent}")
+            myLogger.info(f"🔍 Agent result: {type(response)}")
 
             # Extract the actual response from the AgentRunResult
             actual_response = extract_response(response, ResponseFromAgent)
@@ -534,11 +478,10 @@ class ChatService:
                     session_id=session.id,
                     snapshot_id=session.snapshot_id,
                 )
-                print(f"❌ No response from agent")
+                myLogger.info(f"❌ No response from agent")
                 raise HTTPException(status_code=500, detail="No response from agent")
 
-            print(f"🔍 Actual response: {type(actual_response)}")
-            print(
+            myLogger.info(
                 f"🔍 Is instance check: {isinstance(actual_response, ResponseFromAgent)}"
             )
 
@@ -559,15 +502,13 @@ class ChatService:
 
             if has_expected_fields:
                 log_info(
-                    "Agent response successful",
+                    "Agent response summary info",
                     session_id=session.id,
                     response_length=len(response_message),  # type: ignore
                     response_summary_length=len(response_summary),  # type: ignore
                     request_summary_length=len(request_summary),  # type: ignore
-                    had_api_token=api_token is not None,
                     snapshot_id=session.snapshot_id,
                 )
-                print(f"✅ Valid ResponseFromAgent received")
 
                 usage: Usage = result.usage()
                 if usage:
@@ -599,13 +540,9 @@ class ChatService:
                         },
                     )
                 except Exception as e:
-                    log_error(
-                        "Failed to track token usage through Scratchpad API",
-                        session_id=session.id,
-                        error=str(e),
+                    myLogger.exception(
+                        f"❌ Failed to track token usage through Scratchpad API"
                     )
-                    print(f"❌ Failed to track token usage through Scratchpad API: {e}")
-                    print_exc()
 
                 return actual_response
             else:
@@ -615,7 +552,7 @@ class ChatService:
                     response_type=type(response),
                     snapshot_id=session.snapshot_id,
                 )
-                print(f"❌ Invalid response from agent: {response}")
+                myLogger.info(f"❌ Invalid response from agent: {response}")
                 raise HTTPException(
                     status_code=500, detail="Invalid response from agent"
                 )
@@ -627,10 +564,7 @@ class ChatService:
                 error=str(e),
                 snapshot_id=session.snapshot_id,
             )
-            print(f"❌ Error in agent processing: {e}")
-            import traceback
-
-            traceback.print_exc()
+            myLogger.info(f"❌ Error in agent processing: {e}")
             raise HTTPException(
                 status_code=500, detail=f"Error processing message: {str(e)}"
             )
@@ -648,9 +582,4 @@ class ChatService:
             del self.sessions[session_id]
 
         if to_delete:
-            log_info(
-                "Sessions cleaned up",
-                sessions_cleaned=len(to_delete),
-                max_age_hours=max_age_hours,
-            )
-            print(f"🧹 Cleaned up {len(to_delete)} inactive sessions")
+            myLogger.info(f"🧹 Cleaned up {len(to_delete)} inactive sessions")

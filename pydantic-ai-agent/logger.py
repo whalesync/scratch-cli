@@ -5,17 +5,29 @@ Centralized logging module for the chat server
 
 import os
 from typing import Optional, Any
+from logging import basicConfig, INFO, DEBUG, StreamHandler, Formatter
+from pydantic_ai.agent import Agent
+from pydantic_ai.models.instrumented import InstrumentationSettings
+
 
 # Global logger instance
 _logger: Optional[Any] = None
 _logfire_available: bool = False
 
 
-def initialize_logger() -> None:
+def initialize_logging() -> None:
     """Initialize the logger with Logfire if available"""
     global _logger, _logfire_available
 
+    # Set up global logging to the console
+    stream_handler = StreamHandler()
+    stream_handler.setFormatter(Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    basicConfig(level=INFO, handlers=[stream_handler])
+
     logfire_token = os.getenv("LOGFIRE_TOKEN")
+    enabled_full_instrumentation = (
+        os.getenv("LOGFIRE_ENABLE_FULL_INSTRUMENTATION", "false").lower() == "true"
+    )
 
     if logfire_token:
         try:
@@ -31,9 +43,24 @@ def initialize_logger() -> None:
 
             # Enable Logfire's AI instrumentation for automatic LLM logging
             logfire_module.instrument_pydantic_ai()
-            print("✅ Logfire configured successfully")
+
+            if enabled_full_instrumentation:
+                instrumentation_settings = InstrumentationSettings(
+                    include_content=True,
+                    include_binary_content=False,
+                )
+            else:
+                instrumentation_settings = InstrumentationSettings(
+                    include_content=False,
+                    include_binary_content=False,
+                )
+
+            Agent.instrument_all(instrumentation_settings)
+
             print(
-                "🔍 Logfire AI instrumentation enabled - will capture LLM interactions automatically"
+                "✅ Logfire configured successfully with full instrumentation"
+                if enabled_full_instrumentation
+                else "✅ Logfire configured successfully with scrubbed instrumentation"
             )
         except ImportError:
             print("⚠️ Logfire not installed. Install with: pip install logfire")
@@ -48,14 +75,14 @@ def initialize_logger() -> None:
 
 def log_event(message: str, level: str = "info", **attributes) -> None:
     """
-    Log an event to Logfire if available, otherwise print to console
+    Log an event to Logfire if available and it is info or higher, otherwise print to console
 
     Args:
         message: The log message
         level: Log level (debug, info, warning, error)
         **attributes: Additional attributes to log
     """
-    if _logfire_available and _logger:
+    if _logfire_available and _logger and level != "debug":
         # Logfire API: log(level, message, attributes=data)
         try:
             _logger.log(level, message, attributes=attributes)
@@ -75,11 +102,6 @@ def log_event(message: str, level: str = "info", **attributes) -> None:
         print(f"[{level_upper}] {message}{attr_str}")
 
 
-def log_debug(message: str, **attributes) -> None:
-    """Log a debug message"""
-    log_event(message, level="debug", **attributes)
-
-
 def log_info(message: str, **attributes) -> None:
     """Log an info message"""
     log_event(message, level="info", **attributes)
@@ -96,4 +118,4 @@ def log_error(message: str, **attributes) -> None:
 
 
 # Initialize logger on module import
-initialize_logger()
+initialize_logging()

@@ -18,7 +18,10 @@ from server.DTOs import (
     Capability,
 )
 from server.chat_service import ChatService
-from logger import log_info, log_warning, log_error
+from logger import log_info, log_error
+from logging import getLogger
+
+myLogger = getLogger(__name__)
 
 # Create router
 router = APIRouter(tags=["chat"])
@@ -73,12 +76,10 @@ async def create_session(snapshot_id: str):
         created_at=session.created_at,
     )
 
-    log_info(
-        "Session created",
-        session_id=session_id,
-        total_sessions=len(chat_service.sessions),
-        snapshot_id=snapshot_id,
+    myLogger.info(
+        f"Session created successfully for snapshot {snapshot_id}",
     )
+
     return CreateSessionResponseDTO(
         session=session_summary, available_capabilities=AVAILABLE_CAPABILITIES
     )
@@ -87,15 +88,15 @@ async def create_session(snapshot_id: str):
 @router.get("/sessions/{session_id}", response_model=ChatSession)
 async def get_session(session_id: str):
     """Get session information"""
-    log_info("Session accessed", session_id=session_id)
-    print(f"🔍 Looking for session: {session_id}")
-    print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
+    myLogger.info("Session loaded", extra={"session_id": session_id})
 
     if session_id not in chat_service.sessions:
-        log_warning(
+        myLogger.warning(
             "Session not found",
-            session_id=session_id,
-            available_sessions=list(chat_service.sessions.keys()),
+            extra={
+                "session_id": session_id,
+                "available_sessions": list(chat_service.sessions.keys()),
+            },
         )
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -104,6 +105,7 @@ async def get_session(session_id: str):
     return session
 
 
+# Deprecated code - moved to websocket endpoint
 @router.post("/sessions/{session_id}/messages", response_model=SendMessageResponseDTO)
 async def send_message(session_id: str, request: SendMessageRequestDTO):
     """Send a message to the agent"""
@@ -115,27 +117,29 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         style_guides_count=len(request.style_guides) if request.style_guides else 0,
         capabilities_count=len(request.capabilities) if request.capabilities else 0,
     )
-    print(f"💬 Processing message for session: {session_id}")
-    print(f"📋 Available sessions: {list(chat_service.sessions.keys())}")
-    print(f"📝 Message: {request.message}")
+
     if request.api_token:
-        print(
+        myLogger.info(
             f"🔑 API token provided: {request.api_token[:8]}..."
             if len(request.api_token) > 8
             else request.api_token
         )
     else:
-        print(f"ℹ️ No API token provided")
+        myLogger.info(f"ℹ️ No API token provided")
 
     if request.capabilities:
-        print(f"🔧 Capabilities provided: {len(request.capabilities)} capabilities")
+        myLogger.info(
+            f"🔧 Capabilities provided: {len(request.capabilities)} capabilities"
+        )
         for i, capability in enumerate(request.capabilities, 1):
-            print(f"   Capability {i}: {capability}")
+            myLogger.info(f"   Capability {i}: {capability}")
     else:
-        print(f"ℹ️ No capabilities provided")
+        myLogger.info(f"ℹ️ No capabilities provided")
 
     if request.style_guides:
-        print(f"📋 Style guides provided: {len(request.style_guides)} style guides")
+        myLogger.info(
+            f"📋 Style guides provided: {len(request.style_guides)} style guides"
+        )
         for i, style_guide in enumerate(request.style_guides, 1):
             content = style_guide.content
             if isinstance(content, str):
@@ -148,12 +152,14 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
                     if len(str(content)) > 50
                     else str(content)
                 )
-            print(f"   Style guide {i}: {style_guide.name} - {truncated_content}")
+            myLogger.info(
+                f"   Style guide {i}: {style_guide.name} - {truncated_content}"
+            )
     else:
-        print(f"ℹ️ No style guides provided")
+        myLogger.info(f"ℹ️ No style guides provided")
 
     if request.active_table_id:
-        print(f"📊 Active table: {request.active_table_id}")
+        myLogger.info(f"📊 Active table: {request.active_table_id}")
 
     if session_id not in chat_service.sessions:
         log_error(
@@ -161,16 +167,16 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
             session_id=session_id,
             available_sessions=list(chat_service.sessions.keys()),
         )
-        print(f"❌ Session {session_id} not found!")
-        print(f"🔍 Available sessions: {list(chat_service.sessions.keys())}")
+        myLogger.info(f"❌ Session {session_id} not found!")
+        myLogger.info(f"🔍 Available sessions: {list(chat_service.sessions.keys())}")
         raise HTTPException(status_code=404, detail="Session not found")
 
     session = chat_service.sessions[session_id]
-    print(f"✅ Found session: {session_id}")
+    myLogger.info(f"✅ Found session: {session_id}")
     if session.snapshot_id:
-        print(f"📊 Session associated with snapshot: {session.snapshot_id}")
-    print(f"📊 Session chat history length: {len(session.chat_history)}")
-    print(f"📋 Session summary history length: {len(session.summary_history)}")
+        myLogger.info(f"📊 Session associated with snapshot: {session.snapshot_id}")
+    myLogger.info(f"📊 Session chat history length: {len(session.chat_history)}")
+    myLogger.info(f"📋 Session summary history length: {len(session.summary_history)}")
 
     session.last_activity = datetime.now()
 
@@ -180,13 +186,13 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
     )
 
     session.chat_history.append(user_message)
-    print(
+    myLogger.info(
         f"📝 Added user message to chat history. New length: {len(session.chat_history)}"
     )
 
     try:
         # Process with agent
-        print(f"🤖 Processing with agent...")
+        myLogger.info(f"🤖 Processing with agent...")
         log_info(
             "Agent processing started",
             session_id=session_id,
@@ -196,16 +202,16 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         )
 
         # Convert style guides to dict format if provided
-        print(f"🔍 Converting style guides:")
-        print(f"   request.style_guides: {request.style_guides}")
-        print(f"   request.style_guides type: {type(request.style_guides)}")
+        myLogger.info(f"🔍 Converting style guides:")
+        myLogger.info(f"   request.style_guides: {request.style_guides}")
+        myLogger.info(f"   request.style_guides type: {type(request.style_guides)}")
 
         style_guides_dict = {}
         if request.style_guides:
             style_guides_dict = {g.name: g.content for g in request.style_guides}
-            print(f"   Converted to: {style_guides_dict}")
+            myLogger.info(f"   Converted to: {style_guides_dict}")
         else:
-            print(f"   No style guides provided, using empty dict")
+            myLogger.info(f"   No style guides provided, using empty dict")
 
         agent_response = await chat_service.process_message_with_agent(
             session,
@@ -239,7 +245,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         )
 
         session.chat_history.append(assistant_message)
-        print(
+        myLogger.info(
             f"📝 Added assistant message to chat history. New length: {len(session.chat_history)}"
         )
 
@@ -248,14 +254,14 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
             response_summary=agent_response.response_summary,
         )
         session.summary_history.append(summary_entry)
-        print(
+        myLogger.info(
             f"📋 Added to summary history. New length: {len(session.summary_history)}"
         )
 
         # Update session
         chat_service.sessions[session_id] = session
-        print(f"💾 Session updated in storage")
-        print(
+        myLogger.info(f"💾 Session updated in storage")
+        myLogger.info(
             f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
         )
 
@@ -268,8 +274,8 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
             error=str(e),
             snapshot_id=session.snapshot_id,
         )
-        print(f"❌ Error processing message: {e}")
-        print(
+        myLogger.info(f"❌ Error processing message: {e}")
+        myLogger.info(
             f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
         )
         # Don't update the session if there was an error
@@ -281,21 +287,17 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):
     """Delete a session"""
-    log_info("Session deleted", session_id=session_id)
-
     if session_id not in chat_service.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
     del chat_service.sessions[session_id]
-    print(f"🗑️ Deleted session: {session_id}")
+    myLogger.info(f"🗑️ Deleted session: {session_id}")
     return {"success": True}
 
 
 @router.get("/sessions")
 async def list_sessions():
     """List all active sessions"""
-    log_info("Sessions listed", session_count=len(chat_service.sessions))
-
     # Convert full sessions to summaries
     session_summaries = []
     for session in chat_service.sessions.values():
@@ -318,7 +320,7 @@ async def cleanup_sessions():
     after_count = len(chat_service.sessions)
     cleaned_count = before_count - after_count
 
-    log_info(
+    myLogger.info(
         "Session cleanup completed",
         sessions_cleaned=cleaned_count,
         remaining_sessions=after_count,

@@ -12,7 +12,7 @@ from pydantic_ai.usage import UsageLimits
 from .models import ConnectorBuilderRunContext, ResponseFromConnectorBuilderAgent
 from .agent import create_connector_builder_agent
 from .connector_builder_utils import load_custom_connector
-from logger import log_info, log_error, log_debug, log_warning
+from logger import log_info, log_error
 
 
 class ConnectorBuilderSession:

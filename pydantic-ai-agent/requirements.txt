@@ -4,5 +4,5 @@ python-dotenv>=1.0.0
 requests>=2.31.0 
 fastapi>=0.115.0 
 uvicorn>=0.34.0 
-logfire>=3.22.0
+logfire>=4.3.0
 black>=25.1.0
