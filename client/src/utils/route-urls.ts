@@ -26,6 +26,5 @@ export class RouteUrls {
   static snapshotsPageUrl = "/snapshots";
   static styleGuidesPageUrl = "/style-guides";
   static csvFilesPageUrl = "/csv-files";
-  static csvFilePage = (id: string) => `/csv-files/${id}`;
   static settingsPageUrl = "/settings";
 }

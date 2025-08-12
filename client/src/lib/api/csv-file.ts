@@ -1,4 +1,4 @@
-import { CsvFile, CreateCsvFileDto, UpdateCsvFileDto } from '@/types/server-entities/csv-file';
+import { CreateCsvFileDto, CsvFile, UpdateCsvFileDto } from '@/types/server-entities/csv-file';
 import { API_CONFIG } from './config';
 
 export const csvFileApi = {
@@ -73,7 +73,7 @@ export const csvFileApi = {
         'Content-Type': 'application/json',
       },
     });
-    if (res.status !== 204) {
+    if (!res.ok) {
       throw new Error(res.statusText ?? 'Failed to delete CSV file');
     }
   },

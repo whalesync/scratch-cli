@@ -78,8 +78,10 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       fields: record.fields,
     }));
 
-    // Call the callback with all records
-    await callback(records);
+    // Call the callback with records, 100 at a time
+    for (let i = 0; i < records.length; i += 100) {
+      await callback(records.slice(i, i + 100));
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -156,6 +158,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     const csvData = parseCsv(csvFile.body);
     const identityField = csvData.headers[0];
 
+    // We don't care about the status of the CSV, this will just update all of them
     // Update records by finding them by identity field
     for (const record of records) {
       const recordToUpdate = csvData.records.find((r) => r.fields[identityField] === record.id.remoteId);
