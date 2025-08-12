@@ -83,7 +83,5 @@ export const findSelectedCellsAndRecordsWithSuggestions = (
       }
     }
   }
-
-  debugger;
   return { cells: cellsWithSuggestions, records: recordsWithSuggestions, allSuggestedCellsForSelectedRecords };
 };

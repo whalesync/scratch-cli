@@ -370,8 +370,8 @@ export default function SnapshotPage() {
   const { snapshotId: id } = useSnapshotParams();
 
   return (
-    <SnapshotEventProvider snapshotId={id}>
-      <SnapshotProvider snapshotId={id}>
+    <SnapshotProvider snapshotId={id}>
+      <SnapshotEventProvider snapshotId={id}>
         <FocusedCellsProvider>
           <AIPromptProvider>
             <AIAgentSessionManagerProvider>
@@ -379,7 +379,7 @@ export default function SnapshotPage() {
             </AIAgentSessionManagerProvider>
           </AIPromptProvider>
         </FocusedCellsProvider>
-      </SnapshotProvider>
-    </SnapshotEventProvider>
+      </SnapshotEventProvider>
+    </SnapshotProvider>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebhook } from '@/hooks/use-snapshot-event-webhook';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { createContext, ReactNode, useCallback, useContext } from 'react';
@@ -33,18 +34,22 @@ export const useSnapshotEventContext = () => {
 export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventProviderProps) => {
   const { mutate: globalMutate } = useSWRConfig();
 
+  const { currentView } = useSnapshotContext();
+
   // Handle snapshot events (snapshot-updated, filter-changed)
   const handleSnapshotEvent = useCallback(
     (event: SnapshotEvent) => {
       console.debug('Snapshot event received:', event);
 
       if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
+        console.debug('Invalidating snapshot detail cache');
         // Invalidate snapshot detail cache
         globalMutate(SWR_KEYS.snapshot.detail(snapshotId));
         globalMutate(SWR_KEYS.snapshot.list('all'));
 
         if (event.data.tableId) {
-          const key = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId);
+          const key = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId, undefined, undefined, currentView?.id);
+          console.debug('Invalidating records cache for table:', event.data.tableId, key);
           globalMutate(key);
         }
       }
