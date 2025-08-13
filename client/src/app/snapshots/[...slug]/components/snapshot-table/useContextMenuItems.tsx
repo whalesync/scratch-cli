@@ -23,15 +23,15 @@ import { useClipboard } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   CopyIcon,
-  Eye,
-  EyeSlash,
+  EyeIcon,
+  EyeSlashIcon,
   FunnelIcon,
   FunnelXIcon,
   ListBulletsIcon,
   ListChecksIcon,
   ListMagnifyingGlassIcon,
-  Pencil,
-  PencilSlash,
+  PencilIcon,
+  PencilSlashIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import { useCallback } from 'react';
@@ -69,7 +69,7 @@ export const useContextMenuItems = (
       focusItems.push({
         label: 'Add Read Focus',
         disabled: false,
-        leftSection: <Eye size={MENU_ICON_SIZE} color="#0066cc" />,
+        leftSection: <EyeIcon size={MENU_ICON_SIZE} color="#0066cc" />,
         group: FOCUS_GROUP_NAME,
         handler: async () => {
           // Add all selected cells to readFocus (avoid duplicates)
@@ -107,7 +107,7 @@ export const useContextMenuItems = (
       focusItems.push({
         label: 'Remove Read Focus',
         disabled: false,
-        leftSection: <EyeSlash size={MENU_ICON_SIZE} />,
+        leftSection: <EyeSlashIcon size={MENU_ICON_SIZE} />,
         group: FOCUS_GROUP_NAME,
         handler: async () => {
           // Remove selected cells from readFocus
@@ -144,7 +144,7 @@ export const useContextMenuItems = (
       focusItems.push({
         label: 'Add Write Focus',
         disabled: false,
-        leftSection: <Pencil size={MENU_ICON_SIZE} color="#ff8c00" />,
+        leftSection: <PencilIcon size={MENU_ICON_SIZE} color="#ff8c00" />,
         group: FOCUS_GROUP_NAME,
         handler: async () => {
           // Add all selected cells to writeFocus (avoid duplicates)
@@ -182,7 +182,7 @@ export const useContextMenuItems = (
       focusItems.push({
         label: 'Remove Write Focus',
         disabled: false,
-        leftSection: <PencilSlash size={MENU_ICON_SIZE} />,
+        leftSection: <PencilSlashIcon size={MENU_ICON_SIZE} />,
         group: FOCUS_GROUP_NAME,
         handler: async () => {
           // Remove selected cells from writeFocus
