@@ -13,7 +13,6 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
   String clerkId UK "nullable"
-  Boolean isAdmin
   UserRole role
 }
 "APIToken" {
@@ -144,7 +143,6 @@ Properties as follows:
 - `createdAt`:
 - `updatedAt`:
 - `clerkId`:
-- `isAdmin`:
 - `role`:
 
 ### `APIToken`

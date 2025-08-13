@@ -1,3 +1,4 @@
+import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import {
   ACCEPT_REJECT_GROUP_NAME,
   FILTERING_GROUP_NAME,
@@ -13,14 +14,25 @@ import {
 } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
 import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/types';
 import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
-import { ICONS } from '@/app/snapshots/[...slug]/icons';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RecordCell } from '@/types/common';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';
 import { CheckIcon } from '@mantine/core';
+import { useClipboard } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { Eye, EyeSlash, ListBulletsIcon, ListChecksIcon, Pencil, PencilSlash, XIcon } from '@phosphor-icons/react';
+import {
+  CopyIcon,
+  Eye,
+  EyeSlash,
+  FunnelIcon,
+  FunnelXIcon,
+  ListBulletsIcon,
+  ListChecksIcon,
+  Pencil,
+  PencilSlash,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useCallback } from 'react';
 import { checkSelectedCellsFocus, findSelectedCellsAndRecordsWithSuggestions } from './utils/selectionUtils';
 export const useContextMenuItems = (
@@ -38,6 +50,8 @@ export const useContextMenuItems = (
 ) => {
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus } =
     useFocusedCellsContext();
+
+  const clipboard = useClipboard({ timeout: 500 });
 
   const getContextMenuItems = useCallback(() => {
     if (!contextMenu) return [];
@@ -207,7 +221,7 @@ export const useContextMenuItems = (
         label: 'Filter Out Records',
         disabled: false,
         group: FILTERING_GROUP_NAME,
-        leftSection: ICONS.hidden,
+        leftSection: <StyledIcon Icon={FunnelXIcon} size={MENU_ICON_SIZE} c="gray.7" />,
         handler: async () => {
           if (!currentSelection) return;
 
@@ -252,6 +266,71 @@ export const useContextMenuItems = (
             notifications.show({
               title: 'Filter Updated',
               message: `Filtered out ${selectedRecordIds.length} record(s)`,
+              color: 'green',
+            });
+            // Refresh the records to update the filtered count
+            await refreshRecords();
+          } catch (e) {
+            const error = e as Error;
+            notifications.show({
+              title: 'Error updating filter',
+              message: error.message,
+              color: 'red',
+            });
+          }
+          setContextMenu(null);
+        },
+      });
+
+      items.push({
+        label: 'Filter In Records',
+        disabled: false,
+        group: FILTERING_GROUP_NAME,
+        leftSection: <StyledIcon Icon={FunnelIcon} size={MENU_ICON_SIZE} c="gray.7" />,
+        handler: async () => {
+          if (!currentSelection) return;
+
+          // Get all selected record IDs
+          const selectedRecordIds: string[] = [];
+
+          if (currentSelection.current) {
+            const { range } = currentSelection.current;
+            for (let r = range.y; r < range.y + range.height; r++) {
+              const record = sortedRecords?.[r];
+              if (record) {
+                selectedRecordIds.push(record.id.wsId);
+              }
+            }
+          }
+
+          if (currentSelection.rows) {
+            for (const row of currentSelection.rows) {
+              const record = sortedRecords?.[row];
+              if (record) {
+                selectedRecordIds.push(record.id.wsId);
+              }
+            }
+          }
+
+          if (selectedRecordIds.length === 0) {
+            notifications.show({
+              title: 'No Records Selected',
+              message: 'Please select one or more records to filter in',
+              color: 'yellow',
+            });
+            setContextMenu(null);
+            return;
+          }
+
+          try {
+            // Create SQL WHERE clause to exclude selected records
+            const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
+            const sqlWhereClause = `"wsId" IN (${recordIdsList})`;
+
+            await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id.wsId, sqlWhereClause);
+            notifications.show({
+              title: 'Filter Updated',
+              message: `Created filter for ${selectedRecordIds.length} record(s)`,
               color: 'green',
             });
             // Refresh the records to update the filtered count
@@ -324,6 +403,37 @@ export const useContextMenuItems = (
         handler: handleRejectCell,
       });
     }
+
+    items.push({
+      label: 'Copy record IDs',
+      disabled: false,
+      group: 'Tools',
+      leftSection: <CopyIcon size={MENU_ICON_SIZE} color="gray" />,
+      handler: async () => {
+        if (!currentSelection) return;
+        const cellsToCopy: string[] = [];
+        if (currentSelection.current) {
+          const { range } = currentSelection.current;
+          for (let r = range.y; r < range.y + range.height; r++) {
+            for (let c = range.x; c < range.x + range.width; c++) {
+              const rec = sortedRecords?.[r];
+              if (rec) {
+                cellsToCopy.push(rec.id.wsId);
+              }
+            }
+          }
+        }
+
+        if (cellsToCopy.length > 0) {
+          clipboard.copy(cellsToCopy.join(','));
+          notifications.show({
+            title: 'Record IDs Copied',
+            message: `Copied ${cellsToCopy.length} record IDs`,
+            color: 'green',
+          });
+        }
+      },
+    });
 
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });

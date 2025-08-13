@@ -1,4 +1,5 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
+import { TextTitleLg } from '@/app/components/base/text';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import {
@@ -17,7 +18,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
   useModalsStack,
 } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
@@ -223,9 +223,7 @@ export const AgentCredentials = () => {
     <>
       {modals}
       <Card shadow="sm" padding="sm" radius="md" withBorder>
-        <Title order={3} mb="xs">
-          Agent Credentials
-        </Title>
+        <TextTitleLg mb="xs">Agent Credentials</TextTitleLg>
         {error && (
           <Alert color="red" mb="sm">
             {error}

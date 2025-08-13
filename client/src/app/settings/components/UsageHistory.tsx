@@ -1,5 +1,6 @@
+import { TextTitleLg } from '@/app/components/base/text';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
-import { Card, Center, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Card, Center, Loader, Stack, Table, Text } from '@mantine/core';
 
 export const UsageHistory = () => {
   const { events, isLoading } = useAgentTokenUsage();
@@ -36,9 +37,7 @@ export const UsageHistory = () => {
 
   return (
     <Card shadow="sm" padding="sm" radius="md" withBorder>
-      <Title order={3} mb="xs">
-        Recent AI Usage
-      </Title>
+      <TextTitleLg mb="xs">Recent AI Usage</TextTitleLg>
 
       <Stack gap="xs" mb="sm" mih={200}>
         {content}

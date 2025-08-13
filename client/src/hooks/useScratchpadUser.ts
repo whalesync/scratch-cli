@@ -1,7 +1,7 @@
 import { API_CONFIG } from "@/lib/api/config";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { usersApi } from "@/lib/api/users";
-import { User, UserRole } from "@/types/server-entities/users";
+import { User } from "@/types/server-entities/users";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { UserResource } from "@clerk/types";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,6 @@ export const useScratchPadUser = (): ScratchPadUser => {
     clerkUser: clerkUser || null,
     signOut: signOutClerk,
     isSignedIn,
-    isAdmin: user?.role === UserRole.ADMIN,
+    isAdmin: user?.isAdmin
   };
 };

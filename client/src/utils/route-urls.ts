@@ -19,7 +19,15 @@ export class RouteUrls {
   static connectionsPageUrl = "/connections";
   static apiImportDemoPageUrl = "/ai-connector-builder";
   static healthPageUrl = "/health";
-  static snapshotPage = (id: string) => `/snapshots/${id}`;
+  static snapshotPage = (id: string, tableId?: string, recordId?: string) => {
+    if (tableId && recordId) {
+      return this.snapshotRecordView(id, tableId, recordId);
+    }
+    if (tableId) {
+      return this.snapshotTablePage(id, tableId);
+    }
+    return `/snapshots/${id}`;
+  };
   static snapshotTablePage = (id: string, tableId: string) => `/snapshots/${id}/${tableId}`;
   static snapshotRecordView = (id: string, tableId: string, recordId: string) => `/snapshots/${id}/${tableId}/${recordId}`;
   static snapshotColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>

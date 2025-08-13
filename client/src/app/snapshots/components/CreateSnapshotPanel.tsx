@@ -2,6 +2,7 @@
 
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useContentTools } from '@/hooks/use-content-tools';
+import { snapshotApi } from '@/lib/api/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Group, Modal, Stack, TextInput, useModalsStack } from '@mantine/core';
@@ -33,8 +34,17 @@ export const CreateSnapshotPanel = () => {
       });
 
       await sleep(200);
+
+      const tableId = snapshot.tables.length > 0 ? snapshot.tables[0].id.wsId : undefined;
+      let recordId = undefined;
+      if (tableId) {
+        const records = await snapshotApi.listRecords(snapshot.id, tableId ?? '', undefined, 1);
+        recordId = records.records.length > 0 ? records.records[0].id.wsId : undefined;
+      }
       modalStack.close('create-content-snapshot');
-      router.push(RouteUrls.snapshotPage(snapshot.id));
+
+      // deep link to the first record in the first table if possible
+      router.push(RouteUrls.snapshotPage(snapshot.id, tableId, recordId));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'An unknown error occurred');
     } finally {
@@ -76,7 +86,7 @@ export const CreateSnapshotPanel = () => {
       </Modal>
       <Stack>
         <PrimaryButton w="min-content" onClick={() => modalStack.open('create-content-snapshot')} loading={isSaving}>
-          New content snapshot
+          Create content snapshot
         </PrimaryButton>
       </Stack>
     </>

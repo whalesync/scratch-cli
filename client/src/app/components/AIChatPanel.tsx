@@ -244,10 +244,9 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         model: selectedModel,
       };
 
-      const apiToken = user?.agentToken || user?.apiToken;
       // Include API token if available
-      if (apiToken) {
-        messageData.api_token = user.apiToken;
+      if (user?.agentToken) {
+        messageData.api_token = user?.agentToken;
       }
 
       // Include style guide content if selected
@@ -443,10 +442,10 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         </ScrollArea>
       ) : (
         <Center h="100%">
-          <ChatCircleIcon size={32} color="#00A2E9" />
-          <Text size="sm" fw={500} ta="center" mt="xs">
-            Select a session or create a new one to start chatting
-          </Text>
+          <Group gap="xs" align="center">
+            <ChatCircleIcon size={16} color="gray.5" />
+            <TextTitleSm>Select a session or create a new one to start working with the AI</TextTitleSm>
+          </Group>
         </Center>
       )}
 

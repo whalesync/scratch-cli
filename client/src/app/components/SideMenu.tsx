@@ -7,49 +7,58 @@ import { BookOpenIcon, FileTextIcon, GearIcon, PlugsIcon, RobotIcon, TableIcon }
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { StyledIcon } from './Icons/StyledIcon';
 import styles from './SideMenu.module.css';
 
 const links = [
   {
     href: RouteUrls.snapshotsPageUrl,
     label: 'Snapshots',
-    icon: <TableIcon size={24} />,
+    icon: TableIcon,
     enabled: true,
+    requiresAdmin: false,
   },
   {
     href: RouteUrls.connectionsPageUrl,
     label: 'Connections',
-    icon: <PlugsIcon size={24} />,
+    icon: PlugsIcon,
     enabled: true,
+    requiresAdmin: false,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
     label: 'AI Connector Builder',
-    icon: <RobotIcon size={24} />,
+    icon: RobotIcon,
     enabled: true,
+    requiresAdmin: true,
   },
   {
     href: RouteUrls.styleGuidesPageUrl,
     label: 'Style Guides',
-    icon: <BookOpenIcon size={24} />,
+    icon: BookOpenIcon,
     enabled: true,
+    requiresAdmin: false,
   },
   {
     href: RouteUrls.csvFilesPageUrl,
     label: 'CSV Files',
-    icon: <FileTextIcon size={24} />,
+    icon: FileTextIcon,
     enabled: true,
+    requiresAdmin: false,
   },
   {
     href: RouteUrls.settingsPageUrl,
     label: 'Settings',
-    icon: <GearIcon size={24} />,
+    icon: GearIcon,
     enabled: true,
+    requiresAdmin: false,
   },
 ];
 
 export function SideMenu() {
   const pathname = usePathname();
+  const { isAdmin } = useScratchPadUser();
 
   return (
     <Stack gap={0} h="100%" align="center">
@@ -63,7 +72,7 @@ export function SideMenu() {
               h={30}
               styles={{
                 root: {
-                  fill: 'd262c1',
+                  fill: 'var(--mantine-color-primary-5)',
                 },
               }}
             />
@@ -73,7 +82,7 @@ export function SideMenu() {
       <Divider w="100%" mb="md" />
       <Stack gap="md">
         {links
-          .filter((link) => link.enabled)
+          .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
           .map((link) => (
             <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
               <UnstyledButton
@@ -82,7 +91,7 @@ export function SideMenu() {
                 data-active={pathname.startsWith(link.href) || undefined}
                 className={styles.link}
               >
-                {link.icon}
+                <StyledIcon Icon={link.icon} size={24} c={link.requiresAdmin ? 'purple' : 'gray.8'} />
               </UnstyledButton>
             </Tooltip>
           ))}

@@ -246,7 +246,7 @@ export default function ConnectorAIChatPanel({
       message: message.trim(),
       currentSessionId,
       historyLength: sessionData?.chat_history.length || 0,
-      hasApiToken: !!user?.apiToken,
+      hasApiToken: !!user?.agentToken,
       customConnectorId: customConnectorId,
     });
 
@@ -266,8 +266,8 @@ export default function ConnectorAIChatPanel({
       };
 
       // Include API token if available
-      if (user?.apiToken) {
-        messageData.api_token = user.apiToken;
+      if (user?.agentToken) {
+        messageData.api_token = user.agentToken;
         console.debug('Including API token in request');
       } else {
         console.debug('No API token available');

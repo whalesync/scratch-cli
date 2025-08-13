@@ -128,19 +128,18 @@ export const CreateSnapshotModal = ({ connectorAccount, ...props }: CreateSnapsh
             </Paper>
           </Checkbox.Group>
         )}
+
+        <Group justify="flex-end">
+          <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
+          <PrimaryButton
+            loading={isSaving}
+            onClick={handleCreateSnapshot}
+            disabled={selectedTables.length === 0 || snapshotName.length === 0 || !!error}
+          >
+            Create snapshot
+          </PrimaryButton>
+        </Group>
       </Stack>
-      <Group justify="flex-end" mt="xl">
-        <SecondaryButton variant="default" onClick={props.onClose}>
-          Cancel
-        </SecondaryButton>
-        <PrimaryButton
-          loading={isSaving}
-          onClick={handleCreateSnapshot}
-          disabled={selectedTables.length === 0 || !!error}
-        >
-          Create snapshot
-        </PrimaryButton>
-      </Group>
     </Modal>
   );
 };

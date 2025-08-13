@@ -1,10 +1,11 @@
 'use client';
 
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
-import { Center, Group, Loader, Modal, Stack, Text, Title, useModalsStack } from '@mantine/core';
+import { Center, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
+import { ContentContainer } from '../components/ContentContainer';
 import { ErrorInfo } from '../components/InfoPanel';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
@@ -73,7 +74,7 @@ export default function ConnectorAccountsPage() {
   }
 
   return (
-    <>
+    <ContentContainer title="Connections">
       <CreateConnectionModal {...modalStack.register('create')} />
       <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
       <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
@@ -88,30 +89,25 @@ export default function ConnectorAccountsPage() {
         </Stack>
       </Modal>
 
-      <Stack p="lg">
-        <Title order={2}>Connections</Title>
-
+      <Stack maw="1000px">
         {connectorAccounts && connectorAccounts.length > 0 && (
           <>
-            <Title order={3}>Existing </Title>
-            <Stack>
-              {connectorAccounts?.map((conn) => (
-                <ConnectorAccountRow
-                  key={conn.id}
-                  connectorAccount={conn}
-                  onTest={handleTest}
-                  onUpdate={(conn) => {
-                    setSelectedConnectorAccount(conn);
-                    modalStack.open('update');
-                  }}
-                  onDelete={() => {
-                    setSelectedConnectorAccount(conn);
-                    modalStack.open('confirm-delete');
-                  }}
-                  testingId={testingId}
-                />
-              ))}
-            </Stack>
+            {connectorAccounts?.map((conn) => (
+              <ConnectorAccountRow
+                key={conn.id}
+                connectorAccount={conn}
+                onTest={handleTest}
+                onUpdate={(conn) => {
+                  setSelectedConnectorAccount(conn);
+                  modalStack.open('update');
+                }}
+                onDelete={() => {
+                  setSelectedConnectorAccount(conn);
+                  modalStack.open('confirm-delete');
+                }}
+                testingId={testingId}
+              />
+            ))}
           </>
         )}
 
@@ -119,6 +115,6 @@ export default function ConnectorAccountsPage() {
           New Connection
         </PrimaryButton>
       </Stack>
-    </>
+    </ContentContainer>
   );
 }

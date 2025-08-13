@@ -1,6 +1,6 @@
 import { Menu } from '@mantine/core';
 import { useSnapshotTableGridContext } from '../SnapshotTableGridProvider';
-import { ACCEPT_REJECT_GROUP_NAME, FILTERING_GROUP_NAME, FOCUS_GROUP_NAME } from './constants';
+import { ACCEPT_REJECT_GROUP_NAME, FILTERING_GROUP_NAME, FOCUS_GROUP_NAME, TOOLS_GROUP_NAME } from './constants';
 
 export const ContextMenu = () => {
   const { contextMenu, closeContextMenu, getContextMenuItems } = useSnapshotTableGridContext();
@@ -41,6 +41,7 @@ export const ContextMenu = () => {
           const isFocusItem = item.group === FOCUS_GROUP_NAME;
           const isFilteringItem = item.group === FILTERING_GROUP_NAME;
           const isAcceptRejectItem = item.group === ACCEPT_REJECT_GROUP_NAME;
+          const isToolsItem = item.group === TOOLS_GROUP_NAME;
 
           // If this is the first focus item, add the Focus section header
           if (isFocusItem && index === getContextMenuItems().findIndex((i) => i.group === FOCUS_GROUP_NAME)) {
@@ -111,11 +112,33 @@ export const ContextMenu = () => {
             );
           }
 
+          // If this is a tools item, add the Tools section header
+          if (isToolsItem && index === getContextMenuItems().findIndex((i) => i.group === TOOLS_GROUP_NAME)) {
+            return (
+              <div key={`tools-section-${index}`}>
+                <Menu.Divider />
+                <Menu.Label>{TOOLS_GROUP_NAME}</Menu.Label>
+                <Menu.Item disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
+                  {item.label}
+                </Menu.Item>
+              </div>
+            );
+          }
+
+          if (isToolsItem) {
+            return (
+              <Menu.Item key={index} disabled={item.disabled} leftSection={item.leftSection} onClick={item.handler}>
+                {item.label}
+              </Menu.Item>
+            );
+          }
+
           // For non-grouped items, add a divider before the first non-grouped item
           if (
             !isFocusItem &&
             !isFilteringItem &&
             !isAcceptRejectItem &&
+            !isToolsItem &&
             index === getContextMenuItems().findIndex((i) => !i.group)
           ) {
             return (

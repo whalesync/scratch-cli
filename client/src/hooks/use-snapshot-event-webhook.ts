@@ -86,7 +86,7 @@ export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseS
       transports: ['websocket'],
       path: '/snapshot-events',
       auth: {
-        token: user?.websocketToken || user?.apiToken || '',
+        token: user?.websocketToken || '',
       },
     });
 

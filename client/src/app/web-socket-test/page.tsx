@@ -20,7 +20,7 @@ export default function WebSocketTestPage() {
       transports: ['websocket'],
       path: '/snapshot-events',
       auth: {
-        token: user?.websocketToken || user?.apiToken || '',
+        token: user?.websocketToken || '',
       },
     });
 
