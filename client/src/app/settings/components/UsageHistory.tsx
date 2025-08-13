@@ -21,7 +21,7 @@ export const UsageHistory = () => {
           <Table.Th>When</Table.Th>
         </Table.Tr>
       </Table.Thead>
-      <Table.Tbody>
+      <Table.Tbody mah={100} style={{ overflowY: 'auto' }}>
         {events?.map((event) => (
           <Table.Tr key={event.id}>
             <Table.Td>{event.model}</Table.Td>

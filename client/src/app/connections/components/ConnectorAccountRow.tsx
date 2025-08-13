@@ -103,29 +103,28 @@ export function ConnectorAccountRow({
               <Loader size="sm" />
             </Group>
           ) : null}
-          {snapshots && snapshots.length > 0 ? (
-            <>
-              <Divider />
-              <Group justify="space-between" p="xs">
-                <Group>
-                  {snapshots?.map((snapshot) => (
-                    <Button
-                      size="xs"
-                      variant="transparent"
-                      p="2px"
-                      key={snapshot.id}
-                      onClick={() => router.push(RouteUrls.snapshotPage(snapshot.id))}
-                    >
-                      {snapshot.name}
-                    </Button>
-                  ))}
-                </Group>
-                <PrimaryButton size="xs" onClick={open}>
-                  New snapshot
-                </PrimaryButton>
+
+          <>
+            <Divider />
+            <Group justify="space-between" p="xs">
+              <Group>
+                {snapshots?.map((snapshot) => (
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    p="2px"
+                    key={snapshot.id}
+                    onClick={() => router.push(RouteUrls.snapshotPage(snapshot.id))}
+                  >
+                    {snapshot.name}
+                  </Button>
+                ))}
               </Group>
-            </>
-          ) : null}
+              <PrimaryButton size="xs" onClick={open}>
+                New snapshot
+              </PrimaryButton>
+            </Group>
+          </>
         </Stack>
       </Card>
     </>

@@ -107,10 +107,14 @@ export function isLargeTextColumn(column: ColumnSpec, value: string | undefined 
 }
 
 export function buildRecordTitle(record: SnapshotRecord): string {
+  console.log('record', record);
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        return _.truncate(record.fields[key] as string, { length: 40 });
+        const value = _.truncate(record.fields[key] as string, { length: 40 });
+        if (value) {
+          return value;
+        }
       }
     }
     const firstValue = Object.values(record.fields)[0];

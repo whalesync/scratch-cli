@@ -26,6 +26,7 @@ export class NotionSchemaParser {
       name: property.name,
       pgType,
       readonly,
+      markdown: property.type === 'rich_text',
       notionDataType: property.type,
     };
   }

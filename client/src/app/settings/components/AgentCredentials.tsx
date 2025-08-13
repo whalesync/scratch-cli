@@ -1,4 +1,5 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
+import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextTitleLg } from '@/app/components/base/text';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
@@ -229,10 +230,14 @@ export const AgentCredentials = () => {
             {error}
           </Alert>
         )}
-        <Stack gap="xs" mb="sm" mih={200}>
+        <Stack gap="xs" mb="sm" mih={100}>
           {list}
         </Stack>
-        <Button onClick={() => modalStack.open('create')}>New credential</Button>
+        <Group justify="flex-end">
+          <PrimaryButton w="fit-content" onClick={() => modalStack.open('create')}>
+            New credential
+          </PrimaryButton>
+        </Group>
       </Card>
     </>
   );

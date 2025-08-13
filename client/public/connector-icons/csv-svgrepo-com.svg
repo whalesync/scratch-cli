@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg height="800px" width="800px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-	 viewBox="0 0 512 512" xml:space="preserve">
+<svg height="256" width="256" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 768 768" xml:space="preserve">
+	 <g transform="translate(128,128)">
 <path style="fill:#ECEDEF;" d="M100.641,0c-14.139,0-25.6,11.461-25.6,25.6v460.8c0,14.139,11.461,25.6,25.6,25.6h375.467
 	c14.139,0,25.6-11.461,25.6-25.6V85.333L416.375,0H100.641z"/>
 <path style="fill:#D9DCDF;" d="M441.975,85.333h59.733L416.375,0v59.733C416.375,73.872,427.836,85.333,441.975,85.333z"/>
@@ -50,4 +51,5 @@
 	c-3.621,3.018-4.111,8.398-1.092,12.019l16.78,20.137l-16.781,20.137c-2.754,3.305-2.574,8.309,0.425,11.399
 	c3.484,3.59,9.485,3.368,12.686-0.474l14.778-17.733l14.778,17.733c3.201,3.842,9.202,4.063,12.686,0.474
 	c2.998-3.09,3.179-8.095,0.425-11.399L363.483,392.533z"/>
+</g>
 </svg>

@@ -3,7 +3,7 @@
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
 import { Center, Divider, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
-import { BookOpenIcon, FileTextIcon, GearIcon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
+import { BookOpenIcon, FileCsvIcon, GearIcon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -43,7 +43,7 @@ const links = [
   {
     href: RouteUrls.csvFilesPageUrl,
     label: 'CSV Files',
-    icon: FileTextIcon,
+    icon: FileCsvIcon,
     enabled: true,
     requiresAdmin: false,
   },
@@ -83,18 +83,25 @@ export function SideMenu() {
       <Stack gap="md">
         {links
           .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
-          .map((link) => (
-            <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
-              <UnstyledButton
-                component={Link}
-                href={link.href}
-                data-active={pathname.startsWith(link.href) || undefined}
-                className={styles.link}
-              >
-                <StyledIcon Icon={link.icon} size={24} c={link.requiresAdmin ? 'purple' : 'gray.8'} />
-              </UnstyledButton>
-            </Tooltip>
-          ))}
+          .map((link) => {
+            const isActive = pathname.startsWith(link.href);
+            const isAdminLink = link.requiresAdmin && isAdmin;
+
+            const color = isActive ? 'gray.9' : isAdminLink ? 'purple' : 'gray.6';
+
+            return (
+              <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
+                <UnstyledButton
+                  component={Link}
+                  href={link.href}
+                  data-active={isActive || undefined}
+                  className={styles.link}
+                >
+                  <StyledIcon Icon={link.icon} size={24} c={color} />
+                </UnstyledButton>
+              </Tooltip>
+            );
+          })}
       </Stack>
       <Stack justify="center" mt="auto" p="xs">
         <SignedOut>
