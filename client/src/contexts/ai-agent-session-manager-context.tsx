@@ -63,7 +63,6 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
   // Load sessions on mount
   useEffect(() => {
     if (!initialized) {
-      console.log('Loading sessions');
       loadSessionList();
       setInitialized(true);
     }

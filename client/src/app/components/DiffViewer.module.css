@@ -1,5 +1,6 @@
 .diffViewer {
-  border: none;
+  border-color: transparent;
+  border-width: 1px;
   border-radius: 8px;
   background-color: white;
 

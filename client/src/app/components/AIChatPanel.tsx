@@ -615,7 +615,24 @@ const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
   if (msg.role === 'user') {
     content = <Text size="xs">{msg.message}</Text>;
   } else if (msg.variant === 'progress') {
-    content = <Text size="xs">🧠... {msg.message}</Text>;
+    let icon = '';
+    const testMsg = msg.message.toLowerCase();
+
+    if (testMsg.includes('request sent to')) {
+      icon = '🧠 ';
+    } else if (testMsg.includes('tool call')) {
+      icon = '🔧 ';
+    } else if (testMsg.includes('final agent response') || testMsg.includes('creating agent')) {
+      icon = '🤖 ';
+    } else if (testMsg.includes('loading your snapshot data')) {
+      icon = '💾 ';
+    }
+
+    content = (
+      <Text size="xs" c="gray.7">
+        {icon} {msg.message}
+      </Text>
+    );
   } else {
     content = (
       <Box fz="xs">

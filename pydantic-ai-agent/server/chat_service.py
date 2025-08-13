@@ -196,9 +196,7 @@ class ChatService:
                     try:
                         # Fetch snapshot details
                         if progress_callback:
-                            await progress_callback(
-                                "Pre-loading snapshot data and records"
-                            )
+                            await progress_callback("Loading your snapshot data")
 
                         snapshot_data = get_snapshot(session.snapshot_id, api_token)
                         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
@@ -382,31 +380,42 @@ class ChatService:
                             if progress_callback:
                                 if Agent.is_user_prompt_node(node):
                                     # A user prompt node => The user has provided input
-                                    await progress_callback(f"User prompt constructed")
+                                    # await progress_callback(f"User prompt constructed")
+                                    continue
                                 elif Agent.is_model_request_node(node):
                                     # A model request node => We can stream tokens from the model's request
-                                    await progress_callback(
-                                        f"Model request sent to LLM"
-                                    )
-                                    # async with node.stream(agent_run.ctx) as request_stream:
-                                    # async for event in request_stream:
-                                    #     if isinstance(event, PartStartEvent):
-                                    #         output_messages.append(
-                                    #             f'[Request] Starting part {event.index}: {event.part!r}'
-                                    #         )
-                                    #     elif isinstance(event, PartDeltaEvent):
-                                    #         if isinstance(event.delta, TextPartDelta):
+                                    await progress_callback(f"Request sent to {model}")
+                                    # output_messages = []
+                                    # async with node.stream(
+                                    #     agent_run.ctx
+                                    # ) as request_stream:
+                                    #     async for event in request_stream:
+                                    #         if isinstance(event, PartStartEvent):
                                     #             output_messages.append(
-                                    #                 f'[Request] Part {event.index} text delta: {event.delta.content_delta!r}'
+                                    #                 f"[Request] Starting part {event.index}: {event.part!r}"
                                     #             )
-                                    #         elif isinstance(event.delta, ToolCallPartDelta):
+                                    #         elif isinstance(event, PartDeltaEvent):
+                                    #             if isinstance(
+                                    #                 event.delta, TextPartDelta
+                                    #             ):
+                                    #                 output_messages.append(
+                                    #                     f"[Request] Part {event.index} text delta: {event.delta.content_delta!r}"
+                                    #                 )
+                                    #             elif isinstance(
+                                    #                 event.delta, ToolCallPartDelta
+                                    #             ):
+                                    #                 output_messages.append(
+                                    #                     f"[Request] Part {event.index} args_delta={event.delta.args_delta}"
+                                    #                 )
+                                    #         elif isinstance(event, FinalResultEvent):
                                     #             output_messages.append(
-                                    #                 f'[Request] Part {event.index} args_delta={event.delta.args_delta}'
+                                    #                 f"[Result] The model produced a final output (tool_name={event.tool_name})"
                                     #             )
-                                    #     elif isinstance(event, FinalResultEvent):
-                                    #         output_messages.append(
-                                    #             f'[Result] The model produced a final output (tool_name={event.tool_name})'
-                                    #         )
+
+                                    # await progress_callback(
+                                    #     f"Response from {model} => {' '.join(output_messages)}"
+                                    # )
+
                                 elif Agent.is_call_tools_node(node):
                                     # A handle-response node => The model returned some data, potentially calls a tool
                                     model_response = node.model_response
@@ -421,13 +430,13 @@ class ChatService:
                                         async for event in handle_stream:
                                             if isinstance(event, FunctionToolCallEvent):
                                                 await progress_callback(
-                                                    f"Tool call {event.part.tool_name!r} with args={event.part.args} (tool_call_id={event.part.tool_call_id!r})"
+                                                    f"Tool call {event.part.tool_name!r} with args={event.part.args})"
                                                 )
                                             elif isinstance(
                                                 event, FunctionToolResultEvent
                                             ):
                                                 await progress_callback(
-                                                    f"Tool call {event.tool_call_id!r} returned => {event.result.content}"
+                                                    f"Tool call returned => {event.result.content}"
                                                 )
 
                                 elif Agent.is_end_node(node):
