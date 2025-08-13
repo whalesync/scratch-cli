@@ -29,6 +29,7 @@ import {
   FunnelXIcon,
   ListBulletsIcon,
   ListChecksIcon,
+  ListMagnifyingGlassIcon,
   Pencil,
   PencilSlash,
   XIcon,
@@ -47,6 +48,7 @@ export const useContextMenuItems = (
   handleAcceptCell: () => Promise<unknown>,
   handleRejectCell: () => Promise<unknown>,
   refreshRecords: () => void,
+  viewRecord: (recordId: string) => void,
 ) => {
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus } =
     useFocusedCellsContext();
@@ -214,9 +216,10 @@ export const useContextMenuItems = (
     }
 
     const items = focusItems;
+    const selectedRowCount = getSelectedRowCount(currentSelection);
 
     // Add Filter Out Records item if records are selected
-    if (currentSelection && getSelectedRowCount(currentSelection) > 0) {
+    if (currentSelection && selectedRowCount > 0) {
       items.push({
         label: 'Filter Out Records',
         disabled: false,
@@ -405,7 +408,7 @@ export const useContextMenuItems = (
     }
 
     items.push({
-      label: 'Copy record IDs',
+      label: selectedRowCount === 1 ? `Copy record ID` : `Copy ${selectedRowCount} record IDs`,
       disabled: false,
       group: 'Tools',
       leftSection: <CopyIcon size={MENU_ICON_SIZE} color="gray" />,
@@ -435,6 +438,30 @@ export const useContextMenuItems = (
       },
     });
 
+    if (selectedRowCount === 1) {
+      items.push({
+        label: 'View record',
+        disabled: false,
+        group: 'Tools',
+        leftSection: <ListMagnifyingGlassIcon size={MENU_ICON_SIZE} color="gray" />,
+        handler: async () => {
+          if (!currentSelection) return;
+
+          if (currentSelection.current) {
+            const { range } = currentSelection.current;
+            for (let r = range.y; r < range.y + range.height; r++) {
+              for (let c = range.x; c < range.x + range.width; c++) {
+                const rec = sortedRecords?.[r];
+                if (rec) {
+                  await viewRecord(rec.id.wsId);
+                }
+              }
+            }
+          }
+        },
+      });
+    }
+
     if (items.length === 0) {
       items.push({ label: 'No actions', disabled: true });
     }
@@ -458,6 +485,8 @@ export const useContextMenuItems = (
     handleRejectRecords,
     handleAcceptCell,
     handleRejectCell,
+    clipboard,
+    viewRecord,
   ]);
 
   return {

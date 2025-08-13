@@ -1230,6 +1230,9 @@ export const SnapshotTableGridProvider = ({
     handleAcceptCell,
     handleRejectCell,
     refreshRecords,
+    (recordId: string) => {
+      onSwitchToRecordView(recordId);
+    },
   );
 
   const getHeaderMenuItems = useCallback((): Array<{

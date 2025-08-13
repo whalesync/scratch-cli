@@ -1,8 +1,10 @@
+import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, CheckIcon, Loader, Menu } from '@mantine/core';
+import { ActionIcon, CheckIcon, Group, Loader, Menu, Modal, Stack, Text } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { ChatIcon, DotsThreeVerticalIcon, DownloadSimpleIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
@@ -22,6 +24,8 @@ export const SnapshotActionsMenu = ({
   const [downloading, setDownloading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteModalOpen, { open: openConfirmDeleteModal, close: closeConfirmDeleteModal }] =
+    useDisclosure(false);
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -116,50 +120,70 @@ export const SnapshotActionsMenu = ({
   const menuItemsDisabled = isLoading || downloading || publishing || deleting;
 
   return (
-    <Menu shadow="md" width={200}>
-      <Menu.Target>
-        <ActionIcon variant="transparent" size="md" color="gray.9">
-          <DotsThreeVerticalIcon size={16} weight="bold" />
-        </ActionIcon>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>{snapshot?.name}</Menu.Label>
-        <Menu.Divider />
-        {aiChatOpen ? (
-          <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
-            Close AI Chat
+    <>
+      <Modal
+        opened={confirmDeleteModalOpen}
+        onClose={closeConfirmDeleteModal}
+        title="Abandon snapshot"
+        centered
+        size="lg"
+      >
+        <Stack>
+          <Text>Are you sure you want to abandon this snapshot? All data will be deleted.</Text>
+          <Group justify="flex-end">
+            <SecondaryButton onClick={closeConfirmDeleteModal}>Cancel</SecondaryButton>
+            <PrimaryButton onClick={handleAbandon} loading={deleting}>
+              Delete
+            </PrimaryButton>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Menu shadow="md" width={250}>
+        <Menu.Target>
+          <ActionIcon variant="transparent" size="md" color="gray.9">
+            <DotsThreeVerticalIcon size={16} weight="bold" />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>{snapshot?.name}</Menu.Label>
+          <Menu.Divider />
+          {aiChatOpen ? (
+            <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
+              Close AI Chat
+            </Menu.Item>
+          ) : (
+            <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
+              Open AI Chat
+            </Menu.Item>
+          )}
+          <Menu.Item disabled onClick={handleRename} leftSection={<DownloadSimpleIcon />}>
+            Rename Snapshot
           </Menu.Item>
-        ) : (
-          <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
-            Open AI Chat
+          <Menu.Item
+            disabled={menuItemsDisabled}
+            onClick={handleDownload}
+            leftSection={downloading ? <Loader size="xs" /> : <DownloadSimpleIcon />}
+          >
+            Download
           </Menu.Item>
-        )}
-        <Menu.Item disabled onClick={handleRename} leftSection={<DownloadSimpleIcon />}>
-          Rename Snapshot
-        </Menu.Item>
-        <Menu.Item
-          disabled={menuItemsDisabled}
-          onClick={handleDownload}
-          leftSection={downloading ? <Loader size="xs" /> : <DownloadSimpleIcon />}
-        >
-          Download
-        </Menu.Item>
-        <Menu.Item
-          disabled={menuItemsDisabled}
-          onClick={handlePublish}
-          leftSection={publishing ? <Loader size="xs" /> : <UploadIcon />}
-        >
-          Publish
-        </Menu.Item>
-        <Menu.Item
-          color="red"
-          disabled={menuItemsDisabled}
-          leftSection={deleting ? <Loader size="xs" /> : <TrashIcon />}
-          onClick={handleAbandon}
-        >
-          Abandon
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+          <Menu.Item
+            disabled={true}
+            onClick={handlePublish}
+            leftSection={publishing ? <Loader size="xs" /> : <UploadIcon />}
+          >
+            Publish (Coming soon)
+          </Menu.Item>
+          <Menu.Item
+            color="red"
+            disabled={menuItemsDisabled}
+            leftSection={deleting ? <Loader size="xs" /> : <TrashIcon />}
+            onClick={openConfirmDeleteModal}
+          >
+            Abandon
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    </>
   );
 };
