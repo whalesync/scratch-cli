@@ -16,7 +16,8 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from server.chat_controller import router, chat_service
+from server.chat_controller import router as chat_router, chat_service
+from server.admin_controller import router as admin_router
 from server.websocket_handler import websocket_endpoint
 from connector_builder.connector_builder_controller import (
     router as connector_builder_router,
@@ -27,7 +28,7 @@ from logger import log_info
 
 
 # Initialize FastAPI app
-app = FastAPI(title="PydanticAI Chat Server", version="1.0.0")
+app = FastAPI(title="Scratchpad AI Agent", version="1.0.0")
 
 # Add CORS middleware
 app.add_middleware(
@@ -39,7 +40,8 @@ app.add_middleware(
 )
 
 # Include the routers
-app.include_router(router)
+app.include_router(chat_router)
+app.include_router(admin_router)
 app.include_router(connector_builder_router, prefix="/connector-builder")
 
 

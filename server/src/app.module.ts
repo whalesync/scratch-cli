@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdminModule } from './admin/admin.module';
 import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
@@ -8,7 +9,6 @@ import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
-import { HealthModule } from './health/health.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
@@ -19,6 +19,7 @@ import { ViewModule } from './view/view.module';
 @Module({
   imports: [
     ScratchpadConfigModule,
+    AdminModule,
     DbModule,
     UserModule,
     ClerkModule,
@@ -31,7 +32,6 @@ import { ViewModule } from './view/view.module';
     StyleGuideModule,
     CsvFileModule,
     ViewModule,
-    HealthModule,
     AiAgentTokenUsageModule,
     ContentToolsModule,
   ],
