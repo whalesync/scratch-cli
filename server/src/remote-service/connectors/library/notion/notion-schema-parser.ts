@@ -1,10 +1,10 @@
-import { DatabaseObjectResponse } from '@notionhq/client';
+import { DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { sanitizeForWsId } from '../../ids';
 import { PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec } from '../custom-spec-registry';
 
 export class NotionSchemaParser {
-  parseTablePreview(db: DatabaseObjectResponse): TablePreview {
+  parseDatabaseTablePreview(db: DatabaseObjectResponse): TablePreview {
     const displayName = db.title.map((t) => t.plain_text).join('');
     return {
       id: {
@@ -12,6 +12,30 @@ export class NotionSchemaParser {
         remoteId: [db.id],
       },
       displayName: displayName,
+      metadata: {
+        notionType: 'database',
+      },
+    };
+  }
+
+  parsePageTablePreview(page: PageObjectResponse): TablePreview {
+    let pageTitle: string | undefined = undefined;
+
+    const titleProperty = Object.values(page.properties).find((property) => property.type === 'title');
+    if (titleProperty && titleProperty.title.length > 0) {
+      pageTitle = titleProperty.title[0].plain_text;
+    }
+
+    const displayName = pageTitle ?? page.id;
+    return {
+      id: {
+        wsId: sanitizeForWsId(displayName),
+        remoteId: [page.id],
+      },
+      displayName: displayName,
+      metadata: {
+        notionType: 'page',
+      },
     };
   }
 

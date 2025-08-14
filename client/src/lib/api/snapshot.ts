@@ -1,4 +1,4 @@
-import { CreateSnapshotDto, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
+import { CreateSnapshotDto, DownloadSnapshotResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -67,7 +67,7 @@ export const snapshotApi = {
     return res.json();
   },
 
-  async download(id: string): Promise<void> {
+  async download(id: string): Promise<DownloadSnapshotResult> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${id}/download`,
       {
@@ -80,6 +80,7 @@ export const snapshotApi = {
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to start download");
     }
+    return res.json();
   },
 
   async publish(id: string): Promise<void> {

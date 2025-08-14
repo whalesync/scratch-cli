@@ -27,6 +27,7 @@ import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
+import { DownloadSnapshotResult } from './entities/download-results.entity';
 import { Snapshot, SnapshotTableView } from './entities/snapshot.entity';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
@@ -89,7 +90,7 @@ export class SnapshotController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/download')
-  async download(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
+  async download(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<DownloadSnapshotResult> {
     return this.service.download(id, req.user.id);
   }
 

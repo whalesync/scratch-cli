@@ -4,6 +4,7 @@ import { SnapshotRecordId } from '../../types/ids';
 export type TablePreview = {
   id: EntityId;
   displayName: string;
+  metadata?: Record<string, unknown>;
 };
 
 /** ID for a table or column. It contains both our internal postgres ID and whatever path info the connector needs. */

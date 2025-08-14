@@ -2,21 +2,33 @@
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
+import { NotionToMarkdown } from 'notion-to-md';
+import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
 import { sanitizeForWsId } from '../../ids';
-import { ConnectorRecord, EntityId, TablePreview } from '../../types';
+import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { NotionSchemaParser } from './notion-schema-parser';
+
+export const PAGE_CONTENT_COLUMN_NAME = 'Page Content';
+export const PAGE_CONTENT_COLUMN_ID = 'WS_PAGE_CONTENT';
 
 export class NotionConnector extends Connector<typeof Service.NOTION> {
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
+  private readonly markdownConverter: NotionToMarkdown;
 
   service = Service.NOTION;
 
   constructor(apiKey: string) {
     super();
     this.client = new Client({ auth: apiKey });
+    this.markdownConverter = new NotionToMarkdown({
+      notionClient: this.client,
+      config: {
+        parseChildPages: false,
+      },
+    });
   }
 
   async testConnection(): Promise<void> {
@@ -33,8 +45,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     });
 
     const databases = response.results.filter((r): r is DatabaseObjectResponse => r.object === 'database');
-    const tables = databases.map((db) => this.schemaParser.parseTablePreview(db));
-    return tables;
+    const databaseTables = databases.map((db) => this.schemaParser.parseDatabaseTablePreview(db));
+    return databaseTables;
   }
 
   async fetchTableSpec(id: EntityId): Promise<NotionTableSpec> {
@@ -44,6 +56,18 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     for (const property of Object.values(database.properties)) {
       columns.push(this.schemaParser.parseColumn(property));
     }
+    //manually add a column to store page content in Markdown format
+    columns.push({
+      id: {
+        wsId: PAGE_CONTENT_COLUMN_ID,
+        remoteId: [PAGE_CONTENT_COLUMN_ID],
+      },
+      name: 'Page Content',
+      pgType: PostgresColumnType.TEXT,
+      markdown: true,
+      notionDataType: 'rich_text',
+    });
+
     const tableTitle = database.title.map((t) => t.plain_text).join('');
     return {
       id,
@@ -65,22 +89,42 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
         database_id: databaseId,
         start_cursor: nextCursor,
       });
-      const records = response.results
-        .filter((r): r is PageObjectResponse => r.object === 'page')
-        .map((page) => {
-          const converted: ConnectorRecord = {
-            id: page.id,
-            fields: {},
-          };
+      const records = await Promise.all(
+        response.results
+          .filter((r): r is PageObjectResponse => r.object === 'page')
+          .map(async (page) => {
+            const converted: ConnectorRecord = {
+              id: page.id,
+              fields: {},
+            };
 
-          for (const column of tableSpec.columns) {
-            const prop = Object.values(page.properties).find((p) => p.id === column.id.remoteId[0]);
-            if (prop) {
-              converted.fields[column.id.wsId] = this.extractPropertyValue(prop);
+            for (const column of tableSpec.columns) {
+              const prop = Object.values(page.properties).find((p) => p.id === column.id.remoteId[0]);
+              if (prop) {
+                converted.fields[column.id.wsId] = this.extractPropertyValue(prop);
+              }
             }
-          }
-          return converted;
-        });
+            const pageContentColumn = tableSpec.columns.find((c) => c.id.wsId === PAGE_CONTENT_COLUMN_ID);
+            if (pageContentColumn) {
+              try {
+                // do this separately to avoid blocking the main thread and killing the download
+                const mdblocks = await this.markdownConverter.pageToMarkdown(page.id);
+                const mdString = this.markdownConverter.toMarkdownString(mdblocks);
+                converted.fields[pageContentColumn.id.wsId] = mdString['parent'];
+              } catch (e) {
+                converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content to markdown';
+                WSLogger.error({
+                  source: 'NotionConnector',
+                  message: 'Error converting page content to markdown',
+                  error: e,
+                  pageId: page.id,
+                });
+              }
+            }
+
+            return converted;
+          }),
+      );
       await callback(records);
 
       hasMore = response.has_more;

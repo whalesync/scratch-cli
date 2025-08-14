@@ -13,6 +13,7 @@ import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
+import { DownloadSnapshotResult } from './entities/download-results.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotTableContext } from './types';
@@ -526,35 +527,52 @@ export class SnapshotService {
     }
   }
 
-  async download(id: SnapshotId, userId: string): Promise<void> {
+  async download(id: SnapshotId, userId: string): Promise<DownloadSnapshotResult> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
 
-    // TODO: Do this work somewhere real.
-    this.downloadSnapshotInBackground(snapshot).catch((error) => {
-      WSLogger.error({
-        source: 'SnapshotService.download',
-        message: 'Error downloading snapshot',
-        snapshotId: id,
-        error,
-      });
-    });
+    return this.downloadSnapshotInBackground(snapshot);
   }
 
-  private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<void> {
+  private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<DownloadSnapshotResult> {
     const connector = this.connectorService.getConnector(snapshot.connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    let totalCount = 0;
+    const tables: { id: string; name: string; records: number }[] = [];
     for (const tableSpec of tableSpecs) {
+      WSLogger.debug({
+        source: 'SnapshotService',
+        message: 'Downloading records',
+        tableId: tableSpec.id.wsId,
+        snapshotId: snapshot.id,
+      });
+
       await connector.downloadTableRecords(
         tableSpec,
-        async (records) => await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records),
+        async (records) => {
+          await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
+          totalCount += records.length;
+          tables.push({
+            id: tableSpec.id.wsId,
+            name: tableSpec.name,
+            records: records.length,
+          });
+        },
         snapshot.connectorAccount,
       );
     }
+
     WSLogger.debug({
-      source: 'SnapshotService.downloadSnapshotInBackground',
+      source: 'SnapshotService',
       message: 'Done downloading snapshot',
       snapshotId: snapshot.id,
+      recordsDownloaded: totalCount,
+      tablesDownloaded: tables.length,
     });
+
+    return {
+      totalRecords: totalCount,
+      tables,
+    };
   }
 
   async publish(id: SnapshotId, userId: string): Promise<void> {

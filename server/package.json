@@ -39,6 +39,7 @@
     "knex": "^3.1.0",
     "lodash": "^4.17.21",
     "nanoid": "^5.1.5",
+    "notion-to-md": "^3.1.9",
     "passport": "^0.7.0",
     "passport-custom": "^1.1.1",
     "passport-headerapikey": "^1.2.2",

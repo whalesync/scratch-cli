@@ -98,6 +98,15 @@ export type CreateSnapshotTableViewDto = {
   recordIds: string[];
 };
 
+export interface DownloadSnapshotResult {
+  totalRecords: number;
+  tables: {
+    id: string;
+    name: string;
+    records: number;
+  }[];
+}
+
 export function isTextColumn(column: ColumnSpec) {
   return column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
 }
