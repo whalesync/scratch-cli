@@ -5,14 +5,13 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { Capability, ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
+import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import {
   ActionIcon,
   Alert,
   Badge,
-  Box,
   Center,
   CloseButton,
   Divider,
@@ -43,15 +42,15 @@ import {
   VinylRecordIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAIPromptContext } from '../snapshots/[...slug]/AIPromptContext';
-import { useSnapshotContext } from '../snapshots/[...slug]/SnapshotContext';
-import { BadgeWithTooltip } from './BadgeWithTooltip';
-import { TextTitleSm } from './base/text';
+import { useAIPromptContext } from '../../snapshots/[...slug]/AIPromptContext';
+import { useSnapshotContext } from '../../snapshots/[...slug]/SnapshotContext';
+import { BadgeWithTooltip } from '../BadgeWithTooltip';
+import { TextTitleSm } from '../base/text';
+import { StyledIcon } from '../Icons/StyledIcon';
+import ModelPicker from '../ModelPicker';
+import { ResourceSelector } from '../ResourceSelector';
 import CapabilitiesPicker from './CapabilitiesPicker';
-import { StyledIcon } from './Icons/StyledIcon';
-import { MarkdownRenderer } from './markdown/MarkdownRenderer';
-import ModelPicker from './ModelPicker';
-import { ResourceSelector } from './ResourceSelector';
+import { ChatMessageElement } from './ChatMessageElement';
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -605,58 +604,3 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     </Paper>
   );
 }
-
-const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
-  const bgColor = msg.role === 'user' ? 'blue.0' : 'white';
-  const borderColor = msg.variant === 'error' ? '1px solid red' : '1px solid transparent';
-  const alignment = msg.role === 'user' ? 'flex-end' : 'flex-start';
-
-  let content = null;
-  if (msg.role === 'user') {
-    content = <Text size="xs">{msg.message}</Text>;
-  } else if (msg.variant === 'progress') {
-    let icon = '';
-    const testMsg = msg.message.toLowerCase();
-
-    if (testMsg.includes('request sent to')) {
-      icon = '🧠 ';
-    } else if (testMsg.includes('tool call')) {
-      icon = '🔧 ';
-    } else if (testMsg.includes('final agent response') || testMsg.includes('creating agent')) {
-      icon = '🤖 ';
-    } else if (testMsg.includes('loading your snapshot data')) {
-      icon = '💾 ';
-    }
-
-    content = (
-      <Text size="xs" c="gray.7">
-        {icon} {msg.message}
-      </Text>
-    );
-  } else {
-    content = (
-      <Box fz="xs">
-        <MarkdownRenderer>{msg.message}</MarkdownRenderer>
-      </Box>
-    );
-  }
-
-  return (
-    <Paper
-      p="xs"
-      bg={bgColor}
-      bd={borderColor}
-      style={{
-        alignSelf: alignment,
-        maxWidth: '90%',
-      }}
-    >
-      <Stack gap="6px">
-        {content}
-        <Text c="dimmed" fz="8px">
-          {new Date(msg.timestamp).toLocaleTimeString()}
-        </Text>
-      </Stack>
-    </Paper>
-  );
-};

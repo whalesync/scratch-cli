@@ -1,6 +1,6 @@
 'use client';
 
-import CapabilitiesPicker from '@/app/components/CapabilitiesPicker';
+import CapabilitiesPicker from '@/app/components/AIChatPanel/CapabilitiesPicker';
 import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import ModelPicker from '@/app/components/ModelPicker';
 import { useStyleGuides } from '@/hooks/use-style-guide';

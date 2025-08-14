@@ -230,13 +230,17 @@ async def websocket_endpoint(
                     else:
                         myLogger.info(f"   No style guides provided, using empty dict")
 
-                    async def progress_callback(message: str):
+                    async def progress_callback(
+                        progress_type: str, message: str, payload: dict
+                    ):
                         await manager.send_personal_message(
                             json.dumps(
                                 {
                                     "type": "message_progress",
                                     "data": {
+                                        "progress_type": progress_type,
                                         "message": message,
+                                        "payload": payload,
                                     },
                                     "timestamp": datetime.now().isoformat(),
                                 }

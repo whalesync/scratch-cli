@@ -116,7 +116,6 @@ export function isLargeTextColumn(column: ColumnSpec, value: string | undefined 
 }
 
 export function buildRecordTitle(record: SnapshotRecord): string {
-  console.log('record', record);
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {

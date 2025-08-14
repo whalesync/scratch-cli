@@ -81,7 +81,7 @@ class ChatService:
         record_id: Optional[str] = None,
         column_id: Optional[str] = None,
         timeout_seconds: float = 60.0,
-        progress_callback: Optional[Callable[[str], Awaitable[None]]] = None,
+        progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
         myLogger.info(
@@ -195,9 +195,6 @@ class ChatService:
                 if session.snapshot_id and api_token:
                     try:
                         # Fetch snapshot details
-                        if progress_callback:
-                            await progress_callback("Loading your snapshot data")
-
                         snapshot_data = get_snapshot(session.snapshot_id, api_token)
                         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
                             snapshot_data, session
@@ -343,11 +340,15 @@ class ChatService:
                         and user_open_router_credentials.apiKey
                     ):
                         await progress_callback(
-                            f"Creating agent using the {model} model with user OpenRouter credentials"
+                            "status",
+                            f"Creating agent using the {model} model with user OpenRouter credentials",
+                            {},
                         )
                     else:
                         await progress_callback(
-                            f"Creating agent using the {model} model"
+                            "status",
+                            f"Creating agent using the {model} model",
+                            {},
                         )
 
                 agent = create_agent(
@@ -384,7 +385,9 @@ class ChatService:
                                     continue
                                 elif Agent.is_model_request_node(node):
                                     # A model request node => We can stream tokens from the model's request
-                                    await progress_callback(f"Request sent to {model}")
+                                    await progress_callback(
+                                        "status", f"Request sent to {model}", {}
+                                    )
                                     # output_messages = []
                                     # async with node.stream(
                                     #     agent_run.ctx
@@ -430,18 +433,30 @@ class ChatService:
                                         async for event in handle_stream:
                                             if isinstance(event, FunctionToolCallEvent):
                                                 await progress_callback(
-                                                    f"Tool call {event.part.tool_name!r} with args={event.part.args})"
+                                                    "tool_call",
+                                                    f"Tool call {event.part.tool_name!r}",
+                                                    {
+                                                        "tool_call_id": event.tool_call_id,
+                                                        "args": event.part.args,
+                                                    },
                                                 )
                                             elif isinstance(
                                                 event, FunctionToolResultEvent
                                             ):
                                                 await progress_callback(
-                                                    f"Tool call returned => {event.result.content}"
+                                                    "tool_result",
+                                                    f"Tool call {event.tool_call_id!r} returned",
+                                                    {
+                                                        "tool_call_id": event.tool_call_id,
+                                                        "content": event.result.content,
+                                                    },
                                                 )
 
                                 elif Agent.is_end_node(node):
                                     await progress_callback(
-                                        f"Constructing final agent response"
+                                        "status",
+                                        f"Constructing final agent response",
+                                        {},
                                     )
 
                         result = agent_run.result
