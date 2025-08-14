@@ -45,6 +45,7 @@ export const SWR_KEYS = {
   },
   agentUsage: {
     list: (cursor?: string, take?: number) => ["agent-usage", "list", cursor, take],
+    summary: () => ["agent-usage", "summary"],
   },
 };
 

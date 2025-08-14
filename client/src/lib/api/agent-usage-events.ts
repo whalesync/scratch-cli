@@ -1,4 +1,4 @@
-import { AgentUsageEvent } from "@/types/server-entities/agent-usage-events";
+import { AgentUsageEvent, UsageSummary } from "@/types/server-entities/agent-usage-events";
 import { API_CONFIG } from "./config";
 
 export const agentUsageEventsApi = {
@@ -19,6 +19,19 @@ export const agentUsageEventsApi = {
       },
     });
     if (!res.ok) throw new Error("Failed to fetch agent usage events");
+    return res.json();
+  },
+
+  summary: async (): Promise<UsageSummary > => {
+    const url = new URL(`${API_CONFIG.getApiUrl()}/agent-token-usage/stats/summary`);
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch agent usage summary");
     return res.json();
   },
 };

@@ -4,8 +4,8 @@ import { UserProfile } from '@clerk/nextjs';
 import { Group, Stack } from '@mantine/core';
 import { ContentContainer } from '../components/ContentContainer';
 import { AgentCredentials } from './components/AgentCredentials';
+import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
 import { DebugInfo } from './components/DebugInfo';
-import { UsageHistory } from './components/UsageHistory';
 
 const SettingsPage = () => {
   return (
@@ -14,7 +14,7 @@ const SettingsPage = () => {
         <Stack gap="md">
           <DebugInfo />
           <AgentCredentials />
-          <UsageHistory />
+          <AgentUsageInfoCard />
         </Stack>
         <UserProfile routing="hash" />
       </Group>

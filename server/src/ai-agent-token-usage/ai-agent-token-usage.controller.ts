@@ -18,4 +18,9 @@ export class AiAgentTokenUsageController {
   findAll(@Req() req: RequestWithUser, @Query('take') take?: string, @Query('cursor') cursor?: string) {
     return this.aiAgentTokenUsageService.findAll(req.user.id, take ? parseInt(take) : undefined, cursor);
   }
+
+  @Get('/stats/summary')
+  getSummary(@Req() req: RequestWithUser) {
+    return this.aiAgentTokenUsageService.getUsageSummary(req.user.id);
+  }
 }

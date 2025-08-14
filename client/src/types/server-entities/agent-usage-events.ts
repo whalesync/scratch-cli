@@ -10,3 +10,14 @@ export interface AgentUsageEvent {
     totalTokens: number;
     context?: Record<string, string>;
   }
+
+  export interface UsageSummary {
+    totalTokens: number;
+    items: UsageSummaryItem[];
+  }
+
+  export interface UsageSummaryItem {
+    model: string;
+    totalTokens: number;
+    totalRequests: number;
+  }
