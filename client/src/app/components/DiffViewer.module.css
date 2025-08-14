@@ -3,6 +3,9 @@
   border-width: 1px;
   border-radius: 8px;
   background-color: white;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 
   &::selection {
     background-color: #ffff00;
