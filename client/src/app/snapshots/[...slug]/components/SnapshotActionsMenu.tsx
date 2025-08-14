@@ -5,9 +5,27 @@ import { snapshotApi } from '@/lib/api/snapshot';
 import { DownloadSnapshotResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, CheckIcon, Group, Loader, Menu, Modal, Stack, Text, useModalsStack } from '@mantine/core';
+import {
+  ActionIcon,
+  CheckIcon,
+  Group,
+  Loader,
+  Menu,
+  Modal,
+  Stack,
+  Text,
+  TextInput,
+  useModalsStack,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { ChatIcon, DotsThreeVerticalIcon, DownloadSimpleIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
+import {
+  ChatIcon,
+  DotsThreeVerticalIcon,
+  DownloadSimpleIcon,
+  PencilSimpleLineIcon,
+  TrashIcon,
+  UploadIcon,
+} from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useState } from 'react';
@@ -21,19 +39,31 @@ export const SnapshotActionsMenu = ({
   onChatToggle: () => void;
 }) => {
   const router = useRouter();
-  const { snapshot, isLoading, publish } = useSnapshotContext();
+  const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-  const [deleting, setDeleting] = useState(false);
-  const modalStack = useModalsStack(['confirm-delete', 'download', 'publish']);
+  const modalStack = useModalsStack(['confirm-delete', 'download', 'publish', 'rename']);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotResult | null>(null);
+  const [snapshotName, setSnapshotName] = useState(snapshot?.name ?? '');
+  const [saving, setSaving] = useState(false);
 
   const handleRename = async () => {
     if (!snapshot) return;
     try {
-      //   await snapshotApi.update(snapshot.id, { name: 'New Name' });
+      setSaving(true);
+      await updateSnapshot({ name: snapshotName });
+      ScratchpadNotifications.success({
+        message: 'The snapshot was renamed.',
+      });
+      modalStack.close('rename');
     } catch (e) {
       console.error(e);
+      ScratchpadNotifications.error({
+        title: 'Renaming failed',
+        message: 'There was an error renaming the snapshot to ' + snapshotName,
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -43,7 +73,8 @@ export const SnapshotActionsMenu = ({
       modalStack.open('download');
       const result = await snapshotApi.download(snapshot.id);
       setDownloadResult(result); // for future UI use
-      await sleep(1000);
+      // short sleep to avoid flicker in the modal for ultra fast downloads
+      await sleep(500);
 
       ScratchpadNotifications.success({
         title: 'Download completed',
@@ -93,7 +124,7 @@ export const SnapshotActionsMenu = ({
   const handleAbandon = async () => {
     if (!snapshot) return;
     try {
-      setDeleting(true);
+      setSaving(true);
       await snapshotApi.delete(snapshot.id);
       ScratchpadNotifications.success({
         title: 'Snapshot abandoned',
@@ -108,11 +139,11 @@ export const SnapshotActionsMenu = ({
         message: 'There was an error deleting the snapshot.',
       });
     } finally {
-      setDeleting(false);
+      setSaving(false);
     }
   };
 
-  const menuItemsDisabled = isLoading || deleting;
+  const menuItemsDisabled = isLoading || saving;
 
   return (
     <>
@@ -121,7 +152,7 @@ export const SnapshotActionsMenu = ({
           <Text>Are you sure you want to abandon this snapshot? All data will be deleted.</Text>
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleAbandon} loading={deleting}>
+            <PrimaryButton onClick={handleAbandon} loading={saving}>
               Delete
             </PrimaryButton>
           </Group>
@@ -138,6 +169,17 @@ export const SnapshotActionsMenu = ({
           <Loader size="xs" />
           <Text>Your data is being published to {connectorAccount?.displayName}. This may take a few minutes.</Text>
         </Group>
+      </Modal>
+      <Modal {...modalStack.register('rename')} title="Rename snapshot" centered size="lg">
+        <Stack>
+          <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
+          <Group justify="flex-end">
+            <SecondaryButton onClick={() => modalStack.close('rename')}>Cancel</SecondaryButton>
+            <PrimaryButton onClick={handleRename} loading={saving}>
+              Save
+            </PrimaryButton>
+          </Group>
+        </Stack>
       </Modal>
       <Menu shadow="md" width={250}>
         <Menu.Target>
@@ -157,8 +199,12 @@ export const SnapshotActionsMenu = ({
               Open AI Chat
             </Menu.Item>
           )}
-          <Menu.Item disabled onClick={handleRename} leftSection={<DownloadSimpleIcon />}>
-            Rename Snapshot
+          <Menu.Item
+            disabled={menuItemsDisabled}
+            onClick={() => modalStack.open('rename')}
+            leftSection={<PencilSimpleLineIcon />}
+          >
+            Rename
           </Menu.Item>
           <Menu.Item disabled={menuItemsDisabled} onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download
@@ -169,7 +215,7 @@ export const SnapshotActionsMenu = ({
           <Menu.Item
             color="red"
             disabled={menuItemsDisabled}
-            leftSection={deleting ? <Loader size="xs" /> : <TrashIcon />}
+            leftSection={saving ? <Loader size="xs" /> : <TrashIcon />}
             onClick={() => modalStack.open('confirm-delete')}
           >
             Abandon

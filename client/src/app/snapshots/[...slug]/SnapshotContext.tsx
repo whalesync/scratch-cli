@@ -2,8 +2,9 @@
 
 import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { Snapshot } from '@/types/server-entities/snapshot';
+import { Snapshot, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 import { notifications } from '@mantine/notifications';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
@@ -25,6 +26,7 @@ interface SnapshotContextValue {
   // Filter management
   // filteredRecordsCount: number;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
+  updateSnapshot: (updateDto: UpdateSnapshotDto) => Promise<void>;
 }
 
 const SnapshotContext = createContext<SnapshotContextValue | undefined>(undefined);
@@ -124,6 +126,16 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     [snapshot, mutate],
   );
 
+  const updateSnapshot = useCallback(
+    async (updateDto: UpdateSnapshotDto): Promise<void> => {
+      if (!snapshot) return;
+      await snapshotApi.update(snapshot.id, updateDto);
+      mutate(SWR_KEYS.snapshot.list(snapshot?.connectorAccountId ?? 'all'));
+      mutate(SWR_KEYS.snapshot.detail(snapshot.id));
+    },
+    [snapshot, mutate],
+  );
+
   const value: SnapshotContextValue = {
     snapshot,
     views,
@@ -133,6 +145,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     error: snapshotError || viewsError,
     refreshViews,
     publish,
+    updateSnapshot,
     setCurrentViewId,
     createView,
     selectView,
