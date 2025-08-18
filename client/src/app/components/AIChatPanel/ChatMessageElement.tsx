@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentProgressMessageData } from '@/hooks/use-agent-chat-websocket';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { timeAgo } from '@/utils/helpers';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
@@ -23,17 +24,6 @@ const AgentStatusMessage = ({ msg }: { msg: ChatMessage }) => {
     </Text>
   );
 };
-
-interface AgentProgressMessageData {
-  progress_type: string;
-  message: string;
-  payload: Record<string, unknown>;
-}
-
-// interface ToolCallPayload {
-//   tool_call_id: string;
-//   args: string; // JSON string
-// }
 
 const AgentToolCallMessage = ({ msg }: { msg: ChatMessage }) => {
   const data = msg.payload as AgentProgressMessageData;
@@ -127,7 +117,7 @@ export const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
 
   if (msg.variant === 'progress') {
     const payload = msg.payload as AgentProgressMessageData;
-    if (payload.progress_type === 'status') {
+    if (payload.progress_type === 'status' || payload.progress_type === 'run_started') {
       return <AgentStatusMessage msg={msg} />;
     }
 

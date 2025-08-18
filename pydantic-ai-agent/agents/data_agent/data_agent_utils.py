@@ -2,6 +2,9 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 from scratchpad_api import ScratchpadSnapshot
+from logging import getLogger
+
+myLogger = getLogger(__name__)
 
 
 # Data types for Snapshot
@@ -54,21 +57,19 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
     Returns:
         SnapshotForAi: The converted snapshot object
     """
-    print(f"🔍 Converting snapshot data...")
-    print(f"📊 Snapshot ID: {snapshot_data.id}")
-    print(f"📅 Created: {chatSession.created_at}")
-    print(f"📅 Updated: {chatSession.last_activity}")
+    myLogger.debug(f"🔍 Converting snapshot data...")
+    myLogger.debug(f"📊 Snapshot ID: {snapshot_data.id}")
+    myLogger.debug(f"📅 Created: {chatSession.created_at}")
+    myLogger.debug(f"📅 Updated: {chatSession.last_activity}")
 
     # Convert tables one by one
     converted_tables = []
     for i, table in enumerate(snapshot_data.tables):
-        print(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
+        myLogger.debug(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
 
         # Convert columns for this table
         converted_columns = []
         for j, col in enumerate(table["columns"]):  # type: ignore
-            print(f"  🔍 Converting column {j+1}/{len(table['columns'])}: {col['name']}")  # type: ignore
-            print(f"    📋 Column type: {col['pgType']}")  # type: ignore
             column_spec = ColumnSpecForAi(
                 id=EntityId(wsId=col["id"]["wsId"], remoteId=col["id"]["remoteId"]),  # type: ignore
                 name=col["name"],  # type: ignore
@@ -96,7 +97,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         converted_table_contexts.append(table_context_spec)
 
     # Create the snapshot
-    print(f"🔍 Creating Snapshot object...")
+    myLogger.debug(f"🔍 Creating Snapshot object...")
     snapshot = SnapshotForAi(
         id=snapshot_data.id,
         name=snapshot_data.name,
@@ -108,7 +109,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         tables=converted_tables,
         tableContexts=converted_table_contexts,
     )
-    print(f"✅ Snapshot object created successfully")
+    myLogger.debug(f"✅ Snapshot object created successfully")
 
     return snapshot
 

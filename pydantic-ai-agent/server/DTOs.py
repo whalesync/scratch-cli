@@ -29,6 +29,12 @@ class Guideline(BaseModel):
     )
 
 
+class CancelMessageRequestDTO(BaseModel):
+    """Request to cancel a message"""
+
+    run_id: str = Field(description="ID of the run to cancel")
+
+
 class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
 

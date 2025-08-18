@@ -1,4 +1,4 @@
-import { AgentErrorResponse, ChatSession, CreateSessionResponse, DeleteSessionResponse, SendMessageResponse, SessionListResponse } from "@/types/server-entities/chat-session";
+import { AgentErrorResponse, CancelAgentRunResponse, ChatSession, CreateSessionResponse, DeleteSessionResponse, SendMessageResponse, SessionListResponse } from "@/types/server-entities/chat-session";
 import { API_CONFIG } from "./config";
 
 export const aiAgentApi = {
@@ -83,5 +83,20 @@ export const aiAgentApi = {
     }
 
     return (await res.json()) as SendMessageResponse;
+  },
+
+  cancelAgentRun: async (sessionId: string, runId: string): Promise<CancelAgentRunResponse> => {
+    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions/${sessionId}/cancel-agent-run/${runId}`, {
+      method: "POST",
+      headers: {
+        ...API_CONFIG.getAiAgentAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to cancel agent run");
+    }
+    return res.json();
   },
 };

@@ -46,6 +46,7 @@ class ResponseFromAgent(BaseModel):
 
 
 class ChatRunContext(BaseModel):
+    run_id: str = Field(description="ID of the chat run")
     session: ChatSession
     api_token: str
     snapshot: Optional[SnapshotForAi] = Field(

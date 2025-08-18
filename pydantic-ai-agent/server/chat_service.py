@@ -5,9 +5,11 @@ Chat Service for handling agent communication and session management
 
 import asyncio
 import time
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
+from pydantic_ai.exceptions import UserError
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai import Agent
 from pydantic_ai.usage import Usage
@@ -39,13 +41,40 @@ from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
 )
 from utils.helpers import find_first_matching, mask_string
+from server.agent_run_state_manager import AgentRunStateManager
 
 myLogger = getLogger(__name__)
+
+
+class CancelledAgentRunResult:
+    """Result for a cancelled agent run"""
+
+    def __init__(self, usage: Usage):
+        self.usage_stats = UsageStats(
+            requests=usage.requests if usage and usage.requests else 0,
+            request_tokens=(
+                usage.request_tokens if usage and usage.request_tokens else 0
+            ),
+            response_tokens=(
+                usage.response_tokens if usage and usage.response_tokens else 0
+            ),
+            total_tokens=usage.total_tokens if usage and usage.total_tokens else 0,
+        )
+
+
+class AgentRunCancelledError(UserError):
+    """Error raised when an agent run is cancelled"""
+
+    def __init__(self, message: str, run_id: str, when: str):
+        super().__init__(message)
+        self.run_id = run_id
+        self.when = when
 
 
 class ChatService:
     def __init__(self):
         self.sessions: Dict[str, ChatSession] = {}
+        self.run_state_manager = AgentRunStateManager()
 
     def create_session(self, session_id: str, snapshot_id: str) -> ChatSession:
         """Create a new chat session and set session data in tools"""
@@ -64,6 +93,22 @@ class ChatService:
         )
 
         return session
+
+    async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
+        """Cancel a run"""
+        myLogger.info(
+            f"Cancelling agent run {run_id} for session {session_id}",
+        )
+
+        if not await self.run_state_manager.exists(session_id, run_id):
+            myLogger.info(
+                f"Run {run_id} not found",
+                extra={"run_id": run_id, "session_id": session_id},
+            )
+            return "Run not found"
+
+        await self.run_state_manager.cancel_run(run_id)
+        return "Run cancelled"
 
     async def process_message_with_agent(
         self,
@@ -162,17 +207,13 @@ class ChatService:
             )
 
         try:
-            # Build context from session history
-            context = ""
-
             # Create the full prompt with memory
-            full_prompt = f"RESPOND TO: {user_message} {context}"
+            full_prompt = f"RESPOND TO: {user_message}"
 
             # Log agent processing details
             log_info(
                 "Agent processing summary",
                 session_id=session.id,
-                context_length=len(context),
                 chat_history_length=len(session.chat_history),
                 summary_history_length=len(session.summary_history),
                 style_guides_count=len(style_guides) if style_guides else 0,
@@ -289,6 +330,7 @@ class ChatService:
 
                 # Create context with pre-loaded data
                 chatRunContext: ChatRunContext = ChatRunContext(
+                    run_id=str(uuid.uuid4()),
                     session=session,
                     api_token=api_token,
                     view_id=view_id,
@@ -302,7 +344,20 @@ class ChatService:
                     column_id=column_id,
                 )
 
-                # Add pre-loaded snapshot data and records to the prompt
+                # Store the chat context so it can be accessed by the cancel system
+                await self.run_state_manager.start_run(
+                    session.id,
+                    chatRunContext.run_id,
+                )
+
+                if progress_callback:
+                    await progress_callback(
+                        "run_started",
+                        f"Run started with ID {chatRunContext.run_id}",
+                        {
+                            "run_id": chatRunContext.run_id,
+                        },
+                    )
 
                 # Prepare records and filtered counts for the utility function
                 preloaded_records = chatRunContext.preloaded_records
@@ -314,7 +369,7 @@ class ChatService:
                 )
 
                 # Update the full prompt with snapshot data
-                full_prompt = f"RESPOND TO: {user_message} {context}{snapshot_context}"
+                full_prompt = f"RESPOND TO: {user_message} {snapshot_context}"
 
                 # Add focus cells information to the prompt if they exist
                 if read_focus or write_focus:
@@ -365,101 +420,115 @@ class ChatService:
                 # Final result will get set into the result above
                 async def process_stream():
                     nonlocal result
-
-                    async with agent.iter(
-                        full_prompt,
-                        deps=chatRunContext,
-                        message_history=session.message_history,
-                        usage_limits=UsageLimits(
-                            request_limit=10,  # Maximum 20 requests per agent run
-                            # request_tokens_limit=10000,  # Maximum 10k tokens per request
-                            # response_tokens_limit=5000,  # Maximum 5k tokens per response
-                            # total_tokens_limit=15000  # Maximum 15k tokens total
-                        ),
-                    ) as agent_run:
-                        async for node in agent_run:
-                            if progress_callback:
-                                if Agent.is_user_prompt_node(node):
-                                    # A user prompt node => The user has provided input
-                                    # await progress_callback(f"User prompt constructed")
-                                    continue
-                                elif Agent.is_model_request_node(node):
-                                    # A model request node => We can stream tokens from the model's request
-                                    await progress_callback(
-                                        "status", f"Request sent to {model}", {}
-                                    )
-                                    # output_messages = []
-                                    # async with node.stream(
-                                    #     agent_run.ctx
-                                    # ) as request_stream:
-                                    #     async for event in request_stream:
-                                    #         if isinstance(event, PartStartEvent):
-                                    #             output_messages.append(
-                                    #                 f"[Request] Starting part {event.index}: {event.part!r}"
-                                    #             )
-                                    #         elif isinstance(event, PartDeltaEvent):
-                                    #             if isinstance(
-                                    #                 event.delta, TextPartDelta
-                                    #             ):
-                                    #                 output_messages.append(
-                                    #                     f"[Request] Part {event.index} text delta: {event.delta.content_delta!r}"
-                                    #                 )
-                                    #             elif isinstance(
-                                    #                 event.delta, ToolCallPartDelta
-                                    #             ):
-                                    #                 output_messages.append(
-                                    #                     f"[Request] Part {event.index} args_delta={event.delta.args_delta}"
-                                    #                 )
-                                    #         elif isinstance(event, FinalResultEvent):
-                                    #             output_messages.append(
-                                    #                 f"[Result] The model produced a final output (tool_name={event.tool_name})"
-                                    #             )
-
-                                    # await progress_callback(
-                                    #     f"Response from {model} => {' '.join(output_messages)}"
-                                    # )
-
-                                elif Agent.is_call_tools_node(node):
-                                    # A handle-response node => The model returned some data, potentially calls a tool
-                                    model_response = node.model_response
-                                    if model_response.parts:
-                                        model_response_part = model_response.parts[0]
-                                        if model_response_part.tool_name and model_response_part.tool_name == "final_result":  # type: ignore
-                                            continue
-
-                                    async with node.stream(
-                                        agent_run.ctx
-                                    ) as handle_stream:
-                                        async for event in handle_stream:
-                                            if isinstance(event, FunctionToolCallEvent):
-                                                await progress_callback(
-                                                    "tool_call",
-                                                    f"Tool call {event.part.tool_name!r}",
-                                                    {
-                                                        "tool_call_id": event.tool_call_id,
-                                                        "args": event.part.args,
-                                                    },
-                                                )
-                                            elif isinstance(
-                                                event, FunctionToolResultEvent
-                                            ):
-                                                await progress_callback(
-                                                    "tool_result",
-                                                    f"Tool call {event.tool_call_id!r} returned",
-                                                    {
-                                                        "tool_call_id": event.tool_call_id,
-                                                        "content": event.result.content,
-                                                    },
-                                                )
-
-                                elif Agent.is_end_node(node):
-                                    await progress_callback(
-                                        "status",
-                                        f"Constructing final agent response",
-                                        {},
+                    try:
+                        async with agent.iter(
+                            full_prompt,
+                            deps=chatRunContext,
+                            message_history=session.message_history,
+                            usage_limits=UsageLimits(
+                                request_limit=10,  # Maximum 20 requests per agent run
+                                # request_tokens_limit=10000,  # Maximum 10k tokens per request
+                                # response_tokens_limit=5000,  # Maximum 5k tokens per response
+                                # total_tokens_limit=15000  # Maximum 15k tokens total
+                            ),
+                        ) as agent_run:
+                            async for node in agent_run:
+                                if await self.run_state_manager.is_cancelled(
+                                    chatRunContext.run_id
+                                ):
+                                    raise AgentRunCancelledError(
+                                        "Run cancelled",
+                                        chatRunContext.run_id,
+                                        "between processing nodes",
                                     )
 
-                        result = agent_run.result
+                                if progress_callback:
+                                    if Agent.is_user_prompt_node(node):
+                                        # A user prompt node => The user has provided input
+                                        # await progress_callback(f"User prompt constructed")
+                                        continue
+                                    elif Agent.is_model_request_node(node):
+                                        # A model request node => We can stream tokens from the model's request
+                                        await progress_callback(
+                                            "status", f"Request sent to {model}", {}
+                                        )
+
+                                        async with node.stream(
+                                            agent_run.ctx
+                                        ) as request_stream:
+                                            async for event in request_stream:
+                                                # check cancel status
+                                                if await self.run_state_manager.is_cancelled(
+                                                    chatRunContext.run_id
+                                                ):
+                                                    raise AgentRunCancelledError(
+                                                        "Run cancelled",
+                                                        chatRunContext.run_id,
+                                                        "while waiting for model response",
+                                                    )
+
+                                    elif Agent.is_call_tools_node(node):
+                                        # A handle-response node => The model returned some data, potentially calls a tool
+                                        model_response = node.model_response
+                                        if model_response.parts:
+                                            model_response_part = model_response.parts[
+                                                0
+                                            ]
+                                            if model_response_part.tool_name and model_response_part.tool_name == "final_result":  # type: ignore
+                                                continue
+
+                                        async with node.stream(
+                                            agent_run.ctx
+                                        ) as handle_stream:
+                                            async for event in handle_stream:
+                                                if await self.run_state_manager.is_cancelled(
+                                                    chatRunContext.run_id
+                                                ):
+                                                    raise AgentRunCancelledError(
+                                                        "Run cancelled",
+                                                        chatRunContext.run_id,
+                                                        "while processing tool result",
+                                                    )
+
+                                                if isinstance(
+                                                    event, FunctionToolCallEvent
+                                                ):
+                                                    await progress_callback(
+                                                        "tool_call",
+                                                        f"Tool call {event.part.tool_name!r}",
+                                                        {
+                                                            "tool_call_id": event.tool_call_id,
+                                                            "args": event.part.args,
+                                                        },
+                                                    )
+                                                elif isinstance(
+                                                    event, FunctionToolResultEvent
+                                                ):
+                                                    await progress_callback(
+                                                        "tool_result",
+                                                        f"Tool call {event.tool_call_id!r} returned",
+                                                        {
+                                                            "tool_call_id": event.tool_call_id,
+                                                            "content": event.result.content,
+                                                        },
+                                                    )
+
+                                    elif Agent.is_end_node(node):
+                                        await progress_callback(
+                                            "status",
+                                            f"Constructing final agent response",
+                                            {},
+                                        )
+
+                            result = agent_run.result
+                            await self.run_state_manager.complete_run(
+                                chatRunContext.run_id
+                            )
+                    except AgentRunCancelledError as e:
+                        myLogger.info(f"Run {e.run_id} cancelled by user: {e.when}")
+                        result = CancelledAgentRunResult(
+                            agent_run.usage() if agent_run.usage else None
+                        )
 
                 # Run the streaming with timeout
                 myLogger.info(
@@ -469,15 +538,14 @@ class ChatService:
                         "timeout_seconds": timeout_seconds,
                     },
                 )
+
                 start_time = asyncio.get_event_loop().time()
                 await asyncio.wait_for(process_stream(), timeout=timeout_seconds)
                 end_time = asyncio.get_event_loop().time()
                 execution_time = end_time - start_time
                 myLogger.info(
-                    "✅ Agent.run() completed",
-                    extra={"session_id": session.id, "execution_time": execution_time},
+                    f"Agent run ended: session_id={session.id}, execution_time={execution_time}"
                 )
-                session.message_history = result.all_messages()
             except asyncio.TimeoutError:
                 log_error(
                     "Agent processing timeout",
@@ -485,17 +553,60 @@ class ChatService:
                     timeout_seconds=30,
                     snapshot_id=session.snapshot_id,
                 )
-                myLogger.info(
-                    f"❌ Agent.run() timed out after 30 seconds",
-                )
+                myLogger.info(f"❌ Agent.run() timed out after 30 seconds")
                 raise HTTPException(status_code=408, detail="Agent response timeout")
+            finally:
+                await self.run_state_manager.delete_run(chatRunContext.run_id)
 
             # The agent returns an AgentRunResult wrapper, we need to extract the actual response
-            response = result
-            myLogger.info(f"🔍 Agent result: {type(response)}")
+            myLogger.info(f"🔍 Agent result: {type(result)}")
+
+            if isinstance(result, CancelledAgentRunResult):
+
+                cancelled_result: CancelledAgentRunResult = result
+                # cancelled by user, handle as a special response to the caller
+                myLogger.info(
+                    f"Build response for cancelled run {chatRunContext.run_id}"
+                )
+
+                if cancelled_result.usage_stats.requests > 0:
+                    try:
+                        track_token_usage(
+                            api_token,
+                            model,
+                            cancelled_result.usage_stats.requests,
+                            cancelled_result.usage_stats.request_tokens,
+                            cancelled_result.usage_stats.response_tokens,
+                            cancelled_result.usage_stats.total_tokens,
+                            usage_context={
+                                "session_id": session.id,
+                                "snapshot_id": session.snapshot_id,
+                                "active_table_id": active_table_id,
+                                "data_scope": data_scope,
+                                "record_id": record_id,
+                                "column_id": column_id,
+                                "agent_credentials": (
+                                    "user" if user_open_router_credentials else "system"
+                                ),
+                                "cancelled_by_user": True,
+                            },
+                        )
+                    except Exception as e:
+                        myLogger.exception(
+                            f"❌ Failed to track token usage through Scratchpad API"
+                        )
+
+                return ResponseFromAgent(
+                    response_message="Request cancelled by user",
+                    response_summary="Request cancelled by user",
+                    request_summary="Request cancelled by user",
+                    usage_stats=cancelled_result.usage_stats,
+                )
+
+            session.message_history = result.all_messages()
 
             # Extract the actual response from the AgentRunResult
-            actual_response = extract_response(response, ResponseFromAgent)
+            actual_response = extract_response(result, ResponseFromAgent)
             if not actual_response:
                 log_error(
                     "No response from agent",
@@ -504,10 +615,6 @@ class ChatService:
                 )
                 myLogger.info(f"❌ No response from agent")
                 raise HTTPException(status_code=500, detail="No response from agent")
-
-            myLogger.info(
-                f"🔍 Is instance check: {isinstance(actual_response, ResponseFromAgent)}"
-            )
 
             # Check if actual_response has the expected fields using getattr for safety
             try:
@@ -573,10 +680,10 @@ class ChatService:
                 log_error(
                     "Invalid agent response",
                     session_id=session.id,
-                    response_type=type(response),
+                    response_type=type(result),
                     snapshot_id=session.snapshot_id,
                 )
-                myLogger.info(f"❌ Invalid response from agent: {response}")
+                myLogger.info(f"❌ Invalid response from agent: {result}")
                 raise HTTPException(
                     status_code=500, detail="Invalid response from agent"
                 )
@@ -588,7 +695,7 @@ class ChatService:
                 error=str(e),
                 snapshot_id=session.snapshot_id,
             )
-            myLogger.info(f"❌ Error in agent processing: {e}")
+            myLogger.exception(f"Error in agent processing")
             raise HTTPException(
                 status_code=500, detail=f"Error processing message: {str(e)}"
             )

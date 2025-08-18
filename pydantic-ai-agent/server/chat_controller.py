@@ -312,6 +312,13 @@ async def list_sessions():
     return {"sessions": session_summaries}
 
 
+@router.post("/sessions/{session_id}/cancel-agent-run/{run_id}")
+async def cancel_agent_run(session_id: str, run_id: str):
+    """Cancel an agent run"""
+    msg = await chat_service.cancel_agent_run(session_id, run_id)
+    return {"message": msg}
+
+
 @router.post("/cleanup")
 async def cleanup_sessions():
     """Manually trigger session cleanup"""

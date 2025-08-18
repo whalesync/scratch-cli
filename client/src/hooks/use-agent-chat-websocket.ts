@@ -103,7 +103,7 @@ export function useAIAgentChatWebSocket({
             role: 'assistant',
             message: 'Disconnected from AI Agent',
             timestamp: new Date().toISOString(),
-              variant: 'message',
+              variant: 'admin',
           },
         ]);
       };
@@ -215,27 +215,34 @@ export function useAIAgentChatWebSocket({
 } 
 
 
-interface BasicAgentMessageDataPayload {
+export interface BasicAgentMessageDataPayload {
     message: string;
 }
 
-interface AgentErrorResponseDataPayload {
+export interface AgentErrorResponseDataPayload {
   detail: string;
 }
 
-interface UsageStats {
+export interface UsageStats {
   requests: number;
   request_tokens: number;
   response_tokens: number;
   total_tokens: number;
 }
 
-interface AgentResponseDataPayload {
+export interface AgentResponseDataPayload {
   response_message: string;
   response_summary: string;
   request_summary: string;
   usage_stats: UsageStats;
 }
+
+export interface AgentProgressMessageData {
+  progress_type: 'run_started' | 'status' | 'tool_call' | 'tool_result';
+  message: string;
+  payload: Record<string, unknown>;
+}
+
 
 function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
   let displayMessage = '';

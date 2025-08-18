@@ -9,13 +9,9 @@ from datetime import datetime
 from typing import Dict, Optional
 from fastapi import WebSocket, WebSocketDisconnect
 
-from session import ChatMessage, ChatSession, RequestAndResponseSummary
+from session import ChatMessage, RequestAndResponseSummary
 from server.DTOs import (
     SendMessageRequestDTO,
-    SendMessageResponseDTO,
-    ChatSessionSummary,
-    CreateSessionResponseDTO,
-    Capability,
 )
 from server.chat_service import ChatService
 from logger import log_info, log_error

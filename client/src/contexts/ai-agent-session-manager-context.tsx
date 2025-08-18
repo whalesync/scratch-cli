@@ -21,6 +21,7 @@ interface AIAgentSessionManagerContextValue {
   createSession: (snapshotId: string) => Promise<CreateSessionResponse>;
   deleteSession: (sessionId: string) => Promise<void>;
   refreshActiveSession: () => Promise<void>;
+  cancelAgentRun: (runId: string) => Promise<string | undefined>;
 }
 
 interface AIAgentSessionManagerProviderProps {
@@ -130,6 +131,23 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
     setActiveSessionId(null);
   }, []);
 
+  const cancelAgentRun = useCallback(
+    async (runId: string): Promise<string | undefined> => {
+      try {
+        if (!activeSessionId) {
+          console.log('No active session - unable to cancel agent run');
+          return;
+        }
+        const response = await aiAgentApi.cancelAgentRun(activeSessionId, runId);
+        return response.message;
+      } catch (error) {
+        console.error('Error cancelling agent run:', error);
+        return 'Failed to cancel agent run';
+      }
+    },
+    [activeSessionId],
+  );
+
   const contextValue: AIAgentSessionManagerContextValue = {
     sessions,
     isLoadingSessions,
@@ -142,6 +160,7 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
     refreshActiveSession,
     addToActiveChatHistory,
     clearActiveSession,
+    cancelAgentRun,
   };
 
   return <AIAgentSessionManagerContext.Provider value={contextValue}>{children}</AIAgentSessionManagerContext.Provider>;

@@ -2,7 +2,7 @@
 
 import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import { useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
+import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
@@ -36,6 +36,7 @@ import {
   HeadCircuitIcon,
   PaperPlaneRightIcon,
   PlusIcon,
+  StopCircleIcon,
   TableIcon,
   TagSimpleIcon,
   TrashIcon,
@@ -75,6 +76,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   const { readFocus, writeFocus, dataScope, activeRecordId, activeColumnId } = useFocusedCellsContext();
   const { promptQueue, clearPromptQueue } = useAIPromptContext();
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
+  const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
   // Get user data including API token
   const { user } = useScratchPadUser();
@@ -104,6 +106,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     deleteSession,
     activateSession,
     clearActiveSession,
+    cancelAgentRun,
   } = useAIAgentSessionManagerContext();
 
   const handleWebsocketMessage = useCallback(
@@ -112,12 +115,18 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       // The hook already tracks the message history and we can use that for the UI
       if (message.type === 'message_progress') {
         console.debug('Message progress:', message.data);
+        const payload = message.data as AgentProgressMessageData;
+        if (payload.progress_type === 'run_started') {
+          setRunningAgentTaskId(payload.payload['run_id'] as string);
+        }
       } else if (message.type === 'message_response') {
         console.debug('Message response:', message.data);
         setAgentTaskRunning(false);
+        setRunningAgentTaskId(null);
         setResetInputFocus(true);
       } else if (message.type === 'agent_error') {
         setAgentTaskRunning(false);
+        setRunningAgentTaskId(null);
         setResetInputFocus(true);
       }
       // got a message, try to scroll to the bottom
@@ -574,6 +583,19 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
               }}
             />
           </Group>
+          <ActionIcon
+            onClick={() => {
+              if (runningAgentTaskId) {
+                cancelAgentRun(runningAgentTaskId);
+              }
+            }}
+            size="md"
+            variant="transparent"
+            title="Cancel task"
+            disabled={!runningAgentTaskId || !agentTaskRunning}
+          >
+            <StyledIcon Icon={StopCircleIcon} size={16} />
+          </ActionIcon>
           <ActionIcon
             onClick={sendMessage}
             disabled={!message.trim() || !chatInputEnabled}

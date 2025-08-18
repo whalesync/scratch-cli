@@ -77,3 +77,8 @@ export type AgentErrorResponse = {
   type: 'agent_error';
   detail: string;
 };
+
+
+export type CancelAgentRunResponse = {
+  message: string;
+};
