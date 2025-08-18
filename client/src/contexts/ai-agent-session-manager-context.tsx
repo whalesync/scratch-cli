@@ -141,7 +141,7 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
         const response = await aiAgentApi.cancelAgentRun(activeSessionId, runId);
         return response.message;
       } catch (error) {
-        console.error('Error cancelling agent run:', error);
+        console.log('Error cancelling agent run:', error);
         return 'Failed to cancel agent run';
       }
     },

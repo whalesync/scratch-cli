@@ -22,6 +22,10 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
   const [resetInputFocus, setResetInputFocus] = useState(false);
 
   useEffect(() => {
+    if (!props.opened) {
+      return;
+    }
+
     if (styleGuide) {
       setContent(styleGuide.body);
       setName(styleGuide.name);
@@ -32,7 +36,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
       setContent('');
       setAutoInclude(false);
     }
-  }, [styleGuide]);
+  }, [styleGuide, props.opened]);
 
   useEffect(() => {
     // Focus on textarea when modal opens or style guide changes

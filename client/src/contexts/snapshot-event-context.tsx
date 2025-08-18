@@ -54,7 +54,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
         }
       }
     },
-    [snapshotId, globalMutate],
+    [snapshotId, globalMutate, currentView],
   );
 
   // Handle record events (record-changes)
@@ -72,12 +72,12 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
   // Handle websocket errors
   const handleError = useCallback((error: Error) => {
-    console.error('Websocket error in SnapshotEventProvider:', error);
+    console.log('SnapshotEventProvider', 'Websocket error:', error);
   }, []);
 
   // Handle connection close
   const handleCloseConnection = useCallback(() => {
-    console.debug('Websocket connection closed in SnapshotEventProvider');
+    console.debug('SnapshotEventProvider', 'Websocket connection closed');
   }, []);
 
   // Use the websocket hook

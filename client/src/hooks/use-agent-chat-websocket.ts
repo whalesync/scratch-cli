@@ -83,7 +83,7 @@ export function useAIAgentChatWebSocket({
           onMessage?.(wsMessage);
 
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.log('Error parsing WebSocket message:', error);
         }
       };
 
@@ -109,14 +109,14 @@ export function useAIAgentChatWebSocket({
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.log('WebSocket error:', error);
         setConnectionError('Failed to connect to WebSocket server');
         setConnectionStatus('offline');
       };
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('Error creating WebSocket connection:', error);
+      console.log('Error creating WebSocket connection:', error);
       setConnectionError('Failed to create WebSocket connection');
       setConnectionStatus('offline');
     }

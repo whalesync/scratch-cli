@@ -57,7 +57,7 @@ export const SnapshotActionsMenu = ({
       });
       modalStack.close('rename');
     } catch (e) {
-      console.error(e);
+      console.log(e);
       ScratchpadNotifications.error({
         title: 'Renaming failed',
         message: 'There was an error renaming the snapshot to ' + snapshotName,
@@ -81,7 +81,7 @@ export const SnapshotActionsMenu = ({
         message: `${result.totalRecords} ${pluralize('record', result.totalRecords)} have been downloaded from ${connectorAccount?.displayName}.`,
       });
     } catch (e) {
-      console.error(e);
+      console.log(e);
       ScratchpadNotifications.error({
         title: 'Download failed',
         message: 'There was an error starting the download.',
@@ -107,7 +107,7 @@ export const SnapshotActionsMenu = ({
         autoClose: 2000,
       });
     } catch (e) {
-      console.error(e);
+      console.log(e);
       notifications.update({
         id: 'publish-notification',
         title: 'Publish failed',
@@ -133,7 +133,7 @@ export const SnapshotActionsMenu = ({
 
       router.push(RouteUrls.snapshotsPageUrl);
     } catch (e) {
-      console.error(e);
+      console.log(e);
       ScratchpadNotifications.error({
         title: 'Deletion failed',
         message: 'There was an error deleting the snapshot.',

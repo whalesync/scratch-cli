@@ -3,25 +3,48 @@
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
-import { ActionIcon, Alert, Badge, Button, Group, Paper, Table, Text, UnstyledButton } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Badge,
+  Button,
+  Group,
+  Modal,
+  Paper,
+  Stack,
+  Table,
+  Text,
+  UnstyledButton,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ContentContainer } from '../components/ContentContainer';
 import { EditResourceModal } from '../components/EditResourceModal';
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateModalOpen, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
+  const [isDeleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [activeStyleGuide, setActiveStyleGuide] = useState<StyleGuide | null>(null);
 
-  const handleDeleteStyleGuide = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this style guide?')) return;
+  const handleEditStyleGuide = (styleGuide: StyleGuide) => {
+    setActiveStyleGuide(styleGuide);
+    openCreateModal();
+  };
 
+  const handleNewStyleGuide = useCallback(async () => {
+    setActiveStyleGuide(null);
+    openCreateModal();
+  }, []);
+
+  const handleDeleteStyleGuide = async (id: string) => {
     try {
       await styleGuideApi.delete(id);
+      setActiveStyleGuide(null);
       await mutate();
     } catch (error) {
-      console.error('Error deleting style guide:', error);
+      console.log('Error deleting style guide:', error);
     }
   };
 
@@ -39,19 +62,8 @@ export default function StyleGuidesPage() {
     );
   }
 
-  const handleEditStyleGuide = (styleGuide: StyleGuide) => {
-    setActiveStyleGuide(styleGuide);
-    setIsCreateModalOpen(true);
-  };
-
   const headerActions = (
-    <Button
-      leftSection={<PlusIcon size={16} />}
-      onClick={() => {
-        setActiveStyleGuide(null);
-        setIsCreateModalOpen(true);
-      }}
-    >
+    <Button leftSection={<PlusIcon size={16} />} onClick={handleNewStyleGuide}>
       New Style Guide
     </Button>
   );
@@ -95,7 +107,7 @@ export default function StyleGuidesPage() {
                     <ActionIcon
                       onClick={async () => {
                         setActiveStyleGuide(styleGuide);
-                        setIsCreateModalOpen(true);
+                        openCreateModal();
                       }}
                       variant="subtle"
                       size="sm"
@@ -106,7 +118,10 @@ export default function StyleGuidesPage() {
                       variant="subtle"
                       color="red"
                       size="sm"
-                      onClick={() => handleDeleteStyleGuide(styleGuide.id)}
+                      onClick={() => {
+                        setActiveStyleGuide(styleGuide);
+                        openDeleteModal();
+                      }}
                     >
                       <TrashIcon size={16} />
                     </ActionIcon>
@@ -118,16 +133,35 @@ export default function StyleGuidesPage() {
         </Table>
       )}
 
+      <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
+        <Stack gap="sm">
+          <Text>Are you sure you want to delete the &quot;{activeStyleGuide?.name}&quot; resource?</Text>
+          <Group justify="flex-end">
+            <Button onClick={closeDeleteModal}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (activeStyleGuide) {
+                  handleDeleteStyleGuide(activeStyleGuide.id);
+                }
+                closeDeleteModal();
+              }}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <EditResourceModal
         opened={isCreateModalOpen}
         onClose={() => {
-          setIsCreateModalOpen(false);
           setActiveStyleGuide(null);
+          closeCreateModal();
         }}
         onSuccess={async () => {
           await mutate();
-          setIsCreateModalOpen(false);
           setActiveStyleGuide(null);
+          closeCreateModal();
         }}
         styleGuide={activeStyleGuide}
       />
