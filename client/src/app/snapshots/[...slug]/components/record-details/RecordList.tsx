@@ -93,9 +93,7 @@ const RecordNode = ({
       {isActive && (
         <Stack ml="19px" gap="2px">
           {columnMetaData.map((column) => {
-            return column.isHidden ? null : (
-              <ColumnNode key={column.id} column={column} onClick={(id) => onClick(id)} />
-            );
+            return <ColumnNode key={column.id} column={column} onClick={(id) => onClick(id)} />;
           })}
         </Stack>
       )}
@@ -122,6 +120,7 @@ const ColumnNode = ({ column, onClick }: { column: ColumnMetaData; onClick: (col
       <DataTypeIcon dataType={column.dataType} color={color} size={14} strokeWidth={column.isActive ? 2.5 : 1.5} />
       <Text fz="sm" fw={column.isActive ? 'bold' : 'normal'} c={color}>
         {column.name} {column.isProtected ? ICONS.protected : null}
+        {column.isHidden ? ICONS.hidden : null}
       </Text>
     </Group>
   );
