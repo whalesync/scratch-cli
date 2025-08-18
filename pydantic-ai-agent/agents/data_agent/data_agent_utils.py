@@ -131,15 +131,14 @@ def format_records_for_display(
             "wsid": record.get("id", {}).get("wsId", record.get("wsId", "unknown")),
             "id": record.get("id", {}).get("wsId", record.get("wsId", "unknown")),
             "fields": deepcopy(record.get("fields", {})),
-            "edited_fields": deepcopy(record.get("edited_fields", {})),
             "suggested_fields": deepcopy(record.get("suggested_fields", {})),
         }
 
         # Truncate long string values in fields for readability
         if truncate_record_content:
             for key, value in record_data["fields"].items():
-                if isinstance(value, str) and len(value) > 100:
-                    record_data["fields"][key] = value[:100] + "..."
+                if isinstance(value, str) and len(value) > 200:
+                    record_data["fields"][key] = value[:200] + "..."
 
         records_summary.append(record_data)
 

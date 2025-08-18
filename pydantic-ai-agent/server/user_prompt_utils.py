@@ -7,6 +7,7 @@ def build_snapshot_context(
     snapshot: SnapshotForAi,
     preloaded_records: Optional[Dict[str, List[Dict[str, Any]]]] = None,
     filtered_counts: Optional[Dict[str, int]] = None,
+    truncate_record_content: bool = False,
 ) -> str:
     """
     Build snapshot context string for inclusion in prompts.
@@ -43,7 +44,7 @@ def build_snapshot_context(
 
             # Format records using the shared function
             records_summary = format_records_for_display(
-                records, limit=50, truncate_record_content=False
+                records, limit=50, truncate_record_content=truncate_record_content
             )
             snapshot_context += f"RECORDS:\n{records_summary}\n"
         else:

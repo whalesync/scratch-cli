@@ -366,6 +366,7 @@ class ChatService:
                     snapshot=snapshot,
                     preloaded_records=preloaded_records,
                     filtered_counts=filtered_counts,
+                    truncate_record_content=data_scope == "table",
                 )
 
                 # Update the full prompt with snapshot data

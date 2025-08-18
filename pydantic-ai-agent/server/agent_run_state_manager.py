@@ -45,6 +45,13 @@ class AgentRunStateManager:
         async with self.run_status_lock:
             del self.run_status_map[run_id]
 
+    async def complete_run(self, run_id: str) -> None:
+        """Complete a run"""
+        async with self.run_status_lock:
+            run_state = self.run_status_map.get(run_id)
+            if run_state:
+                run_state.status = "completed"
+
     async def is_cancelled(self, run_id: str) -> bool:
         """Check if a run is cancelled"""
         async with self.run_status_lock:
