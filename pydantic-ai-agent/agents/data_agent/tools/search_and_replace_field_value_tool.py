@@ -101,7 +101,8 @@ def search_and_replace_field_value_tool_implementation(
         # The pattern uses word boundaries (\b) to match word boundaries
         # and escapes any special regex characters in the search_value
         escaped_search_value = re.escape(search_value)
-        pattern = r"\b" + escaped_search_value + r"\b"
+        logger.info(f"Escaped search value: {escaped_search_value}")
+        pattern = r"(" + escaped_search_value + r")"
 
         # Replace all occurrences of the pattern with the new_value
         updated_value, replace_count = re.subn(pattern, new_value, current_value)

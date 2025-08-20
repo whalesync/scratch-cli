@@ -18,6 +18,7 @@ from agents.data_agent.tools.delete_records_tool import define_delete_records_to
 from agents.data_agent.tools.create_records_tool import create_create_records_tool
 from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
 from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
+from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
 
 
 class GetRecordsInput(BaseModel):
@@ -27,9 +28,6 @@ class GetRecordsInput(BaseModel):
     limit: Optional[int] = Field(
         default=100, description="The maximum number of records to retrieve"
     )
-
-
-# TODO: Use table id
 
 
 def get_data_tools(
@@ -70,3 +68,6 @@ def configure_tools(
 
     if capabilities is None or "views:filtering" in capabilities:
         define_set_filter_tool(agent)
+
+    # Common tools / utilities
+    define_url_content_load_tool(agent)

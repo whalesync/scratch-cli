@@ -243,6 +243,13 @@ When you receive snapshot data, each record has this structure:
 - suggested_fields: {string: any} - Current suggestions for changes made by the agent, but not yet accepted by the user
 """
 
+SUPPORTING_TOOLS_INSTRUCTIONS = """
+# SUPPORTING TOOLS:
+- You have access to the following tools:
+- url_content_load_tool - loads the content of a URL and returns it as a string
+
+"""
+
 
 def get_data_agent_instructions(
     capabilities: list[str] | None = None,
@@ -297,6 +304,9 @@ def get_data_agent_instructions(
     data_structure = get_section(
         "DATA_STRUCTURE_INSTRUCTIONS", DATA_STRUCTURE_INSTRUCTIONS
     )
+    supporting_tools = get_section(
+        "SUPPORTING_TOOLS_INSTRUCTIONS", SUPPORTING_TOOLS_INSTRUCTIONS
+    )
 
     # Build the main prompt
     main_prompt = (
@@ -306,6 +316,7 @@ def get_data_agent_instructions(
         + final_response
         + data_formatting
         + data_structure
+        + supporting_tools
     )
 
     # Add non-matching style guides as a STYLE GUIDES section

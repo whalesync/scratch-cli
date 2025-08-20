@@ -76,8 +76,7 @@ def create_agent(
             history_processors=[data_agent_history_processor],
             model=model,
             deps_type=ChatRunContext,
-            tools=get_data_tools(capabilities, style_guides, data_scope)
-            + [],  # TODO: add view tools
+            tools=get_data_tools(capabilities, style_guides, data_scope),
         )
 
         configure_tools(agent, capabilities, data_scope)
