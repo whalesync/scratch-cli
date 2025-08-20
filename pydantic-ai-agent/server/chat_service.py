@@ -42,73 +42,16 @@ from agents.data_agent.data_agent_utils import (
 )
 from utils.helpers import find_first_matching, mask_string
 from server.agent_run_state_manager import AgentRunStateManager
+from server.session_service import SessionService
 
 myLogger = getLogger(__name__)
 
 
-class CancelledAgentRunResult:
-    """Result for a cancelled agent run"""
-
-    def __init__(self, usage: Usage):
-        self.usage_stats = UsageStats(
-            requests=usage.requests if usage and usage.requests else 0,
-            request_tokens=(
-                usage.request_tokens if usage and usage.request_tokens else 0
-            ),
-            response_tokens=(
-                usage.response_tokens if usage and usage.response_tokens else 0
-            ),
-            total_tokens=usage.total_tokens if usage and usage.total_tokens else 0,
-        )
-
-
-class AgentRunCancelledError(UserError):
-    """Error raised when an agent run is cancelled"""
-
-    def __init__(self, message: str, run_id: str, when: str):
-        super().__init__(message)
-        self.run_id = run_id
-        self.when = when
-
-
+# TODO: refactor this as a service or singleton class
 class ChatService:
-    def __init__(self):
-        self.sessions: Dict[str, ChatSession] = {}
-        self.run_state_manager = AgentRunStateManager()
-
-    def create_session(self, session_id: str, snapshot_id: str) -> ChatSession:
-        """Create a new chat session and set session data in tools"""
-        now = datetime.now()
-        session = ChatSession(
-            id=session_id,
-            name=f"Chat Session {now.strftime('%Y-%m-%d %H:%M')}",
-            last_activity=now,
-            created_at=now,
-            snapshot_id=snapshot_id,
-        )
-
-        myLogger.info(
-            "Session created",
-            extra={"session_id": session_id, "snapshot_id": snapshot_id},
-        )
-
-        return session
-
-    async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
-        """Cancel a run"""
-        myLogger.info(
-            f"Cancelling agent run {run_id} for session {session_id}",
-        )
-
-        if not await self.run_state_manager.exists(session_id, run_id):
-            myLogger.info(
-                f"Run {run_id} not found",
-                extra={"run_id": run_id, "session_id": session_id},
-            )
-            return "Run not found"
-
-        await self.run_state_manager.cancel_run(run_id)
-        return "Run cancelled"
+    def __init__(self, session_service: SessionService):
+        self._session_service = session_service
+        self._run_state_manager = AgentRunStateManager()
 
     async def process_message_with_agent(
         self,
@@ -345,7 +288,7 @@ class ChatService:
                 )
 
                 # Store the chat context so it can be accessed by the cancel system
-                await self.run_state_manager.start_run(
+                await self._run_state_manager.start_run(
                     session.id,
                     chatRunContext.run_id,
                 )
@@ -434,7 +377,7 @@ class ChatService:
                             ),
                         ) as agent_run:
                             async for node in agent_run:
-                                if await self.run_state_manager.is_cancelled(
+                                if await self._run_state_manager.is_cancelled(
                                     chatRunContext.run_id
                                 ):
                                     raise AgentRunCancelledError(
@@ -459,7 +402,7 @@ class ChatService:
                                         ) as request_stream:
                                             async for event in request_stream:
                                                 # check cancel status
-                                                if await self.run_state_manager.is_cancelled(
+                                                if await self._run_state_manager.is_cancelled(
                                                     chatRunContext.run_id
                                                 ):
                                                     raise AgentRunCancelledError(
@@ -482,7 +425,7 @@ class ChatService:
                                             agent_run.ctx
                                         ) as handle_stream:
                                             async for event in handle_stream:
-                                                if await self.run_state_manager.is_cancelled(
+                                                if await self._run_state_manager.is_cancelled(
                                                     chatRunContext.run_id
                                                 ):
                                                     raise AgentRunCancelledError(
@@ -522,7 +465,7 @@ class ChatService:
                                         )
 
                             result = agent_run.result
-                            await self.run_state_manager.complete_run(
+                            await self._run_state_manager.complete_run(
                                 chatRunContext.run_id
                             )
                     except AgentRunCancelledError as e:
@@ -557,7 +500,7 @@ class ChatService:
                 myLogger.info(f"❌ Agent.run() timed out after 30 seconds")
                 raise HTTPException(status_code=408, detail="Agent response timeout")
             finally:
-                await self.run_state_manager.delete_run(chatRunContext.run_id)
+                await self._run_state_manager.delete_run(chatRunContext.run_id)
 
             # The agent returns an AgentRunResult wrapper, we need to extract the actual response
             myLogger.info(f"🔍 Agent result: {type(result)}")
@@ -701,17 +644,43 @@ class ChatService:
                 status_code=500, detail=f"Error processing message: {str(e)}"
             )
 
-    def cleanup_inactive_sessions(self, max_age_hours: int = 24) -> None:
-        """Clean up inactive sessions"""
-        cutoff = datetime.now() - timedelta(hours=max_age_hours)
-        to_delete = []
+    async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
+        """Cancel a run"""
+        myLogger.info(
+            f"Cancelling agent run {run_id} for session {session_id}",
+        )
 
-        for session_id, session in self.sessions.items():
-            if session.last_activity < cutoff:
-                to_delete.append(session_id)
+        if not await self._run_state_manager.exists(session_id, run_id):
+            myLogger.info(
+                f"Run {run_id} not found",
+                extra={"run_id": run_id, "session_id": session_id},
+            )
+            return "Run not found"
 
-        for session_id in to_delete:
-            del self.sessions[session_id]
+        await self._run_state_manager.cancel_run(run_id)
+        return "Run cancelled"
 
-        if to_delete:
-            myLogger.info(f"🧹 Cleaned up {len(to_delete)} inactive sessions")
+
+class CancelledAgentRunResult:
+    """Result for a cancelled agent run"""
+
+    def __init__(self, usage: Usage):
+        self.usage_stats = UsageStats(
+            requests=usage.requests if usage and usage.requests else 0,
+            request_tokens=(
+                usage.request_tokens if usage and usage.request_tokens else 0
+            ),
+            response_tokens=(
+                usage.response_tokens if usage and usage.response_tokens else 0
+            ),
+            total_tokens=usage.total_tokens if usage and usage.total_tokens else 0,
+        )
+
+
+class AgentRunCancelledError(UserError):
+    """Error raised when an agent run is cancelled"""
+
+    def __init__(self, message: str, run_id: str, when: str):
+        super().__init__(message)
+        self.run_id = run_id
+        self.when = when

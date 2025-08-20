@@ -18,6 +18,7 @@ from server.DTOs import (
     Capability,
 )
 from server.chat_service import ChatService
+from server.session_service import SessionService
 from logger import log_info, log_error
 from logging import getLogger
 
@@ -26,8 +27,9 @@ myLogger = getLogger(__name__)
 # Create router
 router = APIRouter(tags=["chat"])
 
-# Initialize chat service
-chat_service = ChatService()
+# Initialize services
+session_service = SessionService()
+chat_service = ChatService(session_service)
 
 # Static list of available capabilities
 AVAILABLE_CAPABILITIES = [
@@ -62,11 +64,9 @@ AVAILABLE_CAPABILITIES = [
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
 async def create_session(snapshot_id: str):
     """Create a new chat session"""
-    # if not session_id:
     session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
 
-    session = chat_service.create_session(session_id, snapshot_id)
-    chat_service.sessions[session_id] = session
+    session = session_service.create_session(session_id, snapshot_id)
 
     # Create summary for client response
     session_summary = ChatSessionSummary(
@@ -90,17 +90,18 @@ async def get_session(session_id: str):
     """Get session information"""
     myLogger.info("Session loaded", extra={"session_id": session_id})
 
-    if session_id not in chat_service.sessions:
+    session = session_service.get_session(session_id)
+
+    if not session:
         myLogger.warning(
             "Session not found",
             extra={
                 "session_id": session_id,
-                "available_sessions": list(chat_service.sessions.keys()),
+                "available_sessions": session_service.list_session_ids(),
             },
         )
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = chat_service.sessions[session_id]
     session.last_activity = datetime.now()
     return session
 
@@ -161,17 +162,15 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
     if request.active_table_id:
         myLogger.info(f"📊 Active table: {request.active_table_id}")
 
-    if session_id not in chat_service.sessions:
+    if not session_service.exists(session_id):
         log_error(
             "Message failed - session not found",
             session_id=session_id,
-            available_sessions=list(chat_service.sessions.keys()),
+            available_sessions=session_service.list_session_ids(),
         )
-        myLogger.info(f"❌ Session {session_id} not found!")
-        myLogger.info(f"🔍 Available sessions: {list(chat_service.sessions.keys())}")
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = chat_service.sessions[session_id]
+    session = session_service.get_session(session_id)
     myLogger.info(f"✅ Found session: {session_id}")
     if session.snapshot_id:
         myLogger.info(f"📊 Session associated with snapshot: {session.snapshot_id}")
@@ -259,7 +258,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         )
 
         # Update session
-        chat_service.sessions[session_id] = session
+        session_service.update_session(session)
         myLogger.info(f"💾 Session updated in storage")
         myLogger.info(
             f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
@@ -287,10 +286,11 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):
     """Delete a session"""
-    if session_id not in chat_service.sessions:
+
+    if not session_service.exists(session_id):
         raise HTTPException(status_code=404, detail="Session not found")
 
-    del chat_service.sessions[session_id]
+    session_service.delete_session(session_id)
     myLogger.info(f"🗑️ Deleted session: {session_id}")
     return {"success": True}
 
@@ -300,7 +300,7 @@ async def list_sessions():
     """List all active sessions"""
     # Convert full sessions to summaries
     session_summaries = []
-    for session in chat_service.sessions.values():
+    for session in session_service.get_all_sessions():
         summary = ChatSessionSummary(
             id=session.id,
             name=session.name,
@@ -322,9 +322,9 @@ async def cancel_agent_run(session_id: str, run_id: str):
 @router.post("/cleanup")
 async def cleanup_sessions():
     """Manually trigger session cleanup"""
-    before_count = len(chat_service.sessions)
-    chat_service.cleanup_inactive_sessions()
-    after_count = len(chat_service.sessions)
+    before_count = len(session_service.get_all_sessions())
+    session_service.cleanup_inactive_sessions()
+    after_count = len(session_service.get_all_sessions())
     cleaned_count = before_count - after_count
 
     myLogger.info(

@@ -14,6 +14,7 @@ from server.DTOs import (
     SendMessageRequestDTO,
 )
 from server.chat_service import ChatService
+from server.session_service import SessionService
 from logger import log_info, log_error
 from logging import getLogger
 
@@ -21,9 +22,10 @@ logger = getLogger(__name__)
 
 
 class ConnectionManager:
-    def __init__(self, chat_service: ChatService):
+    def __init__(self, chat_service: ChatService, session_service: SessionService):
         self.active_connections: Dict[str, WebSocket] = {}
         self.chat_service = chat_service
+        self.session_service = session_service
 
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
@@ -42,14 +44,15 @@ async def websocket_endpoint(
     websocket: WebSocket,
     session_id: str,
     chat_service: ChatService,
+    session_service: SessionService,
     api_token: Optional[str] = None,
 ):
     """WebSocket endpoint for real-time chat"""
-    manager = ConnectionManager(chat_service)
+    manager = ConnectionManager(chat_service, session_service)
     await manager.connect(websocket, session_id)
 
     ## lookup the existing session
-    session = chat_service.sessions.get(session_id)
+    session = session_service.get_session(session_id)
     if not session:
         await manager.send_personal_message(
             json.dumps(
@@ -143,7 +146,7 @@ async def websocket_endpoint(
 
                 logger.info(f"💬 Processing message for session: {session_id}")
                 logger.info(
-                    f"📋 Available sessions: {list(chat_service.sessions.keys())}"
+                    f"📋 Available sessions: {session_service.list_session_ids()}"
                 )
                 logger.info(f"📝 Message: {request.message}")
                 if request.api_token:
@@ -186,7 +189,7 @@ async def websocket_endpoint(
                 else:
                     logger.info(f"ℹ️ No style guides provided")
 
-                session = chat_service.sessions[session_id]
+                session = session_service.get_session(session_id)
                 session.last_activity = datetime.now()
 
                 # Add user message to history
@@ -291,7 +294,7 @@ async def websocket_endpoint(
                     )
 
                     # Update session
-                    chat_service.sessions[session_id] = session
+                    session_service.update_session(session)
                     logger.info(f"💾 Session updated in storage")
                     logger.info(
                         f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
