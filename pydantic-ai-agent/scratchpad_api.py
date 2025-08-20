@@ -131,6 +131,30 @@ class AgentCredential:
     enabled: bool
 
 
+@dataclass
+class ViewColumnConfig:
+    wsId: str
+    hidden: Optional[bool]
+    protected: Optional[bool]
+
+
+@dataclass
+class ViewTableConfig:
+    hidden: Optional[bool]
+    protected: Optional[bool]
+    columns: List[ViewColumnConfig]
+
+
+@dataclass
+class ColumnView:
+    id: str
+    name: Optional[str]
+    snapshotId: str
+    config: Dict[str, ViewTableConfig]  # ViewConfig type from TypeScript
+    createdAt: str
+    updatedAt: str
+
+
 class ScratchpadApiConfig:
     """Configuration for Scratchpad API calls"""
 
@@ -423,6 +447,8 @@ class SnapshotApi:
         """Get a specific view for a table in a snapshot"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/views/{view_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
+        if response.status_code == 404:
+            return None
         data = _handle_response(response, "Failed to get view")
         return SnapshotTableView(**data)
 
@@ -518,6 +544,14 @@ class SnapshotApi:
             url, headers=API_CONFIG.get_api_headers(api_token), json=payload
         )
         _handle_response(response, "Failed to track token usage")
+
+    @staticmethod
+    def get_column_view(view_id: str, api_token: str) -> ColumnView:
+        """Get a specific column view by ID"""
+        url = f"{API_CONFIG.get_api_url()}/views/{view_id}"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(api_token))
+        data = _handle_response(response, "Failed to get column view")
+        return ColumnView(**data)
 
 
 # Convenience functions for easy access
@@ -713,3 +747,8 @@ def track_token_usage(
         total_tokens,
         usage_context,
     )
+
+
+def get_column_view(view_id: str, api_token: str) -> Optional[ColumnView]:
+    """Get a specific column view by ID"""
+    return SnapshotApi.get_column_view(view_id, api_token)

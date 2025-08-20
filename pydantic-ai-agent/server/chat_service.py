@@ -32,7 +32,12 @@ from agents.data_agent.models import (
 from agents.data_agent.agent import create_agent, extract_response
 from logger import log_info, log_error
 from logging import getLogger
-from scratchpad_api import API_CONFIG, check_server_health, track_token_usage
+from scratchpad_api import (
+    API_CONFIG,
+    check_server_health,
+    get_column_view,
+    track_token_usage,
+)
 
 # from tools import set_api_token, set_session_data
 from server.user_prompt_utils import build_snapshot_context
@@ -167,12 +172,15 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
 
+            agent_run_id = str(uuid.uuid4())
+
             try:
                 # Pre-load snapshot data and records for efficiency
                 myLogger.info(
                     "Pre-loading snapshot data and records",
                 )
                 snapshot_data = None
+                column_view = None
                 preloaded_records = {}
                 filtered_counts = {}
 
@@ -180,8 +188,22 @@ class ChatService:
                     try:
                         # Fetch snapshot details
                         snapshot_data = get_snapshot(session.snapshot_id, api_token)
+                        try:
+                            if view_id:
+                                myLogger.info(f"🔍 Getting column view {view_id}")
+                                column_view = get_column_view(view_id, api_token)
+                            else:
+                                myLogger.info(
+                                    f"🔍 No view ID provided, skipping column view",
+                                )
+                        except Exception as e:
+                            myLogger.exception(
+                                f"❌ Failed to get column view {view_id}",
+                            )
+                            column_view = None
+
                         snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
-                            snapshot_data, session
+                            snapshot_data, session, column_view
                         )
 
                         # Pre-load records for each table
@@ -267,13 +289,17 @@ class ChatService:
                             error=str(e),
                             snapshot_id=session.snapshot_id,
                         )
-                        snapshot = None
-                        preloaded_records = {}
-                        return None
+                        myLogger.exception(
+                            f"❌ Failed to pre-load snapshot data",
+                        )
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Error preloading snapshot data for agent",
+                        )
 
                 # Create context with pre-loaded data
                 chatRunContext: ChatRunContext = ChatRunContext(
-                    run_id=str(uuid.uuid4()),
+                    run_id=agent_run_id,
                     session=session,
                     api_token=api_token,
                     view_id=view_id,
@@ -290,15 +316,15 @@ class ChatService:
                 # Store the chat context so it can be accessed by the cancel system
                 await self._run_state_manager.start_run(
                     session.id,
-                    chatRunContext.run_id,
+                    agent_run_id,
                 )
 
                 if progress_callback:
                     await progress_callback(
                         "run_started",
-                        f"Run started with ID {chatRunContext.run_id}",
+                        f"Run started with ID {agent_run_id}",
                         {
-                            "run_id": chatRunContext.run_id,
+                            "run_id": agent_run_id,
                         },
                     )
 
@@ -309,7 +335,10 @@ class ChatService:
                     snapshot=snapshot,
                     preloaded_records=preloaded_records,
                     filtered_counts=filtered_counts,
-                    truncate_record_content=data_scope == "table",
+                    data_scope=data_scope,
+                    active_table_id=active_table_id,
+                    record_id=record_id,
+                    column_id=column_id,
                 )
 
                 # Update the full prompt with snapshot data
@@ -378,11 +407,11 @@ class ChatService:
                         ) as agent_run:
                             async for node in agent_run:
                                 if await self._run_state_manager.is_cancelled(
-                                    chatRunContext.run_id
+                                    agent_run_id
                                 ):
                                     raise AgentRunCancelledError(
                                         "Run cancelled",
-                                        chatRunContext.run_id,
+                                        agent_run_id,
                                         "between processing nodes",
                                     )
 
@@ -403,11 +432,11 @@ class ChatService:
                                             async for event in request_stream:
                                                 # check cancel status
                                                 if await self._run_state_manager.is_cancelled(
-                                                    chatRunContext.run_id
+                                                    agent_run_id
                                                 ):
                                                     raise AgentRunCancelledError(
                                                         "Run cancelled",
-                                                        chatRunContext.run_id,
+                                                        agent_run_id,
                                                         "while waiting for model response",
                                                     )
 
@@ -426,11 +455,11 @@ class ChatService:
                                         ) as handle_stream:
                                             async for event in handle_stream:
                                                 if await self._run_state_manager.is_cancelled(
-                                                    chatRunContext.run_id
+                                                    agent_run_id
                                                 ):
                                                     raise AgentRunCancelledError(
                                                         "Run cancelled",
-                                                        chatRunContext.run_id,
+                                                        agent_run_id,
                                                         "while processing tool result",
                                                     )
 
@@ -465,9 +494,7 @@ class ChatService:
                                         )
 
                             result = agent_run.result
-                            await self._run_state_manager.complete_run(
-                                chatRunContext.run_id
-                            )
+                            await self._run_state_manager.complete_run(agent_run_id)
                     except AgentRunCancelledError as e:
                         myLogger.info(f"Run {e.run_id} cancelled by user: {e.when}")
                         result = CancelledAgentRunResult(
@@ -500,7 +527,7 @@ class ChatService:
                 myLogger.info(f"❌ Agent.run() timed out after 30 seconds")
                 raise HTTPException(status_code=408, detail="Agent response timeout")
             finally:
-                await self._run_state_manager.delete_run(chatRunContext.run_id)
+                await self._run_state_manager.delete_run(agent_run_id)
 
             # The agent returns an AgentRunResult wrapper, we need to extract the actual response
             myLogger.info(f"🔍 Agent result: {type(result)}")
@@ -509,9 +536,7 @@ class ChatService:
 
                 cancelled_result: CancelledAgentRunResult = result
                 # cancelled by user, handle as a special response to the caller
-                myLogger.info(
-                    f"Build response for cancelled run {chatRunContext.run_id}"
-                )
+                myLogger.info(f"Build response for cancelled run {agent_run_id}")
 
                 if cancelled_result.usage_stats.requests > 0:
                     try:

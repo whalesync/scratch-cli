@@ -61,7 +61,7 @@ if __name__ == "__main__":
     def cleanup_loop():
         while True:
             time_module.sleep(3600)  # 1 hour
-            chat_service.cleanup_inactive_sessions()
+            session_service.cleanup_inactive_sessions()
 
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()

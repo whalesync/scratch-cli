@@ -43,7 +43,10 @@ class AgentRunStateManager:
     async def delete_run(self, run_id: str) -> None:
         """Delete a run state"""
         async with self._lock:
-            del self._run_status_map[run_id]
+            if run_id in self._run_status_map:
+                del self._run_status_map[run_id]
+            else:
+                myLogger.warning(f"❌ Run {run_id} not found in run state map")
 
     async def complete_run(self, run_id: str) -> None:
         """Complete a run"""
