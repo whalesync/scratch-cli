@@ -1,4 +1,7 @@
 from utils.get_styleguide import get_styleguide
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 # Base instructions that are always included
 BASE_INSTRUCTIONS = """
@@ -201,8 +204,10 @@ def get_data_agent_instructions(
     style_guides: dict[str, str] | None = None,
     data_scope: str | None = None,
 ) -> str:
-    print(f"🔍 get_data_agent_instructions called with capabilities: {capabilities}")
-    print(f"🔍 style_guides: {style_guides}")
+    logger.debug(
+        f"🔍 get_data_agent_instructions called with capabilities: {capabilities}"
+    )
+    logger.debug(f"🔍 style_guides: {style_guides}")
 
     # Define the variable names that can be overridden
     variable_names = [
@@ -264,7 +269,7 @@ def get_data_agent_instructions(
         }
 
         if non_matching_style_guides:
-            print(
+            logger.info(
                 f"   Adding {len(non_matching_style_guides)} non-matching style guides as STYLE GUIDES section"
             )
             style_guides_section = "\n\n# STYLE GUIDES\n"

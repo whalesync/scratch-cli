@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
+from logging import getLogger
 from agents.data_agent.models import (
     ChatRunContext,
-    ChatSession,
     ResponseFromAgent,
-    WithTableName,
 )
 from agents.data_agent.model_utils import (
-    find_table_by_name,
     find_record_by_wsId,
     is_in_write_focus,
-    missing_table_error,
     missing_field_error,
     find_column_by_name,
     find_column_by_id,
@@ -33,6 +30,8 @@ from scratchpad_api import (
     get_record,
 )
 from logger import log_info, log_error
+
+logger = getLogger(__name__)
 
 
 class SetFieldValueInput(BaseModel):
@@ -112,10 +111,10 @@ def set_field_value_tool_implementation(
         if updated_record:
             update_record_in_context(chatRunContext, table.id.wsId, updated_record)
 
-        print(f"✅ Successfully set the value in the field")
-        print(f"📋 Table ID: {table.id.wsId}")
-        print(f"✏️ wsId: {wsId}")
-        print(f"✏️ Field name: {column.name}")
+        logger.info(f"✅ Successfully set the value in the field")
+        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"✏️ wsId: {wsId}")
+        logger.info(f"✏️ Field name: {column.name}")
 
         log_info(
             "Successfully set the value in the field",
@@ -137,7 +136,7 @@ def set_field_value_tool_implementation(
             table_name=table.name,
             error=str(e),
         )
-        print(f"❌ {error_msg}")
+        logger.exception(e)
         return error_msg
 
 
@@ -147,7 +146,7 @@ def define_set_field_value_tool(
     """Sets a value in a single field for a record in a table."""
 
     if data_scope == "column":
-        print(f"Defining set_value_tool for column scope")
+        logger.info(f"Defining set_value_tool for column scope")
 
         @agent.tool
         async def set_value_tool(ctx: RunContext[ChatRunContext], new_value: str) -> str:  # type: ignore
@@ -187,7 +186,7 @@ def define_set_field_value_tool(
             )
 
     elif data_scope == "record":
-        print(f"Defining set_field_value_tool for record scope")
+        logger.info(f"Defining set_field_value_tool for record scope")
 
         @agent.tool
         async def set_field_value_tool(ctx: RunContext[ChatRunContext], field_name: str, new_value: str) -> str:  # type: ignore
@@ -227,7 +226,7 @@ def define_set_field_value_tool(
             )
 
     else:
-        print(f"Defining set_field_value_tool for table scope")
+        logger.info(f"Defining set_field_value_tool for table scope")
 
         @agent.tool
         async def set_field_value_tool(ctx: RunContext[ChatRunContext], input_data: SetFieldValueInput) -> str:  # type: ignore

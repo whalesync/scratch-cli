@@ -1,27 +1,24 @@
 # Create custom JSON schema without $ref references
+from logging import getLogger
 from agents.data_agent.models import (
     ChatRunContext,
-    ChatSession,
-    ResponseFromAgent,
-    WithTableName,
     common_field_descriptions,
 )
 
-from typing import Optional, Dict, Any, List, Union, TypedDict
+from typing import Dict, Any, List, Union, TypedDict
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
-    find_table_by_name,
-    get_active_table,
-    missing_table_error,
     unable_to_identify_active_snapshot_error,
 )
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
 from scratchpad_api import RecordOperation
+
+logger = getLogger(__name__)
 
 
 field_descriptions = {
@@ -181,16 +178,16 @@ async def create_records_implementation(
             view_id=chatRunContext.view_id,
         )
 
-        print(
+        logger.info(
             f"✅ Successfully created {len(create_operations)} records in table '{table_name}'"
         )
-        print(f"📋 Table ID: {table.id.wsId}")
-        print(f"📊 Created records:")
+        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"📊 Created records:")
         for i, operation in enumerate(create_operations):
-            print(f"  Record {i+1}: {operation.data}")
+            logger.info(f"  Record {i+1}: {operation.data}")
             # Also show the original field data for clarity
             original_record = record_data_list[i]
-            print(f"    Field data: {original_record['data']}")
+            logger.info(f"    Field data: {original_record['data']}")
 
         log_info(
             "Successfully created records",
@@ -204,7 +201,7 @@ async def create_records_implementation(
     except Exception as e:
         error_msg = f"Failed to create records in table '{table_name}': {str(e)}"
         log_error("Error creating records", table_name=table_name, error=str(e))
-        print(f"❌ {error_msg}")
+        logger.info(f"❌ {error_msg}")
         return error_msg
 
 
@@ -227,10 +224,10 @@ def create_create_records_tool(style_guides: Dict[str, str] = None):
     if json_schema_content:
         try:
             custom_json_schema = json.loads(json_schema_content)
-            print(f"🔧 Using custom JSON schema for {tool_name}")
+            logger.info(f"🔧 Using custom JSON schema for {tool_name}")
         except json.JSONDecodeError as e:
-            print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
-            print(f"   Using default schema instead")
+            logger.info(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
+            logger.info(f"   Using default schema instead")
 
     return Tool(
         name=custom_name,

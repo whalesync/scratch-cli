@@ -2,6 +2,7 @@
 """
 Append Field Value Tool for the Data Agent
 """
+from logging import getLogger
 from agents.data_agent.models import (
     ChatRunContext,
     ChatSession,
@@ -35,6 +36,8 @@ from scratchpad_api import (
     get_record,
 )
 
+logger = getLogger(__name__)
+
 
 class AppendFieldValueInput(BaseModel):
     """
@@ -67,7 +70,7 @@ def append_field_value_tool_implementation(
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         log_info(
-            "Appending value to field in record",
+            "Attempt to append value to field in record",
             table_name=table.name,
             table_id=table.id.wsId,
             wsId=wsId,
@@ -134,7 +137,7 @@ def append_field_value_tool_implementation(
             table_name=table.name,
             error=str(e),
         )
-        print(f"❌ {error_msg}")
+        logger.exception(e)
         return error_msg
 
 
@@ -144,7 +147,7 @@ def define_append_field_value_tool(
     """Append a value to a field in a record in a table in the active snapshot."""
 
     if data_scope == "column":
-        print(f"Defining append_value_tool for column scope")
+        logger.info(f"Defining append_value_tool for column scope")
 
         @agent.tool
         async def append_value_tool(ctx: RunContext[ChatRunContext], value: str) -> str:  # type: ignore
@@ -182,7 +185,7 @@ def define_append_field_value_tool(
             )
 
     elif data_scope == "record":
-        print(f"Defining append_field_value_tool for record scope")
+        logger.info(f"Defining append_field_value_tool for record scope")
 
         @agent.tool
         async def append_field_value_tool(ctx: RunContext[ChatRunContext], field_name: str, value: str) -> str:  # type: ignore
@@ -218,7 +221,7 @@ def define_append_field_value_tool(
             )
 
     else:
-        print(f"Defining append_field_value_tool for table scope")
+        logger.info(f"Defining append_field_value_tool for table scope")
 
         @agent.tool
         async def append_field_value_tool(ctx: RunContext[ChatRunContext], input_data: AppendFieldValueInput) -> str:  # type: ignore

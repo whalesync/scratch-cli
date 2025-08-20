@@ -11,6 +11,9 @@ from typing import Optional, List
 from pydantic_ai import Agent, RunContext
 from logger import log_error
 from scratchpad_api import clear_active_record_filter
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def define_clear_record_filter_tool(
@@ -61,5 +64,5 @@ def define_clear_record_filter_tool(
             log_error(
                 "Error clearing record filter", table_name=table_name, error=str(e)
             )
-            print(f"❌ {error_msg}")
+            logger.exception(e)
             return error_msg

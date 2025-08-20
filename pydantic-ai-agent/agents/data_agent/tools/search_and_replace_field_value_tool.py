@@ -4,15 +4,11 @@ Search and Replace Field Value Tool for the Data Agent
 """
 from agents.data_agent.models import (
     ChatRunContext,
-    ChatSession,
     ResponseFromAgent,
-    WithTableName,
 )
 from agents.data_agent.model_utils import (
-    find_table_by_name,
     find_record_by_wsId,
     is_in_write_focus,
-    missing_table_error,
     missing_field_error,
     find_column_by_name,
     find_column_by_id,
@@ -37,6 +33,9 @@ from scratchpad_api import (
     TableSpec,
     get_record,
 )
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class SearchAndReplaceInFieldInput(BaseModel):
@@ -144,7 +143,7 @@ def search_and_replace_field_value_tool_implementation(
             table_name=table.name,
             error=str(e),
         )
-        print(f"❌ {error_msg} - Exception: {str(e)}")
+        logger.exception(e)
         return error_msg
 
 
@@ -154,7 +153,7 @@ def define_search_and_replace_field_value_tool(
     """Use this tool when the user wants to perform a search and replace for a word or phrase inside a field of a record."""
 
     if data_scope == "column":
-        print(f"Defining search_and_replace_value_tool for column scope")
+        logger.info(f"Defining search_and_replace_value_tool for column scope")
 
         @agent.tool
         async def search_and_replace_value_tool(ctx: RunContext[ChatRunContext], search_value: str, new_value: str) -> str:  # type: ignore
@@ -192,7 +191,7 @@ def define_search_and_replace_field_value_tool(
             )
 
     elif data_scope == "record":
-        print(f"Defining search_and_replace_field_value_tool for record scope")
+        logger.info(f"Defining search_and_replace_field_value_tool for record scope")
 
         @agent.tool
         async def search_and_replace_field_value_tool(ctx: RunContext[ChatRunContext], field_name: str, search_value: str, new_value: str) -> str:  # type: ignore
@@ -232,7 +231,7 @@ def define_search_and_replace_field_value_tool(
             )
 
     else:
-        print(f"Defining search_and_replace_field_value_tool for table scope")
+        logger.info(f"Defining search_and_replace_field_value_tool for table scope")
 
         @agent.tool
         async def search_and_replace_field_value_tool(ctx: RunContext[ChatRunContext], input_data: SearchAndReplaceInFieldInput) -> str:  # type: ignore

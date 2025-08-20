@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from scratchpad_api import ScratchpadSnapshot
 from logging import getLogger
 
-myLogger = getLogger(__name__)
+logger = getLogger(__name__)
 
 
 # Data types for Snapshot
@@ -57,15 +57,15 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
     Returns:
         SnapshotForAi: The converted snapshot object
     """
-    myLogger.debug(f"🔍 Converting snapshot data...")
-    myLogger.debug(f"📊 Snapshot ID: {snapshot_data.id}")
-    myLogger.debug(f"📅 Created: {chatSession.created_at}")
-    myLogger.debug(f"📅 Updated: {chatSession.last_activity}")
+    logger.debug(f"🔍 Converting snapshot data...")
+    logger.debug(f"📊 Snapshot ID: {snapshot_data.id}")
+    logger.debug(f"📅 Created: {chatSession.created_at}")
+    logger.debug(f"📅 Updated: {chatSession.last_activity}")
 
     # Convert tables one by one
     converted_tables = []
     for i, table in enumerate(snapshot_data.tables):
-        myLogger.debug(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
+        logger.debug(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
 
         # Convert columns for this table
         converted_columns = []
@@ -97,7 +97,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         converted_table_contexts.append(table_context_spec)
 
     # Create the snapshot
-    myLogger.debug(f"🔍 Creating Snapshot object...")
+    logger.debug(f"🔍 Creating Snapshot object...")
     snapshot = SnapshotForAi(
         id=snapshot_data.id,
         name=snapshot_data.name,
@@ -109,7 +109,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         tables=converted_tables,
         tableContexts=converted_table_contexts,
     )
-    myLogger.debug(f"✅ Snapshot object created successfully")
+    logger.debug(f"✅ Snapshot object created successfully")
 
     return snapshot
 

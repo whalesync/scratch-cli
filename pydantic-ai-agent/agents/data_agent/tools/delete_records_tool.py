@@ -12,6 +12,9 @@ from typing import List
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
 from scratchpad_api import RecordOperation, bulk_update_records
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
@@ -76,11 +79,9 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 view_id=chatRunContext.view_id,
             )
 
-            print(
+            logger.info(
                 f"✅ Successfully deleted {len(delete_operations)} records from table '{table_name}'"
             )
-            print(f"📋 Table ID: {table.id.wsId}")
-            print(f"🗑️ Deleted record IDs: {record_ids}")
 
             log_info(
                 "Successfully deleted records",
@@ -95,5 +96,5 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
         except Exception as e:
             error_msg = f"Failed to delete records from table '{table_name}': {str(e)}"
             log_error("Error deleting records", table_name=table_name, error=str(e))
-            print(f"❌ {error_msg}")
+            logger.exception(e)
             return error_msg

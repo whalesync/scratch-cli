@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_error
 from scratchpad_api import add_records_to_active_filter
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class AddRecordsToFilterInput(BaseModel):
@@ -86,5 +89,5 @@ def define_add_records_to_filter_tool(
             log_error(
                 "Error adding records to filter", table_name=table_name, error=str(e)
             )
-            print(f"❌ {error_msg}")
+            logger.exception(e)
             return error_msg

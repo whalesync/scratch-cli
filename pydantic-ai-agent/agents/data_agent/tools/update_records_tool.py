@@ -1,9 +1,7 @@
 # Create custom JSON schema without $ref references
 from agents.data_agent.models import (
     ChatRunContext,
-    ChatSession,
     ResponseFromAgent,
-    WithTableName,
     common_field_descriptions,
 )
 
@@ -14,16 +12,17 @@ from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
     find_column_by_name,
-    find_table_by_name,
     get_active_table,
     is_in_write_focus,
-    missing_table_error,
     unable_to_identify_active_table_error,
 )
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
 from scratchpad_api import RecordOperation
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 field_descriptions = {
@@ -197,16 +196,15 @@ async def update_records_implementation(
             view_id=chatRunContext.view_id,
         )
 
-        print(
+        logger.info(
             f"✅ Successfully updated {len(update_operations)} records in table '{table.name}'"
         )
-        print(f"📋 Table ID: {table.id.wsId}")
-        print(f"✏️ Updated records:")
+        logger.debug(f"✏️ Updated records:")
         for i, operation in enumerate(update_operations):
-            print(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
+            logger.debug(f"  Record {i+1}: ID={operation.wsId}, Data={operation.data}")
             # Also show the original field updates for clarity
             original_update = record_updates[i]
-            print(f"    Field updates: {original_update['updates']}")
+            logger.debug(f"    Field updates: {original_update['updates']}")
 
         log_info(
             "Successfully updated records",
@@ -220,7 +218,7 @@ async def update_records_implementation(
     except Exception as e:
         error_msg = f"Failed to update records in table '{table.name}': {str(e)}"
         log_error("Error updating records", table_name=table.name, error=str(e))
-        print(f"❌ {error_msg}")
+        logger.exception(e)
         return error_msg
 
 
@@ -243,10 +241,10 @@ def create_update_records_tool(style_guides: Dict[str, str] = None):
     if json_schema_content:
         try:
             custom_json_schema = json.loads(json_schema_content)
-            print(f"🔧 Using custom JSON schema for {tool_name}")
+            logger.info(f"🔧 Using custom JSON schema for {tool_name}")
         except json.JSONDecodeError as e:
-            print(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
-            print(f"   Using default schema instead")
+            logger.info(f"⚠️ Failed to parse custom JSON schema for {tool_name}: {e}")
+            logger.info(f"   Using default schema instead")
 
     return Tool(
         name=custom_name,
