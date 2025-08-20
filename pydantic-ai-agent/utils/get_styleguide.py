@@ -1,4 +1,7 @@
 from typing import Dict, Optional
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def get_styleguide(style_guides: Optional[Dict[str, str]], key: str) -> Optional[str]:
@@ -21,7 +24,7 @@ def get_styleguide(style_guides: Optional[Dict[str, str]], key: str) -> Optional
     if matching_keys:
         # If multiple keys match, pick the first one
         selected_key = matching_keys[0]
-        print(f"🔍 Found style guide for '{key}' using key: '{selected_key}'")
+        logger.info(f"🔍 Found style guide for '{key}' using key: '{selected_key}'")
         return style_guides[selected_key]
 
     # Return None if no matching keys found

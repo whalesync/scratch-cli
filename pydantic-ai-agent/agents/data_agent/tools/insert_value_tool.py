@@ -4,15 +4,11 @@ Insert Value Tool for the Data Agent
 """
 from agents.data_agent.models import (
     ChatRunContext,
-    ChatSession,
     ResponseFromAgent,
-    WithTableName,
 )
 from agents.data_agent.model_utils import (
-    find_table_by_name,
     find_record_by_wsId,
     is_in_write_focus,
-    missing_table_error,
     missing_field_error,
     find_column_by_name,
     find_column_by_id,
@@ -36,6 +32,9 @@ from scratchpad_api import (
     TableSpec,
     get_record,
 )
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class InsertFieldValueInput(BaseModel):
@@ -127,10 +126,10 @@ def insert_value_tool_implementation(
         if updated_record:
             update_record_in_context(chatRunContext, table.id.wsId, updated_record)
 
-        print(f"✅ Successfully inserted the suggested value into the record")
-        print(f"📋 Table ID: {table.id.wsId}")
-        print(f"✏️ wsId: {wsId}")
-        print(f"✏️ Field name: {column.name}")
+        logger.info(f"✅ Successfully inserted the suggested value into the record")
+        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"✏️ wsId: {wsId}")
+        logger.info(f"✏️ Field name: {column.name}")
 
         log_info(
             "Successfully inserted the suggested value into the record",
@@ -150,7 +149,7 @@ def insert_value_tool_implementation(
             table_name=table.name,
             error=str(e),
         )
-        print(f"❌ {error_msg}")
+        logger.exception(e)
         return error_msg
 
 
@@ -160,7 +159,7 @@ def define_insert_value_tool(
     """Inserts a value into the an field for a record in a table at the @@ placeholder marker."""
 
     if data_scope == "column":
-        print(f"Defining insert_value_tool for column scope")
+        logger.info(f"Defining insert_value_tool for column scope")
 
         @agent.tool
         async def insert_value_tool(ctx: RunContext[ChatRunContext], value: str) -> str:  # type: ignore
@@ -197,7 +196,7 @@ def define_insert_value_tool(
             return insert_value_tool_implementation(ctx, table, wsId, column, value)
 
     elif data_scope == "record":
-        print(f"Defining insert_value_tool for record scope")
+        logger.info(f"Defining insert_value_tool for record scope")
 
         @agent.tool
         async def insert_value_tool(ctx: RunContext[ChatRunContext], field_name: str, value: str) -> str:  # type: ignore
@@ -236,7 +235,7 @@ def define_insert_value_tool(
             return insert_value_tool_implementation(ctx, table, wsId, column, value)
 
     else:
-        print(f"Defining insert_value_tool for table scope")
+        logger.info(f"Defining insert_value_tool for table scope")
 
         @agent.tool
         async def insert_value_tool(ctx: RunContext[ChatRunContext], input_data: InsertFieldValueInput) -> str:  # type: ignore
