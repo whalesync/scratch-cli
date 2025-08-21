@@ -1,7 +1,10 @@
 import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
 import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
 import { Card, Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
+import { ArrowDownIcon } from '@phosphor-icons/react';
+import { useMemo, useState } from 'react';
 
 export const AgentUsageInfoCard = () => {
   const { events, summary, isLoading } = useAgentTokenUsage();
@@ -15,7 +18,7 @@ export const AgentUsageInfoCard = () => {
           <Text>Loading...</Text>
         </Center>
       ) : (
-        <Tabs mih={200}>
+        <Tabs mih={200} defaultValue="summary">
           <Tabs.List>
             <Tabs.Tab value="summary">Summary</Tabs.Tab>
             <Tabs.Tab value="history">History</Tabs.Tab>
@@ -33,6 +36,14 @@ export const AgentUsageInfoCard = () => {
 };
 
 const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
+  const [sortBy, setSortBy] = useState<'model' | 'requests' | 'tokens'>('model');
+  const sortedItems = useMemo(() => {
+    return summary?.items.sort((a, b) => {
+      if (sortBy === 'model') return a.model.localeCompare(b.model);
+      if (sortBy === 'requests') return b.totalRequests - a.totalRequests;
+      return b.totalTokens - a.totalTokens;
+    });
+  }, [summary, sortBy]);
   return (
     <Stack mt="md" gap="xs">
       <TextRegularSm c="dimmed">
@@ -42,13 +53,22 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>By modal:</Table.Th>
-              <Table.Th ta="right">Requests</Table.Th>
-              <Table.Th ta="right">Tokens</Table.Th>
+              <Table.Th onClick={() => setSortBy('model')} style={{ cursor: 'pointer' }} w="50%">
+                Modal
+                {sortBy === 'model' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} ml="xs" />}
+              </Table.Th>
+              <Table.Th ta="right" onClick={() => setSortBy('requests')} style={{ cursor: 'pointer' }} w="25%">
+                {sortBy === 'requests' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} mr="xs" />}
+                Requests
+              </Table.Th>
+              <Table.Th ta="right" onClick={() => setSortBy('tokens')} style={{ cursor: 'pointer' }}>
+                {sortBy === 'tokens' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} mr="xs" />}
+                Tokens
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {summary?.items.map((item) => (
+            {sortedItems?.map((item) => (
               <Table.Tr key={item.model}>
                 <Table.Td>{item.model}</Table.Td>
                 <Table.Td ta="right">{item.totalRequests.toLocaleString()}</Table.Td>
@@ -72,7 +92,10 @@ const UsageEventListTab = ({ events }: { events?: AgentUsageEvent[] }) => {
             <Table.Th>Credentials</Table.Th>
             <Table.Th ta="right">Requests</Table.Th>
             <Table.Th ta="right">Tokens</Table.Th>
-            <Table.Th>When</Table.Th>
+            <Table.Th>
+              When
+              <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} ml="xs" />
+            </Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>

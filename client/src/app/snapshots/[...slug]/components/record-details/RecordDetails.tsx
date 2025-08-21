@@ -5,6 +5,7 @@ import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
+import { useSnapshotContext } from '../../SnapshotContext';
 import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {
@@ -32,6 +33,7 @@ export const RecordDetails = ({
   bulkUpdateRecord,
   onFocusOnField,
 }: RecordDetailsProps) => {
+  const { currentView } = useSnapshotContext();
   const [saving, setSaving] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<PendingUpdate[]>([]);
 
@@ -167,10 +169,11 @@ export const RecordDetails = ({
           onAcceptSuggestion={handleAcceptSuggestion}
           onRejectSuggestion={handleRejectSuggestion}
           saving={saving}
+          currentView={currentView}
         />
       );
     },
-    [currentRecord, saving, updateField, acceptCellValues, rejectCellValues, handleFocusOnField],
+    [currentRecord, saving, updateField, acceptCellValues, rejectCellValues, handleFocusOnField, currentView],
   );
 
   if (currentRecord && currentColumn) {

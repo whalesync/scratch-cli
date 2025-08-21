@@ -3,7 +3,7 @@
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
 import { Center, Divider, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
-import { BookOpenIcon, FileCsvIcon, GearIcon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
+import { BookOpenIcon, FileCsvIcon, GearIcon, Icon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -11,7 +11,15 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { StyledIcon } from './Icons/StyledIcon';
 import styles from './SideMenu.module.css';
 
-const links = [
+type MenuItem = {
+  href: string;
+  label: string;
+  icon: Icon;
+  enabled: boolean;
+  requiresAdmin: boolean;
+};
+
+const upperLinks: MenuItem[] = [
   {
     href: RouteUrls.snapshotsPageUrl,
     label: 'Snapshots',
@@ -47,6 +55,9 @@ const links = [
     enabled: true,
     requiresAdmin: false,
   },
+];
+
+const lowerLinks: MenuItem[] = [
   {
     href: RouteUrls.settingsPageUrl,
     label: 'Settings',
@@ -59,6 +70,18 @@ const links = [
 export function SideMenu() {
   const pathname = usePathname();
   const { isAdmin } = useScratchPadUser();
+
+  const createMenuItem = (link: MenuItem, isActive: boolean, isAdmin: boolean) => {
+    const color = isActive ? 'gray.9' : isAdmin ? 'purple' : 'gray.6';
+
+    return (
+      <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
+        <UnstyledButton component={Link} href={link.href} data-active={isActive || undefined} className={styles.link}>
+          <StyledIcon Icon={link.icon} size={24} c={color} />
+        </UnstyledButton>
+      </Tooltip>
+    );
+  };
 
   return (
     <Stack gap={0} h="100%" align="center">
@@ -81,34 +104,27 @@ export function SideMenu() {
       </Tooltip>
       <Divider w="100%" mb="md" />
       <Stack gap="md">
-        {links
+        {upperLinks
           .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
           .map((link) => {
             const isActive = pathname.startsWith(link.href);
             const isAdminLink = link.requiresAdmin && isAdmin;
-
-            const color = isActive ? 'gray.9' : isAdminLink ? 'purple' : 'gray.6';
-
-            return (
-              <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
-                <UnstyledButton
-                  component={Link}
-                  href={link.href}
-                  data-active={isActive || undefined}
-                  className={styles.link}
-                >
-                  <StyledIcon Icon={link.icon} size={24} c={color} />
-                </UnstyledButton>
-              </Tooltip>
-            );
+            return createMenuItem(link, isActive, isAdminLink ?? false);
           })}
       </Stack>
-      <Stack justify="center" mt="auto" p="xs">
+      <Stack justify="center" mt="auto" p="xs" gap="xs">
         <SignedOut>
           <SignUpButton />
         </SignedOut>
         <SignedIn>
-          <UserButton />
+          {lowerLinks.map((link) => {
+            const isActive = pathname.startsWith(link.href);
+            const isAdminLink = link.requiresAdmin && isAdmin;
+            return createMenuItem(link, isActive, isAdminLink ?? false);
+          })}
+          <Center>
+            <UserButton />
+          </Center>
         </SignedIn>
       </Stack>
     </Stack>

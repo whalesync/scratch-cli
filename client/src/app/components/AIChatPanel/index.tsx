@@ -353,7 +353,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       {/* Header */}
       <Group justify="space-between" mb="md" h="50px">
         <Group justify="space-between" style={{ flex: 1 }}>
-          <TextTitleSm>Scratchpad Chat</TextTitleSm>
+          <TextTitleSm>Agent Chat</TextTitleSm>
           {connectionBadge}
         </Group>
         <CloseButton onClick={onClose} size="sm" />

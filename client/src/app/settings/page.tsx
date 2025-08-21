@@ -12,9 +12,9 @@ const SettingsPage = () => {
     <ContentContainer title="Settings">
       <Group gap="md" align="flex-start">
         <Stack gap="md">
-          <DebugInfo />
           <AgentCredentials />
           <AgentUsageInfoCard />
+          <DebugInfo />
         </Stack>
         <UserProfile routing="hash" />
       </Group>

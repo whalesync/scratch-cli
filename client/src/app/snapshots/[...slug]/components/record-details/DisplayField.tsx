@@ -43,14 +43,13 @@ export const DisplayField = (props: DisplayFieldProps) => {
   if (!column) return null;
 
   const isHidden = currentView && isColumnHidden(table.id.wsId, columnId, currentView);
+  debugger;
   const isProtected = currentView && isColumnProtected(table.id.wsId, columnId, currentView);
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
   const suggestValueColor = '#b8860b';
   const suggestValueBorderColor = '#e0e0e0';
   const suggestValueBackgroundColor = '#fefefe';
-
-  if (isHidden) return null;
 
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="center">
@@ -85,7 +84,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         key={columnId}
         value={currentValue}
         onChange={(value) => updateField(columnId, value.toString())}
-        readOnly={column.readonly || hasSuggestion || isProtected}
+        readOnly={column.readonly || hasSuggestion}
         hideControls
         styles={{
           input: {
@@ -101,6 +100,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         fieldName={column.name}
         hasEditedValue={hasEditedValue}
         isProtected={isProtected}
+        isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
         onFieldLabelClick={onFieldLabelClick}
@@ -141,7 +141,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         key={columnId}
         checked={currentValue}
         onChange={(e) => updateField(columnId, e.target.checked.toString())}
-        readOnly={column.readonly || hasSuggestion || isProtected}
+        readOnly={column.readonly || hasSuggestion}
       />
     );
 
@@ -150,6 +150,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         fieldName={column.name}
         hasEditedValue={hasEditedValue}
         isProtected={isProtected}
+        isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
         onFieldLabelClick={onFieldLabelClick}
@@ -192,6 +193,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           fieldName={column.name}
           hasEditedValue={hasEditedValue}
           isProtected={isProtected}
+          isHidden={isHidden}
           isReadOnly={column.readonly}
           align={align}
           onFieldLabelClick={onFieldLabelClick}
@@ -210,15 +212,16 @@ export const DisplayField = (props: DisplayFieldProps) => {
               key={columnId}
               value={currentValue ?? ''}
               autosize
-              minRows={10}
+              minRows={!currentValue || currentValue.length < 200 ? 3 : 5}
               w="100%"
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
-              readOnly={column.readonly || hasSuggestion || isProtected}
+              readOnly={column.readonly || hasSuggestion}
               styles={{
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
+                  paddingTop: 0,
                 },
               }}
             />
@@ -252,12 +255,11 @@ export const DisplayField = (props: DisplayFieldProps) => {
               w="100%"
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
-              readOnly={column.readonly || hasSuggestion || isProtected}
+              readOnly={column.readonly || hasSuggestion}
               styles={{
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
-                  padding: '2rem',
                 },
               }}
             />
@@ -277,14 +279,13 @@ export const DisplayField = (props: DisplayFieldProps) => {
       minRows={1}
       resize="vertical"
       onChange={(e) => updateField(columnId, e.target.value)}
-      readOnly={column.readonly || hasSuggestion || isProtected}
+      readOnly={column.readonly || hasSuggestion}
       classNames={styles}
       styles={{
         input: {
           borderColor: 'transparent',
           fontSize: '1rem',
-          // padding: '2rem',
-          // backgroundColor: hasEditedValue ? '#e0fde0' : undefined,
+          paddingTop: 0,
         },
       }}
     />
@@ -295,6 +296,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
       fieldName={column.name}
       hasEditedValue={hasEditedValue}
       isProtected={isProtected}
+      isHidden={isHidden}
       align={align}
       onFieldLabelClick={onFieldLabelClick}
     >
@@ -312,6 +314,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
               styles={{
                 input: {
                   fontSize: '1rem',
+                  paddingTop: 0,
                   color: suggestValueColor,
                   backgroundColor: suggestValueBackgroundColor,
                   borderColor: suggestValueBorderColor,

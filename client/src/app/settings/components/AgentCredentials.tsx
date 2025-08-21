@@ -1,6 +1,6 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton } from '@/app/components/base/buttons';
-import { TextTitleLg } from '@/app/components/base/text';
+import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import {
@@ -45,8 +45,11 @@ export const AgentCredentials = () => {
 
   const modals = (
     <>
-      <Modal {...modalStack.register('create')} title="New credentials" centered>
-        <Stack gap="xs">
+      <Modal {...modalStack.register('create')} title="New credentials" centered size="lg">
+        <Stack gap="sm">
+          <TextRegularSm c="dimmed">
+            Register an OpenRouter.ai API key here to enable the Scratchpad agent to use it.
+          </TextRegularSm>
           <PasswordInput
             label="API Key"
             required
@@ -59,6 +62,11 @@ export const AgentCredentials = () => {
             placeholder="Optional description"
             value={createData.description}
             onChange={(event) => setCreateData({ description: event.target.value })}
+          />
+          <Checkbox
+            label="Active"
+            checked={createData.enabled}
+            onChange={(event) => setUpdateData({ enabled: event.target.checked })}
           />
           <Group justify="flex-end">
             <Button variant="outline" onClick={() => modalStack.close('create')}>
@@ -76,8 +84,8 @@ export const AgentCredentials = () => {
           </Group>
         </Stack>
       </Modal>
-      <Modal {...modalStack.register('update')} title="Edit credentials" centered>
-        <Stack gap="xs">
+      <Modal {...modalStack.register('update')} title="Edit credentials" centered size="lg">
+        <Stack gap="sm">
           <PasswordInput
             label="API Key"
             required
@@ -92,7 +100,7 @@ export const AgentCredentials = () => {
             onChange={(event) => setUpdateData({ description: event.target.value })}
           />
           <Checkbox
-            label="Enabled"
+            label="Active"
             checked={updateData.enabled}
             onChange={(event) => setUpdateData({ enabled: event.target.checked })}
           />
@@ -159,7 +167,7 @@ export const AgentCredentials = () => {
               <Text fw={500}>{getServiceIcon(credential.service)}</Text>
               {credential.enabled ? (
                 <Badge color="green" variant="light" size="xs">
-                  Enabled
+                  Active
                 </Badge>
               ) : (
                 <BadgeWithTooltip
@@ -168,7 +176,7 @@ export const AgentCredentials = () => {
                   size="xs"
                   tooltip="These credentials are not active and will not be used by the agent."
                 >
-                  Disabled
+                  Inactive
                 </BadgeWithTooltip>
               )}
             </Group>
@@ -185,7 +193,7 @@ export const AgentCredentials = () => {
             </Stack>
           </Grid.Col>
           <Grid.Col span={2}>
-            <Group gap="4px" align="center">
+            <Group gap="4px" justify="flex-end" align="flex-end">
               <ActionIcon
                 variant="subtle"
                 onClick={() => {
@@ -231,11 +239,12 @@ export const AgentCredentials = () => {
           </Alert>
         )}
         <Stack gap="xs" mb="sm" mih={100}>
+          <TextRegularSm c="dimmed">Add your OpenRouterAPI keys here to enable the agent to use them.</TextRegularSm>
           {list}
         </Stack>
         <Group justify="flex-end">
           <PrimaryButton w="fit-content" onClick={() => modalStack.open('create')}>
-            New credential
+            New credentials
           </PrimaryButton>
         </Group>
       </Card>
