@@ -7,7 +7,6 @@ from agents.data_agent.models import (
     ResponseFromAgent,
 )
 from agents.data_agent.model_utils import (
-    find_record_by_wsId,
     is_in_write_focus,
     missing_field_error,
     find_column_by_name,
@@ -24,7 +23,8 @@ from agents.data_agent.model_utils import (
 from typing import Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
-from logger import log_info, log_error
+from pydantic_ai.messages import ToolReturn
+from logger import log_error
 import re
 from scratchpad_api import (
     bulk_update_records,
@@ -85,7 +85,17 @@ def search_and_replace_field_value_tool_implementation(
             return not_in_write_focus_error(chatRunContext, column.id.wsId, wsId)
 
         # Get the record from the preloaded records
-        record = find_record_by_wsId(chatRunContext, table.name, wsId)
+        # record = find_record_by_wsId(chatRunContext, table.name, wsId)
+
+        # Get a fresh copy of the record. Tools can run concurrently, and this is a safer
+        # way to get the record, not guaranteed to be up to date but should be good enough
+        # since our tool is replacing a value - modifying part of the data field
+        record = get_record(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            record_id=wsId,
+            api_token=chatRunContext.api_token,
+        )
 
         if not record:
             return record_not_in_context_error(chatRunContext, wsId)
@@ -96,12 +106,10 @@ def search_and_replace_field_value_tool_implementation(
         else:
             current_value: str = str(record.fields[column.id.wsId])
 
-        # Create a regex pattern that matches the search_value as a whole word
-        # This ensures we match complete words, not parts of other words
-        # The pattern uses word boundaries (\b) to match word boundaries
-        # and escapes any special regex characters in the search_value
+        # Create a regex pattern that matches the search_value as a group in the string
+        # and escapes any special regex characters in the search_value to allow for users to
+        # provide sections of a document with new lines and punctuation
         escaped_search_value = re.escape(search_value)
-        logger.info(f"Escaped search value: {escaped_search_value}")
         pattern = r"(" + escaped_search_value + r")"
 
         # Replace all occurrences of the pattern with the new_value
@@ -135,7 +143,9 @@ def search_and_replace_field_value_tool_implementation(
         if updated_record:
             update_record_in_context(chatRunContext, table.id.wsId, updated_record)
 
-        return f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {column.name} field. Record {wsId} now contains an updated suggested value containing the changes."
+        return (
+            f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {column.name} field. Record {wsId} now contains an updated suggested value containing the changes.",
+        )
 
     except Exception as e:
         error_msg = f"Failed to replace {search_value} with {new_value} in field {column.name} in record {wsId} in table '{table.name}': {str(e)}"

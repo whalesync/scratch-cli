@@ -82,7 +82,17 @@ def insert_value_tool_implementation(
         )
 
         # Get the record from the preloaded records
-        record = find_record_by_wsId(chatRunContext, table.name, wsId)
+        # record = find_record_by_wsId(chatRunContext, table.name, wsId)
+
+        # Get a fresh copy of the record. Tools can run concurrently, and this is a safer
+        # way to get the record, not guaranteed to be up to date but should be good enough
+        # since our tool is inserting a value - modifying part of the data field
+        record = get_record(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            record_id=wsId,
+            api_token=chatRunContext.api_token,
+        )
 
         if not record:
             return record_not_in_context_error(chatRunContext, wsId)

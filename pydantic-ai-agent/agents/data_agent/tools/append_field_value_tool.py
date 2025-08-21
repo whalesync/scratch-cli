@@ -79,14 +79,24 @@ def append_field_value_tool_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
         )
 
+        if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
+            return not_in_write_focus_error(chatRunContext, column.id.wsId, wsId)
+
         # Get the record from the preloaded records
-        record = find_record_by_wsId(chatRunContext, table.name, wsId)
+        # record = find_record_by_wsId(chatRunContext, table.name, wsId)
+
+        # Get a fresh copy of the record. Tools can run concurrently, and this is a safer
+        # way to get the record, not guaranteed to be up to date but should be good enough
+        # since our tool is just appending a value.
+        record = get_record(
+            snapshot_id=chatRunContext.session.snapshot_id,
+            table_id=table.id.wsId,
+            record_id=wsId,
+            api_token=chatRunContext.api_token,
+        )
 
         if not record:
             return record_not_in_context_error(chatRunContext, wsId)
-
-        if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
-            return not_in_write_focus_error(chatRunContext, column.id.wsId, wsId)
 
         if column.id.wsId in record.suggested_fields:
             current_value: str = str(record.suggested_fields[column.id.wsId])
