@@ -13,6 +13,8 @@ erDiagram
   DateTime createdAt
   DateTime updatedAt
   String clerkId UK "nullable"
+  String name "nullable"
+  String email "nullable"
   UserRole role
 }
 "APIToken" {
@@ -143,6 +145,8 @@ Properties as follows:
 - `createdAt`:
 - `updatedAt`:
 - `clerkId`:
+- `name`:
+- `email`:
 - `role`:
 
 ### `APIToken`

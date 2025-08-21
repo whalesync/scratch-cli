@@ -26,7 +26,11 @@ export class UsersService {
     });
   }
 
-  public async getOrCreateUserFromClerk(clerkUserId: string): Promise<UserCluster.User | null> {
+  public async getOrCreateUserFromClerk(
+    clerkUserId: string,
+    name?: string,
+    email?: string,
+  ): Promise<UserCluster.User | null> {
     const user = await this.findByClerkId(clerkUserId);
 
     if (user) {
@@ -47,6 +51,13 @@ export class UsersService {
         };
       }
 
+      if ((name && name !== user.name) || (email && email !== user.email)) {
+        await this.db.client.user.update({
+          where: { id: user.id },
+          data: { name, email },
+        });
+      }
+
       return user;
     }
 
@@ -56,6 +67,8 @@ export class UsersService {
         clerkId: clerkUserId,
         updatedAt: new Date(),
         role: UserRole.USER,
+        name,
+        email,
         apiTokens: {
           create: {
             id: createApiTokenId(),

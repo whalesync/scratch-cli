@@ -7,7 +7,7 @@ import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
-import { AuthenticatedUser } from './types';
+import { AuthenticatedUser, ScratchpadJwtPayload } from './types';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
@@ -32,11 +32,17 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     }
 
     try {
-      const tokenPayload = await verifyToken(token, {
+      const jwtPayload = await verifyToken(token, {
         secretKey: this.configService.getClerkSecretKey(),
       });
 
-      const user = await this.userService.getOrCreateUserFromClerk(tokenPayload.sub);
+      const scratchpadPayload = jwtPayload as ScratchpadJwtPayload;
+
+      const user = await this.userService.getOrCreateUserFromClerk(
+        scratchpadPayload.sub,
+        scratchpadPayload.fullName,
+        scratchpadPayload.primaryEmail,
+      );
 
       if (!user) {
         throw new UnauthorizedException('No Scratchpad user found');
