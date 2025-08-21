@@ -6,6 +6,7 @@ PydanticAI Agent for the Chat Server
 import os
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
+from pydantic_ai import UrlContextTool, WebSearchTool
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
@@ -66,6 +67,13 @@ def create_agent(
             model_name,
             provider=OpenRouterProvider(api_key=api_key),
         )
+
+        builtin_tools = []
+
+        # if model_name.startswith("openai/"):
+        #     builtin_tools.append(UrlContextTool())
+        #     builtin_tools.append(WebSearchTool(search_context_size="high", max_uses=5))
+
         # Create the agent
         agent = Agent(
             name="ChatServerAgent",
@@ -77,6 +85,7 @@ def create_agent(
             model=model,
             deps_type=ChatRunContext,
             tools=get_data_tools(capabilities, style_guides, data_scope),
+            builtin_tools=builtin_tools,
         )
 
         configure_tools(agent, capabilities, data_scope)

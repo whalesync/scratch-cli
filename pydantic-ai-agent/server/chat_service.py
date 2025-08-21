@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from pydantic_ai.exceptions import UserError
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai import Agent
-from pydantic_ai.usage import Usage
+from pydantic_ai.usage import RunUsage
 from pydantic_ai.messages import (
     FinalResultEvent,
     FunctionToolCallEvent,
@@ -610,13 +610,13 @@ class ChatService:
                     snapshot_id=session.snapshot_id,
                 )
 
-                usage: Usage = result.usage()
+                usage: RunUsage = result.usage()
                 if usage:
                     actual_response.usage_stats = UsageStats(
                         requests=usage.requests,
-                        request_tokens=usage.request_tokens,
-                        response_tokens=usage.response_tokens,
-                        total_tokens=usage.total_tokens,
+                        request_tokens=usage.input_tokens,
+                        response_tokens=usage.output_tokens,
+                        total_tokens=usage.input_tokens + usage.output_tokens,
                     )
 
                 try:
@@ -624,9 +624,9 @@ class ChatService:
                         api_token,
                         model,
                         usage.requests,
-                        usage.request_tokens,
-                        usage.response_tokens,
-                        usage.total_tokens,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        usage.input_tokens + usage.output_tokens,
                         usage_context={
                             "session_id": session.id,
                             "snapshot_id": session.snapshot_id,
@@ -689,16 +689,18 @@ class ChatService:
 class CancelledAgentRunResult:
     """Result for a cancelled agent run"""
 
-    def __init__(self, usage: Usage):
+    def __init__(self, usage: RunUsage):
         self.usage_stats = UsageStats(
             requests=usage.requests if usage and usage.requests else 0,
-            request_tokens=(
-                usage.request_tokens if usage and usage.request_tokens else 0
-            ),
+            request_tokens=(usage.input_tokens if usage and usage.input_tokens else 0),
             response_tokens=(
-                usage.response_tokens if usage and usage.response_tokens else 0
+                usage.output_tokens if usage and usage.output_tokens else 0
             ),
-            total_tokens=usage.total_tokens if usage and usage.total_tokens else 0,
+            total_tokens=(
+                usage.input_tokens + usage.output_tokens
+                if usage and usage.input_tokens and usage.output_tokens
+                else 0
+            ),
         )
 
 
