@@ -17,7 +17,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { FileCodeIcon, FileMdIcon, FileTextIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
 import { ContentContainer } from '../components/ContentContainer';
 import { EditResourceModal } from '../components/EditResourceModal';
@@ -26,25 +26,25 @@ export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
   const [isCreateModalOpen, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [isDeleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
-  const [activeStyleGuide, setActiveStyleGuide] = useState<StyleGuide | null>(null);
+  const [activeResource, setActiveResource] = useState<StyleGuide | null>(null);
 
-  const handleEditStyleGuide = (styleGuide: StyleGuide) => {
-    setActiveStyleGuide(styleGuide);
+  const handleEditResource = (resource: StyleGuide) => {
+    setActiveResource(resource);
     openCreateModal();
   };
 
   const handleNewStyleGuide = useCallback(async () => {
-    setActiveStyleGuide(null);
+    setActiveResource(null);
     openCreateModal();
   }, []);
 
   const handleDeleteStyleGuide = async (id: string) => {
     try {
       await styleGuideApi.delete(id);
-      setActiveStyleGuide(null);
+      setActiveResource(null);
       await mutate();
     } catch (error) {
-      console.log('Error deleting style guide:', error);
+      console.log('Error deleting resource:', error);
     }
   };
 
@@ -56,7 +56,7 @@ export default function StyleGuidesPage() {
     return (
       <Paper p="md">
         <Alert color="red" title="Error">
-          Failed to load style guides
+          Failed to load resources
         </Alert>
       </Paper>
     );
@@ -64,32 +64,43 @@ export default function StyleGuidesPage() {
 
   const headerActions = (
     <Button leftSection={<PlusIcon size={16} />} onClick={handleNewStyleGuide}>
-      New Style Guide
+      New resource
     </Button>
   );
 
-  const sortedStyleGuides = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
+  const sortedResources = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
+
+  const resourceIcon = (resource: StyleGuide) => {
+    if (resource.contentType === 'markdown') {
+      return <FileMdIcon size={16} />;
+    }
+    if (resource.contentType === 'json') {
+      return <FileCodeIcon size={16} />;
+    }
+    return <FileTextIcon size={16} />;
+  };
 
   return (
-    <ContentContainer title="Style Guides" actions={headerActions}>
+    <ContentContainer title="Resources" actions={headerActions}>
       {isLoading ? (
         <Text>Loading...</Text>
       ) : (
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Name</Table.Th>
+              <Table.Th w="50%">Name</Table.Th>
               <Table.Th>Created</Table.Th>
               <Table.Th>Updated</Table.Th>
               <Table.Th>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {sortedStyleGuides.map((styleGuide) => (
+            {sortedResources.map((styleGuide) => (
               <Table.Tr key={styleGuide.id}>
                 <Table.Td>
                   <Group gap="sm">
-                    <UnstyledButton fz="sm" onClick={() => handleEditStyleGuide(styleGuide)}>
+                    {resourceIcon(styleGuide)}
+                    <UnstyledButton fz="sm" onClick={() => handleEditResource(styleGuide)}>
                       {styleGuide.name}
                     </UnstyledButton>
                     {styleGuide.autoInclude ? (
@@ -97,6 +108,11 @@ export default function StyleGuidesPage() {
                         Auto Include
                       </Badge>
                     ) : null}
+                    {styleGuide.tags.map((tag) => (
+                      <Badge size="xs" color="gray.6" variant="light" key={tag}>
+                        {tag}
+                      </Badge>
+                    ))}
                   </Group>
                 </Table.Td>
 
@@ -106,7 +122,7 @@ export default function StyleGuidesPage() {
                   <Group gap="xs">
                     <ActionIcon
                       onClick={async () => {
-                        setActiveStyleGuide(styleGuide);
+                        setActiveResource(styleGuide);
                         openCreateModal();
                       }}
                       variant="subtle"
@@ -119,7 +135,7 @@ export default function StyleGuidesPage() {
                       color="red"
                       size="sm"
                       onClick={() => {
-                        setActiveStyleGuide(styleGuide);
+                        setActiveResource(styleGuide);
                         openDeleteModal();
                       }}
                     >
@@ -135,13 +151,13 @@ export default function StyleGuidesPage() {
 
       <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
         <Stack gap="sm">
-          <Text>Are you sure you want to delete the &quot;{activeStyleGuide?.name}&quot; resource?</Text>
+          <Text>Are you sure you want to delete the &quot;{activeResource?.name}&quot; resource?</Text>
           <Group justify="flex-end">
             <Button onClick={closeDeleteModal}>Cancel</Button>
             <Button
               onClick={() => {
-                if (activeStyleGuide) {
-                  handleDeleteStyleGuide(activeStyleGuide.id);
+                if (activeResource) {
+                  handleDeleteStyleGuide(activeResource.id);
                 }
                 closeDeleteModal();
               }}
@@ -155,15 +171,15 @@ export default function StyleGuidesPage() {
       <EditResourceModal
         opened={isCreateModalOpen}
         onClose={() => {
-          setActiveStyleGuide(null);
+          setActiveResource(null);
           closeCreateModal();
         }}
         onSuccess={async () => {
           await mutate();
-          setActiveStyleGuide(null);
+          setActiveResource(null);
           closeCreateModal();
         }}
-        styleGuide={activeStyleGuide}
+        resourceDocument={activeResource}
       />
     </ContentContainer>
   );

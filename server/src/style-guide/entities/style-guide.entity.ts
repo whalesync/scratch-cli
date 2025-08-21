@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { StyleGuideCluster } from 'src/db/cluster-types';
 
 export class StyleGuide {
@@ -9,6 +8,10 @@ export class StyleGuide {
   body: string;
   userId: string;
   autoInclude: boolean;
+  sourceUrl: string | null;
+  contentType: string;
+  lastDownloadedAt: Date | null;
+  tags: string[];
 
   constructor(styleGuide: StyleGuideCluster.StyleGuide) {
     this.id = styleGuide.id;
@@ -18,5 +21,9 @@ export class StyleGuide {
     this.body = styleGuide.body;
     this.userId = styleGuide.userId;
     this.autoInclude = styleGuide.autoInclude;
+    this.sourceUrl = styleGuide.sourceUrl;
+    this.contentType = styleGuide.contentType;
+    this.lastDownloadedAt = styleGuide.lastDownloadedAt;
+    this.tags = styleGuide.tags ?? [];
   }
 }

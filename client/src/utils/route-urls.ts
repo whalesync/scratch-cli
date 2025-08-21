@@ -33,7 +33,7 @@ export class RouteUrls {
   static snapshotColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
     `/snapshots/${id}/${tableId}/${recordId}/${columnId}`;
   static snapshotsPageUrl = "/snapshots";
-  static styleGuidesPageUrl = "/style-guides";
+  static resourcesPageUrl = "/resources";
   static csvFilesPageUrl = "/csv-files";
   static settingsPageUrl = "/settings";
 }

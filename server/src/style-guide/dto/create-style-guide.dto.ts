@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateStyleGuideDto {
   @IsString()
@@ -10,4 +10,17 @@ export class CreateStyleGuideDto {
 
   @IsBoolean()
   autoInclude: boolean;
+
+  @IsString()
+  @IsOptional()
+  sourceUrl: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['markdown', 'json', 'text'])
+  contentType: string;
+
+  @IsArray()
+  @IsOptional()
+  tags: string[];
 }

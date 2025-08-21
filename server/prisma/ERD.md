@@ -97,6 +97,10 @@ erDiagram
   String body
   String userId FK
   Boolean autoInclude
+  String sourceUrl "nullable"
+  String contentType
+  DateTime lastDownloadedAt "nullable"
+  String tags
 }
 "CsvFile" {
   String id PK
@@ -250,6 +254,10 @@ Properties as follows:
 - `body`:
 - `userId`:
 - `autoInclude`:
+- `sourceUrl`:
+- `contentType`:
+- `lastDownloadedAt`:
+- `tags`:
 
 ### `CsvFile`
 

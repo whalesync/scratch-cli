@@ -42,8 +42,8 @@ const upperLinks: MenuItem[] = [
     requiresAdmin: true,
   },
   {
-    href: RouteUrls.styleGuidesPageUrl,
-    label: 'Style Guides',
+    href: RouteUrls.resourcesPageUrl,
+    label: 'Resources',
     icon: BookOpenIcon,
     enabled: true,
     requiresAdmin: false,

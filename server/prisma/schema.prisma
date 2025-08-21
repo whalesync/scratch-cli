@@ -186,7 +186,10 @@ model StyleGuide {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   autoInclude Boolean @default(false) // Whether to automatically include this style guide in conversations
-
+  sourceUrl String? // URL of where this resource an be download from
+  contentType String @default("markdown") // "markdown" | "json" | "text"
+  lastDownloadedAt DateTime? // When the resource was last downloaded
+  tags String[] // User defined tags for the resource
   @@index([userId])
 }
 

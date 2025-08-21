@@ -47,7 +47,7 @@ export function ResourceSelector(props: ResourceSelectorProps) {
           setIsEditResourceModalOpen(false);
           setResourceToEdit(null);
         }}
-        styleGuide={resourceToEdit}
+        resourceDocument={resourceToEdit}
         onSuccess={async (newStyleGuide, isNewResource) => {
           await refreshResourceList();
           setIsEditResourceModalOpen(false);

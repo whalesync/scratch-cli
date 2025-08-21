@@ -8,11 +8,11 @@ import { useEffect, useRef, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from './base/buttons';
 
 interface EditResourceModalProps extends ModalProps {
-  styleGuide?: StyleGuide | null;
+  resourceDocument: StyleGuide | null;
   onSuccess?: (updatedStyleGuide: StyleGuide, isNewResource: boolean) => void;
 }
 
-export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResourceModalProps) {
+export function EditResourceModal({ resourceDocument, onSuccess, ...props }: EditResourceModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState('');
@@ -26,17 +26,17 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
       return;
     }
 
-    if (styleGuide) {
-      setContent(styleGuide.body);
-      setName(styleGuide.name);
-      setAutoInclude(styleGuide.autoInclude);
+    if (resourceDocument) {
+      setContent(resourceDocument.body);
+      setName(resourceDocument.name);
+      setAutoInclude(resourceDocument.autoInclude);
       setResetInputFocus(true);
     } else {
       setName('');
       setContent('');
       setAutoInclude(false);
     }
-  }, [styleGuide, props.opened]);
+  }, [resourceDocument, props.opened]);
 
   useEffect(() => {
     // Focus on textarea when modal opens or style guide changes
@@ -46,7 +46,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
     }
   }, [resetInputFocus]);
 
-  const isNewResource = !styleGuide;
+  const isNewResource = !resourceDocument;
 
   const handleSubmit = async () => {
     setIsUpdating(true);
@@ -60,14 +60,16 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
           name: name.trim(),
           body: content,
           autoInclude,
+          tags: [],
         };
         updatedStyleGuide = await styleGuideApi.create(newData);
       } else {
         const updateData: UpdateStyleGuideDto = {
           body: content,
           autoInclude,
+          tags: [],
         };
-        updatedStyleGuide = await styleGuideApi.update(styleGuide.id, updateData);
+        updatedStyleGuide = await styleGuideApi.update(resourceDocument.id, updateData);
       }
 
       onSuccess?.(updatedStyleGuide, isNewResource);
@@ -77,8 +79,8 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
       });
       props.onClose?.();
     } catch (err) {
-      setError('Failed to update style guide');
-      console.error('Error updating style guide:', err);
+      setError('Failed to update resource');
+      console.error('Error updating resource:', err);
     } finally {
       setIsUpdating(false);
     }
@@ -92,7 +94,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
 
   return (
     <Modal
-      title={styleGuide ? `Edit ${styleGuide.name}` : 'Create a new resource'}
+      title={resourceDocument ? `Edit ${resourceDocument.name}` : 'Create a new resource'}
       size="xl"
       closeOnClickOutside={!isUpdating}
       closeOnEscape={!isUpdating}
@@ -107,7 +109,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
 
         {isNewResource && (
           <TextInput
-            placeholder="Enter style guide name"
+            placeholder="Enter resource name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -125,7 +127,7 @@ export function EditResourceModal({ styleGuide, onSuccess, ...props }: EditResou
         />
 
         <Checkbox
-          label="Auto include in conversations"
+          label="Auto include in agent conversations"
           checked={autoInclude}
           onChange={(e) => setAutoInclude(e.target.checked)}
           disabled={isUpdating}
