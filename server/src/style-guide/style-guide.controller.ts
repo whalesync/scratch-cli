@@ -10,6 +10,11 @@ import { StyleGuideService } from './style-guide.service';
 export class StyleGuideController {
   constructor(private readonly styleGuideService: StyleGuideService) {}
 
+  @Get('/download')
+  download(@Query('url') url: string) {
+    return this.styleGuideService.downloadResource(url);
+  }
+
   @Post()
   create(@Body() createStyleGuideDto: CreateStyleGuideDto, @Req() req: RequestWithUser) {
     return this.styleGuideService.create(createStyleGuideDto, req.user.id);
@@ -38,10 +43,5 @@ export class StyleGuideController {
   @Patch(':id/update-external-resource')
   updateExternalResource(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.styleGuideService.updateExternalResource(id, req.user.id);
-  }
-
-  @Get('/download')
-  download(@Query('url') url: string) {
-    return this.styleGuideService.downloadResource(url);
   }
 }

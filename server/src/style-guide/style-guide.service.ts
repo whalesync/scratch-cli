@@ -14,7 +14,7 @@ export class StyleGuideService {
   constructor(private readonly db: DbService) {}
 
   async create(createStyleGuideDto: CreateStyleGuideDto, userId: string): Promise<StyleGuide> {
-    if (createStyleGuideDto.sourceUrl) {
+    if (createStyleGuideDto.sourceUrl && (!createStyleGuideDto.body || createStyleGuideDto.body.trim() === '')) {
       const { content, contentType } = await this.downloadResource(createStyleGuideDto.sourceUrl);
       createStyleGuideDto.body = content;
       createStyleGuideDto.contentType = contentType;

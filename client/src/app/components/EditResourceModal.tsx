@@ -1,9 +1,27 @@
 'use client';
 
 import { styleGuideApi } from '@/lib/api/style-guide';
-import { CreateStyleGuideDto, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
-import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
+import {
+  CreateStyleGuideDto,
+  DEFAULT_CONTENT_TYPE,
+  ResourceContentType,
+  StyleGuide,
+  UpdateStyleGuideDto,
+} from '@/types/server-entities/style-guide';
+import {
+  ActionIcon,
+  Alert,
+  Checkbox,
+  Group,
+  Modal,
+  ModalProps,
+  Stack,
+  Textarea,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { DownloadSimpleIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from './base/buttons';
 
@@ -18,6 +36,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
+  const [contentType, setContentType] = useState<ResourceContentType>(DEFAULT_CONTENT_TYPE);
   const [autoInclude, setAutoInclude] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
@@ -32,12 +51,14 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
       setName(resourceDocument.name);
       setAutoInclude(resourceDocument.autoInclude);
       setSourceUrl(resourceDocument.sourceUrl || '');
+      setContentType(resourceDocument.contentType);
       setResetInputFocus(true);
     } else {
       setName('');
       setContent('');
       setAutoInclude(false);
       setSourceUrl('');
+      setContentType(DEFAULT_CONTENT_TYPE);
     }
   }, [resourceDocument, props.opened]);
 
@@ -50,6 +71,23 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   }, [resetInputFocus]);
 
   const isNewResource = !resourceDocument;
+
+  const handleDownloadResource = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      debugger;
+      const externalContent = await styleGuideApi.downloadResource(sourceUrl);
+      setContentType(externalContent.contentType);
+      setContent(externalContent.content);
+    } catch (err) {
+      setError('Failed to download resource');
+      console.error('Error downloading resource:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setIsSaving(true);
@@ -66,6 +104,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           body: content,
           autoInclude,
           sourceUrl: cleanedSourceUrl,
+          contentType,
           tags: [],
         };
         updatedStyleGuide = await styleGuideApi.create(newData);
@@ -74,6 +113,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           body: content,
           autoInclude,
           sourceUrl: cleanedSourceUrl,
+          contentType,
           tags: [],
         };
         updatedStyleGuide = await styleGuideApi.update(resourceDocument.id, updateData);
@@ -129,19 +169,28 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           label="Content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          minRows={15}
+          minRows={20}
+          maxRows={20}
           autosize
           disabled={isSaving}
         />
 
-        <TextInput
-          label="Source URL"
-          value={sourceUrl}
-          onChange={(e) => setSourceUrl(e.target.value)}
-          disabled={isSaving}
-          description="Optional. If provided, the resource will be downloaded from the URL and used as the content."
-          inputWrapperOrder={['label', 'input', 'description']}
-        />
+        <Group gap="xs">
+          <TextInput
+            label="Source URL"
+            value={sourceUrl}
+            onChange={(e) => setSourceUrl(e.target.value)}
+            disabled={isSaving}
+            description="Optional. If provided, the resource will be downloaded from the URL and used as the content."
+            inputWrapperOrder={['label', 'input', 'description']}
+            flex={1}
+          />
+          <Tooltip label="Download from source">
+            <ActionIcon size="sm" variant="subtle" onClick={handleDownloadResource} loading={isSaving}>
+              <DownloadSimpleIcon size={20} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
 
         <Checkbox
           label="Auto include in agent conversations"

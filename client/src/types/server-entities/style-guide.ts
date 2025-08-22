@@ -1,3 +1,6 @@
+export type ResourceContentType = 'markdown' | 'json' | 'text';
+export const DEFAULT_CONTENT_TYPE: ResourceContentType = 'markdown';
+
 export interface StyleGuide {
   id: string;
   createdAt: string;
@@ -7,7 +10,7 @@ export interface StyleGuide {
   userId: string;
   autoInclude: boolean;
   sourceUrl: string | null;
-  contentType: string;
+  contentType: ResourceContentType;
   lastDownloadedAt: string | null;
   tags: string[];
 }
@@ -17,7 +20,7 @@ export interface CreateStyleGuideDto {
   body: string;
   autoInclude: boolean;
   sourceUrl?: string;
-  contentType?: string;
+  contentType?: ResourceContentType;
   tags: string[];
 }
 
@@ -26,12 +29,12 @@ export interface UpdateStyleGuideDto {
   body?: string;
   autoInclude?: boolean;
   sourceUrl?: string;
-  contentType?: string;
+  contentType?: ResourceContentType;
   tags?: string[];
 }
 
 export interface ExternalContent {
   url: string;
-  contentType: 'markdown' | 'json' | 'text';
+  contentType: ResourceContentType;
   content: string;
 }
