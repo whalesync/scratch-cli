@@ -1,7 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import Parser from '@postlight/parser';
-import axios from 'axios';
+import axios, { AxiosError, HttpStatusCode } from 'axios';
 import { WSLogger } from 'src/logger';
+import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
 import { createStyleGuideId } from '../types/ids';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
@@ -14,10 +21,9 @@ export class StyleGuideService {
   constructor(private readonly db: DbService) {}
 
   async create(createStyleGuideDto: CreateStyleGuideDto, userId: string): Promise<StyleGuide> {
-    if (createStyleGuideDto.sourceUrl && (!createStyleGuideDto.body || createStyleGuideDto.body.trim() === '')) {
-      const { content, contentType } = await this.downloadResource(createStyleGuideDto.sourceUrl);
-      createStyleGuideDto.body = content;
-      createStyleGuideDto.contentType = contentType;
+    // validate the DTO
+    if (createStyleGuideDto.sourceUrl) {
+      createStyleGuideDto.sourceUrl = this.sanitizeUrl(createStyleGuideDto.sourceUrl);
     }
 
     const styleGuide = await this.db.client.styleGuide.create({
@@ -49,6 +55,11 @@ export class StyleGuideService {
   }
 
   async update(id: string, updateStyleGuideDto: UpdateStyleGuideDto, userId: string): Promise<StyleGuide | null> {
+    // validate the DTO
+    if (updateStyleGuideDto.sourceUrl) {
+      updateStyleGuideDto.sourceUrl = this.sanitizeUrl(updateStyleGuideDto.sourceUrl);
+    }
+
     const styleGuide = await this.db.client.styleGuide.updateMany({
       where: { id, userId },
       data: updateStyleGuideDto,
@@ -88,9 +99,27 @@ export class StyleGuideService {
     return this.update(id, { body: content, contentType }, userId);
   }
 
+  sanitizeUrl(url: string): string {
+    let sanitizedUrl = url;
+
+    // Add protocol if missing
+    if (!url.match(/^https?:\/\//)) {
+      sanitizedUrl = `https://${url}`;
+    }
+
+    if (!isValidHttpUrl(sanitizedUrl)) {
+      throw new BadRequestException(`Invalid URL: ${sanitizedUrl}`);
+    }
+
+    return sanitizedUrl;
+  }
+
   async downloadResource(url: string, timeout: number = 10000): Promise<ExternalContent> {
+    const sanitizedUrl = this.sanitizeUrl(url);
+
+    // Validate the URL format
     try {
-      const response = await axios.get(url, {
+      const response = await axios.get(sanitizedUrl, {
         timeout,
         headers: {
           'User-Agent': 'ScratchPad/1.0 (compatible; ScratchPadDownloader/1.0)',
@@ -105,7 +134,7 @@ export class StyleGuideService {
 
       if (contentType.includes('application/json')) {
         return {
-          url,
+          url: sanitizedUrl,
           content: contentString,
           contentType: 'json',
         };
@@ -117,24 +146,20 @@ export class StyleGuideService {
         url.toLowerCase().endsWith('.md')
       ) {
         return {
-          url,
+          url: sanitizedUrl,
           content: contentString,
           contentType: 'markdown',
         };
       }
 
-      if (
-        contentType.includes('text/html') ||
-        contentType.includes('application/xhtml+xml') ||
-        contentType.includes('text/xml')
-      ) {
+      if (contentType.includes('text/html') || contentType.includes('application/xhtml+xml')) {
         // convert the HTML to markdown
         // TODO - figure out how to fix the type errors here
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const result = await Parser.parse(url, { contentType: 'markdown', html: contentString });
 
         return {
-          url,
+          url: sanitizedUrl,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           content: result.content,
           contentType: 'markdown',
@@ -142,7 +167,7 @@ export class StyleGuideService {
       }
 
       return {
-        url,
+        url: sanitizedUrl,
         content: contentString,
         contentType: 'text',
       };
@@ -150,10 +175,34 @@ export class StyleGuideService {
       WSLogger.error({
         source: 'StyleGuideService',
         message: `Failed to download context resource`,
-        url,
+        url: sanitizedUrl,
         error: `${(error as Error).message}`,
       });
-      throw new Error(`Failed to download context resource`);
+
+      if (error instanceof AxiosError) {
+        const axiosError = error as AxiosError;
+        if (
+          axiosError.response?.status === HttpStatusCode.NotFound ||
+          axiosError.response?.status === HttpStatusCode.ServiceUnavailable
+        ) {
+          throw new NotFoundException(`Resource not found`);
+        }
+        if (
+          axiosError.response?.status === HttpStatusCode.Forbidden ||
+          axiosError.response?.status === HttpStatusCode.Unauthorized
+        ) {
+          throw new ForbiddenException(`Resource not authorized`);
+        }
+        if (
+          axiosError.response?.status === HttpStatusCode.RequestTimeout ||
+          axiosError.response?.status === HttpStatusCode.GatewayTimeout ||
+          axiosError.code === 'ECONNABORTED'
+        ) {
+          throw new RequestTimeoutException(`Resource timed out`);
+        }
+      }
+
+      throw new BadRequestException(error, `Failed to download context resource`);
     }
   }
 }

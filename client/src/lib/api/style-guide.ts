@@ -88,7 +88,8 @@ export const styleGuideApi = {
       },    
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to update external resource');
+      const errorObj = await res.json();
+      throw new Error(errorObj.message ?? 'Failed to update external resource');
     }
     return res.json();
   },
@@ -103,7 +104,8 @@ export const styleGuideApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to download resource');
+      const errorObj = await res.json();
+      throw new Error(errorObj.message ?? 'Failed to download resource');
     }
     return res.json();
   },

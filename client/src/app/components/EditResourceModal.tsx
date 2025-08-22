@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { DownloadSimpleIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, DownloadSimpleIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from './base/buttons';
 
@@ -37,6 +37,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const [name, setName] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [contentType, setContentType] = useState<ResourceContentType>(DEFAULT_CONTENT_TYPE);
+  const [contentUpdatedMessage, setContentUpdatedMessage] = useState<string | null>(null);
   const [autoInclude, setAutoInclude] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
@@ -60,6 +61,10 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
       setSourceUrl('');
       setContentType(DEFAULT_CONTENT_TYPE);
     }
+
+    setError(null);
+    setIsSaving(false);
+    setContentUpdatedMessage(null);
   }, [resourceDocument, props.opened]);
 
   useEffect(() => {
@@ -75,15 +80,16 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const handleDownloadResource = async () => {
     setIsSaving(true);
     setError(null);
+    setContentUpdatedMessage(null);
 
     try {
-      debugger;
       const externalContent = await styleGuideApi.downloadResource(sourceUrl);
       setContentType(externalContent.contentType);
       setContent(externalContent.content);
+      setContentUpdatedMessage(`Resource content downloaded successfully`);
     } catch (err) {
-      setError('Failed to download resource');
-      console.error('Error downloading resource:', err);
+      setError(`Failed to download resource: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.log('Error downloading resource:', err);
     } finally {
       setIsSaving(false);
     }
@@ -92,6 +98,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const handleSubmit = async () => {
     setIsSaving(true);
     setError(null);
+    setContentUpdatedMessage(null);
 
     const cleanedSourceUrl = sourceUrl ? sourceUrl.trim() : undefined;
 
@@ -149,8 +156,25 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
     >
       <Stack gap="md">
         {error && (
-          <Alert color="red" title="Error">
+          <Alert
+            color="red"
+            variant="light"
+            withCloseButton
+            onClose={() => setError(null)}
+            icon={<XCircleIcon size={20} />}
+          >
             {error}
+          </Alert>
+        )}
+        {contentUpdatedMessage && (
+          <Alert
+            color="green"
+            variant="light"
+            icon={<CheckCircleIcon size={20} />}
+            withCloseButton
+            onClose={() => setContentUpdatedMessage(null)}
+          >
+            {contentUpdatedMessage}
           </Alert>
         )}
 
