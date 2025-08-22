@@ -6,7 +6,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
 
-const JWT_TOKEN_REFRESH_MS = 5000; // 10 seconds
+const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
 
 /**
  * This component just makes sure the Scratchpad user is loaded from the server and that authentication is fully complete before loading protected pages
@@ -32,7 +32,7 @@ export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.El
 
   const loadToken = useCallback(async () => {
     /*
-     * Fetch a new JWT token from Clerk. This has to be done using an async function
+     * Fetch a new JWT token from Clerk SDK (likely the cookie). This has to be done using an async function
      */
     const newToken = await getToken();
 
@@ -63,6 +63,22 @@ export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.El
 
     return () => clearInterval(interval);
   }, [loadToken]);
+
+  /*
+   * Refresh the token when the browser regains focus
+   * This ensures the token is fresh when the user returns to the tab and catches situations where the interval
+   * isn't running
+   */
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isLoaded && isSignedIn) {
+        loadToken().catch(console.error);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isLoaded, isSignedIn, loadToken]);
 
   if (RouteUrls.isPublicRoute(pathname)) {
     // Public pages just pass through and can get rendered w/o auth state initialized
