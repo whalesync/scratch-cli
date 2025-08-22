@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
@@ -33,5 +33,15 @@ export class StyleGuideController {
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.styleGuideService.remove(id, req.user.id);
+  }
+
+  @Patch(':id/update-external-resource')
+  updateExternalResource(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.styleGuideService.updateExternalResource(id, req.user.id);
+  }
+
+  @Get('/download')
+  download(@Query('url') url: string) {
+    return this.styleGuideService.downloadResource(url);
   }
 }

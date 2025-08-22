@@ -13,10 +13,11 @@ interface EditResourceModalProps extends ModalProps {
 }
 
 export function EditResourceModal({ resourceDocument, onSuccess, ...props }: EditResourceModalProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
   const [autoInclude, setAutoInclude] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
@@ -30,11 +31,13 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
       setContent(resourceDocument.body);
       setName(resourceDocument.name);
       setAutoInclude(resourceDocument.autoInclude);
+      setSourceUrl(resourceDocument.sourceUrl || '');
       setResetInputFocus(true);
     } else {
       setName('');
       setContent('');
       setAutoInclude(false);
+      setSourceUrl('');
     }
   }, [resourceDocument, props.opened]);
 
@@ -49,8 +52,10 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const isNewResource = !resourceDocument;
 
   const handleSubmit = async () => {
-    setIsUpdating(true);
+    setIsSaving(true);
     setError(null);
+
+    const cleanedSourceUrl = sourceUrl ? sourceUrl.trim() : undefined;
 
     try {
       let updatedStyleGuide: StyleGuide;
@@ -60,6 +65,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           name: name.trim(),
           body: content,
           autoInclude,
+          sourceUrl: cleanedSourceUrl,
           tags: [],
         };
         updatedStyleGuide = await styleGuideApi.create(newData);
@@ -67,6 +73,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
         const updateData: UpdateStyleGuideDto = {
           body: content,
           autoInclude,
+          sourceUrl: cleanedSourceUrl,
           tags: [],
         };
         updatedStyleGuide = await styleGuideApi.update(resourceDocument.id, updateData);
@@ -82,12 +89,12 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
       setError('Failed to update resource');
       console.error('Error updating resource:', err);
     } finally {
-      setIsUpdating(false);
+      setIsSaving(false);
     }
   };
 
   const handleClose = () => {
-    if (!isUpdating) {
+    if (!isSaving) {
       props.onClose?.();
     }
   };
@@ -96,8 +103,8 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
     <Modal
       title={resourceDocument ? `Edit ${resourceDocument.name}` : 'Create a new resource'}
       size="xl"
-      closeOnClickOutside={!isUpdating}
-      closeOnEscape={!isUpdating}
+      closeOnClickOutside={!isSaving}
+      closeOnEscape={!isSaving}
       {...props}
     >
       <Stack gap="md">
@@ -113,7 +120,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={isUpdating}
+            disabled={isSaving}
           />
         )}
 
@@ -122,22 +129,32 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           label="Content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          minRows={20}
+          minRows={15}
           autosize
+          disabled={isSaving}
+        />
+
+        <TextInput
+          label="Source URL"
+          value={sourceUrl}
+          onChange={(e) => setSourceUrl(e.target.value)}
+          disabled={isSaving}
+          description="Optional. If provided, the resource will be downloaded from the URL and used as the content."
+          inputWrapperOrder={['label', 'input', 'description']}
         />
 
         <Checkbox
           label="Auto include in agent conversations"
           checked={autoInclude}
           onChange={(e) => setAutoInclude(e.target.checked)}
-          disabled={isUpdating}
+          disabled={isSaving}
         />
 
         <Group justify="flex-end" gap="sm">
-          <SecondaryButton onClick={handleClose} disabled={isUpdating}>
+          <SecondaryButton onClick={handleClose} disabled={isSaving}>
             Cancel
           </SecondaryButton>
-          <PrimaryButton loading={isUpdating} disabled={!name.trim()} onClick={handleSubmit}>
+          <PrimaryButton loading={isSaving} disabled={!name.trim()} onClick={handleSubmit}>
             {isNewResource ? 'Create' : 'Save'}
           </PrimaryButton>
         </Group>

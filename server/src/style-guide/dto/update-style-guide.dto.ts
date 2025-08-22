@@ -15,14 +15,14 @@ export class UpdateStyleGuideDto {
 
   @IsString()
   @IsOptional()
-  sourceUrl: string;
+  sourceUrl?: string;
 
   @IsString()
   @IsOptional()
   @IsIn(['markdown', 'json', 'text'])
-  contentType: string;
+  contentType?: string;
 
   @IsArray()
   @IsOptional()
-  tags: string[];
+  tags?: string[];
 }

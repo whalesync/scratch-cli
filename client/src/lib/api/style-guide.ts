@@ -1,4 +1,4 @@
-import { CreateStyleGuideDto, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
+import { CreateStyleGuideDto, ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { API_CONFIG } from './config';
 
 export const styleGuideApi = {
@@ -77,4 +77,34 @@ export const styleGuideApi = {
       throw new Error(res.statusText ?? 'Failed to delete style guide');
     }
   },
-}; 
+
+  // Update an external resource
+  updateExternalResource: async (id: string): Promise<StyleGuide> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/style-guides/${id}/update-external-resource`, {
+      method: 'PATCH',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },    
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? 'Failed to update external resource');
+    }
+    return res.json();
+  },
+
+  // Download and convert a resource
+  downloadResource: async (url: string): Promise<ExternalContent> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/style-guides/download?url=${encodeURIComponent(url)}`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) {
+      throw new Error(res.statusText ?? 'Failed to download resource');
+    }
+    return res.json();
+  },
+};

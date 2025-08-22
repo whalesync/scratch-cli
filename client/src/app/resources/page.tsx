@@ -3,6 +3,7 @@
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
+import { formatBytes } from '@/utils/helpers';
 import {
   ActionIcon,
   Alert,
@@ -14,18 +15,31 @@ import {
   Stack,
   Table,
   Text,
+  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { FileCodeIcon, FileMdIcon, FileTextIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import {
+  DownloadSimpleIcon,
+  FileCodeIcon,
+  FileMdIcon,
+  FileTextIcon,
+  LinkIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
+import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { ContentContainer } from '../components/ContentContainer';
 import { EditResourceModal } from '../components/EditResourceModal';
+import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
   const [isCreateModalOpen, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [isDeleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [isExternalResourceUpdating, setIsExternalResourceUpdating] = useState(false);
   const [activeResource, setActiveResource] = useState<StyleGuide | null>(null);
 
   const handleEditResource = (resource: StyleGuide) => {
@@ -36,7 +50,7 @@ export default function StyleGuidesPage() {
   const handleNewStyleGuide = useCallback(async () => {
     setActiveResource(null);
     openCreateModal();
-  }, []);
+  }, [openCreateModal]);
 
   const handleDeleteStyleGuide = async (id: string) => {
     try {
@@ -45,6 +59,26 @@ export default function StyleGuidesPage() {
       await mutate();
     } catch (error) {
       console.log('Error deleting resource:', error);
+    }
+  };
+
+  const handleUpdateExternalResource = async (id: string) => {
+    try {
+      setIsExternalResourceUpdating(true);
+      await styleGuideApi.updateExternalResource(id);
+      await mutate();
+      ScratchpadNotifications.success({
+        title: 'External resource updated',
+        message: 'The external resource has been updated',
+      });
+    } catch (error) {
+      console.log('Error updating external resource:', error);
+      ScratchpadNotifications.error({
+        title: 'Failed to update external resource',
+        message: 'Please try again',
+      });
+    } finally {
+      setIsExternalResourceUpdating(false);
     }
   };
 
@@ -72,12 +106,12 @@ export default function StyleGuidesPage() {
 
   const resourceIcon = (resource: StyleGuide) => {
     if (resource.contentType === 'markdown') {
-      return <FileMdIcon size={16} />;
+      return <FileMdIcon size={20} />;
     }
     if (resource.contentType === 'json') {
-      return <FileCodeIcon size={16} />;
+      return <FileCodeIcon size={20} />;
     }
-    return <FileTextIcon size={16} />;
+    return <FileTextIcon size={20} />;
   };
 
   return (
@@ -88,10 +122,14 @@ export default function StyleGuidesPage() {
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th w="50%">Name</Table.Th>
-              <Table.Th>Created</Table.Th>
-              <Table.Th>Updated</Table.Th>
-              <Table.Th>Actions</Table.Th>
+              <Table.Td w="60%">Name</Table.Td>
+              <Table.Td w="15%">Updated</Table.Td>
+              <Table.Td w="15%" align="right">
+                Size
+              </Table.Td>
+              <Table.Td w="15%" align="right">
+                Actions
+              </Table.Td>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -108,6 +146,11 @@ export default function StyleGuidesPage() {
                         Auto Include
                       </Badge>
                     ) : null}
+                    {styleGuide.sourceUrl && (
+                      <Badge size="xs" color="gray.6" variant="light" leftSection={<LinkIcon size={12} />}>
+                        External
+                      </Badge>
+                    )}
                     {styleGuide.tags.map((tag) => (
                       <Badge size="xs" color="gray.6" variant="light" key={tag}>
                         {tag}
@@ -115,11 +158,23 @@ export default function StyleGuidesPage() {
                     ))}
                   </Group>
                 </Table.Td>
-
-                <Table.Td>{formatDate(styleGuide.createdAt)}</Table.Td>
                 <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
+                <Table.Td align="right">{formatBytes(styleGuide.body.length)}</Table.Td>
                 <Table.Td>
-                  <Group gap="xs">
+                  <Group gap="xs" justify="flex-end">
+                    {styleGuide.sourceUrl && (
+                      <Tooltip label="Redownload external content">
+                        <ActionIcon
+                          title="Redownload external content"
+                          onClick={() => handleUpdateExternalResource(styleGuide.id)}
+                          variant="subtle"
+                          size="sm"
+                          loading={isExternalResourceUpdating}
+                        >
+                          <DownloadSimpleIcon size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
                     <ActionIcon
                       onClick={async () => {
                         setActiveResource(styleGuide);
@@ -130,6 +185,7 @@ export default function StyleGuidesPage() {
                     >
                       <PencilSimpleIcon size={16} />
                     </ActionIcon>
+
                     <ActionIcon
                       variant="subtle"
                       color="red"
@@ -153,8 +209,8 @@ export default function StyleGuidesPage() {
         <Stack gap="sm">
           <Text>Are you sure you want to delete the &quot;{activeResource?.name}&quot; resource?</Text>
           <Group justify="flex-end">
-            <Button onClick={closeDeleteModal}>Cancel</Button>
-            <Button
+            <SecondaryButton onClick={closeDeleteModal}>Cancel</SecondaryButton>
+            <PrimaryButton
               onClick={() => {
                 if (activeResource) {
                   handleDeleteStyleGuide(activeResource.id);
@@ -163,7 +219,7 @@ export default function StyleGuidesPage() {
               }}
             >
               Delete
-            </Button>
+            </PrimaryButton>
           </Group>
         </Stack>
       </Modal>

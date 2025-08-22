@@ -29,3 +29,9 @@ export interface UpdateStyleGuideDto {
   contentType?: string;
   tags?: string[];
 }
+
+export interface ExternalContent {
+  url: string;
+  contentType: 'markdown' | 'json' | 'text';
+  content: string;
+}
