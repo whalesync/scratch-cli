@@ -1,7 +1,7 @@
 import { Group, Text, Textarea, TextareaProps } from '@mantine/core';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 
-import styles from './EnhancedTextArea.module.css';
+import mStyles from './EnhancedTextArea.module.css';
 
 export type TextSelection = {
   start: number;
@@ -98,7 +98,7 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
           onMouseUp={handleSelectionChange}
           onKeyUp={handleSelectionChange}
           onClick={handleSelectionChange}
-          classNames={styles}
+          classNames={mStyles}
         />
       </>
     );

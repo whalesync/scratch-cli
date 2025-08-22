@@ -28,7 +28,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     record,
     columnId,
     mode,
-    align,
+    align = 'flex-start',
     currentView,
     updateField,
     onFieldLabelClick,
@@ -89,6 +89,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           input: {
             borderColor: 'transparent',
             fontSize: '1rem',
+            padding: !hasSuggestion ? '0' : undefined,
           },
         }}
       />
@@ -200,7 +201,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
+                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" />
               </ScrollArea>
               {suggestionButtons}
             </Stack>
@@ -220,7 +221,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
-                  paddingTop: 0,
                 },
               }}
             />
@@ -239,7 +239,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
+                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" />
               </ScrollArea>
               {suggestionButtons}
             </Stack>
@@ -259,6 +259,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
+                  padding: 0,
                 },
               }}
             />
@@ -284,7 +285,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         input: {
           borderColor: 'transparent',
           fontSize: '1rem',
-          paddingTop: 0,
+          padding: !hasSuggestion ? '0' : undefined,
         },
       }}
     />
@@ -304,7 +305,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
           <Group gap="xs" align="flex-start" grow>
             {textField}
             <Textarea
-              label="Suggested change"
               inputWrapperOrder={['input', 'label', 'description', 'error']}
               value={suggestedValue}
               disabled
@@ -313,7 +313,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
               styles={{
                 input: {
                   fontSize: '1rem',
-                  paddingTop: 0,
                   color: suggestValueColor,
                   backgroundColor: suggestValueBackgroundColor,
                   borderColor: suggestValueBorderColor,

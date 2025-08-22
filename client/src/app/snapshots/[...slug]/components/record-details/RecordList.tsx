@@ -91,7 +91,7 @@ const RecordNode = ({
         wrap="nowrap"
       >
         {icon}
-        <Text fw={isActive ? 'bold' : 'normal'} c={color}>
+        <Text fz="sm" fw={isActive ? 'bold' : 'normal'} c={color} style={{ textWrap: 'nowrap' }}>
           {recordTitle}
         </Text>
       </Group>

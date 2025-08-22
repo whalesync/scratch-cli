@@ -91,7 +91,7 @@ export const RecordView = ({
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
           <ScrollArea h="100%" type="hover" scrollbars="y">
-            <Stack h="calc(100vh - 105px)" gap="sm" p="xs">
+            <Stack h="calc(100vh - 105px)" gap="sm" p="xs" mr="xs" style={{ overflow: 'hidden' }}>
               <Group gap="xs">
                 <Tooltip label="Return to Spreadsheet">
                   <ActionIcon variant="subtle" color="gray" onClick={handleExitRecordView}>
@@ -123,7 +123,7 @@ export const RecordView = ({
         <Stack h="100%" gap="xs" flex={1}>
           <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="xs" bg="white">
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem" bg="white">
                 <ScrollArea h="calc(100vh - 105px)" type="hover" scrollbars="y">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}

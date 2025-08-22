@@ -44,7 +44,7 @@ export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2r
           styles={{
             input: {
               fontSize: fz,
-              padding: p,
+              padding: '1rem',
             },
           }}
         />
@@ -58,7 +58,7 @@ export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2r
           styles={{
             input: {
               fontSize: fz,
-              padding: p,
+              padding: '1rem',
             },
           }}
         />
@@ -68,7 +68,7 @@ export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2r
   }
 
   return (
-    <Group>
+    <Group p={0}>
       <Text p={p} fz={fz} className={styles.diffViewer}>
         {changes.map((change, idx) => {
           // do this to preserve newlines in the diff viewer
