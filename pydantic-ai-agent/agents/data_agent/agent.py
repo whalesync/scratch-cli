@@ -6,7 +6,8 @@ PydanticAI Agent for the Chat Server
 import os
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai import UrlContextTool, WebSearchTool
+
+# from pydantic_ai import UrlContextTool, WebSearchTool
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from typing import Any, Dict, Union, Optional, Protocol, List
