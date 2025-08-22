@@ -14,13 +14,11 @@ from pydantic_ai.usage import UsageLimits
 from pydantic_ai import Agent
 from pydantic_ai.usage import RunUsage
 from pydantic_ai.messages import (
-    FinalResultEvent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
-    PartDeltaEvent,
-    PartStartEvent,
-    TextPartDelta,
-    ToolCallPartDelta,
+    ToolCallPart,
+    RetryPromptPart,
+    ToolReturnPart,
 )
 from agents.data_agent.models import (
     ChatRunContext,
@@ -442,13 +440,6 @@ class ChatService:
 
                                     elif Agent.is_call_tools_node(node):
                                         # A handle-response node => The model returned some data, potentially calls a tool
-                                        model_response = node.model_response
-                                        if model_response.parts:
-                                            model_response_part = model_response.parts[
-                                                0
-                                            ]
-                                            if model_response_part.tool_name and model_response_part.tool_name == "final_result":  # type: ignore
-                                                continue
 
                                         async with node.stream(
                                             agent_run.ctx
@@ -466,25 +457,53 @@ class ChatService:
                                                 if isinstance(
                                                     event, FunctionToolCallEvent
                                                 ):
-                                                    await progress_callback(
-                                                        "tool_call",
-                                                        f"Tool call {event.part.tool_name!r}",
-                                                        {
-                                                            "tool_call_id": event.tool_call_id,
-                                                            "args": event.part.args,
-                                                        },
-                                                    )
+                                                    if isinstance(
+                                                        event.part, ToolCallPart
+                                                    ):
+                                                        await progress_callback(
+                                                            "tool_call",
+                                                            f"Tool call {event.part.tool_name!r}",
+                                                            {
+                                                                "tool_call_id": event.tool_call_id,
+                                                                "tool_name": event.part.tool_name,
+                                                                "args": event.part.args,
+                                                            },
+                                                        )
+
                                                 elif isinstance(
                                                     event, FunctionToolResultEvent
                                                 ):
-                                                    await progress_callback(
-                                                        "tool_result",
-                                                        f"Tool call {event.tool_call_id!r} returned",
-                                                        {
-                                                            "tool_call_id": event.tool_call_id,
-                                                            "content": event.result.content,
-                                                        },
+                                                    tool_name = (
+                                                        event.result.tool_name
+                                                        if event.result
+                                                        and event.result.tool_name
+                                                        else "unknown tool"
                                                     )
+                                                    if isinstance(
+                                                        event.result, RetryPromptPart
+                                                    ):
+                                                        await progress_callback(
+                                                            "tool_call",
+                                                            f"Retrying tool {tool_name!r}",
+                                                            {
+                                                                "tool_call_id": event.tool_call_id,
+                                                                "tool_name": tool_name,
+                                                                "content": event.result.content,
+                                                            },
+                                                        )
+
+                                                    if isinstance(
+                                                        event.result, ToolReturnPart
+                                                    ):
+                                                        await progress_callback(
+                                                            "tool_result",
+                                                            f"Tool call {tool_name!r} returned",
+                                                            {
+                                                                "tool_call_id": event.tool_call_id,
+                                                                "tool_name": tool_name,
+                                                                "content": event.result.content,
+                                                            },
+                                                        )
 
                                     elif Agent.is_end_node(node):
                                         await progress_callback(

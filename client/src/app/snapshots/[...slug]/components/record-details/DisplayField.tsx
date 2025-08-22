@@ -43,7 +43,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
   if (!column) return null;
 
   const isHidden = currentView && isColumnHidden(table.id.wsId, columnId, currentView);
-  debugger;
   const isProtected = currentView && isColumnProtected(table.id.wsId, columnId, currentView);
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
