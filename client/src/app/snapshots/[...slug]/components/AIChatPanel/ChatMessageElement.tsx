@@ -6,8 +6,8 @@ import { timeAgo } from '@/utils/helpers';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { MinusIcon, PlusIcon } from '@phosphor-icons/react';
-import { StyledIcon } from '../Icons/StyledIcon';
-import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
+import { StyledIcon } from '../../../../components/Icons/StyledIcon';
+import { MarkdownRenderer } from '../../../../components/markdown/MarkdownRenderer';
 
 const AgentAdminMessage = ({ msg }: { msg: ChatMessage }) => {
   return (

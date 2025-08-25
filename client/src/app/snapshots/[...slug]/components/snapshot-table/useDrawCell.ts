@@ -1,10 +1,10 @@
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { useCallback } from 'react';
-import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';
 import { FAKE_LEFT_COLUMNS } from './utils/helpers';
 
 export const useDrawCell = () => {
-  const { readFocus, writeFocus } = useFocusedCellsContext();
+  const { readFocus, writeFocus } = useAgentChatContext();
   const { sortedRecords, table } = useSnapshotTableGridContext();
 
   const drawCell = useCallback(

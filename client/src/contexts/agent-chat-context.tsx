@@ -1,10 +1,21 @@
 'use client';
 
+import { useStyleGuides } from '@/hooks/use-style-guide';
 import { RecordCell } from '@/types/common';
 import { DataScope } from '@/types/server-entities/chat-session';
-import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { useLocalStorage } from '@mantine/hooks';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
-interface FocusedCellsContextValue {
+/**
+ * Manages all of the extra context state for the Agent chat, allowing it to be managed from different parts of the UI and the chat itself
+ * - Focused cells
+ * - Active resources
+ * - Data scope
+ * - Active record and column
+ * - Read and write focus
+ * - Active resources/style guides
+ */
+interface AgentChatContextValue {
   readFocus: RecordCell[];
   writeFocus: RecordCell[];
   dataScope: DataScope;
@@ -22,20 +33,52 @@ interface FocusedCellsContextValue {
   setTableScope: () => void;
   setRecordScope: (recordId: string) => void;
   setColumnScope: (recordId: string, columnId: string) => void;
+  activeResources: string[];
+  setActiveResources: (ids: string[]) => void;
+  activeModel: string;
+  setActiveModel: (model: string) => void;
 }
 
-export const FocusedCellsContext = createContext<FocusedCellsContextValue | undefined>(undefined);
+export const AgentChatContext = createContext<AgentChatContextValue | undefined>(undefined);
 
-interface FocusedCellsProviderProps {
+interface AgentChatContextProviderProps {
   children: ReactNode;
+  snapshotId: string;
 }
 
-export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) => {
+const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+
+export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatContextProviderProps) => {
   const [dataScope, setDataScope] = useState<DataScope>('table');
   const [activeRecordId, setActiveRecordId] = useState<string | undefined>(undefined);
   const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
   const [readFocus, setReadFocus] = useState<RecordCell[]>([]);
   const [writeFocus, setWriteFocus] = useState<RecordCell[]>([]);
+  const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
+
+  const { styleGuides } = useStyleGuides();
+
+  const [activeModel, setActiveModel] = useLocalStorage({
+    key: `agent-chat-context-model-${snapshotId}`,
+    defaultValue: DEFAULT_MODEL,
+  });
+
+  const [activeResources, setActiveResources] = useLocalStorage<string[]>({
+    key: `agent-chat-context-${snapshotId}`,
+    defaultValue: [],
+  });
+
+  useEffect(() => {
+    if (!autoIncludedResourses && styleGuides.length > 0) {
+      const autoIncludeStyleGuides = styleGuides
+        .filter((sg) => sg.autoInclude && !activeResources.includes(sg.id))
+        .map((sg) => sg.id);
+      if (autoIncludeStyleGuides.length > 0) {
+        setActiveResources([...activeResources, ...autoIncludeStyleGuides]);
+        setAutoIncludedResourses(true);
+      }
+    }
+  }, [styleGuides, autoIncludedResourses, activeResources, setActiveResources]);
 
   const addReadFocus = useCallback((cells: RecordCell[]) => {
     setReadFocus((prev) => {
@@ -108,7 +151,7 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     setActiveColumnId(columnId);
   }, []);
 
-  const value: FocusedCellsContextValue = {
+  const value: AgentChatContextValue = {
     readFocus,
     writeFocus,
     setReadFocus,
@@ -126,15 +169,19 @@ export const FocusedCellsProvider = ({ children }: FocusedCellsProviderProps) =>
     setTableScope,
     setRecordScope,
     setColumnScope,
+    activeResources,
+    setActiveResources,
+    activeModel,
+    setActiveModel,
   };
 
-  return <FocusedCellsContext.Provider value={value}>{children}</FocusedCellsContext.Provider>;
+  return <AgentChatContext.Provider value={value}>{children}</AgentChatContext.Provider>;
 };
 
-export const useFocusedCellsContext = () => {
-  const context = useContext(FocusedCellsContext);
+export const useAgentChatContext = () => {
+  const context = useContext(AgentChatContext);
   if (context === undefined) {
-    throw new Error('useFocusedCells must be used within a FocusedCellsProvider');
+    throw new Error('useAIChat must be used within a AIChatProvider');
   }
   return context;
 };

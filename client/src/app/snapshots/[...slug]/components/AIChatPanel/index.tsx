@@ -1,6 +1,6 @@
 'use client';
 
-import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
@@ -27,7 +27,6 @@ import {
   TextInput,
   Tooltip,
 } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
 import {
   BinocularsIcon,
   CellTowerIcon,
@@ -43,15 +42,14 @@ import {
   VinylRecordIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAIPromptContext } from '../../snapshots/[...slug]/AIPromptContext';
-import { useSnapshotContext } from '../../snapshots/[...slug]/SnapshotContext';
-import { BadgeWithTooltip } from '../BadgeWithTooltip';
-import { TextTitleSm } from '../base/text';
-import { StyledIcon } from '../Icons/StyledIcon';
-import ModelPicker from '../ModelPicker';
-import { ResourceSelector } from '../ResourceSelector';
+import { BadgeWithTooltip } from '../../../../components/BadgeWithTooltip';
+import { TextTitleSm } from '../../../../components/base/text';
+import { StyledIcon } from '../../../../components/Icons/StyledIcon';
+import ModelPicker from '../../../../components/ModelPicker';
+import { useSnapshotContext } from '../../SnapshotContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { ChatMessageElement } from './ChatMessageElement';
+import { ResourceSelector } from './ResourceSelector';
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -66,37 +64,20 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
-  const [selectedModel, setSelectedModel] = useLocalStorage({
-    key: 'selectedModel',
-    defaultValue: 'openai/gpt-4o-mini',
-  });
+
   const [showModelSelector, setShowModelSelector] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
-  const { readFocus, writeFocus, dataScope, activeRecordId, activeColumnId } = useFocusedCellsContext();
-  const { promptQueue, clearPromptQueue } = useAIPromptContext();
-  const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
-  const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
-
-  // Get user data including API token
-  const { user } = useScratchPadUser();
-  const { styleGuides } = useStyleGuides();
-  const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useLocalStorage<string[]>({
-    key: `selectedStyleGuideIds-${snapshot?.id}`,
-    defaultValue: [],
-  });
-  const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
-  const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
-  const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
-
-  const scrollToBottom = useCallback(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
-    }
-  }, [scrollAreaRef]);
+  const {
+    readFocus,
+    writeFocus,
+    dataScope,
+    activeRecordId,
+    activeColumnId,
+    activeResources,
+    activeModel,
+    setActiveModel,
+  } = useAgentChatContext();
 
   const {
     sessions,
@@ -108,6 +89,25 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     clearActiveSession,
     cancelAgentRun,
   } = useAIAgentSessionManagerContext();
+
+  const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
+  const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
+
+  // Get user data including API token
+  const { user } = useScratchPadUser();
+  const { styleGuides } = useStyleGuides();
+
+  const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
+  const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [scrollAreaRef]);
 
   const handleWebsocketMessage = useCallback(
     (message: WebSocketMessage) => {
@@ -168,25 +168,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     }
   }, [resetInputFocus, connectionStatus]);
 
-  useEffect(() => {
-    if (promptQueue.length > 0) {
-      setMessage(message + '\n' + promptQueue.join('\n'));
-      clearPromptQueue();
-    }
-  }, [promptQueue, clearPromptQueue, message]);
-
-  useEffect(() => {
-    if (!autoIncludedResourses && styleGuides.length > 0) {
-      const autoIncludeStyleGuides = styleGuides
-        .filter((sg) => sg.autoInclude && !selectedStyleGuideIds.includes(sg.id))
-        .map((sg) => sg.id);
-      if (autoIncludeStyleGuides.length > 0) {
-        setSelectedStyleGuideIds([...selectedStyleGuideIds, ...autoIncludeStyleGuides]);
-        setAutoIncludedResourses(true);
-      }
-    }
-  }, [styleGuides, autoIncludedResourses, selectedStyleGuideIds, setSelectedStyleGuideIds]);
-
   const createNewSession = async () => {
     if (!snapshot) {
       setError('Snapshot ID is required to create a session');
@@ -245,11 +226,11 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
 
     try {
       // Get selected style guide content
-      const selectedStyleGuides = styleGuides.filter((sg) => selectedStyleGuideIds.includes(sg.id));
+      const selectedStyleGuides = styleGuides.filter((sg) => activeResources.includes(sg.id));
 
       const messageData: SendMessageRequestDTO = {
         message: message.trim(),
-        model: selectedModel,
+        model: activeModel,
       };
 
       // Include API token if available
@@ -457,19 +438,11 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         </Center>
       )}
 
-      <Divider />
+      <Divider my="xs" />
       {/* Bottom Input Area */}
       <Stack gap="xs">
         {/* Style Guide Selection */}
-        <Group gap="xs">
-          <Text size="xs" c="dimmed">
-            Resources:
-          </Text>
-          <ResourceSelector
-            selectedStyleGuideIds={selectedStyleGuideIds}
-            setSelectedStyleGuideIds={setSelectedStyleGuideIds}
-          />
-        </Group>
+        <ResourceSelector />
 
         {/* Capabilities Selection */}
         {availableCapabilities.length > 0 && (
@@ -568,8 +541,8 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
             </Tooltip>
             <TextInput
               placeholder="Enter model name"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              value={activeModel}
+              onChange={(e) => setActiveModel(e.target.value)}
               size="xs"
               style={{ flex: 1 }}
               styles={{
@@ -616,9 +589,9 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         zIndex={1003}
       >
         <ModelPicker
-          value={selectedModel}
+          value={activeModel}
           onChange={(value) => {
-            setSelectedModel(value);
+            setActiveModel(value);
             setShowModelSelector(false);
           }}
         />

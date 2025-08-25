@@ -1,11 +1,11 @@
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { Box, Button, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { ColumnSpec } from '../../../../../types/server-entities/snapshot';
-import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';
 
 export const FocusedCellsDebugModal = () => {
   const { modalStack, table, sortedRecords } = useSnapshotTableGridContext();
-  const { readFocus, writeFocus } = useFocusedCellsContext();
+  const { readFocus, writeFocus } = useAgentChatContext();
 
   return (
     <Modal

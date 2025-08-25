@@ -13,7 +13,7 @@ import {
   isRecordStatusColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
 import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/types';
-import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RecordCell } from '@/types/common';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -51,7 +51,7 @@ export const useContextMenuItems = (
   viewRecord: (recordId: string) => void,
 ) => {
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus } =
-    useFocusedCellsContext();
+    useAgentChatContext();
 
   const clipboard = useClipboard({ timeout: 500 });
 

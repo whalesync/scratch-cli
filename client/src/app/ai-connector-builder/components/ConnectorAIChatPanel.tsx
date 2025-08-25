@@ -1,8 +1,8 @@
 'use client';
 
-import CapabilitiesPicker from '@/app/components/AIChatPanel/CapabilitiesPicker';
 import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import ModelPicker from '@/app/components/ModelPicker';
+import CapabilitiesPicker from '@/app/snapshots/[...slug]/components/AIChatPanel/CapabilitiesPicker';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';

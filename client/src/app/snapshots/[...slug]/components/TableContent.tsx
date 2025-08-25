@@ -1,7 +1,7 @@
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { useState } from 'react';
-import { useFocusedCellsContext } from '../FocusedCellsContext';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { RecordView } from './RecordView';
 import SnapshotTableGrid from './snapshot-table/SnapshotTableGrid';
@@ -26,7 +26,7 @@ export const TableContent = ({ table, currentViewId, filterToView }: TableConten
     pushSnapshotPath,
   } = useSnapshotParams();
   const { snapshot } = useSnapshotContext();
-  const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useFocusedCellsContext();
+  const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useAgentChatContext();
   const [currentView, setCurrentView] = useState<string | null>(recordIdParam ? 'record' : 'spreadsheet');
   const [currentRecord, setCurrentRecord] = useState<ActiveRecord>({
     recordId: recordIdParam,

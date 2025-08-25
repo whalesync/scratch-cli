@@ -1,7 +1,7 @@
 import { TextTitleSm } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
-import { useFocusedCellsContext } from '@/app/snapshots/[...slug]/FocusedCellsContext';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
@@ -28,7 +28,7 @@ export const RecordView = ({
 }: RecordViewProps) => {
   const { snapshot, currentView } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
-  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope } = useFocusedCellsContext();
+  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
 

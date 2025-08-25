@@ -4,6 +4,7 @@ import { SecondaryButton } from '@/app/components/base/buttons';
 import { TextBookSm, TextTitleXs } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
 import { ColumnView } from '@/types/server-entities/view';
@@ -26,7 +27,6 @@ import { BugIcon, PencilSimpleLineIcon, TrashIcon } from '@phosphor-icons/react'
 import pluralize from 'pluralize';
 import { useEffect, useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
-import { useFocusedCellsContext } from '../FocusedCellsContext';
 
 interface ViewDataProps {
   currentViewId?: string | null;
@@ -48,7 +48,7 @@ export const ViewData = ({
   filteredCount,
 }: ViewDataProps) => {
   const { views, isLoading, error, refreshViews, snapshot, clearActiveRecordFilter } = useSnapshotContext();
-  const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useFocusedCellsContext();
+  const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useAgentChatContext();
   const snapshotId = snapshot?.id;
   const [debugView, setDebugView] = useState<
     ColumnView | { readFocus: typeof readFocus; writeFocus: typeof writeFocus } | null

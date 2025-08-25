@@ -1,6 +1,7 @@
 'use client';
 
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { RecordCell } from '@/types/common';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -23,7 +24,6 @@ import { ListBulletsIcon, ListChecksIcon } from '@phosphor-icons/react';
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot';
 import { useUpsertView } from '../../../../../hooks/use-view';
-import { useFocusedCellsContext } from '../../FocusedCellsContext';
 import { ICONS } from '../../icons';
 import { ContextMenu, MenuItem } from '../types';
 import { ACCEPT_REJECT_GROUP_NAME, COLUMN_VIEW_GROUP_NAME, MENU_ICON_SIZE } from './menus/constants';
@@ -66,7 +66,7 @@ export const SnapshotTableGridProvider = ({
   // From higher level contexts
   const { refreshViews, setCurrentViewId, currentView } = useSnapshotContext();
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
-    useFocusedCellsContext();
+    useAgentChatContext();
 
   // State from hooks on this level
   const coreGridState = useCoreGridState();

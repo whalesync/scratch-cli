@@ -1,0 +1,10 @@
+.pill {
+  border: 1px solid var(--mantine-color-gray-4);
+  border-radius: var(--mantine-radius-md);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.pill:hover {
+  border-color: var(--mantine-color-primary-6);
+}

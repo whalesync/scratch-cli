@@ -19,11 +19,12 @@ import {
 import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, BugIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
-import AIChatPanel from '../../components/AIChatPanel';
+import AIChatPanel from './components/AIChatPanel';
 
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
+import { AgentChatContextProvider } from '@/contexts/agent-chat-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { SnapshotEventProvider } from '@/contexts/snapshot-event-context';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
@@ -31,11 +32,9 @@ import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useState } from 'react';
-import { AIPromptProvider } from './AIPromptContext';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
-import { FocusedCellsProvider } from './FocusedCellsContext';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 import { ICONS } from './icons';
 
@@ -242,7 +241,7 @@ function SnapshotPageContent() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <Center flex={1}>
+        <Center flex={1} h="100%" w="100%">
           <Loader />
         </Center>
       );
@@ -372,13 +371,11 @@ export default function SnapshotPage() {
   return (
     <SnapshotProvider snapshotId={id}>
       <SnapshotEventProvider snapshotId={id}>
-        <FocusedCellsProvider>
-          <AIPromptProvider>
-            <AIAgentSessionManagerProvider>
-              <SnapshotPageContent />
-            </AIAgentSessionManagerProvider>
-          </AIPromptProvider>
-        </FocusedCellsProvider>
+        <AgentChatContextProvider snapshotId={id}>
+          <AIAgentSessionManagerProvider>
+            <SnapshotPageContent />
+          </AIAgentSessionManagerProvider>
+        </AgentChatContextProvider>
       </SnapshotEventProvider>
     </SnapshotProvider>
   );
