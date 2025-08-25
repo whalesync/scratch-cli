@@ -5,9 +5,29 @@ Centralized logging module for the chat server
 
 import os
 from typing import Optional, Any
-from logging import basicConfig, INFO, DEBUG, StreamHandler, Formatter
+from logging import (
+    basicConfig,
+    INFO,
+    DEBUG,
+    StreamHandler,
+    Formatter,
+    getLogger,
+    WARNING,
+    Filter,
+)
 from pydantic_ai.agent import Agent
 from pydantic_ai.models.instrumented import InstrumentationSettings
+
+
+class AccessLogExclustionFilter(Filter):
+    """Filter to exclude health endpoint logs from uvicorn.access"""
+
+    def filter(self, record):
+        # Check if the log message contains /health path
+        if hasattr(record, "getMessage"):
+            message = record.getMessage()
+            return "/health" not in message
+        return True
 
 
 # Global logger instance
@@ -23,6 +43,10 @@ def initialize_logging() -> None:
     stream_handler = StreamHandler()
     stream_handler.setFormatter(Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     basicConfig(level=INFO, handlers=[stream_handler])
+
+    access_logger = getLogger("uvicorn.access")
+    # Add filter to exclude health endpoint logs
+    access_logger.addFilter(AccessLogExclustionFilter())
 
     logfire_token = os.getenv("LOGFIRE_TOKEN")
     enabled_full_instrumentation = (

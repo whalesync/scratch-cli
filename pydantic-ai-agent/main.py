@@ -22,7 +22,6 @@ from server.websocket_handler import websocket_endpoint
 from connector_builder.connector_builder_controller import (
     router as connector_builder_router,
 )
-from logger import log_info
 
 # Load environment variables
 
