@@ -28,7 +28,7 @@ export const RecordView = ({
 }: RecordViewProps) => {
   const { snapshot, currentView } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
-  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
+  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
 
@@ -63,6 +63,18 @@ export const RecordView = ({
       focusRecord(record);
     }
   }, [records, currentRecordId, focusRecord]);
+
+  useEffect(() => {
+    if (dataScope === 'table') {
+      // Need to set the scope when direct linking to record view
+      const record = records?.find((r) => r.id.wsId === currentRecordId);
+      if (record && currentColumnId && currentRecordId) {
+        setColumnScope(record.id.wsId, currentColumnId);
+      } else if (record && currentRecordId) {
+        setRecordScope(record.id.wsId);
+      }
+    }
+  }, [dataScope, currentColumnId, currentRecordId, records, setColumnScope, setRecordScope]);
 
   const handleExitRecordView = useCallback(() => {
     setWriteFocus([]);
