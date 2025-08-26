@@ -154,7 +154,11 @@ class ScratchpadApi:
             json=payload,
             params=params,
         )
-        _handle_response(response, "Failed to bulk update records")
+
+        if not response.ok:
+            raise ScratchpadApiError(
+                f"Failed to bulk update records: {response.status_code} - {response.text}"
+            )
 
     @staticmethod
     def add_records_to_active_filter(

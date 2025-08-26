@@ -19,7 +19,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { ArrowLeftIcon, BugIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
-import AIChatPanel from './components/AIChatPanel';
+import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { ErrorInfo } from '@/app/components/InfoPanel';

@@ -405,15 +405,13 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       {/* Messages */}
 
       {activeSessionId ? (
-        <Stack mb="xs" h="100%">
-          <ScrollArea flex={1} viewportRef={scrollAreaRef} h="100%">
-            <Stack gap="xs">
-              {chatHistory.map((msg, index) => (
-                <ChatMessageElement key={index} msg={msg} />
-              ))}
-            </Stack>
-          </ScrollArea>
-        </Stack>
+        <ScrollArea flex={1} viewportRef={scrollAreaRef}>
+          <Stack gap="xs">
+            {chatHistory.map((msg, index) => (
+              <ChatMessageElement key={index} msg={msg} />
+            ))}
+          </Stack>
+        </ScrollArea>
       ) : (
         <Center h="100%">
           <Button
