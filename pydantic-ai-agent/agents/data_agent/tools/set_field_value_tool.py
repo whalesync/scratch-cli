@@ -22,13 +22,8 @@ from agents.data_agent.model_utils import (
 from typing import Optional
 from pydantic import Field, BaseModel
 from pydantic_ai import Agent, RunContext
-from scratchpad_api import (
-    bulk_update_records,
-    RecordOperation,
-    ColumnSpec,
-    TableSpec,
-    get_record,
-)
+from scratchpad.api import ScratchpadApi
+from scratchpad.entities import ColumnSpec, TableSpec, RecordOperation
 from logger import log_info, log_error
 
 logger = getLogger(__name__)
@@ -93,19 +88,19 @@ def set_field_value_tool_implementation(
             RecordOperation(op="update", wsId=wsId, data={column.id.wsId: new_value})
         ]
 
-        bulk_update_records(
+        ScratchpadApi.bulk_update_records(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=update_operations,
-            api_token=chatRunContext.api_token,
             view_id=chatRunContext.view_id,
         )
 
-        updated_record = get_record(
+        updated_record = ScratchpadApi.get_record(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             record_id=wsId,
-            api_token=chatRunContext.api_token,
         )
 
         if updated_record:

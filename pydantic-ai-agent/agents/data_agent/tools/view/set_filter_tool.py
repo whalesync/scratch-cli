@@ -2,7 +2,7 @@
 """
 Set Filter Tool for the Data Agent
 """
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
 from agents.data_agent.model_utils import (
     get_active_table,
     unable_to_identify_active_table_error,
@@ -11,7 +11,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_error
-from scratchpad_api import set_active_records_filter
+from scratchpad.api import ScratchpadApi
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -81,11 +81,11 @@ def define_set_filter_tool(
             table_name = table.name
 
             # Call the set_active_records_filter API
-            set_active_records_filter(
-                chatRunContext.session.snapshot_id,
-                table.id.wsId,
-                sql_where_clause,
-                chatRunContext.api_token,
+            ScratchpadApi.set_active_records_filter(
+                user_id=chatRunContext.user_id,
+                snapshot_id=chatRunContext.session.snapshot_id,
+                table_id=table.id.wsId,
+                sql_where_clause=sql_where_clause,
             )
 
             if sql_where_clause:

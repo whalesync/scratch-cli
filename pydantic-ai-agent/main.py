@@ -47,12 +47,10 @@ app.include_router(connector_builder_router, prefix="/connector-builder")
 # WebSocket endpoint
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint_handler(
-    websocket: WebSocket, session_id: str, api_token: Optional[str] = None
+    websocket: WebSocket, session_id: str, auth: Optional[str] = None
 ):
     """WebSocket endpoint for real-time chat"""
-    await websocket_endpoint(
-        websocket, session_id, chat_service, session_service, api_token
-    )
+    await websocket_endpoint(websocket, session_id, chat_service, session_service, auth)
 
 
 if __name__ == "__main__":

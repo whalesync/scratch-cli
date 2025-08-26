@@ -1,4 +1,4 @@
-from scratchpad_api import ColumnSpec, SnapshotRecord, RecordId, TableSpec
+from scratchpad.entities import ColumnSpec, SnapshotRecord, RecordId, TableSpec
 from agents.data_agent.models import ChatRunContext
 
 

@@ -16,7 +16,9 @@ from agents.data_agent.model_utils import (
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
-from scratchpad_api import RecordOperation
+from scratchpad.api import ScratchpadApi
+from scratchpad.entities import RecordOperation
+
 
 logger = getLogger(__name__)
 
@@ -166,15 +168,12 @@ async def create_records_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
         )
 
-        # Import the bulk update function
-        from scratchpad_api import bulk_update_records
-
         # Call the bulk update endpoint
-        bulk_update_records(
+        ScratchpadApi.bulk_update_records(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=create_operations,
-            api_token=chatRunContext.api_token,
             view_id=chatRunContext.view_id,
         )
 

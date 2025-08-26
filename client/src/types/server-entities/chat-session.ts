@@ -16,7 +16,7 @@ export type DataScope = 'table' | 'record' | 'column';
 // The DTO for sending a message to the agent
 export interface SendMessageRequestDTO {
   message: string;
-  api_token?: string;
+  agent_jwt?: string;
   style_guides?: { name: string; content: string }[];
   capabilities?: string[];
   model?: string;

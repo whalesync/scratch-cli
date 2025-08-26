@@ -17,6 +17,7 @@ from server.chat_service import ChatService
 from server.session_service import SessionService
 from logger import log_info, log_error
 from logging import getLogger
+from server.auth import decode_and_validate_agent_jwt
 
 logger = getLogger(__name__)
 
@@ -45,11 +46,29 @@ async def websocket_endpoint(
     session_id: str,
     chat_service: ChatService,
     session_service: SessionService,
-    api_token: Optional[str] = None,
+    auth: Optional[str] = None,
 ):
     """WebSocket endpoint for real-time chat"""
     manager = ConnectionManager(chat_service, session_service)
     await manager.connect(websocket, session_id)
+
+    if auth:
+        connecting_user = decode_and_validate_agent_jwt(auth)
+    else:
+        connecting_user = None
+
+    if not connecting_user:
+        await manager.send_personal_message(
+            {
+                "type": "agent_error",
+                "data": {
+                    "detail": "Unauthorized access. Missing or invalid JWT token.",
+                },
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+        manager.disconnect(session_id)
+        return
 
     ## lookup the existing session
     session = session_service.get_session(session_id)
@@ -68,6 +87,10 @@ async def websocket_endpoint(
         )
         manager.disconnect(session_id)
         return
+
+    logger.info(
+        f"Connection established and session loaded for user: {connecting_user}"
+    )
 
     await manager.send_personal_message(
         json.dumps(
@@ -135,7 +158,6 @@ async def websocket_endpoint(
                     "Message received",
                     session_id=session_id,
                     message_length=len(request.message),
-                    has_api_token=request.api_token is not None,
                     style_guides_count=(
                         len(request.style_guides) if request.style_guides else 0
                     ),
@@ -149,14 +171,32 @@ async def websocket_endpoint(
                     f"📋 Available sessions: {session_service.list_session_ids()}"
                 )
                 logger.info(f"📝 Message: {request.message}")
-                if request.api_token:
-                    logger.info(
-                        f"🔑 API token provided: {request.api_token[:8]}..."
-                        if len(request.api_token) > 8
-                        else request.api_token
-                    )
+
+                if request.agent_jwt:
+                    message_user = decode_and_validate_agent_jwt(request.agent_jwt)
                 else:
-                    logger.info(f"ℹ️ No API token provided")
+                    message_user = None
+
+                if not message_user:
+                    logger.error(
+                        f"Unauthorized access. Missing or invalid JWT token: {request.agent_jwt}"
+                    )
+                    await manager.send_personal_message(
+                        json.dumps(
+                            {
+                                "type": "agent_error",
+                                "data": {
+                                    "detail": "Unauthorized access. Missing or invalid JWT token.",
+                                },
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        ),
+                        session_id,
+                    )
+                    manager.disconnect(session_id)
+                    return
+
+                # TODO: check if the message user is the same as the connecting user
 
                 if request.capabilities:
                     logger.info(
@@ -250,7 +290,7 @@ async def websocket_endpoint(
                     agent_response = await chat_service.process_message_with_agent(
                         session,
                         request.message,
-                        request.api_token,
+                        message_user,
                         style_guides_dict,
                         request.model,
                         request.view_id,

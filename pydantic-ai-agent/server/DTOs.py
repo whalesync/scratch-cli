@@ -39,7 +39,13 @@ class SendMessageRequestDTO(BaseModel):
     """Request to send a message"""
 
     message: str
-    api_token: str = Field(description="API token for Scratchpad server authentication")
+    agent_jwt: Optional[str] = Field(
+        default=None, description="Agent JWT token for authentication"
+    )
+    api_token: Optional[str] = Field(
+        default=None,
+        description="DEPRECATED:API token for Scratchpad server authentication",
+    )
     style_guides: Optional[List[Guideline]] = Field(
         default=None,
         description="List of style guides with name and content to override system prompt sections",

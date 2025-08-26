@@ -27,25 +27,22 @@ from agents.data_agent.models import (
     ResponseFromAgent,
     UsageStats,
 )
-from agents.data_agent.agent import create_agent, extract_response
+from agents.data_agent.agent import create_agent
+from utils.response_extractor import extract_response
 from logger import log_info, log_error
 from logging import getLogger
-from scratchpad_api import (
-    API_CONFIG,
-    check_server_health,
-    get_column_view,
-    track_token_usage,
-)
 
-# from tools import set_api_token, set_session_data
+from scratchpad.api import ScratchpadApi
+
 from server.user_prompt_utils import build_snapshot_context
-from scratchpad_api import get_agent_credentials, get_snapshot, list_records, get_record
+
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
 )
 from utils.helpers import find_first_matching, mask_string
 from server.agent_run_state_manager import AgentRunStateManager
 from server.session_service import SessionService
+from server.auth import AgentUser
 
 myLogger = getLogger(__name__)
 
@@ -60,7 +57,7 @@ class ChatService:
         self,
         session: ChatSession,
         user_message: str,
-        api_token: str,
+        user: AgentUser,
         style_guides: Dict[str, str],
         model: Optional[str] = None,
         view_id: Optional[str] = None,
@@ -79,9 +76,6 @@ class ChatService:
             "Starting agent processing",
             extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
         )
-        # Set API token in tools' global state for this message
-        if not api_token:
-            myLogger.info("No API token provided")
 
         # Log view ID if provided
         if not view_id:
@@ -119,7 +113,7 @@ class ChatService:
         try:
             # load agent credentials for the user, this both verifies the api_token is active AND gets any
             # openrouter credentials for the user has access to
-            agent_credentials = get_agent_credentials(api_token)
+            agent_credentials = ScratchpadApi.get_agent_credentials(user.userId)
             user_open_router_credentials = find_first_matching(
                 agent_credentials,
                 lambda c: c.service == "openrouter"
@@ -166,7 +160,7 @@ class ChatService:
                 capabilities_count=len(capabilities) if capabilities else 0,
                 full_prompt_length=len(full_prompt),
                 user_message=user_message,
-                has_api_token=api_token is not None,
+                user_id=user.userId,
                 snapshot_id=session.snapshot_id,
             )
 
@@ -182,14 +176,18 @@ class ChatService:
                 preloaded_records = {}
                 filtered_counts = {}
 
-                if session.snapshot_id and api_token:
+                if session.snapshot_id and user:
                     try:
                         # Fetch snapshot details
-                        snapshot_data = get_snapshot(session.snapshot_id, api_token)
+                        snapshot_data = ScratchpadApi.get_snapshot(
+                            user.userId, session.snapshot_id
+                        )
                         try:
                             if view_id:
                                 myLogger.info(f"🔍 Getting column view {view_id}")
-                                column_view = get_column_view(view_id, api_token)
+                                column_view = ScratchpadApi.get_column_view(
+                                    user.userId, view_id
+                                )
                             else:
                                 myLogger.info(
                                     f"🔍 No view ID provided, skipping column view",
@@ -214,11 +212,11 @@ class ChatService:
                             ):
                                 # just preload the one record form the table
                                 try:
-                                    record = get_record(
+                                    record = ScratchpadApi.get_record(
+                                        user.userId,
                                         session.snapshot_id,
                                         table.id.wsId,
                                         record_id,
-                                        api_token,
                                     )
                                     preloaded_records[table.name] = [
                                         {
@@ -242,10 +240,10 @@ class ChatService:
                                     preloaded_records[table.name] = []
                             else:
                                 try:
-                                    records_result = list_records(
+                                    records_result = ScratchpadApi.list_records_for_ai(
+                                        user.userId,
                                         session.snapshot_id,
                                         table.id.wsId,
-                                        api_token,
                                         view_id=view_id,
                                     )
                                     filtered_counts[table.name] = (
@@ -299,7 +297,7 @@ class ChatService:
                 chatRunContext: ChatRunContext = ChatRunContext(
                     run_id=agent_run_id,
                     session=session,
-                    api_token=api_token,
+                    user_id=user.userId,
                     view_id=view_id,
                     snapshot=snapshot,
                     read_focus=read_focus,
@@ -559,8 +557,8 @@ class ChatService:
 
                 if cancelled_result.usage_stats.requests > 0:
                     try:
-                        track_token_usage(
-                            api_token,
+                        ScratchpadApi.track_token_usage(
+                            user.userId,
                             model,
                             cancelled_result.usage_stats.requests,
                             cancelled_result.usage_stats.request_tokens,
@@ -639,8 +637,8 @@ class ChatService:
                     )
 
                 try:
-                    track_token_usage(
-                        api_token,
+                    ScratchpadApi.track_token_usage(
+                        user.userId,
                         model,
                         usage.requests,
                         usage.input_tokens,

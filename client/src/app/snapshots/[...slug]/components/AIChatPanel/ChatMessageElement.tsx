@@ -117,7 +117,12 @@ export const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
 
   if (msg.variant === 'progress') {
     const payload = msg.payload as AgentProgressMessageData;
-    if (payload.progress_type === 'status' || payload.progress_type === 'run_started') {
+
+    if (payload.progress_type === 'run_started') {
+      return null;
+    }
+
+    if (payload.progress_type === 'status') {
       return <AgentStatusMessage msg={msg} />;
     }
 

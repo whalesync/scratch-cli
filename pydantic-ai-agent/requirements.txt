@@ -7,3 +7,4 @@ uvicorn>=0.34.0
 logfire>=4.3.0
 black>=25.1.0
 isort>=6.0.0
+PyJWT>=2.8.0

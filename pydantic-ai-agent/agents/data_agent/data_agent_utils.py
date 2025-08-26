@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from scratchpad_api import ColumnView, ScratchpadSnapshot
+from scratchpad.entities import ColumnView, ScratchpadSnapshot
 from session import ChatSession
 from logging import getLogger
 

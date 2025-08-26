@@ -11,7 +11,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from logger import log_error
-from scratchpad_api import add_records_to_active_filter
+from scratchpad.api import ScratchpadApi
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -71,11 +71,11 @@ def define_add_records_to_filter_tool(
                 return "Error: No record IDs provided. Please provide a list of record IDs to add to the filter."
 
             # Call the add_records_to_active_filter API
-            add_records_to_active_filter(
-                chatRunContext.session.snapshot_id,
-                table.id.wsId,
-                record_ids,
-                chatRunContext.api_token,
+            ScratchpadApi.add_records_to_active_filter(
+                user_id=chatRunContext.user_id,
+                snapshot_id=chatRunContext.session.snapshot_id,
+                table_id=table.id.wsId,
+                record_ids=record_ids,
             )
 
             return (

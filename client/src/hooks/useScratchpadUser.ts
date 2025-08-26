@@ -25,7 +25,7 @@ export const useScratchPadUser = (): ScratchPadUser => {
     usersApi.activeUser,
     {
       revalidateOnFocus: true,
-      revalidateIfStale: false,
+      refreshInterval: 1000 * 60 * 5, // 5 minutes - want to get updated agent JWT tokens
     }
   );
 
@@ -49,6 +49,7 @@ export const useScratchPadUser = (): ScratchPadUser => {
   useEffect(() => {
     if (user) {
       API_CONFIG.setAiAgentApiToken(user.agentToken || '');
+      API_CONFIG.setAgentJwt(user.agentJwt || '');
     } 
   }, [user]);
 

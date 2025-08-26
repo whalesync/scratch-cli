@@ -11,7 +11,8 @@ from agents.data_agent.model_utils import (
 from typing import List
 from pydantic_ai import Agent, RunContext
 from logger import log_info, log_error
-from scratchpad_api import RecordOperation, bulk_update_records
+from scratchpad.api import ScratchpadApi
+from scratchpad.entities import RecordOperation
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -23,7 +24,7 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
     @agent.tool
     async def delete_records_tool(ctx: RunContext[ChatRunContext], record_ids: List[str]) -> str:  # type: ignore
         """
-        Delete records from the active table in the current snapshot by their record IDs.
+        Delete one or more records from the active table by their record IDs.
 
         Use this tool when the user asks to delete records from the active table.
         The record_ids should be a list of record IDs (wsId) to delete.
@@ -71,11 +72,11 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             )
 
             # Call the bulk update endpoint
-            bulk_update_records(
+            ScratchpadApi.bulk_update_records(
+                user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
                 table_id=table.id.wsId,
                 operations=delete_operations,
-                api_token=chatRunContext.api_token,
                 view_id=chatRunContext.view_id,
             )
 

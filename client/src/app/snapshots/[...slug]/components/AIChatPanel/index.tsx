@@ -4,7 +4,6 @@ import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useStyleGuides } from '@/hooks/use-style-guide';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ColumnView } from '@/types/server-entities/view';
@@ -95,8 +94,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
-  // Get user data including API token
-  const { user } = useScratchPadUser();
   const { styleGuides } = useStyleGuides();
 
   const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
@@ -231,11 +228,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         model: activeModel,
       };
 
-      // Include API token if available
-      if (user?.agentToken) {
-        messageData.api_token = user?.agentToken;
-      }
-
       // Include style guide content if selected
       if (selectedStyleGuides.length > 0) {
         messageData.style_guides = selectedStyleGuides.map((sg) => ({
@@ -252,23 +244,19 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       // Include capabilities if selected
       if (selectedCapabilities.length > 0) {
         messageData.capabilities = selectedCapabilities;
-        console.debug('Including capabilities:', selectedCapabilities.join(', '));
       }
 
       // Include focused cells if available
       if (readFocus && readFocus.length > 0) {
         messageData.read_focus = readFocus;
-        console.debug('Including read focus:', readFocus.length, 'cells');
       }
 
       if (writeFocus && writeFocus.length > 0) {
         messageData.write_focus = writeFocus;
-        console.debug('Including write focus:', writeFocus.length, 'cells');
       }
 
       if (activeTable) {
         messageData.active_table_id = activeTable.id.wsId;
-        console.debug('Including active table ID:', activeTable.id.wsId);
       }
 
       if (dataScope) {
@@ -418,7 +406,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
 
       {activeSessionId ? (
         <Stack mb="xs" h="100%">
-          <ScrollArea flex={1} viewportRef={scrollAreaRef}>
+          <ScrollArea flex={1} viewportRef={scrollAreaRef} h="100%">
             <Stack gap="xs">
               {chatHistory.map((msg, index) => (
                 <ChatMessageElement key={index} msg={msg} />

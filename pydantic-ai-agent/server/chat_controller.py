@@ -6,8 +6,7 @@ FastAPI Endpoints for Chat Server
 import time
 import uuid
 from datetime import datetime
-from typing import Dict
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from session import ChatMessage, ChatSession, RequestAndResponseSummary
 from server.DTOs import (
@@ -19,6 +18,7 @@ from server.DTOs import (
 )
 from server.chat_service import ChatService
 from server.session_service import SessionService
+from server.auth import AgentUser, get_current_user
 from logger import log_info, log_error
 from logging import getLogger
 
@@ -62,7 +62,9 @@ AVAILABLE_CAPABILITIES = [
 
 
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
-async def create_session(snapshot_id: str):
+async def create_session(
+    snapshot_id: str, current_user: AgentUser = Depends(get_current_user)
+):
     """Create a new chat session"""
     session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
 
@@ -77,7 +79,7 @@ async def create_session(snapshot_id: str):
     )
 
     myLogger.info(
-        f"Session created successfully for snapshot {snapshot_id}",
+        f"Session created successfully for snapshot {snapshot_id} by user {current_user.userId}",
     )
 
     return CreateSessionResponseDTO(
@@ -86,9 +88,14 @@ async def create_session(snapshot_id: str):
 
 
 @router.get("/sessions/{session_id}", response_model=ChatSession)
-async def get_session(session_id: str):
+async def get_session(
+    session_id: str, current_user: AgentUser = Depends(get_current_user)
+):
     """Get session information"""
-    myLogger.info("Session loaded", extra={"session_id": session_id})
+    myLogger.info(
+        "Session loaded",
+        extra={"session_id": session_id, "user_id": current_user.userId},
+    )
 
     session = session_service.get_session(session_id)
 
@@ -97,6 +104,7 @@ async def get_session(session_id: str):
             "Session not found",
             extra={
                 "session_id": session_id,
+                "user_id": current_user.userId,
                 "available_sessions": session_service.list_session_ids(),
             },
         )
@@ -108,25 +116,20 @@ async def get_session(session_id: str):
 
 # Deprecated code - moved to websocket endpoint
 @router.post("/sessions/{session_id}/messages", response_model=SendMessageResponseDTO)
-async def send_message(session_id: str, request: SendMessageRequestDTO):
+async def send_message(
+    session_id: str,
+    request: SendMessageRequestDTO,
+    current_user: AgentUser = Depends(get_current_user),
+):
     """Send a message to the agent"""
     log_info(
         "Message received",
         session_id=session_id,
+        user_id=current_user.userId,
         message_length=len(request.message),
-        has_api_token=request.api_token is not None,
         style_guides_count=len(request.style_guides) if request.style_guides else 0,
         capabilities_count=len(request.capabilities) if request.capabilities else 0,
     )
-
-    if request.api_token:
-        myLogger.info(
-            f"🔑 API token provided: {request.api_token[:8]}..."
-            if len(request.api_token) > 8
-            else request.api_token
-        )
-    else:
-        myLogger.info(f"ℹ️ No API token provided")
 
     if request.capabilities:
         myLogger.info(
@@ -166,6 +169,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         log_error(
             "Message failed - session not found",
             session_id=session_id,
+            user_id=current_user.userId,
             available_sessions=session_service.list_session_ids(),
         )
         raise HTTPException(status_code=404, detail="Session not found")
@@ -195,6 +199,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         log_info(
             "Agent processing started",
             session_id=session_id,
+            user_id=current_user.userId,
             chat_history_length=len(session.chat_history),
             summary_history_length=len(session.summary_history),
             snapshot_id=session.snapshot_id,
@@ -215,7 +220,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         agent_response = await chat_service.process_message_with_agent(
             session,
             request.message,
-            request.api_token,
+            current_user,
             style_guides_dict,
             request.model,
             request.view_id,
@@ -232,6 +237,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         log_info(
             "Agent response received",
             session_id=session_id,
+            user_id=current_user.userId,
             response_length=len(agent_response.response_message),
             snapshot_id=session.snapshot_id,
         )
@@ -270,6 +276,7 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
         log_error(
             "Message processing failed",
             session_id=session_id,
+            user_id=current_user.userId,
             error=str(e),
             snapshot_id=session.snapshot_id,
         )
@@ -284,19 +291,21 @@ async def send_message(session_id: str, request: SendMessageRequestDTO):
 
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str):
+async def delete_session(
+    session_id: str, current_user: AgentUser = Depends(get_current_user)
+):
     """Delete a session"""
 
     if not session_service.exists(session_id):
         raise HTTPException(status_code=404, detail="Session not found")
 
     session_service.delete_session(session_id)
-    myLogger.info(f"🗑️ Deleted session: {session_id}")
+    myLogger.info(f"🗑️ Deleted session: {session_id} by user {current_user.userId}")
     return {"success": True}
 
 
 @router.get("/sessions")
-async def list_sessions():
+async def list_sessions(current_user: AgentUser = Depends(get_current_user)):
     """List all active sessions"""
     # Convert full sessions to summaries
     session_summaries = []
@@ -309,11 +318,14 @@ async def list_sessions():
         )
         session_summaries.append(summary)
 
+    myLogger.info(f"📋 Listed sessions for user {current_user.userId}")
     return {"sessions": session_summaries}
 
 
 @router.get("/sessions/snapshot/{snapshot_id}")
-async def list_sessions_for_snapshot(snapshot_id: str):
+async def list_sessions_for_snapshot(
+    snapshot_id: str, current_user: AgentUser = Depends(get_current_user)
+):
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
     session_summaries = []
@@ -326,18 +338,28 @@ async def list_sessions_for_snapshot(snapshot_id: str):
         )
         session_summaries.append(summary)
 
+    myLogger.info(
+        f"📋 Listed sessions for snapshot {snapshot_id} by user {current_user.userId}"
+    )
     return {"sessions": session_summaries}
 
 
 @router.post("/sessions/{session_id}/cancel-agent-run/{run_id}")
-async def cancel_agent_run(session_id: str, run_id: str):
+async def cancel_agent_run(
+    session_id: str,
+    run_id: str,
+    current_user: AgentUser = Depends(get_current_user),
+):
     """Cancel an agent run"""
     msg = await chat_service.cancel_agent_run(session_id, run_id)
+    myLogger.info(
+        f"🛑 Cancelled agent run {run_id} for session {session_id} by user {current_user.userId}"
+    )
     return {"message": msg}
 
 
 @router.post("/cleanup")
-async def cleanup_sessions():
+async def cleanup_sessions(current_user: AgentUser = Depends(get_current_user)):
     """Manually trigger session cleanup"""
     before_count = len(session_service.get_all_sessions())
     session_service.cleanup_inactive_sessions()
@@ -348,5 +370,6 @@ async def cleanup_sessions():
         "Session cleanup completed",
         sessions_cleaned=cleaned_count,
         remaining_sessions=after_count,
+        user_id=current_user.userId,
     )
     return {"message": "Cleanup completed"}

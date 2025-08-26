@@ -10,16 +10,14 @@ from pydantic_ai import Agent, RunContext
 # from pydantic_ai import UrlContextTool, WebSearchTool
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
-from typing import Any, Dict, Union, Optional, Protocol, List
+from typing import Dict, Optional, List
 
 from agents.data_agent.models import ResponseFromAgent, ChatRunContext
 from agents.data_agent.data_agent_prompts import get_data_agent_instructions
-from logger import log_info, log_error
 from utils.helpers import mask_string
-from utils.response_extractor import extract_response
 from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
-from scratchpad_api import AgentCredential
+from scratchpad.entities import AgentCredential
 from logging import getLogger
 
 logger = getLogger(__name__)

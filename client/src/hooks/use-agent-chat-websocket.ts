@@ -33,7 +33,7 @@ interface UseWebSocketReturn {
 
 export type AIAgentMessage = {
   message: string;
-  api_token?: string;
+  agent_jwt?: string;
   style_guides?: Array<{ name: string; content: string }>;
   capabilities?: string[];
   model?: string;
@@ -62,7 +62,7 @@ export function useAIAgentChatWebSocket({
     try {
       // Assuming the WebSocket server is running on the same host but different port
       // You may need to adjust this URL based on your setup
-      const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?api_token=${API_CONFIG.getAiAgentApiToken()}`;
+      const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -145,6 +145,11 @@ export function useAIAgentChatWebSocket({
   }, [wsRef, connectionStatus]);
   
   const sendAiAgentMessage = useCallback((data: AIAgentMessage) => {
+    // update with the most recent agent JWT token
+    data.agent_jwt = API_CONFIG.getAgentJwt() || undefined;
+
+    console.log('Sending WebSocket message:', data);
+
     sendWebSocketMessage({
       type: 'message',
       data: data,

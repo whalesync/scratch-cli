@@ -13,8 +13,6 @@ from typing import Any, Dict, Union, Optional, Protocol, List
 
 from .models import ResponseFromConnectorBuilderAgent, ConnectorBuilderRunContext
 from .connector_builder_prompts import get_connector_builder_instructions
-from logger import log_info, log_error
-from utils.response_extractor import extract_response
 from .connector_builder_tools import define_connector_builder_tools
 
 

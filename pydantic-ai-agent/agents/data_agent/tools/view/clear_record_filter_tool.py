@@ -10,7 +10,7 @@ from agents.data_agent.model_utils import (
 from typing import Optional, List
 from pydantic_ai import Agent, RunContext
 from logger import log_error
-from scratchpad_api import clear_active_record_filter
+from scratchpad.api import ScratchpadApi
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -49,10 +49,10 @@ def define_clear_record_filter_tool(
             table_name = table.name
 
             # Call the clear_active_record_filter API
-            clear_active_record_filter(
-                chatRunContext.session.snapshot_id,
-                table.id.wsId,
-                chatRunContext.api_token,
+            ScratchpadApi.clear_active_record_filter(
+                user_id=chatRunContext.user_id,
+                snapshot_id=chatRunContext.session.snapshot_id,
+                table_id=table.id.wsId,
             )
 
             return f"Successfully cleared the record filter for table '{table_name}'."

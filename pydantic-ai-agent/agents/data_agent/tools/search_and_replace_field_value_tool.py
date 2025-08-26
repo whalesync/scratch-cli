@@ -26,13 +26,8 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ToolReturn
 from logger import log_error
 import re
-from scratchpad_api import (
-    bulk_update_records,
-    RecordOperation,
-    ColumnSpec,
-    TableSpec,
-    get_record,
-)
+from scratchpad.api import ScratchpadApi
+from scratchpad.entities import ColumnSpec, TableSpec, RecordOperation
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -90,11 +85,11 @@ def search_and_replace_field_value_tool_implementation(
         # Get a fresh copy of the record. Tools can run concurrently, and this is a safer
         # way to get the record, not guaranteed to be up to date but should be good enough
         # since our tool is replacing a value - modifying part of the data field
-        record = get_record(
+        record = ScratchpadApi.get_record(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             record_id=wsId,
-            api_token=chatRunContext.api_token,
         )
 
         if not record:
@@ -125,19 +120,19 @@ def search_and_replace_field_value_tool_implementation(
         ]
 
         # Call the bulk update endpoint
-        bulk_update_records(
+        ScratchpadApi.bulk_update_records(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=update_operations,
-            api_token=chatRunContext.api_token,
             view_id=chatRunContext.view_id,
         )
 
-        updated_record = get_record(
+        updated_record = ScratchpadApi.get_record(
+            user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             record_id=wsId,
-            api_token=chatRunContext.api_token,
         )
 
         if updated_record:

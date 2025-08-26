@@ -6,7 +6,7 @@ Data models for the chat server
 from enum import Enum
 from pydantic import BaseModel, Field
 from datetime import datetime
-from scratchpad_api import ColumnSpec, SnapshotRecord, RecordId, TableSpec
+from scratchpad.entities import ColumnSpec, SnapshotRecord, RecordId, TableSpec
 from typing import List, Optional, Dict, Any
 from session import ChatSession
 from agents.data_agent.data_agent_utils import SnapshotForAi
@@ -48,7 +48,7 @@ class ResponseFromAgent(BaseModel):
 class ChatRunContext(BaseModel):
     run_id: str = Field(description="ID of the chat run")
     session: ChatSession
-    api_token: str
+    user_id: str
     snapshot: Optional[SnapshotForAi] = Field(
         default=None, description="Associated snapshot"
     )
