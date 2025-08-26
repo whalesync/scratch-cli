@@ -47,6 +47,10 @@ export const SWR_KEYS = {
     list: (cursor?: string, take?: number) => ["agent-usage", "list", cursor, take],
     summary: () => ["agent-usage", "summary"],
   },
+  agentSessions: {
+    list: (snapshotId: string) => ["agent-sessions", "list", snapshotId],
+    detail: (id: string) => ["agent-sessions", "detail", id],
+  },
 };
 
 export const API_IMPORT_KEYS = {

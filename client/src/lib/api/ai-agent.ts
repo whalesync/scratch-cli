@@ -2,8 +2,8 @@ import { AgentErrorResponse, CancelAgentRunResponse, ChatSession, CreateSessionR
 import { API_CONFIG } from "./config";
 
 export const aiAgentApi = {
-  listSessions: async (): Promise<SessionListResponse> => {
-    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions`, {
+  listSessions: async (snapshotId: string): Promise<SessionListResponse> => {
+    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions/snapshot/${snapshotId}`, {
       method: "GET",
       headers: {
         ...API_CONFIG.getAiAgentAuthHeaders(),
@@ -11,7 +11,7 @@ export const aiAgentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch agent sessions");
+      throw new Error(res.statusText ?? "Failed to fetch agent sessions for current snapshot");
     }
     return res.json();
   },

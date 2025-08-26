@@ -15,7 +15,7 @@ export interface WebSocketMessage {
 }
 
 interface UseWebSocketOptions {
-  onMessage?: (message: WebSocketMessage) => void;
+  onMessage?: (message: WebSocketMessage) => Promise<void>;
 }
 
 interface UseWebSocketReturn {
@@ -80,7 +80,9 @@ export function useAIAgentChatWebSocket({
             ...prev,
             ...chatMessages,
           ]);
-          onMessage?.(wsMessage);
+          onMessage?.(wsMessage).catch((error) => {
+            console.error('Error handling websocket message:', error);
+          });
 
         } catch (error) {
           console.log('Error parsing WebSocket message:', error);

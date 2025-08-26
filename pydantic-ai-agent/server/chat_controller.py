@@ -312,6 +312,23 @@ async def list_sessions():
     return {"sessions": session_summaries}
 
 
+@router.get("/sessions/snapshot/{snapshot_id}")
+async def list_sessions_for_snapshot(snapshot_id: str):
+    """List all active sessions for a snapshot"""
+    # Convert full sessions to summaries
+    session_summaries = []
+    for session in session_service.get_all_sessions(snapshot_id):
+        summary = ChatSessionSummary(
+            id=session.id,
+            name=session.name,
+            last_activity=session.last_activity,
+            created_at=session.created_at,
+        )
+        session_summaries.append(summary)
+
+    return {"sessions": session_summaries}
+
+
 @router.post("/sessions/{session_id}/cancel-agent-run/{run_id}")
 async def cancel_agent_run(session_id: str, run_id: str):
     """Cancel an agent run"""

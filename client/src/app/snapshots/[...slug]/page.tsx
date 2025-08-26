@@ -372,7 +372,7 @@ export default function SnapshotPage() {
     <SnapshotProvider snapshotId={id}>
       <SnapshotEventProvider snapshotId={id}>
         <AgentChatContextProvider snapshotId={id}>
-          <AIAgentSessionManagerProvider>
+          <AIAgentSessionManagerProvider snapshotId={id}>
             <SnapshotPageContent />
           </AIAgentSessionManagerProvider>
         </AgentChatContextProvider>

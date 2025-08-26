@@ -1,6 +1,7 @@
 'use client';
 
 import { aiAgentApi } from '@/lib/api/ai-agent';
+import { SWR_KEYS } from '@/lib/api/keys';
 import {
   ChatMessage,
   ChatSession,
@@ -8,6 +9,7 @@ import {
   CreateSessionResponse,
 } from '@/types/server-entities/chat-session';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import useSWR from 'swr';
 
 interface AIAgentSessionManagerContextValue {
   sessions: ChatSessionSummary[];
@@ -22,10 +24,12 @@ interface AIAgentSessionManagerContextValue {
   deleteSession: (sessionId: string) => Promise<void>;
   refreshActiveSession: () => Promise<void>;
   cancelAgentRun: (runId: string) => Promise<string | undefined>;
+  refreshSessions: () => Promise<void>;
 }
 
 interface AIAgentSessionManagerProviderProps {
   children: ReactNode;
+  snapshotId: string;
 }
 
 const AIAgentSessionManagerContext = createContext<AIAgentSessionManagerContextValue | null>(null);
@@ -38,42 +42,38 @@ export const useAIAgentSessionManagerContext = () => {
   return context;
 };
 
-export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManagerProviderProps) => {
-  const [initialized, setInitialized] = useState(false);
-  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
-  const [loadSessionListError, setLoadSessionListError] = useState<string | null>(null);
+export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentSessionManagerProviderProps) => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
 
-  const loadSessionList = useCallback(async () => {
-    if (isLoadingSessions) return; // Prevent multiple simultaneous loads
+  const {
+    data: sessionListResponse,
+    error: loadSessionListError,
+    isLoading: isLoadingSessions,
+    mutate: refreshSessions,
+  } = useSWR(SWR_KEYS.agentSessions.list(snapshotId), () => aiAgentApi.listSessions(snapshotId), {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+  });
 
-    setIsLoadingSessions(true);
-    try {
-      const data = await aiAgentApi.listSessions();
-      setSessions(data.sessions);
-    } catch (error) {
-      setLoadSessionListError('Failed to load sessions');
-      console.error('Error loading sessions:', error);
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  }, [isLoadingSessions]);
-
-  // Load sessions on mount
   useEffect(() => {
-    if (!initialized) {
-      loadSessionList();
-      setInitialized(true);
-    }
-  }, [initialized, loadSessionList]);
+    const reloadSession = async () => {
+      if (activeSessionId) {
+        // reload the session when sessions change
+        const fullSession = await aiAgentApi.getSession(activeSessionId);
+        setActiveSession(fullSession);
+      }
+    };
+    reloadSession().catch((error) => {
+      console.error('Error reloading session:', error);
+    });
+  }, [activeSessionId, sessionListResponse]);
 
   const createSession = useCallback(
     async (snapshotId: string) => {
       const { session: newSession, available_capabilities } = await aiAgentApi.createSession(snapshotId);
+      await refreshSessions();
 
-      setSessions([...sessions, newSession]);
       setActiveSessionId(newSession.id);
 
       const fullSession = await aiAgentApi.getSession(newSession.id);
@@ -84,7 +84,7 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
         available_capabilities,
       };
     },
-    [sessions, setSessions, setActiveSessionId],
+    [refreshSessions, setActiveSessionId],
   );
 
   const activateSession = useCallback(async (sessionId: string) => {
@@ -97,24 +97,23 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
     if (activeSessionId) {
       const updatedSession = await aiAgentApi.getSession(activeSessionId);
       setActiveSession(updatedSession);
-      // Update the session in the list
-      setSessions([...sessions.filter((s) => s.id !== activeSessionId), updatedSession]);
+      await refreshSessions();
     }
-  }, [activeSessionId, sessions]);
+  }, [activeSessionId, refreshSessions]);
 
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
         await aiAgentApi.deleteSession(sessionId);
+        await refreshSessions();
       } catch (error) {
         console.log('Error deleting session from server:', sessionId, error);
       }
-      setSessions(sessions.filter((session) => session.id !== sessionId));
       if (activeSessionId === sessionId) {
         setActiveSessionId(null);
       }
     },
-    [sessions, activeSessionId],
+    [activeSessionId, refreshSessions],
   );
 
   const addToActiveChatHistory = useCallback(
@@ -149,7 +148,7 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
   );
 
   const contextValue: AIAgentSessionManagerContextValue = {
-    sessions,
+    sessions: sessionListResponse?.sessions ?? [],
     isLoadingSessions,
     loadSessionListError,
     activeSession,
@@ -161,6 +160,9 @@ export const AIAgentSessionManagerProvider = ({ children }: AIAgentSessionManage
     addToActiveChatHistory,
     clearActiveSession,
     cancelAgentRun,
+    refreshSessions: async () => {
+      await refreshSessions();
+    },
   };
 
   return <AIAgentSessionManagerContext.Provider value={contextValue}>{children}</AIAgentSessionManagerContext.Provider>;

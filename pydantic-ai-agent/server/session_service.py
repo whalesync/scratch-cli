@@ -27,7 +27,7 @@ class SessionService:
         now = datetime.now()
         session = ChatSession(
             id=session_id,
-            name=f"Chat Session {now.strftime('%Y-%m-%d %H:%M')}",
+            name=f"New chat {now.strftime('%Y-%m-%d %H:%M')}",
             last_activity=now,
             created_at=now,
             snapshot_id=snapshot_id,
@@ -73,9 +73,16 @@ class SessionService:
         """Check if a session exists by ID"""
         return session_id in self._sessions
 
-    def get_all_sessions(self) -> List[ChatSession]:
+    def get_all_sessions(self, snapshot_id: Optional[str] = None) -> List[ChatSession]:
         """Get all sessions"""
-        return list(self._sessions.values())
+        if snapshot_id:
+            return [
+                session
+                for session in self._sessions.values()
+                if session.snapshot_id == snapshot_id
+            ]
+        else:
+            return list(self._sessions.values())
 
     def list_session_ids(self) -> List[str]:
         """List all session IDs"""

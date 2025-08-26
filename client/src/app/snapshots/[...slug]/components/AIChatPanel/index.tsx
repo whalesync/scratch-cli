@@ -7,20 +7,20 @@ import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
+import { ColumnView } from '@/types/server-entities/view';
 import { sleep } from '@/utils/helpers';
 import {
   ActionIcon,
   Alert,
   Badge,
+  Button,
   Center,
-  CloseButton,
   Divider,
   Group,
   Loader,
   Modal,
   Paper,
   ScrollArea,
-  Select,
   Stack,
   Text,
   Textarea,
@@ -40,6 +40,7 @@ import {
   TagSimpleIcon,
   TrashIcon,
   VinylRecordIcon,
+  XIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BadgeWithTooltip } from '../../../../components/BadgeWithTooltip';
@@ -50,6 +51,7 @@ import { useSnapshotContext } from '../../SnapshotContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ResourceSelector } from './ResourceSelector';
+import { SessionHistorySelector } from './SessionHistorySelector';
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -80,14 +82,14 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   } = useAgentChatContext();
 
   const {
-    sessions,
     activeSessionId,
-    activeSession: sessionData,
+    activeSession,
     createSession,
     deleteSession,
     activateSession,
     clearActiveSession,
     cancelAgentRun,
+    refreshSessions,
   } = useAIAgentSessionManagerContext();
 
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
@@ -110,20 +112,19 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   }, [scrollAreaRef]);
 
   const handleWebsocketMessage = useCallback(
-    (message: WebSocketMessage) => {
+    async (message: WebSocketMessage) => {
       // this is just to handle some flow control for the UI.
       // The hook already tracks the message history and we can use that for the UI
       if (message.type === 'message_progress') {
-        console.debug('Message progress:', message.data);
         const payload = message.data as AgentProgressMessageData;
         if (payload.progress_type === 'run_started') {
           setRunningAgentTaskId(payload.payload['run_id'] as string);
         }
       } else if (message.type === 'message_response') {
-        console.debug('Message response:', message.data);
         setAgentTaskRunning(false);
         setRunningAgentTaskId(null);
         setResetInputFocus(true);
+        await refreshSessions();
       } else if (message.type === 'agent_error') {
         setAgentTaskRunning(false);
         setRunningAgentTaskId(null);
@@ -132,7 +133,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       // got a message, try to scroll to the bottom
       scrollToBottom();
     },
-    [scrollToBottom],
+    [scrollToBottom, refreshSessions],
   );
 
   const {
@@ -150,10 +151,10 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (sessionData?.chat_history && sessionData.chat_history.length > 0) {
+    if (activeSession?.chat_history && activeSession.chat_history.length > 0) {
       scrollToBottom();
     }
-  }, [sessionData?.chat_history, scrollToBottom]);
+  }, [activeSession?.chat_history, scrollToBottom]);
 
   useEffect(() => {
     if (messageHistory && messageHistory.length > 0) {
@@ -189,9 +190,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       setError(null);
       setMessage('');
       setResetInputFocus(true);
-      console.debug('Created new session with snapshot ID:', snapshot.id);
-      console.debug('Available capabilities:', available_capabilities);
-      console.debug('Default selected capabilities:', defaultCapabilities);
     } catch (error) {
       setError(`Failed to create session: ${error}}`);
     }
@@ -297,10 +295,21 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     }
   };
 
+  const handleTextInputFocus = async () => {
+    if (!activeSessionId) {
+      // no active session, so we need to create a new one
+      await createNewSession();
+    }
+    if (activeSessionId && connectionStatus !== 'connected') {
+      // active session, but not connected, so we need to connect to the session
+      await connect(activeSessionId);
+    }
+  };
+
   if (!isOpen) return null;
 
   // combine the historical session data and the current websocket message history
-  const chatHistory = [...(sessionData?.chat_history || []), ...(messageHistory || [])];
+  const chatHistory = [...(activeSession?.chat_history || []), ...(messageHistory || [])];
 
   const chatInputEnabled = activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
@@ -332,12 +341,58 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       }}
     >
       {/* Header */}
-      <Group justify="space-between" mb="md" h="50px">
-        <Group justify="space-between" style={{ flex: 1 }}>
-          <TextTitleSm>Agent Chat</TextTitleSm>
+      <Group justify="space-between" h={50} align="center" wrap="nowrap">
+        <TextTitleSm>{activeSession ? activeSession.name : 'Agent Chat'}</TextTitleSm>
+        <Group gap="xs">
           {connectionBadge}
+          <Tooltip label="New chat">
+            <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
+              <StyledIcon Icon={PlusIcon} size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <SessionHistorySelector
+            onSelect={async (sessionId: string) => {
+              if (sessionId) {
+                await disconnect();
+                try {
+                  await activateSession(sessionId);
+                  await connect(sessionId);
+                  setMessage('');
+                  setResetInputFocus(true);
+                } catch (error) {
+                  setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+              } else {
+                clearActiveSession();
+                await disconnect();
+              }
+              // Reset capabilities when switching sessions
+              setAvailableCapabilities([]);
+              setSelectedCapabilities([]);
+            }}
+          />
+          <Tooltip label="Delete chat">
+            <ActionIcon
+              onClick={async () => {
+                if (!activeSessionId) return;
+                await disconnect();
+                await clearActiveSession();
+                await deleteSession(activeSessionId);
+              }}
+              size="sm"
+              variant="subtle"
+              title="Delete session"
+              disabled={!activeSessionId}
+            >
+              <TrashIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Close chat">
+            <ActionIcon onClick={onClose} size="sm" variant="subtle" title="Close chat">
+              <StyledIcon Icon={XIcon} size={14} c="gray.6" />
+            </ActionIcon>
+          </Tooltip>
         </Group>
-        <CloseButton onClick={onClose} size="sm" />
       </Group>
 
       {/* Error Alert */}
@@ -359,82 +414,29 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         </Alert>
       )}
 
-      {/* Session Management */}
-      <Group mb="md" gap="xs" style={{}}>
-        <Select
-          placeholder="Select session"
-          value={activeSessionId}
-          onChange={async (value) => {
-            if (value) {
-              await disconnect();
-              try {
-                await activateSession(value);
-                await connect(value);
-                setMessage('');
-                setResetInputFocus(true);
-              } catch (error) {
-                setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              }
-            } else {
-              clearActiveSession();
-              await disconnect();
-            }
-            // Reset capabilities when switching sessions
-            setAvailableCapabilities([]);
-            setSelectedCapabilities([]);
-          }}
-          data={sessions.map((session) => ({
-            value: session.id,
-            label: session.name,
-          }))}
-          size="xs"
-          style={{ flex: 1 }}
-          searchable={false}
-          clearable={false}
-          allowDeselect={true}
-          maxDropdownHeight={200}
-          styles={{
-            dropdown: {
-              zIndex: 1002,
-            },
-          }}
-        />
-        <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
-          <PlusIcon size={14} />
-        </ActionIcon>
-        <ActionIcon
-          onClick={async () => {
-            if (!activeSessionId) return;
-            await disconnect();
-            await clearActiveSession();
-            await deleteSession(activeSessionId);
-          }}
-          size="sm"
-          variant="subtle"
-          color="red"
-          title="Delete session"
-          disabled={!activeSessionId}
-        >
-          <TrashIcon size={14} />
-        </ActionIcon>
-      </Group>
-
       {/* Messages */}
 
       {activeSessionId ? (
-        <ScrollArea flex={1} viewportRef={scrollAreaRef} mb="md">
-          <Stack gap="xs">
-            {chatHistory.map((msg, index) => (
-              <ChatMessageElement key={index} msg={msg} />
-            ))}
-          </Stack>
-        </ScrollArea>
+        <Stack mb="xs" h="100%">
+          <ScrollArea flex={1} viewportRef={scrollAreaRef}>
+            <Stack gap="xs">
+              {chatHistory.map((msg, index) => (
+                <ChatMessageElement key={index} msg={msg} />
+              ))}
+            </Stack>
+          </ScrollArea>
+        </Stack>
       ) : (
         <Center h="100%">
-          <Group gap="xs" align="center">
-            <ChatCircleIcon size={16} color="gray.5" />
-            <TextTitleSm>Select a session or create a new one to start working with the AI</TextTitleSm>
-          </Group>
+          <Button
+            variant="subtle"
+            leftSection={<ChatCircleIcon size={16} />}
+            onClick={createNewSession}
+            size="xs"
+            w="fit-content"
+          >
+            Start new chat
+          </Button>
         </Center>
       )}
 
@@ -443,6 +445,8 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       <Stack gap="xs">
         {/* Style Guide Selection */}
         <ResourceSelector />
+
+        <ContextBadges activeTable={activeTable} currentView={currentView} />
 
         {/* Capabilities Selection */}
         {availableCapabilities.length > 0 && (
@@ -453,69 +457,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
           />
         )}
 
-        <Group gap="xs">
-          {activeTable && (
-            <BadgeWithTooltip
-              size="sm"
-              color="purple"
-              variant="outline"
-              radius="sm"
-              tooltip="The current table being viewed"
-              leftSection={<TableIcon size={14} />}
-            >
-              {activeTable.name}
-            </BadgeWithTooltip>
-          )}
-          {dataScope && (
-            <BadgeWithTooltip
-              size="sm"
-              color="green"
-              variant="outline"
-              radius="sm"
-              leftSection={<BinocularsIcon size={14} />}
-              tooltip="The agent can work all active records in the table"
-            >
-              {dataScope}
-            </BadgeWithTooltip>
-          )}
-          {dataScope === 'record' || dataScope === 'column' ? (
-            <BadgeWithTooltip
-              size="sm"
-              color="blue"
-              variant="outline"
-              radius="sm"
-              leftSection={<VinylRecordIcon size={14} />}
-              tooltip="The agent is just working on this record"
-            >
-              {activeRecordId}
-            </BadgeWithTooltip>
-          ) : null}
-          {dataScope === 'column' && (
-            <BadgeWithTooltip
-              size="sm"
-              color="blue"
-              variant="outline"
-              radius="sm"
-              leftSection={<TagSimpleIcon size={14} />}
-              tooltip="The column being focused on by the agent"
-            >
-              {activeColumnId}
-            </BadgeWithTooltip>
-          )}
-          {currentView && (
-            <BadgeWithTooltip
-              size="sm"
-              color="green"
-              variant="outline"
-              radius="sm"
-              leftSection={<EyeIcon size={14} />}
-              tooltip="The active column view used by the agent"
-            >
-              {currentView.name || currentView.id}
-            </BadgeWithTooltip>
-          )}
-        </Group>
-
         {/* Input Area */}
         <Textarea
           ref={textInputRef}
@@ -523,7 +464,10 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
-          disabled={!chatInputEnabled}
+          disabled={agentTaskRunning}
+          onFocus={() => {
+            handleTextInputFocus();
+          }}
           size="xs"
           minRows={5}
           maxRows={5}
@@ -599,3 +543,80 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     </Paper>
   );
 }
+
+export const ContextBadges = ({
+  activeTable,
+  currentView,
+}: {
+  activeTable: TableSpec | null;
+  currentView: ColumnView | undefined;
+}) => {
+  const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
+
+  return (
+    <Group gap="xs">
+      <Group gap="xs">
+        {activeTable && (
+          <BadgeWithTooltip
+            size="sm"
+            color="purple"
+            variant="outline"
+            radius="sm"
+            tooltip="The current table being viewed"
+            leftSection={<TableIcon size={14} />}
+          >
+            {activeTable.name}
+          </BadgeWithTooltip>
+        )}
+        {dataScope && (
+          <BadgeWithTooltip
+            size="sm"
+            color="green"
+            variant="outline"
+            radius="sm"
+            leftSection={<BinocularsIcon size={14} />}
+            tooltip="The agent can work all active records in the table"
+          >
+            {dataScope}
+          </BadgeWithTooltip>
+        )}
+        {dataScope === 'record' || dataScope === 'column' ? (
+          <BadgeWithTooltip
+            size="sm"
+            color="blue"
+            variant="outline"
+            radius="sm"
+            leftSection={<VinylRecordIcon size={14} />}
+            tooltip="The agent is just working on this record"
+          >
+            {activeRecordId}
+          </BadgeWithTooltip>
+        ) : null}
+        {dataScope === 'column' && (
+          <BadgeWithTooltip
+            size="sm"
+            color="blue"
+            variant="outline"
+            radius="sm"
+            leftSection={<TagSimpleIcon size={14} />}
+            tooltip="The column being focused on by the agent"
+          >
+            {activeColumnId}
+          </BadgeWithTooltip>
+        )}
+        {currentView && (
+          <BadgeWithTooltip
+            size="sm"
+            color="green"
+            variant="outline"
+            radius="sm"
+            leftSection={<EyeIcon size={14} />}
+            tooltip="The active column view used by the agent"
+          >
+            {currentView.name || currentView.id}
+          </BadgeWithTooltip>
+        )}
+      </Group>
+    </Group>
+  );
+};

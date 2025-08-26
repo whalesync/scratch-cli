@@ -35,13 +35,6 @@ const upperLinks: MenuItem[] = [
     requiresAdmin: false,
   },
   {
-    href: RouteUrls.apiImportDemoPageUrl,
-    label: 'AI Connector Builder',
-    icon: RobotIcon,
-    enabled: true,
-    requiresAdmin: true,
-  },
-  {
     href: RouteUrls.resourcesPageUrl,
     label: 'Resources',
     icon: BookOpenIcon,
@@ -54,6 +47,13 @@ const upperLinks: MenuItem[] = [
     icon: FileCsvIcon,
     enabled: true,
     requiresAdmin: false,
+  },
+  {
+    href: RouteUrls.apiImportDemoPageUrl,
+    label: 'AI Connector Builder',
+    icon: RobotIcon,
+    enabled: true,
+    requiresAdmin: true,
   },
 ];
 

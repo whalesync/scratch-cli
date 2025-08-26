@@ -294,6 +294,17 @@ async def websocket_endpoint(
                     )
 
                     # Update session
+                    if (
+                        session.name.startswith("New chat")
+                        and summary_entry.request_summary
+                    ):
+                        new_name = (
+                            request.message
+                            if len(request.message) < 30
+                            else request.message[:30] + "..."
+                        )
+                        session.name = new_name
+
                     session_service.update_session(session)
                     logger.info(f"💾 Session updated in storage")
                     logger.info(
