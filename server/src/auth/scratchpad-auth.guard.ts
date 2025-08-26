@@ -11,4 +11,4 @@ import { AuthGuard } from '@nestjs/passport';
  * and call super.handleRequest() to pass through
  */
 @Injectable()
-export class ScratchpadAuthGuard extends AuthGuard(['API_TOKEN_STRATEGY', 'clerk']) {}
+export class ScratchpadAuthGuard extends AuthGuard(['API_TOKEN_STRATEGY', 'AGENT_TOKEN_STRATEGY', 'clerk']) {}
