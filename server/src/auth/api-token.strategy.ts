@@ -6,7 +6,7 @@ import { UsersService } from 'src/users/users.service';
 import { AuthenticatedUser } from './types';
 
 /**
- * This strategy inspects the request for a Whalesync API Token and validates it against the database.
+ * This strategy inspects the request for a User scoped API Token and validates it against the database.
  */
 @Injectable()
 export class APITokenStrategy extends PassportStrategy(HeaderAPIKeyStrategy, 'API_TOKEN_STRATEGY') {

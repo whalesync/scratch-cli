@@ -6,4 +6,5 @@ export interface User {
   agentToken?: string;
   websocketToken?: string;
   isAdmin: boolean;
+  agentJwt?: string;
 }

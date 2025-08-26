@@ -7,14 +7,17 @@ export class User {
   clerkId: string | null;
   isAdmin: boolean;
   id: string;
-  // @deprecated - use agentToken or websocketToken instead
-  apiToken?: string;
+
   // The token for the AI agent to use when talking to the Scratchpad API
+  // @deprecated - use agentJwt instead
   agentToken?: string;
   // The token for the client to use for websockets when connecting to the Scratchpad API
   websocketToken?: string;
 
-  constructor(user: UserCluster.User) {
+  // The JWT for the AI agent to use when talking to the Scratchpad API
+  agentJwt?: string;
+
+  constructor(user: UserCluster.User, agentJwt: string) {
     this.id = user.id;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
@@ -22,13 +25,11 @@ export class User {
     this.isAdmin = user.role === UserRole.ADMIN;
 
     if (user.apiTokens) {
-      // TODO remove the generic token and return the scope specific tokens instead
-      // needs to be one once we start generating these tokens properly in the UserService
-      this.apiToken = findValidToken(user, TokenType.AGENT);
       this.agentToken = findValidToken(user, TokenType.AGENT);
       this.websocketToken = findValidToken(user, TokenType.AGENT);
-      // this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
     }
+
+    this.agentJwt = agentJwt;
   }
 }
 

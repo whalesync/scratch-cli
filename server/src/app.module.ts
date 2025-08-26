@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from './admin/admin.module';
+import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
 import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
@@ -20,6 +21,7 @@ import { ViewModule } from './view/view.module';
   imports: [
     ScratchpadConfigModule,
     AdminModule,
+    AgentJwtModule,
     DbModule,
     UserModule,
     ClerkModule,
