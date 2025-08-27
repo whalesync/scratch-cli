@@ -132,3 +132,29 @@ export function buildRecordTitle(record: SnapshotRecord): string {
   }
   return record.id.wsId;
 }
+
+export function getSafeBooleanValue(fields: Record<string, unknown>, columnId: string): boolean {
+  const value = fields[columnId];
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (_.isBoolean(value)) {
+    return value as boolean;
+  }
+
+  return new Boolean(value).valueOf();
+}
+
+export function getSafeNumberValue(fields: Record<string, unknown>, columnId: string, defaultValue?: number): number | undefined {
+  const value = fields[columnId];
+  if (value === null || value === undefined) {
+    return defaultValue ?? undefined;
+  }
+
+  if (_.isNumber(value)) {
+    return value as number;
+  }
+
+  return _.toNumber(value);
+}

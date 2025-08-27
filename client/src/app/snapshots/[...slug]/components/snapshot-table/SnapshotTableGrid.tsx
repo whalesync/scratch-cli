@@ -79,7 +79,9 @@ export const SnapshotTableGridInternal = () => {
             onCellContextMenu={onCellContextMenu}
             onKeyDown={handleKeyDown}
             onMouseMove={(e) => {
-              coreGridState.setHoveredRow(e.location[1]);
+              if (e.kind === 'cell') {
+                coreGridState.setHoveredRow(e.location[1]);
+              }
             }}
             theme={{
               headerIconSize: 24,

@@ -1,7 +1,14 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
-import { isLargeTextColumn, PostgresColumnType, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import {
+  getSafeBooleanValue,
+  getSafeNumberValue,
+  isLargeTextColumn,
+  PostgresColumnType,
+  SnapshotRecord,
+  TableSpec,
+} from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Checkbox, Group, NumberInput, ScrollArea, Stack, Textarea, TextInput } from '@mantine/core';
 import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
@@ -75,7 +82,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
 
   if (column.pgType === PostgresColumnType.NUMERIC) {
     // this needs to be handled differently
-    const currentValue = record.fields[columnId] as number;
+    const currentValue = getSafeNumberValue(record.fields, columnId);
     const suggestedValue = record.__suggested_values?.[columnId] as string;
 
     const numberField = (
@@ -133,7 +140,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
   }
 
   if (column.pgType === PostgresColumnType.BOOLEAN) {
-    const currentValue = (record.fields[columnId] as string).toLocaleLowerCase() === 'true';
+    const currentValue = getSafeBooleanValue(record.fields, columnId);
     const suggestedValue = record.__suggested_values?.[columnId] as string;
 
     const booleanField = (
