@@ -27,6 +27,7 @@ class ChatSession(BaseModel):
 
     id: str
     name: str
+    user_id: str
     chat_history: List[ChatMessage] = Field(
         default=[], description="Chat messages for user display (keep last 10)"
     )
