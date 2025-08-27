@@ -228,6 +228,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
+                  padding: '0',
                 },
               }}
             />
