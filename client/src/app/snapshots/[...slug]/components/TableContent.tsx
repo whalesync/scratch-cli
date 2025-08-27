@@ -18,13 +18,7 @@ interface ActiveRecord {
 }
 
 export const TableContent = ({ table, currentViewId, filterToView }: TableContentProps) => {
-  const {
-    snapshotId,
-    recordId: recordIdParam,
-    columnId: columnIdParam,
-    updateSnapshotPath,
-    pushSnapshotPath,
-  } = useSnapshotParams();
+  const { snapshotId, recordId: recordIdParam, columnId: columnIdParam, updateSnapshotPath } = useSnapshotParams();
   const { snapshot } = useSnapshotContext();
   const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useAgentChatContext();
   const [currentView, setCurrentView] = useState<string | null>(recordIdParam ? 'record' : 'spreadsheet');
@@ -51,7 +45,7 @@ export const TableContent = ({ table, currentViewId, filterToView }: TableConten
     if (view === 'spreadsheet') {
       setTableScope();
       setWriteFocus([]);
-      pushSnapshotPath(snapshotId, table.id.wsId);
+      updateSnapshotPath(snapshotId, table.id.wsId);
     }
   };
 

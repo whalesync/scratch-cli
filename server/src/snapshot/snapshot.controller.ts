@@ -167,6 +167,18 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/accept-all-suggestions')
+  @HttpCode(204)
+  async acceptAllSuggestions(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Query('viewId') viewId: string | undefined,
+    @Req() req: RequestWithUser,
+  ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
+    return await this.service.acceptAllSuggestions(snapshotId, tableId, req.user.id, viewId);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/reject-values')
   @HttpCode(204)
   async rejectValues(
@@ -176,6 +188,17 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.rejectValues(snapshotId, tableId, rejectCellValueDto.items, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/reject-all-suggestions')
+  async rejectAllSuggestions(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Query('viewId') viewId: string | undefined,
+    @Req() req: RequestWithUser,
+  ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
+    return await this.service.rejectAllSuggestions(snapshotId, tableId, req.user.id, viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)

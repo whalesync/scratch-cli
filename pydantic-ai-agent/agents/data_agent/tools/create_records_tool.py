@@ -196,7 +196,7 @@ async def create_records_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
         )
 
-        return f"Successfully created {len(create_operations)} records in table '{table_name}'. Records have been logged to console."
+        return f"Successfully created {len(create_operations)} records in table '{table_name}'."
     except Exception as e:
         error_msg = f"Failed to create records in table '{table_name}': {str(e)}"
         log_error("Error creating records", table_name=table_name, error=str(e))

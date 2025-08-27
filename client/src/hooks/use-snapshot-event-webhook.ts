@@ -20,7 +20,7 @@ export interface SnapshotRecordEvent {
     data: {
       tableId: string;
       numRecords: number;
-      changeType: 'suggested' | 'accepted';
+      changeType: 'suggested' | 'accepted' | 'rejected';
       source: 'user' | 'agent';
     };
   }

@@ -27,7 +27,7 @@ import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import { AgentChatContextProvider } from '@/contexts/agent-chat-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { SnapshotEventProvider } from '@/contexts/snapshot-event-context';
-import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useDisclosure } from '@mantine/hooks';

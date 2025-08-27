@@ -22,7 +22,7 @@ import { useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { ListBulletsIcon, ListChecksIcon } from '@phosphor-icons/react';
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
-import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot';
+import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { ICONS } from '../../icons';
 import { ContextMenu, MenuItem } from '../types';

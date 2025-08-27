@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service, SnapshotTableView } from '@prisma/client';
+import _ from 'lodash';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -407,17 +408,6 @@ export class SnapshotService {
     return true;
   }
 
-  // TODO: Record filtering moved to different entity - commented out for now
-  // private isRecordVisible(wsId: string, tableViewConfig: ViewTableConfig): boolean {
-  //   if (tableViewConfig.visible === false) {
-  //     // In exclude mode, record is visible if it's explicitly marked as visible
-  //     return tableViewConfig.records?.some((r) => r.wsId === wsId && r.visible === true) || false;
-  //   } else {
-  //     // In include mode, record is visible if it's not explicitly marked as hidden
-  //     return !(tableViewConfig.records?.some((r) => r.wsId === wsId && r.visible === false) || false);
-  //   }
-  // }
-
   private getVisibleColumns(tableViewConfig: ViewTableConfig, tableSpec: AnyTableSpec): string[] {
     const allColumns = tableSpec.columns.map((c) => c.id.wsId);
 
@@ -447,7 +437,21 @@ export class SnapshotService {
       }
     }
 
-    return this.snapshotDbService.acceptCellValues(snapshotId, tableId, items, tableSpec);
+    await this.snapshotDbService.acceptCellValues(snapshotId, tableId, items, tableSpec);
+
+    // Count unique wsId values in the items list
+    const uniqueWsIds = new Set(items.map((item) => item.wsId));
+    const uniqueRecordCount = uniqueWsIds.size;
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        tableId,
+        numRecords: uniqueRecordCount,
+        changeType: 'accepted',
+        source: 'user',
+      },
+    });
   }
 
   async rejectValues(
@@ -471,7 +475,126 @@ export class SnapshotService {
       }
     }
 
-    return this.snapshotDbService.rejectValues(snapshotId, tableId, items);
+    // Count unique wsId values in the items list
+    const uniqueWsIds = new Set(items.map((item) => item.wsId));
+    const uniqueRecordCount = uniqueWsIds.size;
+
+    await this.snapshotDbService.rejectValues(snapshotId, tableId, items);
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        tableId,
+        numRecords: uniqueRecordCount,
+        changeType: 'rejected',
+        source: 'user',
+      },
+    });
+  }
+
+  async acceptAllSuggestions(
+    snapshotId: SnapshotId,
+    tableId: string,
+    userId: string,
+    viewId?: string,
+  ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    let viewConfig: ViewConfig | undefined = undefined;
+
+    if (viewId) {
+      const view = await this.db.client.columnView.findUnique({
+        where: { id: viewId },
+      });
+      if (view) {
+        viewConfig = view.config as ViewConfig;
+      }
+    }
+
+    // get all of the records for the table with suggestions and build a list of items to accept
+    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, undefined, 10000, viewConfig);
+    const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
+
+    await this.acceptCellValues(snapshotId, tableId, allSuggestions, userId);
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        tableId,
+        numRecords: recordsWithSuggestions.length,
+        changeType: 'accepted',
+        source: 'user',
+      },
+    });
+
+    return {
+      recordsUpdated: recordsWithSuggestions.length,
+      totalChangesAccepted: allSuggestions.length,
+    };
+  }
+
+  private extractSuggestions(records: SnapshotRecord[]) {
+    const recordsWithSuggestions = records.filter((r) => Object.keys(r.__suggested_values).length > 0);
+
+    const allSuggestions = _.flatten(
+      recordsWithSuggestions.map((r) => {
+        return Object.keys(r.__suggested_values)
+          .filter((k) => !k.startsWith('__') && k !== 'id') // no special fields
+          .map((k) => {
+            return { wsId: r.id.wsId, columnId: k };
+          });
+      }),
+    );
+    return { allSuggestions, recordsWithSuggestions };
+  }
+
+  async rejectAllSuggestions(
+    snapshotId: SnapshotId,
+    tableId: string,
+    userId: string,
+    viewId?: string,
+  ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    let viewConfig: ViewConfig | undefined = undefined;
+
+    if (viewId) {
+      const view = await this.db.client.columnView.findUnique({
+        where: { id: viewId },
+      });
+      if (view) {
+        viewConfig = view.config as ViewConfig;
+      }
+    }
+
+    // get all of the records for the table with suggestions and build a list of items to reject
+    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, undefined, 10000, viewConfig);
+    const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
+
+    await this.rejectValues(snapshotId, tableId, allSuggestions, userId);
+
+    this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
+      type: 'record-changes',
+      data: {
+        tableId,
+        numRecords: recordsWithSuggestions.length,
+        changeType: 'rejected',
+        source: 'user',
+      },
+    });
+
+    return {
+      recordsRejected: recordsWithSuggestions.length,
+      totalChangesRejected: allSuggestions.length,
+    };
   }
 
   private validateBulkUpdateOps(ops: RecordOperation[], tableSpec: AnyTableSpec) {

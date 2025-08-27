@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import {
@@ -11,7 +11,6 @@ import {
 } from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Checkbox, Group, NumberInput, ScrollArea, Stack, Textarea, TextInput } from '@mantine/core';
-import { ArrowUpIcon, XIcon } from '@phosphor-icons/react';
 import styles from './DisplayField.module.css';
 import { FieldLabel, FieldRow } from './FieldRow';
 
@@ -59,24 +58,12 @@ export const DisplayField = (props: DisplayFieldProps) => {
 
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="center">
-      <SecondaryButton
-        size="xs"
-        color="red"
-        leftSection={<XIcon size={14} />}
-        onClick={onRejectSuggestion}
-        loading={saving}
-      >
+      <RejectSuggestionButton onClick={onRejectSuggestion} loading={saving}>
         Reject
-      </SecondaryButton>
-      <PrimaryButton
-        size="xs"
-        color="green"
-        leftSection={<ArrowUpIcon size={14} />}
-        onClick={onAcceptSuggestion}
-        loading={saving}
-      >
+      </RejectSuggestionButton>
+      <AcceptSuggestionButton onClick={onAcceptSuggestion} loading={saving}>
         Accept
-      </PrimaryButton>
+      </AcceptSuggestionButton>
     </Group>
   ) : null;
 

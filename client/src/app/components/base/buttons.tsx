@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { CpuIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, CpuIcon, XIcon } from '@phosphor-icons/react';
 
 export const InlineButton = Button.withProps({
   w: 'min-content',
@@ -23,6 +23,18 @@ export const PrimaryButton = Button.withProps({
 export const SecondaryButton = Button.withProps({
   variant: 'outline',
   size: 'sm',
+});
+
+export const AcceptSuggestionButton = Button.withProps({
+  color: 'green',
+  size: 'xs',
+  leftSection: <ArrowUpIcon size={14} />,
+});
+
+export const RejectSuggestionButton = Button.withProps({
+  color: 'red',
+  size: 'xs',
+  leftSection: <XIcon size={14} />,
 });
 
 export const DevToolButton = Button.withProps({

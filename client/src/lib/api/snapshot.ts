@@ -1,4 +1,4 @@
-import { CreateSnapshotDto, DownloadSnapshotResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
+import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -305,4 +305,47 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to reject cell values");
     }
   },
+
+
+  async acceptAllSuggestions(
+    snapshotId: string,
+    tableId: string,
+    viewId?: string,
+  ): Promise<AcceptAllSuggestionsResult> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+        body: JSON.stringify({ viewId }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to accept all suggestions");
+    }
+    return res.json();
+  },
+
+  async rejectAllSuggestions(
+    snapshotId: string,
+    tableId: string,
+    viewId?: string,
+  ): Promise<RejectAllSuggestionsResult> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/reject-all-suggestions`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+        body: JSON.stringify({ viewId }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to reject all suggestions");
+    }
+    return res.json();
+  },  
  };

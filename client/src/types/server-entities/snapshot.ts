@@ -107,6 +107,17 @@ export interface DownloadSnapshotResult {
   }[];
 }
 
+export interface AcceptAllSuggestionsResult {
+  recordsUpdated: number;
+  totalChangesAccepted: number;
+}
+
+
+export interface RejectAllSuggestionsResult {
+  recordsRejected: number;
+  totalChangesRejected: number;
+}
+
 export function isTextColumn(column: ColumnSpec) {
   return column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
 }

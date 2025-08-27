@@ -2,7 +2,7 @@ import { TextTitleSm } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { useAgentChatContext } from '@/contexts/agent-chat-context';
-import { useSnapshotTableRecords } from '@/hooks/use-snapshot';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';

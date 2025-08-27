@@ -1,10 +1,12 @@
 'use client';
 
-import { SecondaryButton } from '@/app/components/base/buttons';
+import { AcceptSuggestionButton, RejectSuggestionButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextBookSm, TextTitleXs } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
 import { ColumnView } from '@/types/server-entities/view';
@@ -48,6 +50,12 @@ export const ViewData = ({
   filteredCount,
 }: ViewDataProps) => {
   const { views, isLoading, error, refreshViews, snapshot, clearActiveRecordFilter } = useSnapshotContext();
+  const { recordsWithSuggestions, totalSuggestions, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
+    useSnapshotTableRecords({
+      snapshotId: snapshot?.id ?? '',
+      tableId: currentTableId ?? '',
+      viewId: currentViewId ?? undefined,
+    });
   const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useAgentChatContext();
   const snapshotId = snapshot?.id;
   const [debugView, setDebugView] = useState<
@@ -55,9 +63,8 @@ export const ViewData = ({
   >(null);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [viewName, setViewName] = useState('');
-  const [renaming, setRenaming] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [sqlFilterModalOpen, setSqlFilterModalOpen] = useState(false);
   const [sqlFilterText, setSqlFilterText] = useState('');
 
@@ -77,7 +84,7 @@ export const ViewData = ({
   const handleRenameView = async () => {
     if (!currentView) return;
 
-    setRenaming(true);
+    setSaving(true);
     try {
       if (!currentView.name) {
         // View has no name - show name prompt
@@ -93,14 +100,14 @@ export const ViewData = ({
     } catch (error) {
       console.error('Error renaming view:', error);
     } finally {
-      setRenaming(false);
+      setSaving(false);
     }
   };
 
   const handleRenameWithName = async () => {
     if (!currentView || !viewName.trim() || !snapshotId) return;
 
-    setRenaming(true);
+    setSaving(true);
     try {
       await viewApi.upsert({
         id: currentView.id,
@@ -126,14 +133,14 @@ export const ViewData = ({
         color: 'red',
       });
     } finally {
-      setRenaming(false);
+      setSaving(false);
     }
   };
 
   const handleDeleteView = async () => {
     if (!currentView) return;
 
-    setDeleting(true);
+    setSaving(true);
     try {
       await viewApi.delete(currentView.id);
       notifications.show({
@@ -151,7 +158,7 @@ export const ViewData = ({
         color: 'red',
       });
     } finally {
-      setDeleting(false);
+      setSaving(false);
     }
   };
 
@@ -174,6 +181,46 @@ export const ViewData = ({
         message: error instanceof Error ? error.message : 'Failed to set SQL filter',
         color: 'red',
       });
+    }
+  };
+
+  const handleAcceptAllSuggestions = async () => {
+    try {
+      setSaving(true);
+      const { recordsUpdated, totalChangesAccepted } = await acceptAllSuggestions();
+      ScratchpadNotifications.success({
+        title: 'Suggestions Accepted',
+        message: `Accepted ${totalChangesAccepted} changes for ${recordsUpdated} ${pluralize('record', recordsUpdated)} in the table`,
+      });
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error accepting all suggestions:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Accepting Suggestions',
+        message: error instanceof Error ? error.message : 'Failed to accept all suggestions',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRejectAllSuggestions = async () => {
+    try {
+      setSaving(true);
+      const { recordsRejected, totalChangesRejected } = await rejectAllSuggestions();
+      ScratchpadNotifications.success({
+        title: 'Suggestions Rejected',
+        message: `Rejected ${totalChangesRejected} changes for ${recordsRejected} ${pluralize('record', recordsRejected)} in the table`,
+      });
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error accepting all suggestions:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Accepting Suggestions',
+        message: error instanceof Error ? error.message : 'Failed to reject all suggestions',
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -315,6 +362,19 @@ export const ViewData = ({
             </>
           ) : null}
         </Group>
+        {recordsWithSuggestions > 0 && (
+          <Group gap="xs" ml="auto">
+            <Tooltip label={`${totalSuggestions} total suggestions`}>
+              <TextBookSm>{recordsWithSuggestions} records with suggestions</TextBookSm>
+            </Tooltip>
+            <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions}>
+              Accept All
+            </AcceptSuggestionButton>
+            <RejectSuggestionButton size="xs" onClick={handleRejectAllSuggestions}>
+              Reject All
+            </RejectSuggestionButton>
+          </Group>
+        )}
       </Group>
 
       {/* Rename Modal */}
@@ -331,7 +391,7 @@ export const ViewData = ({
             <Button variant="subtle" onClick={() => setRenameModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleRenameWithName} loading={renaming} disabled={!viewName.trim()}>
+            <Button onClick={handleRenameWithName} loading={saving} disabled={!viewName.trim()}>
               Rename
             </Button>
           </Group>
@@ -349,7 +409,7 @@ export const ViewData = ({
             <Button variant="subtle" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button color="red" onClick={handleDeleteView} loading={deleting}>
+            <Button color="red" onClick={handleDeleteView} loading={saving}>
               Delete
             </Button>
           </Group>
