@@ -97,9 +97,17 @@ export const RecordView = ({
       </Center>
     );
   }
+  /**
+   * Layout is a bit wonky here due to the tabs and many divs.
+   * Need 50px for the tabs at the top
+   * Need 50px for the Views toolbar at the bottom (in a higher div)
+   * everything between needs to fill in
+   * Requires setting fixed height on the parent div and the hieght of scroll area with
+   * the record details
+   */
 
   return (
-    <Stack h="100%" w="100%" gap={0} p={0}>
+    <Stack h="calc(100vh - 100px)" w="100%" gap={0} p={0}>
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
           <ScrollArea h="100%" type="hover" scrollbars="y">
@@ -136,7 +144,7 @@ export const RecordView = ({
           <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
               <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem" bg="white">
-                <ScrollArea h="calc(100vh - 105px)" type="hover" scrollbars="y">
+                <ScrollArea h="calc(100vh - 200px)" type="hover" scrollbars="y">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
                     currentRecord={record}

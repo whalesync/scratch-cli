@@ -349,18 +349,7 @@ function SnapshotPageContent() {
 
   return (
     <Stack h="100%" gap={0}>
-      <Group gap={0} h="100%">
-        {/* Main content area */}
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            transition: 'width 0.3s ease',
-          }}
-        >
-          {renderContent()}
-        </div>
-      </Group>
+      {renderContent()}
     </Stack>
   );
 }
