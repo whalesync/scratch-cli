@@ -22,12 +22,15 @@ class SessionService:
     def __init__(self):
         self._sessions: Dict[str, ChatSession] = {}
 
-    def create_session(self, session_id: str, snapshot_id: str) -> ChatSession:
+    def create_session(
+        self, user_id: str, session_id: str, snapshot_id: str
+    ) -> ChatSession:
         """Create a new chat session and set session data in tools"""
         now = datetime.now()
         session = ChatSession(
             id=session_id,
             name=f"New chat {now.strftime('%Y-%m-%d %H:%M')}",
+            user_id=user_id,
             last_activity=now,
             created_at=now,
             snapshot_id=snapshot_id,
@@ -73,7 +76,9 @@ class SessionService:
         """Check if a session exists by ID"""
         return session_id in self._sessions
 
-    def get_all_sessions(self, snapshot_id: Optional[str] = None) -> List[ChatSession]:
+    def get_sessions_for_snapshot(
+        self, snapshot_id: Optional[str] = None
+    ) -> List[ChatSession]:
         """Get all sessions"""
         if snapshot_id:
             return [
@@ -83,6 +88,12 @@ class SessionService:
             ]
         else:
             return list(self._sessions.values())
+
+    def get_sessions_for_user(self, user_id: str) -> List[ChatSession]:
+        """Get all sessions for a user"""
+        return [
+            session for session in self._sessions.values() if session.user_id == user_id
+        ]
 
     def list_session_ids(self) -> List[str]:
         """List all session IDs"""

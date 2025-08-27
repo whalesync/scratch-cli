@@ -32,7 +32,7 @@ export const DebugInfo = () => {
         <Text miw={200}>Agent Token</Text>
         <PasswordInput
           variant="unstyled"
-          value={user?.agentToken}
+          value={user?.agentJwt}
           placeholder="No API key found"
           readOnly
           inputWrapperOrder={['input', 'label', 'description', 'error']}

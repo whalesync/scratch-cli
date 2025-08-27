@@ -68,7 +68,9 @@ async def create_session(
     """Create a new chat session"""
     session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
 
-    session = session_service.create_session(session_id, snapshot_id)
+    session = session_service.create_session(
+        current_user.userId, session_id, snapshot_id
+    )
 
     # Create summary for client response
     session_summary = ChatSessionSummary(
@@ -309,7 +311,7 @@ async def list_sessions(current_user: AgentUser = Depends(get_current_user)):
     """List all active sessions"""
     # Convert full sessions to summaries
     session_summaries = []
-    for session in session_service.get_all_sessions():
+    for session in session_service.get_sessions_for_user(current_user.userId):
         summary = ChatSessionSummary(
             id=session.id,
             name=session.name,
@@ -329,7 +331,7 @@ async def list_sessions_for_snapshot(
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
     session_summaries = []
-    for session in session_service.get_all_sessions(snapshot_id):
+    for session in session_service.get_sessions_for_snapshot(snapshot_id):
         summary = ChatSessionSummary(
             id=session.id,
             name=session.name,
@@ -361,9 +363,9 @@ async def cancel_agent_run(
 @router.post("/cleanup")
 async def cleanup_sessions(current_user: AgentUser = Depends(get_current_user)):
     """Manually trigger session cleanup"""
-    before_count = len(session_service.get_all_sessions())
+    before_count = len(session_service.get_sessions_for_snapshot())
     session_service.cleanup_inactive_sessions()
-    after_count = len(session_service.get_all_sessions())
+    after_count = len(session_service.get_sessions_for_snapshot())
     cleaned_count = before_count - after_count
 
     myLogger.info(
