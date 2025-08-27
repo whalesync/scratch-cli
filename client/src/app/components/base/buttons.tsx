@@ -28,13 +28,13 @@ export const SecondaryButton = Button.withProps({
 export const AcceptSuggestionButton = Button.withProps({
   color: 'green',
   size: 'xs',
-  leftSection: <ArrowUpIcon size={14} />,
+  leftSection: <ArrowUpIcon size={12} />,
 });
 
 export const RejectSuggestionButton = Button.withProps({
   color: 'red',
   size: 'xs',
-  leftSection: <XIcon size={14} />,
+  leftSection: <XIcon size={12} />,
 });
 
 export const DevToolButton = Button.withProps({

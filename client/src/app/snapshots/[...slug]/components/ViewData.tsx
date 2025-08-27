@@ -1,7 +1,7 @@
 'use client';
 
 import { AcceptSuggestionButton, RejectSuggestionButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextBookSm, TextTitleXs } from '@/app/components/base/text';
+import { TextBookSm, TextRegularXs, TextTitleXs } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
@@ -254,7 +254,7 @@ export const ViewData = ({
 
   return (
     <Box h="50px" p="6px" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
-      <Group gap="md" align="center">
+      <Group gap="md" align="center" wrap="nowrap">
         {/* Column Views Section */}
         <Group gap="xs" align="center">
           <TextTitleXs>Column Views</TextTitleXs>
@@ -351,29 +351,29 @@ export const ViewData = ({
               Clear Filter
             </SecondaryButton>
           )}
-          {count !== undefined && filteredCount !== undefined ? (
+          {count !== undefined && filteredCount !== undefined && count > filteredCount ? (
             <>
               <DotSpacer mx={0} />
               <TextBookSm>
-                {count !== undefined && filteredCount !== undefined
-                  ? `${count - filteredCount} ${pluralize('record', count - filteredCount)} filtered`
-                  : 'Filtered'}
+                {`${count - filteredCount} ${pluralize('record', count - filteredCount)} filtered`}
               </TextBookSm>
             </>
           ) : null}
         </Group>
         {recordsWithSuggestions > 0 && (
           <Group gap="xs" ml="auto">
-            <Tooltip label={`${totalSuggestions} total suggestions`}>
-              <TextBookSm>
-                {recordsWithSuggestions} {pluralize('record', recordsWithSuggestions)} with suggestions
-              </TextBookSm>
+            <Tooltip
+              label={`${recordsWithSuggestions} ${pluralize('record', recordsWithSuggestions)} with pending suggestions found`}
+            >
+              <TextRegularXs>
+                {totalSuggestions} {pluralize('suggestion', totalSuggestions)}
+              </TextRegularXs>
             </Tooltip>
             <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions}>
-              Accept All
+              Accept all
             </AcceptSuggestionButton>
             <RejectSuggestionButton size="xs" onClick={handleRejectAllSuggestions}>
-              Reject All
+              Reject all
             </RejectSuggestionButton>
           </Group>
         )}
