@@ -11,8 +11,13 @@ from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
+    find_column_by_name,
+    get_active_table,
+    is_in_write_focus,
     unable_to_identify_active_snapshot_error,
+    unable_to_identify_active_table_error,
 )
+from agents.data_agent.data_agent_utils import get_table_context
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -46,10 +51,6 @@ class RecordDataDict(TypedDict):
 json_schema = {
     "type": "object",
     "properties": {
-        "table_name": {
-            "type": "string",
-            "description": "The name of the table to create records in",
-        },
         "record_data_list": {
             "type": "array",
             "description": "List of record data. Each record should have data (field updates)",
@@ -80,18 +81,19 @@ json_schema = {
             },
         },
     },
-    "required": ["table_name", "record_data_list"],
+    "required": ["record_data_list"],
 }
 
 description = """
-    Create new records in a table in the active snapshot.
+    Create new records in a table.
 
-    IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your new records are stored in the suggested_fields field and require user approval before being applied to the actual record data.
+    IMPORTANT: This tool creates the records and sets the new values as SUGGESTIONS. Your new records are stored in the suggested_fields field and require user approval before being applied to the actual record data.
 
-    Use this tool when the user asks to create new records or add data to a table.
+    Use this tool when the user asks to create new records or add content data to a table.
     The table_name should be the name of the table you want to create records for.
     The record_data_list should be a list of entities with the following fields:
     - 'data': a list of field data, each containing 'field' and 'value' keys
+    Only include fields that are present in the table and are not protected or read only.
 
     CRITICAL: Pass record_data_list as a proper list object, NOT as a JSON string.
     Example: [{'data': [{'field': 'name', 'value': 'John Doe'}, {'field': 'email', 'value': 'john@example.com'}]}, {'data': [{'field': 'name', 'value': 'Jane Smith'}, {'field': 'email', 'value': 'jane@example.com'}]}]
@@ -103,9 +105,9 @@ description = """
 
 async def create_records_implementation(
     ctx: RunContext[ChatRunContext],
-    table_name: str,
     record_data_list: List[RecordDataDict],
 ) -> str:
+    table_name = None
     try:
         if record_data_list is None or len(record_data_list) == 0:
             return "Error: The list of record data is empty. Provide at least one record data"
@@ -133,32 +135,54 @@ async def create_records_implementation(
         if not chatRunContext.snapshot:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
-        # Find the table by name
-        table = None
-        for t in chatRunContext.snapshot.tables:
-            if t.name.lower() == table_name.lower():
-                table = t
-                break
+        table = get_active_table(chatRunContext)
+        table_name = table.name
 
         if not table:
-            available_tables = [t.name for t in chatRunContext.snapshot.tables]
-            return f"Error: Table '{table_name}' not found. Available tables: {available_tables}"
+            return unable_to_identify_active_table_error(chatRunContext)
 
-        # Create RecordOperation objects for create operations using map
-        create_operations = list(
-            map(
-                lambda record_data, index: RecordOperation(
+        table_context = get_table_context(chatRunContext.snapshot, table.id.wsId)
+
+        create_operations = []
+        data_errors = []
+        for index, record_data in enumerate(record_data_list):
+            data_payload = {}
+            for field_data in record_data["data"]:
+                column = find_column_by_name(table, field_data["field"])
+                if column:
+                    if (
+                        table_context
+                        and table_context.readOnlyColumns
+                        and column.id.wsId in table_context.readOnlyColumns
+                    ):
+                        data_errors.append(
+                            f"Field '{field_data['field']}' is read only and cannot be set when creating records."
+                        )
+                        continue
+
+                    data_payload[column.id.wsId] = field_data["value"]
+                else:
+                    data_errors.append(
+                        f"Field '{field_data['field']}' not found in table '{table.name}'"
+                    )
+
+            if not data_payload:
+                data_errors.append(f"No valid fields to create for record {index}")
+                continue
+
+            create_operations.append(
+                RecordOperation(
                     op="create",
                     wsId=f"temp_id_{index+1}",  # Temporary ID for create operations
-                    data={
-                        field_data["field"]: field_data["value"]
-                        for field_data in record_data["data"]
-                    },
+                    data=data_payload,
                 ),
-                record_data_list,
-                range(len(record_data_list)),
             )
-        )
+
+        if len(data_errors) > 0:
+            return f"Error: {', '.join(data_errors)}"
+
+        if len(create_operations) == 0:
+            return "Error: No valid records to create"
 
         log_info(
             "Creating records via bulk update",

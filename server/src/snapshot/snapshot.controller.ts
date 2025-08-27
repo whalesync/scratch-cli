@@ -168,7 +168,6 @@ export class SnapshotController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/accept-all-suggestions')
-  @HttpCode(204)
   async acceptAllSuggestions(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,

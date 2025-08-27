@@ -538,7 +538,12 @@ export class SnapshotService {
   }
 
   private extractSuggestions(records: SnapshotRecord[]) {
-    const recordsWithSuggestions = records.filter((r) => Object.keys(r.__suggested_values).length > 0);
+    // ignore deleted records
+    const recordsWithSuggestions = records.filter(
+      (r) =>
+        !r.__edited_fields.__deleted &&
+        Object.keys(r.__suggested_values).filter((k) => !k.startsWith('__') && k !== 'id').length > 0,
+    );
 
     const allSuggestions = _.flatten(
       recordsWithSuggestions.map((r) => {

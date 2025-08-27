@@ -1,15 +1,15 @@
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {
-    AcceptAllSuggestionsResult,
-    RejectAllSuggestionsResult,
-    SnapshotRecord
+  AcceptAllSuggestionsResult,
+  RejectAllSuggestionsResult,
+  SnapshotRecord
 } from "@/types/server-entities/snapshot";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
-    BulkUpdateRecordsDto,
-    ListRecordsResponse,
+  BulkUpdateRecordsDto,
+  ListRecordsResponse,
 } from "../types/server-entities/records";
 
 

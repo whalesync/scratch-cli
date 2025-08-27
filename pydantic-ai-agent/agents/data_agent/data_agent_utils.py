@@ -194,3 +194,10 @@ def format_records_for_prompt(
         records_summary.append(record_data)
 
     return str(records_summary)
+
+
+def get_table_context(snapshot: SnapshotForAi, table_id: str) -> Optional[TableContext]:
+    for table_context in snapshot.tableContexts:
+        if table_context.id.wsId == table_id:
+            return table_context
+    return None

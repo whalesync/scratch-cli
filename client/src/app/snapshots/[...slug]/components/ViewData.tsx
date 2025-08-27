@@ -190,7 +190,7 @@ export const ViewData = ({
       const { recordsUpdated, totalChangesAccepted } = await acceptAllSuggestions();
       ScratchpadNotifications.success({
         title: 'Suggestions Accepted',
-        message: `Accepted ${totalChangesAccepted} changes for ${recordsUpdated} ${pluralize('record', recordsUpdated)} in the table`,
+        message: `Accepted ${totalChangesAccepted} ${pluralize('change', totalChangesAccepted)} for ${recordsUpdated} ${pluralize('record', recordsUpdated)} in the table`,
       });
       await refreshRecords();
     } catch (error) {
@@ -210,7 +210,7 @@ export const ViewData = ({
       const { recordsRejected, totalChangesRejected } = await rejectAllSuggestions();
       ScratchpadNotifications.success({
         title: 'Suggestions Rejected',
-        message: `Rejected ${totalChangesRejected} changes for ${recordsRejected} ${pluralize('record', recordsRejected)} in the table`,
+        message: `Rejected ${totalChangesRejected} ${pluralize('change', totalChangesRejected)} for ${recordsRejected} ${pluralize('record', recordsRejected)} in the table`,
       });
       await refreshRecords();
     } catch (error) {
@@ -365,7 +365,9 @@ export const ViewData = ({
         {recordsWithSuggestions > 0 && (
           <Group gap="xs" ml="auto">
             <Tooltip label={`${totalSuggestions} total suggestions`}>
-              <TextBookSm>{recordsWithSuggestions} records with suggestions</TextBookSm>
+              <TextBookSm>
+                {recordsWithSuggestions} {pluralize('record', recordsWithSuggestions)} with suggestions
+              </TextBookSm>
             </Tooltip>
             <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions}>
               Accept All
