@@ -53,9 +53,9 @@ type Subscriptions = {
 
 const log = (message: string, data?: unknown) => {
   if(data) {
-    console.debug('Snapshot websocket event:', message, data);
+    console.debug('Snapshot Websocket Event:', message, data);
   } else {
-    console.debug('Snapshot websocket event:', message);
+    console.debug('Snapshot Websocket Event:', message);
   }
 }
 

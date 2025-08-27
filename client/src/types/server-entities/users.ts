@@ -3,7 +3,6 @@ export interface User {
   clerkId: string;
   createdAt: Date;
   updatedAt: Date;
-  agentToken?: string;
   websocketToken?: string;
   isAdmin: boolean;
   agentJwt?: string;

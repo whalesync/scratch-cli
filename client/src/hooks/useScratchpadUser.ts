@@ -48,7 +48,6 @@ export const useScratchPadUser = (): ScratchPadUser => {
 
   useEffect(() => {
     if (user) {
-      API_CONFIG.setAiAgentApiToken(user.agentToken || '');
       API_CONFIG.setAgentJwt(user.agentJwt || '');
     } 
   }, [user]);

@@ -38,9 +38,9 @@ export const DebugInfo = () => {
           inputWrapperOrder={['input', 'label', 'description', 'error']}
           flex={1}
         />
-        <CopyButton value={user?.agentToken || ''} timeout={2000}>
+        <CopyButton value={user?.agentJwt || ''} timeout={2000}>
           {({ copied, copy }) => (
-            <Tooltip label={copied ? 'Copied' : `Copy agent API token`} withArrow position="right">
+            <Tooltip label={copied ? 'Copied' : `Copy Agent auth token`} withArrow position="right">
               <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
                 {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
               </ActionIcon>
@@ -49,7 +49,7 @@ export const DebugInfo = () => {
         </CopyButton>
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <Text miw={200}>Websocket Token</Text>
+        <Text miw={200}>UI Websocket Key</Text>
         <PasswordInput
           variant="unstyled"
           value={user?.websocketToken}
@@ -60,7 +60,7 @@ export const DebugInfo = () => {
         />
         <CopyButton value={user?.websocketToken || ''} timeout={2000}>
           {({ copied, copy }) => (
-            <Tooltip label={copied ? 'Copied' : `Copy websocket API token`} withArrow position="right">
+            <Tooltip label={copied ? 'Copied' : `Copy UI Websocket API key`} withArrow position="right">
               <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
                 {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
               </ActionIcon>

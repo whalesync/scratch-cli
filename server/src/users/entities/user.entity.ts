@@ -8,9 +8,6 @@ export class User {
   isAdmin: boolean;
   id: string;
 
-  // The token for the AI agent to use when talking to the Scratchpad API
-  // @deprecated - use agentJwt instead
-  agentToken?: string;
   // The token for the client to use for websockets when connecting to the Scratchpad API
   websocketToken?: string;
 
@@ -25,8 +22,7 @@ export class User {
     this.isAdmin = user.role === UserRole.ADMIN;
 
     if (user.apiTokens) {
-      this.agentToken = findValidToken(user, TokenType.AGENT);
-      this.websocketToken = findValidToken(user, TokenType.AGENT);
+      this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
     }
 
     this.agentJwt = agentJwt;

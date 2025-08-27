@@ -6,7 +6,6 @@ class ApiConfig {
   private aiAgentApiUrl: string;
   private aiAgentWebSocketUrl: string;
   private authToken: string | null;
-  private agentAuthToken: string | null;
   private agentJwt: string | null;
 
   constructor() {
@@ -14,7 +13,6 @@ class ApiConfig {
     this.aiAgentApiUrl = process.env.NEXT_PUBLIC_AI_AGENT_API_URL || "http://localhost:8000";
     this.aiAgentWebSocketUrl = process.env.NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL || "ws://localhost:8000";
     this.authToken = null;
-    this.agentAuthToken = null;
     this.agentJwt = null;
   }
 
@@ -38,14 +36,6 @@ class ApiConfig {
 
   public getAiAgentApiUrl() {
     return this.aiAgentApiUrl;
-  }
-
-  public setAiAgentApiToken(token: string) {
-    this.agentAuthToken = token;
-  }
-
-  public getAiAgentApiToken() {
-    return this.agentAuthToken;
   }
 
   public setAgentJwt(jwt: string) {
