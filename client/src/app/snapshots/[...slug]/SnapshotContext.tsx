@@ -27,6 +27,8 @@ interface SnapshotContextValue {
   // filteredRecordsCount: number;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
   updateSnapshot: (updateDto: UpdateSnapshotDto) => Promise<void>;
+  viewDataAsAgent: boolean;
+  setViewDataAsAgent: (viewDataAsAgent: boolean) => void;
 }
 
 const SnapshotContext = createContext<SnapshotContextValue | undefined>(undefined);
@@ -41,6 +43,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
   const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
   const { upsertView } = useUpsertView();
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
+  const [viewDataAsAgent, setViewDataAsAgent] = useState(false);
   const { mutate } = useSWRConfig();
 
   // Get the current view based on currentViewId
@@ -152,6 +155,8 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     updateTableInCurrentView,
     // Filter management
     clearActiveRecordFilter,
+    viewDataAsAgent,
+    setViewDataAsAgent,
   };
 
   return <SnapshotContext.Provider value={value}>{children}</SnapshotContext.Provider>;

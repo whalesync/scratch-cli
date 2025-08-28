@@ -42,21 +42,20 @@ function SnapshotPageContent() {
   const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
   const router = useRouter();
 
-  const { snapshot, isLoading, currentViewId, setCurrentViewId } = useSnapshotContext();
+  const { snapshot, isLoading, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const [showChat, { toggle: toggleChat }] = useDisclosure(true);
 
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
-  const [filterToView, setFilterToView] = useState(false);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   // Get count information for the current table
   const { count, filteredCount } = useSnapshotTableRecords({
     snapshotId: id,
     tableId: selectedTableId || '',
-    viewId: filterToView && currentViewId ? currentViewId : undefined,
+    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   useEffect(() => {
@@ -280,7 +279,7 @@ function SnapshotPageContent() {
         {selectedTable && (
           <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${selectedTable?.name}`} size="lg">
             <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTable} />
+              <JsonTreeViewer jsonData={selectedTable} expandAll={true} />
             </ScrollArea>
           </Modal>
         )}
@@ -291,7 +290,7 @@ function SnapshotPageContent() {
             size="lg"
           >
             <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTableContext ?? {}} />
+              <JsonTreeViewer jsonData={selectedTableContext ?? {}} expandAll={true} />
             </ScrollArea>
           </Modal>
         )}
@@ -326,18 +325,8 @@ function SnapshotPageContent() {
                 </Box>
               </Group>
             </Tabs>
-            {selectedTable && (
-              <TableContent table={selectedTable} currentViewId={currentViewId} filterToView={filterToView} />
-            )}
-            <ViewData
-              currentViewId={currentViewId}
-              onViewChange={setCurrentViewId}
-              filterToView={filterToView}
-              onFilterToViewChange={setFilterToView}
-              currentTableId={selectedTableId}
-              count={count}
-              filteredCount={filteredCount}
-            />
+            {selectedTable && <TableContent table={selectedTable} />}
+            <ViewData currentTableId={selectedTableId} count={count} filteredCount={filteredCount} />
           </Stack>
 
           <AIChatPanel isOpen={showChat} onClose={toggleChat} activeTable={selectedTable} />

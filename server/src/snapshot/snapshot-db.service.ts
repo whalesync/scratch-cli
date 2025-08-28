@@ -235,17 +235,6 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
     const tableViewConfig = view?.[tableId];
     if (tableViewConfig) {
-      // TODO: Record filtering moved to different entity - commented out for now
-      // if (tableViewConfig.visible === false) {
-      //   const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === true).map((r) => r.wsId);
-      //   query.whereIn('wsId', recordIds);
-      // } else {
-      //   const recordIds = (tableViewConfig.records ?? []).filter((r) => r.visible === false).map((r) => r.wsId);
-      //   if (recordIds.length > 0) {
-      //     query.whereNotIn('wsId', recordIds);
-      //   }
-      // }
-
       // If table is hidden, return empty array
       if (tableViewConfig.hidden === true) {
         query.select([]);
@@ -264,20 +253,6 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     } else {
       query.select('*');
     }
-
-    // if (view && view.ids) {
-    //   const cteName = 'ids_in_view';
-    //   const schemaTable = `${snapshotId}.${tableId}`;
-
-    //   // NOTE: if you use a CTE , Knex gets confused with the withSchema call, so we have to manually add the schema to the table name
-    //   query = this.knex
-    //     .with(cteName, this.knex.raw('select unnest(?::text[]) as id', [view.ids]))
-    //     .select('*')
-    //     .from(schemaTable)
-    //     .join(cteName, `${tableId}.wsId`, '=', `${cteName}.id`)
-    //     .orderBy(`${tableId}.id`)
-    //     .limit(take) as Knex.QueryBuilder<DbRecord, DbRecord[]>;
-    // }
 
     const reqult = await query;
 

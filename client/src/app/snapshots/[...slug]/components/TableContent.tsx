@@ -8,8 +8,6 @@ import SnapshotTableGrid from './snapshot-table/SnapshotTableGrid';
 
 interface TableContentProps {
   table: TableSpec;
-  currentViewId: string | null;
-  filterToView: boolean;
 }
 
 interface ActiveRecord {
@@ -17,7 +15,7 @@ interface ActiveRecord {
   columnId: string | undefined;
 }
 
-export const TableContent = ({ table, currentViewId, filterToView }: TableContentProps) => {
+export const TableContent = ({ table }: TableContentProps) => {
   const { snapshotId, recordId: recordIdParam, columnId: columnIdParam, updateSnapshotPath } = useSnapshotParams();
   const { snapshot } = useSnapshotContext();
   const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useAgentChatContext();
@@ -58,9 +56,7 @@ export const TableContent = ({ table, currentViewId, filterToView }: TableConten
       <SnapshotTableGrid
         snapshot={snapshot}
         table={table}
-        currentViewId={currentViewId}
         onSwitchToRecordView={(recordId: string, columnId?: string) => handleSwitchView('record', recordId, columnId)}
-        filterToView={filterToView}
       />
     );
   } else {
@@ -70,7 +66,6 @@ export const TableContent = ({ table, currentViewId, filterToView }: TableConten
         onSwitchToSpreadsheetView={() => handleSwitchView('spreadsheet')}
         initialColumnId={currentRecord.columnId}
         initialRecordId={currentRecord.recordId}
-        filterToView={filterToView}
       />
     );
   }

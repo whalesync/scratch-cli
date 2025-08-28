@@ -114,21 +114,9 @@ export const SnapshotTableGridInternal = () => {
   );
 };
 
-const SnapshotTableGrid = ({
-  snapshot,
-  table,
-  currentViewId,
-  onSwitchToRecordView,
-  filterToView,
-}: SnapshotTableGridProps) => {
+const SnapshotTableGrid = ({ snapshot, table, onSwitchToRecordView }: SnapshotTableGridProps) => {
   return (
-    <SnapshotTableGridProvider
-      snapshot={snapshot}
-      table={table}
-      currentViewId={currentViewId}
-      onSwitchToRecordView={onSwitchToRecordView}
-      filterToView={filterToView}
-    >
+    <SnapshotTableGridProvider snapshot={snapshot} table={table} onSwitchToRecordView={onSwitchToRecordView}>
       <SnapshotTableGridInternal />
     </SnapshotTableGridProvider>
   );

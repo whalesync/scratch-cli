@@ -50,21 +50,17 @@ const SnapshotTableGridContext = createContext<SnapshotTableGridContextValue | u
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
-  currentViewId?: string | null;
   onSwitchToRecordView: (recordId: string, columnId?: string) => void;
-  filterToView: boolean;
 }
 
 export const SnapshotTableGridProvider = ({
   children,
   snapshot,
   table,
-  currentViewId,
   onSwitchToRecordView,
-  filterToView,
 }: SnapshotTableGridProps & { children: ReactNode }) => {
   // From higher level contexts
-  const { refreshViews, setCurrentViewId, currentView } = useSnapshotContext();
+  const { refreshViews, setCurrentViewId, currentView, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
     useAgentChatContext();
 
@@ -92,7 +88,7 @@ export const SnapshotTableGridProvider = ({
     useSnapshotTableRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
-      viewId: filterToView && currentView ? currentView.id : undefined,
+      viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
     });
 
   const sortedRecords = useMemo(() => {

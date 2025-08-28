@@ -1,7 +1,7 @@
 'use client';
 
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
-import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebhook } from '@/hooks/use-snapshot-event-webhook';
+import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebsocket } from '@/hooks/use-snapshot-event-websocket';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { createContext, ReactNode, useCallback, useContext } from 'react';
 import { useSWRConfig } from 'swr';
@@ -63,11 +63,13 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
       console.debug('Record event received:', event);
 
       if (event.type === 'record-changes' && event.data.tableId) {
-        // Invalidate records for the specific table
+        // Invalidate records for the specific table, both for the current view and the global record set
+        const swrKey = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId, undefined, undefined, currentView?.id);
+        globalMutate(swrKey);
         globalMutate(SWR_KEYS.snapshot.records(snapshotId, event.data.tableId));
       }
     },
-    [snapshotId, globalMutate],
+    [snapshotId, globalMutate, currentView],
   );
 
   // Handle websocket errors
@@ -82,7 +84,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
   // Use the websocket hook
   // TODO - we could probably merge the hook into this context
-  const { isConnected, subscriptions, sendPing, messageLog } = useSnapshotEventWebhook({
+  const { isConnected, subscriptions, sendPing, messageLog } = useSnapshotEventWebsocket({
     snapshotId,
     onSnapshotEvent: handleSnapshotEvent,
     onRecordEvent: handleRecordEvent,

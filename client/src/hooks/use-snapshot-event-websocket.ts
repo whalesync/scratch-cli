@@ -31,7 +31,7 @@ export interface SubscriptionConfirmedEvent {
   message: string;
 }
 
-export interface SnapshotEventWebhookProps {
+export interface SnapshotEventWebsocketProps {
   snapshotId: string;
   onSnapshotEvent?: (event: SnapshotEvent) => void;
   onRecordEvent?: (event: SnapshotRecordEvent) => void;
@@ -39,7 +39,7 @@ export interface SnapshotEventWebhookProps {
   onError?: (error: Error) => void;
 }
 
-export interface UseSnapshotEventWebhookReturn {
+export interface UseSnapshotEventWebsocketReturn {
     isConnected: boolean;
     subscriptions: Subscriptions;
     sendPing: () => void;
@@ -61,7 +61,7 @@ const log = (message: string, data?: unknown) => {
 
 
 
-export const useSnapshotEventWebhook = (props: SnapshotEventWebhookProps) : UseSnapshotEventWebhookReturn => {
+export const useSnapshotEventWebsocket = (props: SnapshotEventWebsocketProps) : UseSnapshotEventWebsocketReturn => {
  const {
   snapshotId, 
   onSnapshotEvent, onRecordEvent, onCloseConnection, onError} = props;

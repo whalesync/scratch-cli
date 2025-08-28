@@ -16,17 +16,10 @@ interface RecordViewProps {
   initialRecordId?: string;
   initialColumnId?: string;
   onSwitchToSpreadsheetView: () => void;
-  filterToView?: boolean;
 }
 
-export const RecordView = ({
-  table,
-  initialRecordId,
-  initialColumnId,
-  onSwitchToSpreadsheetView,
-  filterToView,
-}: RecordViewProps) => {
-  const { snapshot, currentView } = useSnapshotContext();
+export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchToSpreadsheetView }: RecordViewProps) => {
+  const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
   const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
@@ -35,7 +28,7 @@ export const RecordView = ({
   const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
-    viewId: filterToView && currentView ? currentView.id : undefined,
+    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   const focusRecord = useCallback(

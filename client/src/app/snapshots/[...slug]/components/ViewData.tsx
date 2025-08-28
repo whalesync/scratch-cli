@@ -31,30 +31,29 @@ import { useEffect, useState } from 'react';
 import JsonTreeViewer from '../../../components/JsonTreeViewer';
 
 interface ViewDataProps {
-  currentViewId?: string | null;
-  onViewChange?: (viewId: string | null) => void;
-  filterToView?: boolean;
-  onFilterToViewChange?: (filterToView: boolean) => void;
   currentTableId?: string | null;
   count?: number;
   filteredCount?: number;
 }
 
-export const ViewData = ({
-  currentViewId,
-  onViewChange,
-  filterToView = false,
-  onFilterToViewChange,
-  currentTableId,
-  count,
-  filteredCount,
-}: ViewDataProps) => {
-  const { views, isLoading, error, refreshViews, snapshot, clearActiveRecordFilter } = useSnapshotContext();
+export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps) => {
+  const {
+    views,
+    isLoading,
+    error,
+    refreshViews,
+    snapshot,
+    clearActiveRecordFilter,
+    currentViewId,
+    setCurrentViewId,
+    viewDataAsAgent,
+    setViewDataAsAgent,
+  } = useSnapshotContext();
   const { recordsWithSuggestions, totalSuggestions, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
     useSnapshotTableRecords({
       snapshotId: snapshot?.id ?? '',
       tableId: currentTableId ?? '',
-      viewId: currentViewId ?? undefined,
+      viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
     });
   const { readFocus, writeFocus, clearReadFocus, clearWriteFocus } = useAgentChatContext();
   const snapshotId = snapshot?.id;
@@ -149,6 +148,8 @@ export const ViewData = ({
         color: 'green',
       });
       setDeleteModalOpen(false);
+      setCurrentViewId?.(null);
+      setViewDataAsAgent(false);
       await refreshViews?.();
     } catch (error) {
       console.error('Error deleting view:', error);
@@ -260,7 +261,7 @@ export const ViewData = ({
           <TextTitleXs>Column Views</TextTitleXs>
           <Select
             value={currentViewId || ''}
-            onChange={(value) => onViewChange?.(value || null)}
+            onChange={(value) => setCurrentViewId?.(value || null)}
             data={[
               { value: '', label: 'No active view' },
               ...(views?.map((view) => ({
@@ -290,7 +291,12 @@ export const ViewData = ({
                 <TrashIcon size={14} />
               </ActionIcon>
               <Tooltip label="View as AI Agent">
-                <Checkbox checked={filterToView} onChange={(e) => onFilterToViewChange?.(e.target.checked)} size="xs" />
+                <Checkbox
+                  checked={viewDataAsAgent}
+                  onChange={(e) => setViewDataAsAgent?.(e.target.checked)}
+                  size="xs"
+                  title="View as AI Agent"
+                />
               </Tooltip>
             </>
           )}
