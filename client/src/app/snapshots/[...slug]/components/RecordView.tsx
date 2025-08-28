@@ -104,7 +104,7 @@ export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchTo
       <Group gap={0} p={0} h="100%">
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
           <ScrollArea h="100%" type="hover" scrollbars="y">
-            <Stack h="calc(100vh - 105px)" gap="sm" p="xs" mr="xs" style={{ overflow: 'hidden' }}>
+            <Stack mih="calc(100vh - 105px)" gap="sm" p="xs" mr="xs" style={{ overflow: 'hidden' }}>
               <Group gap="xs">
                 <Tooltip label="Return to Spreadsheet">
                   <ActionIcon variant="subtle" color="gray" onClick={handleExitRecordView}>
