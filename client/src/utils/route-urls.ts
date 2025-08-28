@@ -2,7 +2,13 @@ export class RouteUrls {
   // Public routes
   static healthEndpoint = "/api/health";
 
-  static publicRoutePatterns = [this.healthEndpoint];
+
+  static signInPageUrl = "/sign-in";
+  static signInPageWithRedirect = (redirect_url: string) => `${this.signInPageUrl}?redirect_url=${redirect_url}`;
+  static signUpPageUrl = "/sign-up";
+  static signUpPageWithRedirect = (redirect_url: string) => `${this.signUpPageUrl}?redirect_url=${redirect_url}`;
+
+  static publicRoutePatterns = [this.healthEndpoint, this.signInPageUrl, this.signUpPageUrl];
 
   /**
    * Public routes are endpoints that don't require any authentication, user identification or JWT tokens

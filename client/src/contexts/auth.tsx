@@ -1,3 +1,5 @@
+'use client';
+
 import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';

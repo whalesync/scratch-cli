@@ -1,27 +1,35 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import "@mantine/notifications/styles.css";
+import '@mantine/notifications/styles.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "ScratchPad - AI Data Studio",
-  description: "A data studio tool powered by Whalesync.ai",
+  title: 'ScratchPad - AI Data Studio',
+  description: 'A data studio tool powered by Whalesync.ai',
 };
 
-import ClientLayout from "./ClientLayout";
+import { ClerkAuthContextProvider } from '@/contexts/auth';
+import { ClerkProvider } from '@clerk/nextjs';
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import SidebarAndContentLayout from './components/layouts/SidebarAndContentLayout';
+import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
-        <div id="portal" />
+        <MantineProvider theme={SCRATCHPAD_MANTINE_THEME}>
+          <Notifications />
+          <ClerkProvider>
+            <ClerkAuthContextProvider>
+              <SidebarAndContentLayout>{children}</SidebarAndContentLayout>
+              <div id="portal" />
+            </ClerkAuthContextProvider>
+          </ClerkProvider>
+        </MantineProvider>
       </body>
     </html>
   );
