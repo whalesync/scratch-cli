@@ -36,7 +36,7 @@ export interface UseSnapshotRecordsReturn {
     take?: number,
     viewId?: string
   }): UseSnapshotRecordsReturn => {
-    const { snapshotId, tableId, cursor, take, viewId = undefined } = args;
+    const { snapshotId, tableId, cursor, take = 1000, viewId = undefined } = args;
     const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
   
     const { mutate } = useSWRConfig();
