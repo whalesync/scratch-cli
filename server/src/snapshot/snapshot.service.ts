@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Service, SnapshotTableView } from '@prisma/client';
+import { Service } from '@prisma/client';
 import _ from 'lodash';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
@@ -832,49 +832,6 @@ export class SnapshotService {
       });
     }
   }
-
-  async listViews(snapshotId: SnapshotId, tableId: string, userId: string): Promise<SnapshotTableView[]> {
-    await this.verifiySnapshotAndTable(snapshotId, tableId, userId);
-
-    const results = await this.db.client.snapshotTableView.findMany({
-      where: { snapshotId, tableId },
-    });
-
-    return results;
-  }
-
-  async deleteView(snapshotId: SnapshotId, tableId: string, viewId: string, userId: string): Promise<void> {
-    await this.verifiySnapshotAndTable(snapshotId, tableId, userId);
-    const view = await this.db.client.snapshotTableView.findUnique({
-      where: { id: viewId },
-    });
-    if (!view || view.snapshotId !== snapshotId || view.tableId !== tableId) {
-      throw new NotFoundException('View not found');
-    }
-    await this.db.client.snapshotTableView.delete({
-      where: { id: viewId },
-    });
-  }
-
-  async getView(snapshotId: SnapshotId, tableId: string, viewId: string, userId: string): Promise<SnapshotTableView> {
-    await this.verifiySnapshotAndTable(snapshotId, tableId, userId);
-    const view = await this.db.client.snapshotTableView.findUnique({
-      where: { id: viewId },
-    });
-    if (!view || view.snapshotId !== snapshotId || view.tableId !== tableId) {
-      throw new NotFoundException('View not found');
-    }
-    return view;
-  }
-
-  private async verifiySnapshotAndTable(snapshotId: SnapshotId, tableId: string, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
-    }
-  }
-
   async setActiveRecordsFilter(
     snapshotId: SnapshotId,
     tableId: string,

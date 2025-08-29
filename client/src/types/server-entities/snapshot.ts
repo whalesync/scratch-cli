@@ -92,12 +92,6 @@ export type EditedFieldsMetadata = {
   [wsId: string]: string;
 };
 
-export type CreateSnapshotTableViewDto = {
-  source: 'ui' | 'agent';
-  name?: string;
-  recordIds: string[];
-};
-
 export interface DownloadSnapshotResult {
   totalRecords: number;
   tables: {

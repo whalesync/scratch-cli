@@ -24,6 +24,7 @@ export interface TableSpecs {
   NOTION: NotionTableSpec;
   CUSTOM: CustomTableSpec;
   CSV: CsvTableSpec;
+  POSTGRES: CsvTableSpec; // TODO - change to PostgresTableSpec once we implement the connector
 }
 
 export type AnyColumnSpec = ColumnSpecs[keyof ColumnSpecs];
@@ -31,4 +32,5 @@ export interface ColumnSpecs {
   AIRTABLE: AirtableColumnSpec;
   NOTION: NotionColumnSpec;
   CSV: CsvColumnSpec;
+  POSTGRES: CsvColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
 }

@@ -1,7 +1,6 @@
-import { SnapshotTableView as PrismaSnapshotTableView } from '@prisma/client';
 import { SnapshotCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { ActiveRecordSqlFilter, SnapshotTableContext, SnapshotTableViewConfig } from '../types';
+import { ActiveRecordSqlFilter, SnapshotTableContext } from '../types';
 
 export class Snapshot {
   id: string;
@@ -30,20 +29,5 @@ export class Snapshot {
     this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
     // if (includeActiveFilters && snapshot.activeRecordSqlFilter) {
     // }
-  }
-}
-
-// @deprecated
-export class SnapshotTableView {
-  id: string;
-  name: string;
-  updatedAt: Date;
-  recordIds: string[];
-
-  constructor(view: PrismaSnapshotTableView) {
-    this.id = view.id;
-    this.name = view.name ?? '';
-    this.updatedAt = view.updatedAt;
-    this.recordIds = (view.config as SnapshotTableViewConfig).ids;
   }
 }

@@ -116,17 +116,6 @@ export function createCustomConnectorId(): CustomConnectorId {
   return createId(IdPrefixes.CUSTOM_CONNECTOR) as CustomConnectorId;
 }
 
-// ------- SnapshotTableViews -------
-export type SnapshotTableViewId = PrefixedId<IdPrefixes.SNAPSHOT_TABLE_VIEW>;
-
-export function isSnapshotTableViewId(id: unknown): id is SnapshotTableViewId {
-  return isId(id, IdPrefixes.SNAPSHOT_TABLE_VIEW);
-}
-
-export function createSnapshotTableViewId(): SnapshotTableViewId {
-  return createId(IdPrefixes.SNAPSHOT_TABLE_VIEW) as SnapshotTableViewId;
-}
-
 // ------- StyleGuide -------
 export type StyleGuideId = PrefixedId<IdPrefixes.STYLE_GUIDE>;
 

@@ -28,7 +28,7 @@ import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult } from './entities/download-results.entity';
-import { Snapshot, SnapshotTableView } from './entities/snapshot.entity';
+import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
 
@@ -209,40 +209,6 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.clearActiveView(snapshotId, tableId, req.user.id);
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/tables/:tableId/views')
-  async listViews(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<SnapshotTableView[]> {
-    return (await this.service.listViews(snapshotId, tableId, req.user.id)).map((v) => new SnapshotTableView(v));
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Delete(':id/tables/:tableId/views/:viewId')
-  @HttpCode(204)
-  async deleteView(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Param('viewId') viewId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.deleteView(snapshotId, tableId, viewId, req.user.id);
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Get(':id/tables/:tableId/views/:viewId')
-  async getView(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Param('viewId') viewId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<SnapshotTableView> {
-    const view = await this.service.getView(snapshotId, tableId, viewId, req.user.id);
-    return new SnapshotTableView(view);
   }
 
   @UseGuards(ScratchpadAuthGuard)

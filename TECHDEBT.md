@@ -67,7 +67,6 @@ This document just tracks the general tech debt that will need to be addressed i
 
 - Record filtering moved to different entity - temporarily allowing all operations
 - Snapshot update DTO handling incomplete
-- Target key for field injection hardcoded as '@@' - needs to be configurable
 - Column ID canonicalization doesn't check for uniqueness
 
 **Accept/Reject does not handle data types**
@@ -92,19 +91,18 @@ This document just tracks the general tech debt that will need to be addressed i
 **Data Processing**
 
 - Read/write focus not properly applied to records in multiple places
-- Field name translation to actual field IDs incomplete
+- ✅ Field name translation to actual field IDs incomplete
 - Suggested fields handling needs improvement
 
 **Code Quality / DevX**
 
 - Missing Python linter and formatter setup
 - Missing type checker configuration
-- Debug print statements throughout codebase
 
 **Session Management**
 
-- No session security for AI agent from client
-- Missing user session management for authentication
+- ✅ No session security for AI agent from client
+- ✅ Missing user session management for authentication
 - Session management should move to DB or Redis
 
 **Authentication / Security**
