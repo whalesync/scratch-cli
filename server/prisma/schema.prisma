@@ -114,8 +114,6 @@ model Snapshot {
 
   tableSpecs Json[] // TableSpec[]
 
-  tableViews SnapshotTableView[]
-
   tableContexts Json[] // SnapshotTableContext[]
 
   activeRecordFilter    Json? // {[tableId: string]: string[]}
@@ -161,21 +159,6 @@ model CustomConnector {
   // Response schemas
 
   @@index([userId])
-}
-
-// @deprecated
-model SnapshotTableView {
-  id         String   @id // type: SnapshotTableViewsId
-  name       String? // Optional view name
-  source     String // "ui" | "agent"
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  snapshotId String
-  tableId    String // WS ID of the table
-  config     Json // SnapshotTableViewConfig - describes the view
-
-  @@unique([snapshotId, tableId])
 }
 
 model StyleGuide {

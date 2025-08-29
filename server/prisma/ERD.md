@@ -79,16 +79,6 @@ erDiagram
   String createRecord "nullable"
   String updateRecord "nullable"
 }
-"SnapshotTableView" {
-  String id PK
-  String name "nullable"
-  String source
-  DateTime createdAt
-  DateTime updatedAt
-  String snapshotId FK
-  String tableId
-  Json config
-}
 "StyleGuide" {
   String id PK
   DateTime createdAt
@@ -135,7 +125,6 @@ erDiagram
 "ConnectorAccount" }o--|| "User" : user
 "Snapshot" }o--|| "ConnectorAccount" : connectorAccount
 "CustomConnector" }o--|| "User" : user
-"SnapshotTableView" }o--|| "Snapshot" : snapshot
 "StyleGuide" }o--|| "User" : user
 "CsvFile" }o--|| "User" : user
 "AiAgentTokenUsageEvent" }o--|| "User" : user
@@ -229,19 +218,6 @@ Properties as follows:
 - `deleteRecord`:
 - `createRecord`:
 - `updateRecord`:
-
-### `SnapshotTableView`
-
-Properties as follows:
-
-- `id`:
-- `name`:
-- `source`:
-- `createdAt`:
-- `updatedAt`:
-- `snapshotId`:
-- `tableId`:
-- `config`:
 
 ### `StyleGuide`
 
