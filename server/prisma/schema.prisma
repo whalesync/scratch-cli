@@ -95,6 +95,7 @@ enum Service {
   AIRTABLE
   CUSTOM
   CSV
+  POSTGRES
 }
 
 enum ConnectorHealthStatus {
