@@ -16,6 +16,7 @@ import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import SidebarAndContentLayout from './components/layouts/SidebarAndContentLayout';
 import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
+import { ScratchpadPostHogProvider } from './providers';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Notifications />
           <ClerkProvider>
             <ClerkAuthContextProvider>
-              <SidebarAndContentLayout>{children}</SidebarAndContentLayout>
+              <ScratchpadPostHogProvider>
+                <SidebarAndContentLayout>{children}</SidebarAndContentLayout>
+              </ScratchpadPostHogProvider>
               <div id="portal" />
             </ClerkAuthContextProvider>
           </ClerkProvider>

@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { TokenType, UserRole } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { UserCluster } from 'src/db/cluster-types';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { createApiTokenId, createUserId } from 'src/types/ids';
 import { DbService } from '../db/db.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly postHogService: PostHogService,
+  ) {}
 
   public async findOne(id: string): Promise<UserCluster.User | null> {
     return this.db.client.user.findUnique({ where: { id }, include: UserCluster._validator.include });
@@ -107,6 +111,8 @@ export class UsersService {
       },
       include: UserCluster._validator.include,
     });
+
+    this.postHogService.identifyNewUser(newUser);
 
     return newUser;
   }

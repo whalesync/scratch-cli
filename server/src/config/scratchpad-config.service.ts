@@ -53,11 +53,24 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('SCRATCHPAD_AGENT_JWT_EXPIRES_IN');
   }
 
+  getPostHogApiKey(): string | undefined {
+    return this.getOptionalEnvVariable('POSTHOG_API_KEY');
+  }
+
+  getPostHogHost(): string | undefined {
+    return this.getOptionalEnvVariable('POSTHOG_HOST');
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {
       throw new Error(`${envVariable} is not defined. Please add this variable to your environment.`);
     }
     return returnedVar;
+  }
+
+  private getOptionalEnvVariable<T>(envVariable: string): T | undefined {
+    const returnedVar: T | undefined = this.configService.get<T>(envVariable);
+    return returnedVar ?? undefined;
   }
 }

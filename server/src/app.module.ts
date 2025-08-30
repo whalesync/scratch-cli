@@ -10,6 +10,7 @@ import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
+import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
@@ -20,6 +21,7 @@ import { ViewModule } from './view/view.module';
 @Module({
   imports: [
     ScratchpadConfigModule,
+    PosthogModule,
     AdminModule,
     AgentJwtModule,
     DbModule,
