@@ -48,9 +48,9 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
         globalMutate(SWR_KEYS.snapshot.list('all'));
 
         if (event.data.tableId) {
-          const key = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId, undefined, undefined, currentView?.id);
-          console.debug('Invalidating records cache for table:', event.data.tableId, key);
-          globalMutate(key);
+          globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {
+            revalidate: true,
+          });
         }
       }
     },
@@ -63,28 +63,12 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
       console.debug('Record event received:', event);
 
       if (event.type === 'record-changes' && event.data.tableId) {
-        // Invalidate records for the specific table, both for the current view and the global record set
-        const viewSwrKey = SWR_KEYS.snapshot.records(
-          snapshotId,
-          event.data.tableId,
-          undefined,
-          undefined,
-          currentView?.id,
-        );
-        const globalSwrKey = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId);
-        console.debug(
-          'Invalidating records cache for table:',
-          event.data.tableId,
-          'view:',
-          viewSwrKey,
-          'global:',
-          globalSwrKey,
-        );
-        globalMutate(viewSwrKey);
-        globalMutate(globalSwrKey);
+        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {
+          revalidate: true,
+        });
       }
     },
-    [snapshotId, globalMutate, currentView],
+    [snapshotId, globalMutate],
   );
 
   // Handle websocket errors

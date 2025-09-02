@@ -43,8 +43,8 @@ export interface UseSnapshotRecordsReturn {
     const { data, error, isLoading } = useSWR(swrKey, () =>
       snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
       {
-        revalidateOnFocus: false,
-        revalidateOnReconnect: true,
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,        
       }
     );
   
