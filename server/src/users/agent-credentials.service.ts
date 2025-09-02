@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { AiAgentCredential } from '@prisma/client';
 import { createAiAgentCredentialId } from 'src/types/ids';
 import { DbService } from '../db/db.service';
+import { PostHogService } from '../posthog/posthog.service';
 
 @Injectable()
 export class AgentCredentialsService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly posthogService: PostHogService,
+  ) {}
 
   public async findOne(id: string): Promise<AiAgentCredential | null> {
     return this.db.client.aiAgentCredential.findUnique({
@@ -48,8 +52,16 @@ export class AgentCredentialsService {
   }
 
   public async delete(id: string, userId: string): Promise<AiAgentCredential | null> {
-    return this.db.client.aiAgentCredential.delete({
+    const credential = await this.db.client.aiAgentCredential.delete({
       where: { id, userId },
     });
+
+    if (!credential) {
+      return null;
+    }
+
+    this.posthogService.trackDeleteAgentCredential(userId, credential);
+
+    return credential;
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
+import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { createConnectorAccountId } from '../../types/ids';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { TablePreview } from '../connectors/types';
@@ -13,6 +14,7 @@ export class ConnectorAccountService {
   constructor(
     private readonly db: DbService,
     private readonly connectorsService: ConnectorsService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
@@ -25,6 +27,9 @@ export class ConnectorAccountService {
         apiKey: createDto.apiKey,
         modifier: createDto.modifier,
       },
+    });
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
+      service: createDto.service,
     });
     return connectorAccount;
   }
@@ -54,8 +59,15 @@ export class ConnectorAccountService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
+    const account = await this.findOne(id, userId);
+    if (!account) {
+      throw new NotFoundException('ConnectorAccount not found');
+    }
     await this.db.client.connectorAccount.delete({
       where: { id, userId },
+    });
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, userId, {
+      service: account.service,
     });
   }
 

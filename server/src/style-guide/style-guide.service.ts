@@ -10,6 +10,7 @@ import axios, { AxiosError, HttpStatusCode } from 'axios';
 import { WSLogger } from 'src/logger';
 import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
+import { PostHogService } from '../posthog/posthog.service';
 import { createStyleGuideId } from '../types/ids';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
@@ -18,7 +19,10 @@ import { StyleGuide } from './entities/style-guide.entity';
 
 @Injectable()
 export class StyleGuideService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly posthogService: PostHogService,
+  ) {}
 
   async create(createStyleGuideDto: CreateStyleGuideDto, userId: string): Promise<StyleGuide> {
     // validate the DTO
@@ -33,6 +37,8 @@ export class StyleGuideService {
         userId,
       },
     });
+
+    this.posthogService.trackCreateResource(userId, styleGuide);
 
     return new StyleGuide(styleGuide);
   }
@@ -77,9 +83,16 @@ export class StyleGuideService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
+    const styleGuide = await this.findOne(id, userId);
+    if (!styleGuide) {
+      return false;
+    }
+
     const result = await this.db.client.styleGuide.deleteMany({
       where: { id, userId },
     });
+
+    this.posthogService.trackRemoveResource(userId, styleGuide);
 
     return result.count > 0;
   }

@@ -3,7 +3,6 @@ import posthog from 'posthog-js';
 
 export enum PostHogEvents {
   PAGE_VIEW = '$pageview',
-  USER_SIGN_IN = 'account_user_sign_in',
 }
 
 export function captureEvent(eventName: PostHogEvents, additionalProperties: Record<string, unknown> = {}): void {
@@ -43,10 +42,6 @@ export function trackUserSignIn(user: ScratchPadUser): void {
 
     try {
       posthog.identify(userId, { email });
-      posthog.capture(PostHogEvents.USER_SIGN_IN, {
-        distinct_id: userId,
-        email,
-      });
     } catch (error) {
       console.error('Error tracking user sign in', error);
     }

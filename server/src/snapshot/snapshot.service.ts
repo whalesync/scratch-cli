@@ -4,6 +4,7 @@ import _ from 'lodash';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { Connector } from '../remote-service/connectors/connector';
@@ -28,6 +29,7 @@ export class SnapshotService {
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
     private readonly snapshotEventService: SnapshotEventService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
@@ -85,16 +87,20 @@ export class SnapshotService {
       });
     });
 
+    this.posthogService.trackCreateSnapshot(userId, newSnapshot);
+
     return newSnapshot;
   }
 
   async delete(id: SnapshotId, userId: string): Promise<void> {
-    await this.findOneWithConnectorAccount(id, userId); // Permissions
+    const snapshot = await this.findOneWithConnectorAccount(id, userId); // Permissions
 
     await this.snapshotDbService.cleanUpSnapshot(id);
     await this.db.client.snapshot.delete({
       where: { id },
     });
+
+    this.posthogService.trackRemoveSnapshot(userId, snapshot);
   }
 
   findAll(connectorAccountId: string, userId: string): Promise<SnapshotCluster.Snapshot[]> {
@@ -708,6 +714,8 @@ export class SnapshotService {
     // TODO: Do this work somewhere real.
     // For now it's running synchronously, but could also be done in the background.
     await this.publishSnapshot(snapshot);
+
+    this.posthogService.trackPublishSnapshot(userId, snapshot);
   }
 
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {

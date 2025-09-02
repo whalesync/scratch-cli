@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ClerkModule } from 'src/clerk/clerk.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
+import { PosthogModule } from 'src/posthog/posthog.module';
 import { UserModule } from 'src/users/users.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { AiSnapshotController } from './ai-snapshot.controller';
@@ -12,7 +13,7 @@ import { SnapshotDataGateway } from './snapshot.gateway';
 import { SnapshotService } from './snapshot.service';
 
 @Module({
-  imports: [DbModule, ConnectorsModule, ScratchpadConfigModule, ClerkModule, UserModule],
+  imports: [DbModule, ConnectorsModule, ScratchpadConfigModule, ClerkModule, UserModule, PosthogModule],
   controllers: [SnapshotController, AiSnapshotController],
   providers: [SnapshotService, SnapshotDbService, SnapshotEventService, SnapshotDataGateway],
   exports: [SnapshotService],
