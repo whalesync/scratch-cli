@@ -1,6 +1,6 @@
 import { AiAgentCredential as PrismaAiAgentCredential } from '@prisma/client';
 
-export type AgentService = 'openai' | 'anthropic' | 'gemini';
+export type AgentService = 'openrouter';
 export class AiAgentCredential {
   id: string;
   createdAt: Date;

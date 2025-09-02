@@ -28,6 +28,18 @@ export class AgentCredentialsController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Get('active/:service')
+  async findActive(@Param('service') service: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
+    const result = await this.service.findActiveServiceCredentials(req.user.id, service);
+
+    if (!result) {
+      throw new NotFoundException();
+    }
+
+    return new AiAgentCredential(result);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential | null> {
     const credential = await this.service.findOne(id);

@@ -1,6 +1,5 @@
 'use client';
 
-import { UserProfile } from '@clerk/nextjs';
 import { Group, Stack } from '@mantine/core';
 import { ContentContainer } from '../components/ContentContainer';
 import { AgentCredentials } from './components/AgentCredentials';
@@ -13,10 +12,9 @@ const SettingsPage = () => {
       <Group gap="md" align="flex-start">
         <Stack gap="md">
           <AgentCredentials />
-          <AgentUsageInfoCard />
           <DebugInfo />
         </Stack>
-        <UserProfile routing="hash" />
+        <AgentUsageInfoCard />
       </Group>
     </ContentContainer>
   );

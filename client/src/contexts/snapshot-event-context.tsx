@@ -64,9 +64,24 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
       if (event.type === 'record-changes' && event.data.tableId) {
         // Invalidate records for the specific table, both for the current view and the global record set
-        const swrKey = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId, undefined, undefined, currentView?.id);
-        globalMutate(swrKey);
-        globalMutate(SWR_KEYS.snapshot.records(snapshotId, event.data.tableId));
+        const viewSwrKey = SWR_KEYS.snapshot.records(
+          snapshotId,
+          event.data.tableId,
+          undefined,
+          undefined,
+          currentView?.id,
+        );
+        const globalSwrKey = SWR_KEYS.snapshot.records(snapshotId, event.data.tableId);
+        console.debug(
+          'Invalidating records cache for table:',
+          event.data.tableId,
+          'view:',
+          viewSwrKey,
+          'global:',
+          globalSwrKey,
+        );
+        globalMutate(viewSwrKey);
+        globalMutate(globalSwrKey);
       }
     },
     [snapshotId, globalMutate, currentView],

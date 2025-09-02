@@ -10,7 +10,7 @@ export const AgentUsageInfoCard = () => {
   const { events, summary, isLoading } = useAgentTokenUsage();
 
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder w={700}>
+    <Card shadow="sm" padding="sm" radius="md" withBorder miw={700}>
       <TextTitleLg mb="xs">Monthly AI Usage</TextTitleLg>
       {isLoading ? (
         <Center mih={200}>
@@ -75,6 +75,13 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
                 <Table.Td ta="right">{item.totalTokens.toLocaleString()}</Table.Td>
               </Table.Tr>
             ))}
+            {sortedItems?.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={3} ta="center">
+                  No tokens used yet this month
+                </Table.Td>
+              </Table.Tr>
+            )}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>

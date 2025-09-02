@@ -44,7 +44,7 @@ from server.agent_run_state_manager import AgentRunStateManager
 from server.session_service import SessionService
 from server.auth import AgentUser
 
-myLogger = getLogger(__name__)
+logger = getLogger(__name__)
 
 
 # TODO: refactor this as a service or singleton class
@@ -72,14 +72,14 @@ class ChatService:
         progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
-        myLogger.info(
+        logger.info(
             "Starting agent processing",
             extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
         )
 
         # Log view ID if provided
         if not view_id:
-            myLogger.info("No view ID provided")
+            logger.info("No view ID provided")
 
         # Log capabilities if provided
         if capabilities:
@@ -113,16 +113,14 @@ class ChatService:
         try:
             # load agent credentials for the user, this both verifies the api_token is active AND gets any
             # openrouter credentials for the user has access to
-            agent_credentials = ScratchpadApi.get_agent_credentials(user.userId)
-            user_open_router_credentials = find_first_matching(
-                agent_credentials,
-                lambda c: c.service == "openrouter"
-                and c.apiKey is not None
-                and c.apiKey.strip() != ""
-                and c.enabled,
+            user_open_router_credentials = (
+                ScratchpadApi.get_agent_credentials_by_service(
+                    user.userId, "openrouter"
+                )
             )
+
             if user_open_router_credentials:
-                myLogger.info(
+                logger.info(
                     "User has personal openrouter credentials",
                     extra={
                         "session_id": session.id,
@@ -137,7 +135,7 @@ class ChatService:
                 session_id=session.id,
                 error=str(e),
             )
-            myLogger.exception(
+            logger.exception(
                 "Failed to get agent credentials",
                 extra={"session_id": session.id},
             )
@@ -168,7 +166,7 @@ class ChatService:
 
             try:
                 # Pre-load snapshot data and records for efficiency
-                myLogger.info(
+                logger.info(
                     "Pre-loading snapshot data and records",
                 )
                 snapshot_data = None
@@ -184,16 +182,16 @@ class ChatService:
                         )
                         try:
                             if view_id:
-                                myLogger.info(f"🔍 Getting column view {view_id}")
+                                logger.info(f"🔍 Getting column view {view_id}")
                                 column_view = ScratchpadApi.get_column_view(
                                     user.userId, view_id
                                 )
                             else:
-                                myLogger.info(
+                                logger.info(
                                     f"🔍 No view ID provided, skipping column view",
                                 )
                         except Exception as e:
-                            myLogger.exception(
+                            logger.exception(
                                 f"❌ Failed to get column view {view_id}",
                             )
                             column_view = None
@@ -230,11 +228,11 @@ class ChatService:
                                             "dirty": record.dirty,
                                         }
                                     ]
-                                    myLogger.info(
+                                    logger.info(
                                         f"📊 Pre-loaded {len(preloaded_records[table.name])} record for table '{table.name}': {record.id.wsId}"
                                     )
                                 except Exception as e:
-                                    myLogger.exception(
+                                    logger.exception(
                                         f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
                                     )
                                     preloaded_records[table.name] = []
@@ -262,20 +260,20 @@ class ChatService:
                                         }
                                         for record in records_result.records
                                     ]
-                                    myLogger.info(
+                                    logger.info(
                                         f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'"
                                     )
                                     if records_result.filteredRecordsCount > 0:
-                                        myLogger.info(
+                                        logger.info(
                                             f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'"
                                         )
                                 except Exception as e:
-                                    myLogger.exception(
+                                    logger.exception(
                                         f"⚠️ Failed to pre-load records for table '{table.name}'"
                                     )
                                     preloaded_records[table.name] = []
 
-                        myLogger.info(
+                        logger.info(
                             "Data preload complete",
                         )
                     except Exception as e:
@@ -285,7 +283,7 @@ class ChatService:
                             error=str(e),
                             snapshot_id=session.snapshot_id,
                         )
-                        myLogger.exception(
+                        logger.exception(
                             f"❌ Failed to pre-load snapshot data",
                         )
                         raise HTTPException(
@@ -513,13 +511,13 @@ class ChatService:
                             result = agent_run.result
                             await self._run_state_manager.complete_run(agent_run_id)
                     except AgentRunCancelledError as e:
-                        myLogger.info(f"Run {e.run_id} cancelled by user: {e.when}")
+                        logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
                         result = CancelledAgentRunResult(
                             agent_run.usage() if agent_run.usage else None
                         )
 
                 # Run the streaming with timeout
-                myLogger.info(
+                logger.info(
                     "Running agent with timeout",
                     extra={
                         "session_id": session.id,
@@ -531,7 +529,7 @@ class ChatService:
                 await asyncio.wait_for(process_stream(), timeout=timeout_seconds)
                 end_time = asyncio.get_event_loop().time()
                 execution_time = end_time - start_time
-                myLogger.info(
+                logger.info(
                     f"Agent run ended: session_id={session.id}, execution_time={execution_time}"
                 )
             except asyncio.TimeoutError:
@@ -541,19 +539,19 @@ class ChatService:
                     timeout_seconds=30,
                     snapshot_id=session.snapshot_id,
                 )
-                myLogger.info(f"❌ Agent.run() timed out after 30 seconds")
+                logger.info(f"❌ Agent.run() timed out after 30 seconds")
                 raise HTTPException(status_code=408, detail="Agent response timeout")
             finally:
                 await self._run_state_manager.delete_run(agent_run_id)
 
             # The agent returns an AgentRunResult wrapper, we need to extract the actual response
-            myLogger.info(f"🔍 Agent result: {type(result)}")
+            logger.info(f"🔍 Agent result: {type(result)}")
 
             if isinstance(result, CancelledAgentRunResult):
 
                 cancelled_result: CancelledAgentRunResult = result
                 # cancelled by user, handle as a special response to the caller
-                myLogger.info(f"Build response for cancelled run {agent_run_id}")
+                logger.info(f"Build response for cancelled run {agent_run_id}")
 
                 if cancelled_result.usage_stats.requests > 0:
                     try:
@@ -578,7 +576,7 @@ class ChatService:
                             },
                         )
                     except Exception as e:
-                        myLogger.exception(
+                        logger.exception(
                             f"❌ Failed to track token usage through Scratchpad API"
                         )
 
@@ -599,7 +597,7 @@ class ChatService:
                     session_id=session.id,
                     snapshot_id=session.snapshot_id,
                 )
-                myLogger.info(f"❌ No response from agent")
+                logger.info(f"❌ No response from agent")
                 raise HTTPException(status_code=500, detail="No response from agent")
 
             # Check if actual_response has the expected fields using getattr for safety
@@ -657,7 +655,7 @@ class ChatService:
                         },
                     )
                 except Exception as e:
-                    myLogger.exception(
+                    logger.exception(
                         f"❌ Failed to track token usage through Scratchpad API"
                     )
 
@@ -669,7 +667,7 @@ class ChatService:
                     response_type=type(result),
                     snapshot_id=session.snapshot_id,
                 )
-                myLogger.info(f"❌ Invalid response from agent: {result}")
+                logger.info(f"❌ Invalid response from agent: {result}")
                 raise HTTPException(
                     status_code=500, detail="Invalid response from agent"
                 )
@@ -681,19 +679,19 @@ class ChatService:
                 error=str(e),
                 snapshot_id=session.snapshot_id,
             )
-            myLogger.exception(f"Error in agent processing")
+            logger.exception(f"Error in agent processing")
             raise HTTPException(
                 status_code=500, detail=f"Error processing message: {str(e)}"
             )
 
     async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
         """Cancel a run"""
-        myLogger.info(
+        logger.info(
             f"Cancelling agent run {run_id} for session {session_id}",
         )
 
         if not await self._run_state_manager.exists(session_id, run_id):
-            myLogger.info(
+            logger.info(
                 f"Run {run_id} not found",
                 extra={"run_id": run_id, "session_id": session_id},
             )

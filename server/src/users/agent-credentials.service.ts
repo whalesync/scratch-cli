@@ -23,11 +23,22 @@ export class AgentCredentialsService {
     });
   }
 
+  public async findActiveServiceCredentials(
+    userId: string,
+    service: string = 'openrouter',
+  ): Promise<AiAgentCredential | null> {
+    return this.db.client.aiAgentCredential.findFirst({
+      where: { userId, enabled: true, service },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   public async create(data: {
     userId: string;
     service: string;
     apiKey: string;
     description?: string;
+    enabled: boolean;
   }): Promise<AiAgentCredential> {
     return this.db.client.aiAgentCredential.create({
       data: {
@@ -36,6 +47,7 @@ export class AgentCredentialsService {
         service: data.service,
         apiKey: data.apiKey,
         description: data.description,
+        enabled: data.enabled,
       },
     });
   }

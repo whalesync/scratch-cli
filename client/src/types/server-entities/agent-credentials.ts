@@ -1,4 +1,4 @@
-export type AgentService = 'openai' | 'anthropic' | 'gemini';
+export type AgentService = 'openrouter';
 
 export interface AiAgentCredential {
     id: string;
@@ -10,7 +10,7 @@ export interface AiAgentCredential {
   }
   
   export interface CreateAiAgentCredentialDto {
-    service: string;
+    service: AgentService;
     apiKey: string;
     description?: string;
     enabled: boolean;

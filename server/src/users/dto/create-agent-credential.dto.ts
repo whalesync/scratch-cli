@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateAgentCredentialDto {
   @IsString()
@@ -10,6 +10,9 @@ export class CreateAgentCredentialDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsBoolean()
+  enabled: boolean;
 }
 
 export class UpdateAgentCredentialDto {
@@ -23,4 +26,8 @@ export class UpdateAgentCredentialDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  enabled?: boolean;
 }

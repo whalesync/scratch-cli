@@ -1,8 +1,9 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import {
   ActionIcon,
   Alert,
@@ -10,7 +11,6 @@ import {
   Button,
   Card,
   Center,
-  Checkbox,
   Grid,
   Group,
   Loader,
@@ -18,108 +18,28 @@ import {
   PasswordInput,
   Stack,
   Text,
-  TextInput,
   useModalsStack,
 } from '@mantine/core';
-import { useSetState } from '@mantine/hooks';
-import { PencilIcon, TrashIcon } from '@phosphor-icons/react';
+import { PencilIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, createCredentials, updateCredentials, deleteCredentials } =
-    useAgentCredentials();
-  const modalStack = useModalsStack(['create', 'update', 'confirm-delete']);
-  const [createData, setCreateData] = useSetState<CreateAiAgentCredentialDto>({
-    service: 'openrouter',
-    apiKey: '',
-    description: '',
-    enabled: true,
-  });
-  const [updateData, setUpdateData] = useSetState<UpdateAiAgentCredentialDto>({
-    apiKey: '',
-    description: '',
-    enabled: true,
-  });
-  const [updateId, setUpdateId] = useState<string | null>(null);
+  const { agentCredentials, isLoading, error, deleteCredentials } = useAgentCredentials();
+  const modalStack = useModalsStack(['edit', 'confirm-delete']);
+  const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const modals = (
     <>
-      <Modal {...modalStack.register('create')} title="New credentials" centered size="lg">
-        <Stack gap="sm">
-          <TextRegularSm c="dimmed">
-            Register an OpenRouter.ai API key here to enable the Scratchpad agent to use it.
-          </TextRegularSm>
-          <PasswordInput
-            label="API Key"
-            required
-            placeholder="Your OpenRouter API key"
-            value={createData.apiKey}
-            onChange={(event) => setCreateData({ apiKey: event.target.value })}
-          />
-          <TextInput
-            label="Description"
-            placeholder="Optional description"
-            value={createData.description}
-            onChange={(event) => setCreateData({ description: event.target.value })}
-          />
-          <Checkbox
-            label="Active"
-            checked={createData.enabled}
-            onChange={(event) => setUpdateData({ enabled: event.target.checked })}
-          />
-          <Group justify="flex-end">
-            <Button variant="outline" onClick={() => modalStack.close('create')}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                createCredentials(createData);
-                modalStack.close('create');
-                setCreateData({ service: 'openrouter', apiKey: '', description: '' });
-              }}
-            >
-              Create
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-      <Modal {...modalStack.register('update')} title="Edit credentials" centered size="lg">
-        <Stack gap="sm">
-          <PasswordInput
-            label="API Key"
-            required
-            placeholder="Your OpenRouter API key"
-            value={updateData.apiKey}
-            onChange={(event) => setUpdateData({ apiKey: event.target.value })}
-          />
-          <TextInput
-            label="Description"
-            placeholder="Optional description"
-            value={updateData.description}
-            onChange={(event) => setUpdateData({ description: event.target.value })}
-          />
-          <Checkbox
-            label="Active"
-            checked={updateData.enabled}
-            onChange={(event) => setUpdateData({ enabled: event.target.checked })}
-          />
-          <Group justify="flex-end">
-            <Button variant="outline" onClick={() => modalStack.close('update')}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                updateCredentials(updateId!, updateData);
-                modalStack.close('update');
-                setUpdateId(null);
-              }}
-            >
-              Save
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <EditAgentCredentialsModal
+        {...modalStack.register('edit')}
+        credentials={activeCredential}
+        onSuccess={() => {
+          setActiveCredential(null);
+          modalStack.close('edit');
+        }}
+      />
+
       <Modal {...modalStack.register('confirm-delete')} title="Confirm delete" centered>
         <Stack gap="sm">
           <Text>Are you sure you want to delete these credentials?</Text>
@@ -197,13 +117,8 @@ export const AgentCredentials = () => {
               <ActionIcon
                 variant="subtle"
                 onClick={() => {
-                  setUpdateId(credential.id);
-                  setUpdateData({
-                    apiKey: credential.apiKey,
-                    description: credential.description ?? '',
-                    enabled: credential.enabled,
-                  });
-                  modalStack.open('update');
+                  setActiveCredential(credential);
+                  modalStack.open('edit');
                 }}
               >
                 <PencilIcon />
@@ -231,7 +146,7 @@ export const AgentCredentials = () => {
   return (
     <>
       {modals}
-      <Card shadow="sm" padding="sm" radius="md" withBorder>
+      <Card shadow="sm" padding="sm" radius="md" withBorder miw={700}>
         <TextTitleLg mb="xs">Agent Credentials</TextTitleLg>
         {error && (
           <Alert color="red" mb="sm">
@@ -243,8 +158,15 @@ export const AgentCredentials = () => {
           {list}
         </Stack>
         <Group justify="flex-end">
-          <PrimaryButton w="fit-content" onClick={() => modalStack.open('create')}>
-            New credentials
+          <PrimaryButton
+            w="fit-content"
+            onClick={() => {
+              setActiveCredential(null);
+              modalStack.open('edit');
+            }}
+            leftSection={<PlusIcon />}
+          >
+            New credential
           </PrimaryButton>
         </Group>
       </Card>

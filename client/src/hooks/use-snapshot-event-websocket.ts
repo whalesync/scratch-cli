@@ -92,22 +92,22 @@ export const useSnapshotEventWebsocket = (props: SnapshotEventWebsocketProps) : 
 
     // Connection event handlers
     newSocket.on('connect', () => {
-      log('Socket connected');
+      log('connected');
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', () => {
-      log('Socket disconnected');
+      log('disconnected');
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      log('Socket connection error', error);
+      log('connection error', error);
       onError?.(error);
     });
 
     newSocket.on('exception', (error) => {
-      log('Socket exception', error);
+      log('exception', error);
       addToMessageLog('Socket exception: ' + (error.message || 'Unknown error'));
       onError?.(error);
     });

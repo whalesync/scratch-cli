@@ -5,7 +5,6 @@ from logging import getLogger
 from scratchpad.config import API_CONFIG
 from scratchpad.entities import (
     AgentCredential,
-    BulkUpdateRecordsDto,
     ColumnView,
     RecordOperation,
     ScratchpadSnapshot,
@@ -211,10 +210,25 @@ class ScratchpadApi:
         return [AgentCredential(**credential) for credential in data]
 
     @staticmethod
+    def get_agent_credentials_by_service(
+        user_id: str, service: str
+    ) -> Optional[AgentCredential]:
+        """Get agent credentials by service"""
+        url = f"{API_CONFIG.get_api_url()}/user/credentials/active/{service}"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
+
+        if not response.ok and response.status_code == 404:
+            # 404 means no credentials found
+            return None
+
+        data = _handle_response(response, "Failed to get agent credentials")
+        return AgentCredential(**data) if data else None
+
+    @staticmethod
     def get_agent_credentials_by_id(
         user_id: str,
         credential_id: str,
-    ) -> AgentCredential:
+    ) -> Optional[AgentCredential]:
         """Get agent credentials"""
         url = f"{API_CONFIG.get_api_url()}/user/credentials/{credential_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))

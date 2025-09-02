@@ -6,6 +6,10 @@ import { CopyIcon } from '@phosphor-icons/react';
 export const DebugInfo = () => {
   const { user, isAdmin } = useScratchPadUser();
 
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <Card shadow="sm" padding="sm" radius="md" withBorder>
       <TextTitleLg mb="xs">Debug</TextTitleLg>
