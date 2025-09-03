@@ -7,7 +7,13 @@ import { ActionIcon, Combobox, Group, Text, Tooltip, useCombobox } from '@mantin
 import { ClockCounterClockwiseIcon } from '@phosphor-icons/react';
 import { useCallback, useMemo } from 'react';
 
-export const SessionHistorySelector = ({ onSelect }: { onSelect: (sessionId: string) => void }) => {
+export const SessionHistorySelector = ({
+  onSelect,
+  disabled = false,
+}: {
+  onSelect: (sessionId: string) => void;
+  disabled?: boolean;
+}) => {
   const combobox = useCombobox();
 
   const { sessions, activeSessionId } = useAIAgentSessionManagerContext();
@@ -93,6 +99,7 @@ export const SessionHistorySelector = ({ onSelect }: { onSelect: (sessionId: str
       withArrow
       position="bottom-end"
       withinPortal={false}
+      disabled={disabled}
       onOptionSubmit={(val) => {
         if (val) {
           onSelect(val);
@@ -102,7 +109,7 @@ export const SessionHistorySelector = ({ onSelect }: { onSelect: (sessionId: str
     >
       <Combobox.Target>
         <Tooltip label="Chat history">
-          <ActionIcon variant="subtle" size="sm" onClick={() => combobox.toggleDropdown()}>
+          <ActionIcon variant="subtle" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
             <StyledIcon Icon={ClockCounterClockwiseIcon} />
           </ActionIcon>
         </Tooltip>

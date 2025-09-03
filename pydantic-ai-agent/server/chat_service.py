@@ -4,6 +4,7 @@ Chat Service for handling agent communication and session management
 """
 
 import asyncio
+import os
 import time
 import uuid
 from datetime import datetime, timedelta
@@ -45,6 +46,8 @@ from server.session_service import SessionService
 from server.auth import AgentUser
 
 logger = getLogger(__name__)
+
+SHARED_OPENROUTER_KEY = os.getenv("SHARED_OPENROUTER_KEY")
 
 
 # TODO: refactor this as a service or singleton class
@@ -108,8 +111,7 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
 
-        user_open_router_credentials = None
-
+        # Determine the API key to use for the agent
         try:
             # load agent credentials for the user, this both verifies the api_token is active AND gets any
             # openrouter credentials for the user has access to
@@ -118,6 +120,9 @@ class ChatService:
                     user.userId, "openrouter"
                 )
             )
+
+            if not user_open_router_credentials.apiKey:
+                user_open_router_credentials = None
 
             if user_open_router_credentials:
                 logger.info(
@@ -142,6 +147,39 @@ class ChatService:
             raise HTTPException(
                 status_code=500,
                 detail="Error authenticating credentials for agent processing",
+            )
+
+        require_user_agent_credentials = (
+            os.getenv("REQUIRE_USER_AGENT_CREDENTIALS", "false").lower() == "true"
+        )
+
+        if (
+            require_user_agent_credentials
+            and not user_open_router_credentials
+            and not user.role == "admin"
+        ):
+            log_error(
+                "User does not have openrouter credentials configured",
+                session_id=session.id,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="User agent credentials required",
+            )
+
+        api_key = None
+        if user_open_router_credentials and user_open_router_credentials.apiKey:
+            logger.info(
+                f"🔑 Using personal openrouter credentials: {user_open_router_credentials.id}"
+            )
+            api_key = user_open_router_credentials.apiKey
+        else:
+            logger.info(f"🔑 Using Whalesync OpenRouter credentials")
+            api_key = SHARED_OPENROUTER_KEY
+
+        if not api_key:
+            raise HTTPException(
+                status_code=401, detail="Unable to find an OpenRouter API key for agent"
             )
 
         try:
@@ -374,11 +412,11 @@ class ChatService:
                         )
 
                 agent = create_agent(
+                    api_key=open_router_api_key,
                     model_name=model,
                     capabilities=capabilities,
                     style_guides=style_guides,
                     data_scope=data_scope,
-                    open_router_credentials=user_open_router_credentials,
                 )
 
                 result = None

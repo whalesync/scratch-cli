@@ -1,13 +1,16 @@
 'use client';
 
+import { SecondaryButton } from '@/app/components/base/buttons';
 import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
+import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ColumnView } from '@/types/server-entities/view';
 import { sleep } from '@/utils/helpers';
+import { RouteUrls } from '@/utils/route-urls';
 import {
   ActionIcon,
   Alert,
@@ -99,6 +102,8 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
+  const { aiAgentEnabled } = useAgentCredentials();
+
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
@@ -167,6 +172,11 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   }, [resetInputFocus, connectionStatus]);
 
   const createNewSession = async () => {
+    if (!aiAgentEnabled) {
+      setError('You must configure your OpenRouter credentials to use the AI agent');
+      return;
+    }
+
     if (!snapshot) {
       setError('Snapshot ID is required to create a session');
       return;
@@ -299,7 +309,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   // combine the historical session data and the current websocket message history
   const chatHistory = [...(activeSession?.chat_history || []), ...(messageHistory || [])];
 
-  const chatInputEnabled = activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
+  const chatInputEnabled = aiAgentEnabled && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
   const connectionBadge =
     connectionStatus === 'connected' ? (
@@ -334,11 +344,18 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         <Group gap="xs">
           {connectionBadge}
           <Tooltip label="New chat">
-            <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
+            <ActionIcon
+              onClick={createNewSession}
+              size="sm"
+              variant="subtle"
+              title="New chat"
+              disabled={!aiAgentEnabled}
+            >
               <StyledIcon Icon={PlusIcon} size={14} />
             </ActionIcon>
           </Tooltip>
           <SessionHistorySelector
+            disabled={!aiAgentEnabled}
             onSelect={async (sessionId: string) => {
               if (sessionId) {
                 await disconnect();
@@ -414,15 +431,26 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         </ScrollArea>
       ) : (
         <Center h="100%">
-          <Button
-            variant="subtle"
-            leftSection={<ChatCircleIcon size={16} />}
-            onClick={createNewSession}
-            size="xs"
-            w="fit-content"
-          >
-            Start new chat
-          </Button>
+          {aiAgentEnabled ? (
+            <Button
+              variant="subtle"
+              leftSection={<ChatCircleIcon size={16} />}
+              onClick={createNewSession}
+              size="xs"
+              w="fit-content"
+            >
+              Start new chat
+            </Button>
+          ) : (
+            <Stack gap="xs" justify="center" align="center">
+              <Text size="xs" c="dimmed">
+                You must configure your OpenRouter credentials to use the AI agent
+              </Text>
+              <SecondaryButton component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
+                Configure credentials
+              </SecondaryButton>
+            </Stack>
+          )}
         </Center>
       )}
 
@@ -430,7 +458,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
       {/* Bottom Input Area */}
       <Stack gap="xs">
         {/* Style Guide Selection */}
-        <ResourceSelector />
+        <ResourceSelector disabled={!aiAgentEnabled} />
 
         <ContextBadges activeTable={activeTable} currentView={currentView} />
 
@@ -450,7 +478,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyUp={handleKeyPress}
-          disabled={agentTaskRunning}
+          disabled={agentTaskRunning || !aiAgentEnabled}
           onFocus={() => {
             handleTextInputFocus();
           }}
@@ -465,13 +493,19 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
         <Group gap="xs" align="center">
           <Group gap="6px" style={{ flex: 1 }}>
             <Tooltip label="Browse LLM models">
-              <ActionIcon variant="subtle" onClick={() => setShowModelSelector(true)} size="sm">
+              <ActionIcon
+                variant="subtle"
+                onClick={() => setShowModelSelector(true)}
+                size="sm"
+                disabled={!aiAgentEnabled}
+              >
                 <StyledIcon Icon={HeadCircuitIcon} size={14} c="gray.9" />
               </ActionIcon>
             </Tooltip>
             <TextInput
               placeholder="Enter model name"
               value={activeModel}
+              disabled={!aiAgentEnabled}
               onChange={(e) => setActiveModel(e.target.value)}
               size="xs"
               style={{ flex: 1 }}

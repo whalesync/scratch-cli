@@ -24,11 +24,11 @@ logger = getLogger(__name__)
 
 
 def create_agent(
+    api_key: str,
     model_name: Optional[str] = None,
     capabilities: Optional[List[str]] = None,
     style_guides: Dict[str, str] = {},
     data_scope: Optional[str] = None,
-    open_router_credentials: Optional[AgentCredential] = None,
 ):
     """Create and return a configured agent"""
     logger.info(f"🔍 create_agent called with:")
@@ -43,20 +43,6 @@ def create_agent(
             logger.info(f"   style_guide {i}: {g}")
 
     try:
-        # OpenRouter API key from environment
-        api_key = os.getenv("OPENROUTER_API_KEY")
-
-        if open_router_credentials and open_router_credentials.apiKey:
-            logger.info(
-                f"🔑 Using personal openrouter credentials: {mask_string(open_router_credentials.apiKey, 8, '*', 15)}"
-            )
-            api_key = open_router_credentials.apiKey
-
-        if not api_key:
-            raise ValueError(
-                "Unable to find an OpenRouter API key for agent processing"
-            )
-
         # Use provided model name or fall back to environment variable
         if model_name is None:
             model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")

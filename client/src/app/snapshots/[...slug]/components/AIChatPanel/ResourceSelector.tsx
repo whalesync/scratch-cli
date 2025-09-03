@@ -9,7 +9,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './ResourceSelector.module.css';
 
-export function ResourceSelector() {
+export function ResourceSelector({ disabled }: { disabled: boolean }) {
   const { styleGuides: resources, mutate: refreshResourceList } = useStyleGuides();
   const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
   const { activeResources, setActiveResources } = useAgentChatContext();
@@ -111,9 +111,10 @@ export function ResourceSelector() {
             onOptionSubmit={(val) => {
               handleAdd(val);
             }}
+            disabled={disabled}
           >
             <Combobox.Target>
-              <ActionIcon variant="outline" size="sm" onClick={() => combobox.toggleDropdown()}>
+              <ActionIcon variant="outline" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
                 <StyledIcon Icon={PlusIcon} weight="bold" />
               </ActionIcon>
             </Combobox.Target>
