@@ -8,12 +8,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator markdown {
-  provider = "prisma-markdown"
-  output   = "./ERD.md"
-  title    = "prisma-db entity relationship diagram"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
