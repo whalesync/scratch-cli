@@ -121,9 +121,6 @@ class ChatService:
                 )
             )
 
-            if not user_open_router_credentials.apiKey:
-                user_open_router_credentials = None
-
             if user_open_router_credentials:
                 logger.info(
                     "User has personal openrouter credentials",
