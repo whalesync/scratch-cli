@@ -26,6 +26,7 @@ model User {
   name                    String?
   email                   String?
   role                    UserRole                 @default(USER)
+  stripeCustomerId        String?                  @unique
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
   customConnectors        CustomConnector[]
@@ -33,6 +34,8 @@ model User {
   csvFiles                CsvFile[]
   aiAgentCredentials      AiAgentCredential[]
   aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
+  subscriptions           Subscription[]
+  invoiceResults          InvoiceResult[]
 }
 
 enum TokenType {
@@ -218,4 +221,44 @@ model AiAgentTokenUsageEvent {
   context        Json? // additional context for the event
 
   @@index([userId])
+}
+
+
+
+
+/// A user's subscription with stripe.
+/// There *should* only ever be one of these for a user, but we track any subscriptions stripe sends our way.
+model Subscription {
+  id                   String   @id // type: SubscriptionId
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  version              Int      @default(1)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String   
+  productType          String
+  stripeSubscriptionId String   @unique
+  expiration           DateTime
+  priceInDollars       Int      @default(0)
+  /// Set when we receive invoice.paid or invoice.payment_failed webhooks.
+  lastInvoicePaid      Boolean?
+
+  @@index([userId])
+}
+
+
+/// Simple log to cache whether a user's subscription is getting paid.
+/// Stripe is the authoritative source for this.
+model InvoiceResult {
+  id        String   @id // type: InvoiceResultId
+  createdAt DateTime @default(now())
+
+  /// Stripe invoice ID
+  invoiceId String
+
+  /// The user that the invoice is for.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // True if the invoice was paid.
+  succeeded Boolean
 }

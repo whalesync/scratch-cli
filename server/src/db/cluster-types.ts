@@ -5,7 +5,7 @@ export namespace UserCluster {
   export type User = Prisma.UserGetPayload<typeof _validator>;
 
   export const _validator = Prisma.validator<Prisma.UserDefaultArgs>()({
-    include: { apiTokens: true },
+    include: { apiTokens: true, subscriptions: true },
   });
 }
 

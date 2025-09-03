@@ -22,6 +22,8 @@ export enum IdPrefixes {
   VIEW = 'vew_',
   AI_AGENT_CREDENTIAL = 'aac_',
   AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',
+  SUBSCRIPTION = 'sub_',
+  INVOICE_RESULT = 'inv_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -169,4 +171,26 @@ export function isAiAgentTokenUsageEventId(id: unknown): id is AiAgentTokenUsage
 
 export function createAiAgentTokenUsageEventId(): AiAgentTokenUsageEventId {
   return createId(IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT) as AiAgentTokenUsageEventId;
+}
+
+// ------- Subscription -------
+export type SubscriptionId = PrefixedId<IdPrefixes.SUBSCRIPTION>;
+
+export function isSubscriptionId(id: unknown): id is SubscriptionId {
+  return isId(id, IdPrefixes.SUBSCRIPTION);
+}
+
+export function createSubscriptionId(): SubscriptionId {
+  return createId(IdPrefixes.SUBSCRIPTION) as SubscriptionId;
+}
+
+// ------- InvoiceResult -------
+export type InvoiceResultId = PrefixedId<IdPrefixes.INVOICE_RESULT>;
+
+export function isInvoiceResultId(id: unknown): id is InvoiceResultId {
+  return isId(id, IdPrefixes.INVOICE_RESULT);
+}
+
+export function createInvoiceResultId(): InvoiceResultId {
+  return createId(IdPrefixes.INVOICE_RESULT) as InvoiceResultId;
 }
