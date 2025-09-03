@@ -48,7 +48,7 @@ export class SnapshotService {
     // Poll the connector for the set of columns.
     // This probably could be something the user selects, which would mean we poll for it earlier and just take the
     // results back here.
-    const connector = this.connectorService.getConnector(connectorAccount);
+    const connector = await this.connectorService.getConnector(connectorAccount);
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
     for (const tableId of tableIds) {
@@ -668,7 +668,7 @@ export class SnapshotService {
   }
 
   private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<DownloadSnapshotResult> {
-    const connector = this.connectorService.getConnector(snapshot.connectorAccount);
+    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     let totalCount = 0;
     const tables: { id: string; name: string; records: number }[] = [];
@@ -719,7 +719,7 @@ export class SnapshotService {
   }
 
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
-    const connector = this.connectorService.getConnector(snapshot.connectorAccount);
+    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
     // First create everything.

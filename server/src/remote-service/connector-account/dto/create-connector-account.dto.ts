@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { AuthType, Service } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateConnectorAccountDto {
@@ -9,6 +9,10 @@ export class CreateConnectorAccountDto {
   @IsString()
   @IsNotEmpty()
   readonly apiKey: string;
+
+  @IsEnum(AuthType)
+  @IsOptional()
+  readonly authType?: AuthType;
 
   @IsString()
   @IsOptional()

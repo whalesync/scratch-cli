@@ -43,6 +43,11 @@ erDiagram
   Service service
   String displayName
   String apiKey
+  AuthType authType
+  String oauthAccessToken "nullable"
+  String oauthRefreshToken "nullable"
+  DateTime oauthExpiresAt "nullable"
+  String oauthWorkspaceId "nullable"
   ConnectorHealthStatus healthStatus "nullable"
   DateTime healthStatusLastCheckedAt "nullable"
   String modifier "nullable"
@@ -177,6 +182,11 @@ Properties as follows:
 - `service`:
 - `displayName`:
 - `apiKey`:
+- `authType`:
+- `oauthAccessToken`:
+- `oauthRefreshToken`:
+- `oauthExpiresAt`:
+- `oauthWorkspaceId`:
 - `healthStatus`:
 - `healthStatusLastCheckedAt`:
 - `modifier`:

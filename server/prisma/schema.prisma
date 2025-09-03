@@ -25,21 +25,20 @@ enum UserRole {
 }
 
 model User {
-  id                String             @id // type: UserId
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  clerkId           String?            @unique
-  name              String?            
-  email             String?            
-  role              UserRole           @default(USER)
-  apiTokens         APIToken[]
-  connectorAccounts ConnectorAccount[]
-  customConnectors  CustomConnector[]
-  styleGuides       StyleGuide[]
-  csvFiles          CsvFile[]
-  aiAgentCredentials AiAgentCredential[]
+  id                      String                   @id // type: UserId
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  clerkId                 String?                  @unique
+  name                    String?
+  email                   String?
+  role                    UserRole                 @default(USER)
+  apiTokens               APIToken[]
+  connectorAccounts       ConnectorAccount[]
+  customConnectors        CustomConnector[]
+  styleGuides             StyleGuide[]
+  csvFiles                CsvFile[]
+  aiAgentCredentials      AiAgentCredential[]
   aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
-
 }
 
 enum TokenType {
@@ -62,13 +61,13 @@ model APIToken {
 
 // Defines a set of credentials for the AI agent to use instead of the default ones, such as an OpenRouter API key
 model AiAgentCredential {
-  id        String   @id // type: AiAgentCredentialId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  service   String
-  apiKey    String
+  id          String   @id // type: AiAgentCredentialId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  service     String
+  apiKey      String
   description String?
   enabled     Boolean  @default(true)
 
@@ -84,6 +83,11 @@ model ConnectorAccount {
   service                   Service
   displayName               String
   apiKey                    String
+  authType                  AuthType               @default(API_KEY)
+  oauthAccessToken          String? // OAuth access token
+  oauthRefreshToken         String? // OAuth refresh token
+  oauthExpiresAt            DateTime? // OAuth token expiration
+  oauthWorkspaceId          String? // OAuth workspace/team ID (for Notion)
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
   modifier                  String? // ID of the custom connector or other modifier entity
@@ -96,6 +100,11 @@ enum Service {
   CUSTOM
   CSV
   POSTGRES
+}
+
+enum AuthType {
+  API_KEY
+  OAUTH
 }
 
 enum ConnectorHealthStatus {
@@ -162,18 +171,19 @@ model CustomConnector {
 }
 
 model StyleGuide {
-  id        String   @id // type: StyleGuideId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String
-  body      String // Markdown content
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  autoInclude Boolean @default(false) // Whether to automatically include this style guide in conversations
-  sourceUrl String? // URL of where this resource an be download from
-  contentType String @default("markdown") // "markdown" | "json" | "text"
+  id               String    @id // type: StyleGuideId
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  name             String
+  body             String // Markdown content
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  autoInclude      Boolean   @default(false) // Whether to automatically include this style guide in conversations
+  sourceUrl        String? // URL of where this resource an be download from
+  contentType      String    @default("markdown") // "markdown" | "json" | "text"
   lastDownloadedAt DateTime? // When the resource was last downloaded
-  tags String[] // User defined tags for the resource
+  tags             String[] // User defined tags for the resource
+
   @@index([userId])
 }
 
@@ -200,18 +210,18 @@ model ColumnView {
   @@index([snapshotId])
 }
 
-
 model AiAgentTokenUsageEvent {
-  id        String   @id // type: AiAgentTokenUsageEventId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  model     String
-  requests Int
-  requestTokens Int
+  id             String   @id // type: AiAgentTokenUsageEventId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  model          String
+  requests       Int
+  requestTokens  Int
   responseTokens Int
-  totalTokens Int
-  context Json? // additional context for the event
+  totalTokens    Int
+  context        Json? // additional context for the event
+
   @@index([userId])
 }

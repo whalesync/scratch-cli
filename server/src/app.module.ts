@@ -10,6 +10,7 @@ import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
+import { OAuthModule } from './oauth/oauth.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
@@ -28,6 +29,7 @@ import { ViewModule } from './view/view.module';
     UserModule,
     ClerkModule,
     AuthModule,
+    OAuthModule,
     ConnectorAccountModule,
     ConnectorsModule,
     SnapshotModule,

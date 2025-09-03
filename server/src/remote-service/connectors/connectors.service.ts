@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ConnectorAccount, Service } from '@prisma/client';
+import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import { CsvFileService } from '../../csv-file/csv-file.service';
 import { DbService } from '../../db/db.service';
+import { OAuthService } from '../../oauth/oauth.service';
 import { Connector } from './connector';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
@@ -13,14 +14,22 @@ export class ConnectorsService {
   constructor(
     private readonly db: DbService,
     private readonly csvFileService: CsvFileService,
+    private readonly oauthService: OAuthService,
   ) {}
 
-  getConnector(account: ConnectorAccount): Connector<Service> {
+  async getConnector(account: ConnectorAccount): Promise<Connector<Service>> {
     switch (account.service) {
       case Service.AIRTABLE:
         return new AirtableConnector(account.apiKey);
       case Service.NOTION:
-        return new NotionConnector(account.apiKey);
+        if (account.authType === AuthType.OAUTH) {
+          // For OAuth accounts, get the valid access token
+          const accessToken = await this.oauthService.getValidAccessToken(account.id);
+          return new NotionConnector(accessToken);
+        } else {
+          // For API key accounts, use the apiKey field
+          return new NotionConnector(account.apiKey);
+        }
       case Service.CUSTOM:
         return new CustomConnector(account.userId, this.db, account.apiKey);
       case Service.CSV:

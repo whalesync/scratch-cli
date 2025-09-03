@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConnectorAccount } from '@prisma/client';
+import { AuthType, ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { createConnectorAccountId } from '../../types/ids';
@@ -25,11 +25,13 @@ export class ConnectorAccountService {
         service: createDto.service,
         displayName: `${createDto.service.toLowerCase()} base`,
         apiKey: createDto.apiKey,
+        authType: createDto.authType || AuthType.API_KEY,
         modifier: createDto.modifier,
       },
     });
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
       service: createDto.service,
+      authType: createDto.authType || AuthType.API_KEY,
     });
     return connectorAccount;
   }
@@ -73,13 +75,13 @@ export class ConnectorAccountService {
 
   async listTables(id: string, userId: string): Promise<TablePreview[]> {
     const account = await this.findOne(id, userId);
-    const connector = this.connectorsService.getConnector(account);
+    const connector = await this.connectorsService.getConnector(account);
     return connector.listTables(account);
   }
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {
     const account = await this.findOne(id, userId);
-    const connector = this.connectorsService.getConnector(account);
+    const connector = await this.connectorsService.getConnector(account);
     try {
       await connector.testConnection();
 
