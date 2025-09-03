@@ -412,7 +412,7 @@ class ChatService:
                         )
 
                 agent = create_agent(
-                    api_key=open_router_api_key,
+                    api_key=api_key,
                     model_name=model,
                     capabilities=capabilities,
                     style_guides=style_guides,
