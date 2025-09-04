@@ -47,7 +47,7 @@ from server.auth import AgentUser
 
 logger = getLogger(__name__)
 
-SHARED_OPENROUTER_KEY = os.getenv("SHARED_OPENROUTER_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 # TODO: refactor this as a service or singleton class
@@ -172,7 +172,7 @@ class ChatService:
             api_key = user_open_router_credentials.apiKey
         else:
             logger.info(f"🔑 Using Whalesync OpenRouter credentials")
-            api_key = SHARED_OPENROUTER_KEY
+            api_key = OPENROUTER_API_KEY
 
         if not api_key:
             raise HTTPException(
