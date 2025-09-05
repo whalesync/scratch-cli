@@ -1,12 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+/** This should basically never be used. */
+export type NodeEnvironment = 'development' | 'staging' | 'production' | 'test' | 'automated_test';
+
+/** This should be used for checking the deployment flavor. */
+export type ScratchpadEnvironment = 'development' | 'test' | 'staging' | 'production' | 'automated_test';
+
 @Injectable()
 export class ScratchpadConfigService {
   private readonly databaseUrl: string;
+  private readonly environment: ScratchpadEnvironment;
 
   constructor(private readonly configService: ConfigService) {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
+    this.environment = ScratchpadConfigService.getScratchpadEnvironment();
+  }
+
+  getScratchpadEnvironment(): ScratchpadEnvironment {
+    return this.environment;
   }
 
   getDatabaseUrl(): string {
@@ -61,6 +73,14 @@ export class ScratchpadConfigService {
     return this.getOptionalEnvVariable('POSTHOG_HOST');
   }
 
+  getStripeApiKey(): string {
+    return this.getEnvVariable('STRIPE_API_KEY');
+  }
+
+  getStripeWebhookSecret(): string {
+    return this.getEnvVariable('STRIPE_WEBHOOK_SECRET');
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {
@@ -73,4 +93,36 @@ export class ScratchpadConfigService {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     return returnedVar ?? undefined;
   }
+
+  public static getScratchpadEnvironment(): ScratchpadEnvironment {
+    return checkIsString(process.env.APP_ENV, 'APP_ENV', [
+      'development',
+      'test',
+      'staging',
+      'production',
+      'automated_test',
+    ]) as ScratchpadEnvironment;
+  }
+
+  public static getClientBaseUrl(): string {
+    const env = ScratchpadConfigService.getScratchpadEnvironment();
+    if (env === 'production') {
+      return 'https://scratchpad.whalesync.com';
+    }
+    if (env === 'development') {
+      return `http://localhost:3000`;
+    }
+    // Otherwise, test or staging
+    return `https://${env}-scratchpad.whalesync.com`;
+  }
+}
+
+function checkIsString(value: string | undefined, varName: string, restrictToOptions?: string[]): string {
+  if (value === undefined || value.length === 0) {
+    throw new Error(`env var ${varName} must be set, but was empty`);
+  }
+  if (restrictToOptions !== undefined && !restrictToOptions.includes(value)) {
+    throw new Error(`env var ${varName} must be one of: ${restrictToOptions.join(', ')}, but it was ${value}`);
+  }
+  return value;
 }

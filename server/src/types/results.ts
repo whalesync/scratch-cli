@@ -97,6 +97,7 @@ export enum ErrorCode {
   RedisError = 'redis_error',
   DataConversionError = 'data_conversion_error',
   ApiQuotaExceededError = 'api_quota_exceeded_error',
+  StripeLibraryError = 'stripe_library_error',
 }
 
 export function isResult<T>(o: unknown): o is Result<T> {
@@ -233,4 +234,8 @@ export function dataConversionErrror(msg: string, args?: ErrResultOptionalArgs):
 
 export function apiQuotaExceededError(msg: string, args?: ErrResultOptionalArgs): ErrResult {
   return errResult(ErrorCode.ApiQuotaExceededError, msg, args);
+}
+
+export function stripeLibraryError(msg: string, args?: ErrResultOptionalArgs): ErrResult {
+  return errResult(ErrorCode.StripeLibraryError, msg, args);
 }

@@ -21,6 +21,10 @@ export class UsersService {
     return this.db.client.user.findFirst({ where: { clerkId }, include: UserCluster._validator.include });
   }
 
+  public async getUserFromStripeCustomerId(stripeCustomerId: string): Promise<UserCluster.User | null> {
+    return this.db.client.user.findFirst({ where: { stripeCustomerId }, include: UserCluster._validator.include });
+  }
+
   public async getUserFromAPIToken(apiToken: string): Promise<UserCluster.User | null> {
     return this.db.client.user.findFirst({
       where: {
@@ -115,6 +119,14 @@ export class UsersService {
     this.postHogService.identifyNewUser(newUser);
 
     return newUser;
+  }
+
+  public async upsertStripeCustomerId(user: UserCluster.User, stripeCustomerId: string): Promise<UserCluster.User> {
+    return this.db.client.user.update({
+      where: { id: user.id },
+      data: { stripeCustomerId },
+      include: UserCluster._validator.include,
+    });
   }
 
   private generateApiToken(): string {
