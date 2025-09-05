@@ -4,6 +4,7 @@ import { DbService } from '../db/db.service';
 import { createConnectorAccountId } from '../types/ids';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
+import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
 export interface OAuthInitiateResponse {
   authUrl: string;
@@ -22,12 +23,13 @@ export class OAuthService {
   constructor(
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
+    private readonly youtubeProvider: YouTubeOAuthProvider,
   ) {
     // Register OAuth providers
     this.providers.set('notion', this.notionProvider);
+    this.providers.set('youtube', this.youtubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
-    // this.providers.set('google', this.googleProvider);
   }
 
   /**
@@ -144,8 +146,9 @@ export class OAuthService {
         return Service.NOTION;
       case 'airtable':
         return Service.AIRTABLE;
-      case 'google':
-        return Service.CUSTOM; // For now, map Google to CUSTOM
+      case 'youtube':
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return Service.YOUTUBE; // For now, map Google to CUSTOM
       default:
         throw new BadRequestException(`Unsupported service: ${service}`);
     }

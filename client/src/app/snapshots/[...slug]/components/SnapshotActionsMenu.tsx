@@ -209,7 +209,7 @@ export const SnapshotActionsMenu = ({
           <Menu.Item disabled={menuItemsDisabled} onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
             Download
           </Menu.Item>
-          <Menu.Item disabled={true} onClick={handlePublish} leftSection={<UploadIcon />}>
+          <Menu.Item onClick={handlePublish} leftSection={<UploadIcon />}>
             Publish (Coming soon)
           </Menu.Item>
           <Menu.Item

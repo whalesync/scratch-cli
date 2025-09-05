@@ -8,6 +8,7 @@ import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { YouTubeConnector } from './library/youtube/youtube-connector';
 
 @Injectable()
 export class ConnectorsService {
@@ -34,6 +35,15 @@ export class ConnectorsService {
         return new CustomConnector(account.userId, this.db, account.apiKey);
       case Service.CSV:
         return new CsvConnector(this.csvFileService);
+      case Service.YOUTUBE:
+        if (account.authType === AuthType.OAUTH) {
+          // For OAuth accounts, get the valid access token
+          const accessToken = await this.oauthService.getValidAccessToken(account.id);
+          return new YouTubeConnector(accessToken);
+        } else {
+          // YouTube doesn't support API key authentication, only OAuth
+          throw new Error('YouTube only supports OAuth authentication');
+        }
       default:
         throw new Error(`Unsupported service: ${account.service as string}`);
     }

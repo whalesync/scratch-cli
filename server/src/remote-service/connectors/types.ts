@@ -48,6 +48,7 @@ export type BaseColumnSpec = {
   name: string;
 
   pgType: PostgresColumnType;
+  limitedToValues?: string[];
   readonly?: boolean;
   markdown?: boolean;
 };
@@ -78,6 +79,25 @@ export type SnapshotRecord = {
   __edited_fields: EditedFieldsMetadata;
   __suggested_values: Record<string, unknown>;
   __dirty: boolean;
+};
+
+export type ExistingSnapshotRecord = SnapshotRecord & {
+  id: {
+    remoteId: string;
+  };
+};
+
+export type SnapshotRecordSanitizedForUpdate = {
+  id: {
+    // Internal ID for the record.
+    wsId: SnapshotRecordId;
+    // Remote ID from the connector.
+    // Can be null if the record is new.
+    remoteId: string;
+  };
+
+  // Columns, indexed by the wsId NOT the connector's native ID.
+  partialFields: Record<string, unknown>;
 };
 
 export type CreateRecordInput = {

@@ -3,6 +3,7 @@ export enum Service {
   AIRTABLE = "AIRTABLE",
   CUSTOM = "CUSTOM",
   CSV = "CSV",
+  YOUTUBE = "YOUTUBE",
 }
 
 export enum ConnectorHealthStatus {

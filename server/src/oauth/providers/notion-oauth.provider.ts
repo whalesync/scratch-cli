@@ -11,7 +11,7 @@ export class NotionOAuthProvider implements OAuthProvider {
   constructor(private readonly configService: ConfigService) {
     this.clientId = this.configService.get<string>('NOTION_CLIENT_ID') || '';
     this.clientSecret = this.configService.get<string>('NOTION_CLIENT_SECRET') || '';
-    this.redirectUri = this.configService.get<string>('NOTION_REDIRECT_URI') || '';
+    this.redirectUri = this.configService.get<string>('REDIRECT_URI') || '';
   }
 
   generateAuthUrl(userId: string, state: string): string {

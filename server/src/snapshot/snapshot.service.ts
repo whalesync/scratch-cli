@@ -10,7 +10,7 @@ import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
-import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { ExistingSnapshotRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
@@ -67,7 +67,7 @@ export class SnapshotService {
         id: createSnapshotId(),
         connectorAccountId,
         name: createSnapshotDto.name,
-        tableSpecs,
+        tableSpecs, // Cast to any for Prisma JSON storage
         tableContexts,
       },
       include: SnapshotCluster._validator.include,
@@ -778,13 +778,9 @@ export class SnapshotService {
       'update',
       connector.getBatchSize('update'),
       async (records) => {
-        const sanitizedRecords = records
-          .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
-          .map((r) => ({
-            id: { wsId: r.id.wsId, remoteId: r.id.remoteId! },
-            partialFields: r.fields,
-          }));
-
+        const sanitizedRecords = records.map((record) =>
+          connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
+        );
         await connector.updateRecords(tableSpec, sanitizedRecords, snapshot.connectorAccount);
       },
     );

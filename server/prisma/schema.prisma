@@ -97,6 +97,7 @@ enum Service {
   CUSTOM
   CSV
   POSTGRES
+  YOUTUBE
 }
 
 enum AuthType {

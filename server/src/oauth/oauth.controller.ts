@@ -9,7 +9,7 @@ export class OAuthController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':service/initiate')
-  async initiateOAuth(@Param('service') service: string, @Req() req: RequestWithUser): Promise<OAuthInitiateResponse> {
+  initiateOAuth(@Param('service') service: string, @Req() req: RequestWithUser): OAuthInitiateResponse {
     return this.oauthService.initiateOAuth(service, req.user.id);
   }
 

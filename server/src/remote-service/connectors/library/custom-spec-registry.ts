@@ -3,6 +3,7 @@ import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/ai
 import { CsvColumnSpecExtras, CsvTableSpecExtras } from './csv/csv-spec-types';
 import { CustomColumnSpecExtras, CustomTableSpecExtras } from './custom/custom-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
+import { YouTubeColumnSpecExtras, YouTubeTableSpecExtras } from './youtube/youtube-spec-types';
 
 // This holds all of the extra properties a connector can attach to DB entities. They'll get plumbed along with the standard fields..
 
@@ -18,12 +19,16 @@ export type CustomTableSpec = BaseTableSpec<CustomoColumnSpec> & CustomTableSpec
 export type CsvColumnSpec = BaseColumnSpec & CsvColumnSpecExtras;
 export type CsvTableSpec = BaseTableSpec<CsvColumnSpec> & CsvTableSpecExtras;
 
+export type YouTubeColumnSpec = BaseColumnSpec & YouTubeColumnSpecExtras;
+export type YouTubeTableSpec = BaseTableSpec<YouTubeColumnSpec> & YouTubeTableSpecExtras;
+
 export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSpec[] };
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
   NOTION: NotionTableSpec;
   CUSTOM: CustomTableSpec;
   CSV: CsvTableSpec;
+  YOUTUBE: YouTubeTableSpec;
   POSTGRES: CsvTableSpec; // TODO - change to PostgresTableSpec once we implement the connector
 }
 
@@ -32,5 +37,6 @@ export interface ColumnSpecs {
   AIRTABLE: AirtableColumnSpec;
   NOTION: NotionColumnSpec;
   CSV: CsvColumnSpec;
+  YOUTUBE: YouTubeColumnSpec;
   POSTGRES: CsvColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
 }

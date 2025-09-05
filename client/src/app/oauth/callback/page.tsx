@@ -76,8 +76,6 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // Callbackend to exchange code for tokens
-        debugger;
         const result = await oauthApi.callback(service, { code, state });
 
         setState({
@@ -138,16 +136,16 @@ export default function OAuthCallbackPage() {
       // encode the service name in the state parameter
 
       // Check if we can determine service from the current URL or other means
-      // For now, let's assume it's Notion (we'll improve this later)
+      // For now, we'll return null and rely on localStorage or URL params
       // TODO: Improve this to actually extract service from state or URL
-      return 'notion';
+      return null;
     } catch {
       return null;
     }
   };
 
   const isValidOAuthService = (service: string): service is OAuthService => {
-    return ['notion', 'airtable', 'google'].includes(service);
+    return ['notion', 'airtable', 'youtube'].includes(service);
   };
 
   return (

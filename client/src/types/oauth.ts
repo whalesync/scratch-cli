@@ -12,7 +12,7 @@ export interface OAuthCallbackResponse {
   connectorAccountId: string;
 }
 
-export type OAuthService = 'notion' | 'airtable' | 'google';
+export type OAuthService = 'notion' | 'airtable' | 'youtube';
 
 export interface OAuthError {
   error: string;

@@ -20,9 +20,31 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
   const getDefaultAuthMethod = (service: Service): AuthMethod => {
     // Services that support OAuth
-    const oauthSupportedServices = [Service.NOTION];
+    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
+    // Services that support API keys
+    const apiKeySupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
 
-    return oauthSupportedServices.includes(service) ? 'oauth' : 'api_key';
+    if (oauthSupportedServices.includes(service)) {
+      return 'oauth';
+    } else if (apiKeySupportedServices.includes(service)) {
+      return 'api_key';
+    } else {
+      return 'api_key'; // Default fallback
+    }
+  };
+
+  const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
+    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
+    const apiKeySupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
+
+    const methods: AuthMethod[] = [];
+    if (oauthSupportedServices.includes(service)) {
+      methods.push('oauth');
+    }
+    if (apiKeySupportedServices.includes(service)) {
+      methods.push('api_key');
+    }
+    return methods;
   };
 
   const handleOAuthInitiate = async () => {
@@ -33,7 +55,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
     setIsOAuthLoading(true);
     try {
-      await initiateOAuth(newService.toLowerCase() as 'notion');
+      await initiateOAuth(newService.toLowerCase() as 'notion' | 'youtube');
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
       console.error('OAuth initiation failed:', error);
@@ -88,15 +110,17 @@ export const CreateConnectionModal = (props: ModalProps) => {
           }}
         />
 
-        {newService === Service.NOTION && (
+        {newService && getSupportedAuthMethods(newService).length > 1 && (
           <Radio.Group
             label="Authentication Method"
             value={authMethod}
             onChange={(value) => setAuthMethod(value as AuthMethod)}
           >
             <Group gap="xs" mt="xs">
-              <Radio value="oauth" label="OAuth (Recommended)" />
-              <Radio value="api_key" label="API Key" />
+              {getSupportedAuthMethods(newService).includes('oauth') && (
+                <Radio value="oauth" label="OAuth (Recommended)" />
+              )}
+              {getSupportedAuthMethods(newService).includes('api_key') && <Radio value="api_key" label="API Key" />}
             </Group>
           </Radio.Group>
         )}
@@ -106,14 +130,17 @@ export const CreateConnectionModal = (props: ModalProps) => {
           </Alert>
         )}
 
-        {newService !== Service.CSV && authMethod === 'api_key' && (
-          <TextInput
-            label="API Key"
-            placeholder="Enter API Key"
-            value={newApiKey}
-            onChange={(e) => setNewApiKey(e.currentTarget.value)}
-          />
-        )}
+        {newService &&
+          newService !== Service.CSV &&
+          getSupportedAuthMethods(newService).includes('api_key') &&
+          authMethod === 'api_key' && (
+            <TextInput
+              label="API Key"
+              placeholder="Enter API Key"
+              value={newApiKey}
+              onChange={(e) => setNewApiKey(e.currentTarget.value)}
+            />
+          )}
         {newService === Service.CUSTOM && customConnectors && (
           <Select
             label="Custom Connector"
@@ -130,7 +157,11 @@ export const CreateConnectionModal = (props: ModalProps) => {
         <Group justify="flex-end">
           <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
           <PrimaryButton onClick={handleCreate} loading={isOAuthLoading}>
-            {newService === Service.NOTION && authMethod === 'oauth' ? 'Connect with Notion' : 'Create'}
+            {newService === Service.NOTION && authMethod === 'oauth'
+              ? 'Connect with Notion'
+              : newService === Service.YOUTUBE && authMethod === 'oauth'
+                ? 'Connect with YouTube'
+                : 'Create'}
           </PrimaryButton>
         </Group>
       </Stack>
