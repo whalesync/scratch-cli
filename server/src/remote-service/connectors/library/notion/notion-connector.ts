@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
+import { BlockObjectRequest, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { WSLogger } from 'src/logger';
@@ -110,7 +110,11 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
                 // do this separately to avoid blocking the main thread and killing the download
                 const mdblocks = await this.markdownConverter.pageToMarkdown(page.id);
                 const mdString = this.markdownConverter.toMarkdownString(mdblocks);
-                converted.fields[pageContentColumn.id.wsId] = mdString['parent'];
+                let content = mdString['parent'];
+                if (typeof content === 'string' && content.startsWith('\n')) {
+                  content = content.replace(/^\n+/, '');
+                }
+                converted.fields[pageContentColumn.id.wsId] = content;
               } catch (e) {
                 converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content to markdown';
                 WSLogger.error({
@@ -274,22 +278,36 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
   ): Promise<void> {
     for (const record of records) {
       const notionProperties: CreatePageParameters['properties'] = {};
+      let hasPageContentUpdate = false;
+      let pageContentValue: string | undefined;
+
       for (const [wsId, value] of Object.entries(record.partialFields)) {
         const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
         if (column && !column.readonly) {
-          const propertyId = column.id.remoteId[0];
-          const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
-          if (propertyValue) {
-            notionProperties[propertyId] = propertyValue;
+          if (wsId === PAGE_CONTENT_COLUMN_ID) {
+            hasPageContentUpdate = true;
+            pageContentValue = value as string;
+          } else {
+            const propertyId = column.id.remoteId[0];
+            const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
+            if (propertyValue) {
+              notionProperties[propertyId] = propertyValue;
+            }
           }
         }
       }
 
+      // Update regular properties first
       if (Object.keys(notionProperties).length > 0) {
         await this.client.pages.update({
           page_id: record.id.remoteId,
           properties: notionProperties,
         });
+      }
+
+      // Update page content if needed
+      if (hasPageContentUpdate && pageContentValue) {
+        await this.updatePageContent(record.id.remoteId, pageContentValue);
       }
     }
   }
@@ -301,5 +319,188 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
         archived: true,
       });
     }
+  }
+
+  private async updatePageContent(pageId: string, markdownContent: string): Promise<void> {
+    try {
+      // Clear existing page content
+      await this.clearPageContent(pageId);
+
+      // Convert markdown to Notion blocks and append them
+      const blocks = this.convertMarkdownToNotionBlocks(markdownContent);
+      if (blocks.length > 0) {
+        await this.client.blocks.children.append({
+          block_id: pageId,
+          children: blocks,
+        });
+      }
+    } catch (error) {
+      WSLogger.error({
+        source: 'NotionConnector',
+        message: 'Error updating page content',
+        error,
+        pageId,
+      });
+      throw error;
+    }
+  }
+
+  private async clearPageContent(pageId: string): Promise<void> {
+    try {
+      // Get all existing blocks
+      const response = await this.client.blocks.children.list({
+        block_id: pageId,
+      });
+
+      // Delete all existing blocks
+      for (const block of response.results) {
+        await this.client.blocks.delete({
+          block_id: block.id,
+        });
+      }
+    } catch (error) {
+      WSLogger.error({
+        source: 'NotionConnector',
+        message: 'Error clearing page content',
+        error,
+        pageId,
+      });
+      throw error;
+    }
+  }
+
+  private convertMarkdownToNotionBlocks(markdown: string): BlockObjectRequest[] {
+    const lines = markdown.split('\n');
+    const blocks: BlockObjectRequest[] = [];
+    let currentParagraph: string[] = [];
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine === '') {
+        // Empty line - flush current paragraph if any
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+      } else if (trimmedLine.startsWith('# ')) {
+        // H1 heading
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+        blocks.push({
+          object: 'block',
+          type: 'heading_1',
+          heading_1: {
+            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(2) } }],
+          },
+        });
+      } else if (trimmedLine.startsWith('## ')) {
+        // H2 heading
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+        blocks.push({
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(3) } }],
+          },
+        });
+      } else if (trimmedLine.startsWith('### ')) {
+        // H3 heading
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+        blocks.push({
+          object: 'block',
+          type: 'heading_3',
+          heading_3: {
+            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(4) } }],
+          },
+        });
+      } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        // Bullet list item
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+        blocks.push({
+          object: 'block',
+          type: 'bulleted_list_item',
+          bulleted_list_item: {
+            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(2) } }],
+          },
+        });
+      } else if (/^\d+\.\s/.test(trimmedLine)) {
+        // Numbered list item
+        if (currentParagraph.length > 0) {
+          blocks.push({
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+            },
+          });
+          currentParagraph = [];
+        }
+        const content = trimmedLine.replace(/^\d+\.\s/, '');
+        blocks.push({
+          object: 'block',
+          type: 'numbered_list_item',
+          numbered_list_item: {
+            rich_text: [{ type: 'text', text: { content } }],
+          },
+        });
+      } else {
+        // Regular paragraph line
+        currentParagraph.push(line);
+      }
+    }
+
+    // Flush any remaining paragraph content
+    if (currentParagraph.length > 0) {
+      blocks.push({
+        object: 'block',
+        type: 'paragraph',
+        paragraph: {
+          rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
+        },
+      });
+    }
+
+    return blocks;
   }
 }
