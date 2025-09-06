@@ -5,6 +5,7 @@ import { ContentContainer } from '../components/ContentContainer';
 import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
 import { DebugInfo } from './components/DebugInfo';
+import { SubscriptionCard } from './components/SubscriptionCard';
 
 const SettingsPage = () => {
   return (
@@ -13,6 +14,7 @@ const SettingsPage = () => {
         <Stack gap="md">
           <AgentCredentials />
           <DebugInfo />
+          <SubscriptionCard />
         </Stack>
         <AgentUsageInfoCard />
       </Group>

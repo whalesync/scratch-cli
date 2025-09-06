@@ -17,7 +17,7 @@ import { RequestWithUser } from 'src/auth/types';
 import { ErrorCode, isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
-import { ScratchpadProductType } from './products';
+import { getProductTypeFromString } from './products';
 import { StripePaymentService } from './stripe-payment.service';
 
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
@@ -63,8 +63,14 @@ export class StripePaymentController {
       throw new UnauthorizedException();
     }
 
-    const productTypeEnum = ScratchpadProductType[productType as keyof typeof ScratchpadProductType];
+    const productTypeEnum = getProductTypeFromString(productType);
+
     // TODO validate the product type enum
+    if (!productTypeEnum) {
+      throw new BadRequestException({
+        userFacingMessage: `Invalid product type: ${productType}`,
+      });
+    }
 
     const result = await this.stripePaymentService.generateCheckoutUrl(req.user, productTypeEnum);
     if (isErr(result)) {

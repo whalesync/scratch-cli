@@ -156,7 +156,7 @@ class ChatService:
             and not user.role == "admin"
         ):
             log_error(
-                "User does not have openrouter credentials configured",
+                f"User does not have openrouter credentials configured for user {user.userId}, role {user.role}",
                 session_id=session.id,
             )
             raise HTTPException(

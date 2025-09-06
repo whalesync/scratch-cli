@@ -159,6 +159,7 @@ export const AgentCredentials = () => {
         </Stack>
         <Group justify="flex-end">
           <PrimaryButton
+            size="xs"
             w="fit-content"
             onClick={() => {
               setActiveCredential(null);

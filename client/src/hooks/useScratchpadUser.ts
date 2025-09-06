@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import useSWR from "swr";
 
+
+
 export interface ScratchPadUser {
   isLoading: boolean;
   user: User | null;

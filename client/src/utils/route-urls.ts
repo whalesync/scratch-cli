@@ -42,4 +42,6 @@ export class RouteUrls {
   static resourcesPageUrl = "/resources";
   static csvFilesPageUrl = "/csv-files";
   static settingsPageUrl = "/settings";
+  static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
+  static manageSubscriptionPage = "/subscription/manage";
 }

@@ -1,0 +1,50 @@
+'use client';
+import { SecondaryButton } from '@/app/components/base/buttons';
+import { FullPageLoader } from '@/app/components/FullPageLoader';
+import { Info } from '@/app/components/InfoPanel';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { paymentApi } from '@/lib/api/payment';
+import { RouteUrls } from '@/utils/route-urls';
+import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
+import { JSX, useEffect, useState } from 'react';
+
+/** Redirect to the stripe subscription management page. */
+const ManageSubscriptionRedirect = (): JSX.Element => {
+  const { user } = useScratchPadUser();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    const doRedirect = async () => {
+      try {
+        const result = await paymentApi.createCustomerPortalUrl();
+        window.location.replace(result.url);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Unknown error');
+      }
+    };
+
+    doRedirect();
+  }, [user]);
+
+  if (error) {
+    return (
+      <Info>
+        <Info.ErrorIcon />
+        <Info.Title>Unable to load Stripe billing portal.</Info.Title>
+        <Info.StatusPageDescription />
+        <Info.Actions>
+          <SecondaryButton href={RouteUrls.homePageUrl} leftSection={<ArrowsClockwiseIcon />} component="a">
+            Return to Snapshots
+          </SecondaryButton>
+        </Info.Actions>
+      </Info>
+    );
+  }
+
+  return <FullPageLoader />;
+};
+
+export default ManageSubscriptionRedirect;

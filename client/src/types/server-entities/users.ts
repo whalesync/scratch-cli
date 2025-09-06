@@ -1,3 +1,5 @@
+import { ScratchpadProductType } from "./payment";
+
 export interface User {
   id: string;
   clerkId: string;
@@ -6,4 +8,13 @@ export interface User {
   websocketToken?: string;
   isAdmin: boolean;
   agentJwt?: string;
+  subscription?: SubscriptionInfo;
+}
+
+
+export interface SubscriptionInfo {
+  status: 'valid' | 'expired' | 'payment_failed';
+  planDisplayName: string;
+  productType: ScratchpadProductType;
+  daysRemaining: number;
 }

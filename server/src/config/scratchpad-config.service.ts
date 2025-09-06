@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { LogLevel, WSLogger } from 'src/logger';
+import { stringToEnum } from 'src/utils/helpers';
 
 /** This should basically never be used. */
-export type NodeEnvironment = 'development' | 'staging' | 'production' | 'test' | 'automated_test';
+export type NodeEnvironment = 'development' | 'test' | 'staging' | 'production';
 
 /** This should be used for checking the deployment flavor. */
-export type ScratchpadEnvironment = 'development' | 'test' | 'staging' | 'production' | 'automated_test';
+export type ScratchpadEnvironment = 'development' | 'test' | 'staging' | 'production';
 
 @Injectable()
 export class ScratchpadConfigService {
@@ -15,6 +17,15 @@ export class ScratchpadConfigService {
   constructor(private readonly configService: ConfigService) {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
     this.environment = ScratchpadConfigService.getScratchpadEnvironment();
+
+    if (process.env.LOG_LEVEL) {
+      WSLogger.info({
+        source: 'ScratchpadConfigService',
+        message: 'Setting log level',
+        logLevel: process.env.LOG_LEVEL,
+      });
+      WSLogger.setOutputLevel(stringToEnum(process.env.LOG_LEVEL, LogLevel, LogLevel.INFO));
+    }
   }
 
   getScratchpadEnvironment(): ScratchpadEnvironment {

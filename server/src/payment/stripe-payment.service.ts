@@ -31,12 +31,20 @@ const STRIPE_API_VERSION = '2025-08-27.basil';
 const TRIAL_PERIOD_DAYS = 7;
 type StripeWebhookResult = 'success' | 'ignored';
 
+// Client path that we redirect to if the checkout is successful.
+const DEFAULT_SUCCESS_PATH = '/?welcome';
+// Client path that we redirect to if the checkout is cancelled.
+const DEFAULT_CANCEL_PATH = '/settings';
+// Client path that we redirect to if the user clicks the "Manage Subscription" button in the settings page.
+const PORTAL_RETURN_PATH = '/settings';
+
 /**
  * Metadata we add to all subscriptions created by Scratchpad.
  */
 export interface StripeSubscriptionMetadata {
   application?: 'scratchpad';
   productType?: ScratchpadProductType;
+  environment?: 'production' | 'test' | 'local';
 }
 
 export interface StripeSubscriptionItemMetadata {
@@ -62,7 +70,7 @@ export class StripePaymentService {
   }
 
   async generateNewCustomerId(user: User): AsyncResult<string> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Generating new customer ID for user ${user.id}`,
     });
@@ -71,7 +79,7 @@ export class StripePaymentService {
     try {
       // Keep it mostly empty to create a blank customer.
       response = await this.stripe.customers.create({ name: user.name ?? '', email: user.email ?? undefined });
-      WSLogger.debug({
+      WSLogger.info({
         source: StripePaymentService.name,
         message: `New customer created with ID ${response.id} for user ${user.id}`,
       });
@@ -87,7 +95,7 @@ export class StripePaymentService {
   }
 
   async createCustomerPortalUrl(user: UserCluster.User): AsyncResult<string> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Creating customer portal URL for user ${user.id}`,
     });
@@ -100,14 +108,14 @@ export class StripePaymentService {
     const portalSession = await this.stripe.billingPortal.sessions.create(
       {
         customer: stripeCustomerId.v,
-        return_url: ScratchpadConfigService.getClientBaseUrl(),
+        return_url: `${ScratchpadConfigService.getClientBaseUrl()}${PORTAL_RETURN_PATH}`,
       },
       {
         apiVersion: STRIPE_API_VERSION,
       },
     );
 
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Generated customer portal URL for user ${user.id}`,
       url: portalSession.url,
@@ -116,7 +124,7 @@ export class StripePaymentService {
   }
 
   async generateCheckoutUrl(user: UserCluster.User, productType: ScratchpadProductType): AsyncResult<string> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Generating checkout URL for user ${user.id}, product ${productType}`,
     });
@@ -155,17 +163,18 @@ export class StripePaymentService {
           metadata: {
             application: 'scratchpad',
             productType: productType,
+            environment: this.configService.getScratchpadEnvironment(),
           },
         },
 
         // We must enable this to properly auto-collect taxes for customers based on their location.
-        automatic_tax: { enabled: true },
+        automatic_tax: { enabled: false },
         customer_update: { address: 'auto', name: 'auto' },
 
         // In event of either success or failure, send them back to the dashboard root page to sort things
         // out. It has logic to redirect to an appropriate sub-view afterwards.
-        success_url: `${clientBaseUrl}/?welcome`,
-        cancel_url: `${clientBaseUrl}`,
+        success_url: `${clientBaseUrl}${DEFAULT_SUCCESS_PATH}`,
+        cancel_url: `${clientBaseUrl}${DEFAULT_CANCEL_PATH}`,
 
         // Allows the customer to enter their tax ID number.
         tax_id_collection: { enabled: true },
@@ -176,7 +185,7 @@ export class StripePaymentService {
     );
 
     if (session.url) {
-      WSLogger.debug({
+      WSLogger.info({
         source: StripePaymentService.name,
         message: `Generated checkout URL for user ${user.id}`,
         url: session.url,
@@ -212,7 +221,7 @@ export class StripePaymentService {
   }
 
   async handleWebhookCallback(requestBody: string, signatureHeader: string): AsyncResult<StripeWebhookResult> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Starting to handle webhook callback`,
     });
@@ -230,7 +239,7 @@ export class StripePaymentService {
       return unauthorizedError('Webhook signature verification failed');
     }
 
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Processing Stripe webhook event`,
       eventType: event.type,
@@ -263,7 +272,7 @@ export class StripePaymentService {
         // Staging: https://dashboard.stripe.com/test/webhooks/we_1KhNmyB3kcxQq5fuTyvOImPi
         // and Production: https://dashboard.stripe.com/webhooks/we_1KhNqVB3kcxQq5fuVE6hGARg
         // Seen events: invoice.created, invoice.finalized, invoice.payment_succeeded
-        WSLogger.debug({
+        WSLogger.info({
           source: StripePaymentService.name,
           message: `Unhandled Stripe webhook event type: ${event.type}`,
         });
@@ -275,6 +284,7 @@ export class StripePaymentService {
       source: StripePaymentService.name,
       message: 'Finished processing Stripe webhook callback',
       result: result,
+      eventType: event.type,
     });
 
     return result;
@@ -283,7 +293,7 @@ export class StripePaymentService {
   Stripe webhookevent handlers
   */
   private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session): AsyncResult<StripeWebhookResult> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Handling checkout session completed`,
       sessionId: session.id,
@@ -291,6 +301,12 @@ export class StripePaymentService {
 
     const stripeSubscriptionId = session.subscription as string;
     if (!stripeSubscriptionId) {
+      WSLogger.error({
+        source: StripePaymentService.name,
+        message: `checkout.session.completed missing subscription field`,
+        session,
+      });
+
       return badRequestError('checkout.session.completed missing subscription field');
     }
 
@@ -301,7 +317,7 @@ export class StripePaymentService {
     const subscription = event.data.object as Stripe.Subscription;
     const eventType = event.type;
 
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Handling customer subscription updated`,
       eventType: eventType,
@@ -317,7 +333,7 @@ export class StripePaymentService {
   }
 
   private async handleInvoicePaid(invoice: Stripe.Invoice): AsyncResult<StripeWebhookResult> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Handling invoice paid`,
       invoiceId: invoice.id,
@@ -326,11 +342,30 @@ export class StripePaymentService {
     let updateCount = 0;
 
     for (const line of invoice.lines.data) {
-      const stripeSubscriptionId = line.subscription as string;
+      if (line.metadata.application !== 'scratchpad') {
+        WSLogger.debug({
+          source: StripePaymentService.name,
+          message: `Skipping upsert for non-scratchpad line item`,
+          line,
+        });
+        continue;
+      }
+
+      if (!line.parent || line.parent.type !== 'subscription_item_details' || !line.parent.subscription_item_details) {
+        WSLogger.debug({
+          source: StripePaymentService.name,
+          message: `Skipping upsert for line item with no subscription parent`,
+          line,
+        });
+        continue;
+      }
+
+      const stripeSubscriptionId = line.parent.subscription_item_details?.subscription;
       if (!stripeSubscriptionId) {
         WSLogger.error({
           source: StripePaymentService.name,
           message: `invoice.paid stripe webhook contains non-subscription items`,
+          line,
         });
         continue; // In case there's something that's not a subcription on the invoice.
       }
@@ -369,7 +404,7 @@ export class StripePaymentService {
   }
 
   private async handleInvoiceFailed(invoice: Stripe.Invoice): AsyncResult<StripeWebhookResult> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Handling invoice failed`,
       invoiceId: invoice.id,
@@ -400,7 +435,7 @@ export class StripePaymentService {
       }
 
       if (!this.isScratchpadSubscription(subscription.v)) {
-        WSLogger.debug({
+        WSLogger.info({
           source: StripePaymentService.name,
           message: `Skipping upsert for non-scratchpad subscription`,
           subscriptionId: stripeSubscriptionId,
@@ -436,11 +471,18 @@ export class StripePaymentService {
   }
 
   private isScratchpadSubscription(subscription: Stripe.Subscription): boolean {
-    const metadata = subscription.metadata as StripeSubscriptionMetadata;
+    // const metadata = subscription.metadata as StripeSubscriptionMetadata;
 
     const productType = this.getProductTypeFromSubscription(subscription);
 
-    return metadata.application === 'scratchpad' && productType !== null;
+    WSLogger.debug({
+      source: StripePaymentService.name,
+      message: `Checking if subscription is scratchpad`,
+      subMetadata: JSON.stringify(subscription.metadata),
+      productType,
+    });
+
+    return subscription.metadata.application === 'scratchpad' && productType !== null;
   }
 
   /**
@@ -453,7 +495,7 @@ export class StripePaymentService {
     stripeSubscriptionId: string,
     lastInvoicePaid: boolean | undefined,
   ): AsyncResult<'success' | 'ignored'> {
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Upserting subscription`,
       subscriptionId: stripeSubscriptionId,
@@ -466,7 +508,7 @@ export class StripePaymentService {
     const subscription = getSubscriptionResult.v;
 
     if (!this.isScratchpadSubscription(subscription)) {
-      WSLogger.debug({
+      WSLogger.info({
         source: StripePaymentService.name,
         message: `Skipping upsert for non-scratchpad subscription`,
         subscriptionId: stripeSubscriptionId,
@@ -492,10 +534,10 @@ export class StripePaymentService {
     // other's users. In prod, we want to return a failure to the webhook if the payload doesn't match our database, but
     // that is a regular occurence on the dev account. If we regularly return failures, it will get our webhooks
     // disabled.
-    const wsEnv = this.configService.getScratchpadEnvironment();
-    if (wsEnv === 'staging' || wsEnv === 'test') {
+    const appEnv = this.configService.getScratchpadEnvironment();
+    if (appEnv === 'staging' || appEnv === 'test') {
       const isKnown = await this.isKnownStripeCustomerId(stripeCustomerId);
-      if (isKnown === false) {
+      if (!isKnown) {
         // It's okay, this is just the wrong instance.
         return ok('success');
       }
@@ -530,7 +572,7 @@ export class StripePaymentService {
       });
       return unexpectedError('Failed to upsert subscription', { cause: err as Error });
     }
-    WSLogger.debug({
+    WSLogger.info({
       source: StripePaymentService.name,
       message: `Successfully upserted subscription`,
       subscriptionId: stripeSubscriptionId,
@@ -584,7 +626,7 @@ export class StripePaymentService {
   }
 
   private getProductTypeFromSubscription(subscription: Stripe.Subscription): string | null {
-    WSLogger.verbose({
+    WSLogger.debug({
       source: StripePaymentService.name,
       message: `Getting product id from subscription`,
       subscriptionId: subscription.id,
@@ -596,18 +638,16 @@ export class StripePaymentService {
     }
 
     const priceId = firstItem.price?.id;
-    const metadata = firstItem.metadata as StripeSubscriptionMetadata;
+    WSLogger.debug({
+      source: StripePaymentService.name,
+      message: `Getting product type from subscription`,
+      priceId,
+      metadata: firstItem.metadata,
+    });
 
-    if (!priceId || metadata.application !== 'scratchpad') {
+    if (!priceId) {
       return null;
     }
-
-    WSLogger.verbose({
-      source: StripePaymentService.name,
-      message: `Got price id from subscription`,
-      priceId,
-      metadata,
-    });
 
     const productType = this.getProductTypeFromPriceId(priceId);
     if (!productType) {
