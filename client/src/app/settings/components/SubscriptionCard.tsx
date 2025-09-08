@@ -3,7 +3,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ScratchpadProductType } from '@/types/server-entities/payment';
+import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { RouteUrls } from '@/utils/route-urls';
 import { Card, Group } from '@mantine/core';
 import { CreditCardIcon } from '@phosphor-icons/react';
@@ -61,7 +61,7 @@ export const SubscriptionCard = () => {
           component="a"
           target="_blank"
           leftSection={<CreditCardIcon />}
-          href={RouteUrls.productCheckoutPage(ScratchpadProductType.STARTER_PLAN)}
+          href={RouteUrls.productCheckoutPage(ScratchpadPlanType.STARTER_PLAN)}
         >
           Subscribe
         </PrimaryButton>

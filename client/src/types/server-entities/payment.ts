@@ -1,5 +1,4 @@
-
-export enum ScratchpadProductType {
+export enum ScratchpadPlanType {
   STARTER_PLAN = 'STARTER_PLAN',
 }
 

@@ -1,4 +1,4 @@
-import { ScratchpadProductType } from "./payment";
+import { ScratchpadPlanType } from "./payment";
 
 export interface User {
   id: string;
@@ -15,6 +15,6 @@ export interface User {
 export interface SubscriptionInfo {
   status: 'valid' | 'expired' | 'payment_failed';
   planDisplayName: string;
-  productType: ScratchpadProductType;
+  planType: ScratchpadPlanType;
   daysRemaining: number;
 }

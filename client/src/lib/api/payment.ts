@@ -18,8 +18,8 @@ export const paymentApi = {
     return res.json();
   },
 
-  createCheckoutSession: async (productType: string): Promise<CreateCheckoutSessionResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/payment/checkout/${productType}`, {
+  createCheckoutSession: async (planType: string): Promise<CreateCheckoutSessionResponse> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/payment/checkout/${planType}`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -27,7 +27,7 @@ export const paymentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? `Failed to create checkout session for ${productType}`);
+      throw new Error(res.statusText ?? `Failed to create checkout session for ${planType}`);
     }
 
     return res.json();

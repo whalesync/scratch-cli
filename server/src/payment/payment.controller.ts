@@ -17,7 +17,7 @@ import { RequestWithUser } from 'src/auth/types';
 import { ErrorCode, isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
-import { getProductTypeFromString } from './products';
+import { getProductTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =

@@ -4,7 +4,7 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { Info } from '@/app/components/InfoPanel';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { paymentApi } from '@/lib/api/payment';
-import { ScratchpadProductType } from '@/types/server-entities/payment';
+import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { stringToEnum } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
@@ -14,10 +14,10 @@ import { JSX, useEffect, useState } from 'react';
 async function goToPaymentCheckoutUrl(args: { productType: string | string[] | undefined }): Promise<void> {
   if (typeof args.productType === 'string' && typeof window !== 'undefined') {
     const rawProductType = args.productType;
-    const productType: ScratchpadProductType = stringToEnum(
+    const productType: ScratchpadPlanType = stringToEnum(
       rawProductType,
-      ScratchpadProductType,
-      ScratchpadProductType.STARTER_PLAN,
+      ScratchpadPlanType,
+      ScratchpadPlanType.STARTER_PLAN,
     );
     // Generate a URL and redirect to it.
     // This will either be a link to create a new subscription, or to update the current subscription if it exists.

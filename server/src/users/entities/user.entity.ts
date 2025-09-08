@@ -1,12 +1,12 @@
 import { Subscription, TokenType, UserRole } from '@prisma/client';
 import { UserCluster } from 'src/db/cluster-types';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
-import { getProduct, getProductTypeFromString, ScratchpadProductType } from 'src/payment/products';
+import { getPlan, getProductTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
 
 export interface SubscriptionInfo {
   status: 'valid' | 'expired' | 'payment_failed';
   planDisplayName: string;
-  productType: ScratchpadProductType;
+  planType: ScratchpadPlanType;
   daysRemaining: number;
 }
 
@@ -51,13 +51,13 @@ function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | u
     return undefined;
   }
 
-  const productType = getProductTypeFromString(latestSubscription.productType);
+  const planType = getProductTypeFromString(latestSubscription.productType);
 
-  if (!productType) {
+  if (!planType) {
     return undefined;
   }
 
-  const product = getProduct(productType);
+  const plan = getPlan(planType);
 
   /* How much longer the subscription is valid in days. A negative number respresents how long since the 
   subscription expired */
@@ -74,8 +74,8 @@ function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | u
 
   return {
     status,
-    planDisplayName: product?.displayName ?? 'Untitled Plan',
-    productType: productType,
+    planDisplayName: plan?.displayName ?? 'Untitled Plan',
+    planType: planType,
     daysRemaining,
   };
 }

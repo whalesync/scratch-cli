@@ -21,7 +21,7 @@ import {
 import { UsersService } from 'src/users/users.service';
 import Stripe from 'stripe';
 import { getActiveSubscriptions } from './helpers';
-import { PRODUCTION_PRODUCTS, ScratchpadProductType, TEST_PRODUCTS } from './products';
+import { PRODUCTION_PLANS, ScratchpadPlanType, TEST_PLANS } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -43,13 +43,13 @@ const PORTAL_RETURN_PATH = '/settings';
  */
 export interface StripeSubscriptionMetadata {
   application?: 'scratchpad';
-  productType?: ScratchpadProductType;
+  productType?: ScratchpadPlanType;
   environment?: 'production' | 'test' | 'local';
 }
 
 export interface StripeSubscriptionItemMetadata {
   application?: 'scratchpad';
-  productType?: ScratchpadProductType;
+  productType?: ScratchpadPlanType;
 }
 
 @Injectable()
@@ -123,7 +123,7 @@ export class StripePaymentService {
     return ok(portalSession.url);
   }
 
-  async generateCheckoutUrl(user: UserCluster.User, productType: ScratchpadProductType): AsyncResult<string> {
+  async generateCheckoutUrl(user: UserCluster.User, productType: ScratchpadPlanType): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
       message: `Generating checkout URL for user ${user.id}, product ${productType}`,
@@ -147,6 +147,7 @@ export class StripePaymentService {
 
     const clientBaseUrl = ScratchpadConfigService.getClientBaseUrl();
 
+    const automaticTaxEnabled = this.configService.getScratchpadEnvironment() === 'production';
     const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'subscription',
@@ -165,10 +166,15 @@ export class StripePaymentService {
             productType: productType,
             environment: this.configService.getScratchpadEnvironment(),
           },
+          trial_settings: {
+            end_behavior: {
+              missing_payment_method: 'cancel',
+            },
+          },
         },
 
         // We must enable this to properly auto-collect taxes for customers based on their location.
-        automatic_tax: { enabled: false },
+        automatic_tax: { enabled: automaticTaxEnabled },
         customer_update: { address: 'auto', name: 'auto' },
 
         // In event of either success or failure, send them back to the dashboard root page to sort things
@@ -471,8 +477,6 @@ export class StripePaymentService {
   }
 
   private isScratchpadSubscription(subscription: Stripe.Subscription): boolean {
-    // const metadata = subscription.metadata as StripeSubscriptionMetadata;
-
     const productType = this.getProductTypeFromSubscription(subscription);
 
     WSLogger.debug({
@@ -599,26 +603,26 @@ export class StripePaymentService {
     return false;
   }
 
-  private getDefaultPriceId(productType: ScratchpadProductType): string | null {
-    const products =
-      this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
+  private getDefaultPriceId(productType: ScratchpadPlanType): string | null {
+    const plans = this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PLANS : TEST_PLANS;
 
-    for (const product of products) {
-      if (product.productType === productType) {
-        return product.stripePriceId;
+    for (const plan of plans) {
+      if (plan.productType === productType) {
+        return plan.stripePriceId;
       }
     }
 
     return null;
   }
 
-  private getProductTypeFromPriceId(priceId: string): ScratchpadProductType | null {
-    const products =
-      this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
+  private getProductTypeFromPriceId(priceId: string): ScratchpadPlanType | null {
+    const plans = this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PLANS : TEST_PLANS;
 
-    for (const product of products) {
-      if (product.stripePriceId === priceId) {
-        return product.productType;
+    for (const plan of plans) {
+      if (plan.stripePriceId === priceId) {
+        if (plan.stripePriceId === priceId) {
+          return plan.productType;
+        }
       }
     }
 
