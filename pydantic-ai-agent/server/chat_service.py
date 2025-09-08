@@ -153,7 +153,7 @@ class ChatService:
         if (
             require_user_agent_credentials
             and not user_open_router_credentials
-            and not user.role == "admin"
+            and not user.role.lower() == "admin"
         ):
             log_error(
                 f"User does not have openrouter credentials configured for user {user.userId}, role {user.role}",
