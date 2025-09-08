@@ -6,7 +6,7 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
@@ -24,6 +24,7 @@ export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchTo
   const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
+  const savePendingUpdatesRef = useRef<(() => Promise<void>) | null>(null);
 
   const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
@@ -69,7 +70,17 @@ export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchTo
     }
   }, [dataScope, currentColumnId, currentRecordId, records, setColumnScope, setRecordScope]);
 
-  const handleExitRecordView = useCallback(() => {
+  const handleExitRecordView = useCallback(async () => {
+    // Save any pending updates before exiting
+    if (savePendingUpdatesRef.current) {
+      try {
+        await savePendingUpdatesRef.current();
+      } catch (error) {
+        console.error('Failed to save pending updates:', error);
+        // Optionally show a notification to the user
+      }
+    }
+
     setWriteFocus([]);
     setTableScope();
     onSwitchToSpreadsheetView();
@@ -152,6 +163,7 @@ export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchTo
                         focusRecord(record, columnId);
                       }
                     }}
+                    onSavePendingUpdates={savePendingUpdatesRef}
                   />
                 </ScrollArea>
               </Tabs.Panel>

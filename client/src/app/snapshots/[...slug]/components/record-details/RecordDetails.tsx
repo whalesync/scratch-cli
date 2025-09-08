@@ -17,6 +17,7 @@ interface RecordDetailsProps {
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   bulkUpdateRecord: (dto: BulkUpdateRecordsDto) => Promise<void>;
   onFocusOnField?: (columnId: string | undefined) => void;
+  onSavePendingUpdates?: React.MutableRefObject<(() => Promise<void>) | null>;
 }
 
 interface PendingUpdate {
@@ -32,6 +33,7 @@ export const RecordDetails = ({
   rejectCellValues,
   bulkUpdateRecord,
   onFocusOnField,
+  onSavePendingUpdates,
 }: RecordDetailsProps) => {
   const { currentView } = useSnapshotContext();
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,13 @@ export const RecordDetails = ({
       setSaving(false);
     }
   }, [pendingUpdates, bulkUpdateRecord, currentRecord]);
+
+  // Expose the save function to parent
+  useEffect(() => {
+    if (onSavePendingUpdates) {
+      onSavePendingUpdates.current = savePendingUpdates;
+    }
+  }, [savePendingUpdates, onSavePendingUpdates]);
 
   // Auto-save pending updates every 5 seconds
   useEffect(() => {
