@@ -6,7 +6,7 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
@@ -18,7 +18,8 @@ interface RecordViewProps {
   onSwitchToSpreadsheetView: () => void;
 }
 
-export const RecordView = ({ table, initialRecordId, initialColumnId, onSwitchToSpreadsheetView }: RecordViewProps) => {
+export const RecordView: FC<RecordViewProps> = (props) => {
+  const { table, initialRecordId, initialColumnId, onSwitchToSpreadsheetView } = props;
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
   const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();

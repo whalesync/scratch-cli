@@ -44,7 +44,8 @@ export interface UseSnapshotRecordsReturn {
       snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
       {
         revalidateOnFocus: true,
-        revalidateOnReconnect: true,        
+        revalidateOnReconnect: true,
+        keepPreviousData: true, // Keep previous data during revalidation to prevent flicker
       }
     );
   

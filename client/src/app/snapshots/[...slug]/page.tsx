@@ -238,7 +238,8 @@ function SnapshotPageContent() {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    // Only show loader on initial load, not during revalidation
+    if (isLoading && !snapshot) {
       return (
         <Center flex={1} h="100%" w="100%">
           <Loader />
