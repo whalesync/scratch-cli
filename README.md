@@ -87,3 +87,19 @@ You can have multiple instances of the MCP server configured, each using a diffe
 When the MCP server changes:
 
 1. `cd mcp & yarn run build`
+
+# Deployments
+
+The client, server and agent are all automatically deployed to Vercel and Render from the `prod` branch. To trigger a new deployment, you just need to do a merge from `master` to `prod` and push changes. First make sure your `master` and `prod` branches are up to date, then from the `prod` branch create a merge with the comment included below.
+
+```bash
+checkout master
+git pull
+git checkout prod
+git pull origin prod
+git merge -m "(Auto) Merge branch 'master' into prod" --no-ff -X theirs master
+git push origin prod
+git checkout master
+```
+
+Once done, make sure to leave the `prod` branch immediately to avoid accidently branching from it or pushing new changes. The `prod` branch **must** always be equal or behind the `master` branch.
