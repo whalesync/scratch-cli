@@ -17,7 +17,7 @@ import { RequestWithUser } from 'src/auth/types';
 import { ErrorCode, isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
-import { getProductTypeFromString } from './plans';
+import { getPlanTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
@@ -63,7 +63,7 @@ export class StripePaymentController {
       throw new UnauthorizedException();
     }
 
-    const productTypeEnum = getProductTypeFromString(productType);
+    const productTypeEnum = getPlanTypeFromString(productType);
 
     // TODO validate the product type enum
     if (!productTypeEnum) {

@@ -4,7 +4,7 @@ export enum ScratchpadPlanType {
   STARTER_PLAN = 'STARTER_PLAN',
 }
 
-export function getProductTypeFromString(productTypeString: string): ScratchpadPlanType | undefined {
+export function getPlanTypeFromString(productTypeString: string): ScratchpadPlanType | undefined {
   for (const [k, v] of Object.entries(ScratchpadPlanType)) {
     if (k === productTypeString) {
       return v;
@@ -20,17 +20,28 @@ export interface Plan {
   stripePriceId: string;
 }
 
+// Configured in the Stripe Production environment
 export const PRODUCTION_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,
     displayName: 'Starter Plan',
-    stripeProductId: 'undefined',
-    stripePriceId: 'undefined',
+    stripeProductId: 'prod_T1CHvH0R13leag',
+    stripePriceId: 'price_1S59tCB3kcxQq5fulhgRPJud',
   },
 ];
 
-// Configured in the Scratchpad Test sandbox environment
+// Configured in the Stripe Test Mode environment
 export const TEST_PLANS: Plan[] = [
+  {
+    productType: ScratchpadPlanType.STARTER_PLAN,
+    displayName: 'Starter Plan',
+    stripeProductId: 'prod_T1BiiybeaAM031',
+    stripePriceId: 'price_1S59L4B3kcxQq5fuyUONF3u8',
+  },
+];
+
+// Configured in the Scratchpad Test sandbox environment for developer testing
+export const SANDBOX_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,
     displayName: 'Starter Plan',

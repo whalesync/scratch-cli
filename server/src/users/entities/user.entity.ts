@@ -1,7 +1,7 @@
 import { Subscription, TokenType, UserRole } from '@prisma/client';
 import { UserCluster } from 'src/db/cluster-types';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
-import { getPlan, getProductTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
+import { getPlan, getPlanTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
 
 export interface SubscriptionInfo {
   status: 'valid' | 'expired' | 'payment_failed';
@@ -51,7 +51,7 @@ function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | u
     return undefined;
   }
 
-  const planType = getProductTypeFromString(latestSubscription.productType);
+  const planType = getPlanTypeFromString(latestSubscription.productType);
 
   if (!planType) {
     return undefined;
