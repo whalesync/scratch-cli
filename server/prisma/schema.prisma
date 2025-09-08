@@ -79,12 +79,8 @@ model ConnectorAccount {
   userId                    String
   service                   Service
   displayName               String
-  apiKey                    String
   authType                  AuthType               @default(API_KEY)
-  oauthAccessToken          String? // OAuth access token
-  oauthRefreshToken         String? // OAuth refresh token
-  oauthExpiresAt            DateTime? // OAuth token expiration
-  oauthWorkspaceId          String? // OAuth workspace/team ID (for Notion)
+  encryptedCredentials      Json                   @default("{}") // Encrypted JSON containing apiKey, oauth tokens, etc.
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
   modifier                  String? // ID of the custom connector or other modifier entity

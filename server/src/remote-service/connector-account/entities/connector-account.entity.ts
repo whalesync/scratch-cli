@@ -1,4 +1,5 @@
 import { AuthType, ConnectorHealthStatus, ConnectorAccount as PrismaConnectorAccount, Service } from '@prisma/client';
+import { DecryptedCredentials } from '../types/encrypted-credentials.interface';
 
 export class ConnectorAccount implements PrismaConnectorAccount {
   id: string;
@@ -7,13 +8,11 @@ export class ConnectorAccount implements PrismaConnectorAccount {
   userId: string;
   service: Service;
   displayName: string;
-  apiKey: string;
   authType: AuthType;
-  oauthAccessToken: string | null;
-  oauthRefreshToken: string | null;
-  oauthExpiresAt: Date | null;
-  oauthWorkspaceId: string | null;
+  encryptedCredentials: any; // Encrypted JSON
   healthStatus: ConnectorHealthStatus | null;
   healthStatusLastCheckedAt: Date | null;
   modifier: string | null;
 }
+
+export type ConnectorAccountWithCredentials = ConnectorAccount & DecryptedCredentials;

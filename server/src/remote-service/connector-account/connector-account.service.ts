@@ -3,11 +3,13 @@ import { AuthType, ConnectorAccount } from '@prisma/client';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { createConnectorAccountId } from '../../types/ids';
+import { EncryptedData, getEncryptionService } from '../../utils/encryption';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { TablePreview } from '../connectors/types';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { TestConnectionResponse } from './entities/test-connection.entity';
+import { DecryptedCredentials } from './types/encrypted-credentials.interface';
 
 @Injectable()
 export class ConnectorAccountService {
@@ -17,15 +19,53 @@ export class ConnectorAccountService {
     private readonly posthogService: PostHogService,
   ) {}
 
+  private async encryptCredentials(credentials: DecryptedCredentials): Promise<EncryptedData> {
+    const encryptionService = getEncryptionService();
+    const encryptedData = await encryptionService.encryptObject(credentials);
+    return encryptedData;
+  }
+
+  private async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
+    if (!encryptedCredentials || Object.keys(encryptedCredentials).length === 0) {
+      return {};
+    }
+
+    const encryptionService = getEncryptionService();
+    const decrypted = await encryptionService.decryptObject<DecryptedCredentials>(encryptedCredentials);
+
+    // Convert oauthExpiresAt back to Date if it exists
+    if (decrypted.oauthExpiresAt) {
+      decrypted.oauthExpiresAt = new Date(decrypted.oauthExpiresAt);
+    }
+
+    return decrypted;
+  }
+
+  private async getDecryptedAccount(account: ConnectorAccount): Promise<ConnectorAccount & DecryptedCredentials> {
+    const decryptedCredentials = await this.decryptCredentials(
+      account.encryptedCredentials as unknown as EncryptedData,
+    );
+    return {
+      ...account,
+      ...decryptedCredentials,
+    };
+  }
+
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
+    const credentials: DecryptedCredentials = {
+      apiKey: createDto.apiKey,
+    };
+
+    const encryptedCredentials = await this.encryptCredentials(credentials as unknown as DecryptedCredentials);
+
     const connectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),
         userId,
         service: createDto.service,
         displayName: `${createDto.service.toLowerCase()} base`,
-        apiKey: createDto.apiKey,
         authType: createDto.authType || AuthType.API_KEY,
+        encryptedCredentials: encryptedCredentials as Record<string, any>,
         modifier: createDto.modifier,
       },
     });
@@ -42,22 +82,51 @@ export class ConnectorAccountService {
     });
   }
 
-  async findOne(id: string, userId: string): Promise<ConnectorAccount> {
+  async findOne(id: string, userId: string): Promise<ConnectorAccount & DecryptedCredentials> {
     const connectorAccount = await this.db.client.connectorAccount.findUnique({
       where: { id, userId },
     });
     if (!connectorAccount) {
       throw new NotFoundException('ConnectorAccount not found');
     }
-    return connectorAccount;
+    return this.getDecryptedAccount(connectorAccount);
   }
 
-  async update(id: string, updateDto: UpdateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
+  async update(
+    id: string,
+    updateDto: UpdateConnectorAccountDto,
+    userId: string,
+  ): Promise<ConnectorAccount & DecryptedCredentials> {
+    // Get current account to decrypt existing credentials
+    const currentAccount = await this.db.client.connectorAccount.findUnique({
+      where: { id, userId },
+    });
+    if (!currentAccount) {
+      throw new NotFoundException('ConnectorAccount not found');
+    }
+
+    const decryptedCredentials = await this.decryptCredentials(
+      currentAccount.encryptedCredentials as unknown as EncryptedData,
+    );
+
+    // Update credentials if apiKey is provided
+    if (updateDto.apiKey) {
+      decryptedCredentials.apiKey = updateDto.apiKey;
+    }
+
+    const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);
+
     const account = await this.db.client.connectorAccount.update({
       where: { id, userId },
-      data: { ...updateDto, healthStatus: null, healthStatusLastCheckedAt: null },
+      data: {
+        displayName: updateDto.displayName,
+        encryptedCredentials: encryptedCredentials as Record<string, any>,
+        healthStatus: null,
+        healthStatusLastCheckedAt: null,
+      },
     });
-    return account;
+
+    return this.getDecryptedAccount(account);
   }
 
   async remove(id: string, userId: string): Promise<void> {

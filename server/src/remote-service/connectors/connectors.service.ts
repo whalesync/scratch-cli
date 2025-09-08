@@ -9,6 +9,7 @@ import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
+import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
 
 @Injectable()
 export class ConnectorsService {
@@ -18,9 +19,12 @@ export class ConnectorsService {
     private readonly oauthService: OAuthService,
   ) {}
 
-  async getConnector(account: ConnectorAccount): Promise<Connector<Service>> {
+  async getConnector(account: ConnectorAccount & DecryptedCredentials): Promise<Connector<Service>> {
     switch (account.service) {
       case Service.AIRTABLE:
+        if (!account.apiKey) {
+          throw new Error('API key is required for Airtable');
+        }
         return new AirtableConnector(account.apiKey);
       case Service.NOTION:
         if (account.authType === AuthType.OAUTH) {
@@ -29,9 +33,15 @@ export class ConnectorsService {
           return new NotionConnector(accessToken);
         } else {
           // For API key accounts, use the apiKey field
+          if (!account.apiKey) {
+            throw new Error('API key is required for Notion');
+          }
           return new NotionConnector(account.apiKey);
         }
       case Service.CUSTOM:
+        if (!account.apiKey) {
+          throw new Error('API key is required for Custom connector');
+        }
         return new CustomConnector(account.userId, this.db, account.apiKey);
       case Service.CSV:
         return new CsvConnector(this.csvFileService);
