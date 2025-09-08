@@ -174,6 +174,10 @@ class ChatService:
             logger.info(f"🔑 Using Whalesync OpenRouter credentials")
             api_key = OPENROUTER_API_KEY
 
+        # Trim whitespace from API key to prevent authentication issues
+        if api_key:
+            api_key = api_key.strip()
+
         if not api_key:
             raise HTTPException(
                 status_code=401, detail="Unable to find an OpenRouter API key for agent"
@@ -715,9 +719,14 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
             logger.exception(f"Error in agent processing")
-            raise HTTPException(
-                status_code=500, detail=f"Error processing message: {str(e)}"
-            )
+            if "Connection error." in str(e):
+                raise HTTPException(
+                    status_code=401, detail="Connection error or invalid API key."
+                )
+            else:
+                raise HTTPException(
+                    status_code=500, detail=f"Error processing message: {str(e)}"
+                )
 
     async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
         """Cancel a run"""

@@ -22,6 +22,10 @@ import logfire as logfire_module
 load_dotenv()
 
 api_key = os.getenv("OPENROUTER_API_KEY")
+# Trim whitespace from API key to prevent authentication issues
+if api_key:
+    api_key = api_key.strip()
+
 model = OpenAIModel(
     "openai/gpt-4o-mini",
     # 'google/gemini-2.5-pro',

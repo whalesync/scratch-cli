@@ -9,6 +9,9 @@ load_dotenv()  # Load variables from .env file
 
 # --- OpenAI Configuration ---
 api_key = os.getenv("OPENROUTER_API_KEY")
+# Trim whitespace from API key to prevent authentication issues
+if api_key:
+    api_key = api_key.strip()
 
 model = OpenAIModel(
     "google/gemini-2.5-flash-lite-preview-06-17",
