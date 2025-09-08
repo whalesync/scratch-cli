@@ -99,7 +99,7 @@ async def get_session(
         extra={"session_id": session_id, "user_id": current_user.userId},
     )
 
-    session = session_service.get_session(session_id)
+    session = session_service.get_session(session_id, current_user.userId)
 
     if not session:
         myLogger.warning(
@@ -259,6 +259,7 @@ async def send_message(
         summary_entry = RequestAndResponseSummary(
             request_summary=agent_response.request_summary,
             response_summary=agent_response.response_summary,
+            timestamp=datetime.now(),
         )
         session.summary_history.append(summary_entry)
         myLogger.info(
@@ -266,7 +267,7 @@ async def send_message(
         )
 
         # Update session
-        session_service.update_session(session)
+        session_service.update_session(session, current_user.userId)
         myLogger.info(f"💾 Session updated in storage")
         myLogger.info(
             f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
@@ -331,7 +332,7 @@ async def list_sessions_for_snapshot(
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
     session_summaries = []
-    for session in session_service.get_sessions_for_snapshot(snapshot_id):
+    for session in session_service.get_sessions_for_snapshot(snapshot_id, current_user.userId):
         summary = ChatSessionSummary(
             id=session.id,
             name=session.name,

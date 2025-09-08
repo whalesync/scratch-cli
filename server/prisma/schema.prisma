@@ -224,9 +224,6 @@ model AiAgentTokenUsageEvent {
   @@index([userId])
 }
 
-
-
-
 /// A user's subscription with stripe.
 /// There *should* only ever be one of these for a user, but we track any subscriptions stripe sends our way.
 model Subscription {
@@ -235,7 +232,7 @@ model Subscription {
   updatedAt            DateTime @updatedAt
   version              Int      @default(1)
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId               String   
+  userId               String
   productType          String
   stripeSubscriptionId String   @unique
   expiration           DateTime
@@ -245,7 +242,6 @@ model Subscription {
 
   @@index([userId])
 }
-
 
 /// Simple log to cache whether a user's subscription is getting paid.
 /// Stripe is the authoritative source for this.
@@ -262,4 +258,17 @@ model InvoiceResult {
 
   // True if the invoice was paid.
   succeeded Boolean
+}
+
+model AgentSession {
+  id         String   @id // The session ID used by the pydantic agent
+  userId     String // User ID for the session
+  snapshotId String // Snapshot ID for the session
+  data       Json // JSON data containing the session state
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([snapshotId])
+  @@index([userId, snapshotId])
 }

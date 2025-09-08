@@ -71,7 +71,7 @@ async def websocket_endpoint(
         return
 
     ## lookup the existing session
-    session = session_service.get_session(session_id)
+    session = session_service.get_session(session_id, connecting_user.userId)
     if not session:
         await manager.send_personal_message(
             json.dumps(
@@ -327,6 +327,7 @@ async def websocket_endpoint(
                     summary_entry = RequestAndResponseSummary(
                         request_summary=agent_response.request_summary,
                         response_summary=agent_response.response_summary,
+                        timestamp=datetime.now(),
                     )
                     session.summary_history.append(summary_entry)
                     logger.info(
@@ -345,7 +346,7 @@ async def websocket_endpoint(
                         )
                         session.name = new_name
 
-                    session_service.update_session(session)
+                    session_service.update_session(session, connecting_user.userId)
                     logger.info(f"💾 Session updated in storage")
                     logger.info(
                         f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"

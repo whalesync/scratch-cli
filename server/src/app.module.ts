@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { AdminModule } from './admin/admin.module';
 import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
+import { AgentSessionModule } from './agent-session/agent-session.module';
 import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
@@ -27,6 +28,7 @@ import { ViewModule } from './view/view.module';
     PosthogModule,
     AdminModule,
     AgentJwtModule,
+    AgentSessionModule,
     DbModule,
     UserModule,
     ClerkModule,
