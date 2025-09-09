@@ -2,6 +2,7 @@ import { Controller, Get, Req, UnauthorizedException, UseGuards } from '@nestjs/
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
+import { ExperimentsService } from 'src/experiments/experiments.service';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -10,6 +11,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtGeneratorService: JwtGeneratorService,
+    private readonly experimentsService: ExperimentsService,
   ) {}
 
   @UseGuards(ScratchpadAuthGuard)
@@ -25,6 +27,8 @@ export class UsersController {
       role: req.user.role,
     });
 
-    return new User(req.user, agentJwt);
+    const experiments = this.experimentsService.resolveFlagsForUser(req.user);
+
+    return new User(req.user, agentJwt, experiments);
   }
 }

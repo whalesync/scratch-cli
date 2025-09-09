@@ -1,18 +1,28 @@
-import { TextTitleLg } from '@/app/components/base/text';
+import { TextRegularXs, TextTitleLg } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ActionIcon, Badge, Card, CheckIcon, CopyButton, Group, PasswordInput, Text, Tooltip } from '@mantine/core';
+import { ClientFlag, FLAGS } from '@/utils/flags-dev';
+import {
+  ActionIcon,
+  Badge,
+  Card,
+  Checkbox,
+  CheckIcon,
+  CopyButton,
+  Grid,
+  Group,
+  PasswordInput,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { CopyIcon } from '@phosphor-icons/react';
+import { Fragment, JSX, useState } from 'react';
 
-export const DebugInfo = () => {
+export const DevToolsPanel = () => {
   const { user, isAdmin } = useScratchPadUser();
 
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder>
-      <TextTitleLg mb="xs">Debug</TextTitleLg>
+    <Card shadow="sm" padding="sm" radius="md" withBorder style={{ borderColor: 'var(--mantine-color-purple-5)' }}>
+      <TextTitleLg mb="xs">Dev Tools</TextTitleLg>
       <Group wrap="nowrap" gap="xs">
         <Text miw={200}>User ID</Text>
 
@@ -72,6 +82,42 @@ export const DebugInfo = () => {
           )}
         </CopyButton>
       </Group>
+      <Group wrap="nowrap" gap="xs" align="flex-start">
+        <Text miw={200}>Flags</Text>
+        <Grid w="100%">
+          <Grid.Col span={6}>
+            <TextRegularXs>Skip paywall on localhost</TextRegularXs>
+          </Grid.Col>
+          <Grid.Col span={6}>
+            <FlagCheckboxOption flag={FLAGS.SKIP_PAYWALL_FOR_LOCALHOST} />
+          </Grid.Col>
+          {user?.experimentalFlags &&
+            Object.entries(user.experimentalFlags).map(([flag, value]) => (
+              <Fragment key={flag}>
+                <Grid.Col span={6}>
+                  <TextRegularXs>{flag}</TextRegularXs>
+                </Grid.Col>
+                <Grid.Col span={6}>
+                  <TextRegularXs>{value.toString()}</TextRegularXs>
+                </Grid.Col>
+              </Fragment>
+            ))}
+        </Grid>
+      </Group>
     </Card>
+  );
+};
+
+const FlagCheckboxOption = (props: { flag: ClientFlag }): JSX.Element => {
+  const [checked, setChecked] = useState(props.flag.getLocalStorageValue());
+  return (
+    <Checkbox
+      checked={checked}
+      onChange={(e) => {
+        props.flag.setLocalStorageValue(e.currentTarget.checked);
+        setChecked(e.currentTarget.checked);
+        window.location.reload();
+      }}
+    />
   );
 };

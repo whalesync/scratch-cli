@@ -1,4 +1,5 @@
 import { Flavor, getBuildFlavor } from "@/utils/build";
+import { FLAGS } from "@/utils/flags-dev";
 import { useScratchPadUser } from "./useScratchpadUser";
 
 
@@ -21,7 +22,7 @@ export function useSubscriptionStatus() {
     };
   }
 
-  if(process.env.SKIP_PAYWALL_FOR_LOCALHOST === 'true' && getBuildFlavor() === Flavor.Local){
+  if(FLAGS.SKIP_PAYWALL_FOR_LOCALHOST.get() && getBuildFlavor() === Flavor.Local){
     return {
       isSubscribed: true,
       status: 'valid',

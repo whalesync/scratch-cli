@@ -11,6 +11,7 @@ import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
+import { ExperimentsModule } from './experiments/experiments.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { PaymentModule } from './payment/payment.module';
@@ -26,6 +27,7 @@ import { ViewModule } from './view/view.module';
   imports: [
     ScratchpadConfigModule,
     PosthogModule,
+    ExperimentsModule,
     AdminModule,
     AgentJwtModule,
     AgentSessionModule,
