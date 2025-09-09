@@ -49,7 +49,7 @@ class SessionService:
 
         # Store in memory cache
         self._sessions[session_id] = session
-        
+
         # Persist to API server
         self._persist_session(user_id, session)
 
@@ -70,12 +70,14 @@ class SessionService:
         if to_delete:
             logger.info(f"🧹 Cleaned up {len(to_delete)} inactive sessions")
 
-    def get_session(self, session_id: str, user_id: Optional[str] = None) -> Optional[ChatSession]:
+    def get_session(
+        self, session_id: str, user_id: Optional[str] = None
+    ) -> Optional[ChatSession]:
         """Get a session by ID"""
         # First check memory cache
         if session_id in self._sessions:
             return self._sessions[session_id]
-        
+
         # If not in cache and we have user_id, try to load from API
         if user_id:
             try:
@@ -86,7 +88,7 @@ class SessionService:
                     return session
             except Exception as e:
                 logger.warning(f"Failed to load session from API: {e}")
-        
+
         return None
 
     def delete_session(self, session_id: str, user_id: Optional[str] = None) -> None:
@@ -94,7 +96,7 @@ class SessionService:
         # Remove from memory cache
         if session_id in self._sessions:
             del self._sessions[session_id]
-        
+
         # Delete from API server
         if user_id:
             try:
@@ -102,11 +104,13 @@ class SessionService:
             except Exception as e:
                 logger.warning(f"Failed to delete session from API: {e}")
 
-    def update_session(self, session: ChatSession, user_id: Optional[str] = None) -> None:
+    def update_session(
+        self, session: ChatSession, user_id: Optional[str] = None
+    ) -> None:
         """Update a session"""
         # Update memory cache
         self._sessions[session.id] = session
-        
+
         # Persist to API server
         if user_id:
             self._persist_session(user_id, session)
@@ -128,17 +132,21 @@ class SessionService:
             ]
         else:
             cached_sessions = list(self._sessions.values())
-        
+
         # If we have cached sessions, return them
         if cached_sessions:
             return cached_sessions
-        
+
         # If no cached sessions and we have both snapshot_id and user_id, try to load from API
         if snapshot_id and user_id:
             try:
-                logger.info(f"No cached sessions found for snapshot {snapshot_id}, loading from API")
-                persisted_sessions = self._api.list_agent_sessions_by_snapshot(user_id, snapshot_id)
-                
+                logger.info(
+                    f"No cached sessions found for snapshot {snapshot_id}, loading from API"
+                )
+                persisted_sessions = self._api.list_agent_sessions_by_snapshot(
+                    user_id, snapshot_id
+                )
+
                 # Convert persisted sessions to ChatSession objects and cache them
                 loaded_sessions = []
                 for persisted_session in persisted_sessions:
@@ -147,14 +155,18 @@ class SessionService:
                         session = self._deserialize_session(session_data)
                         self._sessions[session.id] = session
                         loaded_sessions.append(session)
-                
-                logger.info(f"Loaded {len(loaded_sessions)} sessions from API for snapshot {snapshot_id}")
+
+                logger.info(
+                    f"Loaded {len(loaded_sessions)} sessions from API for snapshot {snapshot_id}"
+                )
                 return loaded_sessions
-                
+
             except Exception as e:
-                logger.warning(f"Failed to load sessions from API for snapshot {snapshot_id}: {e}")
+                logger.warning(
+                    f"Failed to load sessions from API for snapshot {snapshot_id}: {e}"
+                )
                 return []
-        
+
         return []
 
     def get_sessions_for_user(self, user_id: str) -> List[ChatSession]:
@@ -204,7 +216,7 @@ class SessionService:
 
     def _deserialize_session(self, data: Dict[str, any]) -> ChatSession:
         """Deserialize a dictionary back to a ChatSession"""
-        
+
         # Deserialize chat history
         chat_history = []
         for msg_data in data.get("chat_history", []):
@@ -215,7 +227,7 @@ class SessionService:
                     timestamp=datetime.fromisoformat(msg_data["timestamp"]),
                 )
             )
-        
+
         # Deserialize summary history
         summary_history = []
         for summary_data in data.get("summary_history", []):
@@ -226,7 +238,7 @@ class SessionService:
                     timestamp=datetime.fromisoformat(summary_data["timestamp"]),
                 )
             )
-        
+
         # Create session
         session = ChatSession(
             id=data["id"],
@@ -238,5 +250,5 @@ class SessionService:
             chat_history=chat_history,
             summary_history=summary_history,
         )
-        
+
         return session

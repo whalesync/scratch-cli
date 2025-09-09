@@ -273,20 +273,24 @@ class ScratchpadApi:
         """Get an agent session by session ID"""
         url = f"{API_CONFIG.get_api_url()}/agent-sessions/{session_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
-        
+
         if not response.ok and response.status_code == 404:
             # 404 means no session found
             return None
-            
+
         data = _handle_response(response, "Failed to get agent session")
         return data
 
     @staticmethod
-    def save_agent_session(user_id: str, session_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def save_agent_session(
+        user_id: str, session_id: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Save an agent session (upsert)"""
         url = f"{API_CONFIG.get_api_url()}/agent-sessions/{session_id}/upsert"
         payload = {"data": data}
-        response = requests.post(url, headers=API_CONFIG.get_api_headers(user_id), json=payload)
+        response = requests.post(
+            url, headers=API_CONFIG.get_api_headers(user_id), json=payload
+        )
         data = _handle_response(response, "Failed to save agent session")
         return data
 
@@ -306,7 +310,9 @@ class ScratchpadApi:
         return data
 
     @staticmethod
-    def list_agent_sessions_by_snapshot(user_id: str, snapshot_id: str) -> List[Dict[str, Any]]:
+    def list_agent_sessions_by_snapshot(
+        user_id: str, snapshot_id: str
+    ) -> List[Dict[str, Any]]:
         """List all agent sessions for a snapshot"""
         url = f"{API_CONFIG.get_api_url()}/agent-sessions/snapshot/{snapshot_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))

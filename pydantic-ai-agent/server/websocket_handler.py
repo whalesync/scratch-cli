@@ -38,7 +38,12 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: str, session_id: str):
         if session_id in self.active_connections:
-            await self.active_connections[session_id].send_text(message)
+            try:
+                await self.active_connections[session_id].send_text(message)
+            except Exception as e:
+                logger.error(f"Failed to send message to {session_id}: {e}")
+                # Remove the connection if it's broken
+                self.disconnect(session_id)
 
 
 async def websocket_endpoint(
@@ -59,13 +64,16 @@ async def websocket_endpoint(
 
     if not connecting_user:
         await manager.send_personal_message(
-            {
-                "type": "agent_error",
-                "data": {
-                    "detail": "Unauthorized access. Missing or invalid JWT token.",
-                },
-                "timestamp": datetime.now().isoformat(),
-            }
+            json.dumps(
+                {
+                    "type": "agent_error",
+                    "data": {
+                        "detail": "Unauthorized access. Missing or invalid JWT token.",
+                    },
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            session_id,
         )
         manager.disconnect(session_id)
         return
@@ -109,8 +117,41 @@ async def websocket_endpoint(
     try:
         while True:
             # Receive message from client
-            data = await websocket.receive_text()
-            message_data = json.loads(data)
+            message_data = None
+            try:
+                data = await websocket.receive_text()
+                message_data = json.loads(data)
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON received: {e}")
+                await manager.send_personal_message(
+                    json.dumps(
+                        {
+                            "type": "agent_error",
+                            "data": {"detail": "Invalid message format"},
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    ),
+                    session_id,
+                )
+            except Exception as e:
+                logger.error(f"Invalid message received: {e}")
+                await manager.send_personal_message(
+                    json.dumps(
+                        {
+                            "type": "agent_error",
+                            "data": {
+                                "detail": "Error receiving message",
+                            },
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    ),
+                    session_id,
+                )
+                # exit the loop
+                break
+
+            if not message_data:
+                continue
 
             # messages consist of a type and adata payload
             # type is a string
@@ -211,21 +252,6 @@ async def websocket_endpoint(
                     logger.info(
                         f"📋 Style guides provided: {len(request.style_guides)} style guides"
                     )
-                    for i, style_guide in enumerate(request.style_guides, 1):
-                        content = style_guide.content
-                        if isinstance(content, str):
-                            truncated_content = (
-                                content[:50] + "..." if len(content) > 50 else content
-                            )
-                        else:
-                            truncated_content = (
-                                str(content)[:50] + "..."
-                                if len(str(content)) > 50
-                                else str(content)
-                            )
-                        logger.info(
-                            f"   Style guide {i}: {style_guide.name} - {truncated_content}"
-                        )
                 else:
                     logger.info(f"ℹ️ No style guides provided")
 
@@ -254,20 +280,12 @@ async def websocket_endpoint(
                     )
 
                     # Convert style guides to dict format if provided
-                    logger.info(f"🔍 Converting style guides:")
-                    logger.info(f"   request.style_guides: {request.style_guides}")
-                    logger.info(
-                        f"   request.style_guides type: {type(request.style_guides)}"
-                    )
-
+                    logger.info(f"🔍 Converting style guides...")
                     style_guides_dict = {}
                     if request.style_guides:
                         style_guides_dict = {
                             g.name: g.content for g in request.style_guides
                         }
-                        logger.info(f"   Converted to: {style_guides_dict}")
-                    else:
-                        logger.info(f"   No style guides provided, using empty dict")
 
                     async def progress_callback(
                         progress_type: str, message: str, payload: dict
@@ -388,4 +406,8 @@ async def websocket_endpoint(
                     )
 
     except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected normally for session {session_id}")
+    except Exception as e:
+        logger.exception(f"Unexpected error in WebSocket handler")
+    finally:
         manager.disconnect(session_id)

@@ -4,6 +4,7 @@ Centralized logging module for the chat server
 """
 
 import os
+from pathlib import Path
 from typing import Optional, Any
 from logging import (
     basicConfig,
@@ -15,6 +16,7 @@ from logging import (
     WARNING,
     Filter,
 )
+from logging.handlers import RotatingFileHandler
 from pydantic_ai.agent import Agent
 from pydantic_ai.models.instrumented import InstrumentationSettings
 
@@ -30,6 +32,20 @@ class AccessLogExclustionFilter(Filter):
         return True
 
 
+# Custom formatter that includes extras
+class ExtraFormatter(Formatter):
+    def format(self, record):
+        # Get the base formatted message
+        formatted = super().format(record)
+
+        # Add extras if they exist
+        if hasattr(record, "extras") and record.extras:
+            extras_str = " | ".join(f"{k}={v}" for k, v in record.extras.items())
+            formatted += f" | {extras_str}"
+
+        return formatted
+
+
 # Global logger instance
 _logger: Optional[Any] = None
 _logfire_available: bool = False
@@ -39,10 +55,28 @@ def initialize_logging() -> None:
     """Initialize the logger with Logfire if available"""
     global _logger, _logfire_available
 
+    # Ensure logs directory exists
+    logs_dir = Path("logs")
+    logs_dir.mkdir(exist_ok=True)
+
     # Set up global logging to the console
     stream_handler = StreamHandler()
     stream_handler.setFormatter(Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    basicConfig(level=INFO, handlers=[stream_handler])
+
+    # Set up rotating file handler for debug and higher level logs
+    file_handler = RotatingFileHandler(
+        filename=logs_dir / "agent.log",
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(INFO)
+
+    file_handler.setFormatter(
+        ExtraFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+
+    basicConfig(level=DEBUG, handlers=[stream_handler, file_handler])
 
     access_logger = getLogger("uvicorn.access")
     # Add filter to exclude health endpoint logs

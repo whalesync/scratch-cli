@@ -332,7 +332,9 @@ async def list_sessions_for_snapshot(
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
     session_summaries = []
-    for session in session_service.get_sessions_for_snapshot(snapshot_id, current_user.userId):
+    for session in session_service.get_sessions_for_snapshot(
+        snapshot_id, current_user.userId
+    ):
         summary = ChatSessionSummary(
             id=session.id,
             name=session.name,

@@ -33,7 +33,7 @@ def create_connector_builder_agent(
 
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY environment variable not found")
-        
+
         # Trim whitespace from API key to prevent authentication issues
         api_key = api_key.strip()
 

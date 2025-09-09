@@ -12,9 +12,7 @@ class RequestAndResponseSummary(BaseModel):
     request_summary: str = Field(
         description="A concise summary of what the user requested, for future reference"
     )
-    timestamp: datetime = Field(
-        description="When this summary was created"
-    )
+    timestamp: datetime = Field(description="When this summary was created")
 
 
 class ChatMessage(BaseModel):

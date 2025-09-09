@@ -93,9 +93,13 @@ export function useAIAgentChatWebSocket({
         console.debug('WebSocket disconnected:', event.code, event.reason);
         setConnectionStatus('offline');
 
+        // 1000 is normal closure, 1012 is connection closed by server due to restart
         if (event.code !== 1000) {
-          // Not a normal closure
-          setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
+          if(event.code === 1012) {
+            setConnectionError('Connection closed: Server restarted');
+          } else {
+            setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
+          }
         }
 
         setMessageHistory((prev) => [
