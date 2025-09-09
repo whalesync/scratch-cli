@@ -848,6 +848,16 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
+    // Validate SQL WHERE clause if provided
+    if (dto.sqlWhereClause && dto.sqlWhereClause.trim() !== '') {
+      const errorMessage = await this.snapshotDbService.validateSqlFilter(snapshotId, tableId, dto.sqlWhereClause);
+      if (errorMessage) {
+        throw new BadRequestException(
+          `Invalid SQL WHERE clause. Please check your syntax and column names. ${errorMessage}`,
+        );
+      }
+    }
+
     // Load existing activeRecordSqlFilter or create empty object
     const currentFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
 

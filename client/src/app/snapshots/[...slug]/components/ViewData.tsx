@@ -66,6 +66,7 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
   const [saving, setSaving] = useState(false);
   const [sqlFilterModalOpen, setSqlFilterModalOpen] = useState(false);
   const [sqlFilterText, setSqlFilterText] = useState('');
+  const [sqlFilterError, setSqlFilterError] = useState<string | null>(null);
 
   const currentView = views?.find((v) => v.id === currentViewId);
 
@@ -77,6 +78,7 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
   useEffect(() => {
     if (sqlFilterModalOpen) {
       setSqlFilterText(currentTableFilter || '');
+      setSqlFilterError(null); // Clear any previous errors
     }
   }, [sqlFilterModalOpen, currentTableFilter]);
 
@@ -166,6 +168,8 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
   const handleSetSqlFilter = async () => {
     if (!currentTableId || !snapshot) return;
 
+    setSqlFilterError(null); // Clear any previous errors
+
     try {
       await snapshotApi.setActiveRecordsFilter(snapshot.id, currentTableId, sqlFilterText || undefined);
       notifications.show({
@@ -177,11 +181,8 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
       setSqlFilterText('');
     } catch (error) {
       console.error('Error setting SQL filter:', error);
-      notifications.show({
-        title: 'Error Setting Filter',
-        message: error instanceof Error ? error.message : 'Failed to set SQL filter',
-        color: 'red',
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set SQL filter';
+      setSqlFilterError(errorMessage);
     }
   };
 
@@ -441,9 +442,15 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
           <Textarea
             label="SQL WHERE Clause"
             value={sqlFilterText}
-            onChange={(e) => setSqlFilterText(e.target.value)}
+            onChange={(e) => {
+              setSqlFilterText(e.target.value);
+              if (sqlFilterError) {
+                setSqlFilterError(null); // Clear error when user starts typing
+              }
+            }}
             placeholder="Enter SQL WHERE clause..."
             minRows={3}
+            error={sqlFilterError}
             mb="md"
           />
           <Group justify="flex-end">

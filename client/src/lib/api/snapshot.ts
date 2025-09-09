@@ -178,7 +178,9 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to set active records filter");
+      const errorData = await res.json().catch(() => ({}));
+      const errorMessage = errorData.message || res.statusText || "Failed to set active records filter";
+      throw new Error(errorMessage);
     }
   },
 

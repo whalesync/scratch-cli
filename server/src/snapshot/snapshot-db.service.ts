@@ -76,6 +76,37 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     await this.knex.destroy();
   }
 
+  /**
+   * Validates a SQL WHERE clause by running a test query against the table
+   * @param snapshotId - The snapshot ID (schema name)
+   * @param tableId - The table ID
+   * @param sqlWhereClause - The SQL WHERE clause to validate
+   * @returns Promise<string | null> - null if valid, error message if invalid
+   */
+  async validateSqlFilter(snapshotId: SnapshotId, tableId: string, sqlWhereClause: string): Promise<string | null> {
+    try {
+      // Test the SQL WHERE clause using Knex query builder with raw WHERE clause
+      const testQuery = this.knex
+        .select(this.knex.raw('1'))
+        .from(this.knex.raw(`"${snapshotId}"."${tableId}"`))
+        .whereRaw(sqlWhereClause)
+        .limit(1);
+
+      await testQuery;
+      return null;
+    } catch (error) {
+      WSLogger.debug({
+        source: 'SnapshotDbService.validateSqlFilter',
+        message: 'SQL filter validation failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        snapshotId,
+        tableId,
+        sqlWhereClause,
+      });
+      return error instanceof Error ? error.message : 'Unknown error';
+    }
+  }
+
   async createForSnapshot(snapshotId: SnapshotId, tables: AnyTableSpec[]) {
     await this.knex.raw(`CREATE SCHEMA IF NOT EXISTS "${snapshotId}"`);
     for (const table of tables) {
