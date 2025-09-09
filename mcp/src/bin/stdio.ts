@@ -3,7 +3,7 @@ import { getServer } from "../server.js";
 import { connectWebSocket } from "../connectWebsockets.js";
 import { addHandlers } from "../add-handlers.js";
 
-import { SCRATCHPAD_API_SERVER, SCRATCHPAD_API_TOKEN } from "../constants.js";
+import { PROJECT_NAME, API_SERVER_URL, API_TOKEN } from "../constants.js";
 
 /**
  * This server is the entry point for MCP when it is integrated into an AI agent like Cursor
@@ -14,10 +14,10 @@ async function main() {
   addHandlers(server);
   await server.connect(transport);
   console.error(
-    "Whalesync Scratchpad MCP Server started -- API Server: ",
-    SCRATCHPAD_API_SERVER,
+    `Whalesync ${PROJECT_NAME} MCP Server started -- API Server: `,
+    API_SERVER_URL,
     " API Token: ",
-    SCRATCHPAD_API_TOKEN
+    API_TOKEN
   );
 
   // Connect to WebSocket after server is ready (with a small delay)

@@ -40,7 +40,7 @@ export const TEST_PLANS: Plan[] = [
   },
 ];
 
-// Configured in the Scratchpad Test sandbox environment for developer testing
+// Configured in the Scratchpaper Test sandbox environment for developer testing
 export const SANDBOX_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,

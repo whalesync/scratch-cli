@@ -7,7 +7,7 @@ logger = getLogger(__name__)
 
 
 class ScratchpadApiConfig:
-    """Configuration for Scratchpad API calls"""
+    """Configuration for Scratchpaper API calls"""
 
     def __init__(self):
         self.api_url = os.getenv("SCRATCHPAD_SERVER_URL", "http://localhost:3010")

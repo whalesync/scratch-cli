@@ -7,6 +7,7 @@ import { BookOpenIcon, FileCsvIcon, GearIcon, Icon, PlugsIcon, RobotIcon, TableI
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { StyledIcon } from './Icons/StyledIcon';
 import styles from './SideMenu.module.css';
@@ -85,12 +86,12 @@ export function SideMenu() {
 
   return (
     <Stack gap={0} h="100%" align="center">
-      <Tooltip label="Scratchpad.ai by Whalesync">
+      <Tooltip label={`${PROJECT_NAME} by Whalesync`}>
         <Center h={50} w={50}>
           <Link href={RouteUrls.homePageUrl}>
             <Image
               src="/dolphin-svgrepo-com.svg"
-              alt="Scratchpad.ai"
+              alt={`${PROJECT_NAME}`}
               w={30}
               h={30}
               styles={{

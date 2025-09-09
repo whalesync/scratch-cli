@@ -90,7 +90,7 @@ export const CreateSnapshotModal = ({
       const snapshot = await createSnapshot({
         connectorAccountId: connectorAccount.id,
         tableIds: tableIds,
-        name: snapshotName ?? `New ${connectorAccount.displayName} snapshot`,
+        name: snapshotName ?? `New ${connectorAccount.displayName} scratchpaper`,
       });
       props.onClose?.();
       await router.push(RouteUrls.snapshotPage(snapshot.id));
@@ -143,10 +143,10 @@ export const CreateSnapshotModal = ({
   };
 
   return (
-    <Modal title="Start new snapshot" size="xl" centered {...props}>
+    <Modal title="Start new scratchpaper" size="xl" centered {...props}>
       <Stack>
         <TextInput
-          placeholder="Enter a name for the snapshot"
+          placeholder="Enter a name for the scratchpaper"
           required
           value={snapshotName}
           onChange={(e) => setSnapshotName(e.target.value)}
@@ -163,7 +163,7 @@ export const CreateSnapshotModal = ({
         ) : (
           <Checkbox.Group value={selectedTables} onChange={setSelectedTables}>
             <Group justify="flex-start">
-              <Text size="sm">Select tables to include in the snapshot</Text>
+              <Text size="sm">Select tables to include in the scratchpaper</Text>
               <Group gap="xs" ml="auto">
                 <Button variant="subtle" size="xs" onClick={() => setSelectedTables(tables.map((t) => t.id.wsId))}>
                   Select all
@@ -208,7 +208,7 @@ export const CreateSnapshotModal = ({
             onClick={handleCreateSnapshot}
             disabled={selectedTables.length === 0 || snapshotName.length === 0 || !!error}
           >
-            Create snapshot
+            Create scratchpaper
           </PrimaryButton>
         </Group>
       </Stack>

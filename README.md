@@ -1,6 +1,6 @@
 # Project Structure
 
-The Scratchpad consists of 3 elements:
+The Scratchpaper consists of 3 elements:
 
 ### 1. MCP Server (`/mcp`)
 
@@ -12,7 +12,7 @@ The Scratchpad consists of 3 elements:
 ### 2. API Server (`/server`)
 
 - NestJS application serving as the main backend
-- Provides scratchpad data functionality via REST API
+- Provides scratchpaper data functionality via REST API
 - Modelled after the Whalesync Bottlenose server
 
 ### 3. Data Studio Client (`/client`)
@@ -66,7 +66,7 @@ yarn run build
       "env": {
         "NODE_ENV": "production",
         "SCRATCHPAD_SERVER_URL": "http://localhost:3010",
-        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratchpad>"
+        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratchpaper>"
 
       }
     }
@@ -74,7 +74,7 @@ yarn run build
 }
 ```
 
-By default the MCP server uses the localhost Scratchpad server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
+By default the MCP server uses the localhost Scratchpaper server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
 
 ```
   "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",

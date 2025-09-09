@@ -1,6 +1,6 @@
 # Scratchpad Server
 
-The NestJS backend for Scratchpad.
+The NestJS backend for Scratchpaper.
 
 ## Install Dependencies
 

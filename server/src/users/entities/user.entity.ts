@@ -17,10 +17,10 @@ export class User {
   isAdmin: boolean;
   id: string;
 
-  // The token for the client to use for websockets when connecting to the Scratchpad API
+  // The token for the client to use for websockets when connecting to the Scratchpaper API
   websocketToken?: string;
 
-  // The JWT for the AI agent to use when talking to the Scratchpad API
+  // The JWT for the AI agent to use when talking to the Scratchpaper API
   agentJwt?: string;
 
   subscription?: SubscriptionInfo;

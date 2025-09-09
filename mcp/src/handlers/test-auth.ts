@@ -1,8 +1,9 @@
+import { PROJECT_NAME } from "../constants.js";
 import { API_CONFIG } from "../lib/api/config.js";
 
 export const TEST_AUTH_MCP_TOOL_DEFINITION = {
   name: "test_auth",
-  description: "Test the Scratchpad API token",
+  description: `Test the ${PROJECT_NAME} API token`,
   inputSchema: {
     type: "object",
     properties: {},

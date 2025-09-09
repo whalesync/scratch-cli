@@ -22,12 +22,13 @@ from server.websocket_handler import websocket_endpoint
 from connector_builder.connector_builder_controller import (
     router as connector_builder_router,
 )
-
+from constants import PROJECT_NAME
 # Load environment variables
 
 
 # Initialize FastAPI app
-app = FastAPI(title="Scratchpad AI Agent", version="1.0.0")
+
+app = FastAPI(title=f"{PROJECT_NAME} AI Agent", version="1.0.0")
 
 # Add CORS middleware
 app.add_middleware(

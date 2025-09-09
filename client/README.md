@@ -1,6 +1,6 @@
-# Scratchpad Client
+# Scratchpaper Client
 
-Data Studio Front-end for Scratchpad.
+Data Studio Front-end for Scratchpaper.
 
 ## Install Yarn
 
@@ -55,7 +55,7 @@ NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=ws://localhost:8000
 
 ## Hosting
 
-The Scratchpad client is hosted on Vercel and is automatically deployed with every merge into master
+The Scratchpaper client is hosted on Vercel and is automatically deployed with every merge into master
 
 [Public URL - https://scratchpad-client.vercel.app/](https://scratchpad-client.vercel.app/)
 
@@ -67,7 +67,7 @@ The Scratchpad client is hosted on Vercel and is automatically deployed with eve
 
 ### Next.js
 
-Scratchpad is built using [next.js](https://nextjs.org/docs).
+Scratchpaper is built using [next.js](https://nextjs.org/docs).
 
 ### Component Libraries
 

@@ -16,7 +16,7 @@ class ConnectorBuilderRequestDTO(BaseModel):
         description="The ID of the custom connector to work with"
     )
     api_token: Optional[str] = Field(
-        default=None, description="API token for Scratchpad server authentication"
+        default=None, description="API token for Scratchpaper server authentication"
     )
     style_guides: Optional[List[Dict[str, str]]] = Field(
         default=None, description="List of style guides"
@@ -34,7 +34,7 @@ class ConnectorBuilderSessionMessageRequestDTO(BaseModel):
 
     message: str = Field(description="The user's message/request")
     api_token: Optional[str] = Field(
-        default=None, description="API token for Scratchpad server authentication"
+        default=None, description="API token for Scratchpaper server authentication"
     )
     style_guides: Optional[List[Dict[str, str]]] = Field(
         default=None, description="List of style guides"

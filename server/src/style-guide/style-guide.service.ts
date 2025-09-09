@@ -135,7 +135,7 @@ export class StyleGuideService {
       const response = await axios.get(sanitizedUrl, {
         timeout,
         headers: {
-          'User-Agent': 'ScratchPad/1.0 (compatible; ScratchPadDownloader/1.0)',
+          'User-Agent': 'Scratchpaper/1.0 (compatible; ScratchpaperDownloader/1.0)',
         },
       });
 

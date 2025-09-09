@@ -351,7 +351,7 @@ export class StripePaymentService {
       if (line.metadata.application !== 'scratchpad') {
         WSLogger.debug({
           source: StripePaymentService.name,
-          message: `Skipping upsert for non-scratchpad line item`,
+          message: `Skipping upsert for non-scratchpaper line item`,
           line,
         });
         continue;
@@ -514,7 +514,7 @@ export class StripePaymentService {
     if (!this.isScratchpadSubscription(subscription)) {
       WSLogger.info({
         source: StripePaymentService.name,
-        message: `Skipping upsert for non-scratchpad subscription`,
+        message: `Skipping upsert for non-scratchpaper subscription`,
         subscriptionId: stripeSubscriptionId,
       });
       return ok('ignored');

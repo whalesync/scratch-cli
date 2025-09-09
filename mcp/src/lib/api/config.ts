@@ -1,5 +1,5 @@
 /**
- * Provides base configuration values for all the API calls from MCP to the Scratchpad server.
+ * Provides base configuration values for all the API calls from MCP to the API server.
  */
 class ApiConfig {
   private apiUrl: string;

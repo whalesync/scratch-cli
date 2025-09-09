@@ -1,6 +1,6 @@
 # MCP Search Tools Server
 
-A simple Model Context Protocol (MCP) server built with TypeScript that provides access to the Scratchpad API:
+A simple Model Context Protocol (MCP) server built with TypeScript that provides access to the Scratchpaper API:
 
 ## Setup
 

@@ -168,7 +168,7 @@ export function ConnectorAccountRow({
                   </Button>
                 ))}
 
-                <Button onClick={open}>Start new snapshot</Button>
+                <Button onClick={open}>Start new scratchpaper</Button>
               </Stack>
             )}
           </Group>

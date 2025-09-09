@@ -56,14 +56,14 @@ def define_connector_builder_tools(agent, capabilities: Optional[list] = None):
         """
         Execute a listTables function to test if it works correctly.
 
-        This tool calls the Scratchpad server's execute-list-tables endpoint to test
+        This tool calls the Scratchpaper server's execute-list-tables endpoint to test
         the generated function with the provided API key.
         """
         try:
             # Get API token from context
             api_token = context.deps.api_token
 
-            # Call the Scratchpad server's execute-list-tables endpoint
+            # Call the Scratchpaper server's execute-list-tables endpoint
             response = call_scratchpad_api(
                 "POST",
                 "/rest/custom-connector-builder/execute-list-tables",
@@ -134,7 +134,7 @@ def define_connector_builder_tools(agent, capabilities: Optional[list] = None):
             elif request.function_type == "getRecord":
                 update_data["getRecord"] = request.function_code
 
-            # Call the Scratchpad server's update endpoint
+            # Call the Scratchpaper server's update endpoint
             response = call_scratchpad_api(
                 "PUT",
                 f"/custom-connectors/{request.custom_connector_id}",
@@ -205,7 +205,7 @@ def define_connector_builder_tools(agent, capabilities: Optional[list] = None):
             elif request.function_type == "deleteRecord":
                 update_data["deleteRecord"] = request.function_code
 
-            # Call the Scratchpad server's update endpoint
+            # Call the Scratchpaper server's update endpoint
             response = call_scratchpad_api(
                 "PUT",
                 f"/custom-connectors/{request.custom_connector_id}",

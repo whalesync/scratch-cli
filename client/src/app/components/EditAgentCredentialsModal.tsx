@@ -1,6 +1,7 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential, CreateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { Alert, Checkbox, Group, Modal, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
@@ -84,8 +85,8 @@ export const EditAgentCredentialsModal = ({
         )}
         <TextRegularSm c="dimmed">
           {credentials
-            ? 'Edit the credentials here to enable the Scratchpad agent to use it.'
-            : 'Register an OpenRouter.ai API key here to enable the Scratchpad agent to use it.'}
+            ? `Edit the credentials here to enable the ${PROJECT_NAME} agent to use it.`
+            : `Register an OpenRouter.ai API key here to enable the ${PROJECT_NAME} agent to use it.`}
         </TextRegularSm>
         <PasswordInput
           label="API Key"

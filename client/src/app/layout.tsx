@@ -6,10 +6,11 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ScratchPad - AI Data Studio',
+  title: `${PROJECT_NAME} - AI Data Studio`,
   description: 'A data studio tool powered by Whalesync.ai',
 };
 
+import { PROJECT_NAME } from '@/constants';
 import { ClerkAuthContextProvider } from '@/contexts/auth';
 import { ClerkProvider } from '@clerk/nextjs';
 import { MantineProvider } from '@mantine/core';

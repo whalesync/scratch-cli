@@ -108,7 +108,7 @@ This document just tracks the general tech debt that will need to be addressed i
 **Authentication / Security**
 
 - need some kind of user session management to authenticate incoming requests and websockets
-- API endpoint to Scratchpad with separate auth that can verify an API token in a session
+- API endpoint to Scratchpaper with separate auth that can verify an API token in a session
 - There is no session security to the Pydantic AI agent from the client
 - Anyone can connect and start poking at our system
 

@@ -53,14 +53,14 @@ export const SnapshotActionsMenu = ({
       setSaving(true);
       await updateSnapshot({ name: snapshotName });
       ScratchpadNotifications.success({
-        message: 'The snapshot was renamed.',
+        message: 'The scratchpaper was renamed.',
       });
       modalStack.close('rename');
     } catch (e) {
       console.log(e);
       ScratchpadNotifications.error({
         title: 'Renaming failed',
-        message: 'There was an error renaming the snapshot to ' + snapshotName,
+        message: 'There was an error renaming the scratchpaper to ' + snapshotName,
       });
     } finally {
       setSaving(false);
@@ -128,7 +128,7 @@ export const SnapshotActionsMenu = ({
       await snapshotApi.delete(snapshot.id);
       ScratchpadNotifications.success({
         title: 'Snapshot abandoned',
-        message: 'The snapshot and its data have been deleted.',
+        message: 'The scratchpaper and its data have been deleted.',
       });
 
       router.push(RouteUrls.snapshotsPageUrl);
@@ -136,7 +136,7 @@ export const SnapshotActionsMenu = ({
       console.log(e);
       ScratchpadNotifications.error({
         title: 'Deletion failed',
-        message: 'There was an error deleting the snapshot.',
+        message: 'There was an error deleting the scratchpaper.',
       });
     } finally {
       setSaving(false);
@@ -147,9 +147,9 @@ export const SnapshotActionsMenu = ({
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Abandon snapshot" centered size="lg">
+      <Modal {...modalStack.register('confirm-delete')} title="Abandon scratchpaper" centered size="lg">
         <Stack>
-          <Text>Are you sure you want to abandon this snapshot? All data will be deleted.</Text>
+          <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleAbandon} loading={saving}>
@@ -164,13 +164,13 @@ export const SnapshotActionsMenu = ({
           <Text>Your data is being downloaded from the remote source. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register('publish')} title="Publishing snapshot" centered size="md">
+      <Modal {...modalStack.register('publish')} title="Publishing scratchpaper" centered size="md">
         <Group gap="xs" wrap="nowrap">
           <Loader size="xs" />
           <Text>Your data is being published to {connectorAccount?.displayName}. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register('rename')} title="Rename snapshot" centered size="lg">
+      <Modal {...modalStack.register('rename')} title="Rename scratchpaper" centered size="lg">
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">

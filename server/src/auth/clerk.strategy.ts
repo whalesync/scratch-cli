@@ -45,7 +45,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       );
 
       if (!user) {
-        throw new UnauthorizedException('No Scratchpad user found');
+        throw new UnauthorizedException('No Scratchpaper user found');
       }
 
       return {

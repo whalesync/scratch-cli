@@ -79,7 +79,7 @@ export default function ConnectorAccountsPage() {
       <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
       <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
         <Stack>
-          <Text>Are you sure you want to delete this connection and associated snapshots?</Text>
+          <Text>Are you sure you want to delete this connection and associated scratchpapers?</Text>
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleDelete} loading={isDeleting}>

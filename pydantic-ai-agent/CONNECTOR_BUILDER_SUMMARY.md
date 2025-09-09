@@ -25,15 +25,15 @@ connector_builder/
 ### Key Features
 
 1. **Agent Creation**: Uses PydanticAI with OpenRouter for LLM access
-2. **Custom Connector Loading**: Loads custom connector data from the Scratchpad server
+2. **Custom Connector Loading**: Loads custom connector data from the Scratchpaper server
 3. **Direct Function Generation**: Generates JavaScript functions directly using the LLM (no dependency on existing NestJS endpoints)
-4. **Function Testing**: Tests generated functions using the existing Scratchpad endpoints
+4. **Function Testing**: Tests generated functions using the existing Scratchpaper endpoints
 5. **Function Saving**: Saves generated functions directly to the custom connector
 6. **API Integration**: Exposed via FastAPI endpoint at `/connector-builder/process`
 
 ### Tools Available
 
-1. **`execute_list_tables_tool`**: Tests generated listTables functions using the Scratchpad server
+1. **`execute_list_tables_tool`**: Tests generated listTables functions using the Scratchpaper server
 2. **`save_custom_connector_tool`**: Saves generated functions to the custom connector
 
 ### Testing and Result Persistence
@@ -83,9 +83,9 @@ Response:
 
 - Basic agent architecture and structure
 - Agent creation with PydanticAI
-- Custom connector loading from Scratchpad server
+- Custom connector loading from Scratchpaper server
 - **Direct function generation using LLM** (no dependency on NestJS endpoints)
-- Function testing using existing Scratchpad endpoints
+- Function testing using existing Scratchpaper endpoints
 - **Function saving to custom connector**
 - FastAPI integration
 - Basic error handling and logging
@@ -206,8 +206,8 @@ To test the current implementation:
 ## Environment Variables Required
 
 - `OPENROUTER_API_KEY`: For LLM access via OpenRouter
-- `SCRATCHPAD_API_TOKEN`: For accessing the Scratchpad server
-- `SCRATCHPAD_API_URL`: URL of the Scratchpad server (defaults to http://localhost:3001)
+- `SCRATCHPAD_API_TOKEN`: For accessing the Scratchpaper server
+- `SCRATCHPAD_API_URL`: URL of the Scratchpaper server (defaults to http://localhost:3001)
 
 ## Migration Strategy
 
@@ -221,7 +221,7 @@ This agent provides a path to deprecate the existing NestJS custom-connector-bui
 ## Notes
 
 - The agent generates functions directly using the LLM with detailed prompts
-- Functions are tested using the existing Scratchpad execution endpoints
+- Functions are tested using the existing Scratchpaper execution endpoints
 - Functions are saved directly to the custom connector
 - The architecture is designed to be easily extensible for additional function types
 - The agent provides a more intelligent and integrated approach to function generation

@@ -44,7 +44,7 @@ class SendMessageRequestDTO(BaseModel):
     )
     api_token: Optional[str] = Field(
         default=None,
-        description="DEPRECATED:API token for Scratchpad server authentication",
+        description="DEPRECATED:API token for Scratchpaper server authentication",
     )
     style_guides: Optional[List[Guideline]] = Field(
         default=None,

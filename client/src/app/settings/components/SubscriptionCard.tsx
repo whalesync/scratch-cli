@@ -1,6 +1,7 @@
 'use client';
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { PROJECT_NAME } from '@/constants';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
@@ -55,7 +56,7 @@ export const SubscriptionCard = () => {
   } else {
     content = (
       <>
-        <TextRegularSm>Sign up for a 7 day free trial to Scratchpad</TextRegularSm>
+        <TextRegularSm>Sign up for a 7 day free trial to {PROJECT_NAME}</TextRegularSm>
         <PrimaryButton
           size="xs"
           component="a"
