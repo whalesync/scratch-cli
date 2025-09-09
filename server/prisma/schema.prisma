@@ -84,6 +84,7 @@ model ConnectorAccount {
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
   modifier                  String? // ID of the custom connector or other modifier entity
+  extras                    Json? // Additional service-specific configuration
   snapshots                 Snapshot[]
 }
 

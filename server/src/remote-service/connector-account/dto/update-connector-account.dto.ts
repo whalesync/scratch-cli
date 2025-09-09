@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class UpdateConnectorAccountDto {
   @IsString()
@@ -14,4 +14,8 @@ export class UpdateConnectorAccountDto {
   @IsString()
   @IsOptional()
   readonly modifier?: string;
+
+  @IsObject()
+  @IsOptional()
+  readonly extras?: Record<string, any>;
 }

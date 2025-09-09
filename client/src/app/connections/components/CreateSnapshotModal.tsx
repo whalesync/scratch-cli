@@ -20,40 +20,62 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface CreateSnapshotModalProps extends ModalProps {
   connectorAccount: ConnectorAccount;
 }
 
-export const CreateSnapshotModal = ({ connectorAccount, ...props }: CreateSnapshotModalProps) => {
+export const CreateSnapshotModal = ({
+  connectorAccount: initialConnectorAccount,
+  ...props
+}: CreateSnapshotModalProps) => {
   const [snapshotName, setSnapshotName] = useState<string>('');
   const [isLoadingTables, setIsLoadingTables] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [tables, setTables] = useState<TablePreview[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [connectorAccount, setConnectorAccount] = useState(initialConnectorAccount);
   const router = useRouter();
+
+  // Add channel modal state
+  const [addChannelModalOpened, { open: openAddChannelModal, close: closeAddChannelModal }] = useDisclosure(false);
+  const [channelId, setChannelId] = useState<string>('');
+  const [isAddingChannel, setIsAddingChannel] = useState(false);
 
   const { createSnapshot } = useSnapshots(connectorAccount.id);
 
+  // Update local state when prop changes
+  useEffect(() => {
+    setConnectorAccount(initialConnectorAccount);
+  }, [initialConnectorAccount]);
+
+  const loadTables = useCallback(async () => {
+    setIsLoadingTables(true);
+    setError(null);
+    try {
+      const data = await connectorAccountsApi.listTables(connectorAccount.id);
+      setTables(data.tables);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An unknown error occurred');
+    } finally {
+      setIsLoadingTables(false);
+    }
+  }, [connectorAccount.id]);
+
   useEffect(() => {
     if (props.opened) {
-      setIsLoadingTables(true);
-      setError(null);
-      connectorAccountsApi
-        .listTables(connectorAccount.id)
-        .then((data) => setTables(data.tables))
-        .catch((e) => setError(e.message ?? 'An unknown error occurred'))
-        .finally(() => setIsLoadingTables(false));
+      loadTables();
     } else {
       // Clear state when modal is closed
       setTables([]);
       setSelectedTables([]);
       setError(null);
     }
-  }, [props.opened, connectorAccount.id]);
+  }, [props.opened, loadTables]);
 
   const handleCreateSnapshot = async () => {
     // We are storing the wsId in selectedTables. Find the full EntityId
@@ -76,6 +98,47 @@ export const CreateSnapshotModal = ({ connectorAccount, ...props }: CreateSnapsh
       setError(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAddChannel = async () => {
+    if (!channelId.trim()) return;
+
+    setIsAddingChannel(true);
+    try {
+      // Get current extras or create new object
+      const currentExtras = connectorAccount.extras || {};
+      const additionalChannels = Array.isArray(currentExtras.additionalChannels)
+        ? currentExtras.additionalChannels
+        : [];
+
+      // Add the new channel ID if it's not already present
+      if (!additionalChannels.includes(channelId.trim())) {
+        const updatedExtras = {
+          ...currentExtras,
+          additionalChannels: [...additionalChannels, channelId.trim()],
+        };
+
+        // Update the connector account
+        const updatedAccount = await connectorAccountsApi.update(connectorAccount.id, { extras: updatedExtras });
+
+        // Update local state with the new extras
+        setConnectorAccount((prev) => ({
+          ...prev,
+          extras: updatedAccount.extras,
+        }));
+
+        // Refresh the tables to include the new channel
+        await loadTables();
+
+        // Close modal and reset form
+        closeAddChannelModal();
+        setChannelId('');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to add channel');
+    } finally {
+      setIsAddingChannel(false);
     }
   };
 
@@ -129,6 +192,15 @@ export const CreateSnapshotModal = ({ connectorAccount, ...props }: CreateSnapsh
           </Checkbox.Group>
         )}
 
+        {/* Add Channel button for YouTube connections */}
+        {connectorAccount.service === 'YOUTUBE' && (
+          <Group justify="flex-start" mt="sm">
+            <Button variant="outline" size="sm" onClick={openAddChannelModal} disabled={isLoadingTables}>
+              Add Channel
+            </Button>
+          </Group>
+        )}
+
         <Group justify="flex-end">
           <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
           <PrimaryButton
@@ -140,6 +212,34 @@ export const CreateSnapshotModal = ({ connectorAccount, ...props }: CreateSnapsh
           </PrimaryButton>
         </Group>
       </Stack>
+
+      {/* Add Channel Modal */}
+      <Modal
+        title="Add YouTube Channel"
+        opened={addChannelModalOpened}
+        onClose={closeAddChannelModal}
+        centered
+        size="sm"
+      >
+        <Stack>
+          <TextInput
+            label="Channel ID"
+            placeholder="Enter YouTube channel ID"
+            value={channelId}
+            onChange={(e) => setChannelId(e.target.value)}
+            required
+          />
+          <Text size="sm" c="dimmed">
+            You can find the channel ID in the YouTube channel URL or channel settings.
+          </Text>
+          <Group justify="flex-end">
+            <SecondaryButton onClick={closeAddChannelModal}>Cancel</SecondaryButton>
+            <PrimaryButton onClick={handleAddChannel} loading={isAddingChannel} disabled={!channelId.trim()}>
+              Add Channel
+            </PrimaryButton>
+          </Group>
+        </Stack>
+      </Modal>
     </Modal>
   );
 };

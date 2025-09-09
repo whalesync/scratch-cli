@@ -32,14 +32,15 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     await this.apiClient.getChannels();
   }
 
-  async listTables(_account: ConnectorAccount): Promise<TablePreview[]> {
+  async listTables(account: ConnectorAccount): Promise<TablePreview[]> {
     const channelsResponse = await this.apiClient.getChannels();
 
     if (!channelsResponse.items) {
       return [];
     }
 
-    return channelsResponse.items.map(
+    // Get the user's own channels (marked with mine: true)
+    const ownChannels = channelsResponse.items.map(
       (channel) =>
         ({
           id: {
@@ -52,9 +53,53 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
             channelTitle: channel.snippet?.title,
             description: channel.snippet?.description,
             publishedAt: channel.snippet?.publishedAt,
+            mine: true,
           },
         }) satisfies TablePreview,
     );
+
+    // Get additional channels from extras if they exist
+    const additionalChannels: TablePreview[] = [];
+    const accountWithExtras = account as ConnectorAccount & { extras?: Record<string, unknown> };
+    if (
+      accountWithExtras.extras &&
+      typeof accountWithExtras.extras === 'object' &&
+      'additionalChannels' in accountWithExtras.extras
+    ) {
+      const additionalChannelIds = accountWithExtras.extras.additionalChannels;
+      if (Array.isArray(additionalChannelIds) && additionalChannelIds.length > 0) {
+        try {
+          // Fetch additional channels by their IDs
+          const additionalChannelsResponse = await this.apiClient.getChannelsByIds(additionalChannelIds);
+          if (additionalChannelsResponse.items) {
+            additionalChannels.push(
+              ...additionalChannelsResponse.items.map(
+                (channel) =>
+                  ({
+                    id: {
+                      wsId: `channel_${channel.id}`,
+                      remoteId: [channel.id || ''],
+                    },
+                    displayName: channel.snippet?.title || `Channel ${channel.id}`,
+                    metadata: {
+                      channelId: channel.id,
+                      channelTitle: channel.snippet?.title,
+                      description: channel.snippet?.description,
+                      publishedAt: channel.snippet?.publishedAt,
+                      extra: true,
+                    },
+                  }) satisfies TablePreview,
+              ),
+            );
+          }
+        } catch (error) {
+          console.debug('Failed to fetch additional channels:', error);
+          // Continue without additional channels if there's an error
+        }
+      }
+    }
+
+    return [...ownChannels, ...additionalChannels];
   }
 
   async fetchTableSpec(id: EntityId, _account: ConnectorAccount): Promise<YouTubeTableSpec> {
@@ -116,6 +161,18 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           youtubeField: 'snippet.categoryId',
           readonly: true,
         },
+        {
+          id: { wsId: 'defaultLanguage', remoteId: ['defaultLanguage'] },
+          name: 'Default Language',
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'snippet.defaultLanguage',
+        },
+        {
+          id: { wsId: 'tags', remoteId: ['tags'] },
+          name: 'Tags',
+          pgType: PostgresColumnType.TEXT_ARRAY,
+          youtubeField: 'snippet.tags',
+        },
       ],
     } as YouTubeTableSpec;
   }
@@ -176,23 +233,30 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     records: SnapshotRecordSanitizedForUpdate[],
     _account: ConnectorAccount,
   ): Promise<void> {
-    // YouTube only allows updating title and description
+    // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags
     for (const record of records) {
       const videoId = record.id.remoteId;
       const updateData: any = {};
 
-      // Only allow updating title and description
+      // Update snippet fields
       if (record.partialFields.title) {
         updateData.title = record.partialFields.title;
       }
       if (record.partialFields.description) {
         updateData.description = record.partialFields.description;
       }
+      if (record.partialFields.defaultLanguage) {
+        updateData.defaultLanguage = record.partialFields.defaultLanguage;
+      }
+      if (record.partialFields.tags && Array.isArray(record.partialFields.tags)) {
+        // Tags are already an array
+        updateData.tags = record.partialFields.tags;
+      }
 
       if (Object.keys(updateData).length > 0) {
         // We need a category ID for YouTube updates - using a default
         const categoryId = '22'; // People & Blogs category
-        await this.apiClient.updateVideo(videoId, record.partialFields, categoryId);
+        await this.apiClient.updateVideo(videoId, updateData, categoryId);
       }
     }
   }
@@ -238,6 +302,8 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         transcript,
         visibility: youtubeRecord.status?.privacyStatus || '',
         categoryId: youtubeRecord.snippet?.categoryId || '',
+        defaultLanguage: youtubeRecord.snippet?.defaultLanguage || '',
+        tags: youtubeRecord.snippet?.tags || [],
       },
     };
   }
@@ -256,6 +322,8 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     newFields.title = fields.title;
     newFields.description = fields.description;
     newFields.categoryId = fields.categoryId;
+    newFields.defaultLanguage = fields.defaultLanguage;
+    newFields.tags = fields.tags;
     const sanitizedRecord: SnapshotRecordSanitizedForUpdate = {
       id,
       partialFields: newFields,

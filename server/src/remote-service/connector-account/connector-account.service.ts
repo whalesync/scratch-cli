@@ -121,6 +121,8 @@ export class ConnectorAccountService {
       data: {
         displayName: updateDto.displayName,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
+        modifier: updateDto.modifier,
+        extras: updateDto.extras,
         healthStatus: null,
         healthStatusLastCheckedAt: null,
       },

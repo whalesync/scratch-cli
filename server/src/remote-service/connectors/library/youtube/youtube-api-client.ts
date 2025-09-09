@@ -18,6 +18,15 @@ export class YoutubeApiClient {
     return channelResponse.data;
   }
 
+  async getChannelsByIds(channelIds: string[]): Promise<youtube_v3.Schema$ChannelListResponse> {
+    const channelResponse = await this.youtubeClient.channels.list({
+      part: ['id', 'snippet'],
+      id: channelIds,
+      maxResults: 100,
+    });
+    return channelResponse.data;
+  }
+
   async getVideos(channelId: string, nextPageToken?: string): Promise<youtube_v3.Schema$VideoListResponse> {
     // Get videos from the specified channel (user's channel or brand channel they manage)
     // First, get the channel's uploads playlist ID

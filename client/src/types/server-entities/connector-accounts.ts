@@ -22,6 +22,7 @@ export interface ConnectorAccount {
   healthStatus: ConnectorHealthStatus | null;
   healthStatusLastCheckedAt: string | null; // DateTime
   modifier: string | null; // ID of the custom connector or other modifier entity
+  extras: Record<string, unknown> | null; // Additional service-specific configuration
 }
 
 export interface CreateConnectorAccountDto {
@@ -34,6 +35,7 @@ export interface UpdateConnectorAccountDto {
   displayName?: string;
   apiKey?: string;
   modifier?: string; // Optional custom connector ID
+  extras?: Record<string, unknown>; // Additional service-specific configuration
 }
 
 export type TestConnectionResponse =
