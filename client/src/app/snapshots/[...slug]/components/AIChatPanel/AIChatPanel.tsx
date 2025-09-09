@@ -307,7 +307,16 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
   if (!isOpen) return null;
 
   // combine the historical session data and the current websocket message history
-  const chatHistory = [...(activeSession?.chat_history || []), ...(messageHistory || [])];
+  const chatHistory = [...(messageHistory || [])];
+
+  // Merge the session chat history with the active chat history
+  // There might be duplicates as the activeSession gets refreshed by useSWR
+  if (activeSession?.chat_history && activeSession.chat_history.length > 0) {
+    const pastMsgs = activeSession.chat_history.filter(
+      (msg) => !chatHistory.some((m) => m.message === msg.message && m.role === msg.role),
+    );
+    chatHistory.unshift(...pastMsgs);
+  }
 
   const chatInputEnabled = aiAgentEnabled && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
