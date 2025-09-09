@@ -37,6 +37,9 @@ export class ExperimentsService {
     if (flag === UserExperimentFlag.DEV_TOOLBOX && user.role === UserRole.ADMIN) {
       return true as T;
     }
+    if (flag === UserExperimentFlag.REQUIRE_SUBSCRIPTION) {
+      return (this.config.getRequireSubscription() === 'true') as T;
+    }
     return defaultValue;
   }
 }

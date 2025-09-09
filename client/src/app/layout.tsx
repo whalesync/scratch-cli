@@ -16,6 +16,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import SidebarAndContentLayout from './components/layouts/SidebarAndContentLayout';
+import { SubscriptionVerifier } from './components/SubscriptionVerifier';
 import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
 import { ScratchpadPostHogProvider } from './providers';
 
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ClerkProvider>
             <ClerkAuthContextProvider>
               <ScratchpadPostHogProvider>
-                <SidebarAndContentLayout>{children}</SidebarAndContentLayout>
+                <SubscriptionVerifier>
+                  <SidebarAndContentLayout>{children}</SidebarAndContentLayout>
+                </SubscriptionVerifier>
               </ScratchpadPostHogProvider>
               <div id="portal" />
             </ClerkAuthContextProvider>

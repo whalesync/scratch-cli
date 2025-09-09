@@ -8,4 +8,5 @@ export enum SystemFlag {}
  */
 export enum UserExperimentFlag {
   DEV_TOOLBOX = 'DEV_TOOLBOX',
+  REQUIRE_SUBSCRIPTION = 'REQUIRE_SUBSCRIPTION',
 }

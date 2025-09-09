@@ -92,6 +92,10 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('STRIPE_WEBHOOK_SECRET');
   }
 
+  getRequireSubscription(): string | undefined {
+    return this.getOptionalEnvVariable('REQUIRE_SUBSCRIPTION');
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

@@ -22,4 +22,9 @@ export interface SubscriptionInfo {
 /** User-scoped feature flag settings provided by the server */
 export interface UserExperimentFlags {
   DEV_TOOLBOX: boolean;
+  REQUIRE_SUBSCRIPTION: boolean;
+}
+
+export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {
+  return user?.experimentalFlags?.[experiment] === true;
 }
