@@ -21,7 +21,7 @@ import {
 import { UsersService } from 'src/users/users.service';
 import Stripe from 'stripe';
 import { getActiveSubscriptions } from './helpers';
-import { PRODUCTION_PLANS, ScratchpadPlanType, TEST_PLANS } from './plans';
+import { getPlans, ScratchpadPlanType } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -29,6 +29,7 @@ import { PRODUCTION_PLANS, ScratchpadPlanType, TEST_PLANS } from './plans';
  */
 const STRIPE_API_VERSION = '2025-08-27.basil';
 const TRIAL_PERIOD_DAYS = 7;
+
 type StripeWebhookResult = 'success' | 'ignored';
 
 // Client path that we redirect to if the checkout is successful.
@@ -172,6 +173,8 @@ export class StripePaymentService {
             },
           },
         },
+        // Only collect payment method if the cost of the subscription is greater than $0 or if a free trial is not available.
+        payment_method_collection: this.configService.getTrialRequirePaymentMethod() ? 'always' : 'if_required',
 
         // We must enable this to properly auto-collect taxes for customers based on their location.
         automatic_tax: { enabled: automaticTaxEnabled },
@@ -604,7 +607,7 @@ export class StripePaymentService {
   }
 
   private getDefaultPriceId(productType: ScratchpadPlanType): string | null {
-    const plans = this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PLANS : TEST_PLANS;
+    const plans = getPlans(this.configService.getScratchpadEnvironment());
 
     for (const plan of plans) {
       if (plan.productType === productType) {
@@ -616,7 +619,7 @@ export class StripePaymentService {
   }
 
   private getProductTypeFromPriceId(priceId: string): ScratchpadPlanType | null {
-    const plans = this.configService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PLANS : TEST_PLANS;
+    const plans = getPlans(this.configService.getScratchpadEnvironment());
 
     for (const plan of plans) {
       if (plan.stripePriceId === priceId) {

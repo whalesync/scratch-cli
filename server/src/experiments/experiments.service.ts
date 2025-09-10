@@ -38,7 +38,7 @@ export class ExperimentsService {
       return true as T;
     }
     if (flag === UserExperimentFlag.REQUIRE_SUBSCRIPTION) {
-      return (this.config.getRequireSubscription() === 'true') as T;
+      return this.config.getRequireSubscription() as T;
     }
     return defaultValue;
   }

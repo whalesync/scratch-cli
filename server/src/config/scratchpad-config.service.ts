@@ -92,8 +92,12 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('STRIPE_WEBHOOK_SECRET');
   }
 
-  getRequireSubscription(): string | undefined {
-    return this.getOptionalEnvVariable('REQUIRE_SUBSCRIPTION');
+  getRequireSubscription(): boolean {
+    return this.getOptionalEnvVariable('REQUIRE_SUBSCRIPTION') === 'true';
+  }
+
+  getTrialRequirePaymentMethod(): boolean {
+    return this.getOptionalEnvVariable('TRIAL_REQUIRE_PAYMENT_METHOD') === 'true';
   }
 
   private getEnvVariable<T>(envVariable: string): T {

@@ -1,4 +1,4 @@
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
 
 export enum ScratchpadPlanType {
   STARTER_PLAN = 'STARTER_PLAN',
@@ -50,7 +50,15 @@ export const SANDBOX_PLANS: Plan[] = [
   },
 ];
 
+export function getPlans(environment: ScratchpadEnvironment): Plan[] {
+  if (environment === 'production') {
+    return PRODUCTION_PLANS;
+  } else if (environment === 'test') {
+    return TEST_PLANS;
+  }
+  return SANDBOX_PLANS;
+}
+
 export function getPlan(productType: ScratchpadPlanType): Plan | undefined {
-  const plans = ScratchpadConfigService.getScratchpadEnvironment() === 'production' ? PRODUCTION_PLANS : TEST_PLANS;
-  return plans.find((p) => p.productType === productType);
+  return getPlans(ScratchpadConfigService.getScratchpadEnvironment()).find((p) => p.productType === productType);
 }
