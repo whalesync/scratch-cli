@@ -3,25 +3,26 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
-import { tablesName } from '@/service-naming-conventions';
+import { tableName, tablesName } from '@/service-naming-conventions';
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { TablePreview } from '@/types/server-entities/table-list';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   Button,
   Center,
-  Checkbox,
   Group,
   Loader,
   Modal,
   ModalProps,
   Paper,
+  Radio,
   ScrollArea,
   Stack,
   Text,
   TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import _ from 'lodash';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -37,7 +38,7 @@ export const CreateSnapshotModal = ({
   const [isLoadingTables, setIsLoadingTables] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [tables, setTables] = useState<TablePreview[]>([]);
-  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connectorAccount, setConnectorAccount] = useState(initialConnectorAccount);
   const router = useRouter();
@@ -48,6 +49,9 @@ export const CreateSnapshotModal = ({
   const [isAddingChannel, setIsAddingChannel] = useState(false);
 
   const { createSnapshot } = useSnapshots(connectorAccount.id);
+
+  const tableTerm = tableName(connectorAccount.service);
+  const tableTermPlural = tablesName(connectorAccount.service);
 
   // Update local state when prop changes
   useEffect(() => {
@@ -72,25 +76,31 @@ export const CreateSnapshotModal = ({
       loadTables();
     } else {
       // Clear state when modal is closed
+      setSnapshotName('');
       setTables([]);
-      setSelectedTables([]);
+      setSelectedTable(null);
       setError(null);
     }
   }, [props.opened, loadTables]);
 
   const handleCreateSnapshot = async () => {
-    // We are storing the wsId in selectedTables. Find the full EntityId
-    const tableIds = tables.filter((t) => selectedTables.includes(t.id.wsId)).map((t) => t.id);
-
-    if (tableIds.length === 0) {
-      setError('Please select at least one table');
+    if (!selectedTable) {
+      setError(`Please select a ${tableTerm}`);
       return;
     }
+    // We are storing the wsId in selectedTables. Find the full EntityId
+    const table = tables.find((t) => t.id.wsId === selectedTable);
+
+    if (!table) {
+      setError(`${_.startCase(tableTerm)} not found`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const snapshot = await createSnapshot({
         connectorAccountId: connectorAccount.id,
-        tableIds: tableIds,
+        tableIds: [table.id],
         name: snapshotName ?? `New ${connectorAccount.displayName} scratchpaper`,
       });
       props.onClose?.();
@@ -156,23 +166,20 @@ export const CreateSnapshotModal = ({
           <Center mih={200}>
             <Group gap="sm">
               <Loader />
-              <Text>Loading tables...</Text>
+              <Text>Loading {tableTermPlural}...</Text>
             </Group>
           </Center>
         ) : error ? (
           <Text c="red">{error}</Text>
         ) : (
-          <Checkbox.Group value={selectedTables} onChange={setSelectedTables}>
+          <Radio.Group
+            value={selectedTable}
+            onChange={(value) => {
+              setSelectedTable(value as string);
+            }}
+          >
             <Group justify="flex-start">
-              <Text size="sm">Select {tablesName(connectorAccount.service)} to include in the scratchpaper</Text>
-              <Group gap="xs" ml="auto">
-                <Button variant="subtle" size="xs" onClick={() => setSelectedTables(tables.map((t) => t.id.wsId))}>
-                  Select all
-                </Button>
-                <Button variant="subtle" size="xs" onClick={() => setSelectedTables([])}>
-                  Select none
-                </Button>
-              </Group>
+              <Text size="sm">Select a {tableTerm} to include in the scratchpaper</Text>
             </Group>
 
             <Paper withBorder p="md" mt="sm">
@@ -181,7 +188,7 @@ export const CreateSnapshotModal = ({
                   {tables
                     .sort((a, b) => a.displayName.localeCompare(b.displayName))
                     .map((table) => (
-                      <Checkbox
+                      <Radio
                         key={`${table.id.wsId}-${table.displayName}`}
                         value={table.id.wsId}
                         label={table.displayName}
@@ -190,7 +197,7 @@ export const CreateSnapshotModal = ({
                 </Stack>
               </ScrollArea>
             </Paper>
-          </Checkbox.Group>
+          </Radio.Group>
         )}
 
         {/* Add Channel button for YouTube connections */}
@@ -207,7 +214,7 @@ export const CreateSnapshotModal = ({
           <PrimaryButton
             loading={isSaving}
             onClick={handleCreateSnapshot}
-            disabled={selectedTables.length === 0 || snapshotName.length === 0 || !!error}
+            disabled={!selectedTable || snapshotName.length === 0 || !!error}
           >
             Create scratchpaper
           </PrimaryButton>
