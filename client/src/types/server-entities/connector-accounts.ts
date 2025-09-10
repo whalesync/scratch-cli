@@ -5,6 +5,8 @@ export enum Service {
   CSV = "CSV",
   YOUTUBE = "YOUTUBE",
 }
+export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE];
+export const INTERNAL_SERVICES = [Service.AIRTABLE, Service.CUSTOM, Service.CSV];
 
 export enum ConnectorHealthStatus {
   OK = "OK",

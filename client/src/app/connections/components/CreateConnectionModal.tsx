@@ -1,9 +1,10 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { getLogo, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
-import { Service } from '@/types/server-entities/connector-accounts';
+import { INTERNAL_SERVICES, LIVE_SERVICES, Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from '@mantine/core';
 import Image from 'next/image';
@@ -17,6 +18,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const { isAdmin } = useScratchPadUser();
 
   const { createConnectorAccount } = useConnectorAccounts();
   const { data: customConnectors } = useCustomConnectors();
@@ -98,16 +100,22 @@ export const CreateConnectionModal = (props: ModalProps) => {
     props.onClose?.();
   };
 
+  // TODO - this should be powered by the server via a FeatureFlag
+  const availableServices = isAdmin ? [...LIVE_SERVICES, ...INTERNAL_SERVICES] : LIVE_SERVICES;
+
   return (
     <Modal title="Create Connection" size="xl" centered {...props}>
       <Stack>
         <Select
           label="Service"
           placeholder="Pick a service"
-          data={Object.values(Service).map((service) => ({
-            value: service,
-            label: serviceName(service),
-          }))}
+          data={availableServices.map((service) => {
+            const isInternalOnly = INTERNAL_SERVICES.includes(service);
+            return {
+              value: service,
+              label: `${serviceName(service)} ${isInternalOnly ? '(Internal Only)' : ''}`,
+            };
+          })}
           value={newService}
           onChange={(value) => {
             setNewService(value as Service);
