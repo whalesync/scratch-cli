@@ -126,13 +126,13 @@ export class ScratchpadConfigService {
   public static getClientBaseUrl(): string {
     const env = ScratchpadConfigService.getScratchpadEnvironment();
     if (env === 'production') {
-      return 'https://scratchpad.whalesync.com';
+      return 'https://app.scratchpaper.ai';
     }
     if (env === 'development') {
       return `http://localhost:3000`;
     }
     // Otherwise, test or staging
-    return `https://${env}-scratchpad.whalesync.com`;
+    return `https://${env}.scratchpaper.ai`;
   }
 }
 
