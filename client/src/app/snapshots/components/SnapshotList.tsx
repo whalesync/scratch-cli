@@ -23,7 +23,7 @@ export const SnapshotsList = () => {
   }
 
   return (
-    <ContentContainer title="Snapshots">
+    <ContentContainer title="Scratchpapers">
       <Stack gap="md">
         {snapshots && snapshots.length > 0 ? (
           <SimpleGrid cols={1} spacing="md" maw="1000px">

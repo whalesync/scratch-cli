@@ -1,9 +1,12 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
+import { getLogo, serviceName } from '@/service-naming-conventions';
+import { OAuthService } from '@/types/oauth';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from '@mantine/core';
+import Image from 'next/image';
 import { useState } from 'react';
 
 type AuthMethod = 'api_key' | 'oauth';
@@ -55,7 +58,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
     setIsOAuthLoading(true);
     try {
-      await initiateOAuth(newService.toLowerCase() as 'notion' | 'youtube');
+      await initiateOAuth(newService as OAuthService);
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
       console.error('OAuth initiation failed:', error);
@@ -101,12 +104,25 @@ export const CreateConnectionModal = (props: ModalProps) => {
         <Select
           label="Service"
           placeholder="Pick a service"
-          data={Object.values(Service)}
+          data={Object.values(Service).map((service) => ({
+            value: service,
+            label: serviceName(service),
+          }))}
           value={newService}
           onChange={(value) => {
             setNewService(value as Service);
             // Set default auth method based on service capabilities
             setAuthMethod(getDefaultAuthMethod(value as Service));
+          }}
+          renderOption={({ option }) => {
+            const service = option.value as Service;
+            const iconPath = getLogo(service);
+            return (
+              <Group gap="sm">
+                <Image src={iconPath} alt={`${serviceName(service)} icon`} width={22} height={22} />
+                <span>{option.label}</span>
+              </Group>
+            );
           }}
         />
 
@@ -157,11 +173,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
         <Group justify="flex-end">
           <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
           <PrimaryButton onClick={handleCreate} loading={isOAuthLoading}>
-            {newService === Service.NOTION && authMethod === 'oauth'
-              ? 'Connect with Notion'
-              : newService === Service.YOUTUBE && authMethod === 'oauth'
-                ? 'Connect with YouTube'
-                : 'Create'}
+            {authMethod === 'oauth' && newService ? 'Connect with ' + serviceName(newService) : 'Create'}
           </PrimaryButton>
         </Group>
       </Stack>

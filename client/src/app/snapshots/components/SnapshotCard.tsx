@@ -1,12 +1,13 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshots } from '@/hooks/use-snapshot';
+import { tableName, tablesName } from '@/service-naming-conventions';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Card, Grid, Group, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import { DotsThreeVerticalIcon, PencilSimpleLineIcon, TrashIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
-import pluralize from 'pluralize';
 import { useState } from 'react';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { StyledIcon } from '../../components/Icons/StyledIcon';
@@ -147,7 +148,10 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
           </Grid.Col>
           <Grid.Col span={2}>
             <Text fz="sm" c="dimmed">
-              {snapshot.tables.length} {pluralize('table', snapshot.tables.length)}
+              {snapshot.tables.length}{' '}
+              {snapshot.tables.length === 1
+                ? tableName(snapshot.connectorService as Service)
+                : tablesName(snapshot.connectorService as Service)}
             </Text>
           </Grid.Col>
           <Grid.Col span={3}>

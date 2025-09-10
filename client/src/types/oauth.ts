@@ -1,3 +1,5 @@
+import { Service } from "./server-entities/connector-accounts";
+
 export interface OAuthInitiateResponse {
   authUrl: string;
   state: string;
@@ -12,7 +14,7 @@ export interface OAuthCallbackResponse {
   connectorAccountId: string;
 }
 
-export type OAuthService = 'notion' | 'airtable' | 'youtube';
+export type OAuthService = Service.NOTION | Service.AIRTABLE | Service.YOUTUBE;
 
 export interface OAuthError {
   error: string;

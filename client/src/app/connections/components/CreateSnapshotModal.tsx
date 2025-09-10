@@ -3,6 +3,7 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
+import { tablesName } from '@/service-naming-conventions';
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { TablePreview } from '@/types/server-entities/table-list';
 import { RouteUrls } from '@/utils/route-urls';
@@ -163,7 +164,7 @@ export const CreateSnapshotModal = ({
         ) : (
           <Checkbox.Group value={selectedTables} onChange={setSelectedTables}>
             <Group justify="flex-start">
-              <Text size="sm">Select tables to include in the scratchpaper</Text>
+              <Text size="sm">Select {tablesName(connectorAccount.service)} to include in the scratchpaper</Text>
               <Group gap="xs" ml="auto">
                 <Button variant="subtle" size="xs" onClick={() => setSelectedTables(tables.map((t) => t.id.wsId))}>
                   Select all

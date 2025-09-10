@@ -28,8 +28,8 @@ export class OAuthService {
     private readonly youtubeProvider: YouTubeOAuthProvider,
   ) {
     // Register OAuth providers
-    this.providers.set('notion', this.notionProvider);
-    this.providers.set('youtube', this.youtubeProvider);
+    this.providers.set('NOTION', this.notionProvider);
+    this.providers.set('YOUTUBE', this.youtubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
   }
@@ -183,7 +183,6 @@ export class OAuthService {
       case 'airtable':
         return Service.AIRTABLE;
       case 'youtube':
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Service.YOUTUBE; // For now, map Google to CUSTOM
       default:
         throw new BadRequestException(`Unsupported service: ${service}`);

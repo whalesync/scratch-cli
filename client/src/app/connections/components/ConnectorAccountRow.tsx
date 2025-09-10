@@ -4,6 +4,7 @@ import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { useSnapshots } from '@/hooks/use-snapshot';
+import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Button, Card, Divider, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
@@ -86,7 +87,7 @@ export function ConnectorAccountRow({
           <Group justify="space-between" p="xs">
             <Group gap="sm">
               <ConnectorIcon connector={connectorAccount.service} />
-              <TextTitleSm>{connectorAccount.displayName}</TextTitleSm>
+              <TextTitleSm>{serviceName(connectorAccount.service)}</TextTitleSm>
             </Group>
             <Group justify="flex-end">
               <HealthIcon {...connectorAccount} />
@@ -121,7 +122,7 @@ export function ConnectorAccountRow({
                 ))}
               </Group>
               <PrimaryButton size="xs" onClick={open}>
-                New snapshot
+                New scratchpaper
               </PrimaryButton>
             </Group>
           </>

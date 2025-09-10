@@ -54,7 +54,7 @@ export const CreateSnapshotPanel = () => {
 
   return (
     <>
-      <Modal title="Create content snapshot" centered size="md" {...modalStack.register('create-content-snapshot')}>
+      <Modal title="Create scratchpaper" centered size="md" {...modalStack.register('create-content-snapshot')}>
         <Stack>
           {saveError && (
             <Alert color="red" title="Error creating content snapshot">
@@ -86,7 +86,7 @@ export const CreateSnapshotPanel = () => {
       </Modal>
       <Stack>
         <PrimaryButton w="min-content" onClick={() => modalStack.open('create-content-snapshot')} loading={isSaving}>
-          Create content snapshot
+          Create scratchpaper
         </PrimaryButton>
       </Stack>
     </>

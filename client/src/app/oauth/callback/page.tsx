@@ -1,7 +1,8 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { SecondaryButton } from '@/app/components/base/buttons';
 import { oauthApi } from '@/lib/api/oauth';
+import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { cleanupOAuthService } from '@/utils/oauth';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
@@ -80,7 +81,7 @@ export default function OAuthCallbackPage() {
 
         setState({
           status: 'success',
-          message: `Successfully connected to ${service.charAt(0).toUpperCase() + service.slice(1)}!`,
+          message: `Successfully connected to ${serviceName(service)}!`,
           connectorAccountId: result.connectorAccountId,
         });
 
@@ -90,7 +91,7 @@ export default function OAuthCallbackPage() {
         // Redirect to connections page after a short delay
         setTimeout(() => {
           router.push('/connections');
-        }, 2000);
+        }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
 
@@ -145,7 +146,7 @@ export default function OAuthCallbackPage() {
   };
 
   const isValidOAuthService = (service: string): service is OAuthService => {
-    return ['notion', 'airtable', 'youtube'].includes(service);
+    return ['NOTION', 'AIRTABLE', 'YOUTUBE'].includes(service);
   };
 
   return (
@@ -189,7 +190,7 @@ export default function OAuthCallbackPage() {
             </Text>
             <Group gap="sm" mt="md">
               <SecondaryButton onClick={() => router.push('/connections')}>Back to Connections</SecondaryButton>
-              <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton>
+              {/* <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton> */}
             </Group>
           </>
         )}
