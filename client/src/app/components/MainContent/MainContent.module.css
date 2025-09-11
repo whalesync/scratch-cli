@@ -1,0 +1,7 @@
+.contentHeader {
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.contentFooter {
+  border-top: 1px solid var(--mantine-color-gray-2);
+}

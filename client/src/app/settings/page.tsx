@@ -15,8 +15,8 @@ const SettingsPage = () => {
     <ContentContainer title="Settings">
       <Group gap="md" align="flex-start">
         <Stack gap="md">
-          <AgentCredentials />
           <SubscriptionCard />
+          <AgentCredentials />
         </Stack>
         <AgentUsageInfoCard />
       </Group>

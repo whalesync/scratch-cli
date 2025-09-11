@@ -1,0 +1,7 @@
+.sideBarHeader {
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.sideBarFooter {
+  border-top: 1px solid var(--mantine-color-gray-2);
+}
