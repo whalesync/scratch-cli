@@ -210,7 +210,7 @@ export const SnapshotActionsMenu = ({
             Download
           </Menu.Item>
           <Menu.Item onClick={handlePublish} leftSection={<UploadIcon />}>
-            Publish (Coming soon)
+            Publish
           </Menu.Item>
           <Menu.Item
             color="red"

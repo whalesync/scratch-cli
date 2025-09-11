@@ -16,6 +16,7 @@ import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/type
 import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RecordCell } from '@/types/common';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';
 import { CheckIcon } from '@mantine/core';
@@ -23,6 +24,7 @@ import { useClipboard } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   CopyIcon,
+  DownloadIcon,
   EyeIcon,
   EyeSlashIcon,
   FunnelIcon,
@@ -438,6 +440,69 @@ export const useContextMenuItems = (
       },
     });
 
+    // Deep fetch menu item for YouTube services
+    if (snapshot.connectorService === Service.YOUTUBE && selectedRowCount > 0) {
+      items.push({
+        label: selectedRowCount === 1 ? 'Deep fetch record' : `Deep fetch ${selectedRowCount} records`,
+        disabled: false,
+        group: 'Tools',
+        leftSection: <DownloadIcon size={MENU_ICON_SIZE} color="#ff6b35" />,
+        handler: async () => {
+          if (!currentSelection) return;
+
+          const recordIds: string[] = [];
+          if (currentSelection.current) {
+            const { range } = currentSelection.current;
+            for (let r = range.y; r < range.y + range.height; r++) {
+              for (let c = range.x; c < range.x + range.width; c++) {
+                const rec = sortedRecords?.[r];
+                if (rec) {
+                  recordIds.push(rec.id.wsId);
+                }
+              }
+            }
+          }
+
+          if (recordIds.length > 0) {
+            try {
+              notifications.show({
+                title: 'Deep fetching records',
+                message: `Fetching detailed data for ${recordIds.length} record(s)...`,
+                color: 'blue',
+                loading: true,
+                id: 'deep-fetch-loading',
+              });
+
+              const result = await snapshotApi.deepFetchRecords(
+                snapshot.id,
+                table.id.wsId,
+                recordIds,
+                null, // Fetch all fields
+              );
+
+              notifications.hide('deep-fetch-loading');
+              notifications.show({
+                title: 'Deep fetch completed',
+                message: `Successfully fetched ${result.totalCount} record(s) with detailed data`,
+                color: 'green',
+              });
+
+              // Refresh the records to show the updated data
+              refreshRecords();
+            } catch (error) {
+              notifications.hide('deep-fetch-loading');
+              notifications.show({
+                title: 'Deep fetch failed',
+                message: error instanceof Error ? error.message : 'Failed to fetch detailed data',
+                color: 'red',
+              });
+            }
+          }
+          setContextMenu(null);
+        },
+      });
+    }
+
     if (selectedRowCount === 1) {
       items.push({
         label: 'View record',
@@ -480,6 +545,7 @@ export const useContextMenuItems = (
     addWriteFocus,
     removeWriteFocus,
     snapshot.id,
+    snapshot.connectorService,
     refreshRecords,
     handleAcceptRecords,
     handleRejectRecords,

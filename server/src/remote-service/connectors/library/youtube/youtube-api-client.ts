@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 // import { SyncProblem, SyncProblemCode } from '../types/sync-problem';
@@ -106,21 +104,18 @@ export class YoutubeApiClient {
   }
 
   // Somehow youtube forces you to send the category of the video to update it.
-  async updateVideo(videoId: string, values: object, categoryId: string): Promise<youtube_v3.Schema$Video> {
+  async updateVideo(videoId: string, snippet: object): Promise<youtube_v3.Schema$Video> {
     const searchResponse = await this.youtubeClient.videos.update({
       part: ['snippet', 'id'],
       requestBody: {
         id: videoId,
-        snippet: {
-          categoryId,
-          ...values,
-        },
+        snippet,
       },
     });
     return searchResponse.data;
   }
 
-  async getVideoTranscript(videoId: string): Promise<string | null> {
+  async getVideoTranscript(videoId: string): Promise<{ text: string; id: string | null }> {
     try {
       // List available caption tracks for the video
       const captionListResponse = await this.youtubeClient.captions.list({
@@ -141,7 +136,10 @@ export class YoutubeApiClient {
 
       if (!captionId) {
         console.debug(`No English transcript found for video ${videoId}`);
-        return null;
+        return {
+          text: `No English transcript found for video ${videoId}`,
+          id: null,
+        };
       }
 
       // Download the transcript
@@ -150,24 +148,83 @@ export class YoutubeApiClient {
         tfmt: 'srt',
       });
 
-      // The response is a stream, we need to convert it to string
-      if (transcriptResponse.data) {
-        return transcriptResponse.data as string;
+      if (!transcriptResponse.data) {
+        return {
+          text: `No English transcript found for video ${videoId}`,
+          id: null,
+        };
       }
 
-      return null;
+      // The response is a Blob, we need to convert it to string
+      // Convert Blob to ArrayBuffer, then to Buffer, then to string
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const blob = transcriptResponse.data as any; // Type assertion for Blob
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const transcript = buffer.toString('utf-8');
+      return { text: transcript, id: captionId };
     } catch (error: any) {
       // Handle specific error cases
-      if (error?.status === 403) {
-        console.debug(
-          `Access denied for transcript of video ${videoId}. This may be due to insufficient OAuth scope or video permissions.`,
-        );
-      } else if (error?.status === 404) {
-        console.debug(`No captions found for video ${videoId}`);
-      } else {
-        console.debug(`Error fetching transcript for video ${videoId}:`, error);
+      if (typeof error === 'object' && 'status' in error) {
+        if (error.status === 403) {
+          return { text: `Access denied for transcript of video ${videoId}`, id: null };
+        } else if (error.status === 404) {
+          return { text: `No captions found for video ${videoId}`, id: null };
+        }
       }
-      return null;
+
+      return {
+        text: `Error fetching transcript for video ${videoId}: ${error?.message ?? 'Unknown error'}`,
+        id: null,
+      };
+    }
+  }
+
+  async updateTranscript(transcriptId: string, transcriptText: string): Promise<void> {
+    try {
+      // First, we need to get the caption track details to update it
+      const captionResponse = await this.youtubeClient.captions.list({
+        part: ['snippet'],
+        id: [transcriptId],
+      });
+
+      if (!captionResponse.data.items || captionResponse.data.items.length === 0) {
+        throw new Error(`Transcript with ID ${transcriptId} not found`);
+      }
+
+      const caption = captionResponse.data.items[0];
+      if (!caption.snippet) {
+        throw new Error(`Transcript ${transcriptId} has no snippet data`);
+      }
+
+      // Convert the transcript text to a Buffer for upload
+      const transcriptBuffer = Buffer.from(transcriptText, 'utf-8');
+
+      // Update the caption track with the new content
+      await this.youtubeClient.captions.update({
+        part: ['snippet'],
+        requestBody: {
+          id: transcriptId,
+          snippet: {
+            ...caption.snippet,
+            // Keep the existing snippet data but update the content
+          },
+        },
+        media: {
+          mimeType: 'text/plain',
+          body: transcriptBuffer,
+        },
+      });
+    } catch (error: any) {
+      if (typeof error === 'object' && 'status' in error) {
+        if (error.status === 403) {
+          throw new Error(`Access denied for updating transcript ${transcriptId}`);
+        } else if (error.status === 404) {
+          throw new Error(`Transcript ${transcriptId} not found`);
+        }
+      }
+      throw new Error(`Error updating transcript ${transcriptId}: ${error?.message ?? 'Unknown error'}`);
     }
   }
 }

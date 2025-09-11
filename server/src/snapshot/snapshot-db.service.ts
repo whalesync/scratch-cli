@@ -343,6 +343,16 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     return this.mapDbRecordToSnapshotRecord(result);
   }
 
+  async getRecordsByIds(snapshotId: SnapshotId, tableId: string, wsIds: string[]): Promise<SnapshotRecord[]> {
+    if (wsIds.length === 0) {
+      return [];
+    }
+
+    const results = await this.knex<DbRecord>(tableId).withSchema(snapshotId).whereIn('wsId', wsIds).select('*');
+
+    return results.map((result) => this.mapDbRecordToSnapshotRecord(result));
+  }
+
   async bulkUpdateRecords(
     snapshotId: SnapshotId,
     tableId: string,

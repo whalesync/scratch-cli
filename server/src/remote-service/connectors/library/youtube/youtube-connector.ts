@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
@@ -124,6 +122,47 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           youtubeField: 'snippet.description',
         },
         {
+          id: { wsId: 'transcript', remoteId: ['transcript'] },
+          name: 'Transcript',
+          // readonly: true,
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'transcript',
+        },
+        {
+          id: { wsId: 'transcriptId', remoteId: ['transcriptId'] },
+          name: 'Transcript Id',
+          readonly: true,
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'transcriptId',
+        },
+        {
+          id: { wsId: 'categoryId', remoteId: ['categoryId'] },
+          name: 'Category ID',
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'snippet.categoryId',
+        },
+        {
+          id: { wsId: 'defaultLanguage', remoteId: ['defaultLanguage'] },
+          name: 'Default Language',
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'snippet.defaultLanguage',
+        },
+        {
+          id: { wsId: 'tags', remoteId: ['tags'] },
+          name: 'Tags',
+          pgType: PostgresColumnType.TEXT_ARRAY,
+          readonly: true,
+          youtubeField: 'snippet.tags',
+        },
+        {
+          id: { wsId: 'visibility', remoteId: ['visibility'] },
+          name: 'Visibility',
+          pgType: PostgresColumnType.TEXT,
+          youtubeField: 'status.privacyStatus',
+          readonly: true,
+          limitedToValues: ['public', 'unlisted', 'private'],
+        },
+        {
           id: { wsId: 'url', remoteId: ['url'] },
           name: 'URL',
           readonly: true,
@@ -136,40 +175,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           readonly: true,
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'snippet.publishedAt',
-        },
-        {
-          id: { wsId: 'transcript', remoteId: ['transcript'] },
-          name: 'Transcript',
-          readonly: true,
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'transcript',
-        },
-        {
-          id: { wsId: 'visibility', remoteId: ['visibility'] },
-          name: 'Visibility',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'status.privacyStatus',
-          readonly: true,
-          limitedToValues: ['public', 'unlisted', 'private'],
-        },
-        {
-          id: { wsId: 'categoryId', remoteId: ['categoryId'] },
-          name: 'Category ID',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.categoryId',
-          readonly: true,
-        },
-        {
-          id: { wsId: 'defaultLanguage', remoteId: ['defaultLanguage'] },
-          name: 'Default Language',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.defaultLanguage',
-        },
-        {
-          id: { wsId: 'tags', remoteId: ['tags'] },
-          name: 'Tags',
-          pgType: PostgresColumnType.TEXT_ARRAY,
-          youtubeField: 'snippet.tags',
         },
       ],
     } as YouTubeTableSpec;
@@ -191,13 +196,64 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
       }
 
       const records: ConnectorRecord[] = await Promise.all(
-        videosResponse.items.map((video) => this.formatRecord(video, tableSpec)),
+        videosResponse.items.map((video) => this.formatRecordWithoutTranscript(video, tableSpec)),
       );
 
       await callback(records);
 
       nextPageToken = videosResponse.nextPageToken || undefined;
     } while (nextPageToken);
+  }
+
+  async downloadRecordDeep(
+    tableSpec: YouTubeTableSpec,
+    existingRecord: ExistingSnapshotRecord,
+    fields: string[] | null,
+    callback: (records: ConnectorRecord[]) => Promise<void>,
+    _account: ConnectorAccount,
+  ): Promise<void> {
+    // Extract the YouTube video ID from the existing record
+    const videoId = existingRecord.id.remoteId;
+
+    if (!videoId) {
+      throw new Error('Video ID not found in existing record');
+    }
+
+    // Get the video details first
+    const videoResponse = await this.apiClient.getVideo(videoId);
+
+    if (!videoResponse.items || videoResponse.items.length === 0) {
+      throw new Error(`Video with ID ${videoId} not found`);
+    }
+
+    const video = videoResponse.items[0];
+
+    // Check if we need to fetch transcript (if fields is null or includes 'transcript')
+    const needsTranscript = fields === null || fields.includes('transcript');
+
+    let transcript = '';
+    let transcriptId: string | null = null;
+    if (needsTranscript) {
+      try {
+        const { text: transcriptData, id: transcriptIdData } = await this.apiClient.getVideoTranscript(videoId);
+        transcript = transcriptData || '';
+        transcriptId = transcriptIdData;
+      } catch (error) {
+        console.debug(`Failed to fetch transcript for video ${videoId}:`, error);
+        transcript = '';
+      }
+    }
+
+    existingRecord.fields.transcript = transcript;
+    existingRecord.fields.transcriptId = transcriptId;
+    // Format the record with the transcript
+    // const record = this.formatRecordWithTranscript(video, tableSpec, transcript);
+    await callback([
+      {
+        id: existingRecord.id.remoteId,
+        fields: existingRecord.fields,
+      },
+    ]);
   }
 
   getBatchSize(operation: 'create' | 'update' | 'delete'): number {
@@ -234,28 +290,31 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags
     for (const record of records) {
       const videoId = record.id.remoteId;
-      const updateData: any = {};
-
-      // Update snippet fields
-      if (record.partialFields.title) {
-        updateData.title = record.partialFields.title;
-      }
-      if (record.partialFields.description) {
-        updateData.description = record.partialFields.description;
-      }
-      if (record.partialFields.defaultLanguage) {
-        updateData.defaultLanguage = record.partialFields.defaultLanguage;
-      }
-      if (record.partialFields.tags && Array.isArray(record.partialFields.tags)) {
-        // Tags are already an array
-        updateData.tags = record.partialFields.tags;
-      }
+      const updateData: any = {
+        title: record.partialFields.title,
+        description: record.partialFields.description,
+        categoryId: record.partialFields.categoryId,
+        defaultLanguage: record.partialFields.defaultLanguage,
+        tags: record.partialFields.tags,
+      };
 
       if (Object.keys(updateData).length > 0) {
-        // We need a category ID for YouTube updates - using a default
-        const categoryId = '22'; // People & Blogs category
-        await this.apiClient.updateVideo(videoId, updateData, categoryId);
+        await this.apiClient.updateVideo(videoId, updateData);
       }
+
+      if (record.partialFields.transcript && record.partialFields.transcriptId) {
+        try {
+          await this.apiClient.updateTranscript(
+            record.partialFields.transcriptId as string,
+            record.partialFields.transcript as string,
+          );
+        } catch (error) {
+          console.warn(`Failed to update transcript for video ${videoId}:`, error);
+          // Don't throw here as transcript update is optional and may fail due to API limitations
+        }
+      }
+
+      // TODO: update visibility
     }
   }
 
@@ -266,38 +325,27 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   ): Promise<void> {
     // YouTube doesn't support deleting videos through the API
     // Videos must be deleted through the YouTube interface
-    throw new Error(
-      'YouTube does not support deleting videos through the API. Videos must be deleted through the YouTube interface.',
+    return Promise.reject(
+      new Error(
+        'YouTube does not support deleting videos through the API. Videos must be deleted through the YouTube interface.',
+      ),
     );
   }
 
-  private async formatRecord(
+  private formatRecordWithoutTranscript(
     youtubeRecord: youtube_v3.Schema$Video,
     _tableSpec: YouTubeTableSpec,
-  ): Promise<ConnectorRecord> {
-    // Handle Video type from videos.list API
-    const videoId = youtubeRecord.id || null;
-
-    // Fetch transcript for the video
-    let transcript = '';
-    if (videoId) {
-      try {
-        const transcriptData = await this.apiClient.getVideoTranscript(videoId);
-        transcript = transcriptData || '';
-      } catch (error) {
-        console.debug(`Failed to fetch transcript for video ${videoId}:`, error);
-        transcript = '';
-      }
-    }
+  ): ConnectorRecord {
+    const videoId = youtubeRecord.id || '';
 
     return {
-      id: videoId || '',
+      id: videoId,
       fields: {
         title: youtubeRecord.snippet?.title || '',
         description: youtubeRecord.snippet?.description || '',
         url: this.getWatchVideoUrl(videoId),
         publishedAt: youtubeRecord.snippet?.publishedAt || '',
-        transcript,
+        transcript: '', // Empty transcript - will be fetched via downloadRecordDeep
         visibility: youtubeRecord.status?.privacyStatus || '',
         categoryId: youtubeRecord.snippet?.categoryId || '',
         defaultLanguage: youtubeRecord.snippet?.defaultLanguage || '',
@@ -316,12 +364,28 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     tableSpec: YouTubeTableSpec,
   ): SnapshotRecordSanitizedForUpdate {
     const { id, fields } = record;
+
+    // For YouTube, we need to include all snippet fields since YouTube expects the full snippet to replace
+    // But for transcript, we only include it if it was actually edited
+    const editedFieldNames = tableSpec.columns
+      .map((c) => c.id.wsId)
+      .filter((colWsId) => !!record.__edited_fields[colWsId]);
+
     const newFields: typeof fields = {};
+
+    // Always include these fields (YouTube snippet fields)
     newFields.title = fields.title;
     newFields.description = fields.description;
     newFields.categoryId = fields.categoryId;
     newFields.defaultLanguage = fields.defaultLanguage;
     newFields.tags = fields.tags;
+
+    // Only include transcript if it was edited
+    if (editedFieldNames.includes('transcript')) {
+      newFields.transcript = fields.transcript;
+      newFields.transcriptId = fields.transcriptId;
+    }
+
     const sanitizedRecord: SnapshotRecordSanitizedForUpdate = {
       id,
       partialFields: newFields,

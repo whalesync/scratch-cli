@@ -24,6 +24,7 @@ import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
+import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -152,6 +153,23 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested', viewId);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/deep-fetch')
+  async deepFetchRecords(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() deepFetchRecordsDto: DeepFetchRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    return await this.service.deepFetchRecords(
+      snapshotId,
+      tableId,
+      deepFetchRecordsDto.recordIds,
+      deepFetchRecordsDto.fields || null,
+      req.user.id,
+    );
   }
 
   @UseGuards(ScratchpadAuthGuard)

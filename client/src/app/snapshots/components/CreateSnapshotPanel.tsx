@@ -86,7 +86,7 @@ export const CreateSnapshotPanel = () => {
       </Modal>
       <Stack>
         <PrimaryButton w="min-content" onClick={() => modalStack.open('create-content-snapshot')} loading={isSaving}>
-          Create scratchpaper
+          Create content scratchpaper
         </PrimaryButton>
       </Stack>
     </>

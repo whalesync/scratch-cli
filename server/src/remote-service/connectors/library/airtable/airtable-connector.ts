@@ -51,6 +51,8 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     };
   }
 
+  public downloadRecordDeep = undefined;
+
   async downloadTableRecords(
     tableSpec: AirtableTableSpec,
     callback: (records: ConnectorRecord[]) => Promise<void>,

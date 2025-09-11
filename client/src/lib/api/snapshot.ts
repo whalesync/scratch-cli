@@ -349,5 +349,28 @@ export const snapshotApi = {
       throw new Error(res.statusText ?? "Failed to reject all suggestions");
     }
     return res.json();
-  },  
- };
+  },
+
+  async deepFetchRecords(
+    snapshotId: string,
+    tableId: string,
+    recordIds: string[],
+    fields?: string[] | null
+  ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/deep-fetch`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recordIds, fields }),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(res.statusText ?? "Failed to deep fetch records");
+    }
+    return res.json();
+  },
+};

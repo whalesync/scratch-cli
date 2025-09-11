@@ -136,6 +136,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
     }
   }
 
+  public downloadRecordDeep = undefined;
+
   private extractPropertyValue(
     property: PageObjectResponse['properties'][string],
   ): string | number | boolean | null | string[] {

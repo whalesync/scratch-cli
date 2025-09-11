@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import _ from 'lodash';
@@ -331,6 +334,91 @@ export class SnapshotService {
     });
 
     return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, filteredOps, type);
+  }
+
+  async deepFetchRecords(
+    snapshotId: SnapshotId,
+    tableId: string,
+    recordIds: string[],
+    fields: string[] | null,
+    userId: string,
+  ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
+
+    // Check if the connector supports deep fetch
+    if (!connector.downloadRecordDeep) {
+      throw new BadRequestException(
+        `Connector for service ${snapshot.connectorAccount.service} does not support deep record fetching`,
+      );
+    }
+
+    // Fetch existing records from the database
+    const existingRecords = await this.snapshotDbService.getRecordsByIds(snapshotId, tableId, recordIds);
+
+    const records: SnapshotRecord[] = [];
+    let totalCount = 0;
+
+    // Process records one at a time
+    for (const recordId of recordIds) {
+      try {
+        // Find the existing record for this recordId
+        const existingRecord = existingRecords.find((r) => r.id.wsId === recordId);
+        if (!existingRecord) {
+          WSLogger.error({
+            source: 'SnapshotService.deepFetchRecords',
+            message: 'Existing record not found',
+            snapshotId,
+            tableId,
+            recordId,
+          });
+          continue;
+        }
+
+        await connector.downloadRecordDeep(
+          tableSpec,
+          existingRecord as ExistingSnapshotRecord,
+          fields,
+          async (connectorRecords) => {
+            // Upsert the records as they come back, similar to regular download
+            await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, connectorRecords);
+            totalCount += connectorRecords.length;
+
+            // Convert ConnectorRecord to SnapshotRecord for response
+            for (const connectorRecord of connectorRecords) {
+              records.push({
+                id: {
+                  wsId: connectorRecord.id, // Use the remote ID as wsId for now
+                  remoteId: connectorRecord.id,
+                },
+                fields: connectorRecord.fields,
+                __edited_fields: {},
+                __suggested_values: {},
+                __dirty: false,
+              } as SnapshotRecord);
+            }
+          },
+          snapshot.connectorAccount,
+        );
+      } catch (error) {
+        WSLogger.error({
+          source: 'SnapshotService.deepFetchRecords',
+          message: 'Failed to deep fetch record',
+          snapshotId,
+          tableId,
+          recordId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Continue with next record on error
+      }
+    }
+
+    return { records, totalCount };
   }
 
   private filterOperationsByView(

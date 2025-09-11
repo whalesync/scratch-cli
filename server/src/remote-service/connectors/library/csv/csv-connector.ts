@@ -84,6 +84,8 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     }
   }
 
+  public downloadRecordDeep = undefined;
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getBatchSize(operation: 'create' | 'update' | 'delete'): number {
     // For CSV, we can process all records at once since they're in memory
@@ -164,6 +166,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       const recordToUpdate = csvData.records.find((r) => r.fields[identityField] === record.id.remoteId);
       if (recordToUpdate) {
         // Update the fields, but don't allow updating the identity field
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [identityField]: _, ...fieldsToUpdate } = record.partialFields as Record<string, string>;
         Object.assign(recordToUpdate.fields, fieldsToUpdate);
       }
@@ -228,6 +231,8 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     // Combine header and data rows
     return [headerRow, ...dataRows].join('\n');
   }
+
+  // public downloadRecordDeep = undefined;
 
   private escapeCsvField(field: string): string {
     // If the field contains comma, quote, or newline, wrap it in quotes and escape internal quotes
