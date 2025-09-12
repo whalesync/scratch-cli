@@ -120,6 +120,23 @@ export function isLargeTextColumn(column: ColumnSpec, value: string | undefined 
   return column.markdown || column.pgType === PostgresColumnType.JSONB || (column.pgType === PostgresColumnType.TEXT && value && value.length > 100);
 }
 
+export function formatFieldValue(value: unknown, column: ColumnSpec): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  
+  if (column.pgType === PostgresColumnType.JSONB) {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      console.warn('Failed to stringify JSONB value:', error);
+      return String(value);
+    }
+  }
+  
+  return String(value);
+}
+
 export function buildRecordTitle(record: SnapshotRecord): string {
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {

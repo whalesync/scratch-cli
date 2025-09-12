@@ -18,33 +18,34 @@ export class YouTubeOAuthProvider implements OAuthProvider {
     this.redirectUri = this.configService.get<string>('REDIRECT_URI') || '';
   }
 
-  generateAuthUrl(userId: string, state: string): string {
+  generateAuthUrl(userId: string, state: string, overrides?: { clientId?: string }): string {
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    authUrl.searchParams.set('client_id', this.clientId);
+    const clientId = overrides?.clientId || this.clientId;
+    authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', this.redirectUri);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set(
-      'scope',
-      'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-    );
+    authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/youtube.force-ssl');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
     // Add parameters to help with channel selection
-    authUrl.searchParams.set('include_granted_scopes', 'true');
+    authUrl.searchParams.set('include_granted_scopes', 'false');
 
     return authUrl.toString();
   }
 
-  async exchangeCodeForTokens(code: string): Promise<OAuthTokenResponse> {
+  async exchangeCodeForTokens(
+    code: string,
+    overrides?: { clientId?: string; clientSecret?: string },
+  ): Promise<OAuthTokenResponse> {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
+        client_id: overrides?.clientId || this.clientId,
+        client_secret: overrides?.clientSecret || this.clientSecret,
         code,
         grant_type: 'authorization_code',
         redirect_uri: this.redirectUri,

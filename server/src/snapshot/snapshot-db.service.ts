@@ -23,6 +23,8 @@ types.setTypeParser(23, 'text', parseInt); // INT4
 export const EDITED_FIELDS_COLUMN = '__edited_fields';
 // Same as the above, but for edits that are suggested by the AI.
 export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
+// Connector specific optional per record metadata
+export const METADATA_COLUMN = '__metadata';
 
 export const DIRTY_COLUMN = '__dirty';
 
@@ -43,6 +45,7 @@ type DbRecord = {
   id: string | null;
   [EDITED_FIELDS_COLUMN]: EditedFieldsMetadata;
   [SUGGESTED_FIELDS_COLUMN]: Record<string, unknown>;
+  [METADATA_COLUMN]: Record<string, unknown>;
   [DIRTY_COLUMN]: boolean;
   [key: string]: unknown;
 };
@@ -147,6 +150,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
           }
           t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
           t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
+          t.jsonb(METADATA_COLUMN).defaultTo('{}');
           t.boolean(DIRTY_COLUMN).defaultTo(false);
         });
       } else {
@@ -202,6 +206,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       wsId: createSnapshotRecordId(), // Will be ignored on merge.
       id: r.id,
       ...this.sanitizeFieldsForKnexInput(r.fields, table.columns),
+      [METADATA_COLUMN]: r.metadata,
     }));
 
     if (upsertRecordsInput.length === 0) {
@@ -320,7 +325,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
   }
 
   private mapDbRecordToSnapshotRecord(record: DbRecord): SnapshotRecord {
-    const { wsId, id, __edited_fields, __suggested_values, __dirty, ...fields } = record;
+    const { wsId, id, __edited_fields, __suggested_values, __dirty, __metadata, ...fields } = record;
     return {
       id: {
         wsId,
@@ -330,6 +335,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       __edited_fields,
       __suggested_values,
       __dirty,
+      __metadata,
     };
   }
 
@@ -659,13 +665,16 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
       if (records.length > 0) {
         await callback(
-          records.map(({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, ...fields }) => ({
-            id: { wsId, remoteId },
-            __edited_fields,
-            __dirty,
-            __suggested_values: __suggested_values ?? {},
-            fields,
-          })),
+          records.map(
+            ({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, __metadata, ...fields }) => ({
+              id: { wsId, remoteId },
+              __edited_fields,
+              __dirty,
+              __suggested_values: __suggested_values ?? {},
+              fields,
+              __metadata,
+            }),
+          ),
         );
       } else {
         hasMore = false;

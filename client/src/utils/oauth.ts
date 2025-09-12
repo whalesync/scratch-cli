@@ -5,13 +5,16 @@ import { OAuthService } from '@/types/oauth';
  * Initiate OAuth flow for a service
  * This function will redirect the user to the OAuth provider
  */
-export const initiateOAuth = async (service: OAuthService): Promise<void> => {
+export const initiateOAuth = async (
+  service: OAuthService,
+  options?: { connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM'; customClientId?: string; customClientSecret?: string },
+): Promise<void> => {
   try {
     // Store the service in localStorage so the callback page can identify it 
     localStorage.setItem('oauth_service', service);
     
     // Get the OAuth URL from the server
-    const response = await oauthApi.initiate(service);
+    const response = await oauthApi.initiate(service, options);
     
     // Redirect the user to the OAuth provider
     window.location.href = response.authUrl;

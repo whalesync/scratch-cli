@@ -62,6 +62,7 @@ export type ConnectorRecord = {
   id: string;
   // Columns, indexed by the wsId NOT the connector's native ID.
   fields: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 };
 
 export type SnapshotRecord = {
@@ -79,6 +80,7 @@ export type SnapshotRecord = {
   __edited_fields: EditedFieldsMetadata;
   __suggested_values: Record<string, unknown>;
   __dirty: boolean;
+  __metadata: Record<string, unknown>;
 };
 
 export type ExistingSnapshotRecord = SnapshotRecord & {

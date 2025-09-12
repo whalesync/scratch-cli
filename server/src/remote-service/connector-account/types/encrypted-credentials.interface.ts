@@ -4,6 +4,9 @@ export interface EncryptedCredentials {
   oauthRefreshToken?: string;
   oauthExpiresAt?: string; // ISO string
   oauthWorkspaceId?: string;
+  // Optional custom OAuth app credentials (encrypted at rest)
+  customOAuthClientId?: string;
+  customOAuthClientSecret?: string;
 }
 
 export interface DecryptedCredentials {
@@ -12,4 +15,7 @@ export interface DecryptedCredentials {
   oauthRefreshToken?: string;
   oauthExpiresAt?: Date;
   oauthWorkspaceId?: string;
+  // Optional custom OAuth app credentials (plaintext in memory only)
+  customOAuthClientId?: string;
+  customOAuthClientSecret?: string;
 }

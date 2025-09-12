@@ -4,7 +4,7 @@ import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
 import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { RecordCell } from '@/types/common';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
-import { Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { formatFieldValue, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import {
   CellClickedEventArgs,
   EditableGridCell,
@@ -391,7 +391,7 @@ export const SnapshotTableGridProvider = ({
       }
 
       // Determine what to display
-      let displayText = value ? String(value) : '';
+      let displayText = formatFieldValue(value, column);
 
       if (isSuggestedDeleted) {
         // Show all values as crossed out with suggestion dot for suggested deletion

@@ -136,6 +136,13 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           youtubeField: 'transcriptId',
         },
         {
+          id: { wsId: 'captionListItems', remoteId: ['captionListItems'] },
+          name: 'Available Transcripts',
+          readonly: true,
+          pgType: PostgresColumnType.JSONB,
+          youtubeField: 'captionListItems',
+        },
+        {
           id: { wsId: 'categoryId', remoteId: ['categoryId'] },
           name: 'Category ID',
           pgType: PostgresColumnType.TEXT,
@@ -233,11 +240,17 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
     let transcript = '';
     let transcriptId: string | null = null;
+    let captionListItems: youtube_v3.Schema$Caption[] | null = null;
     if (needsTranscript) {
       try {
-        const { text: transcriptData, id: transcriptIdData } = await this.apiClient.getVideoTranscript(videoId);
+        const {
+          text: transcriptData,
+          id: transcriptIdData,
+          captionListItems: captionListItemsData,
+        } = await this.apiClient.getVideoTranscript(videoId);
         transcript = transcriptData || '';
         transcriptId = transcriptIdData;
+        captionListItems = captionListItemsData;
       } catch (error) {
         console.debug(`Failed to fetch transcript for video ${videoId}:`, error);
         transcript = '';
@@ -246,6 +259,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
     existingRecord.fields.transcript = transcript;
     existingRecord.fields.transcriptId = transcriptId;
+    existingRecord.fields.captionListItems = captionListItems;
     // Format the record with the transcript
     // const record = this.formatRecordWithTranscript(video, tableSpec, transcript);
     await callback([
@@ -305,6 +319,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
       if (record.partialFields.transcript && record.partialFields.transcriptId) {
         try {
           await this.apiClient.updateTranscript(
+            videoId,
             record.partialFields.transcriptId as string,
             record.partialFields.transcript as string,
           );

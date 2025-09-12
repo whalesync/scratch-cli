@@ -2,7 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { getLogo, serviceName } from '@/service-naming-conventions';
+import { getLogo, getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { INTERNAL_SERVICES, LIVE_SERVICES, Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
@@ -10,7 +10,7 @@ import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from
 import Image from 'next/image';
 import { useState } from 'react';
 
-type AuthMethod = 'api_key' | 'oauth';
+type AuthMethod = 'api_key' | 'oauth' | 'oauth_custom';
 
 export const CreateConnectionModal = (props: ModalProps) => {
   const [newApiKey, setNewApiKey] = useState('');
@@ -18,6 +18,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [customClientId, setCustomClientId] = useState('');
+  const [customClientSecret, setCustomClientSecret] = useState('');
   const { isAdmin } = useScratchPadUser();
 
   const { createConnectorAccount } = useConnectorAccounts();
@@ -45,6 +47,10 @@ export const CreateConnectionModal = (props: ModalProps) => {
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
       methods.push('oauth');
+      // Enable Private OAuth only for YouTube (generic-ready for future services)
+      if (service === Service.YOUTUBE) {
+        methods.push('oauth_custom');
+      }
     }
     if (apiKeySupportedServices.includes(service)) {
       methods.push('api_key');
@@ -60,7 +66,12 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
     setIsOAuthLoading(true);
     try {
-      await initiateOAuth(newService as OAuthService);
+      const isCustom = authMethod === 'oauth_custom';
+      await initiateOAuth(newService as OAuthService, {
+        connectionMethod: isCustom ? 'OAUTH_CUSTOM' : 'OAUTH_SYSTEM',
+        customClientId: isCustom ? customClientId : undefined,
+        customClientSecret: isCustom ? customClientSecret : undefined,
+      });
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
       console.error('OAuth initiation failed:', error);
@@ -80,7 +91,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
     }
 
     // For OAuth, the connection will be created in the callback page
-    if (authMethod === 'oauth') {
+    if (authMethod === 'oauth' || authMethod === 'oauth_custom') {
       await handleOAuthInitiate();
       return;
     }
@@ -121,6 +132,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
             setNewService(value as Service);
             // Set default auth method based on service capabilities
             setAuthMethod(getDefaultAuthMethod(value as Service));
+            setCustomClientId('');
+            setCustomClientSecret('');
           }}
           renderOption={({ option }) => {
             const service = option.value as Service;
@@ -142,11 +155,39 @@ export const CreateConnectionModal = (props: ModalProps) => {
           >
             <Group gap="xs" mt="xs">
               {getSupportedAuthMethods(newService).includes('oauth') && (
-                <Radio value="oauth" label="OAuth (Recommended)" />
+                <Radio value="oauth" label={getOauthLabel(newService)} />
               )}
               {getSupportedAuthMethods(newService).includes('api_key') && <Radio value="api_key" label="API Key" />}
+              {newService === Service.YOUTUBE && (
+                <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
+              )}
             </Group>
           </Radio.Group>
+        )}
+        {/* Private OAuth credentials (YouTube only for now) */}
+        {authMethod === 'oauth_custom' && (
+          <>
+            <Alert color="blue" title="Private OAuth">
+              How to set up a private OAuth connection{' '}
+              <a href="https://www.google.com" target="_blank" rel="noreferrer">
+                here
+              </a>
+              .
+            </Alert>
+            <TextInput
+              label="OAuth Client ID"
+              placeholder="Enter your app's client ID"
+              value={customClientId}
+              onChange={(e) => setCustomClientId(e.currentTarget.value)}
+            />
+            <TextInput
+              label="OAuth Client Secret"
+              placeholder="Enter your app's client secret"
+              value={customClientSecret}
+              onChange={(e) => setCustomClientSecret(e.currentTarget.value)}
+              type="password"
+            />
+          </>
         )}
         {newService === Service.CSV && (
           <Alert color="blue" title="CSV Connection">

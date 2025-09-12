@@ -8,6 +8,8 @@ type ServiceNamingConvention = {
   records: string;
   bases: string | null
   logo?: string
+  oauthLabel?: string
+  oauthPrivateLabel?: string
 };
 
 
@@ -21,6 +23,7 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: "pages",
     bases: null,
     logo: "notion.svg",
+    oauthLabel: "OAuth",
   },
   [Service.AIRTABLE]: {
     service: "Airtable",
@@ -41,6 +44,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: "videos",
     bases: null,
     logo: "youtube-color-svgrepo-com.svg",
+    oauthLabel: "OAuth (100 api credits/day)",
+    oauthPrivateLabel: "Private OAuth (10,000 api credits/day)",
   },
   [Service.CUSTOM]: {
     service: "Custom",
@@ -88,9 +93,9 @@ export const recordsName = (serviceCode: Service): string => {
     return ServiceNamingConventions[serviceCode]?.records ?? 'records';
 }
 
-export const basesName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.bases ?? 'bases';
-}
+    export const basesName = (serviceCode: Service): string => {
+        return ServiceNamingConventions[serviceCode]?.bases ?? 'bases';
+    }
 
 export const getLogo = (serviceCode: Service | null | undefined): string => {
     const logo = ServiceNamingConventions[serviceCode ?? Service.CUSTOM]?.logo;
@@ -98,4 +103,12 @@ export const getLogo = (serviceCode: Service | null | undefined): string => {
         return `/connector-icons/${logo}`;
     }
     return '/connector-icons/gear-svgrepo-com.svg';
+}
+
+export const getOauthLabel = (serviceCode: Service): string => {
+    return ServiceNamingConventions[serviceCode]?.oauthLabel ?? 'OAuth';
+}
+
+export const getOauthPrivateLabel = (serviceCode: Service): string => {
+    return ServiceNamingConventions[serviceCode]?.oauthPrivateLabel ?? 'Private OAuth';
 }

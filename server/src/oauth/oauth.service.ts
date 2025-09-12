@@ -39,7 +39,7 @@ export class OAuthService {
     return await encryptionService.encryptObject(credentials);
   }
 
-  private async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
+  public async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
     if (!encryptedCredentials || Object.keys(encryptedCredentials).length === 0) {
       return {};
     }
@@ -58,14 +58,33 @@ export class OAuthService {
   /**
    * Initiate OAuth flow for any supported service
    */
-  initiateOAuth(service: string, userId: string): OAuthInitiateResponse {
+  initiateOAuth(
+    service: string,
+    userId: string,
+    options?: {
+      connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+      customClientId?: string;
+      customClientSecret?: string;
+    },
+  ): OAuthInitiateResponse {
     const provider = this.providers.get(service);
     if (!provider) {
       throw new BadRequestException(`Unsupported OAuth service: ${service}`);
     }
 
-    const state = this.generateState(userId);
-    const authUrl = provider.generateAuthUrl(userId, state);
+    // Embed connection method and optional custom client info into state (base64 JSON)
+    const statePayload = {
+      userId,
+      connectionMethod: options?.connectionMethod ?? 'OAUTH_SYSTEM',
+      customClientId: options?.customClientId,
+      customClientSecret: options?.customClientSecret,
+      ts: Date.now(),
+    };
+    const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
+
+    const authUrl = provider.generateAuthUrl(userId, state, {
+      clientId: options?.connectionMethod === 'OAUTH_CUSTOM' ? options?.customClientId : undefined,
+    });
 
     return {
       authUrl,
@@ -86,16 +105,44 @@ export class OAuthService {
       throw new BadRequestException(`Unsupported OAuth service: ${service}`);
     }
 
-    // Validate state parameter
-    if (!this.validateState(callbackData.state, userId)) {
+    // Decode state and validate
+    let statePayload: {
+      userId: string;
+      connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+      customClientId?: string;
+      customClientSecret?: string;
+      ts: number;
+    };
+    try {
+      const decoded = Buffer.from(callbackData.state, 'base64').toString();
+      const parsed = JSON.parse(decoded) as {
+        userId: string;
+        connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+        customClientId?: string;
+        customClientSecret?: string;
+        ts: number;
+      };
+      statePayload = parsed;
+    } catch {
       throw new BadRequestException('Invalid state parameter');
     }
 
-    // Exchange authorization code for access token
-    const tokenResponse = await provider.exchangeCodeForTokens(callbackData.code);
+    if (statePayload.userId !== userId) {
+      throw new BadRequestException('Invalid state parameter');
+    }
 
-    // Create new connector account
-    const connectorAccount = await this.createOAuthAccount(service, userId, tokenResponse);
+    // Exchange authorization code for access token (with overrides for custom OAuth)
+    const tokenResponse = await provider.exchangeCodeForTokens(callbackData.code, {
+      clientId: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientId : undefined,
+      clientSecret: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientSecret : undefined,
+    });
+
+    // Create new connector account (include connection method and custom client creds for storage)
+    const connectorAccount = await this.createOAuthAccount(service, userId, tokenResponse, {
+      connectionMethod: statePayload.connectionMethod,
+      customClientId: statePayload.customClientId,
+      customClientSecret: statePayload.customClientSecret,
+    });
 
     return { connectorAccountId: connectorAccount.id };
   }
@@ -120,7 +167,7 @@ export class OAuthService {
       throw new BadRequestException('No refresh token available');
     }
 
-    const provider = this.providers.get(account.service.toLowerCase());
+    const provider = this.providers.get(account.service);
     if (!provider) {
       throw new BadRequestException(`No OAuth provider found for service: ${account.service}`);
     }
@@ -147,7 +194,16 @@ export class OAuthService {
   /**
    * Create new OAuth connector account with OAuth data
    */
-  private async createOAuthAccount(service: string, userId: string, tokenResponse: OAuthTokenResponse) {
+  private async createOAuthAccount(
+    service: string,
+    userId: string,
+    tokenResponse: OAuthTokenResponse,
+    connectionInfo?: {
+      connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+      customClientId?: string;
+      customClientSecret?: string;
+    },
+  ) {
     const serviceEnum = this.mapServiceStringToEnum(service);
 
     // Prepare credentials for encryption
@@ -156,6 +212,10 @@ export class OAuthService {
       oauthRefreshToken: tokenResponse.refresh_token,
       oauthExpiresAt: tokenResponse.expires_in ? new Date(Date.now() + tokenResponse.expires_in * 1000) : undefined,
       oauthWorkspaceId: tokenResponse.workspace_id,
+      customOAuthClientId:
+        connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientId : undefined,
+      customOAuthClientSecret:
+        connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientSecret : undefined,
     };
 
     const encryptedCredentials = await this.encryptCredentials(credentials);
@@ -166,7 +226,9 @@ export class OAuthService {
         id: createConnectorAccountId(),
         userId,
         service: serviceEnum,
-        displayName: `${service.charAt(0).toUpperCase() + service.slice(1)} (OAuth)`,
+        displayName: `${service.charAt(0).toUpperCase() + service.slice(1)} (${
+          connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? 'Private OAuth' : 'OAuth'
+        })`,
         authType: AuthType.OAUTH,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
       },
@@ -282,5 +344,25 @@ export class OAuthService {
     }
 
     return decryptedCredentials.oauthAccessToken;
+  }
+
+  /**
+   * Get YouTube OAuth credentials for API client initialization
+   */
+  getYouTubeOAuthCredentials(): { clientId: string; clientSecret: string; redirectUri: string } {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const youtubeProvider = this.providers.get('YOUTUBE') as any;
+    if (!youtubeProvider) {
+      throw new Error('YouTube OAuth provider not found');
+    }
+
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      clientId: youtubeProvider.clientId,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      clientSecret: youtubeProvider.clientSecret,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      redirectUri: youtubeProvider.redirectUri,
+    };
   }
 }

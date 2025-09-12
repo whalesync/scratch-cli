@@ -2,12 +2,15 @@ export interface OAuthProvider {
   /**
    * Generate OAuth authorization URL for the service
    */
-  generateAuthUrl(userId: string, state: string): string;
+  generateAuthUrl(userId: string, state: string, overrides?: { clientId?: string }): string;
 
   /**
    * Exchange authorization code for access token
    */
-  exchangeCodeForTokens(code: string): Promise<OAuthTokenResponse>;
+  exchangeCodeForTokens(
+    code: string,
+    overrides?: { clientId?: string; clientSecret?: string },
+  ): Promise<OAuthTokenResponse>;
 
   /**
    * Refresh access token using refresh token

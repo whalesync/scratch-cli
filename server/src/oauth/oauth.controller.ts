@@ -9,8 +9,17 @@ export class OAuthController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':service/initiate')
-  initiateOAuth(@Param('service') service: string, @Req() req: RequestWithUser): OAuthInitiateResponse {
-    return this.oauthService.initiateOAuth(service, req.user.id);
+  initiateOAuth(
+    @Param('service') service: string,
+    @Req() req: RequestWithUser,
+    @Body()
+    body: {
+      connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+      customClientId?: string;
+      customClientSecret?: string;
+    },
+  ): OAuthInitiateResponse {
+    return this.oauthService.initiateOAuth(service, req.user.id, body);
   }
 
   @UseGuards(ScratchpadAuthGuard)

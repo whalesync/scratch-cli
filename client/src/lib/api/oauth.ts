@@ -18,13 +18,21 @@ export const oauthApi = {
   /**
    * Initiate OAuth flow for a service
    */
-  initiate: async (service: string): Promise<OAuthInitiateResponse> => {
+  initiate: async (
+    service: string,
+    options?: { connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM'; customClientId?: string; customClientSecret?: string },
+  ): Promise<OAuthInitiateResponse> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/${service}/initiate`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        connectionMethod: options?.connectionMethod,
+        customClientId: options?.customClientId,
+        customClientSecret: options?.customClientSecret,
+      }),
     });
 
     if (!res.ok) {

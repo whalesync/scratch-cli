@@ -3,13 +3,13 @@ import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import { CsvFileService } from '../../csv-file/csv-file.service';
 import { DbService } from '../../db/db.service';
 import { OAuthService } from '../../oauth/oauth.service';
+import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
 import { Connector } from './connector';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
-import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
 
 @Injectable()
 export class ConnectorsService {
@@ -47,7 +47,7 @@ export class ConnectorsService {
         return new CsvConnector(this.csvFileService);
       case Service.YOUTUBE:
         if (account.authType === AuthType.OAUTH) {
-          // For OAuth accounts, get the valid access token
+          // For OAuth accounts, get the valid access token and OAuth credentials
           const accessToken = await this.oauthService.getValidAccessToken(account.id);
           return new YouTubeConnector(accessToken);
         } else {

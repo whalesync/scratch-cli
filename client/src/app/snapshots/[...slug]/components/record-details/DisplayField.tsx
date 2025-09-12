@@ -2,6 +2,7 @@ import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import {
+  formatFieldValue,
   getSafeBooleanValue,
   getSafeNumberValue,
   isLargeTextColumn,
@@ -177,7 +178,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     );
   }
 
-  const currentValue = record.fields[columnId] as string;
+  const currentValue = formatFieldValue(record.fields[columnId], column);
   const suggestedValue = record.__suggested_values?.[columnId] as string;
 
   if (isLargeTextColumn(column, currentValue)) {
