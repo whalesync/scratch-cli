@@ -1,7 +1,8 @@
 'use client';
 
 import { SecondaryButton } from '@/app/components/base/buttons';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import SideBarContent from '@/app/components/layouts/SideBarContent';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
@@ -21,7 +22,6 @@ import {
   Group,
   Loader,
   Modal,
-  Paper,
   ScrollArea,
   Stack,
   Text,
@@ -49,7 +49,7 @@ import { BadgeWithTooltip } from '../../../../components/BadgeWithTooltip';
 import { TextTitleSm } from '../../../../components/base/text';
 import { StyledIcon } from '../../../../components/Icons/StyledIcon';
 import ModelPicker from '../../../../components/ModelPicker';
-import { useSnapshotContext } from '../../SnapshotContext';
+import { useSnapshotContext } from '../contexts/SnapshotContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ResourceSelector } from './ResourceSelector';
@@ -332,244 +332,232 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     ) : null;
 
   return (
-    <Paper
-      p="xs"
-      bg="transparent"
-      h="100%"
-      w="30%"
-      miw="300px"
-      maw="600px"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'visible',
-        borderLeft: '1px solid var(--mantine-color-gray-2)',
-        borderRadius: '0px',
-      }}
-    >
-      {/* Header */}
-      <Group justify="space-between" h={50} align="center" wrap="nowrap">
-        <TextTitleSm>{activeSession ? activeSession.name : 'Agent Chat'}</TextTitleSm>
-        <Group gap="xs">
-          {connectionBadge}
-          <Tooltip label="New chat">
-            <ActionIcon
-              onClick={createNewSession}
-              size="sm"
-              variant="subtle"
-              title="New chat"
-              disabled={!aiAgentEnabled}
-            >
-              <StyledIcon Icon={PlusIcon} size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <SessionHistorySelector
-            disabled={!aiAgentEnabled}
-            onSelect={async (sessionId: string) => {
-              if (sessionId) {
-                await disconnect();
-                try {
-                  await activateSession(sessionId);
-                  await connect(sessionId);
-                  setMessage('');
-                  setResetInputFocus(true);
-                } catch (error) {
-                  setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                }
-              } else {
-                clearActiveSession();
-                await disconnect();
-              }
-              // Reset capabilities when switching sessions
-              setAvailableCapabilities([]);
-              setSelectedCapabilities([]);
-            }}
-          />
-          <Tooltip label="Delete chat">
-            <ActionIcon
-              onClick={async () => {
-                if (!activeSessionId) return;
-                await disconnect();
-                await clearActiveSession();
-                await deleteSession(activeSessionId);
-              }}
-              size="sm"
-              variant="subtle"
-              title="Delete session"
-              disabled={!activeSessionId}
-            >
-              <TrashIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Close chat">
-            <ActionIcon onClick={onClose} size="sm" variant="subtle" title="Close chat">
-              <StyledIcon Icon={XIcon} size={14} c="gray.6" />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </Group>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
-          {errorDetails && (
-            <Text size="xs" c="dimmed">
-              {errorDetails}
-            </Text>
-          )}
-        </Alert>
-      )}
-
-      {connectionError && (
-        <Alert color="red" mb="sm" p="xs" title="Websocket error">
-          <Text size="xs" c="dimmed">
-            {connectionError}
-          </Text>
-        </Alert>
-      )}
-
-      {/* Messages */}
-
-      {activeSessionId ? (
-        <ScrollArea flex={1} viewportRef={scrollAreaRef}>
-          <Stack gap="xs">
-            {chatHistory.map((msg, index) => (
-              <ChatMessageElement key={index} msg={msg} />
-            ))}
-          </Stack>
-        </ScrollArea>
-      ) : (
-        <Center h="100%">
-          {aiAgentEnabled ? (
-            <Button
-              variant="subtle"
-              leftSection={<ChatCircleIcon size={16} />}
-              onClick={createNewSession}
-              size="xs"
-              w="fit-content"
-            >
-              Start new chat
-            </Button>
-          ) : (
-            <Stack gap="xs" justify="center" align="center">
-              <Text size="xs" c="dimmed">
-                You must configure your OpenRouter credentials to use the AI agent
-              </Text>
-              <SecondaryButton component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
-                Configure credentials
-              </SecondaryButton>
-            </Stack>
-          )}
-        </Center>
-      )}
-
-      <Divider my="xs" />
-      {/* Bottom Input Area */}
-      <Stack gap="xs">
-        {/* Style Guide Selection */}
-        <ResourceSelector disabled={!aiAgentEnabled} />
-
-        <ContextBadges activeTable={activeTable} currentView={currentView} />
-
-        {/* Capabilities Selection */}
-        {availableCapabilities.length > 0 && (
-          <CapabilitiesPicker
-            availableCapabilities={availableCapabilities}
-            selectedCapabilities={selectedCapabilities}
-            onCapabilitiesChange={setSelectedCapabilities}
-          />
-        )}
-
-        {/* Input Area */}
-        <Textarea
-          ref={textInputRef}
-          placeholder="Type your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyUp={handleKeyPress}
-          disabled={agentTaskRunning || !aiAgentEnabled}
-          onFocus={() => {
-            handleTextInputFocus();
-          }}
-          size="xs"
-          minRows={5}
-          maxRows={5}
-          rows={5}
-          autosize={false}
-        />
-
-        {/* Model and Submit Row */}
-        <Group gap="xs" align="center">
-          <Group gap="6px" style={{ flex: 1 }}>
-            <Tooltip label="Browse LLM models">
+    <SideBarContent>
+      <SideBarContent.Header>
+        <Group justify="space-between" align="center" wrap="nowrap" h="100%">
+          <TextTitleSm>{activeSession ? activeSession.name : 'Agent Chat'}</TextTitleSm>
+          <Group gap="xs">
+            {connectionBadge}
+            <Tooltip label="New chat">
               <ActionIcon
-                variant="subtle"
-                onClick={() => setShowModelSelector(true)}
+                onClick={createNewSession}
                 size="sm"
+                variant="subtle"
+                title="New chat"
                 disabled={!aiAgentEnabled}
               >
-                <StyledIcon Icon={HeadCircuitIcon} size={14} c="gray.9" />
+                <StyledIcon Icon={PlusIcon} size={14} />
               </ActionIcon>
             </Tooltip>
-            <TextInput
-              placeholder="Enter model name"
-              value={activeModel}
+            <SessionHistorySelector
               disabled={!aiAgentEnabled}
-              onChange={(e) => setActiveModel(e.target.value)}
-              size="xs"
-              style={{ flex: 1 }}
-              styles={{
-                input: {
-                  padding: '0px',
-                  border: 'none',
-                  '&:focus': {
-                    border: '1px solid #228be6',
-                  },
-                },
+              onSelect={async (sessionId: string) => {
+                if (sessionId) {
+                  await disconnect();
+                  try {
+                    await activateSession(sessionId);
+                    await connect(sessionId);
+                    setMessage('');
+                    setResetInputFocus(true);
+                  } catch (error) {
+                    setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                  }
+                } else {
+                  clearActiveSession();
+                  await disconnect();
+                }
+                // Reset capabilities when switching sessions
+                setAvailableCapabilities([]);
+                setSelectedCapabilities([]);
               }}
             />
+            <Tooltip label="Delete chat">
+              <ActionIcon
+                onClick={async () => {
+                  if (!activeSessionId) return;
+                  await disconnect();
+                  await clearActiveSession();
+                  await deleteSession(activeSessionId);
+                }}
+                size="sm"
+                variant="subtle"
+                title="Delete session"
+                disabled={!activeSessionId}
+              >
+                <TrashIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Close chat">
+              <ActionIcon onClick={onClose} size="sm" variant="subtle" title="Close chat">
+                <StyledIcon Icon={XIcon} size={14} c="gray.6" />
+              </ActionIcon>
+            </Tooltip>
           </Group>
-          <ActionIcon
-            onClick={() => {
-              if (runningAgentTaskId) {
-                cancelAgentRun(runningAgentTaskId);
-              }
-            }}
-            size="md"
-            variant="transparent"
-            title="Cancel task"
-            disabled={!runningAgentTaskId || !agentTaskRunning}
-          >
-            <StyledIcon Icon={StopCircleIcon} size={16} />
-          </ActionIcon>
-          <ActionIcon
-            onClick={sendMessage}
-            disabled={!message.trim() || !chatInputEnabled}
-            loading={agentTaskRunning}
-            size="md"
-          >
-            <PaperPlaneRightIcon size={16} />
-          </ActionIcon>
         </Group>
-      </Stack>
+      </SideBarContent.Header>
+      <SideBarContent.Body>
+        {/* Error Alert */}
+        {error && (
+          <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
+            {errorDetails && (
+              <Text size="xs" c="dimmed">
+                {errorDetails}
+              </Text>
+            )}
+          </Alert>
+        )}
 
-      {/* Model Selector Modal */}
-      <Modal
-        opened={showModelSelector}
-        onClose={() => setShowModelSelector(false)}
-        title="Select Model"
-        size="xl"
-        zIndex={1003}
-      >
-        <ModelPicker
-          value={activeModel}
-          onChange={(value) => {
-            setActiveModel(value);
-            setShowModelSelector(false);
-          }}
-        />
-      </Modal>
-    </Paper>
+        {connectionError && (
+          <Alert color="red" mb="sm" p="xs" title="Websocket error">
+            <Text size="xs" c="dimmed">
+              {connectionError}
+            </Text>
+          </Alert>
+        )}
+
+        {/* Messages */}
+
+        {activeSessionId ? (
+          <ScrollArea flex={1} viewportRef={scrollAreaRef}>
+            <Stack gap="xs">
+              {chatHistory.map((msg, index) => (
+                <ChatMessageElement key={index} msg={msg} />
+              ))}
+            </Stack>
+          </ScrollArea>
+        ) : (
+          <Center h="100%">
+            {aiAgentEnabled ? (
+              <Button
+                variant="subtle"
+                leftSection={<ChatCircleIcon size={16} />}
+                onClick={createNewSession}
+                size="xs"
+                w="fit-content"
+              >
+                Start new chat
+              </Button>
+            ) : (
+              <Stack gap="xs" justify="center" align="center">
+                <Text size="xs" c="dimmed">
+                  You must configure your OpenRouter credentials to use the AI agent
+                </Text>
+                <SecondaryButton component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
+                  Configure credentials
+                </SecondaryButton>
+              </Stack>
+            )}
+          </Center>
+        )}
+
+        <Divider my="xs" />
+        {/* Bottom Input Area */}
+        <Stack gap="xs">
+          {/* Style Guide Selection */}
+          <ResourceSelector disabled={!aiAgentEnabled} />
+
+          <ContextBadges activeTable={activeTable} currentView={currentView} />
+
+          {/* Capabilities Selection */}
+          {availableCapabilities.length > 0 && (
+            <CapabilitiesPicker
+              availableCapabilities={availableCapabilities}
+              selectedCapabilities={selectedCapabilities}
+              onCapabilitiesChange={setSelectedCapabilities}
+            />
+          )}
+
+          {/* Input Area */}
+          <Textarea
+            ref={textInputRef}
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyUp={handleKeyPress}
+            disabled={agentTaskRunning || !aiAgentEnabled}
+            onFocus={() => {
+              handleTextInputFocus();
+            }}
+            size="xs"
+            minRows={5}
+            maxRows={5}
+            rows={5}
+            autosize={false}
+          />
+
+          {/* Model and Submit Row */}
+          <Group gap="xs" align="center">
+            <Group gap="6px" style={{ flex: 1 }}>
+              <Tooltip label="Browse LLM models">
+                <ActionIcon
+                  variant="subtle"
+                  onClick={() => setShowModelSelector(true)}
+                  size="sm"
+                  disabled={!aiAgentEnabled}
+                >
+                  <StyledIcon Icon={HeadCircuitIcon} size={14} c="gray.9" />
+                </ActionIcon>
+              </Tooltip>
+              <TextInput
+                placeholder="Enter model name"
+                value={activeModel}
+                disabled={!aiAgentEnabled}
+                onChange={(e) => setActiveModel(e.target.value)}
+                size="xs"
+                style={{ flex: 1 }}
+                styles={{
+                  input: {
+                    padding: '0px',
+                    border: 'none',
+                    '&:focus': {
+                      border: '1px solid #228be6',
+                    },
+                  },
+                }}
+              />
+            </Group>
+            <ActionIcon
+              onClick={() => {
+                if (runningAgentTaskId) {
+                  cancelAgentRun(runningAgentTaskId);
+                }
+              }}
+              size="md"
+              variant="transparent"
+              title="Cancel task"
+              disabled={!runningAgentTaskId || !agentTaskRunning}
+            >
+              <StyledIcon Icon={StopCircleIcon} size={16} />
+            </ActionIcon>
+            <ActionIcon
+              onClick={sendMessage}
+              disabled={!message.trim() || !chatInputEnabled}
+              loading={agentTaskRunning}
+              size="md"
+            >
+              <PaperPlaneRightIcon size={16} />
+            </ActionIcon>
+          </Group>
+        </Stack>
+
+        {/* Model Selector Modal */}
+        <Modal
+          opened={showModelSelector}
+          onClose={() => setShowModelSelector(false)}
+          title="Select Model"
+          size="xl"
+          zIndex={1003}
+        >
+          <ModelPicker
+            value={activeModel}
+            onChange={(value) => {
+              setActiveModel(value);
+              setShowModelSelector(false);
+            }}
+          />
+        </Modal>
+      </SideBarContent.Body>
+    </SideBarContent>
   );
 }
 

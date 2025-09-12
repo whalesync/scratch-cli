@@ -1,6 +1,6 @@
 'use client';
 
-import MainContent from '../components/MainContent';
+import MainContent from '../components/layouts/MainContent';
 import { ApiImport } from './components/ai-connector-builder';
 import { AiConnectorBuilderProvider } from './components/ai-connector-builder-context';
 

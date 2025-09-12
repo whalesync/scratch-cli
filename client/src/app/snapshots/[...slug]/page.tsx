@@ -1,346 +1,198 @@
 'use client';
 
-import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
-import { SnapshotTableContext, TableSpec } from '@/types/server-entities/snapshot';
-import {
-  ActionIcon,
-  Box,
-  Center,
-  Group,
-  Loader,
-  Menu,
-  Modal,
-  ScrollArea,
-  Stack,
-  Tabs,
-  Text,
-  useModalsStack,
-} from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { ArrowLeftIcon, BugIcon } from '@phosphor-icons/react';
+import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
+import { SnapshotTableContext } from '@/types/server-entities/snapshot';
+import { Button, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
+import { ArrowLeftIcon, FileTextIcon, TableIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
 import { PrimaryButton } from '@/app/components/base/buttons';
+import { TextTitleXs } from '@/app/components/base/text';
+import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
-import { AgentChatContextProvider } from '@/contexts/agent-chat-context';
+import MainContent from '@/app/components/layouts/MainContent';
+import { PageLayout } from '@/app/components/layouts/PageLayout';
+import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
+import { NavToggle } from '@/app/components/NavbarToggle';
+import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
-import { SnapshotEventProvider } from '@/contexts/snapshot-event-context';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { tablesName } from '@/service-naming-conventions';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useState } from 'react';
+import { TableProvider, useTableContext } from './components/contexts/table-context';
+import { RecordView } from './components/RecordView';
+import SnapshotTableGrid from './components/snapshot-table/SnapshotTableGrid';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
-import { TableContent } from './components/TableContent';
 import { ViewData } from './components/ViewData';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
-import { ICONS } from './icons';
 
 function SnapshotPageContent() {
   const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
+  const { activeTable, setActiveTable, displayMode, switchToSpreadsheetView, switchToRecordView } = useTableContext();
   const router = useRouter();
 
   const { snapshot, isLoading, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const [showChat, { toggle: toggleChat }] = useDisclosure(true);
 
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [selectedTable, setSelectedTable] = useState<TableSpec | null>(null);
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
-  const [lastViewUpdate, setLastViewUpdate] = useState<number>(Date.now());
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   // Get count information for the current table
-  const { count, filteredCount } = useSnapshotTableRecords({
+  const { records, count, filteredCount } = useSnapshotTableRecords({
     snapshotId: id,
-    tableId: selectedTableId || '',
+    tableId: activeTable ? activeTable.id.wsId : '',
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   useEffect(() => {
-    if (!selectedTableId) {
+    if (!activeTable) {
       if (tableId) {
         const table = snapshot?.tables.find((t) => t.id.wsId === tableId);
         if (table) {
-          setSelectedTableId(table.id.wsId);
-          setSelectedTable(table);
+          setActiveTable(table);
           setSelectedTableContext(snapshot?.tableContexts.find((t) => t.id.wsId === tableId) ?? null);
         }
       } else {
-        setSelectedTableId(snapshot?.tables[0].id.wsId ?? null);
-        setSelectedTable(snapshot?.tables[0] ?? null);
+        setActiveTable(snapshot?.tables[0] ?? undefined);
         setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
       }
     }
-  }, [snapshot, selectedTableId, tableId, updateSnapshotPath]);
+  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTable, setSelectedTableContext]);
 
-  const TableTab = ({ table }: { table: TableSpec }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const { refreshViews, createView, setCurrentViewId, currentView, updateTableInCurrentView } = useSnapshotContext();
+  // Only show loader on initial load, not during revalidation
+  if (isLoading && !snapshot) {
+    return <LoaderWithMessage message="Loading snapshot..." />;
+  }
 
-    // Get current view for this table
-    const tableConfig = currentView?.config[table.id.wsId];
-
-    // Default to false if not specified (as per the new type definition)
-    const isTableHidden = tableConfig?.hidden === true;
-    const isTableProtected = tableConfig?.protected === true;
-
-    // For tab title: show icon if set to non-default (hidden or protected)
-    const tabIcons = [];
-    if (tableConfig?.hidden === true) tabIcons.push(ICONS.hidden);
-    if (tableConfig?.protected === true) tabIcons.push(ICONS.protected);
-
-    const toggleTableVisibility = async () => {
-      if (!snapshot) return;
-      if (currentView) {
-        const newTableConfig = {
-          ...tableConfig,
-          hidden: !isTableHidden,
-        };
-
-        // Force immediate re-render
-        setLastViewUpdate(Date.now());
-
-        // Update the table in the current view
-        await updateTableInCurrentView(table.id.wsId, newTableConfig);
-
-        notifications.show({
-          title: 'Table Visibility Updated',
-          message: `Table is now ${!isTableHidden ? 'hidden' : 'visible'}`,
-          color: 'green',
-        });
-      } else {
-        // No view: create a new view for this table
-        const newConfig = {
-          [table.id.wsId]: {
-            hidden: true,
-            protected: false,
-          },
-        };
-        const viewId = await createView(newConfig);
-        await refreshViews?.();
-        notifications.show({
-          title: 'Table Visibility Updated',
-          message: 'Table is now hidden',
-          color: 'green',
-        });
-        // Select the newly created view
-        setCurrentViewId(viewId);
-      }
-    };
-
-    const toggleTableProtection = async () => {
-      if (!snapshot) return;
-      if (currentView) {
-        const newTableConfig = {
-          ...tableConfig,
-          protected: !isTableProtected,
-        };
-
-        // Force immediate re-render
-        setLastViewUpdate(Date.now());
-
-        // Update the table in the current view
-        await updateTableInCurrentView(table.id.wsId, newTableConfig);
-
-        notifications.show({
-          title: 'Table Protection Updated',
-          message: `Table is now ${!isTableProtected ? 'protected' : 'editable'}`,
-          color: 'green',
-        });
-      } else {
-        // No view: create a new view for this table
-        const newConfig = {
-          [table.id.wsId]: {
-            hidden: false,
-            protected: true,
-          },
-        };
-        const viewId = await createView(newConfig);
-        await refreshViews?.();
-        notifications.show({
-          title: 'Table Protection Updated',
-          message: 'Table is now protected',
-          color: 'green',
-        });
-        // Select the newly created view
-        setCurrentViewId(viewId);
-      }
-    };
-
-    // Menu items for configuring the Table: Hide/Unhide and Protect/Unprotect
-    const menuItems = [
-      <Menu.Item
-        key="visibility"
-        leftSection={isTableHidden ? ICONS.visible : ICONS.hidden}
-        onClick={toggleTableVisibility}
-      >
-        {isTableHidden ? 'Unhide Table' : 'Hide Table'}
-      </Menu.Item>,
-      <Menu.Item
-        key="protection"
-        leftSection={isTableProtected ? ICONS.editable : ICONS.protected}
-        onClick={toggleTableProtection}
-      >
-        {isTableProtected ? 'Unprotect Table' : 'Protect Table'}
-      </Menu.Item>,
-      <Menu.Sub key="debug">
-        <Menu.Sub.Target>
-          <Menu.Sub.Item key="debug" leftSection={<BugIcon />}>
-            Debug
-          </Menu.Sub.Item>
-        </Menu.Sub.Target>
-        <Menu.Sub.Dropdown>
-          <Menu.Item key="tableSpecDebug" onClick={() => modalStack.open('tableSpecDebug')}>
-            View spec
-          </Menu.Item>
-          <Menu.Item key="tableContextDebug" onClick={() => modalStack.open('tableContextDebug')}>
-            View context
-          </Menu.Item>
-        </Menu.Sub.Dropdown>
-      </Menu.Sub>,
-    ];
-
+  if (!snapshot) {
     return (
-      <Group
-        gap="xs"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{ position: 'relative' }}
-      >
-        <Text>
-          {table.name} {tabIcons.length > 0 && <span style={{ marginLeft: 2 }}>{tabIcons.join(' ')}</span>}
-        </Text>
-        <Menu shadow="md" width={240}>
-          <Menu.Target>
-            <ActionIcon
-              size="xs"
-              variant="subtle"
-              color="gray"
-              onClick={(e) => e.stopPropagation()}
-              component="div"
-              style={{
-                opacity: isHovered ? 1 : 0,
-                transition: 'opacity 0.2s ease',
-                visibility: 'visible',
-              }}
-            >
-              <span role="img" aria-label="menu">
-                ⋯
-              </span>
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>{menuItems}</Menu.Dropdown>
-        </Menu>
-      </Group>
+      <ErrorInfo
+        title="Scratchpaper not found."
+        error="We were unable to find the scratchpaper you are looking for."
+        action={
+          <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+            Return to scratchpapers
+          </PrimaryButton>
+        }
+      />
     );
-  };
+  }
 
-  const renderContent = () => {
-    // Only show loader on initial load, not during revalidation
-    if (isLoading && !snapshot) {
-      return (
-        <Center flex={1} h="100%" w="100%">
-          <Loader />
-        </Center>
-      );
-    }
-
-    if (!snapshot) {
-      return (
-        <ErrorInfo
-          title="Snapshot not found."
-          error="We were unable to find the snapshot you are looking for."
-          action={
-            <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
-              Return to snapshots
-            </PrimaryButton>
-          }
-        />
-      );
-    }
-
-    if (snapshot.tables.length === 0) {
-      return (
-        <ErrorInfo
-          title="No tables found"
-          error="There are no tables in this snapshot. You will need to abandon the snapshot and recreate it."
-          action={
-            <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
-              Return to snapshots
-            </PrimaryButton>
-          }
-        />
-      );
-    }
-
-    const modals = (
-      <>
-        {selectedTable && (
-          <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${selectedTable?.name}`} size="lg">
-            <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTable} expandAll={true} />
-            </ScrollArea>
-          </Modal>
-        )}
-        {selectedTable && (
-          <Modal
-            {...modalStack.register('tableContextDebug')}
-            title={`Table Context settings for ${selectedTable?.name}`}
-            size="lg"
-          >
-            <ScrollArea h={500}>
-              <JsonTreeViewer jsonData={selectedTableContext ?? {}} expandAll={true} />
-            </ScrollArea>
-          </Modal>
-        )}
-      </>
-    );
-
+  if (snapshot.tables.length === 0) {
     return (
-      <>
-        <Group h="100%" justify="flex-start" align="flex-start" w="100%" gap={0}>
-          <Stack h="100%" w="70%" flex={1} gap={0}>
-            <Tabs
-              h="50px"
-              value={selectedTableId}
-              onChange={(value) => {
-                setSelectedTableId(value);
-                setSelectedTable(snapshot.tables.find((t) => t.id.wsId === value) ?? null);
-                setSelectedTableContext(snapshot.tableContexts.find((t) => t.id.wsId === value) ?? null);
-                updateSnapshotPath(snapshot.id, value ?? undefined);
-              }}
-              variant="default"
-            >
-              <Group>
-                <Tabs.List px="sm" styles={{ list: { flex: 1, lineHeight: 0, borderBottom: '2px solid transparent' } }}>
-                  {snapshot.tables.map((table: TableSpec) => (
-                    <Tabs.Tab value={table.id.wsId} key={`${table.id.wsId}-${currentViewId}-${lastViewUpdate}`}>
-                      <TableTab table={table} />
-                    </Tabs.Tab>
-                  ))}
-                </Tabs.List>
-                <Box ml="auto">
-                  <SnapshotActionsMenu aiChatOpen={showChat} onChatToggle={toggleChat} />
-                </Box>
-              </Group>
-            </Tabs>
-            {selectedTable && <TableContent table={selectedTable} />}
-            <ViewData currentTableId={selectedTableId} count={count} filteredCount={filteredCount} />
-          </Stack>
+      <ErrorInfo
+        title={`No ${tablesName(snapshot.connectorService as Service)} found in ${snapshot.name}`}
+        error={`There are no ${tablesName(snapshot.connectorService as Service)} in this scratchpaper. You will need to abandon the scratchpaper and recreate it.`}
+        action={
+          <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+            Return to scratchpapers
+          </PrimaryButton>
+        }
+      />
+    );
+  }
 
-          <AIChatPanel isOpen={showChat} onClose={toggleChat} activeTable={selectedTable} />
+  const debugModals = (
+    <>
+      {activeTable && (
+        <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${activeTable?.name}`} size="lg">
+          <ScrollArea h={500}>
+            <JsonTreeViewer jsonData={activeTable} expandAll={true} />
+          </ScrollArea>
+        </Modal>
+      )}
+      {activeTable && (
+        <Modal
+          {...modalStack.register('tableContextDebug')}
+          title={`Table Context settings for ${activeTable?.name}`}
+          size="lg"
+        >
+          <ScrollArea h={500}>
+            <JsonTreeViewer jsonData={selectedTableContext ?? {}} expandAll={true} />
+          </ScrollArea>
+        </Modal>
+      )}
+    </>
+  );
+
+  const header = (
+    <Group align="center" h="100%">
+      <Group>
+        <NavToggle />
+        <Group gap="xs">
+          <ConnectorIcon connector={Service.NOTION} size={24} />
+          <TextTitleXs>{snapshot.name}</TextTitleXs>
         </Group>
-        {modals}
-      </>
-    );
-  };
+        <Group gap="2px">
+          <Button
+            variant={displayMode === 'spreadsheet' ? 'outline' : 'transparent'}
+            size="xs"
+            leftSection={<TableIcon size={12} />}
+            onClick={() => switchToSpreadsheetView()}
+            c={displayMode === 'spreadsheet' ? 'gray.7' : 'gray.5'}
+            color={displayMode === 'spreadsheet' ? 'gray.7' : 'gray.5'}
+          >
+            Table
+          </Button>
+
+          <Button
+            variant={displayMode === 'record' ? 'outline' : 'transparent'}
+            size="xs"
+            leftSection={<FileTextIcon size={12} />}
+            onClick={() => switchToRecordView(records?.[0]?.id.wsId ?? '')}
+            c={displayMode === 'record' ? 'gray.7' : 'gray.5'}
+            color={displayMode === 'record' ? 'gray.7' : 'gray.5'}
+          >
+            Record
+          </Button>
+        </Group>
+      </Group>
+
+      <Group ml="auto" gap="xs" align="center">
+        <SnapshotActionsMenu aiChatOpen={showChat} onChatToggle={toggleChat} />
+      </Group>
+    </Group>
+  );
+
+  const aiChatPanel = activeTable ? (
+    <AIChatPanel isOpen={showChat} onClose={toggleChat} activeTable={activeTable} />
+  ) : null;
+  // const footer = (
+  //   <Group justify="flex-start" align="center" h="100%">
+  //     Footer - TODO
+  //   </Group>
+  // );
+
+  let content = null;
+  if (snapshot && activeTable) {
+    content =
+      displayMode === 'spreadsheet' ? (
+        <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
+      ) : (
+        <RecordView table={activeTable} />
+      );
+  }
 
   return (
-    <Stack h="100%" gap={0}>
-      {renderContent()}
-    </Stack>
+    <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} aside={aiChatPanel}>
+      <MainContent>
+        <MainContent.Header>{header}</MainContent.Header>
+        <MainContent.Body p="0">
+          {content}
+          {debugModals}
+        </MainContent.Body>
+        <MainContent.Footer>
+          <ViewData currentTableId={activeTable?.id.wsId} count={count} filteredCount={filteredCount} />
+        </MainContent.Footer>
+      </MainContent>
+    </PageLayout>
   );
 }
 
@@ -348,14 +200,16 @@ export default function SnapshotPage() {
   const { snapshotId: id } = useSnapshotParams();
 
   return (
-    <SnapshotProvider snapshotId={id}>
-      <SnapshotEventProvider snapshotId={id}>
-        <AgentChatContextProvider snapshotId={id}>
+    <AgentChatContextProvider snapshotId={id}>
+      <SnapshotProvider snapshotId={id}>
+        <SnapshotEventProvider snapshotId={id}>
           <AIAgentSessionManagerProvider snapshotId={id}>
-            <SnapshotPageContent />
+            <TableProvider>
+              <SnapshotPageContent />
+            </TableProvider>
           </AIAgentSessionManagerProvider>
-        </AgentChatContextProvider>
-      </SnapshotEventProvider>
-    </SnapshotProvider>
+        </SnapshotEventProvider>
+      </SnapshotProvider>
+    </AgentChatContextProvider>
   );
 }

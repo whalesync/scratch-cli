@@ -1,4 +1,4 @@
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { Box, Button, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { ColumnSpec } from '../../../../../types/server-entities/snapshot';
 import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';

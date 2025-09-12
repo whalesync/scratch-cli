@@ -1,6 +1,6 @@
 'use client';
 
-import MainContent from '@/app/components/MainContent';
+import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { Center, Loader, SimpleGrid, Stack } from '@mantine/core';
 import { ErrorInfo } from '../../components/InfoPanel';

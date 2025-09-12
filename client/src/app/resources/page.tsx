@@ -31,7 +31,7 @@ import {
 import { useCallback, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { EditResourceModal } from '../components/EditResourceModal';
-import MainContent from '../components/MainContent';
+import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 
 export default function StyleGuidesPage() {

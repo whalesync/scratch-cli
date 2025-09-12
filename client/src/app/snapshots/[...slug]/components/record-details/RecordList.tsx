@@ -13,7 +13,7 @@ import {
   TextAaIcon,
 } from '@phosphor-icons/react';
 import { useMemo } from 'react';
-import { useSnapshotContext } from '../../SnapshotContext';
+import { useSnapshotContext } from '../contexts/SnapshotContext';
 
 interface RecordListProps {
   records: SnapshotRecord[] | undefined;

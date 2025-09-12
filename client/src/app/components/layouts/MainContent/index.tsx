@@ -1,7 +1,7 @@
-import { Box, Group, Stack } from '@mantine/core';
-import { JSX } from 'react';
-import { TextTitleXs } from '../base/text';
-import { NavToggle } from '../NavbarToggle';
+import { Box, Group, MantineStyleProps, Stack } from '@mantine/core';
+import { JSX, PropsWithChildren } from 'react';
+import { TextTitleXs } from '../../base/text';
+import { NavToggle } from '../../NavbarToggle';
 import classes from './MainContent.module.css';
 
 const MainContent = ({ children }: { children: React.ReactNode }): JSX.Element => {
@@ -12,25 +12,27 @@ const MainContent = ({ children }: { children: React.ReactNode }): JSX.Element =
   );
 };
 
-const ContentHeader = ({ children }: { children: React.ReactNode }): JSX.Element => {
+type ChildrenWithStyleProps = PropsWithChildren & MantineStyleProps;
+
+const ContentHeader = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="40px" className={classes.contentHeader}>
+    <Box h="40px" className={classes.contentHeader} {...styleProps}>
       {children}
     </Box>
   );
 };
 
-const ContentBody = ({ children }: { children: React.ReactNode }): JSX.Element => {
+const ContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="100%" w="100%" className={classes.contentBody}>
+    <Box h="100%" w="100%" className={classes.contentBody} {...styleProps}>
       {children}
     </Box>
   );
 };
 
-const ContentFooter = ({ children }: { children: React.ReactNode }): JSX.Element => {
+const ContentFooter = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="40px" className={classes.contentFooter}>
+    <Box h="40px" className={classes.contentFooter} {...styleProps}>
       {children}
     </Box>
   );

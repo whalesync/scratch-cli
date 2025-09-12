@@ -2,7 +2,7 @@
 
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { Divider, Group, Stack } from '@mantine/core';
-import MainContent from '../components/MainContent';
+import MainContent from '../components/layouts/MainContent';
 import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
 import { DevToolsPanel } from './components/DebugInfo';

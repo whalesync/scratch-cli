@@ -29,7 +29,7 @@ import {
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useState } from 'react';
-import { useSnapshotContext } from '../SnapshotContext';
+import { useSnapshotContext } from './contexts/SnapshotContext';
 
 export const SnapshotActionsMenu = ({
   aiChatOpen,

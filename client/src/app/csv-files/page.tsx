@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
-import MainContent from '../components/MainContent';
+import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 import { EditCsvFileModal } from './components/EditCsvFileModal';
 

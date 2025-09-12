@@ -1,6 +1,6 @@
 'use client';
 
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebsocket } from '@/hooks/use-snapshot-event-websocket';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { createContext, ReactNode, useCallback, useContext } from 'react';

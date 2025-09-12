@@ -19,7 +19,7 @@ export type PageLayoutProps = {
 };
 
 const FOOTER_HEIGHT = 30;
-const ASIDE_WIDTH = 300;
+const ASIDE_WIDTH = 500;
 const NAVBAR_WIDTH = 40;
 
 export const PageLayout = ({ children, footer, aside, pageTitle }: PageLayoutProps) => {

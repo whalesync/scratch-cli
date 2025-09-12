@@ -4,8 +4,8 @@ import { AcceptSuggestionButton, RejectSuggestionButton, SecondaryButton } from 
 import { TextBookSm, TextRegularXs, TextTitleXs } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { viewApi } from '@/lib/api/view';
@@ -255,7 +255,7 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
   };
 
   return (
-    <Box h="50px" p="6px" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+    <Box h="100%">
       <Group gap="md" align="center" wrap="nowrap">
         {/* Column Views Section */}
         <Group gap="xs" align="center">

@@ -3,7 +3,6 @@ import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
 export interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
-  onSwitchToRecordView: (recordId: string, columnId?: string) => void;
 }
 
 type MenuItemHandlerProps = {

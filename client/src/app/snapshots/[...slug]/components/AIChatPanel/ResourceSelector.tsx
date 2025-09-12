@@ -1,6 +1,6 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, Text, useCombobox } from '@mantine/core';

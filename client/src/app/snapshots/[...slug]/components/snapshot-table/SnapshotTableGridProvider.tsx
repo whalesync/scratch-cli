@@ -1,7 +1,7 @@
 'use client';
 
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { RecordCell } from '@/types/common';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
 import { formatFieldValue, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
@@ -25,6 +25,7 @@ import { createContext, ReactNode, useCallback, useContext, useMemo, useState } 
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { ICONS } from '../../icons';
+import { useTableContext } from '../contexts/table-context';
 import { ContextMenu, MenuItem } from '../types';
 import { ACCEPT_REJECT_GROUP_NAME, COLUMN_VIEW_GROUP_NAME, MENU_ICON_SIZE } from './menus/constants';
 import { useContextMenuItems } from './useContextMenuItems';
@@ -50,17 +51,16 @@ const SnapshotTableGridContext = createContext<SnapshotTableGridContextValue | u
 interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
-  onSwitchToRecordView: (recordId: string, columnId?: string) => void;
 }
 
 export const SnapshotTableGridProvider = ({
   children,
   snapshot,
   table,
-  onSwitchToRecordView,
 }: SnapshotTableGridProps & { children: ReactNode }) => {
   // From higher level contexts
   const { refreshViews, setCurrentViewId, currentView, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { switchToRecordView } = useTableContext();
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
     useAgentChatContext();
 
@@ -238,10 +238,10 @@ export const SnapshotTableGridProvider = ({
         const record = sortedRecords?.[row];
         if (!record) return;
         const column = table.columns[col - FAKE_LEFT_COLUMNS];
-        onSwitchToRecordView(record.id.wsId, column?.id.wsId);
+        switchToRecordView(record.id.wsId, column?.id.wsId);
       }
     },
-    [bulkUpdateRecords, onSwitchToRecordView, sortedRecords, table.columns],
+    [bulkUpdateRecords, switchToRecordView, sortedRecords, table.columns],
   );
 
   const getCellContent = useCallback(
@@ -1227,7 +1227,7 @@ export const SnapshotTableGridProvider = ({
     handleRejectCell,
     refreshRecords,
     (recordId: string) => {
-      onSwitchToRecordView(recordId);
+      switchToRecordView(recordId);
     },
   );
 

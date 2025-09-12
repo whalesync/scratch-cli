@@ -1,30 +1,31 @@
 import { TextTitleSm } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/SnapshotContext';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
+import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
 
 interface RecordViewProps {
   table: TableSpec;
-  initialRecordId?: string;
-  initialColumnId?: string;
-  onSwitchToSpreadsheetView: () => void;
 }
 
 export const RecordView: FC<RecordViewProps> = (props) => {
-  const { table, initialRecordId, initialColumnId, onSwitchToSpreadsheetView } = props;
+  const { table } = props;
+
+  const { activeRecord, switchToSpreadsheetView } = useTableContext();
+
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
   const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();
-  const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(initialRecordId);
-  const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(initialColumnId);
+  const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(activeRecord?.recordId);
+  const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(activeRecord?.columnId);
   const savePendingUpdatesRef = useRef<(() => Promise<void>) | null>(null);
 
   const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
@@ -84,8 +85,8 @@ export const RecordView: FC<RecordViewProps> = (props) => {
 
     setWriteFocus([]);
     setTableScope();
-    onSwitchToSpreadsheetView();
-  }, [onSwitchToSpreadsheetView, setTableScope, setWriteFocus]);
+    switchToSpreadsheetView();
+  }, [switchToSpreadsheetView, setTableScope, setWriteFocus]);
 
   if (error) {
     return (

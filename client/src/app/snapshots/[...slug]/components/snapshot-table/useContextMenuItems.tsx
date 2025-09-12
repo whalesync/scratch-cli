@@ -1,4 +1,5 @@
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import {
   ACCEPT_REJECT_GROUP_NAME,
   FILTERING_GROUP_NAME,
@@ -13,7 +14,6 @@ import {
   isRecordStatusColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
 import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/types';
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RecordCell } from '@/types/common';
 import { Service } from '@/types/server-entities/connector-accounts';

@@ -1,5 +1,10 @@
 .sideBarHeader {
   border-bottom: 1px solid var(--mantine-color-gray-2);
+  padding: 2px 6px 2px 6px;
+}
+
+.sideBarBody {
+  padding: 2px 6px 2px 6px;
 }
 
 .sideBarFooter {

@@ -1,17 +1,17 @@
 'use client';
 
 import { TextTitleXs } from '@/app/components/base/text';
+import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import MainContent from '@/app/components/MainContent';
+import SideBar from '@/app/components/layouts/SideBarContent';
 import { NavToggle } from '@/app/components/NavbarToggle';
-import SideBar from '@/app/components/SideBar';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
 import { JSX } from 'react';
 import { ConnectorIcon } from '../components/ConnectorIcon';
 
-const UiTestPage = (): JSX.Element => {
+const LayoutTestPage = (): JSX.Element => {
   const footer = <Box p="0">Footer</Box>;
   const aside = (
     <SideBar>
@@ -83,4 +83,4 @@ const UiTestPage = (): JSX.Element => {
   );
 };
 
-export default UiTestPage;
+export default LayoutTestPage;

@@ -5,7 +5,7 @@ import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { useSnapshotContext } from '../../SnapshotContext';
+import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {

@@ -1,4 +1,4 @@
-import { useAgentChatContext } from '@/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useCallback } from 'react';
 import { useSnapshotTableGridContext } from './SnapshotTableGridProvider';
 import { FAKE_LEFT_COLUMNS } from './utils/helpers';
