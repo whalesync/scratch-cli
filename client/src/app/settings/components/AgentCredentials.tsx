@@ -1,6 +1,6 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
@@ -8,8 +8,8 @@ import {
   ActionIcon,
   Alert,
   Badge,
+  Box,
   Button,
-  Card,
   Center,
   Grid,
   Group,
@@ -75,8 +75,10 @@ export const AgentCredentials = () => {
 
   const list = isLoading ? (
     <Center mih={200}>
-      <Loader />
-      <Text>Loading...</Text>
+      <Group gap="xs">
+        <Loader />
+        <Text>Loading...</Text>
+      </Group>
     </Center>
   ) : agentCredentials && agentCredentials.length > 0 ? (
     <>
@@ -84,7 +86,7 @@ export const AgentCredentials = () => {
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
             <Group gap="xs">
-              <Text fw={500}>{getServiceIcon(credential.service)}</Text>
+              <TextRegularSm>{getServiceIcon(credential.service)}</TextRegularSm>
               {credential.enabled ? (
                 <Badge color="green" variant="light" size="xs">
                   Active
@@ -146,8 +148,8 @@ export const AgentCredentials = () => {
   return (
     <>
       {modals}
-      <Card shadow="sm" padding="sm" radius="md" withBorder miw={700}>
-        <TextTitleLg mb="xs">Agent Credentials</TextTitleLg>
+      <Box>
+        <TextTitleSm mb="xs">Agent Credentials</TextTitleSm>
         {error && (
           <Alert color="red" mb="sm">
             {error}
@@ -170,7 +172,7 @@ export const AgentCredentials = () => {
             New credential
           </PrimaryButton>
         </Group>
-      </Card>
+      </Box>
     </>
   );
 };

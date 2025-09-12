@@ -1,12 +1,12 @@
 'use client';
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
 import { PROJECT_NAME } from '@/constants';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { RouteUrls } from '@/utils/route-urls';
-import { Card, Group } from '@mantine/core';
+import { Box, Group } from '@mantine/core';
 import { CreditCardIcon } from '@phosphor-icons/react';
 import pluralize from 'pluralize';
 
@@ -71,11 +71,11 @@ export const SubscriptionCard = () => {
   }
 
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder>
-      <TextTitleLg mb="xs">Subscription</TextTitleLg>
+    <Box>
+      <TextTitleSm mb="xs">Subscription</TextTitleSm>
       <Group gap="xs" justify="space-between">
         {content}
       </Group>
-    </Card>
+    </Box>
   );
 };

@@ -1,4 +1,4 @@
-import { TextRegularXs, TextTitleLg } from '@/app/components/base/text';
+import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ClientFlag, FLAGS } from '@/utils/flags-dev';
 import {
@@ -11,7 +11,6 @@ import {
   Grid,
   Group,
   PasswordInput,
-  Text,
   Tooltip,
 } from '@mantine/core';
 import { CopyIcon } from '@phosphor-icons/react';
@@ -21,12 +20,12 @@ export const DevToolsPanel = () => {
   const { user, isAdmin } = useScratchPadUser();
 
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder style={{ borderColor: 'var(--mantine-color-purple-5)' }}>
-      <TextTitleLg mb="xs">Dev Tools</TextTitleLg>
+    <Card shadow="sm" padding="sm" radius="sm" withBorder style={{ borderColor: 'var(--mantine-color-purple-5)' }}>
+      <TextTitleSm mb="xs">Dev Tools</TextTitleSm>
       <Group wrap="nowrap" gap="xs">
-        <Text miw={200}>User ID</Text>
+        <TextRegularSm miw={200}>User ID</TextRegularSm>
 
-        <Text>{user?.id || 'No user ID found'}</Text>
+        <TextRegularSm>{user?.id || 'No user ID found'}</TextRegularSm>
         <CopyButton value={user?.id || ''} timeout={2000}>
           {({ copied, copy }) => (
             <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
@@ -39,11 +38,13 @@ export const DevToolsPanel = () => {
         {isAdmin && <Badge size="xs">Admin</Badge>}
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <Text miw={200}>Created</Text>
-        <Text>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'No created at found'}</Text>
+        <TextRegularSm miw={200}>Created</TextRegularSm>
+        <TextRegularSm>
+          {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'No created at found'}
+        </TextRegularSm>
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <Text miw={200}>Agent Token</Text>
+        <TextRegularSm miw={200}>Agent Token</TextRegularSm>
         <PasswordInput
           variant="unstyled"
           value={user?.agentJwt}
@@ -63,7 +64,7 @@ export const DevToolsPanel = () => {
         </CopyButton>
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <Text miw={200}>UI Websocket Key</Text>
+        <TextRegularSm miw={200}>UI Websocket Key</TextRegularSm>
         <PasswordInput
           variant="unstyled"
           value={user?.websocketToken}
@@ -83,7 +84,7 @@ export const DevToolsPanel = () => {
         </CopyButton>
       </Group>
       <Group wrap="nowrap" gap="xs" align="flex-start">
-        <Text miw={200}>Flags</Text>
+        <TextRegularSm miw={200}>Flags</TextRegularSm>
         <Grid w="100%">
           <Grid.Col span={6}>
             <TextRegularXs>Skip paywall on localhost</TextRegularXs>

@@ -8,7 +8,6 @@ import {
   ActionIcon,
   Alert,
   Badge,
-  Button,
   Group,
   Modal,
   Paper,
@@ -31,8 +30,8 @@ import {
 } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
-import { ContentContainer } from '../components/ContentContainer';
 import { EditResourceModal } from '../components/EditResourceModal';
+import MainContent from '../components/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 
 export default function StyleGuidesPage() {
@@ -97,9 +96,9 @@ export default function StyleGuidesPage() {
   }
 
   const headerActions = (
-    <Button leftSection={<PlusIcon size={16} />} onClick={handleNewStyleGuide}>
+    <SecondaryButton size="xs" leftSection={<PlusIcon size={12} />} onClick={handleNewStyleGuide}>
       New resource
-    </Button>
+    </SecondaryButton>
   );
 
   const sortedResources = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
@@ -115,128 +114,131 @@ export default function StyleGuidesPage() {
   };
 
   return (
-    <ContentContainer title="Resources" actions={headerActions}>
-      {isLoading ? (
-        <Text>Loading...</Text>
-      ) : (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Td w="60%">Name</Table.Td>
-              <Table.Td w="15%">Updated</Table.Td>
-              <Table.Td w="15%" align="right">
-                Size
-              </Table.Td>
-              <Table.Td w="15%" align="right">
-                Actions
-              </Table.Td>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {sortedResources.map((styleGuide) => (
-              <Table.Tr key={styleGuide.id}>
-                <Table.Td>
-                  <Group gap="sm">
-                    {resourceIcon(styleGuide)}
-                    <UnstyledButton fz="sm" onClick={() => handleEditResource(styleGuide)}>
-                      {styleGuide.name}
-                    </UnstyledButton>
-                    {styleGuide.autoInclude ? (
-                      <Badge size="xs" color="blue" variant="light">
-                        Auto Include
-                      </Badge>
-                    ) : null}
-                    {styleGuide.sourceUrl && (
-                      <Badge size="xs" color="gray.6" variant="light" leftSection={<LinkIcon size={12} />}>
-                        External
-                      </Badge>
-                    )}
-                    {styleGuide.tags.map((tag) => (
-                      <Badge size="xs" color="gray.6" variant="light" key={tag}>
-                        {tag}
-                      </Badge>
-                    ))}
-                  </Group>
+    <MainContent>
+      <MainContent.BasicHeader title="Resources" actions={headerActions} />
+      <MainContent.Body>
+        {isLoading ? (
+          <Text>Loading...</Text>
+        ) : (
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Td w="60%">Name</Table.Td>
+                <Table.Td w="15%">Updated</Table.Td>
+                <Table.Td w="15%" align="right">
+                  Size
                 </Table.Td>
-                <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
-                <Table.Td align="right">{formatBytes(styleGuide.body.length)}</Table.Td>
-                <Table.Td>
-                  <Group gap="xs" justify="flex-end">
-                    {styleGuide.sourceUrl && (
-                      <Tooltip label="Redownload external content">
-                        <ActionIcon
-                          title="Redownload external content"
-                          onClick={() => handleUpdateExternalResource(styleGuide.id)}
-                          variant="subtle"
-                          size="sm"
-                          loading={isExternalResourceUpdating}
-                        >
-                          <DownloadSimpleIcon size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    <ActionIcon
-                      onClick={async () => {
-                        setActiveResource(styleGuide);
-                        openCreateModal();
-                      }}
-                      variant="subtle"
-                      size="sm"
-                    >
-                      <PencilSimpleIcon size={16} />
-                    </ActionIcon>
-
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      size="sm"
-                      onClick={() => {
-                        setActiveResource(styleGuide);
-                        openDeleteModal();
-                      }}
-                    >
-                      <TrashIcon size={16} />
-                    </ActionIcon>
-                  </Group>
+                <Table.Td w="15%" align="right">
+                  Actions
                 </Table.Td>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
+            </Table.Thead>
+            <Table.Tbody>
+              {sortedResources.map((styleGuide) => (
+                <Table.Tr key={styleGuide.id}>
+                  <Table.Td>
+                    <Group gap="sm">
+                      {resourceIcon(styleGuide)}
+                      <UnstyledButton fz="sm" onClick={() => handleEditResource(styleGuide)}>
+                        {styleGuide.name}
+                      </UnstyledButton>
+                      {styleGuide.autoInclude ? (
+                        <Badge size="xs" color="blue" variant="light">
+                          Auto Include
+                        </Badge>
+                      ) : null}
+                      {styleGuide.sourceUrl && (
+                        <Badge size="xs" color="gray.6" variant="light" leftSection={<LinkIcon size={12} />}>
+                          External
+                        </Badge>
+                      )}
+                      {styleGuide.tags.map((tag) => (
+                        <Badge size="xs" color="gray.6" variant="light" key={tag}>
+                          {tag}
+                        </Badge>
+                      ))}
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
+                  <Table.Td align="right">{formatBytes(styleGuide.body.length)}</Table.Td>
+                  <Table.Td>
+                    <Group gap="xs" justify="flex-end">
+                      {styleGuide.sourceUrl && (
+                        <Tooltip label="Redownload external content">
+                          <ActionIcon
+                            title="Redownload external content"
+                            onClick={() => handleUpdateExternalResource(styleGuide.id)}
+                            variant="subtle"
+                            size="sm"
+                            loading={isExternalResourceUpdating}
+                          >
+                            <DownloadSimpleIcon size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                      <ActionIcon
+                        onClick={async () => {
+                          setActiveResource(styleGuide);
+                          openCreateModal();
+                        }}
+                        variant="subtle"
+                        size="sm"
+                      >
+                        <PencilSimpleIcon size={16} />
+                      </ActionIcon>
 
-      <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
-        <Stack gap="sm">
-          <Text>Are you sure you want to delete the &quot;{activeResource?.name}&quot; resource?</Text>
-          <Group justify="flex-end">
-            <SecondaryButton onClick={closeDeleteModal}>Cancel</SecondaryButton>
-            <PrimaryButton
-              onClick={() => {
-                if (activeResource) {
-                  handleDeleteStyleGuide(activeResource.id);
-                }
-                closeDeleteModal();
-              }}
-            >
-              Delete
-            </PrimaryButton>
-          </Group>
-        </Stack>
-      </Modal>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="sm"
+                        onClick={() => {
+                          setActiveResource(styleGuide);
+                          openDeleteModal();
+                        }}
+                      >
+                        <TrashIcon size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
 
-      <EditResourceModal
-        opened={isCreateModalOpen}
-        onClose={() => {
-          setActiveResource(null);
-          closeCreateModal();
-        }}
-        onSuccess={async () => {
-          await mutate();
-          setActiveResource(null);
-          closeCreateModal();
-        }}
-        resourceDocument={activeResource}
-      />
-    </ContentContainer>
+        <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
+          <Stack gap="sm">
+            <Text>Are you sure you want to delete the &quot;{activeResource?.name}&quot; resource?</Text>
+            <Group justify="flex-end">
+              <SecondaryButton onClick={closeDeleteModal}>Cancel</SecondaryButton>
+              <PrimaryButton
+                onClick={() => {
+                  if (activeResource) {
+                    handleDeleteStyleGuide(activeResource.id);
+                  }
+                  closeDeleteModal();
+                }}
+              >
+                Delete
+              </PrimaryButton>
+            </Group>
+          </Stack>
+        </Modal>
+
+        <EditResourceModal
+          opened={isCreateModalOpen}
+          onClose={() => {
+            setActiveResource(null);
+            closeCreateModal();
+          }}
+          onSuccess={async () => {
+            await mutate();
+            setActiveResource(null);
+            closeCreateModal();
+          }}
+          resourceDocument={activeResource}
+        />
+      </MainContent.Body>
+    </MainContent>
   );
 }

@@ -3,10 +3,11 @@
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { Center, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { PlusIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
-import { ContentContainer } from '../components/ContentContainer';
 import { ErrorInfo } from '../components/InfoPanel';
+import MainContent from '../components/MainContent';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
 import { ConnectorAccountRow } from './components/ConnectorAccountRow';
@@ -73,48 +74,53 @@ export default function ConnectorAccountsPage() {
     return <ErrorInfo error={error} />;
   }
 
+  const headerActions = (
+    <SecondaryButton size="xs" leftSection={<PlusIcon size={16} />} onClick={() => modalStack.open('create')}>
+      New Connection
+    </SecondaryButton>
+  );
+
   return (
-    <ContentContainer title="Connections">
-      <CreateConnectionModal {...modalStack.register('create')} />
-      <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
-      <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
-        <Stack>
-          <Text>Are you sure you want to delete this connection and associated scratchpapers?</Text>
-          <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleDelete} loading={isDeleting}>
-              Delete
-            </PrimaryButton>
-          </Group>
+    <MainContent>
+      <MainContent.BasicHeader title="Connections" actions={headerActions} />
+      <MainContent.Body>
+        <CreateConnectionModal {...modalStack.register('create')} />
+        <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
+        <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
+          <Stack>
+            <Text>Are you sure you want to delete this connection and associated scratchpapers?</Text>
+            <Group justify="flex-end">
+              <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
+              <PrimaryButton onClick={handleDelete} loading={isDeleting}>
+                Delete
+              </PrimaryButton>
+            </Group>
+          </Stack>
+        </Modal>
+
+        <Stack maw="1000px">
+          {connectorAccounts && connectorAccounts.length > 0 && (
+            <>
+              {connectorAccounts?.map((conn) => (
+                <ConnectorAccountRow
+                  key={conn.id}
+                  connectorAccount={conn}
+                  onTest={handleTest}
+                  onUpdate={(conn) => {
+                    setSelectedConnectorAccount(conn);
+                    modalStack.open('update');
+                  }}
+                  onDelete={() => {
+                    setSelectedConnectorAccount(conn);
+                    modalStack.open('confirm-delete');
+                  }}
+                  testingId={testingId}
+                />
+              ))}
+            </>
+          )}
         </Stack>
-      </Modal>
-
-      <Stack maw="1000px">
-        {connectorAccounts && connectorAccounts.length > 0 && (
-          <>
-            {connectorAccounts?.map((conn) => (
-              <ConnectorAccountRow
-                key={conn.id}
-                connectorAccount={conn}
-                onTest={handleTest}
-                onUpdate={(conn) => {
-                  setSelectedConnectorAccount(conn);
-                  modalStack.open('update');
-                }}
-                onDelete={() => {
-                  setSelectedConnectorAccount(conn);
-                  modalStack.open('confirm-delete');
-                }}
-                testingId={testingId}
-              />
-            ))}
-          </>
-        )}
-
-        <PrimaryButton w="min-content" onClick={() => modalStack.open('create')}>
-          New Connection
-        </PrimaryButton>
-      </Stack>
-    </ContentContainer>
+      </MainContent.Body>
+    </MainContent>
   );
 }

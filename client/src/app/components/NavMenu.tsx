@@ -2,7 +2,7 @@
 
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
-import { Center, Divider, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import { Center, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import { BookOpenIcon, FileCsvIcon, GearIcon, Icon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation';
 import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { StyledIcon } from './Icons/StyledIcon';
-import styles from './SideMenu.module.css';
+import styles from './NavMenu.module.css';
 
 type MenuItem = {
   href: string;
@@ -23,7 +23,7 @@ type MenuItem = {
 const upperLinks: MenuItem[] = [
   {
     href: RouteUrls.snapshotsPageUrl,
-    label: 'Snapshots',
+    label: 'Scratchpapers',
     icon: TableIcon,
     enabled: true,
     requiresAdmin: false,
@@ -47,7 +47,7 @@ const upperLinks: MenuItem[] = [
     label: 'CSV Files',
     icon: FileCsvIcon,
     enabled: true,
-    requiresAdmin: false,
+    requiresAdmin: true,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
@@ -68,7 +68,7 @@ const lowerLinks: MenuItem[] = [
   },
 ];
 
-export function SideMenu() {
+export function NavMenu() {
   const pathname = usePathname();
   const { isAdmin } = useScratchPadUser();
 
@@ -78,7 +78,7 @@ export function SideMenu() {
     return (
       <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
         <UnstyledButton component={Link} href={link.href} data-active={isActive || undefined} className={styles.link}>
-          <StyledIcon Icon={link.icon} size={24} c={color} />
+          <StyledIcon Icon={link.icon} size={20} c={color} />
         </UnstyledButton>
       </Tooltip>
     );
@@ -87,13 +87,13 @@ export function SideMenu() {
   return (
     <Stack gap={0} h="100%" align="center">
       <Tooltip label={`${PROJECT_NAME} by Whalesync`}>
-        <Center h={50} w={50}>
+        <Center h={40} w={40}>
           <Link href={RouteUrls.homePageUrl}>
             <Image
               src="/dolphin-svgrepo-com.svg"
               alt={`${PROJECT_NAME}`}
-              w={30}
-              h={30}
+              w={24}
+              h={24}
               styles={{
                 root: {
                   fill: 'var(--mantine-color-primary-5)',
@@ -103,7 +103,7 @@ export function SideMenu() {
           </Link>
         </Center>
       </Tooltip>
-      <Divider w="100%" mb="md" />
+
       <Stack gap="md">
         {upperLinks
           .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))

@@ -1,5 +1,7 @@
-import { Box, Stack } from '@mantine/core';
+import { Box, Group, Stack } from '@mantine/core';
 import { JSX } from 'react';
+import { TextTitleXs } from '../base/text';
+import { NavToggle } from '../NavbarToggle';
 import classes from './MainContent.module.css';
 
 const MainContent = ({ children }: { children: React.ReactNode }): JSX.Element => {
@@ -34,8 +36,25 @@ const ContentFooter = ({ children }: { children: React.ReactNode }): JSX.Element
   );
 };
 
+const BasicHeader = ({ title, actions }: { title?: string; actions?: React.ReactNode }): JSX.Element => {
+  return (
+    <ContentHeader>
+      <Group align="center" h="100%">
+        <NavToggle />
+        {title && <TextTitleXs>{title}</TextTitleXs>}
+        {actions && (
+          <Group h="100%" align="center" ml="auto">
+            {actions}
+          </Group>
+        )}
+      </Group>
+    </ContentHeader>
+  );
+};
+
 MainContent.Header = ContentHeader;
 MainContent.Body = ContentBody;
 MainContent.Footer = ContentFooter;
+MainContent.BasicHeader = BasicHeader;
 
 export default MainContent;

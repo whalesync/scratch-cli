@@ -1,8 +1,8 @@
 'use client';
 
+import MainContent from '@/app/components/MainContent';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { Center, Loader, SimpleGrid, Stack } from '@mantine/core';
-import { ContentContainer } from '../../components/ContentContainer';
 import { ErrorInfo } from '../../components/InfoPanel';
 import { CreateSnapshotPanel } from './CreateSnapshotPanel';
 import { SnapshotCard } from './SnapshotCard';
@@ -23,17 +23,20 @@ export const SnapshotsList = () => {
   }
 
   return (
-    <ContentContainer title="Scratchpapers">
-      <Stack gap="md">
-        {snapshots && snapshots.length > 0 ? (
-          <SimpleGrid cols={1} spacing="md" maw="1000px">
-            {snapshots.map((snapshot) => (
-              <SnapshotCard key={snapshot.id} snapshot={snapshot} />
-            ))}
-          </SimpleGrid>
-        ) : null}
-        <CreateSnapshotPanel />
-      </Stack>
-    </ContentContainer>
+    <MainContent>
+      <MainContent.BasicHeader title="Scratchpapers" />
+      <MainContent.Body>
+        <Stack gap="md">
+          {snapshots && snapshots.length > 0 ? (
+            <SimpleGrid cols={1} spacing="md" maw="1000px">
+              {snapshots.map((snapshot) => (
+                <SnapshotCard key={snapshot.id} snapshot={snapshot} />
+              ))}
+            </SimpleGrid>
+          ) : null}
+          <CreateSnapshotPanel />
+        </Stack>
+      </MainContent.Body>
+    </MainContent>
   );
 };

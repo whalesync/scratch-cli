@@ -12,6 +12,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   CheckCircleIcon,
   PencilSimpleLineIcon,
+  PlusIcon,
   QuestionIcon,
   TestTubeIcon,
   TrashIcon,
@@ -121,7 +122,7 @@ export function ConnectorAccountRow({
                   </Button>
                 ))}
               </Group>
-              <PrimaryButton size="xs" onClick={open}>
+              <PrimaryButton size="xs" onClick={open} leftSection={<PlusIcon size={12} />}>
                 New scratchpaper
               </PrimaryButton>
             </Group>
@@ -131,49 +132,3 @@ export function ConnectorAccountRow({
     </>
   );
 }
-
-/**
- 
-<Paper withBorder shadow="sm" p="md" key={connectorAccount.id}>
-        <Stack>
-          <Group>
-            <Title order={3}></Title>
-            <Button variant="outline" onClick={() => onUpdate(connectorAccount)} ml="auto">
-              Edit
-            </Button>
-
-            <Button color="red" onClick={() => onDelete(connectorAccount.id)}>
-              Delete
-            </Button>
-          </Group>
-          <Divider />
-          <Group gap="xs">
-            
-            <Button
-              variant="subtle"
-              onClick={() => onTest(connectorAccount.id)}
-              loading={testingId === connectorAccount.id}
-              size="xs"
-            >
-              Test
-            </Button>
-          </Group>
-          <Group justify="flex-end">
-            {isLoadingSnapshots ? (
-              <Loader size="sm" />
-            ) : (
-              <Stack align="flex-end">
-                {snapshots?.map((snapshot) => (
-                  <Button key={snapshot.id} onClick={() => handleWorkWithSnapshot(snapshot.id)} variant="outline">
-                    View {snapshot.name}
-                  </Button>
-                ))}
-
-                <Button onClick={open}>Start new scratchpaper</Button>
-              </Stack>
-            )}
-          </Group>
-        </Stack>
-      </Paper>
-
- */

@@ -2,7 +2,7 @@
 
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { Divider, Group, Stack } from '@mantine/core';
-import { ContentContainer } from '../components/ContentContainer';
+import MainContent from '../components/MainContent';
 import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
 import { DevToolsPanel } from './components/DebugInfo';
@@ -12,24 +12,25 @@ const SettingsPage = () => {
   const { isDevToolsEnabled } = useDevTools();
 
   return (
-    <ContentContainer title="Settings">
-      <Group gap="md" align="flex-start">
-        <Stack gap="md">
-          <SubscriptionCard />
-          <AgentCredentials />
-        </Stack>
-        <AgentUsageInfoCard />
-      </Group>
-
-      {isDevToolsEnabled && (
-        <>
-          <Divider my="md" />
-          <Stack gap="md" maw={700}>
-            <DevToolsPanel />
+    <MainContent>
+      <MainContent.BasicHeader title="Settings" />
+      <MainContent.Body>
+        <Group gap="md" align="flex-start" grow>
+          <Stack gap="md" miw={800}>
+            <SubscriptionCard />
+            <Divider />
+            <AgentCredentials />
+            <Divider />
+            <AgentUsageInfoCard />
           </Stack>
-        </>
-      )}
-    </ContentContainer>
+          {isDevToolsEnabled && (
+            <Stack gap="md" maw={600} ml="auto">
+              <DevToolsPanel />
+            </Stack>
+          )}
+        </Group>
+      </MainContent.Body>
+    </MainContent>
   );
 };
 

@@ -1,8 +1,8 @@
-import { TextRegularSm, TextTitleLg } from '@/app/components/base/text';
+import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
 import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
-import { Card, Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
+import { Box, Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 
@@ -10,8 +10,8 @@ export const AgentUsageInfoCard = () => {
   const { events, summary, isLoading } = useAgentTokenUsage();
 
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder miw={700}>
-      <TextTitleLg mb="xs">Monthly AI Usage</TextTitleLg>
+    <Box mih={400}>
+      <TextTitleSm mb="xs">Monthly AI Usage</TextTitleSm>
       {isLoading ? (
         <Center mih={200}>
           <Loader />
@@ -31,7 +31,7 @@ export const AgentUsageInfoCard = () => {
           </Tabs.Panel>
         </Tabs>
       )}
-    </Card>
+    </Box>
   );
 };
 
@@ -91,7 +91,7 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
 
 const UsageEventListTab = ({ events }: { events?: AgentUsageEvent[] }) => {
   return (
-    <Table.ScrollContainer minWidth={500} maxHeight={300} type="native">
+    <Table.ScrollContainer minWidth={500} maxHeight={500} type="native">
       <Table>
         <Table.Thead>
           <Table.Tr>

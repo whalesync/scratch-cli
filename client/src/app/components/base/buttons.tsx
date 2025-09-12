@@ -14,7 +14,7 @@ export const InlineButton = Button.withProps({
 export const PrimaryButton = Button.withProps({
   variant: 'filled',
   // color: 'blue',
-  size: 'sm',
+  size: 'xs',
 });
 
 /**
@@ -22,7 +22,7 @@ export const PrimaryButton = Button.withProps({
  */
 export const SecondaryButton = Button.withProps({
   variant: 'outline',
-  size: 'sm',
+  size: 'xs',
 });
 
 export const AcceptSuggestionButton = Button.withProps({

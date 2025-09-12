@@ -4,7 +4,6 @@ import { useCsvFiles } from '@/hooks/use-csv-file';
 import { CsvFile } from '@/types/server-entities/csv-file';
 import {
   ActionIcon,
-  Button,
   Center,
   Group,
   Loader,
@@ -15,12 +14,12 @@ import {
   UnstyledButton,
   useModalsStack,
 } from '@mantine/core';
-import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { FileCsvIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
-import { ContentContainer } from '../components/ContentContainer';
 import { ErrorInfo } from '../components/InfoPanel';
+import MainContent from '../components/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 import { EditCsvFileModal } from './components/EditCsvFileModal';
 
@@ -58,110 +57,119 @@ export default function CsvFilesPage() {
   }
 
   const headerActions = (
-    <Button
+    <SecondaryButton
       size="xs"
-      leftSection={<PlusIcon size={16} />}
+      leftSection={<PlusIcon size={12} />}
       onClick={() => {
         setSelectedCsvFile(null);
         modalStack.open('edit');
       }}
     >
       New CSV File
-    </Button>
+    </SecondaryButton>
   );
 
   return (
-    <ContentContainer title="CSV Files" actions={headerActions}>
-      {isLoading ? (
-        <Center>
-          <Group>
-            <Loader size="sm" />
-            <TextRegularSm>Loading...</TextRegularSm>
-          </Group>
-        </Center>
-      ) : (
-        <>
-          <EditCsvFileModal csvFile={selectedCsvFile} {...modalStack.register('edit')} />
-          <Modal title="Delete CSV File" size="md" centered {...modalStack.register('delete')}>
-            <Stack>
-              <Text>Are you sure you want to delete this CSV file?</Text>
-              <Group justify="flex-end">
-                <SecondaryButton
-                  onClick={() => {
-                    modalStack.close('delete');
-                    setSelectedCsvFile(null);
-                  }}
-                >
-                  Cancel
-                </SecondaryButton>
-                <PrimaryButton
-                  onClick={() => {
-                    if (!selectedCsvFile) return;
-                    handleDeleteCsvFile(selectedCsvFile.id);
-                    modalStack.close('delete');
-                    setSelectedCsvFile(null);
-                  }}
-                  loading={isDeleting}
-                >
-                  Delete
-                </PrimaryButton>
-              </Group>
-            </Stack>
-          </Modal>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Created</Table.Th>
-                <Table.Th>Updated</Table.Th>
-                <Table.Th>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {csvFiles.map((csvFile) => (
-                <Table.Tr key={csvFile.id}>
-                  <Table.Td>
-                    <UnstyledButton
-                      onClick={() => {
-                        setSelectedCsvFile(csvFile);
-                        modalStack.open('edit');
-                      }}
-                    >
-                      <Text fw={500}>{csvFile.name}</Text>
-                    </UnstyledButton>
-                  </Table.Td>
-                  <Table.Td>{formatDate(csvFile.createdAt)}</Table.Td>
-                  <Table.Td>{formatDate(csvFile.updatedAt)}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <ActionIcon
-                        variant="light"
-                        color="blue"
-                        onClick={() => {
-                          setSelectedCsvFile(csvFile);
-                          modalStack.open('edit');
-                        }}
-                      >
-                        <PencilSimpleIcon size={16} />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="light"
-                        color="red"
-                        onClick={() => {
-                          setSelectedCsvFile(csvFile);
-                          modalStack.open('delete');
-                        }}
-                      >
-                        <TrashIcon size={16} />
-                      </ActionIcon>
-                    </Group>
+    <MainContent>
+      <MainContent.BasicHeader title="CSV Files" actions={headerActions} />
+      <MainContent.Body>
+        {isLoading ? (
+          <Center>
+            <Group gap="xs">
+              <Loader size="sm" />
+              <TextRegularSm>Loading...</TextRegularSm>
+            </Group>
+          </Center>
+        ) : (
+          <>
+            <EditCsvFileModal csvFile={selectedCsvFile} {...modalStack.register('edit')} />
+            <Modal title="Delete CSV File" size="md" centered {...modalStack.register('delete')}>
+              <Stack>
+                <Text>Are you sure you want to delete this CSV file?</Text>
+                <Group justify="flex-end">
+                  <SecondaryButton
+                    onClick={() => {
+                      modalStack.close('delete');
+                      setSelectedCsvFile(null);
+                    }}
+                  >
+                    Cancel
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={() => {
+                      if (!selectedCsvFile) return;
+                      handleDeleteCsvFile(selectedCsvFile.id);
+                      modalStack.close('delete');
+                      setSelectedCsvFile(null);
+                    }}
+                    loading={isDeleting}
+                  >
+                    Delete
+                  </PrimaryButton>
+                </Group>
+              </Stack>
+            </Modal>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Td w="60%">Name</Table.Td>
+                  <Table.Td w="15%">Created</Table.Td>
+                  <Table.Td w="15%">Updated</Table.Td>
+                  <Table.Td w="15%" align="right">
+                    Actions
                   </Table.Td>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </>
-      )}
-    </ContentContainer>
+              </Table.Thead>
+              <Table.Tbody>
+                {csvFiles.map((csvFile) => (
+                  <Table.Tr key={csvFile.id}>
+                    <Table.Td>
+                      <Group gap="sm">
+                        <FileCsvIcon size={20} />
+                        <UnstyledButton
+                          fz="sm"
+                          onClick={() => {
+                            setSelectedCsvFile(csvFile);
+                            modalStack.open('edit');
+                          }}
+                        >
+                          {csvFile.name}
+                        </UnstyledButton>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>{formatDate(csvFile.createdAt)}</Table.Td>
+                    <Table.Td>{formatDate(csvFile.updatedAt)}</Table.Td>
+                    <Table.Td w="15%" align="right">
+                      <Group gap="xs" justify="flex-end">
+                        <ActionIcon
+                          variant="light"
+                          color="blue"
+                          onClick={() => {
+                            setSelectedCsvFile(csvFile);
+                            modalStack.open('edit');
+                          }}
+                        >
+                          <PencilSimpleIcon size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          variant="light"
+                          color="red"
+                          onClick={() => {
+                            setSelectedCsvFile(csvFile);
+                            modalStack.open('delete');
+                          }}
+                        >
+                          <TrashIcon size={16} />
+                        </ActionIcon>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </>
+        )}
+      </MainContent.Body>
+    </MainContent>
   );
 }

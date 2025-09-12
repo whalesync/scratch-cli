@@ -5,7 +5,7 @@ import { AppShell } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { SideMenu } from '../SideMenu';
+import { NavMenu } from '../NavMenu';
 import { SubscriptionVerifier } from '../SubscriptionVerifier';
 
 export default function SidebarAndContentLayout({ children }: { children: React.ReactNode }) {
@@ -18,9 +18,9 @@ export default function SidebarAndContentLayout({ children }: { children: React.
 
   return (
     <SubscriptionVerifier>
-      <AppShell navbar={{ width: 50, breakpoint: 'sm' }}>
+      <AppShell navbar={{ width: 40, breakpoint: 'sm' }}>
         <AppShell.Navbar p={0} style={{ backgroundColor: 'hsla(50, 25%, 96%)' }}>
-          <SideMenu />
+          <NavMenu />
         </AppShell.Navbar>
 
         <AppShell.Main style={{ backgroundColor: 'hsla(50, 25%, 96%)' }}>
