@@ -181,7 +181,7 @@ function SnapshotPageContent() {
   }
 
   return (
-    <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} aside={aiChatPanel}>
+    <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} rightPanel={aiChatPanel}>
       <MainContent>
         <MainContent.Header>{header}</MainContent.Header>
         <MainContent.Body p="0">

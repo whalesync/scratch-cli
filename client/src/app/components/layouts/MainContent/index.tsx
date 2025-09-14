@@ -16,7 +16,7 @@ type ChildrenWithStyleProps = PropsWithChildren & MantineStyleProps;
 
 const ContentHeader = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="40px" className={classes.contentHeader} {...styleProps}>
+    <Box className={classes.contentHeader} {...styleProps}>
       {children}
     </Box>
   );
@@ -32,7 +32,7 @@ const ContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.E
 
 const ContentFooter = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="40px" className={classes.contentFooter} {...styleProps}>
+    <Box className={classes.contentFooter} {...styleProps}>
       {children}
     </Box>
   );

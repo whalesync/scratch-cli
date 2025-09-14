@@ -5,6 +5,7 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import SideBar from '@/app/components/layouts/SideBarContent';
 import { NavToggle } from '@/app/components/NavbarToggle';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
@@ -12,8 +13,9 @@ import { JSX } from 'react';
 import { ConnectorIcon } from '../components/ConnectorIcon';
 
 const LayoutTestPage = (): JSX.Element => {
+  const { toggleRightPanel } = useLayoutManagerStore();
   const footer = <Box p="0">Footer</Box>;
-  const aside = (
+  const rightPanel = (
     <SideBar>
       <SideBar.Header>
         <Title order={5}>SideBar Header</Title>
@@ -23,7 +25,7 @@ const LayoutTestPage = (): JSX.Element => {
   );
 
   return (
-    <PageLayout footer={footer} aside={aside}>
+    <PageLayout footer={footer} rightPanel={rightPanel}>
       <MainContent>
         <MainContent.Header>
           <Group align="center" h="100%">
@@ -60,7 +62,7 @@ const LayoutTestPage = (): JSX.Element => {
             </Group>
 
             <Group ml="auto" gap="xs" align="center">
-              <ActionIcon variant="transparent">
+              <ActionIcon variant="transparent" onClick={toggleRightPanel}>
                 <DotsThreeIcon size={16} />
               </ActionIcon>
             </Group>
