@@ -674,6 +674,20 @@ export const SnapshotTableGridProvider = ({
           message: `Cleared ${totalCleared} focused cell(s)`,
           color: 'blue',
         });
+      } else if (e.key.toLowerCase() === 'o' && e.ctrlKey && currentSelection) {
+        /* OPEN Record  */
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { records, columns } = processedSelection.selectedRecordsAndColumns;
+        if (records.length === 1) {
+          const record = records[0];
+          let columnId: string | undefined;
+          if (columns.length === 1) {
+            columnId = columns[0].id.wsId;
+          }
+          switchToRecordView(record.id.wsId, columnId).catch(console.error);
+        }
       }
     },
     [
@@ -688,6 +702,7 @@ export const SnapshotTableGridProvider = ({
       addWriteFocus,
       removeWriteFocus,
       clearAllFocus,
+      switchToRecordView,
     ],
   );
 
