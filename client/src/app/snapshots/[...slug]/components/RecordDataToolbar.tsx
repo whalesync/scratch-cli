@@ -1,0 +1,136 @@
+'use client';
+
+import { TextBookSm, TextRegularXs } from '@/app/components/base/text';
+import { StyledIcon } from '@/app/components/Icons/StyledIcon';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { snapshotApi } from '@/lib/api/snapshot';
+import { TableSpec } from '@/types/server-entities/snapshot';
+import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
+import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
+import pluralize from 'pluralize';
+import { useCallback, useEffect, useState } from 'react';
+import { useSnapshotContext } from './contexts/SnapshotContext';
+
+interface RecordDataToolbarProps {
+  table: TableSpec;
+}
+
+export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
+  const { table } = props;
+  const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
+
+  const { count, filteredCount, createNewRecord } = useSnapshotTableRecords({
+    snapshotId: snapshot?.id ?? '',
+    tableId: table.id.wsId,
+    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
+  });
+
+  // Local state
+  const [sqlFilterModalOpen, setSqlFilterModalOpen] = useState(false);
+  const [sqlFilterText, setSqlFilterText] = useState('');
+  const [sqlFilterError, setSqlFilterError] = useState<string | null>(null);
+
+  const currentTableFilter =
+    table.id.wsId && snapshot && snapshot.activeRecordSqlFilter && table.id.wsId in snapshot.activeRecordSqlFilter
+      ? snapshot.activeRecordSqlFilter[table.id.wsId]
+      : undefined;
+
+  useEffect(() => {
+    if (sqlFilterModalOpen) {
+      setSqlFilterText(currentTableFilter || '');
+      setSqlFilterError(null); // Clear any previous errors
+    }
+  }, [sqlFilterModalOpen, currentTableFilter]);
+
+  const handleSetSqlFilter = useCallback(async () => {
+    if (!table.id.wsId || !snapshot) return;
+
+    setSqlFilterError(null); // Clear any previous errors
+
+    try {
+      await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id.wsId, sqlFilterText || undefined);
+      ScratchpadNotifications.success({
+        title: 'Filter Updated',
+        message: 'SQL filter has been applied',
+      });
+      setSqlFilterModalOpen(false);
+      setSqlFilterText('');
+    } catch (error) {
+      console.error('Error setting SQL filter:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set SQL filter';
+      setSqlFilterError(errorMessage);
+    }
+  }, [table.id.wsId, snapshot, sqlFilterText]);
+
+  return (
+    <>
+      <Group justify="flex-start" align="center" h="100%">
+        <Group gap="2px">
+          <Button variant="subtle" size="xs" c="gray.6" leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
+            Add Row
+          </Button>
+          <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
+          <Menu shadow="md" width={250}>
+            <Menu.Target>
+              <Button variant="subtle" size="xs" c="gray.6" leftSection={<FunnelSimpleIcon size={16} />}>
+                Filter
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item onClick={() => setSqlFilterModalOpen(true)}>Set SQL Filter</Menu.Item>
+              <Menu.Item
+                disabled={!currentTableFilter}
+                onClick={() => table.id.wsId && clearActiveRecordFilter(table.id.wsId)}
+              >
+                Clear Filter
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+
+        <Group ml="auto" gap="xs" align="center">
+          {count !== undefined && (
+            <>
+              <TextBookSm>{`${filteredCount} ${pluralize('record', filteredCount)}`}</TextBookSm>
+              {filteredCount !== undefined && count > filteredCount && (
+                <TextBookSm>({`${count - filteredCount} filtered`})</TextBookSm>
+              )}
+            </>
+          )}
+        </Group>
+      </Group>
+      {/* SQL Filter Modal */}
+      <Modal opened={sqlFilterModalOpen} onClose={() => setSqlFilterModalOpen(false)} title="Set SQL Filter" size="md">
+        <Box>
+          <TextRegularXs>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</TextRegularXs>
+          <TextRegularXs size="xs" c="dimmed" mb="md">
+            Example: name = &apos;John&apos; AND age &gt; 25
+          </TextRegularXs>
+          <Textarea
+            label="SQL WHERE Clause"
+            value={sqlFilterText}
+            onChange={(e) => {
+              setSqlFilterText(e.target.value);
+              if (sqlFilterError) {
+                setSqlFilterError(null); // Clear error when user starts typing
+              }
+            }}
+            placeholder="Enter SQL WHERE clause..."
+            minRows={3}
+            error={sqlFilterError}
+            mb="md"
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={() => setSqlFilterModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSetSqlFilter} loading={false}>
+              Apply Filter
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
+    </>
+  );
+};

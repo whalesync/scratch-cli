@@ -27,10 +27,10 @@ import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
+import { RecordDataToolbar } from './components/RecordDataToolbar';
 import { RecordView } from './components/RecordView';
 import SnapshotTableGrid from './components/snapshot-table/SnapshotTableGrid';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
-import { ViewData } from './components/ViewData';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 
 function SnapshotPageContent() {
@@ -45,7 +45,7 @@ function SnapshotPageContent() {
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   // Get count information for the current table
-  const { records, count, filteredCount } = useSnapshotTableRecords({
+  const { records } = useSnapshotTableRecords({
     snapshotId: id,
     tableId: activeTable ? activeTable.id.wsId : '',
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
@@ -169,6 +169,7 @@ function SnapshotPageContent() {
   // );
 
   let content = null;
+  let contentFooter = null;
   if (snapshot && activeTable) {
     content =
       displayMode === 'spreadsheet' ? (
@@ -176,6 +177,7 @@ function SnapshotPageContent() {
       ) : (
         <RecordView table={activeTable} />
       );
+    contentFooter = <RecordDataToolbar table={activeTable} />;
   }
 
   return (
@@ -186,9 +188,7 @@ function SnapshotPageContent() {
           {content}
           {debugModals}
         </MainContent.Body>
-        <MainContent.Footer>
-          <ViewData currentTableId={activeTable?.id.wsId} count={count} filteredCount={filteredCount} />
-        </MainContent.Footer>
+        {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
       </MainContent>
     </PageLayout>
   );

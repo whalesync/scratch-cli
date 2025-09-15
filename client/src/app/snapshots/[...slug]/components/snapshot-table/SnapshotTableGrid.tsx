@@ -1,8 +1,7 @@
 'use client';
 
 import { DataEditor } from '@glideapps/glide-data-grid';
-import { ActionIcon, Box, Center, Loader, Stack, Text, Tooltip } from '@mantine/core';
-import { PlusIcon } from '@phosphor-icons/react';
+import { Box, Center, Loader, Stack, Text } from '@mantine/core';
 import { SnapshotTableGridProps } from '../types';
 import { FocusedCellsDebugModal } from './FocusedCellsDebugModal';
 import { ContextMenu } from './menus/ContextMenu';
@@ -26,7 +25,6 @@ export const SnapshotTableGridInternal = () => {
     onCellClicked,
     onCellContextMenu,
     handleKeyDown,
-    onAddRow,
     rowHeight,
   } = useSnapshotTableGridContext();
 
@@ -93,20 +91,6 @@ export const SnapshotTableGridInternal = () => {
             drawCell={drawCell}
             data-grid-container // Add this attribute to the grid container
           />
-          <Box
-            style={{
-              position: 'absolute',
-              bottom: 16,
-              right: 16,
-              zIndex: 10,
-            }}
-          >
-            <Tooltip label="Add record">
-              <ActionIcon onClick={onAddRow} size="xl" radius="xl" variant="filled">
-                <PlusIcon size={24} strokeWidth="bold" />
-              </ActionIcon>
-            </Tooltip>
-          </Box>
         </Stack>
       </Box>
 

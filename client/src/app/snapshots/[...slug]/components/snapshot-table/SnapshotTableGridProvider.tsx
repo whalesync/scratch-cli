@@ -42,7 +42,6 @@ import { useMousePosition } from './useMousePosition';
 import { useProcessedSelection } from './useProcessedSelection';
 import {
   FAKE_LEFT_COLUMNS,
-  generatePendingId,
   getColumnIcon,
   isActionsColumn,
   isIdColumn,
@@ -436,40 +435,6 @@ export const SnapshotTableGridProvider = ({
     },
     [sortedRecords, table.columns, coreGridState.hoveredRow, readFocus, columnWidths],
   );
-
-  const onAddRow = useCallback(async () => {
-    const newRecordId = generatePendingId();
-
-    const newRecordData: Record<string, unknown> = {
-      id: newRecordId,
-    };
-
-    table.columns.forEach((c) => {
-      if (c.id.wsId !== 'id') {
-        newRecordData[c.id.wsId] = null;
-      }
-    });
-
-    const dto: BulkUpdateRecordsDto = {
-      ops: [
-        {
-          op: 'create',
-          wsId: newRecordId,
-          data: newRecordData,
-        },
-      ],
-    };
-    try {
-      await bulkUpdateRecords(dto);
-    } catch (e) {
-      const error = e as Error;
-      notifications.show({
-        title: 'Error creating record',
-        message: error.message,
-        color: 'red',
-      });
-    }
-  }, [bulkUpdateRecords, table.columns]);
 
   const onCellEdited = useCallback(
     async (cell: Item, newValue: EditableGridCell) => {
@@ -1391,7 +1356,6 @@ export const SnapshotTableGridProvider = ({
     onHeaderMenuClick,
     onCellContextMenu,
     handleKeyDown,
-    onAddRow,
     contextMenu,
     getContextMenuItems,
     getHeaderMenuItems,
@@ -1428,7 +1392,6 @@ export interface SnapshotTableGridContextValue {
   onHeaderMenuClick: (colIndex: number) => void;
   onCellContextMenu: (cell: Item, event: CellClickedEventArgs) => void;
   handleKeyDown: (e: GridKeyEventArgs) => void;
-  onAddRow: () => void;
   contextMenu: ContextMenu | null;
   getContextMenuItems: () => MenuItem[];
   getHeaderMenuItems: () => Array<{ label: string; disabled: boolean; leftSection?: React.ReactNode; group?: string }>;

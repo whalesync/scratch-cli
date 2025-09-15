@@ -35,7 +35,10 @@ interface ViewDataProps {
   count?: number;
   filteredCount?: number;
 }
-
+/**
+ *  @deprecated Use RecordDataToolbar instead. Keeping this around for all the view management functionality which we will probably reuse elswhere.
+ *  @see RecordDataToolbar
+ */
 export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps) => {
   const {
     views,

@@ -1,3 +1,4 @@
+import { generatePendingId } from "@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {
@@ -11,6 +12,7 @@ import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
 } from "../types/server-entities/records";
+import { useSnapshot } from "./use-snapshot";
 
 
 export interface UseSnapshotRecordsReturn {
@@ -27,6 +29,7 @@ export interface UseSnapshotRecordsReturn {
     totalSuggestions: number;
     acceptAllSuggestions: () => Promise<AcceptAllSuggestionsResult>;
     rejectAllSuggestions: () => Promise<RejectAllSuggestionsResult>;
+    createNewRecord: () => Promise<void>;
   }
   
   export const useSnapshotTableRecords = (args: {
@@ -37,6 +40,7 @@ export interface UseSnapshotRecordsReturn {
     viewId?: string
   }): UseSnapshotRecordsReturn => {
     const { snapshotId, tableId, cursor, take = 1000, viewId = undefined } = args;
+    const {snapshot} = useSnapshot(snapshotId);
     const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
   
     const { mutate } = useSWRConfig();
@@ -112,7 +116,7 @@ export interface UseSnapshotRecordsReturn {
                 __edited_fields: { __created: "NOW" },
                 __dirty: true,
               };
-              newRecords = [newRecord, ...newRecords];
+              newRecords = [...newRecords, newRecord];
             }
           }
   
@@ -201,6 +205,37 @@ export interface UseSnapshotRecordsReturn {
       return result;
     }, [tableId, snapshotId, viewId]);
   
+    const createNewRecord = useCallback(async () => {
+
+      if (!snapshot) return;
+      const table = snapshot.tables.find((t) => t.id.wsId === tableId);
+
+      if (!table) return;
+      const newRecordId = generatePendingId();
+
+      const newRecordData: Record<string, unknown> = {
+        id: newRecordId,
+      };
+  
+      table.columns.forEach((c) => {
+        if (c.id.wsId !== 'id') {
+          newRecordData[c.id.wsId] = null;
+        }
+      });
+  
+      const dto: BulkUpdateRecordsDto = {
+        ops: [
+          {
+            op: 'create',
+            wsId: newRecordId,
+            data: newRecordData,
+          },
+        ],
+      };
+
+      await bulkUpdateRecords(dto);
+      
+    }, [snapshot, tableId, bulkUpdateRecords]);
   
     return {
       records: data?.records ?? undefined,
@@ -216,6 +251,7 @@ export interface UseSnapshotRecordsReturn {
       totalSuggestions,
       acceptAllSuggestions,
       rejectAllSuggestions,
+      createNewRecord,
     };
   };
   
