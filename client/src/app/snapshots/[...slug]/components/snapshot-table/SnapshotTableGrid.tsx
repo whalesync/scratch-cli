@@ -27,6 +27,7 @@ export const SnapshotTableGridInternal = () => {
     onCellContextMenu,
     handleKeyDown,
     onAddRow,
+    rowHeight,
   } = useSnapshotTableGridContext();
 
   const drawCell = useDrawCell();
@@ -65,6 +66,7 @@ export const SnapshotTableGridInternal = () => {
             height="100%"
             columns={columns}
             rows={sortedRecords?.length ?? 0}
+            rowHeight={rowHeight}
             // Core grid state
             gridSelection={currentSelection}
             onGridSelectionChange={coreGridState.setCurrentSelection}

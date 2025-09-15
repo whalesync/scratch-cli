@@ -4,7 +4,13 @@ import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/context
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { RecordCell } from '@/types/common';
 import { BulkUpdateRecordsDto } from '@/types/server-entities/records';
-import { formatFieldValue, Snapshot, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import {
+  formatFieldValue,
+  PostgresColumnType,
+  Snapshot,
+  SnapshotRecord,
+  TableSpec,
+} from '@/types/server-entities/snapshot';
 import {
   CellClickedEventArgs,
   EditableGridCell,
@@ -16,6 +22,7 @@ import {
   GridKeyEventArgs,
   GridSelection,
   Item,
+  TextCell,
   Theme,
 } from '@glideapps/glide-data-grid';
 import { useModalsStack } from '@mantine/core';
@@ -67,11 +74,13 @@ export const SnapshotTableGridProvider = ({
   // State from hooks on this level
   const coreGridState = useCoreGridState();
   const coreGridHandlers = useCoreGridHandlers(coreGridState);
-  const { currentSelection, columnWidths } = coreGridState;
+  const { currentSelection, columnWidths, setColumnWidths } = coreGridState;
 
   // Internal state
   const mousePosition = useMousePosition();
   const modalStack = useModalsStack(['focusedCellsDebug']);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [rowHeight, setRowHeight] = useState<number | undefined>(undefined);
 
   // SWR:
   const { upsertView } = useUpsertView();
@@ -296,7 +305,7 @@ export const SnapshotTableGridProvider = ({
           themeOverride: { bgCell: '#fde0e0' },
           contentAlign: 'center',
           cursor: 'pointer',
-        };
+        } satisfies TextCell;
       }
 
       if (isRecordStatusColumn(col)) {
@@ -323,7 +332,7 @@ export const SnapshotTableGridProvider = ({
           allowOverlay: false,
           contentAlign: 'center',
           themeOverride: isDeleted ? { bgCell: '#fde0e0' } : undefined,
-        };
+        } satisfies TextCell;
       }
 
       if (isIdColumn(col)) {
@@ -350,12 +359,18 @@ export const SnapshotTableGridProvider = ({
           readonly: true,
           allowOverlay: false,
           themeOverride,
-        };
+        } satisfies TextCell;
       }
 
       const column = table.columns[col - FAKE_LEFT_COLUMNS];
       const value = record?.fields[column.id.wsId];
       const isReadonly = !!column.readonly;
+
+      const allowWrapping = !!(
+        column.id.wsId in columnWidths &&
+        columnWidths[column.id.wsId] === 500 &&
+        column.pgType === PostgresColumnType.TEXT
+      );
 
       // Check if there's a suggested value for this field
       const suggestedValue = suggestedValues?.[column.id.wsId];
@@ -387,7 +402,7 @@ export const SnapshotTableGridProvider = ({
             textDark: 'darkgray',
             ...themeOverride,
           },
-        };
+        } satisfies TextCell;
       }
 
       // Determine what to display
@@ -416,9 +431,10 @@ export const SnapshotTableGridProvider = ({
         displayData: displayText, // Show the strikethrough version for viewing
         data: value ? String(value) : '', // Keep original value for editing
         themeOverride,
-      };
+        allowWrapping,
+      } satisfies TextCell;
     },
-    [sortedRecords, table.columns, coreGridState.hoveredRow, readFocus],
+    [sortedRecords, table.columns, coreGridState.hoveredRow, readFocus, columnWidths],
   );
 
   const onAddRow = useCallback(async () => {
@@ -688,6 +704,23 @@ export const SnapshotTableGridProvider = ({
           }
           switchToRecordView(record.id.wsId, columnId).catch(console.error);
         }
+      } else if (e.key.toLowerCase() === '_' && e.ctrlKey && currentSelection) {
+        /* Toggle max column width */
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { columns } = processedSelection.selectedRecordsAndColumns;
+        if (columns.length === 1) {
+          const existingWidth = columnWidths[columns[0].id.wsId];
+          if (existingWidth) {
+            // remove the column width
+            const newWidths = { ...columnWidths };
+            delete newWidths[columns[0].id.wsId];
+            setColumnWidths(newWidths);
+          } else {
+            setColumnWidths((prev) => ({ ...prev, [columns[0].id.wsId]: 800 }));
+          }
+        }
       }
     },
     [
@@ -703,6 +736,8 @@ export const SnapshotTableGridProvider = ({
       removeWriteFocus,
       clearAllFocus,
       switchToRecordView,
+      columnWidths,
+      setColumnWidths,
     ],
   );
 
@@ -1337,6 +1372,7 @@ export const SnapshotTableGridProvider = ({
     coreGridState,
     coreGridHandlers,
     mousePosition,
+    rowHeight,
     modalStack,
     error,
     isLoading,
@@ -1371,6 +1407,7 @@ export interface SnapshotTableGridContextValue {
   coreGridState: ReturnType<typeof useCoreGridState>;
   coreGridHandlers: ReturnType<typeof useCoreGridHandlers>;
   mousePosition: { x: number; y: number } | null;
+  rowHeight: number | undefined;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modalStack: any;
