@@ -1226,8 +1226,8 @@ export const SnapshotTableGridProvider = ({
     handleAcceptCell,
     handleRejectCell,
     refreshRecords,
-    (recordId: string) => {
-      switchToRecordView(recordId);
+    async (recordId: string) => {
+      await switchToRecordView(recordId);
     },
   );
 

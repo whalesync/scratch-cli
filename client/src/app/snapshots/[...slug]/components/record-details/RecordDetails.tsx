@@ -1,11 +1,10 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { BulkUpdateRecordsDto, RecordOperation } from '@/types/server-entities/records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { sleep } from '@/utils/helpers';
 import { Box, Group, Loader, Stack } from '@mantine/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
+import { useTableContext } from '../contexts/table-context';
 import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {
@@ -15,14 +14,7 @@ interface RecordDetailsProps {
   currentColumnId: string | undefined;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
-  bulkUpdateRecord: (dto: BulkUpdateRecordsDto) => Promise<void>;
   onFocusOnField?: (columnId: string | undefined) => void;
-  onSavePendingUpdates?: React.MutableRefObject<(() => Promise<void>) | null>;
-}
-
-interface PendingUpdate {
-  field: string;
-  value: string;
 }
 
 export const RecordDetails = ({
@@ -31,57 +23,13 @@ export const RecordDetails = ({
   currentColumnId,
   acceptCellValues,
   rejectCellValues,
-  bulkUpdateRecord,
   onFocusOnField,
-  onSavePendingUpdates,
 }: RecordDetailsProps) => {
   const { currentView } = useSnapshotContext();
-  const [saving, setSaving] = useState(false);
-  const [pendingUpdates, setPendingUpdates] = useState<PendingUpdate[]>([]);
+  const { addPendingChange, savingPendingChanges } = useTableContext();
+  const [savingSuggestions, setSavingSuggestions] = useState(false);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
-
-  const savePendingUpdates = useCallback(async () => {
-    if (pendingUpdates.length === 0) return;
-    if (!currentRecord) return;
-
-    const ops: RecordOperation[] = pendingUpdates.map((update) => ({
-      op: 'update',
-      wsId: currentRecord.id.wsId,
-      data: { [update.field]: update.value },
-    }));
-
-    try {
-      setSaving(true);
-      await bulkUpdateRecord({ ops });
-      setPendingUpdates([]);
-      await sleep(200);
-    } catch (e) {
-      const error = e as Error;
-      ScratchpadNotifications.error({
-        title: 'Error updating field',
-        message: error.message,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [pendingUpdates, bulkUpdateRecord, currentRecord]);
-
-  // Expose the save function to parent
-  useEffect(() => {
-    if (onSavePendingUpdates) {
-      onSavePendingUpdates.current = savePendingUpdates;
-    }
-  }, [savePendingUpdates, onSavePendingUpdates]);
-
-  // Auto-save pending updates every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      savePendingUpdates();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [savePendingUpdates]);
 
   const updateField = useCallback(
     async (field: string, value: string) => {
@@ -89,17 +37,9 @@ export const RecordDetails = ({
 
       // Update the local in-memory copy of the record
       currentRecord.fields[field] = value;
-
-      const existing = pendingUpdates.findIndex((update) => update.field === field);
-      if (existing !== -1) {
-        const newPendingUpdates = [...pendingUpdates];
-        newPendingUpdates[existing] = { field, value };
-        setPendingUpdates(newPendingUpdates);
-      } else {
-        setPendingUpdates([...pendingUpdates, { field, value }]);
-      }
+      addPendingChange({ recordWsId: currentRecord.id.wsId, field, value });
     },
-    [currentRecord, pendingUpdates],
+    [currentRecord, addPendingChange],
   );
   const handleFocusOnField = useCallback(
     (columnId: string | undefined) => {
@@ -123,7 +63,7 @@ export const RecordDetails = ({
         if (!hasSuggestion) return;
 
         try {
-          setSaving(true);
+          setSavingSuggestions(true);
           await acceptCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
           ScratchpadNotifications.success({
             title: 'Suggestion Accepted',
@@ -138,7 +78,7 @@ export const RecordDetails = ({
             message: error ? (error as Error).message : 'Unknown error',
           });
         } finally {
-          setSaving(false);
+          setSavingSuggestions(false);
         }
       };
 
@@ -147,7 +87,7 @@ export const RecordDetails = ({
         if (!hasSuggestion) return;
 
         try {
-          setSaving(true);
+          setSavingSuggestions(true);
           await rejectCellValues([{ wsId: currentRecord.id.wsId, columnId: field }]);
           ScratchpadNotifications.success({
             title: 'Suggestion Rejected',
@@ -162,10 +102,11 @@ export const RecordDetails = ({
             message: error.message,
           });
         } finally {
-          setSaving(false);
+          setSavingSuggestions(false);
         }
       };
 
+      const saving = savingSuggestions || savingPendingChanges;
       return (
         <DisplayField
           table={table}
@@ -182,7 +123,16 @@ export const RecordDetails = ({
         />
       );
     },
-    [currentRecord, saving, updateField, acceptCellValues, rejectCellValues, handleFocusOnField, currentView],
+    [
+      currentRecord,
+      savingSuggestions,
+      savingPendingChanges,
+      updateField,
+      acceptCellValues,
+      rejectCellValues,
+      handleFocusOnField,
+      currentView,
+    ],
   );
 
   if (currentRecord && currentColumn) {
@@ -196,12 +146,13 @@ export const RecordDetails = ({
   return (
     <Stack p={0}>
       <Box style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10 }}>
-        {saving && (
-          <Group gap="xs">
-            <Loader c="blue.6" size="xs" />
-            <TextRegularXs>Saving...</TextRegularXs>
-          </Group>
-        )}
+        {savingSuggestions ||
+          (savingPendingChanges && (
+            <Group gap="xs">
+              <Loader c="blue.6" size="xs" />
+              <TextRegularXs>Saving...</TextRegularXs>
+            </Group>
+          ))}
       </Box>
       {content}
     </Stack>

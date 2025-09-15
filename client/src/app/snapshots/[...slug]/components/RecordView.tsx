@@ -1,12 +1,9 @@
-import { TextTitleSm } from '@/app/components/base/text';
-import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Tabs, Text, Tooltip } from '@mantine/core';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
+import { FC, useCallback, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
@@ -19,16 +16,15 @@ interface RecordViewProps {
 export const RecordView: FC<RecordViewProps> = (props) => {
   const { table } = props;
 
-  const { activeRecord, switchToSpreadsheetView } = useTableContext();
+  const { activeRecord } = useTableContext();
 
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
-  const { setWriteFocus, setRecordScope, setColumnScope, setTableScope, dataScope } = useAgentChatContext();
+  const { setWriteFocus, setRecordScope, setColumnScope, dataScope } = useAgentChatContext();
   const [currentRecordId, setCurrentRecordId] = useState<string | undefined>(activeRecord?.recordId);
   const [currentColumnId, setCurrentColumnId] = useState<string | undefined>(activeRecord?.columnId);
-  const savePendingUpdatesRef = useRef<(() => Promise<void>) | null>(null);
 
-  const { records, isLoading, error, bulkUpdateRecords, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
+  const { records, isLoading, error, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
@@ -72,22 +68,6 @@ export const RecordView: FC<RecordViewProps> = (props) => {
     }
   }, [dataScope, currentColumnId, currentRecordId, records, setColumnScope, setRecordScope]);
 
-  const handleExitRecordView = useCallback(async () => {
-    // Save any pending updates before exiting
-    if (savePendingUpdatesRef.current) {
-      try {
-        await savePendingUpdatesRef.current();
-      } catch (error) {
-        console.error('Failed to save pending updates:', error);
-        // Optionally show a notification to the user
-      }
-    }
-
-    setWriteFocus([]);
-    setTableScope();
-    switchToSpreadsheetView();
-  }, [switchToSpreadsheetView, setTableScope, setWriteFocus]);
-
   if (error) {
     return (
       <Center h="100%">
@@ -118,14 +98,6 @@ export const RecordView: FC<RecordViewProps> = (props) => {
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
           <ScrollArea h="100%" type="hover" scrollbars="y">
             <Stack mih="calc(100vh - 105px)" gap="sm" p="xs" mr="xs" style={{ overflow: 'hidden' }}>
-              <Group gap="xs">
-                <Tooltip label="Return to Spreadsheet">
-                  <ActionIcon variant="subtle" color="gray" onClick={handleExitRecordView}>
-                    <StyledIcon Icon={ArrowLeftIcon} weight="bold" size={20} />
-                  </ActionIcon>
-                </Tooltip>
-                <TextTitleSm>Records</TextTitleSm>
-              </Group>
               <RecordList
                 records={records}
                 table={table}
@@ -158,14 +130,12 @@ export const RecordView: FC<RecordViewProps> = (props) => {
                     currentColumnId={currentColumnId}
                     acceptCellValues={acceptCellValues}
                     rejectCellValues={rejectCellValues}
-                    bulkUpdateRecord={bulkUpdateRecords}
                     onFocusOnField={(columnId) => {
                       if (columnId !== currentColumnId) {
                         setCurrentColumnId(columnId);
                         focusRecord(record, columnId);
                       }
                     }}
-                    onSavePendingUpdates={savePendingUpdatesRef}
                   />
                 </ScrollArea>
               </Tabs.Panel>
