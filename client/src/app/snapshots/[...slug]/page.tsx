@@ -21,10 +21,10 @@ import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/cont
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { tablesName } from '@/service-naming-conventions';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
-import { useDisclosure } from '@mantine/hooks';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
 import { RecordView } from './components/RecordView';
@@ -37,9 +37,9 @@ function SnapshotPageContent() {
   const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
   const { activeTable, setActiveTable, displayMode, switchToSpreadsheetView, switchToRecordView } = useTableContext();
   const router = useRouter();
+  const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
 
   const { snapshot, isLoading, currentViewId, viewDataAsAgent } = useSnapshotContext();
-  const [showChat, { toggle: toggleChat }] = useDisclosure(true);
 
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
@@ -156,14 +156,12 @@ function SnapshotPageContent() {
       </Group>
 
       <Group ml="auto" gap="xs" align="center">
-        <SnapshotActionsMenu aiChatOpen={showChat} onChatToggle={toggleChat} />
+        <SnapshotActionsMenu aiChatOpen={rightPanelOpened} onChatToggle={toggleRightPanel} />
       </Group>
     </Group>
   );
 
-  const aiChatPanel = activeTable ? (
-    <AIChatPanel isOpen={showChat} onClose={toggleChat} activeTable={activeTable} />
-  ) : null;
+  const aiChatPanel = activeTable ? <AIChatPanel activeTable={activeTable} /> : null;
   // const footer = (
   //   <Group justify="flex-start" align="center" h="100%">
   //     Footer - TODO

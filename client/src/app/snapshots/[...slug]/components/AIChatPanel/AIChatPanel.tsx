@@ -7,6 +7,7 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useStyleGuides } from '@/hooks/use-style-guide';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ColumnView } from '@/types/server-entities/view';
@@ -37,13 +38,14 @@ import {
   HeadCircuitIcon,
   PaperPlaneRightIcon,
   PlusIcon,
+  SidebarSimpleIcon,
   StopCircleIcon,
   TableIcon,
   TagSimpleIcon,
   TrashIcon,
   VinylRecordIcon,
-  XIcon,
 } from '@phosphor-icons/react';
+import _ from 'lodash';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BadgeWithTooltip } from '../../../../components/BadgeWithTooltip';
 import { TextTitleSm } from '../../../../components/base/text';
@@ -56,13 +58,12 @@ import { ResourceSelector } from './ResourceSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 
 interface AIChatPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
   activeTable: TableSpec | null;
 }
 
-export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPanelProps) {
+export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const { snapshot, currentView } = useSnapshotContext();
+  const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -304,7 +305,7 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     }
   };
 
-  if (!isOpen) return null;
+  if (!rightPanelOpened) return null;
 
   // combine the historical session data and the current websocket message history
   const chatHistory = [...(messageHistory || [])];
@@ -335,7 +336,14 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
     <SideBarContent>
       <SideBarContent.Header>
         <Group justify="space-between" align="center" wrap="nowrap" h="100%">
-          <TextTitleSm>{activeSession ? activeSession.name : 'Agent Chat'}</TextTitleSm>
+          <Group gap="2px">
+            <ActionIcon onClick={toggleRightPanel} size="sm" variant="subtle" title="Close chat">
+              <StyledIcon Icon={SidebarSimpleIcon} size={14} c="gray.7" />
+            </ActionIcon>
+            <TextTitleSm>
+              {activeSession ? _.truncate(activeSession.name, { length: 20, omission: '...' }) : 'Agent Chat'}
+            </TextTitleSm>
+          </Group>
           <Group gap="xs">
             {connectionBadge}
             <Tooltip label="New chat">
@@ -385,11 +393,6 @@ export default function AIChatPanel({ isOpen, onClose, activeTable }: AIChatPane
                 disabled={!activeSessionId}
               >
                 <TrashIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Close chat">
-              <ActionIcon onClick={onClose} size="sm" variant="subtle" title="Close chat">
-                <StyledIcon Icon={XIcon} size={14} c="gray.6" />
               </ActionIcon>
             </Tooltip>
           </Group>

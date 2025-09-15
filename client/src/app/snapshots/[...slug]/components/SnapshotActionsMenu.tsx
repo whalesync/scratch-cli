@@ -19,10 +19,10 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-  ChatIcon,
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
   PencilSimpleLineIcon,
+  SidebarSimpleIcon,
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
@@ -188,15 +188,13 @@ export const SnapshotActionsMenu = ({
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
-          <Menu.Label>{snapshot?.name}</Menu.Label>
-          <Menu.Divider />
           {aiChatOpen ? (
-            <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
-              Close AI Chat
+            <Menu.Item onClick={onChatToggle} leftSection={<SidebarSimpleIcon />}>
+              Close agent chat
             </Menu.Item>
           ) : (
-            <Menu.Item onClick={onChatToggle} leftSection={<ChatIcon />}>
-              Open AI Chat
+            <Menu.Item onClick={onChatToggle} leftSection={<SidebarSimpleIcon />}>
+              Open agent chat
             </Menu.Item>
           )}
           <Menu.Item
