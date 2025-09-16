@@ -1,5 +1,6 @@
 'use client';
 
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { aiAgentApi } from '@/lib/api/ai-agent';
 import { SWR_KEYS } from '@/lib/api/keys';
 import {
@@ -46,6 +47,9 @@ export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentS
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
 
+  // Get user data to check for agentJwt availability
+  const { user, isLoading: isLoadingUser } = useScratchPadUser();
+
   const {
     data: sessionListResponse,
     error: loadSessionListError,
@@ -55,6 +59,13 @@ export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentS
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   });
+
+  // Trigger session reload when agentJwt becomes available
+  useEffect(() => {
+    if (!isLoadingUser && user?.agentJwt) {
+      refreshSessions();
+    }
+  }, [isLoadingUser, user?.agentJwt, refreshSessions]);
 
   useEffect(() => {
     const reloadSession = async () => {
@@ -149,7 +160,7 @@ export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentS
 
   const contextValue: AIAgentSessionManagerContextValue = {
     sessions: sessionListResponse?.sessions ?? [],
-    isLoadingSessions,
+    isLoadingSessions: isLoadingSessions || isLoadingUser,
     loadSessionListError,
     activeSession,
     activeSessionId,

@@ -3,6 +3,13 @@ import { API_CONFIG } from "./config";
 
 export const aiAgentApi = {
   listSessions: async (snapshotId: string): Promise<SessionListResponse> => {
+    // Return empty array if JWT not set (no 401 error)
+    // If we reload the snapshot page we fetch sessions right away,
+    // so we need to return empty array if JWT not set and then force a reload
+    if (!API_CONFIG.getAgentJwt()) {
+      return { sessions: [] };
+    }
+    
     const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions/snapshot/${snapshotId}`, {
       method: "GET",
       headers: {
