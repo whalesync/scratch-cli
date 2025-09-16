@@ -2,6 +2,7 @@
 
 import { DataEditor } from '@glideapps/glide-data-grid';
 import { Box, Center, Loader, Stack, Text } from '@mantine/core';
+import { SuggestionToolbar } from '../SuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { FocusedCellsDebugModal } from './FocusedCellsDebugModal';
 import { ContextMenu } from './menus/ContextMenu';
@@ -26,6 +27,7 @@ export const SnapshotTableGridInternal = () => {
     onCellContextMenu,
     handleKeyDown,
     rowHeight,
+    table,
   } = useSnapshotTableGridContext();
 
   const drawCell = useDrawCell();
@@ -91,6 +93,7 @@ export const SnapshotTableGridInternal = () => {
             drawCell={drawCell}
             data-grid-container // Add this attribute to the grid container
           />
+          <SuggestionToolbar table={table} />
         </Stack>
       </Box>
 

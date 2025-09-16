@@ -1,0 +1,94 @@
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
+import { TextRegularXs } from '@/app/components/base/text';
+import MainContent from '@/app/components/layouts/MainContent';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { TableSpec } from '@/types/server-entities/snapshot';
+import { Group, Loader } from '@mantine/core';
+import pluralize from 'pluralize';
+import { JSX, useState } from 'react';
+import { useSnapshotContext } from './contexts/SnapshotContext';
+
+interface SuggestionToolbarProps {
+  table: TableSpec;
+}
+
+export const SuggestionToolbar = (props: SuggestionToolbarProps): JSX.Element | null => {
+  const { table } = props;
+  const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { totalSuggestions, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } = useSnapshotTableRecords({
+    snapshotId: snapshot?.id ?? '',
+    tableId: table.id.wsId,
+    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleAcceptAllSuggestions = async () => {
+    try {
+      setSaving(true);
+      const { recordsUpdated, totalChangesAccepted } = await acceptAllSuggestions();
+      ScratchpadNotifications.success({
+        title: 'Suggestions Accepted',
+        message: `Accepted ${totalChangesAccepted} ${pluralize('change', totalChangesAccepted)} for ${recordsUpdated} ${pluralize('record', recordsUpdated)} in the table`,
+      });
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error accepting all suggestions:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Accepting Suggestions',
+        message: error instanceof Error ? error.message : 'Failed to accept all suggestions',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRejectAllSuggestions = async () => {
+    try {
+      setSaving(true);
+      const { recordsRejected, totalChangesRejected } = await rejectAllSuggestions();
+      ScratchpadNotifications.success({
+        title: 'Suggestions Rejected',
+        message: `Rejected ${totalChangesRejected} ${pluralize('change', totalChangesRejected)} for ${recordsRejected} ${pluralize('record', recordsRejected)} in the table`,
+      });
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error accepting all suggestions:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Accepting Suggestions',
+        message: error instanceof Error ? error.message : 'Failed to reject all suggestions',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (totalSuggestions === 0) {
+    return null;
+  }
+
+  return (
+    <MainContent.Footer>
+      <Group h="100%" align="center">
+        {saving ? (
+          <>
+            <Loader size="xs" />
+            <TextRegularXs>Saving...</TextRegularXs>
+          </>
+        ) : (
+          <TextRegularXs style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+            {`//`} {totalSuggestions} {pluralize('change', totalSuggestions)} pending
+          </TextRegularXs>
+        )}
+        <Group ml="auto">
+          <RejectSuggestionButton size="xs" onClick={handleRejectAllSuggestions} loading={saving}>
+            Reject all
+          </RejectSuggestionButton>
+          <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions} loading={saving}>
+            Accept all
+          </AcceptSuggestionButton>
+        </Group>
+      </Group>
+    </MainContent.Footer>
+  );
+};
