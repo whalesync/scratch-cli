@@ -8,10 +8,17 @@ import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordList } from './record-details/RecordList';
+import { RecordSuggestionToolbar } from './RecordSuggestionToolbar';
 
 interface RecordViewProps {
   table: TableSpec;
 }
+
+const SUGGESTION_TOOLBAR_HEIGHT = 40;
+
+const getRecordViewHeight = (hasSuggestions: boolean) => {
+  return `calc(100vh - 105px ${hasSuggestions ? `-${SUGGESTION_TOOLBAR_HEIGHT}px` : ''})`;
+};
 
 export const RecordView: FC<RecordViewProps> = (props) => {
   const { table } = props;
@@ -83,45 +90,56 @@ export const RecordView: FC<RecordViewProps> = (props) => {
       </Center>
     );
   }
-  /**
-   * Layout is a bit wonky here due to the tabs and many divs.
-   * Need 50px for the tabs at the top
-   * Need 50px for the Views toolbar at the bottom (in a higher div)
-   * everything between needs to fill in
-   * Requires setting fixed height on the parent div and the hieght of scroll area with
-   * the record details
-   */
 
+  // Determine if there are suggestions and if we need to adjust the layout to make room for the suggestion toolbar
+  const currentRecord = records?.find((r) => r.id.wsId === currentRecordId);
+  const columnsWithSuggestions = Object.keys(currentRecord?.__suggested_values || {});
+  const hasSuggestions =
+    columnsWithSuggestions.length > 0 && (!currentColumnId || columnsWithSuggestions.includes(currentColumnId));
   return (
-    <Stack h="calc(100vh - 100px)" w="100%" gap={0} p={0}>
-      <Group gap={0} p={0} h="100%">
+    <Stack h="100%" w="100%" gap={0} p={0} style={{ position: 'relative' }}>
+      <Group
+        gap={0}
+        p={0}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: hasSuggestions ? `${SUGGESTION_TOOLBAR_HEIGHT}px` : '0',
+        }}
+      >
         <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
-          <ScrollArea h="100%" type="hover" scrollbars="y">
-            <Stack mih="calc(100vh - 105px)" gap="sm" p="xs" mr="xs" style={{ overflow: 'hidden' }}>
-              <RecordList
-                records={records}
-                table={table}
-                selectedRecordId={currentRecordId}
-                selectedFieldId={currentColumnId}
-                onSelect={(record, columnId) => {
-                  if (record.id.wsId !== currentRecordId) {
-                    setCurrentRecordId(record.id.wsId);
-                    focusRecord(record, currentColumnId);
-                  }
+          <Stack
+            mih={getRecordViewHeight(hasSuggestions)}
+            gap="sm"
+            p="xs"
+            mr="xs"
+            style={{ overflow: 'scroll', scrollBehavior: 'smooth' }}
+          >
+            <RecordList
+              records={records}
+              table={table}
+              selectedRecordId={currentRecordId}
+              selectedFieldId={currentColumnId}
+              onSelect={(record, columnId) => {
+                if (record.id.wsId !== currentRecordId) {
+                  setCurrentRecordId(record.id.wsId);
+                  focusRecord(record, currentColumnId);
+                }
 
-                  if (columnId !== currentColumnId) {
-                    setCurrentColumnId(columnId);
-                    focusRecord(record, columnId);
-                  }
-                }}
-              />
-            </Stack>
-          </ScrollArea>
+                if (columnId !== currentColumnId) {
+                  setCurrentColumnId(columnId);
+                  focusRecord(record, columnId);
+                }
+              }}
+            />
+          </Stack>
         </Stack>
         <Stack h="100%" gap="xs" flex={1}>
           <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem" bg="white">
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem">
                 <ScrollArea h="calc(100vh - 200px)" type="hover" scrollbars="y">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
@@ -143,6 +161,14 @@ export const RecordView: FC<RecordViewProps> = (props) => {
           </Tabs>
         </Stack>
       </Group>
+      {currentRecord && hasSuggestions && (
+        <RecordSuggestionToolbar
+          record={currentRecord}
+          table={table}
+          columnId={currentColumnId}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+        />
+      )}
     </Stack>
   );
 };

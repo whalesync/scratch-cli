@@ -67,26 +67,28 @@ The Scratchpaper client is hosted on Vercel and is automatically deployed with e
 
 ### Next.js
 
-Scratchpaper is built using [next.js](https://nextjs.org/docs).
+The Scratchpaper UI is built using [next.js](https://nextjs.org/docs)
+
+- Uses Next.js AppRouter
+- We are not using Server Side Rendering (SSR)
+  - `use client` should be added to all major components
 
 ### Component Libraries
 
-- Mantine
-- Phosphor Icons
+- [Mantine](https://mantine.dev/)
+- [Lucide Icons](https://lucide.dev/icons/)
 
-### TRPC (TODO)
-
-### SWR (TODO)
+### SWR
 
 Data is fetched and cached with the [SWR](https://swr.vercel.app/docs/data-fetching) library. It handles refetching on
 an interval, caching results across calls and between different code locations, and more.
 Read the docs!
 
-### Authentication (TODO)
+### Authentication
 
 Authentication is managed by Clerk, with only Google SSO enabled, using Clerk's SDK and Next.js components to sign-in. [docs here](https://clerk.com/docs/quickstarts/nextjs). Auth is provided by a combination of the ClerkProvider and the clerk middleware.
 
-Once a user signs in, we check if a Whalesync account exists, and create it if necessary.
+Once a user signs in, we check if a Scratchpaper account exists, and create it if necessary.
 
 ## Tips
 
