@@ -35,7 +35,7 @@ from logging import getLogger
 
 from scratchpad.api import ScratchpadApi
 
-from server.user_prompt_utils import build_snapshot_context
+from server.user_prompt_utils import build_snapshot_context, build_focus_context
 
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
@@ -56,25 +56,15 @@ class ChatService:
         self._session_service = session_service
         self._run_state_manager = AgentRunStateManager()
 
-    async def process_message_with_agent(
+    def _log_processing_start(
         self,
         session: ChatSession,
-        user_message: str,
-        user: AgentUser,
+        view_id: Optional[str],
+        capabilities: Optional[List[str]],
         style_guides: Dict[str, str],
-        model: Optional[str] = None,
-        view_id: Optional[str] = None,
-        read_focus: Optional[List[FocusedCell]] = None,
-        write_focus: Optional[List[FocusedCell]] = None,
-        capabilities: Optional[List[str]] = None,
-        active_table_id: Optional[str] = None,
-        data_scope: Optional[str] = None,
-        record_id: Optional[str] = None,
-        column_id: Optional[str] = None,
-        timeout_seconds: float = 60.0,
-        progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
-    ) -> ResponseFromAgent:
-        """Process a message with the agent and return the response"""
+        data_scope: Optional[str],
+    ) -> None:
+        """Log the start of agent processing with relevant context"""
         logger.info(
             "Starting agent processing",
             extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
@@ -111,7 +101,10 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
 
-        # Determine the API key to use for the agent
+    def _get_openrouter_api_key(
+        self, session: ChatSession, user: AgentUser
+    ) -> tuple[str, Optional[Any]]:
+        """Get the OpenRouter API key for the agent, handling user credentials and validation"""
         try:
             # load agent credentials for the user, this both verifies the api_token is active AND gets any
             # openrouter credentials for the user has access to
@@ -183,154 +176,208 @@ class ChatService:
                 status_code=401, detail="Unable to find an OpenRouter API key for agent"
             )
 
-        try:
-            # Create the full prompt with memory
-            full_prompt = f"RESPOND TO: {user_message}"
+        return api_key, user_open_router_credentials
 
-            # Log agent processing details
-            log_info(
-                "Agent processing summary",
-                session_id=session.id,
-                chat_history_length=len(session.chat_history),
-                summary_history_length=len(session.summary_history),
-                style_guides_count=len(style_guides) if style_guides else 0,
-                capabilities_count=len(capabilities) if capabilities else 0,
-                full_prompt_length=len(full_prompt),
-                user_message=user_message,
-                user_id=user.userId,
-                snapshot_id=session.snapshot_id,
+
+    def _load_snapshot_data(
+        self,
+        session: ChatSession,
+        user: AgentUser,
+        view_id: Optional[str],
+        active_table_id: Optional[str],
+        data_scope: Optional[str],
+        record_id: Optional[str],
+    ) -> tuple[Any, Dict[str, List[Dict]], Dict[str, int]]:
+        """Load snapshot data and preload records for efficiency"""
+        logger.info(
+            "Pre-loading snapshot data and records",
+        )
+        snapshot_data = None
+        column_view = None
+        preloaded_records = {}
+        filtered_counts = {}
+
+        if not session.snapshot_id:
+            raise HTTPException(status_code=500, detail="Snapshot ID must be provided to process the agent message.")
+       
+        try:
+            # Fetch snapshot details
+            snapshot_data = ScratchpadApi.get_snapshot(
+                user.userId, session.snapshot_id
+            )
+            try:
+                if view_id:
+                    logger.info(f"🔍 Getting column view {view_id}")
+                    column_view = ScratchpadApi.get_column_view(
+                        user.userId, view_id
+                    )
+                else:
+                    logger.info(
+                        f"🔍 No view ID provided, skipping column view",
+                    )
+            except Exception as e:
+                logger.exception(
+                    f"❌ Failed to get column view {view_id}",
+                )
+                column_view = None
+
+            snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
+                snapshot_data, session, column_view
             )
 
-            agent_run_id = str(uuid.uuid4())
+            # Pre-load records for each table
+            for table in snapshot.tables:
+                if active_table_id and active_table_id != table.id.wsId:
+                    continue
+
+                if record_id and (
+                    data_scope == "record" or data_scope == "column"
+                ):
+                    # just preload the one record form the table
+                    try:
+                        record = ScratchpadApi.get_record(
+                            user.userId,
+                            session.snapshot_id,
+                            table.id.wsId,
+                            record_id,
+                        )
+                        preloaded_records[table.name] = [
+                            {
+                                "id": {
+                                    "wsId": record.id.wsId,
+                                    "remoteId": record.id.remoteId,
+                                },
+                                "fields": record.fields,
+                                "suggested_fields": record.suggested_fields,
+                                "edited_fields": record.edited_fields,
+                                "dirty": record.dirty,
+                            }
+                        ]
+                        logger.info(
+                            f"📊 Pre-loaded {len(preloaded_records[table.name])} record for table '{table.name}': {record.id.wsId}"
+                        )
+                    except Exception as e:
+                        logger.exception(
+                            f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
+                        )
+                        preloaded_records[table.name] = []
+                else:
+                    try:
+                        records_result = ScratchpadApi.list_records_for_ai(
+                            user.userId,
+                            session.snapshot_id,
+                            table.id.wsId,
+                            view_id=view_id,
+                        )
+                        filtered_counts[table.name] = (
+                            records_result.filteredRecordsCount
+                        )
+                        preloaded_records[table.name] = [
+                            {
+                                "id": {
+                                    "wsId": record.id.wsId,
+                                    "remoteId": record.id.remoteId,
+                                },
+                                "fields": record.fields,
+                                "suggested_fields": record.suggested_fields,
+                                "edited_fields": record.edited_fields,
+                                "dirty": record.dirty,
+                            }
+                            for record in records_result.records
+                        ]
+                        logger.info(
+                            f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'"
+                        )
+                        if records_result.filteredRecordsCount > 0:
+                            logger.info(
+                                f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'"
+                            )
+                    except Exception as e:
+                        logger.exception(
+                            f"⚠️ Failed to pre-load records for table '{table.name}'"
+                        )
+                        preloaded_records[table.name] = []
+
+            logger.info(
+                "Data preload complete",
+            )
+        except Exception as e:
+            log_error(
+                "Failed to pre-load snapshot data",
+                session_id=session.id,
+                error=str(e),
+                snapshot_id=session.snapshot_id,
+            )
+            logger.exception(
+                f"❌ Failed to pre-load snapshot data",
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Error preloading snapshot data for agent",
+            )
+
+        return snapshot, preloaded_records, filtered_counts
+
+
+    async def process_message_with_agent(
+        self,
+        session: ChatSession,
+        user_message: str,
+        user: AgentUser,
+        style_guides: Dict[str, str],
+        model: Optional[str] = None,
+        view_id: Optional[str] = None,
+        read_focus: Optional[List[FocusedCell]] = None,
+        write_focus: Optional[List[FocusedCell]] = None,
+        capabilities: Optional[List[str]] = None,
+        active_table_id: Optional[str] = None,
+        data_scope: Optional[str] = None,
+        record_id: Optional[str] = None,
+        column_id: Optional[str] = None,
+        timeout_seconds: float = 60.0,
+        progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
+    ) -> ResponseFromAgent:
+        """Process a message with the agent and return the response"""
+        # Define noop callback if none provided
+        if progress_callback is None:
+            async def noop_callback(status: str, message: str, data: dict) -> None:
+                pass
+            progress_callback = noop_callback
+
+        self._log_processing_start(session, view_id, capabilities, style_guides, data_scope)
+
+        # Determine the API key to use for the agent
+        api_key, user_open_router_credentials = self._get_openrouter_api_key(session, user)
+
+        # Log agent processing details
+        log_info(
+            "Agent processing summary",
+            session_id=session.id,
+            chat_history_length=len(session.chat_history),
+            summary_history_length=len(session.summary_history),
+            style_guides_count=len(style_guides) if style_guides else 0,
+            capabilities_count=len(capabilities) if capabilities else 0,
+            # full_prompt_length=len(full_prompt),
+            user_message=user_message,
+            user_id=user.userId,
+            snapshot_id=session.snapshot_id,
+        )
+
+
+        try:
+            # Create the full prompt with memory
+
+            
+            
 
             try:
                 # Pre-load snapshot data and records for efficiency
-                logger.info(
-                    "Pre-loading snapshot data and records",
+                snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
+                    session, user, view_id, active_table_id, data_scope, record_id
                 )
-                snapshot_data = None
-                column_view = None
-                preloaded_records = {}
-                filtered_counts = {}
-
-                if session.snapshot_id and user:
-                    try:
-                        # Fetch snapshot details
-                        snapshot_data = ScratchpadApi.get_snapshot(
-                            user.userId, session.snapshot_id
-                        )
-                        try:
-                            if view_id:
-                                logger.info(f"🔍 Getting column view {view_id}")
-                                column_view = ScratchpadApi.get_column_view(
-                                    user.userId, view_id
-                                )
-                            else:
-                                logger.info(
-                                    f"🔍 No view ID provided, skipping column view",
-                                )
-                        except Exception as e:
-                            logger.exception(
-                                f"❌ Failed to get column view {view_id}",
-                            )
-                            column_view = None
-
-                        snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
-                            snapshot_data, session, column_view
-                        )
-
-                        # Pre-load records for each table
-                        for table in snapshot.tables:
-                            if active_table_id and active_table_id != table.id.wsId:
-                                continue
-
-                            if record_id and (
-                                data_scope == "record" or data_scope == "column"
-                            ):
-                                # just preload the one record form the table
-                                try:
-                                    record = ScratchpadApi.get_record(
-                                        user.userId,
-                                        session.snapshot_id,
-                                        table.id.wsId,
-                                        record_id,
-                                    )
-                                    preloaded_records[table.name] = [
-                                        {
-                                            "id": {
-                                                "wsId": record.id.wsId,
-                                                "remoteId": record.id.remoteId,
-                                            },
-                                            "fields": record.fields,
-                                            "suggested_fields": record.suggested_fields,
-                                            "edited_fields": record.edited_fields,
-                                            "dirty": record.dirty,
-                                        }
-                                    ]
-                                    logger.info(
-                                        f"📊 Pre-loaded {len(preloaded_records[table.name])} record for table '{table.name}': {record.id.wsId}"
-                                    )
-                                except Exception as e:
-                                    logger.exception(
-                                        f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
-                                    )
-                                    preloaded_records[table.name] = []
-                            else:
-                                try:
-                                    records_result = ScratchpadApi.list_records_for_ai(
-                                        user.userId,
-                                        session.snapshot_id,
-                                        table.id.wsId,
-                                        view_id=view_id,
-                                    )
-                                    filtered_counts[table.name] = (
-                                        records_result.filteredRecordsCount
-                                    )
-                                    preloaded_records[table.name] = [
-                                        {
-                                            "id": {
-                                                "wsId": record.id.wsId,
-                                                "remoteId": record.id.remoteId,
-                                            },
-                                            "fields": record.fields,
-                                            "suggested_fields": record.suggested_fields,
-                                            "edited_fields": record.edited_fields,
-                                            "dirty": record.dirty,
-                                        }
-                                        for record in records_result.records
-                                    ]
-                                    logger.info(
-                                        f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'"
-                                    )
-                                    if records_result.filteredRecordsCount > 0:
-                                        logger.info(
-                                            f"🚫 {records_result.filteredRecordsCount} records are filtered out for table '{table.name}'"
-                                        )
-                                except Exception as e:
-                                    logger.exception(
-                                        f"⚠️ Failed to pre-load records for table '{table.name}'"
-                                    )
-                                    preloaded_records[table.name] = []
-
-                        logger.info(
-                            "Data preload complete",
-                        )
-                    except Exception as e:
-                        log_error(
-                            "Failed to pre-load snapshot data",
-                            session_id=session.id,
-                            error=str(e),
-                            snapshot_id=session.snapshot_id,
-                        )
-                        logger.exception(
-                            f"❌ Failed to pre-load snapshot data",
-                        )
-                        raise HTTPException(
-                            status_code=500,
-                            detail="Error preloading snapshot data for agent",
-                        )
 
                 # Create context with pre-loaded data
+                agent_run_id = str(uuid.uuid4())
                 chatRunContext: ChatRunContext = ChatRunContext(
                     run_id=agent_run_id,
                     session=session,
@@ -352,14 +399,11 @@ class ChatService:
                     agent_run_id,
                 )
 
-                if progress_callback:
-                    await progress_callback(
-                        "run_started",
-                        f"Run started with ID {agent_run_id}",
-                        {
-                            "run_id": agent_run_id,
-                        },
-                    )
+                await progress_callback(
+                    "run_started",
+                    f"Run started with ID {agent_run_id}",
+                    {"run_id": agent_run_id},
+                )
 
                 # Prepare records and filtered counts for the utility function
                 preloaded_records = chatRunContext.preloaded_records
@@ -374,43 +418,24 @@ class ChatService:
                     column_id=column_id,
                 )
 
-                # Update the full prompt with snapshot data
-                full_prompt = f"RESPOND TO: {user_message} {snapshot_context}"
-
                 # Add focus cells information to the prompt if they exist
-                if read_focus or write_focus:
-                    focus_context = "\n\nFOCUS CELLS:\n"
+                focus_context = build_focus_context(read_focus, write_focus)
 
-                    if read_focus:
-                        focus_context += "Read Focus Cells:\n"
-                        for cell in read_focus:
-                            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
-                        focus_context += "\n"
 
-                    if write_focus:
-                        focus_context += "Write Focus Cells:\n"
-                        for cell in write_focus:
-                            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
-                        focus_context += "\n"
+                full_prompt = f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
 
-                    full_prompt += focus_context
-
-                if progress_callback:
-                    if (
-                        user_open_router_credentials
-                        and user_open_router_credentials.apiKey
-                    ):
-                        await progress_callback(
-                            "status",
-                            f"Creating agent using the {model} model with user OpenRouter credentials",
-                            {},
-                        )
-                    else:
-                        await progress_callback(
-                            "status",
-                            f"Creating agent using the {model} model",
-                            {},
-                        )
+                if (user_open_router_credentials and user_open_router_credentials.apiKey):
+                    await progress_callback(
+                        "status",
+                        f"Creating agent using the {model} model with user OpenRouter credentials",
+                        {},
+                    )
+                else:
+                    await progress_callback(
+                        "status",
+                        f"Creating agent using the {model} model",
+                        {},
+                    )
 
                 agent = create_agent(
                     api_key=api_key,

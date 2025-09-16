@@ -1,6 +1,6 @@
 from logging import getLogger
 from typing import Dict, Any, List, Optional
-from agents.data_agent.models import SnapshotForAi
+from agents.data_agent.models import SnapshotForAi, FocusedCell
 from agents.data_agent.data_agent_utils import format_records_for_prompt
 
 logger = getLogger(__name__)
@@ -105,3 +105,37 @@ def build_snapshot_context(
     logger.debug(f"Snapshot context: {snapshot_context}")
 
     return snapshot_context
+
+
+def build_focus_context(
+    read_focus: Optional[List[FocusedCell]] = None,
+    write_focus: Optional[List[FocusedCell]] = None,
+) -> str:
+    """
+    Build focus context string for inclusion in prompts.
+
+    Args:
+        read_focus: List of cells that should be read-focused
+        write_focus: List of cells that should be write-focused
+
+    Returns:
+        Formatted focus context string, or empty string if no focus cells
+    """
+    if not read_focus and not write_focus:
+        return ""
+
+    focus_context = "\n\nFOCUS CELLS:\n"
+
+    if read_focus:
+        focus_context += "Read Focus Cells:\n"
+        for cell in read_focus:
+            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+        focus_context += "\n"
+
+    if write_focus:
+        focus_context += "Write Focus Cells:\n"
+        for cell in write_focus:
+            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+        focus_context += "\n"
+
+    return focus_context
