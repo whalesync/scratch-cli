@@ -143,7 +143,7 @@ class ChatService:
             )
             raise HTTPException(
                 status_code=500,
-                detail="Error authenticating credentials for agent processing",
+                detail="Error authenticating credentials for agent processing. Please try again or contact support if the problem persists.",
             )
 
         require_user_agent_credentials = (
@@ -448,99 +448,101 @@ class ChatService:
                                         "between processing nodes",
                                     )
 
-                                if progress_callback:
-                                    if Agent.is_user_prompt_node(node):
-                                        # A user prompt node => The user has provided input
-                                        # await progress_callback(f"User prompt constructed")
-                                        continue
-                                    elif Agent.is_model_request_node(node):
-                                        # A model request node => We can stream tokens from the model's request
-                                        await progress_callback(
-                                            "status", f"Request sent to {model}", {}
-                                        )
+                                if not progress_callback:
+                                    continue
 
-                                        async with node.stream(
-                                            agent_run.ctx
-                                        ) as request_stream:
-                                            async for event in request_stream:
-                                                # check cancel status
-                                                if await self._run_state_manager.is_cancelled(
-                                                    agent_run_id
+                                if Agent.is_user_prompt_node(node):
+                                    # A user prompt node => The user has provided input
+                                    # await progress_callback(f"User prompt constructed")
+                                    continue
+                                elif Agent.is_model_request_node(node):
+                                    # A model request node => We can stream tokens from the model's request
+                                    await progress_callback(
+                                        "status", f"Request sent to {model}", {}
+                                    )
+
+                                    async with node.stream(
+                                        agent_run.ctx
+                                    ) as request_stream:
+                                        async for event in request_stream:
+                                            # check cancel status
+                                            if await self._run_state_manager.is_cancelled(
+                                                agent_run_id
+                                            ):
+                                                raise AgentRunCancelledError(
+                                                    "Run cancelled",
+                                                    agent_run_id,
+                                                    "while waiting for model response",
+                                                )
+
+                                elif Agent.is_call_tools_node(node):
+                                    # A handle-response node => The model returned some data, potentially calls a tool
+
+                                    async with node.stream(
+                                        agent_run.ctx
+                                    ) as handle_stream:
+                                        async for event in handle_stream:
+                                            if await self._run_state_manager.is_cancelled(
+                                                agent_run_id
+                                            ):
+                                                raise AgentRunCancelledError(
+                                                    "Run cancelled",
+                                                    agent_run_id,
+                                                    "while processing tool result",
+                                                )
+
+                                            if isinstance(
+                                                event, FunctionToolCallEvent
+                                            ):
+                                                if isinstance(
+                                                    event.part, ToolCallPart
                                                 ):
-                                                    raise AgentRunCancelledError(
-                                                        "Run cancelled",
-                                                        agent_run_id,
-                                                        "while waiting for model response",
+                                                    await progress_callback(
+                                                        "tool_call",
+                                                        f"Tool call {event.part.tool_name!r}",
+                                                        {
+                                                            "tool_call_id": event.tool_call_id,
+                                                            "tool_name": event.part.tool_name,
+                                                            "args": event.part.args,
+                                                        },
                                                     )
 
-                                    elif Agent.is_call_tools_node(node):
-                                        # A handle-response node => The model returned some data, potentially calls a tool
-
-                                        async with node.stream(
-                                            agent_run.ctx
-                                        ) as handle_stream:
-                                            async for event in handle_stream:
-                                                if await self._run_state_manager.is_cancelled(
-                                                    agent_run_id
+                                            elif isinstance(
+                                                event, FunctionToolResultEvent
+                                            ):
+                                                tool_name = (
+                                                    event.result.tool_name
+                                                    if event.result
+                                                    and event.result.tool_name
+                                                    else "unknown tool"
+                                                )
+                                                if isinstance(
+                                                    event.result, RetryPromptPart
                                                 ):
-                                                    raise AgentRunCancelledError(
-                                                        "Run cancelled",
-                                                        agent_run_id,
-                                                        "while processing tool result",
+                                                    await progress_callback(
+                                                        "tool_call",
+                                                        f"Retrying tool {tool_name!r}",
+                                                        {
+                                                            "tool_call_id": event.tool_call_id,
+                                                            "tool_name": tool_name,
+                                                            "content": event.result.content,
+                                                        },
                                                     )
 
                                                 if isinstance(
-                                                    event, FunctionToolCallEvent
+                                                    event.result, ToolReturnPart
                                                 ):
-                                                    if isinstance(
-                                                        event.part, ToolCallPart
-                                                    ):
-                                                        await progress_callback(
-                                                            "tool_call",
-                                                            f"Tool call {event.part.tool_name!r}",
-                                                            {
-                                                                "tool_call_id": event.tool_call_id,
-                                                                "tool_name": event.part.tool_name,
-                                                                "args": event.part.args,
-                                                            },
-                                                        )
-
-                                                elif isinstance(
-                                                    event, FunctionToolResultEvent
-                                                ):
-                                                    tool_name = (
-                                                        event.result.tool_name
-                                                        if event.result
-                                                        and event.result.tool_name
-                                                        else "unknown tool"
+                                                    await progress_callback(
+                                                        "tool_result",
+                                                        f"Tool call {tool_name!r} returned",
+                                                        {
+                                                            "tool_call_id": event.tool_call_id,
+                                                            "tool_name": tool_name,
+                                                            "content": event.result.content,
+                                                        },
                                                     )
-                                                    if isinstance(
-                                                        event.result, RetryPromptPart
-                                                    ):
-                                                        await progress_callback(
-                                                            "tool_call",
-                                                            f"Retrying tool {tool_name!r}",
-                                                            {
-                                                                "tool_call_id": event.tool_call_id,
-                                                                "tool_name": tool_name,
-                                                                "content": event.result.content,
-                                                            },
-                                                        )
 
-                                                    if isinstance(
-                                                        event.result, ToolReturnPart
-                                                    ):
-                                                        await progress_callback(
-                                                            "tool_result",
-                                                            f"Tool call {tool_name!r} returned",
-                                                            {
-                                                                "tool_call_id": event.tool_call_id,
-                                                                "tool_name": tool_name,
-                                                                "content": event.result.content,
-                                                            },
-                                                        )
-
-                                    elif Agent.is_end_node(node):
+                                elif Agent.is_end_node(node):
                                         await progress_callback(
                                             "status",
                                             f"Constructing final agent response",
@@ -637,7 +639,7 @@ class ChatService:
                     snapshot_id=session.snapshot_id,
                 )
                 logger.info(f"❌ No response from agent")
-                raise HTTPException(status_code=500, detail="No response from agent")
+                raise HTTPException(status_code=500, detail="No response from agent. Please try again or switch to a different model if the problem persists.")
 
             # Check if actual_response has the expected fields using getattr for safety
             try:
@@ -708,7 +710,7 @@ class ChatService:
                 )
                 logger.info(f"❌ Invalid response from agent: {result}")
                 raise HTTPException(
-                    status_code=500, detail="Invalid response from agent"
+                    status_code=500, detail="Invalid response from agent. Please try again or switch to a different model if the problem persists."
                 )
 
         except Exception as e:
@@ -719,14 +721,7 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
             logger.exception(f"Error in agent processing")
-            if "Connection error." in str(e):
-                raise HTTPException(
-                    status_code=401, detail="Connection error or invalid API key."
-                )
-            else:
-                raise HTTPException(
-                    status_code=500, detail=f"Error processing message: {str(e)}"
-                )
+            raise e;
 
     async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
         """Cancel a run"""

@@ -7,6 +7,7 @@ import time
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic_ai.exceptions import UserError
 
 from session import ChatMessage, ChatSession, RequestAndResponseSummary
 from server.DTOs import (
@@ -20,9 +21,13 @@ from server.chat_service import ChatService
 from server.session_service import SessionService
 from server.auth import AgentUser, get_current_user
 from logger import log_info, log_error
+from server.exception_mapping import exception_mapping
 from logging import getLogger
 
 myLogger = getLogger(__name__)
+
+
+
 
 # Create router
 router = APIRouter(tags=["chat"])
@@ -288,9 +293,7 @@ async def send_message(
             f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
         )
         # Don't update the session if there was an error
-        raise HTTPException(
-            status_code=500, detail=f"Error processing message: {str(e)}"
-        )
+        raise exception_mapping(e)
 
 
 @router.delete("/sessions/{session_id}")

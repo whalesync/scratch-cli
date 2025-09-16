@@ -18,6 +18,8 @@ from server.session_service import SessionService
 from logger import log_info, log_error
 from logging import getLogger
 from server.auth import decode_and_validate_agent_jwt
+from server.exception_mapping import exception_mapping
+
 
 logger = getLogger(__name__)
 
@@ -392,12 +394,13 @@ async def websocket_endpoint(
                         f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
                     )
                     # Don't update the session if there was an error
+                    mapped_error = exception_mapping(e)
                     await manager.send_personal_message(
                         json.dumps(
                             {
                                 "type": "agent_error",
                                 "data": {
-                                    "detail": str(e),
+                                    "detail": str(mapped_error.detail),
                                 },
                                 "timestamp": datetime.now().isoformat(),
                             }
