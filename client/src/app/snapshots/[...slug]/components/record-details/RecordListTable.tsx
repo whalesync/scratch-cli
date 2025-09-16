@@ -12,29 +12,31 @@ interface RecordListTableProps {
   w?: StyleProp<React.CSSProperties['width']>;
 }
 
+const ID_COLUMN_WIDTH = '30%';
+const TITLE_COLUMN_WIDTH = '70%';
+
 export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w }: RecordListTableProps) => {
   const titleColumnId = identifyRecordTitleColumn(table);
 
   const rows = records?.map((record) => {
     const isSelected = selectedRecordId === record.id.wsId;
     return (
-      <Table.Tr
-        key={record.id.wsId}
-        onClick={() => onSelect(record)}
-        style={{ cursor: 'pointer' }}
-        bg={isSelected ? 'gray.0' : 'transparent'}
-      >
-        <Table.Td w="40%" style={{ textTransform: 'uppercase' }}>
-          {_.truncate(record.id.wsId, { length: 12, omission: '...' })}
+      <Table.Tr key={record.id.wsId} onClick={() => onSelect(record)} style={{ cursor: 'pointer' }}>
+        <Table.Td w={ID_COLUMN_WIDTH} style={{ textTransform: 'uppercase' }}>
+          <TextRegularSm fw={isSelected ? 'bold' : 'normal'}>
+            {_.truncate(record.id.wsId, { length: 12, omission: '...' })}
+          </TextRegularSm>
         </Table.Td>
-        <Table.Td w="60%">
-          {_.truncate(record.fields[titleColumnId] as string, { length: 100, omission: '...' })}
+        <Table.Td w={TITLE_COLUMN_WIDTH}>
+          <TextRegularSm fw={isSelected ? 'bold' : 'normal'}>
+            {_.truncate(record.fields[titleColumnId] as string, { length: 100, omission: '...' })}
+          </TextRegularSm>
         </Table.Td>
       </Table.Tr>
     );
   });
   return (
-    <Table w={w} highlightOnHover withColumnBorders stickyHeader highlightOnHoverColor="gray.5">
+    <Table w={w} highlightOnHover withColumnBorders>
       <Table.Tbody>{rows}</Table.Tbody>
     </Table>
   );
@@ -54,10 +56,10 @@ export const RecordListTableHeader = ({
     <Table withColumnBorders w={w}>
       <Table.Thead>
         <Table.Tr>
-          <Table.Td w="40%">
+          <Table.Td w={ID_COLUMN_WIDTH}>
             <TextRegularSm>ID</TextRegularSm>
           </Table.Td>
-          <Table.Td w="60%">
+          <Table.Td w={TITLE_COLUMN_WIDTH}>
             <TextRegularSm style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularSm>
           </Table.Td>
         </Table.Tr>
