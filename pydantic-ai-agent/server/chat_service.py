@@ -5,22 +5,12 @@ Chat Service for handling agent communication and session management
 
 import asyncio
 import os
-import time
+from tkinter import E
 import uuid
-from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
-from pydantic_ai.exceptions import UserError
-from pydantic_ai.usage import UsageLimits
-from pydantic_ai import Agent
 from pydantic_ai.usage import RunUsage
-from pydantic_ai.messages import (
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    ToolCallPart,
-    RetryPromptPart,
-    ToolReturnPart,
-)
+
 from agents.data_agent.models import (
     ChatRunContext,
     ChatSession,
@@ -36,6 +26,7 @@ from logging import getLogger
 from scratchpad.api import ScratchpadApi
 
 from server.user_prompt_utils import build_snapshot_context, build_focus_context
+from server.agent_stream_processor import process_agent_stream, CancelledAgentRunResult, AgentRunCancelledError
 
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
@@ -338,7 +329,7 @@ class ChatService:
         progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
         """Process a message with the agent and return the response"""
-        # Define noop callback if none provided
+        # Define noop callback if none provided so that we don't have to check for None everywhere
         if progress_callback is None:
             async def noop_callback(status: str, message: str, data: dict) -> None:
                 pass
@@ -363,351 +354,146 @@ class ChatService:
             snapshot_id=session.snapshot_id,
         )
 
+        agent_run_id = str(uuid.uuid4())
 
+        # PRE-RUN
         try:
-            # Create the full prompt with memory
+            # Pre-load snapshot data and records for efficiency
+            snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
+                session, user, view_id, active_table_id, data_scope, record_id
+            )
 
+            # Create context with pre-loaded data
             
-            
+            chatRunContext: ChatRunContext = ChatRunContext(
+                run_id=agent_run_id,
+                session=session,
+                user_id=user.userId,
+                view_id=view_id,
+                snapshot=snapshot,
+                read_focus=read_focus,
+                write_focus=write_focus,
+                preloaded_records=preloaded_records,
+                active_table_id=active_table_id,
+                data_scope=data_scope,
+                record_id=record_id,
+                column_id=column_id,
+            )
 
-            try:
-                # Pre-load snapshot data and records for efficiency
-                snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
-                    session, user, view_id, active_table_id, data_scope, record_id
-                )
 
-                # Create context with pre-loaded data
-                agent_run_id = str(uuid.uuid4())
-                chatRunContext: ChatRunContext = ChatRunContext(
-                    run_id=agent_run_id,
-                    session=session,
-                    user_id=user.userId,
-                    view_id=view_id,
-                    snapshot=snapshot,
-                    read_focus=read_focus,
-                    write_focus=write_focus,
-                    preloaded_records=preloaded_records,
-                    active_table_id=active_table_id,
-                    data_scope=data_scope,
-                    record_id=record_id,
-                    column_id=column_id,
-                )
 
-                # Store the chat context so it can be accessed by the cancel system
-                await self._run_state_manager.start_run(
-                    session.id,
-                    agent_run_id,
-                )
+            await progress_callback(
+                "run_started",
+                f"Run started with ID {agent_run_id}",
+                {"run_id": agent_run_id},
+            )
 
+            # Prepare records and filtered counts for the utility function
+            preloaded_records = chatRunContext.preloaded_records
+
+            snapshot_context = build_snapshot_context(
+                snapshot=snapshot,
+                preloaded_records=preloaded_records,
+                filtered_counts=filtered_counts,
+                data_scope=data_scope,
+                active_table_id=active_table_id,
+                record_id=record_id,
+                column_id=column_id,
+            )
+
+            # Add focus cells information to the prompt if they exist
+            focus_context = build_focus_context(read_focus, write_focus)
+
+
+            full_prompt = f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
+
+            if (user_open_router_credentials and user_open_router_credentials.apiKey):
                 await progress_callback(
-                    "run_started",
-                    f"Run started with ID {agent_run_id}",
-                    {"run_id": agent_run_id},
+                    "status",
+                    f"Creating agent using the {model} model with user OpenRouter credentials",
+                    {},
+                )
+            else:
+                await progress_callback(
+                    "status",
+                    f"Creating agent using the {model} model",
+                    {},
                 )
 
-                # Prepare records and filtered counts for the utility function
-                preloaded_records = chatRunContext.preloaded_records
+            agent = create_agent(
+                api_key=api_key,
+                model_name=model,
+                capabilities=capabilities,
+                style_guides=style_guides,
+                data_scope=data_scope,
+            )
 
-                snapshot_context = build_snapshot_context(
-                    snapshot=snapshot,
-                    preloaded_records=preloaded_records,
-                    filtered_counts=filtered_counts,
-                    data_scope=data_scope,
-                    active_table_id=active_table_id,
-                    record_id=record_id,
-                    column_id=column_id,
-                )
+            # Store the chat context so it can be accessed by the cancel system
+            await self._run_state_manager.start_run(
+                session.id,
+                agent_run_id,
+            )
 
-                # Add focus cells information to the prompt if they exist
-                focus_context = build_focus_context(read_focus, write_focus)
+            # Run the streaming with timeout
+            logger.info(
+                "Running agent with timeout",
+                extra={
+                    "session_id": session.id,
+                    "timeout_seconds": timeout_seconds,
+                },
+            )
+            
+            start_time = asyncio.get_event_loop().time()
+            result = await asyncio.wait_for(
+                process_agent_stream(
+                    agent=agent,
+                    full_prompt=full_prompt,
+                    chat_run_context=chatRunContext,
+                    session=session,
+                    agent_run_id=agent_run_id,
+                    model=model,
+                    run_state_manager=self._run_state_manager,
+                    progress_callback=progress_callback,
+                ),
+                timeout=timeout_seconds
+            )
+            end_time = asyncio.get_event_loop().time()
+            execution_time = end_time - start_time
+            logger.info(
+                f"Agent run ended: session_id={session.id}, execution_time={execution_time}"
+            )
+        except asyncio.TimeoutError:
+            log_error(
+                "Agent processing timeout",
+                session_id=session.id,
+                timeout_seconds=30,
+                snapshot_id=session.snapshot_id,
+            )
+            logger.info(f"❌ Agent.run() timed out after 30 seconds")
+            raise HTTPException(status_code=408, detail="Agent response timeout")
+        finally:
+            await self._run_state_manager.delete_run(agent_run_id)
 
+        # The agent returns an AgentRunResult wrapper, we need to extract the actual response
+        
 
-                full_prompt = f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
+        logger.info(f"🔍 Agent result: {type(result)}")
 
-                if (user_open_router_credentials and user_open_router_credentials.apiKey):
-                    await progress_callback(
-                        "status",
-                        f"Creating agent using the {model} model with user OpenRouter credentials",
-                        {},
-                    )
-                else:
-                    await progress_callback(
-                        "status",
-                        f"Creating agent using the {model} model",
-                        {},
-                    )
+        if isinstance(result, CancelledAgentRunResult):
 
-                agent = create_agent(
-                    api_key=api_key,
-                    model_name=model,
-                    capabilities=capabilities,
-                    style_guides=style_guides,
-                    data_scope=data_scope,
-                )
+            cancelled_result: CancelledAgentRunResult = result
+            # cancelled by user, handle as a special response to the caller
+            logger.info(f"Build response for cancelled run {agent_run_id}")
 
-                result = None
-
-                # Runs the agent in streaming mode so we can wrap it in the timeout function blow
-                # Final result will get set into the result above
-                async def process_stream():
-                    nonlocal result
-                    try:
-                        async with agent.iter(
-                            full_prompt,
-                            deps=chatRunContext,
-                            message_history=session.message_history,
-                            usage_limits=UsageLimits(
-                                request_limit=10,  # Maximum 20 requests per agent run
-                                # request_tokens_limit=10000,  # Maximum 10k tokens per request
-                                # response_tokens_limit=5000,  # Maximum 5k tokens per response
-                                # total_tokens_limit=15000  # Maximum 15k tokens total
-                            ),
-                        ) as agent_run:
-                            async for node in agent_run:
-                                if await self._run_state_manager.is_cancelled(
-                                    agent_run_id
-                                ):
-                                    raise AgentRunCancelledError(
-                                        "Run cancelled",
-                                        agent_run_id,
-                                        "between processing nodes",
-                                    )
-
-                                if not progress_callback:
-                                    continue
-
-                                if Agent.is_user_prompt_node(node):
-                                    # A user prompt node => The user has provided input
-                                    # await progress_callback(f"User prompt constructed")
-                                    continue
-                                elif Agent.is_model_request_node(node):
-                                    # A model request node => We can stream tokens from the model's request
-                                    await progress_callback(
-                                        "status", f"Request sent to {model}", {}
-                                    )
-
-                                    async with node.stream(
-                                        agent_run.ctx
-                                    ) as request_stream:
-                                        async for event in request_stream:
-                                            # check cancel status
-                                            if await self._run_state_manager.is_cancelled(
-                                                agent_run_id
-                                            ):
-                                                raise AgentRunCancelledError(
-                                                    "Run cancelled",
-                                                    agent_run_id,
-                                                    "while waiting for model response",
-                                                )
-
-                                elif Agent.is_call_tools_node(node):
-                                    # A handle-response node => The model returned some data, potentially calls a tool
-
-                                    async with node.stream(
-                                        agent_run.ctx
-                                    ) as handle_stream:
-                                        async for event in handle_stream:
-                                            if await self._run_state_manager.is_cancelled(
-                                                agent_run_id
-                                            ):
-                                                raise AgentRunCancelledError(
-                                                    "Run cancelled",
-                                                    agent_run_id,
-                                                    "while processing tool result",
-                                                )
-
-                                            if isinstance(
-                                                event, FunctionToolCallEvent
-                                            ):
-                                                if isinstance(
-                                                    event.part, ToolCallPart
-                                                ):
-                                                    await progress_callback(
-                                                        "tool_call",
-                                                        f"Tool call {event.part.tool_name!r}",
-                                                        {
-                                                            "tool_call_id": event.tool_call_id,
-                                                            "tool_name": event.part.tool_name,
-                                                            "args": event.part.args,
-                                                        },
-                                                    )
-
-                                            elif isinstance(
-                                                event, FunctionToolResultEvent
-                                            ):
-                                                tool_name = (
-                                                    event.result.tool_name
-                                                    if event.result
-                                                    and event.result.tool_name
-                                                    else "unknown tool"
-                                                )
-                                                if isinstance(
-                                                    event.result, RetryPromptPart
-                                                ):
-                                                    await progress_callback(
-                                                        "tool_call",
-                                                        f"Retrying tool {tool_name!r}",
-                                                        {
-                                                            "tool_call_id": event.tool_call_id,
-                                                            "tool_name": tool_name,
-                                                            "content": event.result.content,
-                                                        },
-                                                    )
-
-                                                if isinstance(
-                                                    event.result, ToolReturnPart
-                                                ):
-                                                    await progress_callback(
-                                                        "tool_result",
-                                                        f"Tool call {tool_name!r} returned",
-                                                        {
-                                                            "tool_call_id": event.tool_call_id,
-                                                            "tool_name": tool_name,
-                                                            "content": event.result.content,
-                                                        },
-                                                    )
-
-                                elif Agent.is_end_node(node):
-                                        await progress_callback(
-                                            "status",
-                                            f"Constructing final agent response",
-                                            {},
-                                        )
-
-                            result = agent_run.result
-                            await self._run_state_manager.complete_run(agent_run_id)
-                    except AgentRunCancelledError as e:
-                        logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
-                        result = CancelledAgentRunResult(
-                            agent_run.usage() if agent_run.usage else None
-                        )
-
-                # Run the streaming with timeout
-                logger.info(
-                    "Running agent with timeout",
-                    extra={
-                        "session_id": session.id,
-                        "timeout_seconds": timeout_seconds,
-                    },
-                )
-
-                start_time = asyncio.get_event_loop().time()
-                await asyncio.wait_for(process_stream(), timeout=timeout_seconds)
-                end_time = asyncio.get_event_loop().time()
-                execution_time = end_time - start_time
-                logger.info(
-                    f"Agent run ended: session_id={session.id}, execution_time={execution_time}"
-                )
-            except asyncio.TimeoutError:
-                log_error(
-                    "Agent processing timeout",
-                    session_id=session.id,
-                    timeout_seconds=30,
-                    snapshot_id=session.snapshot_id,
-                )
-                logger.info(f"❌ Agent.run() timed out after 30 seconds")
-                raise HTTPException(status_code=408, detail="Agent response timeout")
-            finally:
-                await self._run_state_manager.delete_run(agent_run_id)
-
-            # The agent returns an AgentRunResult wrapper, we need to extract the actual response
-            logger.info(f"🔍 Agent result: {type(result)}")
-
-            if isinstance(result, CancelledAgentRunResult):
-
-                cancelled_result: CancelledAgentRunResult = result
-                # cancelled by user, handle as a special response to the caller
-                logger.info(f"Build response for cancelled run {agent_run_id}")
-
-                if cancelled_result.usage_stats.requests > 0:
-                    try:
-                        ScratchpadApi.track_token_usage(
-                            user.userId,
-                            model,
-                            cancelled_result.usage_stats.requests,
-                            cancelled_result.usage_stats.request_tokens,
-                            cancelled_result.usage_stats.response_tokens,
-                            cancelled_result.usage_stats.total_tokens,
-                            usage_context={
-                                "session_id": session.id,
-                                "snapshot_id": session.snapshot_id,
-                                "active_table_id": active_table_id,
-                                "data_scope": data_scope,
-                                "record_id": record_id,
-                                "column_id": column_id,
-                                "agent_credentials": (
-                                    "user" if user_open_router_credentials else "system"
-                                ),
-                                "cancelled_by_user": True,
-                            },
-                        )
-                    except Exception as e:
-                        logger.exception(
-                            f"❌ Failed to track token usage through Scratchpaper API"
-                        )
-
-                return ResponseFromAgent(
-                    response_message="Request cancelled by user",
-                    response_summary="Request cancelled by user",
-                    request_summary="Request cancelled by user",
-                    usage_stats=cancelled_result.usage_stats,
-                )
-
-            session.message_history = result.all_messages()
-
-            # Extract the actual response from the AgentRunResult
-            actual_response = extract_response(result, ResponseFromAgent)
-            if not actual_response:
-                log_error(
-                    "No response from agent",
-                    session_id=session.id,
-                    snapshot_id=session.snapshot_id,
-                )
-                logger.info(f"❌ No response from agent")
-                raise HTTPException(status_code=500, detail="No response from agent. Please try again or switch to a different model if the problem persists.")
-
-            # Check if actual_response has the expected fields using getattr for safety
-            try:
-                response_message = getattr(actual_response, "response_message", None)
-                response_summary = getattr(actual_response, "response_summary", None)
-                request_summary = getattr(actual_response, "request_summary", None)
-
-                has_expected_fields = (
-                    actual_response
-                    and response_message is not None
-                    and response_summary is not None
-                    and request_summary is not None
-                )
-            except:
-                has_expected_fields = False
-
-            if has_expected_fields:
-                log_info(
-                    "Agent response summary info",
-                    session_id=session.id,
-                    response_length=len(response_message),  # type: ignore
-                    response_summary_length=len(response_summary),  # type: ignore
-                    request_summary_length=len(request_summary),  # type: ignore
-                    snapshot_id=session.snapshot_id,
-                )
-
-                usage: RunUsage = result.usage()
-                if usage:
-                    actual_response.usage_stats = UsageStats(
-                        requests=usage.requests,
-                        request_tokens=usage.input_tokens,
-                        response_tokens=usage.output_tokens,
-                        total_tokens=usage.input_tokens + usage.output_tokens,
-                    )
-
+            if cancelled_result.usage_stats.requests > 0:
                 try:
                     ScratchpadApi.track_token_usage(
                         user.userId,
                         model,
-                        usage.requests,
-                        usage.input_tokens,
-                        usage.output_tokens,
-                        usage.input_tokens + usage.output_tokens,
+                        cancelled_result.usage_stats.requests,
+                        cancelled_result.usage_stats.request_tokens,
+                        cancelled_result.usage_stats.response_tokens,
+                        cancelled_result.usage_stats.total_tokens,
                         usage_context={
                             "session_id": session.id,
                             "snapshot_id": session.snapshot_id,
@@ -718,6 +504,7 @@ class ChatService:
                             "agent_credentials": (
                                 "user" if user_open_router_credentials else "system"
                             ),
+                            "cancelled_by_user": True,
                         },
                     )
                 except Exception as e:
@@ -725,8 +512,87 @@ class ChatService:
                         f"❌ Failed to track token usage through Scratchpaper API"
                     )
 
-                return actual_response
-            else:
+            return ResponseFromAgent(
+                response_message="Request cancelled by user",
+                response_summary="Request cancelled by user",
+                request_summary="Request cancelled by user",
+                usage_stats=cancelled_result.usage_stats,
+            )
+
+        session.message_history = result.all_messages()
+
+        # Extract the actual response from the AgentRunResult
+        actual_response = extract_response(result, ResponseFromAgent)
+        if not actual_response:
+            log_error(
+                "No response from agent",
+                session_id=session.id,
+                snapshot_id=session.snapshot_id,
+            )
+            logger.info(f"❌ No response from agent")
+            raise HTTPException(status_code=500, detail="No response from agent. Please try again or switch to a different model if the problem persists.")
+
+        # Check if actual_response has the expected fields using getattr for safety
+        try:
+            response_message = getattr(actual_response, "response_message", None)
+            response_summary = getattr(actual_response, "response_summary", None)
+            request_summary = getattr(actual_response, "request_summary", None)
+
+            has_expected_fields = (
+                actual_response
+                and response_message is not None
+                and response_summary is not None
+                and request_summary is not None
+            )
+        except:
+            has_expected_fields = False
+
+        if has_expected_fields:
+            log_info(
+                "Agent response summary info",
+                session_id=session.id,
+                response_length=len(response_message),  # type: ignore
+                response_summary_length=len(response_summary),  # type: ignore
+                request_summary_length=len(request_summary),  # type: ignore
+                snapshot_id=session.snapshot_id,
+            )
+
+            usage: RunUsage = result.usage()
+            if usage:
+                actual_response.usage_stats = UsageStats(
+                    requests=usage.requests,
+                    request_tokens=usage.input_tokens,
+                    response_tokens=usage.output_tokens,
+                    total_tokens=usage.input_tokens + usage.output_tokens,
+                )
+
+            try:
+                ScratchpadApi.track_token_usage(
+                    user.userId,
+                    model,
+                    usage.requests,
+                    usage.input_tokens,
+                    usage.output_tokens,
+                    usage.input_tokens + usage.output_tokens,
+                    usage_context={
+                        "session_id": session.id,
+                        "snapshot_id": session.snapshot_id,
+                        "active_table_id": active_table_id,
+                        "data_scope": data_scope,
+                        "record_id": record_id,
+                        "column_id": column_id,
+                        "agent_credentials": (
+                            "user" if user_open_router_credentials else "system"
+                        ),
+                    },
+                )
+            except Exception as e:
+                logger.exception(
+                    f"❌ Failed to track token usage through Scratchpaper API"
+                )
+
+            return actual_response
+        else:
                 log_error(
                     "Invalid agent response",
                     session_id=session.id,
@@ -738,15 +604,7 @@ class ChatService:
                     status_code=500, detail="Invalid response from agent. Please try again or switch to a different model if the problem persists."
                 )
 
-        except Exception as e:
-            log_error(
-                "Agent processing error",
-                session_id=session.id,
-                error=str(e),
-                snapshot_id=session.snapshot_id,
-            )
-            logger.exception(f"Error in agent processing")
-            raise e;
+
 
     async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
         """Cancel a run"""
@@ -765,28 +623,5 @@ class ChatService:
         return "Run cancelled"
 
 
-class CancelledAgentRunResult:
-    """Result for a cancelled agent run"""
-
-    def __init__(self, usage: RunUsage):
-        self.usage_stats = UsageStats(
-            requests=usage.requests if usage and usage.requests else 0,
-            request_tokens=(usage.input_tokens if usage and usage.input_tokens else 0),
-            response_tokens=(
-                usage.output_tokens if usage and usage.output_tokens else 0
-            ),
-            total_tokens=(
-                usage.input_tokens + usage.output_tokens
-                if usage and usage.input_tokens and usage.output_tokens
-                else 0
-            ),
-        )
 
 
-class AgentRunCancelledError(UserError):
-    """Error raised when an agent run is cancelled"""
-
-    def __init__(self, message: str, run_id: str, when: str):
-        super().__init__(message)
-        self.run_id = run_id
-        self.when = when
