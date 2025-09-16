@@ -7,7 +7,7 @@ import { FC, useCallback, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
-import { RecordList } from './record-details/RecordList';
+import { RecordListTable, RecordListTableHeader } from './record-details/RecordListTable';
 import { RecordSuggestionToolbar } from './RecordSuggestionToolbar';
 
 interface RecordViewProps {
@@ -17,7 +17,7 @@ interface RecordViewProps {
 const SUGGESTION_TOOLBAR_HEIGHT = 40;
 
 const getRecordViewHeight = (hasSuggestions: boolean) => {
-  return `calc(100vh - 105px ${hasSuggestions ? `-${SUGGESTION_TOOLBAR_HEIGHT}px` : ''})`;
+  return `calc(100vh - 150px ${hasSuggestions ? `-${SUGGESTION_TOOLBAR_HEIGHT}px` : ''})`;
 };
 
 export const RecordView: FC<RecordViewProps> = (props) => {
@@ -109,15 +109,16 @@ export const RecordView: FC<RecordViewProps> = (props) => {
           bottom: hasSuggestions ? `${SUGGESTION_TOOLBAR_HEIGHT}px` : '0',
         }}
       >
-        <Stack h="100%" w="20%" style={{ borderRight: '1px solid #e0e0e0' }}>
+        <Stack h="100%" w="20%" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
+          <RecordListTableHeader table={table} />
           <Stack
             mih={getRecordViewHeight(hasSuggestions)}
-            gap="sm"
-            p="xs"
-            mr="xs"
+            gap="0"
+            p="0"
             style={{ overflow: 'scroll', scrollBehavior: 'smooth' }}
           >
-            <RecordList
+            <RecordListTable
+              w="100%"
               records={records}
               table={table}
               selectedRecordId={currentRecordId}

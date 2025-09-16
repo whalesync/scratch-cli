@@ -137,7 +137,26 @@ export function formatFieldValue(value: unknown, column: ColumnSpec): string {
   return String(value);
 }
 
+const commonTitleColumnPatterns = [
+  'title',
+  'name',
+  'subject',
+  'summary',
+];
+
+export function identifyRecordTitleColumn(table: TableSpec): string {
+  for (const column of table.columns) {
+    if (commonTitleColumnPatterns.includes(column.name.toLowerCase()) || commonTitleColumnPatterns.includes(column.id.wsId.toLowerCase())) {
+      return column.id.wsId;
+    }
+  }
+  // If no title column is found, return the first column that isn't the ID column
+  return table.columns.find((column) => column.id.wsId !== 'id')?.id.wsId ?? table.columns[0].id.wsId;
+}
+
+
 export function buildRecordTitle(record: SnapshotRecord): string {
+
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
