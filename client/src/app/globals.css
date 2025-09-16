@@ -1,14 +1,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1; /* fix for Chrome */
 }
-
-/* @media (prefers-color-scheme: dark) {
+@supports (font-variation-settings: normal) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    font-family: InterVariable, sans-serif;
   }
-} */
+}
 
 html,
 body {

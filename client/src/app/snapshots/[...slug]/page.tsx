@@ -3,7 +3,8 @@
 import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotTableContext } from '@/types/server-entities/snapshot';
 import { Button, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
-import { ArrowLeftIcon, FileTextIcon, TableIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { FileText, Table } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
@@ -134,18 +135,17 @@ function SnapshotPageContent() {
           <Button
             variant={displayMode === 'spreadsheet' ? 'outline' : 'transparent'}
             size="xs"
-            leftSection={<TableIcon size={12} />}
+            leftSection={<Table size={12} />}
             onClick={() => switchToSpreadsheetView()}
             c={displayMode === 'spreadsheet' ? 'gray.7' : 'gray.5'}
             color={displayMode === 'spreadsheet' ? 'gray.7' : 'gray.5'}
           >
             Table
           </Button>
-
           <Button
             variant={displayMode === 'record' ? 'outline' : 'transparent'}
             size="xs"
-            leftSection={<FileTextIcon size={12} />}
+            leftSection={<FileText size={12} />}
             onClick={() => switchToRecordView(records?.[0]?.id.wsId ?? '')}
             c={displayMode === 'record' ? 'gray.7' : 'gray.5'}
             color={displayMode === 'record' ? 'gray.7' : 'gray.5'}

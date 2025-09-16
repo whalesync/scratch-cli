@@ -25,6 +25,7 @@
     "@uiw/react-md-editor": "^4.0.7",
     "diff": "^8.0.2",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.544.0",
     "marked": "^15.0.12",
     "next": "15.3.4",
     "pluralize": "^8.0.0",
