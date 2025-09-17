@@ -1,6 +1,6 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { StyleProp, Table } from '@mantine/core';
+import { StyleProp, Table, Tooltip } from '@mantine/core';
 import _ from 'lodash';
 
 interface RecordListTableProps {
@@ -20,6 +20,9 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
 
   const rows = records?.map((record) => {
     const isSelected = selectedRecordId === record.id.wsId;
+
+    const title = record.fields[titleColumnId] as string;
+    const truncatedTitle = _.truncate(title, { length: 30, omission: '...' });
     return (
       <Table.Tr key={record.id.wsId} onClick={() => onSelect(record)} style={{ cursor: 'pointer' }}>
         <Table.Td miw={ID_COLUMN_WIDTH} style={{ textTransform: 'uppercase' }}>
@@ -27,16 +30,16 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
             {_.truncate(record.id.wsId, { length: 8, omission: '...' })}
           </TextRegularXs>
         </Table.Td>
-        <Table.Td miw={TITLE_COLUMN_WIDTH}>
-          <TextRegularXs fw={isSelected ? 'bold' : 'normal'}>
-            {_.truncate(record.fields[titleColumnId] as string, { length: 100, omission: '...' })}
-          </TextRegularXs>
+        <Table.Td miw={TITLE_COLUMN_WIDTH} style={{ textWrap: 'nowrap' }}>
+          <Tooltip label={title} disabled={title === truncatedTitle} position="right" withArrow>
+            <TextRegularXs fw={isSelected ? 'bold' : 'normal'}>{truncatedTitle}</TextRegularXs>
+          </Tooltip>
         </Table.Td>
       </Table.Tr>
     );
   });
   return (
-    <Table w={w} highlightOnHover withColumnBorders>
+    <Table w={w} highlightOnHover withColumnBorders withRowBorders withTableBorder>
       <Table.Tbody>{rows}</Table.Tbody>
     </Table>
   );
@@ -53,7 +56,7 @@ export const RecordListTableHeader = ({
   const titleColumnName = table.columns.find((column) => column.id.wsId === titleColumnId)?.name ?? 'Title';
 
   return (
-    <Table withColumnBorders w={w}>
+    <Table withColumnBorders w={w} withRowBorders={false} withTableBorder={false}>
       <Table.Tr>
         <Table.Tr>
           <Table.Td miw={ID_COLUMN_WIDTH}>

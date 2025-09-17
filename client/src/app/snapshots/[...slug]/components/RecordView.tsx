@@ -115,7 +115,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
             mih={getRecordViewHeight(hasSuggestions)}
             gap="0"
             p="0"
-            style={{ overflow: 'scroll', scrollBehavior: 'smooth' }}
+            style={{ overflowY: 'scroll', overflowX: 'hidden', scrollBehavior: 'smooth' }}
           >
             <RecordListTable
               records={records}
