@@ -19,7 +19,7 @@ interface DisplayFieldProps {
   table: TableSpec;
   record: SnapshotRecord;
   columnId: string;
-  mode: 'normal' | 'focus';
+  mode: 'multiple' | 'single';
   align?: React.CSSProperties['alignItems'];
   currentView?: ColumnView;
   updateField: (columnId: string, value: string) => void;
@@ -182,7 +182,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const suggestedValue = record.__suggested_values?.[columnId] as string;
 
   if (isLargeTextColumn(column, currentValue)) {
-    if (mode === 'normal') {
+    if (mode === 'multiple') {
       return (
         <FieldRow
           fieldName={column.name}

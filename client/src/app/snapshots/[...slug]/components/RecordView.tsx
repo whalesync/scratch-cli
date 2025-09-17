@@ -1,12 +1,13 @@
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { identifyRecordTitleColumn, TableSpec } from '@/types/server-entities/snapshot';
 import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { FC, useCallback, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
+import { RecordDetailsHeader } from './record-details/RecordDetailsHeader';
 import { RecordListTable, RecordListTableHeader } from './record-details/RecordListTable';
 import { RecordSuggestionToolbar } from './RecordSuggestionToolbar';
 
@@ -38,7 +39,10 @@ export const RecordView: FC<RecordViewProps> = (props) => {
   });
 
   const focusRecord = useCallback(
-    (record: SnapshotRecord, columnId?: string) => {
+    (recordId: string, columnId?: string) => {
+      const record = records?.find((r) => r.id.wsId === recordId);
+      if (!record) return;
+
       const cells = columnId
         ? [{ recordWsId: record.id.wsId, columnWsId: columnId }]
         : Object.keys(record.fields).map((field) => ({ recordWsId: record.id.wsId, columnWsId: field }));
@@ -52,16 +56,19 @@ export const RecordView: FC<RecordViewProps> = (props) => {
         updateSnapshotPath(snapshot?.id ?? '', table.id.wsId, record.id.wsId);
       }
     },
-    [setWriteFocus, setColumnScope, updateSnapshotPath, snapshot?.id, table.id.wsId, setRecordScope],
+    [setWriteFocus, setColumnScope, updateSnapshotPath, snapshot?.id, table.id.wsId, setRecordScope, records],
   );
 
   useEffect(() => {
     if (!currentRecordId && records && records?.length > 0) {
       const record = records[0];
       setCurrentRecordId(record.id.wsId);
-      focusRecord(record);
+
+      const titleColumnId = identifyRecordTitleColumn(table);
+      setCurrentColumnId(titleColumnId);
+      focusRecord(record.id.wsId, titleColumnId);
     }
-  }, [records, currentRecordId, focusRecord]);
+  }, [records, currentRecordId, focusRecord, table]);
 
   useEffect(() => {
     if (dataScope === 'table') {
@@ -74,6 +81,33 @@ export const RecordView: FC<RecordViewProps> = (props) => {
       }
     }
   }, [dataScope, currentColumnId, currentRecordId, records, setColumnScope, setRecordScope]);
+
+  const handleSwitchColumn = useCallback(
+    (recordId: string, columnId: string | undefined) => {
+      console.log('handleSwitchColumn', recordId, columnId);
+      if (columnId !== currentColumnId) {
+        setCurrentColumnId(columnId);
+        focusRecord(recordId, columnId);
+      }
+    },
+    [focusRecord, setCurrentColumnId, currentColumnId],
+  );
+
+  const handleSwitchRecord = useCallback(
+    (recordId: string, columnId?: string) => {
+      console.log('handleSwitchRecord', recordId, columnId);
+      if (recordId !== currentRecordId) {
+        setCurrentRecordId(recordId);
+        focusRecord(recordId, currentColumnId);
+      }
+
+      if (columnId !== currentColumnId) {
+        setCurrentColumnId(columnId);
+        focusRecord(recordId, columnId);
+      }
+    },
+    [focusRecord, setCurrentRecordId, setCurrentColumnId, currentColumnId, currentRecordId],
+  );
 
   if (error) {
     return (
@@ -110,7 +144,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
         }}
       >
         <Stack h="100%" w="300px" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
-          <RecordListTableHeader table={table} />
+          <RecordListTableHeader table={table} h="36px" />
           <Stack
             mih={getRecordViewHeight(hasSuggestions)}
             gap="0"
@@ -122,25 +156,27 @@ export const RecordView: FC<RecordViewProps> = (props) => {
               table={table}
               selectedRecordId={currentRecordId}
               selectedFieldId={currentColumnId}
-              onSelect={(record, columnId) => {
-                if (record.id.wsId !== currentRecordId) {
-                  setCurrentRecordId(record.id.wsId);
-                  focusRecord(record, currentColumnId);
-                }
-
-                if (columnId !== currentColumnId) {
-                  setCurrentColumnId(columnId);
-                  focusRecord(record, columnId);
-                }
+              onSelect={(record) => {
+                handleSwitchRecord(record.id.wsId, currentColumnId);
               }}
             />
           </Stack>
         </Stack>
         <Stack h="100%" gap="xs" flex={1}>
+          {currentRecordId && currentColumnId && (
+            <RecordDetailsHeader
+              h="36px"
+              table={table}
+              columnId={currentColumnId}
+              onSwitchColumn={(columnId) => {
+                handleSwitchColumn(currentRecordId, columnId);
+              }}
+            />
+          )}
           <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
               <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem">
-                <ScrollArea h="calc(100vh - 200px)" type="hover" scrollbars="y">
+                <ScrollArea h="calc(100vh - 240px)" type="hover" scrollbars="y">
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
                     currentRecord={record}
@@ -149,10 +185,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
                     acceptCellValues={acceptCellValues}
                     rejectCellValues={rejectCellValues}
                     onFocusOnField={(columnId) => {
-                      if (columnId !== currentColumnId) {
-                        setCurrentColumnId(columnId);
-                        focusRecord(record, columnId);
-                      }
+                      handleSwitchColumn(record.id.wsId, columnId);
                     }}
                   />
                 </ScrollArea>

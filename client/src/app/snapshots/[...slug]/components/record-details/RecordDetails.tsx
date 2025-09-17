@@ -113,7 +113,7 @@ export const RecordDetails = ({
           record={currentRecord}
           columnId={field}
           key={field}
-          mode={focusedView ? 'focus' : 'normal'}
+          mode={focusedView ? 'single' : 'multiple'}
           updateField={updateField}
           onFieldLabelClick={() => handleFocusOnField(focusedView ? undefined : field)}
           onAcceptSuggestion={handleAcceptSuggestion}

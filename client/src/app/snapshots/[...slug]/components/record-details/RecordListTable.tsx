@@ -1,6 +1,6 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { StyleProp, Table, Tooltip } from '@mantine/core';
+import { Box, StyleProp, Table, Tooltip } from '@mantine/core';
 import _ from 'lodash';
 
 interface RecordListTableProps {
@@ -48,16 +48,18 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
 export const RecordListTableHeader = ({
   table,
   w,
+  h,
 }: {
   table: TableSpec;
   w?: StyleProp<React.CSSProperties['width']>;
+  h?: StyleProp<React.CSSProperties['height']>;
 }) => {
   const titleColumnId = identifyRecordTitleColumn(table);
   const titleColumnName = table.columns.find((column) => column.id.wsId === titleColumnId)?.name ?? 'Title';
 
   return (
-    <Table withColumnBorders w={w} withRowBorders={false} withTableBorder={false}>
-      <Table.Tr>
+    <Box w={w} h={h} p="0" m="0" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
+      <Table withColumnBorders withRowBorders={false} withTableBorder={false}>
         <Table.Tr>
           <Table.Td miw={ID_COLUMN_WIDTH}>
             <TextRegularXs>ID</TextRegularXs>
@@ -66,7 +68,7 @@ export const RecordListTableHeader = ({
             <TextRegularXs style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularXs>
           </Table.Td>
         </Table.Tr>
-      </Table.Tr>
-    </Table>
+      </Table>
+    </Box>
   );
 };
