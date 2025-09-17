@@ -22,7 +22,6 @@ import {
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
   PencilSimpleLineIcon,
-  SidebarSimpleIcon,
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
@@ -31,13 +30,7 @@ import pluralize from 'pluralize';
 import { useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 
-export const SnapshotActionsMenu = ({
-  aiChatOpen,
-  onChatToggle,
-}: {
-  aiChatOpen: boolean;
-  onChatToggle: () => void;
-}) => {
+export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
@@ -188,15 +181,6 @@ export const SnapshotActionsMenu = ({
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
-          {aiChatOpen ? (
-            <Menu.Item onClick={onChatToggle} leftSection={<SidebarSimpleIcon />}>
-              Close agent chat
-            </Menu.Item>
-          ) : (
-            <Menu.Item onClick={onChatToggle} leftSection={<SidebarSimpleIcon />}>
-              Open agent chat
-            </Menu.Item>
-          )}
           <Menu.Item
             disabled={menuItemsDisabled}
             onClick={() => modalStack.open('rename')}

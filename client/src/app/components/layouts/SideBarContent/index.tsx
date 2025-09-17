@@ -1,6 +1,8 @@
-import { Box, Paper, Stack } from '@mantine/core';
-import { JSX } from 'react';
+import { Box, MantineStyleProps, Paper, Stack } from '@mantine/core';
+import { JSX, PropsWithChildren } from 'react';
 import classes from './SideBarContent.module.css';
+
+type ChildrenWithStyleProps = PropsWithChildren & MantineStyleProps;
 
 const SideBarContent = ({ children }: { children: React.ReactNode }): JSX.Element => {
   return (
@@ -17,17 +19,17 @@ const SideBarContent = ({ children }: { children: React.ReactNode }): JSX.Elemen
   );
 };
 
-const SideBarContentHeader = ({ children }: { children: React.ReactNode }): JSX.Element => {
+const SideBarContentHeader = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="40px" className={classes.sideBarHeader}>
+    <Box h="40px" className={classes.sideBarHeader} {...styleProps}>
       {children}
     </Box>
   );
 };
 
-const SideBarContentBody = ({ children }: { children: React.ReactNode }): JSX.Element => {
+const SideBarContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Stack h="100%" w="100%" className={classes.sideBarBody} flex={1}>
+    <Stack h="100%" w="100%" className={classes.sideBarBody} flex={1} {...styleProps}>
       {children}
     </Stack>
   );

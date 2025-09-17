@@ -1,10 +1,9 @@
-.pill {
+.badge {
   border: 1px solid var(--mantine-color-gray-4);
   border-radius: 0px;
-  cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
-.pill:hover {
+.badge:hover {
   border-color: var(--mantine-color-primary-6);
 }

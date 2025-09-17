@@ -1,8 +1,9 @@
 'use client';
 
+import { TextRegularXs } from '@/app/components/base/text';
 import { Capability } from '@/types/server-entities/chat-session';
-import { ActionIcon, Button, Checkbox, Divider, Group, Modal, Stack, Text } from '@mantine/core';
-import { Gear } from '@phosphor-icons/react';
+import { Button, Checkbox, Divider, Group, Modal, Stack, Text } from '@mantine/core';
+import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 
 interface CapabilitiesPickerProps {
@@ -53,14 +54,18 @@ export default function CapabilitiesPicker({
   return (
     <>
       {/* Summary Display */}
-      <Group gap="xs" align="center">
-        <Text size="xs" c="dimmed">
-          {selectedCapabilities.length} / {availableCapabilities.length} Capabilities enabled
-        </Text>
-        <ActionIcon onClick={() => setIsOpen(true)} size="sm" variant="subtle" title="Configure capabilities">
-          <Gear size={14} />
-        </ActionIcon>
-      </Group>
+      <Button
+        variant="transparent"
+        onClick={() => setIsOpen(true)}
+        size="xs"
+        c="gray.6"
+        rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
+        styles={{ root: { border: 'none' } }}
+      >
+        <TextRegularXs c="dimmed">
+          {selectedCapabilities.length} / {availableCapabilities.length} Tools
+        </TextRegularXs>
+      </Button>
 
       {/* Modal */}
       <Modal opened={isOpen} onClose={handleCancel} title="Configure Capabilities" size="sm" zIndex={1003}>

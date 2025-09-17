@@ -138,6 +138,8 @@ export const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
   const bgColor = msg.role === 'user' ? 'blue.0' : 'white';
   const borderColor = msg.variant === 'error' ? '1px solid red' : '1px solid transparent';
   const alignment = msg.role === 'user' ? 'flex-end' : 'flex-start';
+  const maxWidth = msg.role === 'user' ? '90%' : '100%';
+  const padding = msg.role === 'user' ? '4px' : '0px';
 
   let content = null;
   if (msg.role === 'user') {
@@ -152,15 +154,15 @@ export const ChatMessageElement = ({ msg }: { msg: ChatMessage }) => {
 
   return (
     <Paper
-      p="xs"
+      p={padding}
       bg={bgColor}
       bd={borderColor}
       style={{
         alignSelf: alignment,
-        maxWidth: '90%',
+        maxWidth: maxWidth,
       }}
     >
-      <Stack gap="6px">
+      <Stack gap="4px">
         {content}
         <Text c="dimmed" fz="8px" ta="right">
           {timeAgo(msg.timestamp)}

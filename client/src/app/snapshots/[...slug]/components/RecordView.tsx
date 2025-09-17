@@ -109,7 +109,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
           bottom: hasSuggestions ? `${SUGGESTION_TOOLBAR_HEIGHT}px` : '0',
         }}
       >
-        <Stack h="100%" w="20%" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
+        <Stack h="100%" w="300px" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
           <RecordListTableHeader table={table} />
           <Stack
             mih={getRecordViewHeight(hasSuggestions)}
@@ -118,7 +118,6 @@ export const RecordView: FC<RecordViewProps> = (props) => {
             style={{ overflow: 'scroll', scrollBehavior: 'smooth' }}
           >
             <RecordListTable
-              w="100%"
               records={records}
               table={table}
               selectedRecordId={currentRecordId}

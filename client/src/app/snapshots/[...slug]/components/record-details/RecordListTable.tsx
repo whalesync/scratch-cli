@@ -1,4 +1,4 @@
-import { TextRegularSm } from '@/app/components/base/text';
+import { TextRegularXs } from '@/app/components/base/text';
 import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { StyleProp, Table } from '@mantine/core';
 import _ from 'lodash';
@@ -12,8 +12,8 @@ interface RecordListTableProps {
   w?: StyleProp<React.CSSProperties['width']>;
 }
 
-const ID_COLUMN_WIDTH = '30%';
-const TITLE_COLUMN_WIDTH = '70%';
+const ID_COLUMN_WIDTH = '80px'; // 30%
+const TITLE_COLUMN_WIDTH = `220px`; // 70%
 
 export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w }: RecordListTableProps) => {
   const titleColumnId = identifyRecordTitleColumn(table);
@@ -22,15 +22,15 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
     const isSelected = selectedRecordId === record.id.wsId;
     return (
       <Table.Tr key={record.id.wsId} onClick={() => onSelect(record)} style={{ cursor: 'pointer' }}>
-        <Table.Td w={ID_COLUMN_WIDTH} style={{ textTransform: 'uppercase' }}>
-          <TextRegularSm fw={isSelected ? 'bold' : 'normal'}>
-            {_.truncate(record.id.wsId, { length: 12, omission: '...' })}
-          </TextRegularSm>
+        <Table.Td miw={ID_COLUMN_WIDTH} style={{ textTransform: 'uppercase' }}>
+          <TextRegularXs fw={isSelected ? 'bold' : 'normal'}>
+            {_.truncate(record.id.wsId, { length: 8, omission: '...' })}
+          </TextRegularXs>
         </Table.Td>
-        <Table.Td w={TITLE_COLUMN_WIDTH}>
-          <TextRegularSm fw={isSelected ? 'bold' : 'normal'}>
+        <Table.Td miw={TITLE_COLUMN_WIDTH}>
+          <TextRegularXs fw={isSelected ? 'bold' : 'normal'}>
             {_.truncate(record.fields[titleColumnId] as string, { length: 100, omission: '...' })}
-          </TextRegularSm>
+          </TextRegularXs>
         </Table.Td>
       </Table.Tr>
     );
@@ -54,16 +54,16 @@ export const RecordListTableHeader = ({
 
   return (
     <Table withColumnBorders w={w}>
-      <Table.Thead>
+      <Table.Tr>
         <Table.Tr>
-          <Table.Td w={ID_COLUMN_WIDTH}>
-            <TextRegularSm>ID</TextRegularSm>
+          <Table.Td miw={ID_COLUMN_WIDTH}>
+            <TextRegularXs>ID</TextRegularXs>
           </Table.Td>
-          <Table.Td w={TITLE_COLUMN_WIDTH}>
-            <TextRegularSm style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularSm>
+          <Table.Td miw={TITLE_COLUMN_WIDTH}>
+            <TextRegularXs style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularXs>
           </Table.Td>
         </Table.Tr>
-      </Table.Thead>
+      </Table.Tr>
     </Table>
   );
 };

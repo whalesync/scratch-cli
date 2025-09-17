@@ -1,10 +1,9 @@
 import { TextRegularXs } from '@/app/components/base/text';
-import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { ChatSessionSummary } from '@/types/server-entities/chat-session';
 import { timeAgo } from '@/utils/helpers';
-import { ActionIcon, Combobox, Group, Text, Tooltip, useCombobox } from '@mantine/core';
-import { ClockCounterClockwiseIcon } from '@phosphor-icons/react';
+import { ActionIcon, Combobox, Group, Text, useCombobox } from '@mantine/core';
+import { HistoryIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
 export const SessionHistorySelector = ({
@@ -98,7 +97,6 @@ export const SessionHistorySelector = ({
       width={350}
       withArrow
       position="bottom-end"
-      withinPortal={false}
       disabled={disabled}
       onOptionSubmit={(val) => {
         if (val) {
@@ -108,11 +106,9 @@ export const SessionHistorySelector = ({
       }}
     >
       <Combobox.Target>
-        <Tooltip label="Chat history">
-          <ActionIcon variant="subtle" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
-            <StyledIcon Icon={ClockCounterClockwiseIcon} />
-          </ActionIcon>
-        </Tooltip>
+        <ActionIcon variant="subtle" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
+          <HistoryIcon size={14} color="var(--mantine-color-gray-7)" />
+        </ActionIcon>
       </Combobox.Target>
 
       <Combobox.Dropdown>

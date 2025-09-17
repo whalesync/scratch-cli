@@ -3,8 +3,9 @@ import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
-import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, Text, useCombobox } from '@mantine/core';
+import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
 import { FileIcon, PlusIcon } from '@phosphor-icons/react';
+import { AtSignIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './ResourceSelector.module.css';
@@ -86,23 +87,7 @@ export function ResourceSelector({ disabled }: { disabled: boolean }) {
       />
 
       <Stack gap="xs">
-        <Text size="xs" c="dimmed">
-          Resources:
-        </Text>
-
         <Group gap="xs">
-          {selectedResources.map((sg) => (
-            <ResourcePill
-              key={sg.id}
-              resource={sg}
-              onRemove={() => handleRemove(sg.id)}
-              onClick={() => {
-                setResourceToEdit(sg);
-                setIsEditResourceModalOpen(true);
-              }}
-            />
-          ))}
-
           <Combobox
             store={combobox}
             width={250}
@@ -114,8 +99,20 @@ export function ResourceSelector({ disabled }: { disabled: boolean }) {
             disabled={disabled}
           >
             <Combobox.Target>
-              <ActionIcon variant="outline" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
-                <StyledIcon Icon={PlusIcon} weight="bold" />
+              <ActionIcon
+                variant="outline"
+                size="sm"
+                c="gray.4"
+                color="gray.4"
+                onClick={() => combobox.toggleDropdown()}
+                disabled={disabled}
+                styles={{
+                  root: {
+                    borderRadius: '0',
+                  },
+                }}
+              >
+                <AtSignIcon size={14} color="var(--mantine-color-gray-7)" />
               </ActionIcon>
             </Combobox.Target>
 
@@ -123,6 +120,17 @@ export function ResourceSelector({ disabled }: { disabled: boolean }) {
               <Combobox.Options>{comboBoxOptions}</Combobox.Options>
             </Combobox.Dropdown>
           </Combobox>
+          {selectedResources.map((sg) => (
+            <ResourcePill
+              key={sg.id}
+              resource={sg}
+              onRemove={() => handleRemove(sg.id)}
+              onClick={() => {
+                setResourceToEdit(sg);
+                setIsEditResourceModalOpen(true);
+              }}
+            />
+          ))}
         </Group>
       </Stack>
     </>

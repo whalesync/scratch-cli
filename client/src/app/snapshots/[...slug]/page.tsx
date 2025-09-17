@@ -2,9 +2,9 @@
 
 import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotTableContext } from '@/types/server-entities/snapshot';
-import { Button, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
+import { ActionIcon, Button, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
-import { FileText, Table } from 'lucide-react';
+import { FileText, PanelRightIcon, Table } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
@@ -156,7 +156,12 @@ function SnapshotPageContent() {
       </Group>
 
       <Group ml="auto" gap="xs" align="center">
-        <SnapshotActionsMenu aiChatOpen={rightPanelOpened} onChatToggle={toggleRightPanel} />
+        <SnapshotActionsMenu />
+        {!rightPanelOpened && (
+          <ActionIcon variant="transparent" onClick={toggleRightPanel}>
+            <PanelRightIcon size={14} color="var(--mantine-color-gray-7)" />
+          </ActionIcon>
+        )}
       </Group>
     </Group>
   );

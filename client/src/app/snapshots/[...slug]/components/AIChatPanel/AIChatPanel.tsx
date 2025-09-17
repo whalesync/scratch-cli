@@ -10,50 +10,30 @@ import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
-import { ColumnView } from '@/types/server-entities/view';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   ActionIcon,
   Alert,
-  Badge,
   Button,
   Center,
   Divider,
   Group,
-  Loader,
   Modal,
   ScrollArea,
   Stack,
   Text,
   Textarea,
-  TextInput,
-  Tooltip,
 } from '@mantine/core';
-import {
-  BinocularsIcon,
-  CellTowerIcon,
-  ChatCircleIcon,
-  EyeIcon,
-  HeadCircuitIcon,
-  PaperPlaneRightIcon,
-  PlusIcon,
-  SidebarSimpleIcon,
-  StopCircleIcon,
-  TableIcon,
-  TagSimpleIcon,
-  TrashIcon,
-  VinylRecordIcon,
-} from '@phosphor-icons/react';
 import _ from 'lodash';
+import { ChevronDownIcon, OctagonMinusIcon, PanelRightIcon, Plus, SendIcon, SparklesIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BadgeWithTooltip } from '../../../../components/BadgeWithTooltip';
-import { TextTitleSm } from '../../../../components/base/text';
-import { StyledIcon } from '../../../../components/Icons/StyledIcon';
+import { TextRegularXs, TextTitleSm } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
 import CapabilitiesPicker from './CapabilitiesPicker';
 import { ChatMessageElement } from './ChatMessageElement';
+import { ContextBadges } from './ContextBadges';
 import { ResourceSelector } from './ResourceSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 
@@ -69,7 +49,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
-
+  const [showDeleteSessionButton, setShowDeleteSessionButton] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
@@ -321,42 +301,50 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
   const chatInputEnabled = aiAgentEnabled && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
-  const connectionBadge =
-    connectionStatus === 'connected' ? (
-      <Badge size="xs" variant="light" color="green" leftSection={<CellTowerIcon size={12} />}>
-        Connected
-      </Badge>
-    ) : connectionStatus === 'connecting' ? (
-      <Badge size="xs" variant="light" color="yellow" leftSection={<Loader size="xs" />}>
-        Connecting...
-      </Badge>
-    ) : null;
-
   return (
     <SideBarContent>
       <SideBarContent.Header>
-        <Group justify="space-between" align="center" wrap="nowrap" h="100%">
-          <Group gap="2px">
+        <Group align="center" wrap="nowrap" h="100%">
+          <Group
+            gap="2px"
+            flex={1}
+            onMouseEnter={() => setShowDeleteSessionButton(true)}
+            onMouseLeave={() => setShowDeleteSessionButton(false)}
+          >
             <ActionIcon onClick={toggleRightPanel} size="sm" variant="subtle" title="Close chat">
-              <StyledIcon Icon={SidebarSimpleIcon} size={14} c="gray.7" />
+              <PanelRightIcon size={14} color="var(--mantine-color-gray-7)" />
             </ActionIcon>
+
             <TextTitleSm>
-              {activeSession ? _.truncate(activeSession.name, { length: 20, omission: '...' }) : 'Agent Chat'}
+              {activeSession ? _.truncate(activeSession.name, { length: 30, omission: '...' }) : 'Chat'}
             </TextTitleSm>
-          </Group>
-          <Group gap="xs">
-            {connectionBadge}
-            <Tooltip label="New chat">
+            {activeSession && showDeleteSessionButton && (
               <ActionIcon
-                onClick={createNewSession}
+                onClick={async () => {
+                  if (!activeSessionId) return;
+                  await disconnect();
+                  await clearActiveSession();
+                  await deleteSession(activeSessionId);
+                }}
                 size="sm"
                 variant="subtle"
-                title="New chat"
-                disabled={!aiAgentEnabled}
+                title="Delete session"
+                disabled={!activeSessionId}
               >
-                <StyledIcon Icon={PlusIcon} size={14} />
+                <XIcon size={14} color="var(--mantine-color-gray-7)" />
               </ActionIcon>
-            </Tooltip>
+            )}
+          </Group>
+          <Group gap="xs" ml="auto">
+            <ActionIcon
+              onClick={createNewSession}
+              size="sm"
+              variant="subtle"
+              title="New chat"
+              disabled={!aiAgentEnabled}
+            >
+              <Plus size={14} color="var(--mantine-color-gray-7)" />
+            </ActionIcon>
             <SessionHistorySelector
               disabled={!aiAgentEnabled}
               onSelect={async (sessionId: string) => {
@@ -379,26 +367,10 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                 setSelectedCapabilities([]);
               }}
             />
-            <Tooltip label="Delete chat">
-              <ActionIcon
-                onClick={async () => {
-                  if (!activeSessionId) return;
-                  await disconnect();
-                  await clearActiveSession();
-                  await deleteSession(activeSessionId);
-                }}
-                size="sm"
-                variant="subtle"
-                title="Delete session"
-                disabled={!activeSessionId}
-              >
-                <TrashIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
           </Group>
         </Group>
       </SideBarContent.Header>
-      <SideBarContent.Body>
+      <SideBarContent.Body pb="6px">
         {/* Error Alert */}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
@@ -432,11 +404,13 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           <Center h="100%">
             {aiAgentEnabled ? (
               <Button
-                variant="subtle"
-                leftSection={<ChatCircleIcon size={16} />}
+                variant="transparent"
+                leftSection={<SparklesIcon size={16} />}
                 onClick={createNewSession}
                 size="xs"
                 w="fit-content"
+                color="gray.7"
+                c="gray.7"
               >
                 Start new chat
               </Button>
@@ -461,15 +435,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
           <ContextBadges activeTable={activeTable} currentView={currentView} />
 
-          {/* Capabilities Selection */}
-          {availableCapabilities.length > 0 && (
-            <CapabilitiesPicker
-              availableCapabilities={availableCapabilities}
-              selectedCapabilities={selectedCapabilities}
-              onCapabilitiesChange={setSelectedCapabilities}
-            />
-          )}
-
           {/* Input Area */}
           <Textarea
             ref={textInputRef}
@@ -482,6 +447,17 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               handleTextInputFocus();
             }}
             size="xs"
+            styles={{
+              input: {
+                padding: '0px',
+                border: 'none',
+                borderRadius: '0px',
+                borderTop: '1px solid var(--mantine-color-gray-4)',
+                '&:focus': {
+                  border: '1px solid #228be6',
+                },
+              },
+            }}
             minRows={5}
             maxRows={5}
             rows={5}
@@ -489,57 +465,53 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           />
 
           {/* Model and Submit Row */}
-          <Group gap="xs" align="center">
-            <Group gap="6px" style={{ flex: 1 }}>
-              <Tooltip label="Browse LLM models">
-                <ActionIcon
-                  variant="subtle"
-                  onClick={() => setShowModelSelector(true)}
-                  size="sm"
-                  disabled={!aiAgentEnabled}
-                >
-                  <StyledIcon Icon={HeadCircuitIcon} size={14} c="gray.9" />
-                </ActionIcon>
-              </Tooltip>
-              <TextInput
-                placeholder="Enter model name"
-                value={activeModel}
-                disabled={!aiAgentEnabled}
-                onChange={(e) => setActiveModel(e.target.value)}
-                size="xs"
-                style={{ flex: 1 }}
-                styles={{
-                  input: {
-                    padding: '0px',
-                    border: 'none',
-                    '&:focus': {
-                      border: '1px solid #228be6',
-                    },
-                  },
-                }}
-              />
-            </Group>
-            <ActionIcon
-              onClick={() => {
-                if (runningAgentTaskId) {
-                  cancelAgentRun(runningAgentTaskId);
-                }
-              }}
-              size="md"
+          <Group gap="xs" align="flex-start">
+            <Button
               variant="transparent"
-              title="Cancel task"
-              disabled={!runningAgentTaskId || !agentTaskRunning}
+              onClick={() => setShowModelSelector(true)}
+              disabled={!aiAgentEnabled}
+              c="gray.6"
+              size="xs"
+              p="0px"
+              rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
             >
-              <StyledIcon Icon={StopCircleIcon} size={16} />
-            </ActionIcon>
-            <ActionIcon
-              onClick={sendMessage}
-              disabled={!message.trim() || !chatInputEnabled}
-              loading={agentTaskRunning}
-              size="md"
-            >
-              <PaperPlaneRightIcon size={16} />
-            </ActionIcon>
+              <TextRegularXs component="span" c="dimmed">
+                {activeModel}
+              </TextRegularXs>
+            </Button>
+            {/* Capabilities Selection */}
+            {availableCapabilities.length > 0 && (
+              <CapabilitiesPicker
+                availableCapabilities={availableCapabilities}
+                selectedCapabilities={selectedCapabilities}
+                onCapabilitiesChange={setSelectedCapabilities}
+              />
+            )}
+
+            <Group gap="2px" ml="auto">
+              <ActionIcon
+                onClick={() => {
+                  if (runningAgentTaskId) {
+                    cancelAgentRun(runningAgentTaskId);
+                  }
+                }}
+                size="md"
+                variant="transparent"
+                title="Cancel task"
+                disabled={!runningAgentTaskId || !agentTaskRunning}
+              >
+                <OctagonMinusIcon size={16} color="var(--mantine-color-gray-7)" />
+              </ActionIcon>
+              <ActionIcon
+                onClick={sendMessage}
+                disabled={!message.trim() || !chatInputEnabled}
+                loading={agentTaskRunning}
+                size="md"
+                variant="transparent"
+              >
+                <SendIcon size={16} color="var(--mantine-color-gray-7)" />
+              </ActionIcon>
+            </Group>
           </Group>
         </Stack>
 
@@ -563,80 +535,3 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     </SideBarContent>
   );
 }
-
-export const ContextBadges = ({
-  activeTable,
-  currentView,
-}: {
-  activeTable: TableSpec | null;
-  currentView: ColumnView | undefined;
-}) => {
-  const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
-
-  return (
-    <Group gap="xs">
-      <Group gap="xs">
-        {activeTable && (
-          <BadgeWithTooltip
-            size="sm"
-            color="purple"
-            variant="outline"
-            radius="sm"
-            tooltip="The current table being viewed"
-            leftSection={<TableIcon size={14} />}
-          >
-            {activeTable.name}
-          </BadgeWithTooltip>
-        )}
-        {dataScope && (
-          <BadgeWithTooltip
-            size="sm"
-            color="green"
-            variant="outline"
-            radius="sm"
-            leftSection={<BinocularsIcon size={14} />}
-            tooltip="The agent can work all active records in the table"
-          >
-            {dataScope}
-          </BadgeWithTooltip>
-        )}
-        {dataScope === 'record' || dataScope === 'column' ? (
-          <BadgeWithTooltip
-            size="sm"
-            color="blue"
-            variant="outline"
-            radius="sm"
-            leftSection={<VinylRecordIcon size={14} />}
-            tooltip="The agent is just working on this record"
-          >
-            {activeRecordId}
-          </BadgeWithTooltip>
-        ) : null}
-        {dataScope === 'column' && (
-          <BadgeWithTooltip
-            size="sm"
-            color="blue"
-            variant="outline"
-            radius="sm"
-            leftSection={<TagSimpleIcon size={14} />}
-            tooltip="The column being focused on by the agent"
-          >
-            {activeColumnId}
-          </BadgeWithTooltip>
-        )}
-        {currentView && (
-          <BadgeWithTooltip
-            size="sm"
-            color="green"
-            variant="outline"
-            radius="sm"
-            leftSection={<EyeIcon size={14} />}
-            tooltip="The active column view used by the agent"
-          >
-            {currentView.name || currentView.id}
-          </BadgeWithTooltip>
-        )}
-      </Group>
-    </Group>
-  );
-};
