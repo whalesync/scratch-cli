@@ -1,9 +1,9 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
-import { Box, StyleProp, Table, Tooltip } from '@mantine/core';
+import { Box, Stack, StyleProp, Table, Tooltip } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import _ from 'lodash';
-import { useCallback } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 interface RecordListTableProps {
   records: SnapshotRecord[] | undefined;
@@ -12,13 +12,23 @@ interface RecordListTableProps {
   selectedFieldId: string | undefined;
   onSelect: (record: SnapshotRecord, columnId?: string) => void;
   w?: StyleProp<React.CSSProperties['width']>;
+  mih: StyleProp<React.CSSProperties['minHeight']>;
+}
+
+export interface RecordListTableRef {
+  scrollToRecord: (recordId: string, behavior?: 'smooth' | 'instant') => void;
 }
 
 const ID_COLUMN_WIDTH = '80px'; // 30%
 const TITLE_COLUMN_WIDTH = `220px`; // 70%
 
-export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w }: RecordListTableProps) => {
+export const RecordListTable = forwardRef<RecordListTableRef, RecordListTableProps>(function RecordListTable(
+  { records, table, selectedRecordId, onSelect, w, mih },
+  ref,
+) {
+  const [initalScrollComplete, setInitalScrollComplete] = useState(false);
   const titleColumnId = identifyRecordTitleColumn(table);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const goToNextRecord = useCallback(() => {
     if (!records) return;
@@ -36,6 +46,26 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
     }
   }, [records, selectedRecordId, onSelect]);
 
+  const scrollToRecord = useCallback((recordId: string, behavior: 'smooth' | 'instant' = 'smooth') => {
+    if (!scrollContainerRef.current) return;
+
+    const recordElement = scrollContainerRef.current.querySelector(`[data-record-id="${recordId}"]`);
+    if (recordElement) {
+      recordElement.scrollIntoView({
+        behavior,
+        block: 'center',
+      });
+    }
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToRecord,
+    }),
+    [scrollToRecord],
+  );
+
   useHotkeys(
     [
       ['arrowup', () => goToPreviousRecord()],
@@ -44,13 +74,25 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
     ['INPUT', 'TEXTAREA'],
   );
 
+  useEffect(() => {
+    if (records && records.length > 0 && !initalScrollComplete && selectedRecordId) {
+      scrollToRecord(selectedRecordId, 'instant');
+      setInitalScrollComplete(true);
+    }
+  }, [records, scrollToRecord, initalScrollComplete, setInitalScrollComplete, selectedRecordId]);
+
   const rows = records?.map((record) => {
     const isSelected = selectedRecordId === record.id.wsId;
 
     const title = record.fields[titleColumnId] as string;
     const truncatedTitle = _.truncate(title, { length: 30, omission: '...' });
     return (
-      <Table.Tr key={record.id.wsId} onClick={() => onSelect(record)} style={{ cursor: 'pointer' }}>
+      <Table.Tr
+        key={record.id.wsId}
+        onClick={() => onSelect(record)}
+        style={{ cursor: 'pointer' }}
+        data-record-id={record.id.wsId}
+      >
         <Table.Td miw={ID_COLUMN_WIDTH} style={{ textTransform: 'uppercase' }}>
           <TextRegularXs fw={isSelected ? 'bold' : 'normal'}>
             {_.truncate(record.id.wsId, { length: 8, omission: '...' })}
@@ -65,11 +107,22 @@ export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w 
     );
   });
   return (
-    <Table w={w} highlightOnHover withColumnBorders withRowBorders withTableBorder>
-      <Table.Tbody>{rows}</Table.Tbody>
-    </Table>
+    <>
+      <RecordListTableHeader table={table} h="36px" />
+      <Stack
+        ref={scrollContainerRef}
+        mih={mih}
+        gap="0"
+        p="0"
+        style={{ overflowY: 'scroll', overflowX: 'hidden', scrollBehavior: 'smooth' }}
+      >
+        <Table w={w} highlightOnHover withColumnBorders withRowBorders withTableBorder>
+          <Table.Tbody>{rows}</Table.Tbody>
+        </Table>
+      </Stack>
+    </>
   );
-};
+});
 
 export const RecordListTableHeader = ({
   table,

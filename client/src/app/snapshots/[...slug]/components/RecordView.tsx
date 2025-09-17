@@ -3,12 +3,12 @@ import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/context
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { identifyRecordTitleColumn, TableSpec } from '@/types/server-entities/snapshot';
 import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
 import { useTableContext } from './contexts/table-context';
 import { RecordDetails } from './record-details/RecordDetails';
 import { RecordDetailsHeader } from './record-details/RecordDetailsHeader';
-import { RecordListTable, RecordListTableHeader } from './record-details/RecordListTable';
+import { RecordListTable, RecordListTableRef } from './record-details/RecordListTable';
 import { RecordSuggestionToolbar } from './RecordSuggestionToolbar';
 
 interface RecordViewProps {
@@ -25,6 +25,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
   const { table } = props;
 
   const { activeRecord } = useTableContext();
+  const recordListTableRef = useRef<RecordListTableRef>(null);
 
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { updateSnapshotPath } = useSnapshotParams();
@@ -67,6 +68,8 @@ export const RecordView: FC<RecordViewProps> = (props) => {
       const titleColumnId = identifyRecordTitleColumn(table);
       setCurrentColumnId(titleColumnId);
       focusRecord(record.id.wsId, titleColumnId);
+      // Scroll to the first record
+      recordListTableRef.current?.scrollToRecord(record.id.wsId);
     }
   }, [records, currentRecordId, focusRecord, table]);
 
@@ -99,6 +102,8 @@ export const RecordView: FC<RecordViewProps> = (props) => {
       if (recordId !== currentRecordId) {
         setCurrentRecordId(recordId);
         focusRecord(recordId, currentColumnId);
+        // Scroll to the selected record
+        recordListTableRef.current?.scrollToRecord(recordId);
       }
 
       if (columnId !== currentColumnId) {
@@ -144,23 +149,17 @@ export const RecordView: FC<RecordViewProps> = (props) => {
         }}
       >
         <Stack h="100%" w="300px" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
-          <RecordListTableHeader table={table} h="36px" />
-          <Stack
+          <RecordListTable
+            ref={recordListTableRef}
             mih={getRecordViewHeight(hasSuggestions)}
-            gap="0"
-            p="0"
-            style={{ overflowY: 'scroll', overflowX: 'hidden', scrollBehavior: 'smooth' }}
-          >
-            <RecordListTable
-              records={records}
-              table={table}
-              selectedRecordId={currentRecordId}
-              selectedFieldId={currentColumnId}
-              onSelect={(record) => {
-                handleSwitchRecord(record.id.wsId, currentColumnId);
-              }}
-            />
-          </Stack>
+            records={records}
+            table={table}
+            selectedRecordId={currentRecordId}
+            selectedFieldId={currentColumnId}
+            onSelect={(record) => {
+              handleSwitchRecord(record.id.wsId, currentColumnId);
+            }}
+          />
         </Stack>
         <Stack h="100%" gap="xs" flex={1}>
           {currentRecordId && (
