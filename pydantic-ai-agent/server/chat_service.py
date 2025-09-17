@@ -5,7 +5,6 @@ Chat Service for handling agent communication and session management
 
 import asyncio
 import os
-from tkinter import E
 import uuid
 from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
@@ -26,7 +25,10 @@ from logging import getLogger
 from scratchpad.api import ScratchpadApi
 
 from server.user_prompt_utils import build_snapshot_context, build_focus_context
-from server.agent_stream_processor import process_agent_stream, CancelledAgentRunResult, AgentRunCancelledError
+from server.agent_stream_processor import (
+    process_agent_stream,
+    CancelledAgentRunResult,
+)
 
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
@@ -169,7 +171,6 @@ class ChatService:
 
         return api_key, user_open_router_credentials
 
-
     def _load_snapshot_data(
         self,
         session: ChatSession,
@@ -189,19 +190,18 @@ class ChatService:
         filtered_counts = {}
 
         if not session.snapshot_id:
-            raise HTTPException(status_code=500, detail="Snapshot ID must be provided to process the agent message.")
-       
+            raise HTTPException(
+                status_code=500,
+                detail="Snapshot ID must be provided to process the agent message.",
+            )
+
         try:
             # Fetch snapshot details
-            snapshot_data = ScratchpadApi.get_snapshot(
-                user.userId, session.snapshot_id
-            )
+            snapshot_data = ScratchpadApi.get_snapshot(user.userId, session.snapshot_id)
             try:
                 if view_id:
                     logger.info(f"🔍 Getting column view {view_id}")
-                    column_view = ScratchpadApi.get_column_view(
-                        user.userId, view_id
-                    )
+                    column_view = ScratchpadApi.get_column_view(user.userId, view_id)
                 else:
                     logger.info(
                         f"🔍 No view ID provided, skipping column view",
@@ -221,9 +221,7 @@ class ChatService:
                 if active_table_id and active_table_id != table.id.wsId:
                     continue
 
-                if record_id and (
-                    data_scope == "record" or data_scope == "column"
-                ):
+                if record_id and (data_scope == "record" or data_scope == "column"):
                     # just preload the one record form the table
                     try:
                         record = ScratchpadApi.get_record(
@@ -309,7 +307,6 @@ class ChatService:
 
         return snapshot, preloaded_records, filtered_counts
 
-
     async def process_message_with_agent(
         self,
         session: ChatSession,
@@ -331,14 +328,20 @@ class ChatService:
         """Process a message with the agent and return the response"""
         # Define noop callback if none provided so that we don't have to check for None everywhere
         if progress_callback is None:
+
             async def noop_callback(status: str, message: str, data: dict) -> None:
                 pass
+
             progress_callback = noop_callback
 
-        self._log_processing_start(session, view_id, capabilities, style_guides, data_scope)
+        self._log_processing_start(
+            session, view_id, capabilities, style_guides, data_scope
+        )
 
         # Determine the API key to use for the agent
-        api_key, user_open_router_credentials = self._get_openrouter_api_key(session, user)
+        api_key, user_open_router_credentials = self._get_openrouter_api_key(
+            session, user
+        )
 
         # Log agent processing details
         log_info(
@@ -364,7 +367,7 @@ class ChatService:
             )
 
             # Create context with pre-loaded data
-            
+
             chatRunContext: ChatRunContext = ChatRunContext(
                 run_id=agent_run_id,
                 session=session,
@@ -379,8 +382,6 @@ class ChatService:
                 record_id=record_id,
                 column_id=column_id,
             )
-
-
 
             await progress_callback(
                 "run_started",
@@ -404,10 +405,11 @@ class ChatService:
             # Add focus cells information to the prompt if they exist
             focus_context = build_focus_context(read_focus, write_focus)
 
+            full_prompt = (
+                f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
+            )
 
-            full_prompt = f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
-
-            if (user_open_router_credentials and user_open_router_credentials.apiKey):
+            if user_open_router_credentials and user_open_router_credentials.apiKey:
                 await progress_callback(
                     "status",
                     f"Creating agent using the {model} model with user OpenRouter credentials",
@@ -442,7 +444,7 @@ class ChatService:
                     "timeout_seconds": timeout_seconds,
                 },
             )
-            
+
             start_time = asyncio.get_event_loop().time()
             result = await asyncio.wait_for(
                 process_agent_stream(
@@ -455,7 +457,7 @@ class ChatService:
                     run_state_manager=self._run_state_manager,
                     progress_callback=progress_callback,
                 ),
-                timeout=timeout_seconds
+                timeout=timeout_seconds,
             )
             end_time = asyncio.get_event_loop().time()
             execution_time = end_time - start_time
@@ -475,7 +477,6 @@ class ChatService:
             await self._run_state_manager.delete_run(agent_run_id)
 
         # The agent returns an AgentRunResult wrapper, we need to extract the actual response
-        
 
         logger.info(f"🔍 Agent result: {type(result)}")
 
@@ -530,7 +531,10 @@ class ChatService:
                 snapshot_id=session.snapshot_id,
             )
             logger.info(f"❌ No response from agent")
-            raise HTTPException(status_code=500, detail="No response from agent. Please try again or switch to a different model if the problem persists.")
+            raise HTTPException(
+                status_code=500,
+                detail="No response from agent. Please try again or switch to a different model if the problem persists.",
+            )
 
         # Check if actual_response has the expected fields using getattr for safety
         try:
@@ -593,18 +597,17 @@ class ChatService:
 
             return actual_response
         else:
-                log_error(
-                    "Invalid agent response",
-                    session_id=session.id,
-                    response_type=type(result),
-                    snapshot_id=session.snapshot_id,
-                )
-                logger.info(f"❌ Invalid response from agent: {result}")
-                raise HTTPException(
-                    status_code=500, detail="Invalid response from agent. Please try again or switch to a different model if the problem persists."
-                )
-
-
+            log_error(
+                "Invalid agent response",
+                session_id=session.id,
+                response_type=type(result),
+                snapshot_id=session.snapshot_id,
+            )
+            logger.info(f"❌ Invalid response from agent: {result}")
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid response from agent. Please try again or switch to a different model if the problem persists.",
+            )
 
     async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
         """Cancel a run"""
@@ -621,7 +624,3 @@ class ChatService:
 
         await self._run_state_manager.cancel_run(run_id)
         return "Run cancelled"
-
-
-
-
