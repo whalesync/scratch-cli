@@ -1,7 +1,9 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, StyleProp, Table, Tooltip } from '@mantine/core';
+import { useHotkeys } from '@mantine/hooks';
 import _ from 'lodash';
+import { useCallback } from 'react';
 
 interface RecordListTableProps {
   records: SnapshotRecord[] | undefined;
@@ -17,6 +19,30 @@ const TITLE_COLUMN_WIDTH = `220px`; // 70%
 
 export const RecordListTable = ({ records, table, selectedRecordId, onSelect, w }: RecordListTableProps) => {
   const titleColumnId = identifyRecordTitleColumn(table);
+
+  const goToNextRecord = useCallback(() => {
+    if (!records) return;
+    const currentIndex = records?.findIndex((record) => record.id.wsId === selectedRecordId);
+    if (currentIndex !== undefined && currentIndex < records.length - 1) {
+      onSelect(records[currentIndex + 1]);
+    }
+  }, [records, selectedRecordId, onSelect]);
+
+  const goToPreviousRecord = useCallback(() => {
+    if (!records) return;
+    const currentIndex = records?.findIndex((record) => record.id.wsId === selectedRecordId);
+    if (currentIndex !== undefined && currentIndex > 0) {
+      onSelect(records[currentIndex - 1]);
+    }
+  }, [records, selectedRecordId, onSelect]);
+
+  useHotkeys(
+    [
+      ['arrowup', () => goToPreviousRecord()],
+      ['arrowdown', () => goToNextRecord()],
+    ],
+    ['INPUT', 'TEXTAREA'],
+  );
 
   const rows = records?.map((record) => {
     const isSelected = selectedRecordId === record.id.wsId;

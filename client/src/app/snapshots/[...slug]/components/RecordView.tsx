@@ -163,7 +163,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
           </Stack>
         </Stack>
         <Stack h="100%" gap="xs" flex={1}>
-          {currentRecordId && currentColumnId && (
+          {currentRecordId && (
             <RecordDetailsHeader
               h="36px"
               table={table}

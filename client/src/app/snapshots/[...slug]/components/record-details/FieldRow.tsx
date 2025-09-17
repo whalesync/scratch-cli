@@ -59,6 +59,7 @@ export const FieldLabel = ({
 
 export const FieldRow = ({
   fieldName,
+  showLabel = true,
   hasEditedValue,
   isProtected,
   isHidden,
@@ -67,6 +68,7 @@ export const FieldRow = ({
   onFieldLabelClick,
 }: {
   fieldName: string;
+  showLabel?: boolean;
   hasEditedValue?: boolean;
   isProtected?: boolean;
   isReadOnly?: boolean;
@@ -77,14 +79,16 @@ export const FieldRow = ({
 }) => {
   return (
     <Group align={align} wrap="nowrap" gap="xs" w="100%" p="0">
-      <FieldLabel
-        w="15%"
-        fieldName={fieldName}
-        hasEditedValue={hasEditedValue}
-        isProtected={isProtected}
-        isHidden={isHidden}
-        onClick={onFieldLabelClick}
-      />
+      {showLabel && (
+        <FieldLabel
+          w="15%"
+          fieldName={fieldName}
+          hasEditedValue={hasEditedValue}
+          isProtected={isProtected}
+          isHidden={isHidden}
+          onClick={onFieldLabelClick}
+        />
+      )}
       <div style={{ flex: 1 }}>{children}</div>
     </Group>
   );

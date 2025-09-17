@@ -13,7 +13,7 @@ import {
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Checkbox, Group, NumberInput, ScrollArea, Stack, Textarea, TextInput } from '@mantine/core';
 import styles from './DisplayField.module.css';
-import { FieldLabel, FieldRow } from './FieldRow';
+import { FieldRow } from './FieldRow';
 
 interface DisplayFieldProps {
   table: TableSpec;
@@ -93,6 +93,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     return (
       <FieldRow
         fieldName={column.name}
+        showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
         isProtected={isProtected}
         isHidden={isHidden}
@@ -143,6 +144,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     return (
       <FieldRow
         fieldName={column.name}
+        showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
         isProtected={isProtected}
         isHidden={isHidden}
@@ -226,12 +228,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
     } else {
       return (
         <Stack align="flex-start" gap="xs" w="100%">
-          <FieldLabel
-            fieldName={column.name}
-            hasEditedValue={hasEditedValue}
-            isProtected={isProtected}
-            onClick={onFieldLabelClick}
-          />
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
@@ -290,6 +286,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
   return (
     <FieldRow
       fieldName={column.name}
+      showLabel={mode === 'multiple'}
       hasEditedValue={hasEditedValue}
       isProtected={isProtected}
       isHidden={isHidden}
