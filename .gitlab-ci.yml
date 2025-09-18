@@ -9,6 +9,7 @@ push master to prod:
   script:
     - git config user.email "team+ci-bot@whalesync.com"
     - git config user.name "ci-bot"
+    - git remote set-url origin https://oauth2:$CICD_ACCESS_TOKEN@gitlab.com:whalesync/spinner.git
     - git fetch --all --prune
     - git checkout master
     - git pull
