@@ -29,11 +29,13 @@ export function ResourceSelector({ disabled }: { disabled: boolean }) {
           </Group>
         </Combobox.Option>
       ));
-    list.push(
-      <Combobox.Option value="divider" key="divider" disabled>
-        <Divider />
-      </Combobox.Option>,
-    );
+    if (list.length > 0) {
+      list.push(
+        <Combobox.Option value="divider" key="divider" disabled>
+          <Divider />
+        </Combobox.Option>,
+      );
+    }
     list.push(
       <Combobox.Option value="new" key="new">
         <Group gap="4px">

@@ -1,12 +1,17 @@
 .sideBarHeader {
   border-bottom: 1px solid var(--mantine-color-gray-2);
   padding: 2px 6px 2px 6px;
+  flex-shrink: 0; /* Prevents it from shrinking */
 }
 
 .sideBarBody {
   padding: 2px 6px 2px 6px;
+  flex-grow: 1; /* Takes up all available space between header and footer */
 }
 
 .sideBarFooter {
   border-top: 1px solid var(--mantine-color-gray-2);
+  flex-shrink: 0; /* Prevents it from shrinking */
+  padding: 2px 6px 2px 6px;
+  background-color: 'blue';
 }

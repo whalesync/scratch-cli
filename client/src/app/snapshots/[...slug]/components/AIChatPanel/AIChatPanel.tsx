@@ -12,19 +12,7 @@ import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import {
-  ActionIcon,
-  Alert,
-  Button,
-  Center,
-  Divider,
-  Group,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-  Textarea,
-} from '@mantine/core';
+import { ActionIcon, Alert, Button, Center, Group, Modal, ScrollArea, Stack, Text, Textarea } from '@mantine/core';
 import _ from 'lodash';
 import { ChevronDownIcon, OctagonMinusIcon, PanelRightIcon, Plus, SendIcon, SparklesIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -427,111 +415,110 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           </Center>
         )}
 
-        <Divider my="xs" />
         {/* Bottom Input Area */}
         <Stack gap="xs">
           {/* Style Guide Selection */}
           <ResourceSelector disabled={!aiAgentEnabled} />
-
           <ContextBadges activeTable={activeTable} currentView={currentView} />
-
-          {/* Input Area */}
-          <Textarea
-            ref={textInputRef}
-            placeholder="Type your message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyUp={handleKeyPress}
-            disabled={agentTaskRunning || !aiAgentEnabled}
-            onFocus={() => {
-              handleTextInputFocus();
-            }}
-            size="xs"
-            styles={{
-              input: {
-                padding: '0px',
-                border: 'none',
-                borderRadius: '0px',
-                borderTop: '1px solid var(--mantine-color-gray-4)',
-                '&:focus': {
-                  border: '1px solid #228be6',
-                },
-              },
-            }}
-            minRows={5}
-            maxRows={5}
-            rows={5}
-            autosize={false}
-          />
-
-          {/* Model and Submit Row */}
-          <Group gap="xs" align="flex-start">
-            <Button
-              variant="transparent"
-              onClick={() => setShowModelSelector(true)}
-              disabled={!aiAgentEnabled}
-              c="gray.6"
-              size="xs"
-              p="0px"
-              rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
-            >
-              <TextRegularXs component="span" c="dimmed">
-                {activeModel}
-              </TextRegularXs>
-            </Button>
-            {/* Capabilities Selection */}
-            {availableCapabilities.length > 0 && (
-              <CapabilitiesPicker
-                availableCapabilities={availableCapabilities}
-                selectedCapabilities={selectedCapabilities}
-                onCapabilitiesChange={setSelectedCapabilities}
-              />
-            )}
-
-            <Group gap="2px" ml="auto">
-              <ActionIcon
-                onClick={() => {
-                  if (runningAgentTaskId) {
-                    cancelAgentRun(runningAgentTaskId);
-                  }
-                }}
-                size="md"
-                variant="transparent"
-                title="Cancel task"
-                disabled={!runningAgentTaskId || !agentTaskRunning}
-              >
-                <OctagonMinusIcon size={16} color="var(--mantine-color-gray-7)" />
-              </ActionIcon>
-              <ActionIcon
-                onClick={sendMessage}
-                disabled={!message.trim() || !chatInputEnabled}
-                loading={agentTaskRunning}
-                size="md"
-                variant="transparent"
-              >
-                <SendIcon size={16} color="var(--mantine-color-gray-7)" />
-              </ActionIcon>
-            </Group>
-          </Group>
         </Stack>
-
-        {/* Model Selector Modal */}
-        <Modal
-          opened={showModelSelector}
-          onClose={() => setShowModelSelector(false)}
-          title="Select Model"
-          size="xl"
-          zIndex={1003}
-        >
-          <ModelPicker
-            value={activeModel}
-            onChange={(value) => {
-              setActiveModel(value);
-              setShowModelSelector(false);
-            }}
-          />
-        </Modal>
       </SideBarContent.Body>
+      <SideBarContent.Bottom>
+        {/* Input Area */}
+        <Textarea
+          ref={textInputRef}
+          placeholder="Type your message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyUp={handleKeyPress}
+          disabled={agentTaskRunning || !aiAgentEnabled}
+          onFocus={() => {
+            handleTextInputFocus();
+          }}
+          size="xs"
+          styles={{
+            input: {
+              padding: '0px',
+              border: 'none',
+              borderRadius: '0px',
+              borderTop: '1px solid var(--mantine-color-gray-4)',
+              '&:focus': {
+                border: '1px solid #228be6',
+              },
+            },
+          }}
+          minRows={5}
+          maxRows={5}
+          rows={5}
+          autosize={false}
+        />
+
+        {/* Model and Submit Row */}
+        <Group gap="xs" align="flex-start">
+          <Button
+            variant="transparent"
+            onClick={() => setShowModelSelector(true)}
+            disabled={!aiAgentEnabled}
+            c="gray.6"
+            size="xs"
+            p="0px"
+            rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
+          >
+            <TextRegularXs component="span" c="dimmed">
+              {activeModel}
+            </TextRegularXs>
+          </Button>
+          {/* Capabilities Selection */}
+          {availableCapabilities.length > 0 && (
+            <CapabilitiesPicker
+              availableCapabilities={availableCapabilities}
+              selectedCapabilities={selectedCapabilities}
+              onCapabilitiesChange={setSelectedCapabilities}
+            />
+          )}
+
+          <Group gap="2px" ml="auto">
+            <ActionIcon
+              onClick={() => {
+                if (runningAgentTaskId) {
+                  cancelAgentRun(runningAgentTaskId);
+                }
+              }}
+              size="md"
+              variant="transparent"
+              title="Cancel task"
+              disabled={!runningAgentTaskId || !agentTaskRunning}
+            >
+              <OctagonMinusIcon size={16} color="var(--mantine-color-gray-7)" />
+            </ActionIcon>
+            <ActionIcon
+              onClick={sendMessage}
+              disabled={!message.trim() || !chatInputEnabled}
+              loading={agentTaskRunning}
+              size="md"
+              variant="transparent"
+            >
+              <SendIcon size={16} color="var(--mantine-color-gray-7)" />
+            </ActionIcon>
+          </Group>
+        </Group>
+      </SideBarContent.Bottom>
+
+      {/* Model Selector Modal */}
+      <Modal
+        opened={showModelSelector}
+        onClose={() => setShowModelSelector(false)}
+        title="Select Model"
+        size="xl"
+        zIndex={1003}
+      >
+        <ModelPicker
+          value={activeModel}
+          onChange={(value) => {
+            setActiveModel(value);
+            setShowModelSelector(false);
+          }}
+        />
+      </Modal>
     </SideBarContent>
   );
 }

@@ -29,13 +29,20 @@ const SideBarContentHeader = ({ children, ...styleProps }: ChildrenWithStyleProp
 
 const SideBarContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Stack h="100%" w="100%" className={classes.sideBarBody} flex={1} {...styleProps}>
+    <Stack h="100%" w="100%" className={classes.sideBarBody} {...styleProps}>
       {children}
     </Stack>
   );
 };
 
+const SideBarContentBottom = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
+  return (
+    <Box h="140px" className={classes.sideBarFooter} {...styleProps}>
+      {children}
+    </Box>
+  );
+};
 SideBarContent.Header = SideBarContentHeader;
 SideBarContent.Body = SideBarContentBody;
-
+SideBarContent.Bottom = SideBarContentBottom;
 export default SideBarContent;

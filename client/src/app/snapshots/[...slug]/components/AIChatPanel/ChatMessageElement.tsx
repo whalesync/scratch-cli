@@ -63,9 +63,9 @@ const AgentToolCallMessage = ({ msg }: { msg: ChatMessage }) => {
   const toggleButton = displayArgs ? (
     <ActionIcon variant="transparent" size="xs" onClick={() => toggle()}>
       {isExpanded ? (
-        <UnfoldVerticalIcon color="var(--mantine-color-gray-5)" />
-      ) : (
         <FoldVerticalIcon color="var(--mantine-color-gray-5)" />
+      ) : (
+        <UnfoldVerticalIcon color="var(--mantine-color-gray-5)" />
       )}
     </ActionIcon>
   ) : null;
@@ -112,9 +112,9 @@ const AgentToolCallResultMessage = ({ msg }: { msg: ChatMessage }) => {
   const toggleButton = responseContent ? (
     <ActionIcon variant="transparent" size="xs" onClick={() => toggle()}>
       {isExpanded ? (
-        <UnfoldVerticalIcon color="var(--mantine-color-gray-5)" />
-      ) : (
         <FoldVerticalIcon color="var(--mantine-color-gray-5)" />
+      ) : (
+        <UnfoldVerticalIcon color="var(--mantine-color-gray-5)" />
       )}
     </ActionIcon>
   ) : null;
