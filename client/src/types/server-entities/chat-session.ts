@@ -35,7 +35,7 @@ export interface ChatMessage {
   message: string;
   timestamp: string;
   payload?: object;
-  variant: 'admin' | 'message' | 'progress' | 'error';
+  variant: 'admin' | 'message' | 'progress' | 'error' | 'usage';
 }
 
 export interface ChatSession {

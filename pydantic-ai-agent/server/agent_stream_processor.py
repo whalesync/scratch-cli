@@ -24,7 +24,7 @@ logger = getLogger(__name__)
 
 class AgentRunCancelledError(UserError):
     """Error raised when an agent run is cancelled"""
-    
+
     def __init__(self, message: str, run_id: str, when: str):
         super().__init__(message)
         self.run_id = run_id
@@ -43,7 +43,7 @@ async def process_agent_stream(
 ) -> Any:
     """
     Process agent stream and return the result.
-    
+
     Args:
         agent: The agent instance to run
         full_prompt: The full prompt to send to the agent
@@ -53,15 +53,15 @@ async def process_agent_stream(
         model: The model name being used
         run_state_manager: Manager for tracking run state
         progress_callback: Optional callback for progress updates
-        
+
     Returns:
         The agent run result
-        
+
     Raises:
         AgentRunCancelledError: If the run is cancelled
     """
     result = None
-    
+
     try:
         async with agent.iter(
             full_prompt,
@@ -92,7 +92,7 @@ async def process_agent_stream(
                 elif Agent.is_model_request_node(node):
                     # A model request node => We can stream tokens from the model's request
                     await progress_callback(
-                        "status", f"Request sent to {model}", {}
+                        "request_sent", f"Request sent to {model}", {}
                     )
 
                     async with node.stream(agent_run.ctx) as request_stream:
@@ -159,20 +159,18 @@ async def process_agent_stream(
 
                 elif Agent.is_end_node(node):
                     await progress_callback(
-                        "status",
+                        "build_response",
                         f"Constructing final agent response",
                         {},
                     )
 
             result = agent_run.result
             await run_state_manager.complete_run(agent_run_id)
-            
+
     except AgentRunCancelledError as e:
         logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
-        result = CancelledAgentRunResult(
-            agent_run.usage() if agent_run.usage else None
-        )
-    
+        result = CancelledAgentRunResult(agent_run.usage() if agent_run.usage else None)
+
     return result
 
 

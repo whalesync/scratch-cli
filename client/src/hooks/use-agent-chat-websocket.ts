@@ -2,7 +2,6 @@ import { API_CONFIG } from '@/lib/api/config';
 import { RecordCell } from '@/types/common';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
-import pluralize from 'pluralize';
 import { useCallback, useRef, useState } from 'react';
 
 type ClientMessageType = 'message' | 'ping' | 'echo_error';
@@ -249,7 +248,7 @@ export interface AgentResponseDataPayload {
 }
 
 export interface AgentProgressMessageData {
-  progress_type: 'run_started' | 'status' | 'tool_call' | 'tool_result';
+  progress_type: 'run_started' | 'status' | 'tool_call' | 'tool_result' | 'create_agent' | 'request_sent' | 'build_response';
   message: string;
   payload: Record<string, unknown>;
 }
@@ -275,14 +274,14 @@ function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
   } else if (message.type === 'message_response') {
     const x = message.data as AgentResponseDataPayload;
     displayMessage = x.response_message;
-    additionalMessages.push({
-      id: new Date().getTime().toString(),
-      role: 'assistant',
-      message: `Modal usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
-      timestamp: message.timestamp || new Date().toISOString(),
-      payload: x.usage_stats,
-      variant: 'admin',
-    });
+    // additionalMessages.push({
+    //   id: new Date().getTime().toString(),
+    //   role: 'assistant',
+    //   message: `Modal usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
+    //   timestamp: message.timestamp || new Date().toISOString(),
+    //   payload: x.usage_stats,
+    //   variant: 'usage',
+    // });
   } else {
     displayMessage = 'Unknown message type';
   }

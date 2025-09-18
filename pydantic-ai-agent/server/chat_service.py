@@ -411,13 +411,13 @@ class ChatService:
 
             if user_open_router_credentials and user_open_router_credentials.apiKey:
                 await progress_callback(
-                    "status",
+                    "create_agent",
                     f"Creating agent using the {model} model with user OpenRouter credentials",
                     {},
                 )
             else:
                 await progress_callback(
-                    "status",
+                    "create_agent",
                     f"Creating agent using the {model} model",
                     {},
                 )

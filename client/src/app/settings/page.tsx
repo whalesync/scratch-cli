@@ -15,7 +15,7 @@ const SettingsPage = () => {
     <MainContent>
       <MainContent.BasicHeader title="Settings" />
       <MainContent.Body>
-        <Group gap="md" align="flex-start" grow>
+        <Group gap="md" align="flex-start" grow={isDevToolsEnabled ? true : false}>
           <Stack gap="md" miw={800}>
             <SubscriptionCard />
             <Divider />
