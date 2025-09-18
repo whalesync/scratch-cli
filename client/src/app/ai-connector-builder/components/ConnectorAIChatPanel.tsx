@@ -157,6 +157,7 @@ export default function ConnectorAIChatPanel({
     if (currentSessionId) {
       loadSession(currentSessionId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId]);
 
   const createNewSession = async () => {

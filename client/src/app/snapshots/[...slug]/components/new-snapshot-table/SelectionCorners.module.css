@@ -1,0 +1,121 @@
+/* Always visible scrollbars for AG Grid */
+.ag-grid-container {
+  /* Force scrollbars to always be visible */
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
+}
+
+/* Remove alternating row colors */
+.ag-grid-container .ag-row-even,
+.ag-grid-container .ag-row-odd {
+  background-color: transparent !important;
+}
+
+.ag-grid-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ag-grid-container::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.ag-grid-container::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.ag-grid-container::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* AG Grid specific scrollbar styling */
+.ag-grid-container .ag-body-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
+}
+
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* Corner borders for selected cells */
+.selected-cell-corners {
+  position: relative;
+}
+
+/* Top-left corner */
+.selected-cell-corners::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid #3b82f6;
+  border-left: 2px solid #3b82f6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Top-right corner */
+.selected-cell-corners::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid #3b82f6;
+  border-right: 2px solid #3b82f6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Bottom-left corner using a data attribute approach */
+.selected-cell-corners[data-corners='all'] {
+  background-image:
+    linear-gradient(90deg, #3b82f6 0px, #3b82f6 2px, transparent 2px),
+    linear-gradient(0deg, #3b82f6 0px, #3b82f6 2px, transparent 2px);
+  background-position:
+    left bottom,
+    left bottom;
+  background-size:
+    8px 2px,
+    2px 8px;
+  background-repeat: no-repeat;
+}
+
+/* Bottom-right corner */
+.selected-cell-corners[data-corners='all'] {
+  background-image:
+    linear-gradient(90deg, #3b82f6 0px, #3b82f6 2px, transparent 2px),
+    linear-gradient(0deg, #3b82f6 0px, #3b82f6 2px, transparent 2px),
+    linear-gradient(90deg, transparent 0px, transparent calc(100% - 8px), #3b82f6 calc(100% - 8px), #3b82f6 100%),
+    linear-gradient(0deg, transparent 0px, transparent calc(100% - 8px), #3b82f6 calc(100% - 8px), #3b82f6 100%);
+  background-position:
+    left bottom,
+    left bottom,
+    right bottom,
+    right bottom;
+  background-size:
+    8px 2px,
+    2px 8px,
+    8px 2px,
+    2px 8px;
+  background-repeat: no-repeat;
+}

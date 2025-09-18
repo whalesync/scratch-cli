@@ -28,6 +28,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
+import SnapshotTableGridAG from './components/new-snapshot-table/SnapshotTableGridAG';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
 import { RecordView } from './components/RecordView';
 import SnapshotTableGrid from './components/snapshot-table/SnapshotTableGrid';
@@ -36,7 +37,14 @@ import { useSnapshotParams } from './hooks/use-snapshot-params';
 
 function SnapshotPageContent() {
   const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
-  const { activeTable, setActiveTable, displayMode, switchToSpreadsheetView, switchToRecordView } = useTableContext();
+  const {
+    activeTable,
+    setActiveTable,
+    displayMode,
+    switchToSpreadsheetView,
+    switchToRecordView,
+    switchToNewSpreadsheetView,
+  } = useTableContext();
   const router = useRouter();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
 
@@ -143,6 +151,16 @@ function SnapshotPageContent() {
             Table
           </Button>
           <Button
+            variant={displayMode === 'new-spreadsheet' ? 'outline' : 'transparent'}
+            size="xs"
+            leftSection={<Table size={12} />}
+            onClick={() => switchToNewSpreadsheetView()}
+            c={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
+            color={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
+          >
+            New Table
+          </Button>
+          <Button
             variant={displayMode === 'record' ? 'outline' : 'transparent'}
             size="xs"
             leftSection={<FileText size={12} />}
@@ -179,6 +197,8 @@ function SnapshotPageContent() {
     content =
       displayMode === 'spreadsheet' ? (
         <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
+      ) : displayMode === 'new-spreadsheet' ? (
+        <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />
       ) : (
         <RecordView table={activeTable} />
       );

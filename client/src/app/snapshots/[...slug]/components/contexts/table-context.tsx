@@ -19,7 +19,7 @@ export interface PendingUpdate {
   value: string;
 }
 
-type DisplayMode = 'spreadsheet' | 'record';
+type DisplayMode = 'spreadsheet' | 'record' | 'new-spreadsheet';
 
 interface TableContextValue {
   activeTable: TableSpec | undefined;
@@ -27,6 +27,7 @@ interface TableContextValue {
   displayMode: DisplayMode;
   switchToRecordView: (recordId: string, columnId?: string) => Promise<void>;
   switchToSpreadsheetView: () => Promise<void>;
+  switchToNewSpreadsheetView: () => Promise<void>;
   activeRecord: ActiveRecord | undefined;
   addPendingChange: (update: PendingUpdate) => void;
   savePendingUpdates: () => Promise<void>;
@@ -125,7 +126,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   }, [savePendingUpdates, displayMode, activeTable?.id.wsId]);
 
   const switchDisplayMode = useCallback(
-    async (mode: 'spreadsheet' | 'record', recordId?: string, columnId?: string) => {
+    async (mode: 'spreadsheet' | 'record' | 'new-spreadsheet', recordId?: string, columnId?: string) => {
       if (!activeTable) {
         throw new Error('Active table not set');
       }
@@ -174,6 +175,10 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     switchDisplayMode('spreadsheet');
   }, [switchDisplayMode]);
 
+  const switchToNewSpreadsheetView = useCallback(async () => {
+    switchDisplayMode('new-spreadsheet');
+  }, [switchDisplayMode]);
+
   const value: TableContextValue = {
     activeTable,
     setActiveTable,
@@ -181,6 +186,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     activeRecord,
     switchToRecordView,
     switchToSpreadsheetView,
+    switchToNewSpreadsheetView,
     addPendingChange,
     savePendingUpdates,
     pendingChanges,
