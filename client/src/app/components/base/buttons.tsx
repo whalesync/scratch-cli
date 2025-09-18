@@ -15,6 +15,7 @@ export const PrimaryButton = Button.withProps({
   variant: 'filled',
   // color: 'blue',
   size: 'xs',
+  bdrs: '0px',
 });
 
 /**
@@ -26,14 +27,14 @@ export const SecondaryButton = Button.withProps({
 });
 
 export const AcceptSuggestionButton = Button.withProps({
-  color: 'green',
+  color: '#284283',
   size: 'xs',
   variant: 'outline',
   bdrs: '0px',
 });
 
 export const RejectSuggestionButton = Button.withProps({
-  color: 'red',
+  color: 'gray.6',
   size: 'xs',
   variant: 'outline',
   bdrs: '0px',

@@ -174,8 +174,12 @@ export const RecordView: FC<RecordViewProps> = (props) => {
           )}
           <Tabs value={currentRecordId} flex={1} bg={'transparent'} keepMounted={false}>
             {records?.map((record) => (
-              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="3rem">
-                <ScrollArea h="calc(100vh - 240px)" type="hover" scrollbars="y">
+              <Tabs.Panel key={record.id.wsId} value={record.id.wsId} h="100%" p="xs">
+                <ScrollArea
+                  h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`}
+                  type="hover"
+                  scrollbars="y"
+                >
                   <RecordDetails
                     snapshotId={snapshot?.id ?? ''}
                     currentRecord={record}

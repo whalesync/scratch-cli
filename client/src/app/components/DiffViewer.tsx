@@ -9,9 +9,16 @@ interface DiffViewerProps {
   suggestedValue: string;
   fz?: string;
   p?: string;
+  splitMinRows?: number;
 }
 
-export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2rem' }: DiffViewerProps) => {
+export const DiffViewer = ({
+  originalValue,
+  suggestedValue,
+  fz = '1rem',
+  p = '2rem',
+  splitMinRows = 5,
+}: DiffViewerProps) => {
   const [mode, toggleMode] = useToggle(['diff', 'split']);
 
   // diff functions don't work with null values or undefined values
@@ -33,18 +40,20 @@ export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2r
 
   if (mode === 'split') {
     return (
-      <Group align="flex-start" gap="xs">
+      <Group align="flex-start" gap="xs" p={p}>
         <Textarea
           label="Original"
           value={originalValueSafe}
           autosize
-          minRows={5}
+          minRows={splitMinRows}
           readOnly
           flex={1}
           styles={{
             input: {
               fontSize: fz,
               padding: '1rem',
+              borderColor: 'var(--mantine-color-gray-2)',
+              borderRadius: '0px',
             },
           }}
         />
@@ -52,13 +61,15 @@ export const DiffViewer = ({ originalValue, suggestedValue, fz = '1rem', p = '2r
           label="Suggested"
           value={suggestedValueSafe}
           autosize
-          minRows={5}
+          minRows={splitMinRows}
           readOnly
           flex={1}
           styles={{
             input: {
               fontSize: fz,
               padding: '1rem',
+              borderColor: 'var(--mantine-color-gray-2)',
+              borderRadius: '0px',
             },
           }}
         />

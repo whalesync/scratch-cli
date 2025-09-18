@@ -140,7 +140,11 @@ export const RecordDetails = ({
     content = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
   } else if (currentRecord) {
     const fieldsToShow = Object.keys(currentRecord.fields);
-    content = fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false));
+    content = (
+      <Stack p="3rem" gap="xs">
+        {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
+      </Stack>
+    );
   }
 
   return (

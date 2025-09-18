@@ -11,7 +11,8 @@ import {
   TableSpec,
 } from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
-import { Checkbox, Group, NumberInput, ScrollArea, Stack, Textarea, TextInput } from '@mantine/core';
+import { Checkbox, Group, NumberInput, ScrollArea, Stack } from '@mantine/core';
+import { CircleArrowRightIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 
@@ -53,12 +54,12 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const isProtected = currentView && isColumnProtected(table.id.wsId, columnId, currentView);
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
-  const suggestValueColor = '#b8860b';
-  const suggestValueBorderColor = '#e0e0e0';
-  const suggestValueBackgroundColor = '#fefefe';
+  const suggestValueColor = '#284283';
+  // const suggestValueBorderColor = '#e0e0e0';
+  // const suggestValueBackgroundColor = '#fefefe';
 
   const suggestionButtons = hasSuggestion ? (
-    <Group gap="xs" justify="center">
+    <Group gap="xs" justify="flex-end">
       <RejectSuggestionButton onClick={onRejectSuggestion} loading={saving}>
         Reject
       </RejectSuggestionButton>
@@ -68,10 +69,14 @@ export const DisplayField = (props: DisplayFieldProps) => {
     </Group>
   ) : null;
 
+  const basicFieldPadding = !hasSuggestion ? (mode === 'multiple' ? '0' : '3rem') : undefined;
+
   if (column.pgType === PostgresColumnType.NUMERIC) {
     // this needs to be handled differently
     const currentValue = getSafeNumberValue(record.fields, columnId);
-    const suggestedValue = record.__suggested_values?.[columnId] as string;
+    const currentValueString = currentValue?.toString() ?? '';
+    const suggestedValue = record.__suggested_values?.[columnId];
+    const suggestedValueString = suggestedValue?.toString() ?? '';
 
     const numberField = (
       <NumberInput
@@ -84,7 +89,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           input: {
             borderColor: 'transparent',
             fontSize: '1rem',
-            padding: !hasSuggestion ? '0' : undefined,
+            padding: basicFieldPadding,
           },
         }}
       />
@@ -99,27 +104,19 @@ export const DisplayField = (props: DisplayFieldProps) => {
         isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
-        onFieldLabelClick={onFieldLabelClick}
+        onLabelClick={onFieldLabelClick}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
-            <Group gap="xs" align="flex-start" grow>
-              {numberField}
-              <TextInput
-                label="Suggested change"
-                inputWrapperOrder={['input', 'label', 'description', 'error']}
-                value={suggestedValue}
-                disabled
-                styles={{
-                  input: {
-                    fontSize: '1rem',
-                    color: suggestValueColor,
-                    backgroundColor: suggestValueBackgroundColor,
-                    borderColor: suggestValueBorderColor,
-                  },
-                }}
+            <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
+              <DiffViewer
+                originalValue={currentValueString}
+                suggestedValue={suggestedValueString}
+                p={mode === 'multiple' ? '0' : '3rem'}
+                splitMinRows={1}
               />
-            </Group>
+            </ScrollArea>
+            {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : (
           numberField
@@ -130,14 +127,17 @@ export const DisplayField = (props: DisplayFieldProps) => {
 
   if (column.pgType === PostgresColumnType.BOOLEAN) {
     const currentValue = getSafeBooleanValue(record.fields, columnId);
-    const suggestedValue = record.__suggested_values?.[columnId] as string;
+    const suggestedValue = record.__suggested_values?.[columnId];
+    const suggestedValueString = suggestedValue?.toString() ?? '';
 
     const booleanField = (
       <Checkbox
         key={columnId}
+        label={mode === 'single' ? column.name : undefined}
         checked={currentValue}
         onChange={(e) => updateField(columnId, e.target.checked.toString())}
         readOnly={column.readonly || hasSuggestion}
+        p={basicFieldPadding}
       />
     );
 
@@ -150,25 +150,19 @@ export const DisplayField = (props: DisplayFieldProps) => {
         isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
-        onFieldLabelClick={onFieldLabelClick}
+        onLabelClick={onFieldLabelClick}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
-            <Group gap="xs" align="flex-start" grow>
+            <Group gap="xs" align="flex-start">
               {booleanField}
-              <TextInput
-                label="Suggested change"
-                inputWrapperOrder={['input', 'label', 'description', 'error']}
-                value={suggestedValue}
-                disabled
-                styles={{
-                  input: {
-                    fontSize: '1rem',
-                    color: suggestValueColor,
-                    backgroundColor: suggestValueBackgroundColor,
-                    borderColor: suggestValueBorderColor,
-                  },
-                }}
+              <CircleArrowRightIcon color={suggestValueColor} />
+              <Checkbox
+                key={`${columnId}-suggested`}
+                label={mode === 'single' ? column.name : undefined}
+                checked={suggestedValueString === 'true'}
+                readOnly={true}
+                c={suggestValueColor}
               />
             </Group>
             {suggestionButtons}
@@ -193,7 +187,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           isHidden={isHidden}
           isReadOnly={column.readonly}
           align={align}
-          onFieldLabelClick={onFieldLabelClick}
+          onLabelClick={onFieldLabelClick}
         >
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
@@ -231,9 +225,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" />
+                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" splitMinRows={1} />
               </ScrollArea>
-              {suggestionButtons}
             </Stack>
           ) : (
             <EnhancedTextArea
@@ -251,7 +244,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
-                  padding: 0,
+                  padding: '3rem',
                 },
               }}
             />
@@ -277,7 +270,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         input: {
           borderColor: 'transparent',
           fontSize: '1rem',
-          padding: !hasSuggestion ? '0' : undefined,
+          padding: basicFieldPadding,
         },
       }}
     />
@@ -291,29 +284,18 @@ export const DisplayField = (props: DisplayFieldProps) => {
       isProtected={isProtected}
       isHidden={isHidden}
       align={align}
-      onFieldLabelClick={onFieldLabelClick}
+      onLabelClick={onFieldLabelClick}
     >
       {hasSuggestion ? (
         <Stack h="auto" gap="xs" w="100%">
-          <Group gap="xs" align="flex-start" grow>
-            {textField}
-            <Textarea
-              inputWrapperOrder={['input', 'label', 'description', 'error']}
-              value={suggestedValue}
-              disabled
-              minRows={1}
-              autosize
-              styles={{
-                input: {
-                  fontSize: '1rem',
-                  color: suggestValueColor,
-                  backgroundColor: suggestValueBackgroundColor,
-                  borderColor: suggestValueBorderColor,
-                },
-              }}
+          <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
+            <DiffViewer
+              originalValue={currentValue}
+              suggestedValue={suggestedValue}
+              p={mode === 'multiple' ? '0' : '3rem'}
             />
-          </Group>
-          {suggestionButtons}
+          </ScrollArea>
+          {mode === 'multiple' && suggestionButtons}
         </Stack>
       ) : (
         textField
