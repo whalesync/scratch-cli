@@ -5,7 +5,7 @@ FastAPI Endpoints for Chat Server
 
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic_ai.exceptions import UserError
 
@@ -25,8 +25,6 @@ from server.exception_mapping import exception_mapping
 from logging import getLogger
 
 myLogger = getLogger(__name__)
-
-
 
 
 # Create router
@@ -117,7 +115,7 @@ async def get_session(
         )
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session.last_activity = datetime.now()
+    session.last_activity = datetime.now(timezone.utc)
     return session
 
 
@@ -188,11 +186,11 @@ async def send_message(
     myLogger.info(f"📊 Session chat history length: {len(session.chat_history)}")
     myLogger.info(f"📋 Session summary history length: {len(session.summary_history)}")
 
-    session.last_activity = datetime.now()
+    session.last_activity = datetime.now(timezone.utc)
 
     # Add user message to history
     user_message = ChatMessage(
-        message=request.message, role="user", timestamp=datetime.now()
+        message=request.message, role="user", timestamp=datetime.now(timezone.utc)
     )
 
     session.chat_history.append(user_message)
@@ -253,7 +251,7 @@ async def send_message(
         assistant_message = ChatMessage(
             message=agent_response.response_message,
             role="assistant",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         session.chat_history.append(assistant_message)
@@ -264,7 +262,7 @@ async def send_message(
         summary_entry = RequestAndResponseSummary(
             request_summary=agent_response.request_summary,
             response_summary=agent_response.response_summary,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
         session.summary_history.append(summary_entry)
         myLogger.info(

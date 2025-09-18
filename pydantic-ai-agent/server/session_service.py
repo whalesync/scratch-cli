@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 from agents.data_agent.models import (
@@ -32,7 +32,7 @@ class SessionService:
         self, user_id: str, session_id: str, snapshot_id: str
     ) -> ChatSession:
         """Create a new chat session and set session data in tools"""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         session = ChatSession(
             id=session_id,
             name=f"New chat {now.strftime('%Y-%m-%d %H:%M')}",
@@ -57,7 +57,7 @@ class SessionService:
 
     def cleanup_inactive_sessions(self, max_age_hours: int = 24) -> None:
         """Clean up inactive sessions"""
-        cutoff = datetime.now() - timedelta(hours=max_age_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
         to_delete = []
 
         for session_id, session in self._sessions.items():

@@ -5,7 +5,7 @@ WebSocket Handler for real-time chat
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -72,7 +72,7 @@ async def websocket_endpoint(
                     "data": {
                         "detail": "Unauthorized access. Missing or invalid JWT token.",
                     },
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             ),
             session_id,
@@ -90,7 +90,7 @@ async def websocket_endpoint(
                     "data": {
                         "detail": "Session not found",
                     },
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             ),
             session_id,
@@ -109,7 +109,7 @@ async def websocket_endpoint(
                 "data": {
                     "message": "Connection established and session loaded",
                 },
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         ),
         session_id,
@@ -130,7 +130,7 @@ async def websocket_endpoint(
                         {
                             "type": "agent_error",
                             "data": {"detail": "Invalid message format"},
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         }
                     ),
                     session_id,
@@ -144,7 +144,7 @@ async def websocket_endpoint(
                             "data": {
                                 "detail": "Error receiving message",
                             },
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         }
                     ),
                     session_id,
@@ -172,7 +172,7 @@ async def websocket_endpoint(
                             "data": {
                                 "message": "pong",
                             },
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         }
                     ),
                     session_id,
@@ -187,7 +187,7 @@ async def websocket_endpoint(
                             "data": {
                                 "detail": "This is a test error",
                             },
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         }
                     ),
                     session_id,
@@ -231,7 +231,7 @@ async def websocket_endpoint(
                                 "data": {
                                     "detail": "Unauthorized access. Missing or invalid JWT token.",
                                 },
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
                         ),
                         session_id,
@@ -258,11 +258,13 @@ async def websocket_endpoint(
                     logger.info(f"ℹ️ No style guides provided")
 
                 session = session_service.get_session(session_id)
-                session.last_activity = datetime.now()
+                session.last_activity = datetime.now(timezone.utc)
 
                 # Add user message to history
                 user_message = ChatMessage(
-                    message=request.message, role="user", timestamp=datetime.now()
+                    message=request.message,
+                    role="user",
+                    timestamp=datetime.now(timezone.utc),
                 )
 
                 session.chat_history.append(user_message)
@@ -301,7 +303,7 @@ async def websocket_endpoint(
                                         "message": message,
                                         "payload": payload,
                                     },
-                                    "timestamp": datetime.now().isoformat(),
+                                    "timestamp": datetime.now(timezone.utc).isoformat(),
                                 }
                             ),
                             session_id,
@@ -336,7 +338,7 @@ async def websocket_endpoint(
                     assistant_message = ChatMessage(
                         message=agent_response.response_message,
                         role="assistant",
-                        timestamp=datetime.now(),
+                        timestamp=datetime.now(timezone.utc),
                     )
 
                     session.chat_history.append(assistant_message)
@@ -347,7 +349,7 @@ async def websocket_endpoint(
                     summary_entry = RequestAndResponseSummary(
                         request_summary=agent_response.request_summary,
                         response_summary=agent_response.response_summary,
-                        timestamp=datetime.now(),
+                        timestamp=datetime.now(timezone.utc),
                     )
                     session.summary_history.append(summary_entry)
                     logger.info(
@@ -377,7 +379,7 @@ async def websocket_endpoint(
                             {
                                 "type": "message_response",
                                 "data": agent_response.model_dump(),
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
                         ),
                         session_id,
@@ -402,7 +404,7 @@ async def websocket_endpoint(
                                 "data": {
                                     "detail": str(mapped_error.detail),
                                 },
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
                         ),
                         session_id,

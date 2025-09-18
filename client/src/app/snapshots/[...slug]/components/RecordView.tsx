@@ -17,10 +17,6 @@ interface RecordViewProps {
 
 const SUGGESTION_TOOLBAR_HEIGHT = 40;
 
-const getRecordViewHeight = (hasSuggestions: boolean) => {
-  return `calc(100vh - 150px ${hasSuggestions ? `-${SUGGESTION_TOOLBAR_HEIGHT}px` : ''})`;
-};
-
 export const RecordView: FC<RecordViewProps> = (props) => {
   const { table } = props;
 
@@ -87,7 +83,6 @@ export const RecordView: FC<RecordViewProps> = (props) => {
 
   const handleSwitchColumn = useCallback(
     (recordId: string, columnId: string | undefined) => {
-      console.log('handleSwitchColumn', recordId, columnId);
       if (columnId !== currentColumnId) {
         setCurrentColumnId(columnId);
         focusRecord(recordId, columnId);
@@ -98,7 +93,6 @@ export const RecordView: FC<RecordViewProps> = (props) => {
 
   const handleSwitchRecord = useCallback(
     (recordId: string, columnId?: string) => {
-      console.log('handleSwitchRecord', recordId, columnId);
       if (recordId !== currentRecordId) {
         setCurrentRecordId(recordId);
         focusRecord(recordId, currentColumnId);
@@ -151,7 +145,7 @@ export const RecordView: FC<RecordViewProps> = (props) => {
         <Stack h="100%" w="300px" gap="0" style={{ borderRight: '1px solid #e0e0e0' }}>
           <RecordListTable
             ref={recordListTableRef}
-            mih={getRecordViewHeight(hasSuggestions)}
+            mih={`calc(100vh - 150px ${hasSuggestions ? `-${SUGGESTION_TOOLBAR_HEIGHT}px` : ''})`}
             records={records}
             table={table}
             selectedRecordId={currentRecordId}
