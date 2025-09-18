@@ -1,0 +1,18 @@
+stages:
+  - push-to-prod
+
+auto push staging to prod:
+  stage: push-to-prod
+  image: alpine/git:latest
+  script:
+    - git config user.email "team+ci-bot@whalesync.com"
+    - git config user.name "ci-bot"
+    - git fetch --all --prune
+    - git checkout master
+    - git pull
+    - git checkout prod
+    - git pull origin prod
+    - git merge -m "(Auto) Merge branch 'master' into prod" --no-ff -X theirs master
+    - git push origin prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "schedule" && $PIPELINE_NAME == "Prod Deploy"'
