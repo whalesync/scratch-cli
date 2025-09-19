@@ -43,7 +43,7 @@ export const AG = {
   
   // Grid configuration
   grid: {
-    defaultMinWidth: 100,
+    defaultMinWidth: 200,
     defaultFlex: 1,
   },
 } as const;

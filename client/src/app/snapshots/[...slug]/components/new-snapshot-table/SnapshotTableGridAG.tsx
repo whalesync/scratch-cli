@@ -31,7 +31,6 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import './ag-grid-variables.css';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import styles from './SelectionCorners.module.css';
-import './SelectionCorners.override.css';
 import { TableContextMenu } from './TableContextMenu';
 import { useCellRenderer } from './useCellRenderer';
 import { useIdColDef } from './useIdColDef';
@@ -230,6 +229,11 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
       cellStyle,
       // Use custom header component
       headerComponent: CustomHeaderComponent,
+      headerComponentParams: {
+        tableId: table.id.wsId,
+        records: records,
+        columnSpec: column,
+      },
       // cellClass: () => {
       //   // const cellId = getCellId(params.node.rowIndex!, column.id.wsId);
       //   return styles['selected-cell-corners'];

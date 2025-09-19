@@ -275,6 +275,102 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     }
   };
 
+  const handleAcceptColumn = async () => {
+    if (!focusedCellInfo) return;
+
+    try {
+      setIsProcessing(true);
+      onClose(); // Close menu immediately
+
+      // Get all records that have suggestions for this column
+      const recordsWithColumnSuggestions = (gridApi?.getSelectedRows() || []).filter((record) => {
+        const suggestedValues = record.__suggested_values || {};
+        return (
+          suggestedValues[focusedCellInfo.fieldId] !== null && suggestedValues[focusedCellInfo.fieldId] !== undefined
+        );
+      });
+
+      if (recordsWithColumnSuggestions.length === 0) {
+        ScratchpadNotifications.warning({
+          title: 'No Suggestions',
+          message: `No suggestions found for column "${focusedCellInfo.fieldName}"`,
+        });
+        return;
+      }
+
+      // Create items array for all suggestions in this column
+      const items: { wsId: string; columnId: string }[] = recordsWithColumnSuggestions.map((record) => ({
+        wsId: record.id.wsId,
+        columnId: focusedCellInfo.fieldId,
+      }));
+
+      await acceptCellValues(items);
+
+      ScratchpadNotifications.success({
+        title: 'Column Accepted',
+        message: `Accepted ${items.length} suggestions for column "${focusedCellInfo.fieldName}"`,
+      });
+
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error accepting column:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Accepting Column',
+        message: error instanceof Error ? error.message : 'Failed to accept column suggestions',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectColumn = async () => {
+    if (!focusedCellInfo) return;
+
+    try {
+      setIsProcessing(true);
+      onClose(); // Close menu immediately
+
+      // Get all records that have suggestions for this column
+      const recordsWithColumnSuggestions = (gridApi?.getSelectedRows() || []).filter((record) => {
+        const suggestedValues = record.__suggested_values || {};
+        return (
+          suggestedValues[focusedCellInfo.fieldId] !== null && suggestedValues[focusedCellInfo.fieldId] !== undefined
+        );
+      });
+
+      if (recordsWithColumnSuggestions.length === 0) {
+        ScratchpadNotifications.warning({
+          title: 'No Suggestions',
+          message: `No suggestions found for column "${focusedCellInfo.fieldName}"`,
+        });
+        return;
+      }
+
+      // Create items array for all suggestions in this column
+      const items: { wsId: string; columnId: string }[] = recordsWithColumnSuggestions.map((record) => ({
+        wsId: record.id.wsId,
+        columnId: focusedCellInfo.fieldId,
+      }));
+
+      await rejectCellValues(items);
+
+      ScratchpadNotifications.success({
+        title: 'Column Rejected',
+        message: `Rejected ${items.length} suggestions for column "${focusedCellInfo.fieldName}"`,
+      });
+
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error rejecting column:', error);
+      ScratchpadNotifications.error({
+        title: 'Error Rejecting Column',
+        message: error instanceof Error ? error.message : 'Failed to reject column suggestions',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleFilterInRecords = async () => {
     if (selectedRows.length === 0) return;
 
@@ -327,61 +423,10 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
         color: '#ffffff',
       }}
     >
-      {/* Selected Rows Section */}
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid #444' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#ffffff' }}>
-          Selected Rows ({selectedRows.length})
-        </div>
-        {selectedRows.length === 0 ? (
-          <div style={{ color: '#888', fontStyle: 'italic' }}>No rows selected</div>
-        ) : (
-          <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
-            {selectedRows.map((row, index) => (
-              <div
-                key={row.id?.wsId || index}
-                style={{
-                  padding: '2px 0',
-                  color: '#ccc',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                }}
-              >
-                ID: {row.id?.wsId || 'Unknown'}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Clicked Cell Section */}
-      <div style={{ padding: '8px 12px' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#ffffff' }}>Focused Cell</div>
-        {focusedCellInfo ? (
-          <div style={{ color: '#ccc', fontSize: '12px' }}>
-            <div style={{ marginBottom: '2px' }}>
-              <span style={{ color: '#888' }}>Record ID:</span>{' '}
-              <span style={{ fontFamily: 'monospace' }}>{focusedCellInfo.recordId}</span>
-            </div>
-            <div style={{ marginBottom: '2px' }}>
-              <span style={{ color: '#888' }}>Field:</span>{' '}
-              <span style={{ fontFamily: 'monospace' }}>{focusedCellInfo.fieldName}</span>
-            </div>
-            <div>
-              <span style={{ color: '#888' }}>Field ID:</span>{' '}
-              <span style={{ fontFamily: 'monospace' }}>{focusedCellInfo.fieldId}</span>
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: '#888', fontStyle: 'italic' }}>No cell focused</div>
-        )}
-      </div>
-
-      {/* Accept/Reject Actions */}
+      {/* Row Actions */}
       {selectedRowsWithSuggestions.length > 0 && (
-        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>
-            Accept/Reject Changes
-          </div>
+        <div style={{ padding: '4px 0' }}>
+          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Row Actions</div>
           <div
             onClick={handleAcceptSelectedRows}
             style={{
@@ -492,6 +537,61 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
           >
             <ListBulletsIcon size={16} color="#ff0000" />
             <span>Reject suggestion</span>
+          </div>
+        </div>
+      )}
+
+      {/* Column Actions */}
+      {selectedRows.length === 1 && focusedCellInfo && (
+        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
+          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Column Actions</div>
+          <div
+            onClick={handleAcceptColumn}
+            style={{
+              padding: '8px 12px',
+              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              opacity: isProcessing ? 0.5 : 1,
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              if (!isProcessing) {
+                e.currentTarget.style.backgroundColor = '#3a3a3a';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <ListChecksIcon size={16} color="#00aa00" />
+            <span>Accept column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
+          </div>
+          <div
+            onClick={handleRejectColumn}
+            style={{
+              padding: '8px 12px',
+              cursor: isProcessing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              opacity: isProcessing ? 0.5 : 1,
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              if (!isProcessing) {
+                e.currentTarget.style.backgroundColor = '#3a3a3a';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <ListBulletsIcon size={16} color="#ff0000" />
+            <span>Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
           </div>
         </div>
       )}

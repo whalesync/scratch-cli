@@ -1,18 +1,18 @@
-.grid :global(.my-grid[class*='ag-theme'] .ag-cell-focus) {
-  outline: none !important;
+.ag-grid-container :global(.my-grid[class*='ag-theme'] .ag-cell-focus) {
+  /* outline: none !important; */
   box-shadow: none !important;
-  background: none !important;
-  border: none !important;
-  background-color: red !important;
+  /* background: none !important;
+  border: none !important; */
+  /* background-color: red !important; */
 }
 
 /* Dark theme overrides  */
-.grid :global(.my-grid[class*='-dark'] .ag-row-odd) {
-  background-color: var(--ag-row-background);
+.ag-grid-container :global(.my-grid[class*='-dark'] .ag-row-odd) {
+  background-color: black;
 }
 
-.grid :global(.my-grid[class*='-dark'] .ag-row-even) {
-  background-color: var(--ag-row-background);
+.ag-grid-container :global(.my-grid[class*='-dark'] .ag-row-even) {
+  background-color: black;
 }
 
 /* Light theme overrides (if needed in the future) */
