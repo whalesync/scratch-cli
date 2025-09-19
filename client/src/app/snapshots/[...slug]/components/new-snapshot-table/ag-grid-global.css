@@ -1,7 +1,7 @@
 /* Global AG Grid theme overrides */
 /* This file contains global styles that cannot be in CSS modules */
 
-/* Remove cell focus outline */
+/* Remove cell focus outline so that we can apply completely custom focus styles */
 .my-grid[class*='ag-theme'] .ag-cell-focus {
   /* outline: none !important; */
   box-shadow: none !important;
@@ -17,4 +17,87 @@
 
 .my-grid[class*='-dark'] .ag-row-even {
   background-color: black;
+}
+
+@property --current-corner-color {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: rgba(45, 105, 255, 0.5);
+}
+
+/**
+ * A box with animated corner borders.
+ * This effect is achieved by layering 8 linear-gradients (2 per corner)
+ * to draw the horizontal and vertical lines. To create a clean "L" shape
+ * without overlap in the corner joint (so that we can use opacity if we want), one line in each pair is shortened
+ * and offset by the thickness of the other line.
+ */
+.corner-box {
+  /* --- Configuration Variables --- */
+  --border-thickness: 3px;
+  --corner-size: 30px;
+  --animation-speed: 0.1s;
+
+  /* --- Color Variables --- */
+  --corner-color-opaque: rgba(99, 11, 11, 1);
+  --corner-color-transparent: rgba(99, 11, 11, 0.5);
+
+  /*
+     * --- State Management ---
+     * This variable holds the color that will be drawn and is transitioned on hover.
+     * The transition now works because --current-corner-color is registered above.
+     */
+  --current-corner-color: var(--corner-color-transparent);
+  transition: --current-corner-color var(--animation-speed) ease-in-out;
+
+  /*
+     * --- Corner Drawing ---
+     * Each corner consists of two gradients. The comma separates each new background layer.
+     * The syntax for each layer is: [gradient] [position] / [size]
+     */
+  background:
+        /* --- Top Left Corner --- */
+        /* Vertical line (full length) */
+    linear-gradient(to right, var(--current-corner-color) var(--border-thickness), transparent var(--border-thickness))
+      0 0 / var(--corner-size) var(--corner-size),
+    /* Horizontal line (shortened and offset to the right) */
+      linear-gradient(
+        to bottom,
+        var(--current-corner-color) var(--border-thickness),
+        transparent var(--border-thickness)
+      )
+      var(--border-thickness) 0 / calc(var(--corner-size) - var(--border-thickness)) var(--corner-size),
+    /* --- Top Right Corner --- */ /* Vertical line (shortened and offset down) */
+      linear-gradient(to left, var(--current-corner-color) var(--border-thickness), transparent var(--border-thickness))
+      100% var(--border-thickness) / var(--corner-size) calc(var(--corner-size) - var(--border-thickness)),
+    /* Horizontal line (full length) */
+      linear-gradient(
+        to bottom,
+        var(--current-corner-color) var(--border-thickness),
+        transparent var(--border-thickness)
+      )
+      100% 0 / var(--corner-size) var(--corner-size),
+    /* --- Bottom Left Corner --- */ /* Vertical line (full length) */
+      linear-gradient(
+        to right,
+        var(--current-corner-color) var(--border-thickness),
+        transparent var(--border-thickness)
+      )
+      0 100% / var(--corner-size) var(--corner-size),
+    /* Horizontal line (shortened and offset to the right) */
+      linear-gradient(to top, var(--current-corner-color) var(--border-thickness), transparent var(--border-thickness))
+      var(--border-thickness) 100% / calc(var(--corner-size) - var(--border-thickness)) var(--corner-size),
+    /* --- Bottom Right Corner --- */ /* Vertical line (shortened and offset up) */
+      linear-gradient(to left, var(--current-corner-color) var(--border-thickness), transparent var(--border-thickness))
+      100% calc(100% - var(--border-thickness)) / var(--corner-size) calc(var(--corner-size) - var(--border-thickness)),
+    /* Horizontal line (full length) */
+      linear-gradient(to top, var(--current-corner-color) var(--border-thickness), transparent var(--border-thickness))
+      100% 100% / var(--corner-size) var(--corner-size);
+
+  background-repeat: no-repeat;
+}
+
+/* This could also be for focus? */
+.corner-box:hover {
+  --current-corner-color: var(--corner-color-opaque);
 }

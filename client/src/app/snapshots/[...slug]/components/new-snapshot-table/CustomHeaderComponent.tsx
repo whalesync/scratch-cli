@@ -27,6 +27,7 @@ interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: string;
   records?: SnapshotRecord[];
   columnSpec?: ColumnSpec;
+  showDataTypeInHeader?: boolean;
 }
 
 // Function to get column type icon
@@ -438,7 +439,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         onClick={props.enableSorting ? handleHeaderClick : undefined}
       >
         {/* Column type icon */}
-        {props.columnSpec && (
+        {props.columnSpec && props.showDataTypeInHeader && (
           <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
             {getColumnTypeIcon(props.columnSpec.pgType)}
           </span>

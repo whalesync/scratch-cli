@@ -3,7 +3,7 @@ import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/context
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
-import { FunnelIcon, FunnelXIcon, ListBulletsIcon, ListChecksIcon } from '@phosphor-icons/react';
+import { Columns, FunnelIcon, FunnelXIcon, ListBulletsIcon, ListChecksIcon, Rows, Square } from '@phosphor-icons/react';
 import { GridApi } from 'ag-grid-community';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -26,6 +26,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const [isPositionCalculated, setIsPositionCalculated] = useState(false);
 
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
@@ -33,6 +35,61 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     tableId: tableId,
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
+
+  // Calculate smart position to keep menu visible
+  const calculateMenuPosition = (x: number, y: number) => {
+    if (!menuRef.current) return { x, y };
+
+    const menu = menuRef.current;
+    const menuRect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let adjustedX = x;
+    let adjustedY = y;
+
+    // Check horizontal overflow
+    if (x + menuRect.width > viewportWidth) {
+      adjustedX = viewportWidth - menuRect.width - 10; // 10px margin
+    }
+
+    // Check vertical overflow
+    if (y + menuRect.height > viewportHeight) {
+      adjustedY = viewportHeight - menuRect.height - 10; // 10px margin
+    }
+
+    // Ensure menu doesn't go off the left edge
+    if (adjustedX < 10) {
+      adjustedX = 10;
+    }
+
+    // Ensure menu doesn't go off the top edge
+    if (adjustedY < 10) {
+      adjustedY = 10;
+    }
+
+    return { x: adjustedX, y: adjustedY };
+  };
+
+  // Update adjusted position when menu opens or position changes
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      // Start invisible
+      setIsPositionCalculated(false);
+
+      // Small delay to ensure menu is rendered and has dimensions
+      const timer = setTimeout(() => {
+        const newPosition = calculateMenuPosition(position.x, position.y);
+        setAdjustedPosition(newPosition);
+        setIsPositionCalculated(true); // Show menu after position is calculated
+      }, 0);
+
+      return () => clearTimeout(timer);
+    } else {
+      setAdjustedPosition(position);
+      setIsPositionCalculated(false);
+    }
+  }, [isOpen, position]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -409,8 +466,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       ref={menuRef}
       style={{
         position: 'fixed',
-        top: position.y,
-        left: position.x,
+        top: adjustedPosition.y,
+        left: adjustedPosition.x,
         backgroundColor: '#2d2d2d',
         border: '1px solid #444',
         borderRadius: '6px',
@@ -421,12 +478,28 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
         padding: '8px 0',
         fontSize: '13px',
         color: '#ffffff',
+        opacity: isPositionCalculated ? 1 : 0,
+        visibility: isPositionCalculated ? 'visible' : 'hidden',
+        transition: 'opacity 0.1s ease-in-out',
       }}
     >
       {/* Row Actions */}
       {selectedRowsWithSuggestions.length > 0 && (
         <div style={{ padding: '4px 0' }}>
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Row Actions</div>
+          <div
+            style={{
+              padding: '4px 12px',
+              color: '#888',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Rows size={12} color="#888" />
+            Row Actions
+          </div>
           <div
             onClick={handleAcceptSelectedRows}
             style={{
@@ -489,7 +562,20 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       {/* Cell-specific actions for single row selection with focused cell */}
       {selectedRows.length === 1 && focusedCellInfo && focusedCellInfo.hasSuggestion && (
         <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Cell Actions</div>
+          <div
+            style={{
+              padding: '4px 12px',
+              color: '#888',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Square size={12} color="#888" />
+            Cell Actions
+          </div>
           <div
             onClick={handleAcceptCellSuggestion}
             style={{
@@ -544,7 +630,20 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       {/* Column Actions */}
       {selectedRows.length === 1 && focusedCellInfo && (
         <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Column Actions</div>
+          <div
+            style={{
+              padding: '4px 12px',
+              color: '#888',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Columns size={12} color="#888" />
+            Column Actions
+          </div>
           <div
             onClick={handleAcceptColumn}
             style={{

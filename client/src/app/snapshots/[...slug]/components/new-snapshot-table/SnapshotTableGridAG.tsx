@@ -30,6 +30,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import styles from './SelectionCorners.module.css';
+import { SettingsModal } from './SettingsModal';
 import { TableContextMenu } from './TableContextMenu';
 import { useCellRenderer } from './useCellRenderer';
 import { useIdColDef } from './useIdColDef';
@@ -61,6 +62,23 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
     // selectedRows: [],
   });
 
+  // Theme toggle state for prototyping (hidden shortcut)
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+
+  // Settings modal state
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Column header settings
+  const [showDataTypeInHeader, setShowDataTypeInHeader] = useState(true);
+
+  // We'll use gridApi.getFocusedCell() instead of tracking state
+
+  // Track keyboard navigation state
+  const [lastKeyPressed, setLastKeyPressed] = useState<KeyboardEvent | null>(null);
+
+  // Track previous focused cell for shift selection logic (AG Grid doesn't provide this for keyboard navigation)
+  const [previousFocusedRowIndex, setPreviousFocusedRowIndex] = useState<number | null>(null);
+
   // Storage key for this specific snapshot and table
   const { columnState, mounted, onColumnStateChanged } = useStoreColumnState(snapshot.id, table.id.wsId, gridApi);
 
@@ -86,19 +104,30 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
   const rowData = records || [];
 
   const { cellRenderer } = useCellRenderer(table);
-  const { idColumn } = useIdColDef();
-
-  // Generate unique cell ID for tracking selection
-  const getCellId = (rowIndex: number, colId: string) => `${rowIndex}-${colId}`;
+  const { idColumn } = useIdColDef({
+    onSettingsClick: () => setIsSettingsModalOpen(true),
+  });
 
   // Context menu handlers
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  // Handle Ctrl/Cmd+C to copy focused cell content
+  // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // Track arrow key presses for navigation detection
+      if (
+        event.key === 'ArrowUp' ||
+        event.key === 'ArrowDown' ||
+        event.key === 'ArrowLeft' ||
+        event.key === 'ArrowRight'
+      ) {
+        setLastKeyPressed(event);
+        // Clear the key after a short delay to avoid false positives
+        setTimeout(() => setLastKeyPressed(null), 100);
+      }
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
         if (!gridApi) return;
 
@@ -188,6 +217,10 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
       const hasSuggestion = record?.__suggested_values?.[column.id.wsId];
       const isReadOnly = column.readonly;
 
+      // Check if this cell is in the same column as the focused cell
+      const focusedCell = gridApi?.getFocusedCell();
+      const isInFocusedColumn = focusedCell && focusedCell.column.getColId() === column.id.wsId;
+
       // Base styles for all cells (gray outer border)
       const baseStyles = {
         background: `linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})`,
@@ -196,6 +229,8 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
         backgroundRepeat: 'no-repeat',
         paddingLeft: AG.borders.paddingLeft,
         color: isReadOnly ? AG.colors.readOnlyText : AG.colors.normalText,
+        // Add red background for focused column
+        backgroundColor: isInFocusedColumn ? '#2196f322' : 'transparent',
       };
 
       if (hasSuggestion) {
@@ -232,12 +267,8 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
         tableId: table.id.wsId,
         records: records,
         columnSpec: column,
+        showDataTypeInHeader: showDataTypeInHeader,
       },
-      // cellClass: () => {
-      //   // const cellId = getCellId(params.node.rowIndex!, column.id.wsId);
-      //   return styles['selected-cell-corners'];
-      //   // return selectedCells.has(cellId) ? styles['selected-cell-corners'] : '';
-      // },
     };
     return colDef;
   });
@@ -264,7 +295,7 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
   return (
     <Box h="100%" w="100%" style={{ position: 'relative' }}>
       <div
-        className={`ag-theme-alpine-dark my-grid ${styles['ag-grid-container']}`}
+        className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
           height: '100%',
           width: '100%',
@@ -276,14 +307,15 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
           event.preventDefault();
           event.stopPropagation();
         }}
-        onMouseDown={(event) => {
-          // Prevent text selection during shift-click
-          if (event.shiftKey) {
-            event.preventDefault();
-          }
-        }}
+        // onMouseDown={(event) => {
+        //   // Prevent text selection during shift-click
+        //   if (event.shiftKey) {
+        //     event.preventDefault();
+        //   }
+        // }}
       >
         <AgGridReact<SnapshotRecord>
+          // Data
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={{
@@ -292,43 +324,18 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
           }}
           rowHeight={31}
           headerHeight={31}
-          // suppressRowHoverHighlight={true}
           animateRows={true}
           rowSelection="multiple"
-          // suppressRowClickSelection={true}
           theme="legacy"
+          suppressCellFocus={false}
+          enableCellTextSelection={false}
+          // Prevent default context menu on the entire grid
+          suppressContextMenu={false}
           onGridReady={onGridReady}
           onFirstDataRendered={onFirstDataRendered}
           onColumnResized={onColumnStateChanged}
           onColumnMoved={onColumnStateChanged}
           onColumnVisible={onColumnStateChanged}
-          // Enable cell selection
-          // enableRangeSelection={true}
-          // cellSelection={true}
-          // suppressRowDeselection={false}
-          suppressCellFocus={false}
-          enableCellTextSelection={false}
-          // Prevent default context menu on the entire grid
-          suppressContextMenu={true}
-          // onCellClicked={(event) => {
-          //   console.debug('Cell clicked:', event);
-
-          //   // Update context menu with clicked cell info
-          //   const record = event.data as SnapshotRecord;
-          //   const column = table.columns.find((col) => col.id.wsId === event.column.getColId());
-
-          //   if (record && column) {
-          //     debugger;
-          //     setContextMenu((prev) => ({
-          //       ...prev,
-          //       clickedCell: {
-          //         recordId: record.id?.wsId || 'Unknown',
-          //         fieldId: column.id.wsId,
-          //         fieldName: column.name,
-          //       },
-          //     }));
-          //   }
-          // }}
           onCellDoubleClicked={handleCellDoubleClicked}
           onCellContextMenu={(event) => {
             // Prevent the default browser context menu
@@ -356,30 +363,65 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
               position: { x: mouseEvent?.clientX || 0, y: mouseEvent?.clientY || 0 },
             });
           }}
-          onCellSelectionChanged={(event) => {
-            console.debug('Cell selection changed:', event);
-            const newSelectedCells = new Set<string>();
+          onCellFocused={(event) => {
+            console.debug('Cell focused:', event);
+            console.debug('sourceEvent:', event.sourceEvent); // This will be undefined for keyboard, MouseEvent for mouse
 
-            // Get all selected cells from the grid
-            if (gridApi) {
-              const selectedRanges = gridApi.getCellRanges();
-              if (selectedRanges) {
-                selectedRanges.forEach((range) => {
-                  const startRow = range.startRow?.rowIndex ?? 0;
-                  const endRow = range.endRow?.rowIndex ?? 0;
+            // Check if this focus event was caused by arrow key navigation
+            if (lastKeyPressed && (lastKeyPressed.key === 'ArrowUp' || lastKeyPressed.key === 'ArrowDown')) {
+              console.log('🔥 Cell focus changed due to arrow key:', lastKeyPressed.key, 'Row:', event.rowIndex);
 
-                  // Add all cells in the range
-                  for (let row = startRow; row <= endRow; row++) {
-                    for (const col of range.columns) {
-                      const cellId = getCellId(row, col.getColId());
-                      newSelectedCells.add(cellId);
+              if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
+                const currentRowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
+
+                if (currentRowNode && lastKeyPressed.shiftKey) {
+                  // Shift+Arrow key logic
+                  if (!currentRowNode.isSelected()) {
+                    // If the new focus cell row is not selected, add it to the set of selected rows
+                    currentRowNode.setSelected(true);
+                    console.log('Added row to selection:', event.rowIndex);
+                  } else if (previousFocusedRowIndex !== null && previousFocusedRowIndex !== undefined) {
+                    // Otherwise remove the row of the PREVIOUS focus cell from the set of selected rows
+                    const previousRowNode = gridApi.getDisplayedRowAtIndex(previousFocusedRowIndex);
+                    if (previousRowNode) {
+                      previousRowNode.setSelected(false);
+                      console.log('Removed previous row from selection:', previousFocusedRowIndex);
                     }
                   }
-                });
+                } else if (!lastKeyPressed.shiftKey) {
+                  // Regular arrow key navigation (no shift) - select only the current row
+                  gridApi.deselectAll();
+                  currentRowNode?.setSelected(true);
+                  console.log('Single row selection:', event.rowIndex);
+                }
               }
             }
 
-            // setSelectedCells(newSelectedCells);
+            // Update row selection to match focused cell, but only for single-row navigation
+            if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
+              // const rowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
+              // if (rowNode) {
+              //   const selectedRows = gridApi.getSelectedRows();
+              //   // Only update selection if:
+              //   // 1. No rows are currently selected, OR
+              //   // 2. Only one row is selected and it's not the focused row
+              //   // This preserves multi-selection from shift-click, ctrl-click, etc.
+              //   if (selectedRows.length === 0 || (selectedRows.length === 1 && !rowNode.isSelected())) {
+              //     gridApi.deselectAll();
+              //     rowNode.setSelected(true);
+              //     console.debug('Row selection updated to match focused cell:', event.rowIndex);
+              //   }
+              // }
+            }
+
+            // Update previous focused row index for next shift selection
+            setPreviousFocusedRowIndex(event.rowIndex);
+
+            // Force refresh of all cell styles when focus changes
+            // This forces the selected column styles to be recalculated
+            if (gridApi) {
+              gridApi.refreshCells({ force: true });
+            }
           }}
         />
       </div>
@@ -392,6 +434,16 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
         gridApi={gridApi}
         tableColumns={table.columns}
         tableId={table.id.wsId}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        isDarkTheme={isDarkTheme}
+        onThemeToggle={setIsDarkTheme}
+        showDataTypeInHeader={showDataTypeInHeader}
+        onShowDataTypeToggle={setShowDataTypeInHeader}
       />
     </Box>
   );
