@@ -1,0 +1,20 @@
+/* Global AG Grid theme overrides */
+/* This file contains global styles that cannot be in CSS modules */
+
+/* Remove cell focus outline */
+.my-grid[class*='ag-theme'] .ag-cell-focus {
+  /* outline: none !important; */
+  box-shadow: none !important;
+  /* background: none !important;
+  border: none !important; */
+  /* background-color: red !important; */
+}
+
+/* Dark theme overrides */
+.my-grid[class*='-dark'] .ag-row-odd {
+  background-color: black;
+}
+
+.my-grid[class*='-dark'] .ag-row-even {
+  background-color: black;
+}

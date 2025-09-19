@@ -28,7 +28,6 @@ import { AG } from './ag-grid-constants';
 import 'ag-grid-community/styles/ag-grid.css';
 // import 'ag-grid-community/styles/ag-theme-quartz.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import './ag-grid-variables.css';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import styles from './SelectionCorners.module.css';
 import { TableContextMenu } from './TableContextMenu';

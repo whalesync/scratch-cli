@@ -2,6 +2,8 @@ import '@mantine/notifications/styles.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import './snapshots/[...slug]/components/new-snapshot-table/ag-grid-global.css';
+import './snapshots/[...slug]/components/new-snapshot-table/ag-grid-variables.css';
 
 const inter = Inter({ subsets: ['latin'] });
 

@@ -1,19 +1,4 @@
-.ag-grid-container :global(.my-grid[class*='ag-theme'] .ag-cell-focus) {
-  /* outline: none !important; */
-  box-shadow: none !important;
-  /* background: none !important;
-  border: none !important; */
-  /* background-color: red !important; */
-}
-
-/* Dark theme overrides  */
-.ag-grid-container :global(.my-grid[class*='-dark'] .ag-row-odd) {
-  background-color: black;
-}
-
-.ag-grid-container :global(.my-grid[class*='-dark'] .ag-row-even) {
-  background-color: black;
-}
+/* Global AG Grid styles moved to ag-grid-global.css */
 
 /* Light theme overrides (if needed in the future) */
 
