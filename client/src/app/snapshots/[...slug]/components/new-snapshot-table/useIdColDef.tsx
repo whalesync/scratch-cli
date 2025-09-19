@@ -1,6 +1,7 @@
 import { AG } from '@/app/snapshots/[...slug]/components/new-snapshot-table/ag-grid-constants';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { CellStyleFunc, ColDef, ICellRendererParams } from 'ag-grid-community';
+import { CustomHeaderComponent } from './CustomHeaderComponent';
 export const useIdColDef = () => {
   const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
     const baseStyles = {
@@ -26,6 +27,8 @@ export const useIdColDef = () => {
     width: 150,
     minWidth: 150,
     maxWidth: 150,
+    // Use custom header component
+    headerComponent: CustomHeaderComponent,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     valueGetter: (params: any) => {
       return params.data?.id?.wsId || '';

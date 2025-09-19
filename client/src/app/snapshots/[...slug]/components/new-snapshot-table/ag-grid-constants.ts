@@ -11,6 +11,9 @@ export const AG = {
      // Text colors
     normalText: '#ffffff',
     
+    // Background colors
+    rowBackground: '#000000',
+    
     // Diff colors
     diffAdded: suggestionGreen,
     diffRemoved: 'rgba(165, 161, 175, 1)',

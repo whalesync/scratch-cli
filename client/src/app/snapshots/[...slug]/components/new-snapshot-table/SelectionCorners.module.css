@@ -1,17 +1,42 @@
+.grid :global(.my-grid[class*='ag-theme'] .ag-cell-focus) {
+  outline: none !important;
+  box-shadow: none !important;
+  background: none !important;
+  border: none !important;
+  background-color: red !important;
+}
+
+/* Dark theme overrides  */
+.grid :global(.my-grid[class*='-dark'] .ag-row-odd) {
+  background-color: var(--ag-row-background);
+}
+
+.grid :global(.my-grid[class*='-dark'] .ag-row-even) {
+  background-color: var(--ag-row-background);
+}
+
+/* Light theme overrides (if needed in the future) */
+
+/* Remove alternating row colors */
+/* .ag-grid-container .ag-row-even,
+.ag-grid-container .ag-row-odd {
+  background-color: transparent !important;
+} */
+
 /* Always visible scrollbars for AG Grid */
 .ag-grid-container {
   /* Force scrollbars to always be visible */
   scrollbar-width: thin;
   scrollbar-color: #666 #333;
+
+  /* Prevent text selection during shift-click row selection */
+  /* -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none; */
 }
 
-/* Remove alternating row colors */
-.ag-grid-container .ag-row-even,
-.ag-grid-container .ag-row-odd {
-  background-color: transparent !important;
-}
-
-.ag-grid-container::-webkit-scrollbar {
+/* .ag-grid-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
@@ -27,13 +52,7 @@
 
 .ag-grid-container::-webkit-scrollbar-thumb:hover {
   background: #888;
-}
-
-/* AG Grid specific scrollbar styling */
-.ag-grid-container .ag-body-viewport {
-  scrollbar-width: thin;
-  scrollbar-color: #666 #333;
-}
+} */
 
 .ag-grid-container .ag-body-viewport::-webkit-scrollbar {
   width: 8px;

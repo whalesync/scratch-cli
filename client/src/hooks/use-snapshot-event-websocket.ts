@@ -150,6 +150,7 @@ export const useSnapshotEventWebsocket = (props: SnapshotEventWebsocketProps) : 
       newSocket.close();
       onCloseConnection?.();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {

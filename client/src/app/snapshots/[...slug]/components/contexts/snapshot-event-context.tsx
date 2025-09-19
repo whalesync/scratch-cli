@@ -1,6 +1,5 @@
 'use client';
 
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebsocket } from '@/hooks/use-snapshot-event-websocket';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { createContext, ReactNode, useCallback, useContext } from 'react';
@@ -34,7 +33,7 @@ export const useSnapshotEventContext = () => {
 export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventProviderProps) => {
   const { mutate: globalMutate } = useSWRConfig();
 
-  const { currentView } = useSnapshotContext();
+  // const { currentView } = useSnapshotContext();
 
   // Handle snapshot events (snapshot-updated, filter-changed)
   const handleSnapshotEvent = useCallback(
@@ -54,7 +53,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
         }
       }
     },
-    [snapshotId, globalMutate, currentView],
+    [snapshotId, globalMutate],
   );
 
   // Handle record events (record-changes)
