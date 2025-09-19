@@ -11,10 +11,10 @@ import { CreditCardIcon } from '@phosphor-icons/react';
 import pluralize from 'pluralize';
 
 export const SubscriptionCard = () => {
-  const { isAdmin } = useScratchPadUser();
-  const { isSubscribed, planDisplayName, daysRemaining, status } = useSubscriptionStatus();
+  const { user } = useScratchPadUser();
+  const { isSubscribed, planDisplayName, daysRemaining, status, isTrial } = useSubscriptionStatus();
 
-  if (!isAdmin) {
+  if (!user?.experimentalFlags?.REQUIRE_SUBSCRIPTION) {
     return null;
   }
 
@@ -23,7 +23,7 @@ export const SubscriptionCard = () => {
     content = (
       <>
         <TextRegularSm>
-          {planDisplayName} - {daysRemaining} {pluralize('day', daysRemaining)} remaining
+          {planDisplayName} - {daysRemaining} {pluralize('day', daysRemaining)} remaining {isTrial ? ' in trial' : ''}
         </TextRegularSm>
         <SecondaryButton
           size="xs"

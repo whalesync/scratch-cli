@@ -8,6 +8,7 @@ export interface SubscriptionStatus {
     status: 'valid' | 'expired' | 'payment_failed' | 'none';
     planDisplayName: string;
     daysRemaining: number;
+    isTrial: boolean;
 }
 
 export function useSubscriptionStatus() {
@@ -19,6 +20,7 @@ export function useSubscriptionStatus() {
       status: 'none',
       planDisplayName: 'No Plan',
       daysRemaining: 0,
+      isTrial: false,
     };
   }
 
@@ -28,6 +30,7 @@ export function useSubscriptionStatus() {
       status: 'valid',
       planDisplayName: 'Fake Dev Plan',
       daysRemaining: 30,
+      isTrial: false,
     };
   }
 
@@ -37,6 +40,7 @@ export function useSubscriptionStatus() {
       status: 'none',
       planDisplayName: 'No Plan',
       daysRemaining: 0,
+      isTrial: false,
     };
   }
 
@@ -47,6 +51,7 @@ export function useSubscriptionStatus() {
       status,
       planDisplayName: user.subscription.planDisplayName,
       daysRemaining: 0,
+      isTrial: false,
     };
   }
 
@@ -56,5 +61,6 @@ export function useSubscriptionStatus() {
     status,
     planDisplayName: user.subscription.planDisplayName,
     daysRemaining: user.subscription.daysRemaining,
+    isTrial: user.subscription.isTrial,
   };
 }

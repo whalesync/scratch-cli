@@ -18,7 +18,6 @@ import {
   unauthorizedError,
   unexpectedError,
 } from 'src/types/results';
-import { UsersService } from 'src/users/users.service';
 import Stripe from 'stripe';
 import { getActiveSubscriptions } from './helpers';
 import { getPlans, ScratchpadPlanType } from './plans';
@@ -61,7 +60,6 @@ export class StripePaymentService {
   constructor(
     private readonly configService: ScratchpadConfigService,
     private readonly dbService: DbService,
-    private readonly usersService: UsersService,
     private readonly postHogService: PostHogService,
   ) {
     this.stripe = new Stripe(this.configService.getStripeApiKey(), {
@@ -93,6 +91,55 @@ export class StripePaymentService {
       return errResult(ErrorCode.StripeLibraryError, `Failed to generate new customer: ${err}`);
     }
     return ok(response.id);
+  }
+
+  async createTrialSubscription(user: UserCluster.User): AsyncResult<string> {
+    WSLogger.info({
+      source: StripePaymentService.name,
+      message: `Creating trial subscription for user ${user.id}`,
+    });
+
+    const stripePriceId = this.getDefaultPriceId(ScratchpadPlanType.STARTER_PLAN);
+    if (!stripePriceId) {
+      return unexpectedError(`No stripe product id for ${ScratchpadPlanType.STARTER_PLAN}`);
+    }
+
+    const stripeCustomerId = await this.upsertStripeCustomerId(user);
+    if (isErr(stripeCustomerId)) {
+      return stripeCustomerId;
+    }
+
+    try {
+      const subscription = await this.stripe.subscriptions.create({
+        customer: stripeCustomerId.v,
+        items: [{ price: stripePriceId, quantity: 1 }],
+        trial_period_days: TRIAL_PERIOD_DAYS,
+        metadata: {
+          application: 'scratchpad',
+          productType: ScratchpadPlanType.STARTER_PLAN,
+          environment: this.configService.getScratchpadEnvironment(),
+        },
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'cancel',
+          },
+        },
+        automatic_tax: { enabled: this.configService.getScratchpadEnvironment() === 'production' },
+      });
+
+      const result = await this.upsertSubscription(subscription.id, undefined, subscription);
+      if (isErr(result)) {
+        return result;
+      }
+
+      this.postHogService.trackTrialStarted(user.id, ScratchpadPlanType.STARTER_PLAN);
+
+      return ok('success');
+    } catch (err) {
+      return stripeLibraryError(`Failed to create trial subscription: ${err}`, {
+        context: { stripeCustomerId, stripePriceId },
+      });
+    }
   }
 
   async createCustomerPortalUrl(user: UserCluster.User): AsyncResult<string> {
@@ -222,7 +269,11 @@ export class StripePaymentService {
 
     const newStripeCustomerId = result.v;
     try {
-      await this.usersService.upsertStripeCustomerId(user, newStripeCustomerId);
+      await this.dbService.client.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: newStripeCustomerId },
+        include: UserCluster._validator.include,
+      });
     } catch (err) {
       return unexpectedError('There was a problem with saving the Stripe ID on the user', { cause: err as Error });
     }
@@ -388,7 +439,7 @@ export class StripePaymentService {
 
     if (updateCount > 0) {
       // Only log invoice results if we actually updated a subscription
-      const user = await this.usersService.getUserFromStripeCustomerId(invoice.customer as string);
+      const user = await this.getUserFromStripeCustomerId(invoice.customer as string);
       if (user) {
         try {
           await this.dbService.client.invoiceResult.create({
@@ -501,6 +552,7 @@ export class StripePaymentService {
   public async upsertSubscription(
     stripeSubscriptionId: string,
     lastInvoicePaid: boolean | undefined,
+    subscriptionData?: Stripe.Subscription,
   ): AsyncResult<'success' | 'ignored'> {
     WSLogger.info({
       source: StripePaymentService.name,
@@ -508,11 +560,17 @@ export class StripePaymentService {
       subscriptionId: stripeSubscriptionId,
     });
 
-    const getSubscriptionResult = await this.getSubscriptionFromStripe(stripeSubscriptionId);
-    if (isErr(getSubscriptionResult)) {
-      return getSubscriptionResult;
+    let subscription: Stripe.Subscription;
+    if (subscriptionData) {
+      subscription = subscriptionData;
+    } else {
+      const getSubscriptionResult = await this.getSubscriptionFromStripe(stripeSubscriptionId);
+      if (isErr(getSubscriptionResult)) {
+        return getSubscriptionResult;
+      }
+
+      subscription = getSubscriptionResult.v;
     }
-    const subscription = getSubscriptionResult.v;
 
     if (!this.isScratchpadSubscription(subscription)) {
       WSLogger.info({
@@ -562,12 +620,14 @@ export class StripePaymentService {
           productType,
           priceInDollars,
           lastInvoicePaid,
+          stripeStatus: subscription.status,
         },
         update: {
           expiration,
           productType,
           priceInDollars,
           lastInvoicePaid,
+          stripeStatus: subscription.status,
         },
       });
     } catch (err) {
@@ -587,6 +647,18 @@ export class StripePaymentService {
     return ok('success');
   }
 
+  /**
+   * User DB Functions
+   * These exist here to avoid circular dependencies with the UsersService.
+   */
+
+  public async getUserFromStripeCustomerId(stripeCustomerId: string): Promise<UserCluster.User | null> {
+    return this.dbService.client.user.findFirst({
+      where: { stripeCustomerId },
+      include: UserCluster._validator.include,
+    });
+  }
+
   /*
    * Common Utility Functions
    */
@@ -599,7 +671,7 @@ export class StripePaymentService {
   }
 
   private async isKnownStripeCustomerId(stripeCustomerId: string): Promise<boolean> {
-    const user = await this.usersService.getUserFromStripeCustomerId(stripeCustomerId);
+    const user = await this.getUserFromStripeCustomerId(stripeCustomerId);
     if (user) {
       return true;
     }

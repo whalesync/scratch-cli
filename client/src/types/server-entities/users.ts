@@ -17,6 +17,7 @@ export interface SubscriptionInfo {
   planDisplayName: string;
   planType: ScratchpadPlanType;
   daysRemaining: number;
+  isTrial: boolean;
 }
 
 /** User-scoped feature flag settings provided by the server */

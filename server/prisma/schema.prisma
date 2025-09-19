@@ -241,6 +241,7 @@ model Subscription {
   stripeSubscriptionId String   @unique
   expiration           DateTime
   priceInDollars       Int      @default(0)
+  stripeStatus         String?
   /// Set when we receive invoice.paid or invoice.payment_failed webhooks.
   lastInvoicePaid      Boolean?
 

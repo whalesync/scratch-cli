@@ -4,6 +4,7 @@ import { PostHog } from 'posthog-node';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
+import { ScratchpadPlanType } from 'src/payment/plans';
 
 type PostHogEventProperties = Record<string, unknown>;
 
@@ -154,6 +155,11 @@ export class PostHogService implements OnModuleDestroy {
       credentialType: credential.service,
     });
   }
+  trackTrialStarted(userId: string, planType: ScratchpadPlanType): void {
+    this.captureEvent(PostHogEventName.TRIAL_STARTED, userId, {
+      planType,
+    });
+  }
 }
 
 export enum PostHogEventName {
@@ -167,4 +173,5 @@ export enum PostHogEventName {
   RESOURCE_REMOVED = 'resource_deleted',
   AGENT_CREDENTIAL_CREATED = 'agent_credential_created',
   AGENT_CREDENTIAL_DELETED = 'agent_credential_deleted',
+  TRIAL_STARTED = 'trial_started',
 }

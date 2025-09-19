@@ -9,6 +9,7 @@ export interface SubscriptionInfo {
   planDisplayName: string;
   planType: ScratchpadPlanType;
   daysRemaining: number;
+  isTrial: boolean;
 }
 
 export class User {
@@ -81,5 +82,6 @@ function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | u
     planDisplayName: plan?.displayName ?? 'Untitled Plan',
     planType: planType,
     daysRemaining,
+    isTrial: latestSubscription.stripeStatus === 'trialing',
   };
 }

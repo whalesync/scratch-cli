@@ -5,6 +5,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
+import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { createAiAgentCredentialId, createApiTokenId, createUserId } from 'src/types/ids';
 import { isOk } from 'src/types/results';
@@ -17,6 +18,7 @@ export class UsersService {
     private readonly postHogService: PostHogService,
     private readonly scratchpadConfigService: ScratchpadConfigService,
     private readonly openRouterService: OpenRouterService,
+    private readonly stripePaymentService: StripePaymentService,
   ) {}
 
   public async findOne(id: string): Promise<UserCluster.User | null> {
@@ -25,10 +27,6 @@ export class UsersService {
 
   public async findByClerkId(clerkId: string): Promise<UserCluster.User | null> {
     return this.db.client.user.findFirst({ where: { clerkId }, include: UserCluster._validator.include });
-  }
-
-  public async getUserFromStripeCustomerId(stripeCustomerId: string): Promise<UserCluster.User | null> {
-    return this.db.client.user.findFirst({ where: { stripeCustomerId }, include: UserCluster._validator.include });
   }
 
   public async getUserFromAPIToken(apiToken: string): Promise<UserCluster.User | null> {
@@ -102,7 +100,7 @@ export class UsersService {
       return user;
     }
 
-    const newUser = await this.db.client.user.create({
+    let newUser: UserCluster.User = await this.db.client.user.create({
       data: {
         id: createUserId(),
         clerkId: clerkUserId,
@@ -123,6 +121,24 @@ export class UsersService {
     });
 
     this.postHogService.identifyNewUser(newUser);
+
+    if (this.scratchpadConfigService.getAutoCreateTrialSubscription()) {
+      const result = await this.stripePaymentService.createTrialSubscription(newUser);
+      if (isOk(result)) {
+        // reload the user so the subscription is attached
+        const reloadedUser = await this.findOne(newUser.id);
+        if (reloadedUser) {
+          newUser = reloadedUser;
+        }
+      } else {
+        WSLogger.error({
+          source: UsersService.name,
+          message: `Failed to create trial subscription for user ${newUser.id}`,
+          errorMessage: result.error,
+          error: result.cause,
+        });
+      }
+    }
 
     if (this.scratchpadConfigService.getGenerateOpenRouterKeyForNewUsers()) {
       const result = await this.openRouterService.createKey(newUser.id);
@@ -151,14 +167,6 @@ export class UsersService {
     }
 
     return newUser;
-  }
-
-  public async upsertStripeCustomerId(user: UserCluster.User, stripeCustomerId: string): Promise<UserCluster.User> {
-    return this.db.client.user.update({
-      where: { id: user.id },
-      data: { stripeCustomerId },
-      include: UserCluster._validator.include,
-    });
   }
 
   private generateApiToken(): string {

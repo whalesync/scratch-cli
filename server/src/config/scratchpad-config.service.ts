@@ -92,6 +92,13 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('STRIPE_WEBHOOK_SECRET');
   }
 
+  /**
+   * @returns Whether to automatically create a trial subscription for new users.
+   */
+  getAutoCreateTrialSubscription(): boolean {
+    return this.getOptionalFlagVariable('AUTO_CREATE_TRIAL_SUBSCRIPTION', true);
+  }
+
   getRequireSubscription(): boolean {
     return this.getOptionalFlagVariable('REQUIRE_SUBSCRIPTION', false);
   }
