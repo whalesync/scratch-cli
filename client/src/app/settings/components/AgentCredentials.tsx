@@ -1,6 +1,6 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
+import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
@@ -15,7 +15,6 @@ import {
   Group,
   Loader,
   Modal,
-  PasswordInput,
   Stack,
   Text,
   useModalsStack,
@@ -105,13 +104,8 @@ export const AgentCredentials = () => {
           </Grid.Col>
           <Grid.Col span={7}>
             <Stack gap="xs">
-              <PasswordInput
-                variant="unstyled"
-                value={credential.apiKey}
-                readOnly
-                description={credential.description}
-                inputWrapperOrder={['input', 'label', 'description', 'error']}
-              />
+              <TextRegularSm>{credential.label}</TextRegularSm>
+              <TextRegularXs c="dimmed">{credential.description}</TextRegularXs>
             </Stack>
           </Grid.Col>
           <Grid.Col span={2}>

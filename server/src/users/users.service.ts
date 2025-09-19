@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TokenType, UserRole } from '@prisma/client';
+import { AiAgentCredentialSource, TokenType, UserRole } from '@prisma/client';
 import { nanoid } from 'nanoid';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
+import { WSLogger } from 'src/logger';
+import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { PostHogService } from 'src/posthog/posthog.service';
-import { createApiTokenId, createUserId } from 'src/types/ids';
+import { createAiAgentCredentialId, createApiTokenId, createUserId } from 'src/types/ids';
+import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
 
 @Injectable()
@@ -11,6 +15,8 @@ export class UsersService {
   constructor(
     private readonly db: DbService,
     private readonly postHogService: PostHogService,
+    private readonly scratchpadConfigService: ScratchpadConfigService,
+    private readonly openRouterService: OpenRouterService,
   ) {}
 
   public async findOne(id: string): Promise<UserCluster.User | null> {
@@ -117,6 +123,32 @@ export class UsersService {
     });
 
     this.postHogService.identifyNewUser(newUser);
+
+    if (this.scratchpadConfigService.getGenerateOpenRouterKeyForNewUsers()) {
+      const result = await this.openRouterService.createKey(newUser.id);
+      if (isOk(result)) {
+        await this.db.client.aiAgentCredential.create({
+          data: {
+            id: createAiAgentCredentialId(),
+            userId: newUser.id,
+            service: 'openrouter',
+            apiKey: result.v.key,
+            externalApiKeyId: result.v.hash,
+            description: `Starter OpenRouter credentials for Scratchpaper.ai`,
+            enabled: true,
+            source: AiAgentCredentialSource.SYSTEM,
+          },
+        });
+      } else {
+        WSLogger.error({
+          // just log the error for now
+          source: UsersService.name,
+          message: `Failed to create OpenRouter key for user ${newUser.id}`,
+          errorMessage: result.error,
+          error: result.cause,
+        });
+      }
+    }
 
     return newUser;
   }

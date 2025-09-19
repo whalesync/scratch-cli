@@ -116,9 +116,11 @@ class AgentCredential:
     userId: str
     service: str
     apiKey: str
+    label: str
     description: str
     createdAt: str
     updatedAt: str
+    source: str
     enabled: bool
 
 

@@ -55,7 +55,7 @@ export class AgentCredentialsService {
   public async update(
     id: string,
     userId: string,
-    data: { apiKey?: string; description?: string },
+    data: { apiKey?: string; description?: string; enabled?: boolean },
   ): Promise<AiAgentCredential> {
     return this.db.client.aiAgentCredential.update({
       where: { id, userId },

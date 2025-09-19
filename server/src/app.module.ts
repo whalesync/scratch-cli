@@ -14,6 +14,7 @@ import { DbModule } from './db/db.module';
 import { ExperimentsModule } from './experiments/experiments.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
+import { OpenRouterModule } from './openrouter/openrouter.module';
 import { PaymentModule } from './payment/payment.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
@@ -47,6 +48,7 @@ import { ViewModule } from './view/view.module';
     AiAgentTokenUsageModule,
     ContentToolsModule,
     PaymentModule,
+    OpenRouterModule,
   ],
   controllers: [],
   providers: [],

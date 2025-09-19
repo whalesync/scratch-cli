@@ -17,13 +17,6 @@ export class CreateAgentCredentialDto {
 
 export class UpdateAgentCredentialDto {
   @IsString()
-  id: string;
-
-  @IsString()
-  @IsOptional()
-  apiKey?: string;
-
-  @IsString()
   @IsOptional()
   description?: string;
 

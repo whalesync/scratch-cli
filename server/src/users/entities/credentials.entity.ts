@@ -8,17 +8,25 @@ export class AiAgentCredential {
   userId: string | null;
   service: AgentService;
   apiKey: string;
+  label: string;
   description: string | null;
+  source: 'USER' | 'SYSTEM';
   enabled: boolean;
 
-  constructor(credential: PrismaAiAgentCredential) {
+  constructor(credential: PrismaAiAgentCredential, includeApiKey: boolean = false) {
     this.id = credential.id;
     this.createdAt = credential.createdAt;
     this.updatedAt = credential.updatedAt;
     this.userId = credential.userId ?? null;
     this.service = credential.service as AgentService;
-    this.apiKey = credential.apiKey;
+    this.apiKey = includeApiKey ? credential.apiKey : '****************';
+    this.label = obfuscateApiKey(credential.apiKey);
     this.description = credential.description ?? null;
-    this.enabled = credential.enabled ?? false;
+    this.source = credential.source as 'USER' | 'SYSTEM';
+    this.enabled = credential.enabled;
   }
+}
+
+function obfuscateApiKey(apiKey: string): string {
+  return apiKey.slice(0, 4) + '********' + apiKey.slice(-4);
 }

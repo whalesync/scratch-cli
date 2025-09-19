@@ -52,7 +52,7 @@ export class ScratchpadConfigService {
   }
 
   getDbDebug(): boolean {
-    return this.configService.get<string>('DB_DEBUG') === 'true';
+    return this.getOptionalFlagVariable('DB_DEBUG', false);
   }
 
   /**
@@ -93,11 +93,23 @@ export class ScratchpadConfigService {
   }
 
   getRequireSubscription(): boolean {
-    return this.getOptionalEnvVariable('REQUIRE_SUBSCRIPTION') === 'true';
+    return this.getOptionalFlagVariable('REQUIRE_SUBSCRIPTION', false);
   }
 
   getTrialRequirePaymentMethod(): boolean {
-    return this.getOptionalEnvVariable('TRIAL_REQUIRE_PAYMENT_METHOD') === 'true';
+    return this.getOptionalFlagVariable('TRIAL_REQUIRE_PAYMENT_METHOD', false);
+  }
+
+  getGenerateOpenRouterKeyForNewUsers(): boolean {
+    return this.getOptionalFlagVariable('GENERATE_OPENROUTER_KEY_FOR_NEW_USERS', false);
+  }
+
+  getOpenRouterProvisioningKey(): string | undefined {
+    return this.getOptionalEnvVariable('OPENROUTER_PROVISIONING_KEY');
+  }
+
+  getNewUserOpenRouterCreditLimit(): number {
+    return this.getOptionalNumberVariable('NEW_USER_OPENROUTER_CREDIT_LIMIT', 10);
   }
 
   private getEnvVariable<T>(envVariable: string): T {
@@ -111,6 +123,22 @@ export class ScratchpadConfigService {
   private getOptionalEnvVariable<T>(envVariable: string): T | undefined {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     return returnedVar ?? undefined;
+  }
+
+  private getOptionalNumberVariable(envVariable: string, defaultValue: number): number {
+    const returnedVar: string | undefined = this.configService.get<string>(envVariable);
+    if (returnedVar === undefined) {
+      return defaultValue;
+    }
+    return parseFloat(returnedVar);
+  }
+
+  private getOptionalFlagVariable(envVariable: string, defaultValue: boolean): boolean {
+    const returnedVar: string | undefined = this.configService.get<string>(envVariable);
+    if (returnedVar === undefined) {
+      return defaultValue;
+    }
+    return returnedVar.toLowerCase() === 'true';
   }
 
   public static getScratchpadEnvironment(): ScratchpadEnvironment {

@@ -3,7 +3,11 @@ import { TextRegularSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { AiAgentCredential, CreateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import {
+  AiAgentCredential,
+  CreateAiAgentCredentialDto,
+  UpdateAiAgentCredentialDto,
+} from '@/types/server-entities/agent-credentials';
 import { Alert, Checkbox, Group, Modal, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
 import { useCallback, useEffect, useState } from 'react';
@@ -37,7 +41,7 @@ export const EditAgentCredentialsModal = ({
       // setup for update
       setFormData({
         service: credentials.service,
-        apiKey: credentials.apiKey,
+        apiKey: '',
         description: credentials.description ?? '',
         enabled: credentials.enabled,
       });
@@ -58,7 +62,16 @@ export const EditAgentCredentialsModal = ({
       setError(null);
 
       if (credentials) {
-        await updateCredentials(credentials.id, formData);
+        const updateDto: UpdateAiAgentCredentialDto =
+          credentials.source === 'SYSTEM'
+            ? {
+                enabled: formData.enabled,
+              }
+            : {
+                description: formData.description,
+                enabled: formData.enabled,
+              };
+        await updateCredentials(credentials.id, updateDto);
       } else {
         await createCredentials(formData);
       }
@@ -92,14 +105,16 @@ export const EditAgentCredentialsModal = ({
           label="API Key"
           required
           placeholder="Your OpenRouter API key"
-          value={formData.apiKey}
+          value={credentials ? credentials.label : formData.apiKey}
           onChange={(event) => setFormData({ apiKey: event.target.value })}
+          disabled={!!credentials}
         />
         <TextInput
           label="Description"
           placeholder="Optional description"
           value={formData.description}
           onChange={(event) => setFormData({ description: event.target.value })}
+          disabled={credentials?.source === 'SYSTEM'}
         />
         <Checkbox
           label="Active"

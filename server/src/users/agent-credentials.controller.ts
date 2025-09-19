@@ -36,7 +36,9 @@ export class AgentCredentialsController {
       throw new NotFoundException();
     }
 
-    return new AiAgentCredential(result);
+    // TODO - lock this endpoint down so only internal API keys can access it with the full api key in the response
+    // only the Pydantic agent should be able to access this endpoint with the full api key in the response
+    return new AiAgentCredential(result, true);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -70,6 +72,21 @@ export class AgentCredentialsController {
     @Body() updateAgentCredentialDto: UpdateAgentCredentialDto,
     @Req() req: RequestWithUser,
   ): Promise<AiAgentCredential> {
+    const credential = await this.service.findOne(id);
+
+    if (!credential) {
+      throw new NotFoundException();
+    }
+
+    if (credential.userId !== req.user.id) {
+      throw new ForbiddenException();
+    }
+
+    if (credential.source === 'SYSTEM' && updateAgentCredentialDto.description) {
+      // users cannot update the details of the system generated credentials, only the enabled flag
+      throw new ForbiddenException();
+    }
+
     const updatedCredential = await this.service.update(id, req.user.id, updateAgentCredentialDto);
 
     if (!updatedCredential) {
@@ -83,6 +100,16 @@ export class AgentCredentialsController {
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    const credential = await this.service.findOne(id);
+
+    if (!credential) {
+      throw new NotFoundException();
+    }
+
+    if (credential.userId !== req.user.id || credential.source === 'SYSTEM') {
+      throw new ForbiddenException();
+    }
+
     await this.service.delete(id, req.user.id);
   }
 }

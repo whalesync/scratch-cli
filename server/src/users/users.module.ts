@@ -3,7 +3,9 @@ import { Module } from '@nestjs/common';
 import { DbModule } from '../db/db.module';
 
 import { AgentJwtModule } from 'src/agent-jwt/agent-jwt.module';
+import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { ExperimentsModule } from 'src/experiments/experiments.module';
+import { OpenRouterModule } from 'src/openrouter/openrouter.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { AgentCredentialsController } from './agent-credentials.controller';
 import { AgentCredentialsService } from './agent-credentials.service';
@@ -12,7 +14,7 @@ import { UsersService } from './users.service';
 
 @Module({
   providers: [UsersService, AgentCredentialsService],
-  imports: [DbModule, AgentJwtModule, PosthogModule, ExperimentsModule],
+  imports: [DbModule, AgentJwtModule, PosthogModule, ScratchpadConfigModule, ExperimentsModule, OpenRouterModule],
   exports: [UsersService, AgentCredentialsService], //export this service to use in other modules
   controllers: [UsersController, AgentCredentialsController],
 })
