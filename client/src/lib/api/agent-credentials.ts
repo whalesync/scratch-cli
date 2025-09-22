@@ -1,5 +1,6 @@
 import { AiAgentCredential, CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export const agentCredentialsApi = {
   list: async (): Promise<AiAgentCredential[]> => {
@@ -10,7 +11,7 @@ export const agentCredentialsApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) throw new Error("Failed to fetch agent credentials");
+    if (!res.ok) throw new ScratchpadApiError("Failed to fetch agent credentials", res.status, res.statusText);
     return res.json();
   },
   create: async (data: CreateAiAgentCredentialDto): Promise<AiAgentCredential> => {
@@ -22,7 +23,7 @@ export const agentCredentialsApi = {
       },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Failed to create agent credential");
+    if (!res.ok) throw new ScratchpadApiError("Failed to create agent credential", res.status, res.statusText);
     return res.json();
   },
   update: async (id: string, data: UpdateAiAgentCredentialDto): Promise<AiAgentCredential> => {
@@ -35,7 +36,7 @@ export const agentCredentialsApi = {
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) throw new Error("Failed to update agent credential");
+    if (!res.ok) throw new ScratchpadApiError("Failed to update agent credential", res.status, res.statusText);
     return res.json();
   },
   delete: async (id: string): Promise<void> => {
@@ -45,6 +46,6 @@ export const agentCredentialsApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) throw new Error("Failed to delete agent credential");
+    if (!res.ok) throw new ScratchpadApiError("Failed to delete agent credential", res.status, res.statusText);
   },
 };

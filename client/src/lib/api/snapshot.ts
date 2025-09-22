@@ -4,6 +4,7 @@ import {
   ListRecordsResponse,
 } from "../../types/server-entities/records";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export const snapshotApi = {
   list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
@@ -18,7 +19,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch snapshots");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch snapshots", res.status, res.statusText);
     }
     return res.json();
   },
@@ -32,7 +33,7 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch snapshot");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch snapshot", res.status, res.statusText);
     }
     return res.json();
   },
@@ -47,7 +48,7 @@ export const snapshotApi = {
       body: JSON.stringify(dto),
     });
     if (!res.ok) {
-      throw new Error("Failed to create snapshot");
+      throw new ScratchpadApiError("Failed to create snapshot", res.status, res.statusText);
     }
     return res.json();
   },
@@ -62,7 +63,7 @@ export const snapshotApi = {
       body: JSON.stringify(updateDto),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to update snapshot");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to update snapshot", res.status, res.statusText);
     }
     return res.json();
   },
@@ -78,7 +79,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to start download");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to start download", res.status, res.statusText);
     }
     return res.json();
   },
@@ -94,7 +95,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to start publish");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to start publish", res.status, res.statusText);
     }
   },
 
@@ -106,7 +107,7 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to delete snapshot");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to delete snapshot", res.status, res.statusText);
     }
   },
 
@@ -136,7 +137,7 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to list records");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to list records", res.status, res.statusText);
     }
     return res.json();
   },
@@ -156,7 +157,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to get record");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to get record", res.status, res.statusText);
     }
     return res.json();
   },
@@ -180,7 +181,7 @@ export const snapshotApi = {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       const errorMessage = errorData.message || res.statusText || "Failed to set active records filter";
-      throw new Error(errorMessage);
+      throw new ScratchpadApiError(errorMessage, res.status, res.statusText);
     }
   },
 
@@ -198,7 +199,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to clear active record filter");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to clear active record filter", res.status, res.statusText);
     }
   },
 
@@ -228,7 +229,7 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to list records");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to list records", res.status, res.statusText);
     }
     return res.json();
   },
@@ -255,14 +256,14 @@ export const snapshotApi = {
         const firstError = errorBody.errors?.[0];
         if (firstError) {
           throw new Error(
-            `Record ${firstError.id}, field ${firstError.field}: ${firstError.message}`
+            `Record ${firstError.id}, field ${firstError.field}: ${firstError.message}`,
           );
         }
         if (errorBody.message) {
           throw new Error(errorBody.message);
         }
       }
-      throw new Error(res.statusText ?? "Failed to bulk update records");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to bulk update records", res.status, res.statusText);
     }
   },
 
@@ -283,7 +284,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to accept cell values");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to accept cell values", res.status, res.statusText);
     }
   },
 
@@ -304,7 +305,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to reject cell values");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to reject cell values", res.status, res.statusText);
     }
   },
 
@@ -325,7 +326,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to accept all suggestions");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to accept all suggestions", res.status, res.statusText);
     }
     return res.json();
   },
@@ -346,7 +347,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to reject all suggestions");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to reject all suggestions", res.status, res.statusText);
     }
     return res.json();
   },
@@ -369,7 +370,7 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to deep fetch records");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to deep fetch records", res.status, res.statusText);
     }
     return res.json();
   },

@@ -139,14 +139,16 @@ export const RecordListTableHeader = ({
   return (
     <Box w={w} h={h} p="0" m="0" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
       <Table withColumnBorders withRowBorders={false} withTableBorder={false}>
-        <Table.Tr>
-          <Table.Td miw={ID_COLUMN_WIDTH}>
-            <TextRegularXs>ID</TextRegularXs>
-          </Table.Td>
-          <Table.Td miw={TITLE_COLUMN_WIDTH}>
-            <TextRegularXs style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularXs>
-          </Table.Td>
-        </Table.Tr>
+        <Table.Tbody>
+          <Table.Tr>
+            <Table.Td miw={ID_COLUMN_WIDTH}>
+              <TextRegularXs>ID</TextRegularXs>
+            </Table.Td>
+            <Table.Td miw={TITLE_COLUMN_WIDTH}>
+              <TextRegularXs style={{ textTransform: 'uppercase' }}>{titleColumnName}</TextRegularXs>
+            </Table.Td>
+          </Table.Tr>
+        </Table.Tbody>
       </Table>
     </Box>
   );

@@ -1,5 +1,6 @@
 import { Snapshot } from "@/types/server-entities/snapshot";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export interface CreateContentSnapshotDto {
   name: string;
@@ -15,7 +16,7 @@ export const contentToolsApi = {
       },
       body: JSON.stringify(createDto),
     });
-    if (!res.ok) throw new Error("Failed to generate content snapshot");
+    if (!res.ok) throw new ScratchpadApiError("Failed to generate content snapshot", res.status, res.statusText);
     return res.json();
   },
 };

@@ -1,5 +1,6 @@
-import { CustomConnector, CreateCustomConnectorDto } from "@/types/server-entities/custom-connector";
+import { CreateCustomConnectorDto, CustomConnector } from "@/types/server-entities/custom-connector";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export const customConnectorApi = {
   list: async (): Promise<CustomConnector[]> => {
@@ -11,7 +12,7 @@ export const customConnectorApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch custom connectors");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch custom connectors", res.status, res.statusText);
     }
     return res.json();
   },
@@ -25,7 +26,7 @@ export const customConnectorApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch custom connector");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch custom connector", res.status, res.statusText);
     }
     return res.json();
   },
@@ -40,7 +41,7 @@ export const customConnectorApi = {
       body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to create custom connector");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to create custom connector", res.status, res.statusText);
     }
     return res.json();
   },
@@ -55,7 +56,7 @@ export const customConnectorApi = {
       body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to update custom connector");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to update custom connector", res.status, res.statusText);
     }
     return res.json();
   },
@@ -69,7 +70,7 @@ export const customConnectorApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to delete custom connector");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to delete custom connector", res.status, res.statusText);
     }
   },
 }; 

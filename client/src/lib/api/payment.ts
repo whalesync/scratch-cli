@@ -1,5 +1,6 @@
 import { CreateCheckoutSessionResponse, CreateCustomerPortalUrlResponse } from "@/types/server-entities/payment";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export const paymentApi = {
 
@@ -12,7 +13,7 @@ export const paymentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? `Failed to create customer portal url`);
+      throw new ScratchpadApiError(res.statusText ?? `Failed to create customer portal url`, res.status, res.statusText);
     }
 
     return res.json();
@@ -27,7 +28,7 @@ export const paymentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? `Failed to create checkout session for ${planType}`);
+      throw new ScratchpadApiError(res.statusText ?? `Failed to create checkout session for ${planType}`, res.status, res.statusText);
     }
 
     return res.json();

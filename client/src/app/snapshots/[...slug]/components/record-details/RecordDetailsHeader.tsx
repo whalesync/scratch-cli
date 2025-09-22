@@ -16,7 +16,6 @@ interface RecordDetailsHeaderProps {
 export const RecordDetailsHeader = ({ table, w, h, columnId, onSwitchColumn }: RecordDetailsHeaderProps) => {
   const { currentColumn, previousColumn, nextColumn } = useMemo(() => {
     if (columnId === undefined) {
-      console.log('all attributes mode');
       // if we are on the "all attributes" page, next is the first column and previous is the last column
       return {
         currentColumn: undefined,

@@ -1,5 +1,6 @@
 import { CreateStyleGuideDto, ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { API_CONFIG } from './config';
+import { ScratchpadApiError } from './error';
 
 export const styleGuideApi = {
   // Get all style guides for the current user
@@ -12,7 +13,7 @@ export const styleGuideApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to fetch style guides');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to fetch style guides', res.status, res.statusText);
     }
     return res.json();
   },
@@ -27,7 +28,7 @@ export const styleGuideApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to fetch style guide');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to fetch style guide', res.status, res.statusText);
     }
     return res.json();
   },
@@ -43,7 +44,7 @@ export const styleGuideApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to create style guide');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to create style guide', res.status, res.statusText);
     }
     return res.json();
   },
@@ -59,7 +60,7 @@ export const styleGuideApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to update style guide');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to update style guide', res.status, res.statusText);
     }
     return res.json();
   },
@@ -74,7 +75,7 @@ export const styleGuideApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to delete style guide');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to delete style guide', res.status, res.statusText);
     }
   },
 
@@ -89,7 +90,7 @@ export const styleGuideApi = {
     });
     if (!res.ok) {
       const errorObj = await res.json();
-      throw new Error(errorObj.message ?? 'Failed to update external resource');
+      throw new ScratchpadApiError(errorObj.message ?? 'Failed to update external resource', res.status, res.statusText);
     }
     return res.json();
   },
@@ -105,7 +106,7 @@ export const styleGuideApi = {
     });
     if (!res.ok) {
       const errorObj = await res.json();
-      throw new Error(errorObj.message ?? 'Failed to download resource');
+      throw new ScratchpadApiError(errorObj.message ?? 'Failed to download resource', res.status, res.statusText);
     }
     return res.json();
   },

@@ -1,5 +1,6 @@
 import { AgentErrorResponse, CancelAgentRunResponse, ChatSession, CreateSessionResponse, DeleteSessionResponse, SendMessageResponse, SessionListResponse } from "@/types/server-entities/chat-session";
 import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 export const aiAgentApi = {
   listSessions: async (snapshotId: string): Promise<SessionListResponse> => {
@@ -18,7 +19,7 @@ export const aiAgentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch agent sessions for current snapshot");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch agent sessions for current snapshot", res.status, res.statusText);
     }
     return res.json();
   },
@@ -32,7 +33,7 @@ export const aiAgentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to create agent session for snapshot");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to create agent session for snapshot", res.status, res.statusText);
     }
     return res.json();
   },
@@ -47,7 +48,7 @@ export const aiAgentApi = {
     });
 
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to delete agent session");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to delete agent session", res.status, res.statusText);
     }
     return res.json();
   },
@@ -61,7 +62,7 @@ export const aiAgentApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to load agent session");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to load agent session", res.status, res.statusText);
     }
     return res.json();
   },
@@ -86,7 +87,7 @@ export const aiAgentApi = {
       } catch (error) {
         console.log("Failed to parse error response from Agent", error);
       }
-      throw new Error(res.statusText ?? "Failed to send message to agent");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to send message to agent", res.status, res.statusText);
     }
 
     return (await res.json()) as SendMessageResponse;
@@ -102,7 +103,7 @@ export const aiAgentApi = {
     });
 
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to cancel agent run");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to cancel agent run", res.status, res.statusText);
     }
     return res.json();
   },

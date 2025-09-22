@@ -1,5 +1,6 @@
 import { CreateCsvFileDto, CsvFile, UpdateCsvFileDto } from '@/types/server-entities/csv-file';
 import { API_CONFIG } from './config';
+import { ScratchpadApiError } from './error';
 
 export const csvFileApi = {
   // Get all CSV files for the current user
@@ -12,7 +13,7 @@ export const csvFileApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to fetch CSV files');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to fetch CSV files', res.status, res.statusText);
     }
     return res.json();
   },
@@ -27,7 +28,7 @@ export const csvFileApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to fetch CSV file');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to fetch CSV file', res.status, res.statusText);
     }
     return res.json();
   },
@@ -43,7 +44,7 @@ export const csvFileApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to create CSV file');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to create CSV file', res.status, res.statusText);
     }
     return res.json();
   },
@@ -59,7 +60,7 @@ export const csvFileApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to update CSV file');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to update CSV file', res.status, res.statusText);
     }
     return res.json();
   },
@@ -74,7 +75,7 @@ export const csvFileApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to delete CSV file');
+      throw new ScratchpadApiError(res.statusText ?? 'Failed to delete CSV file', res.status, res.statusText);
     }
   },
 }; 

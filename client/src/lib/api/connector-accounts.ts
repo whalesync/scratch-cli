@@ -4,8 +4,9 @@ import {
   TestConnectionResponse,
   UpdateConnectorAccountDto,
 } from "@/types/server-entities/connector-accounts";
-import { API_CONFIG } from "./config";
 import { TableList } from "../../types/server-entities/table-list";
+import { API_CONFIG } from "./config";
+import { ScratchpadApiError } from "./error";
 
 // TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const connectorAccountsApi = {
@@ -18,7 +19,7 @@ export const connectorAccountsApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch connections");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch connections", res.status, res.statusText);
     }
     return res.json();
   },
@@ -36,7 +37,7 @@ export const connectorAccountsApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch connection");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch connection", res.status, res.statusText);
     }
     return res.json();
   },
@@ -52,7 +53,7 @@ export const connectorAccountsApi = {
       body: JSON.stringify({ ...dto }),
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to create connection");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to create connection", res.status, res.statusText);
     }
     return res.json();
   },
@@ -74,7 +75,7 @@ export const connectorAccountsApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to update connection");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to update connection", res.status, res.statusText);
     }
     return res.json();
   },
@@ -92,7 +93,7 @@ export const connectorAccountsApi = {
       }
     );
     if (res.status !== 204) {
-      throw new Error(res.statusText ?? "Failed to delete connection");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to delete connection", res.status, res.statusText);
     }
   },
 
@@ -109,7 +110,7 @@ export const connectorAccountsApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to list tables");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to list tables", res.status, res.statusText);
     }
     return res.json();
   },
@@ -127,7 +128,7 @@ export const connectorAccountsApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to test connection");
+      throw new ScratchpadApiError(res.statusText ?? "Failed to test connection", res.status, res.statusText);
     }
     return res.json();
   },

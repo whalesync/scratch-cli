@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <MantineProvider theme={SCRATCHPAD_MANTINE_THEME}>
+        <MantineProvider theme={SCRATCHPAD_MANTINE_THEME} defaultColorScheme="light">
           <Notifications />
           <ClerkProvider>
             <ClerkAuthContextProvider>

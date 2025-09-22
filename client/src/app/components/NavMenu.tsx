@@ -2,13 +2,14 @@
 
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
-import { Center, Image, Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import { Center, Image, Stack, Tooltip, UnstyledButton, useMantineColorScheme } from '@mantine/core';
 import { BookOpenIcon, FileCsvIcon, GearIcon, Icon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { MoonIcon, SunIcon } from 'lucide-react';
 import { StyledIcon } from './Icons/StyledIcon';
 import styles from './NavMenu.module.css';
 
@@ -71,6 +72,7 @@ const lowerLinks: MenuItem[] = [
 export function NavMenu() {
   const pathname = usePathname();
   const { isAdmin } = useScratchPadUser();
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const createMenuItem = (link: MenuItem, isActive: boolean, isAdmin: boolean) => {
     const color = isActive ? 'gray.9' : isAdmin ? 'purple' : 'gray.6';
@@ -123,6 +125,13 @@ export function NavMenu() {
             const isAdminLink = link.requiresAdmin && isAdmin;
             return createMenuItem(link, isActive, isAdminLink ?? false);
           })}
+          <UnstyledButton onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')} ta="center">
+            {colorScheme === 'light' ? (
+              <MoonIcon size={20} color="var(--mantine-color-gray-5)" />
+            ) : (
+              <SunIcon size={20} color="var(--mantine-color-gray-5)" />
+            )}
+          </UnstyledButton>
           <Center>
             <UserButton />
           </Center>
