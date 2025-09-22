@@ -122,13 +122,21 @@ export class UsersService {
 
     this.postHogService.identifyNewUser(newUser);
 
+    // add any additional resources to the user like subscriptions and api keys
+    newUser = await this.addNewUserResources(newUser);
+
+    return newUser;
+  }
+
+  public async addNewUserResources(newUser: UserCluster.User): Promise<UserCluster.User> {
+    let updatedUser = newUser;
     if (this.scratchpadConfigService.getAutoCreateTrialSubscription()) {
       const result = await this.stripePaymentService.createTrialSubscription(newUser);
       if (isOk(result)) {
         // reload the user so the subscription is attached
         const reloadedUser = await this.findOne(newUser.id);
         if (reloadedUser) {
-          newUser = reloadedUser;
+          updatedUser = reloadedUser;
         }
       } else {
         WSLogger.error({
@@ -165,8 +173,7 @@ export class UsersService {
         });
       }
     }
-
-    return newUser;
+    return updatedUser;
   }
 
   private generateApiToken(): string {

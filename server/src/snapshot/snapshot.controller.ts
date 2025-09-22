@@ -13,9 +13,11 @@ import {
   Query,
   Req,
   Sse,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
@@ -310,6 +312,10 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<string> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can send test record events');
+    }
+
     const snapshot = await this.service.findOne(snapshotId, req.user.id);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');

@@ -41,6 +41,7 @@ model User {
 enum TokenType {
   AGENT // For AI agents
   WEBSOCKET // For client web socket connections
+  USER // For user API tokens
 }
 
 model APIToken {
@@ -51,6 +52,7 @@ model APIToken {
   createdAt DateTime  @default(now())
   expiresAt DateTime  @updatedAt
   type      TokenType @default(AGENT)
+  scopes    String[] // Optional list of scopes for the token like 'read:snapshots', 'write:snapshots', ...
 
   @@unique([token])
   @@index([userId])

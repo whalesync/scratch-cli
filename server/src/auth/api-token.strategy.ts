@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { HeaderAPIKeyStrategy } from 'passport-headerapikey';
 
+import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
 import { AuthenticatedUser } from './types';
 
@@ -27,10 +28,24 @@ export class APITokenStrategy extends PassportStrategy(HeaderAPIKeyStrategy, 'AP
       return null;
     }
 
+    const tokenUsed = user.apiTokens.find((option) => option.token === token);
+
+    if (!tokenUsed) {
+      // something went very wrong if we can't find the same token that we used to find the user
+      WSLogger.error({
+        source: 'APITokenStrategy',
+        message: "Token used to find user not found in user's api tokens",
+        token,
+        user,
+      });
+      return null;
+    }
+
     return {
       ...user,
       authType: 'api-token',
-      authSource: 'agent',
+      authSource: 'user',
+      apiToken: tokenUsed,
     };
   }
 }

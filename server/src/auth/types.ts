@@ -1,4 +1,5 @@
 import { User as ClerkUser } from '@clerk/backend';
+import { APIToken } from '@prisma/client';
 import { Socket } from 'socket.io';
 import { UserCluster } from 'src/db/cluster-types';
 
@@ -10,6 +11,7 @@ export type AuthenticatedUser = UserCluster.User & {
   authType: 'api-token' | 'agent-token' | 'jwt';
   authSource: 'user' | 'agent';
   clerkUser?: ClerkUser;
+  apiToken?: APIToken;
 };
 
 // (Chris) I know there is likely a better Typescript way to do this globally for the server but I didn't have time to figure it out yet

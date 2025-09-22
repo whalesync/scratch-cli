@@ -1,5 +1,6 @@
-import { Controller, Get, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
+import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
@@ -30,5 +31,23 @@ export class UsersController {
     const experiments = this.experimentsService.resolveFlagsForUser(req.user);
 
     return new User(req.user, agentJwt, experiments);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/debug/add-new-user-resources')
+  async debugAddNewUserResources(@Req() req: RequestWithUser, @Param('id') id: string): Promise<boolean> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can add new user resources');
+    }
+
+    const user = await this.usersService.findOne(id);
+
+    if (!user) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+
+    await this.usersService.addNewUserResources(user);
+
+    return true;
   }
 }

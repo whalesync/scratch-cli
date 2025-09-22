@@ -57,7 +57,7 @@ export class WebSocketAuthGuard implements CanActivate {
       return {
         ...user,
         authType: 'api-token',
-        authSource: 'agent',
+        authSource: 'user',
       };
     } catch (error) {
       WSLogger.error({
