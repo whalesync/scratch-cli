@@ -2,6 +2,7 @@ import { TextRegularXs } from '@/app/components/base/text';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Group, StyleProp } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
+import { XIcon } from '@phosphor-icons/react';
 import { ChevronLeftIcon, ChevronRightIcon, Rows4Icon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
@@ -11,9 +12,19 @@ interface RecordDetailsHeaderProps {
   h?: StyleProp<React.CSSProperties['height']>;
   columnId: string | undefined;
   onSwitchColumn: (columnId: string | undefined) => void;
+  v2?: boolean;
+  onClose?: () => void;
 }
 
-export const RecordDetailsHeader = ({ table, w, h, columnId, onSwitchColumn }: RecordDetailsHeaderProps) => {
+export const RecordDetailsHeader = ({
+  table,
+  w,
+  h,
+  columnId,
+  onSwitchColumn,
+  v2 = false,
+  onClose,
+}: RecordDetailsHeaderProps) => {
   const { currentColumn, previousColumn, nextColumn } = useMemo(() => {
     if (columnId === undefined) {
       // if we are on the "all attributes" page, next is the first column and previous is the last column
@@ -62,7 +73,36 @@ export const RecordDetailsHeader = ({ table, w, h, columnId, onSwitchColumn }: R
     ['INPUT', 'TEXTAREA'],
   );
 
-  return (
+  return v2 ? (
+    <Group
+      w={w ?? '100%'}
+      h={h}
+      style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}
+      justify="space-between"
+      align="center"
+      p="2px 4px"
+    >
+      <TextRegularXs style={{ textTransform: 'uppercase', paddingLeft: '8px' }}>
+        {currentColumn?.name ?? 'all attributes'}
+      </TextRegularXs>
+      <Group gap="xs" justify="flex-end">
+        <Group gap="xs">
+          <ActionIcon variant="transparent" onClick={goToPreviousColumn}>
+            <ChevronLeftIcon size={16} color="var(--mantine-color-gray-6)" />
+          </ActionIcon>
+          <ActionIcon variant="transparent" onClick={() => onSwitchColumn(undefined)}>
+            <Rows4Icon size={16} color="var(--mantine-color-gray-6)" />
+          </ActionIcon>
+          <ActionIcon variant="transparent" onClick={goToNextColumn}>
+            <ChevronRightIcon size={16} color="var(--mantine-color-gray-6)" />
+          </ActionIcon>
+        </Group>
+        <ActionIcon variant="transparent" onClick={onClose}>
+          <XIcon size={16} color="var(--mantine-color-gray-6)" />
+        </ActionIcon>
+      </Group>
+    </Group>
+  ) : (
     <Group
       w={w ?? '100%'}
       h={h}

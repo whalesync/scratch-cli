@@ -5,12 +5,13 @@ import { IdHeaderComponent } from './IdHeaderComponent';
 
 interface UseIdColDefProps {
   onSettingsClick: () => void;
+  resizable?: boolean;
 }
 
-export const useIdColDef = ({ onSettingsClick }: UseIdColDefProps) => {
+export const useIdColDef = ({ onSettingsClick, resizable = true }: UseIdColDefProps) => {
   const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
     const baseStyles = {
-      background: `linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})`,
+      backgroundImage: `linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})`,
       backgroundSize: `${AG.borders.outerBorderWidth} ${AG.borders.outerBorderHeight}`,
       backgroundPosition: 'left center',
       backgroundRepeat: 'no-repeat',
@@ -26,9 +27,10 @@ export const useIdColDef = ({ onSettingsClick }: UseIdColDefProps) => {
     headerName: 'ID',
     sortable: true,
     filter: false,
-    resizable: true,
+    resizable: resizable,
     pinned: 'left',
-    lockPinned: true,
+    lockPosition: true,
+    // suppressMovable: true,
     width: 150,
     minWidth: 150,
     maxWidth: 150,

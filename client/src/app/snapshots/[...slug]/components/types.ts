@@ -3,6 +3,9 @@ import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
 export interface SnapshotTableGridProps {
   snapshot: Snapshot;
   table: TableSpec;
+  limited?: boolean;
+  // onSingleRowSelected?: (recordId: string | null) => void;
+  // onCellDoubleClickTransition?: (recordId: string, columnId: string) => void;
 }
 
 type MenuItemHandlerProps = {

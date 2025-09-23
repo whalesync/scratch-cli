@@ -19,7 +19,7 @@ export interface PendingUpdate {
   value: string;
 }
 
-type DisplayMode = 'spreadsheet' | 'record' | 'new-spreadsheet';
+type DisplayMode = 'spreadsheet' | 'record' | 'new-spreadsheet' | 'new-record';
 
 interface TableContextValue {
   activeTable: TableSpec | undefined;
@@ -28,6 +28,8 @@ interface TableContextValue {
   switchToRecordView: (recordId: string, columnId?: string) => Promise<void>;
   switchToSpreadsheetView: () => Promise<void>;
   switchToNewSpreadsheetView: () => Promise<void>;
+  switchToNewRecordView: () => Promise<void>;
+  switchToNewRecordViewWithContext: (recordId: string, columnId?: string) => Promise<void>;
   activeRecord: ActiveRecord | undefined;
   addPendingChange: (update: PendingUpdate) => void;
   savePendingUpdates: () => Promise<void>;
@@ -126,7 +128,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   }, [savePendingUpdates, displayMode, activeTable?.id.wsId]);
 
   const switchDisplayMode = useCallback(
-    async (mode: 'spreadsheet' | 'record' | 'new-spreadsheet', recordId?: string, columnId?: string) => {
+    async (mode: 'spreadsheet' | 'record' | 'new-spreadsheet' | 'new-record', recordId?: string, columnId?: string) => {
       if (!activeTable) {
         throw new Error('Active table not set');
       }
@@ -149,6 +151,12 @@ export const TableProvider = ({ children }: TableProviderProps) => {
       if (mode === 'spreadsheet') {
         setTableScope();
         setWriteFocus([]);
+        updateSnapshotPath(snapshotId, activeTable.id.wsId);
+      }
+
+      if (mode === 'new-record') {
+        // For new-record mode, we'll set the scope based on the record/column context
+        // This will be handled by the NewRecordView component
         updateSnapshotPath(snapshotId, activeTable.id.wsId);
       }
     },
@@ -179,6 +187,28 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     switchDisplayMode('new-spreadsheet');
   }, [switchDisplayMode]);
 
+  const switchToNewRecordView = useCallback(async () => {
+    switchDisplayMode('new-record');
+  }, [switchDisplayMode]);
+
+  const switchToNewRecordViewWithContext = useCallback(
+    async (recordId: string, columnId?: string) => {
+      setDisplayMode('new-record');
+      setActiveRecord({ recordId, columnId });
+      await savePendingUpdates();
+
+      if (columnId) {
+        setColumnScope(recordId, columnId);
+        setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
+        updateSnapshotPath(snapshotId, activeTable?.id.wsId ?? '', recordId, columnId);
+      } else {
+        setRecordScope(recordId);
+        updateSnapshotPath(snapshotId, activeTable?.id.wsId ?? '', recordId);
+      }
+    },
+    [activeTable, setColumnScope, setWriteFocus, updateSnapshotPath, snapshotId, setRecordScope, savePendingUpdates],
+  );
+
   const value: TableContextValue = {
     activeTable,
     setActiveTable,
@@ -187,6 +217,8 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     switchToRecordView,
     switchToSpreadsheetView,
     switchToNewSpreadsheetView,
+    switchToNewRecordView,
+    switchToNewRecordViewWithContext,
     addPendingChange,
     savePendingUpdates,
     pendingChanges,

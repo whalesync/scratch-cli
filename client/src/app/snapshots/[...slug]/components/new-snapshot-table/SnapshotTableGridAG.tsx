@@ -6,6 +6,7 @@ import { Box, Center, Loader, Text } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
+  CellClassFunc,
   CellDoubleClickedEvent,
   CellStyleFunc,
   ColDef,
@@ -14,13 +15,16 @@ import {
   ValueGetterFunc,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FirstDataRenderedEvent,
   GridReadyEvent,
 } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
+import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
+import { RecordDetails } from '../record-details/RecordDetails';
+import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
 
@@ -39,12 +43,52 @@ import { useStoreColumnState } from './useStoreColumnState';
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps) => {
-  const { records, error, isLoading } = useSnapshotTableRecords({ snapshotId: snapshot.id, tableId: table.id.wsId });
+export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
+  const { records, error, isLoading, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
+    snapshotId: snapshot.id,
+    tableId: table.id.wsId,
+  });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
-  const { switchToRecordView } = useTableContext();
+  const { activeRecord } = useTableContext();
+  const { setRecordScope, setColumnScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
+
+  // Record details mode state
+  const [recordDetailsVisible, setRecordDetailsVisible] = useState(false);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedColumnId, setSelectedColumnId] = useState<string | undefined>(undefined);
+  const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
   // const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+
+  const showRecordDetails = useCallback(() => {
+    if (gridApi) {
+      // Get the width of the first 2 columns (ID and Title)
+      const idColumn = gridApi.getColumn('id');
+      const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().headerName?.toLowerCase() === 'title');
+
+      let pinnedColumnsWidth = 0;
+
+      if (idColumn) {
+        pinnedColumnsWidth += idColumn.getActualWidth();
+        console.debug('ID column width:', idColumn.getActualWidth());
+      }
+
+      if (titleColumn) {
+        pinnedColumnsWidth += titleColumn.getActualWidth();
+        console.debug('Title column width:', titleColumn.getActualWidth());
+      }
+
+      console.debug('Total pinned columns width:', pinnedColumnsWidth);
+
+      // Calculate overlay width as 100% minus the pinned columns width
+      const overlayWidthCalc = `calc(100% - ${pinnedColumnsWidth}px)`;
+      setOverlayWidth(overlayWidthCalc);
+
+      console.debug('Setting overlay width to:', overlayWidthCalc);
+    }
+
+    setRecordDetailsVisible(true);
+  }, [gridApi]);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -69,7 +113,7 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Column header settings
-  const [showDataTypeInHeader, setShowDataTypeInHeader] = useState(true);
+  const [showDataTypeInHeader, setShowDataTypeInHeader] = useState(false);
 
   // We'll use gridApi.getFocusedCell() instead of tracking state
 
@@ -77,7 +121,7 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
   const [lastKeyPressed, setLastKeyPressed] = useState<KeyboardEvent | null>(null);
 
   // Track previous focused cell for shift selection logic (AG Grid doesn't provide this for keyboard navigation)
-  const [previousFocusedRowIndex, setPreviousFocusedRowIndex] = useState<number | null>(null);
+  const previousFocusedRowIndexRef = useRef<number | null>(null);
 
   // Storage key for this specific snapshot and table
   const { columnState, mounted, onColumnStateChanged } = useStoreColumnState(snapshot.id, table.id.wsId, gridApi);
@@ -106,6 +150,7 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
   const { cellRenderer } = useCellRenderer(table);
   const { idColumn } = useIdColDef({
     onSettingsClick: () => setIsSettingsModalOpen(true),
+    resizable: !recordDetailsVisible,
   });
 
   // Context menu handlers
@@ -182,11 +227,126 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
       if (record && record.id?.wsId) {
         // Find the column definition to get the proper column ID
         const column = table.columns.find((col) => col.id.wsId === columnId);
-        switchToRecordView(record.id.wsId, column?.id.wsId);
+
+        // Enable record details mode in the same view
+        console.log('Double-click handler:', {
+          recordId: record.id.wsId,
+          columnId: column?.id.wsId,
+          recordExists: !!records?.find((r) => r.id.wsId === record.id.wsId),
+        });
+
+        setSelectedRecordId(record.id.wsId);
+        setSelectedColumnId(column?.id.wsId);
+        showRecordDetails();
+
+        // Select the record in the grid and focus on ID column
+        // if (gridApi) {
+        //   const selectRecord = () => {
+        //     gridApi.deselectAll();
+        //     const rowNode = gridApi.getRowNode(record.id.wsId);
+        //     console.log('Trying to select record:', record.id.wsId, 'Found rowNode:', rowNode);
+
+        //     if (rowNode) {
+        //       rowNode.setSelected(true);
+
+        //       // Set focus to the ID column of the selected record
+        //       // const rowIndex = rowNode.rowIndex;
+        //       // if (rowIndex !== null && rowIndex !== undefined) {
+        //       //   gridApi.setFocusedCell(rowIndex, 'id');
+        //       // }
+
+        //       // Force selection change event to fire for new records
+        //       setSelectedRecordId(record.id.wsId);
+        //     } else {
+        //       // Fallback: try to find the row by iterating through all nodes
+        //       alert('Row node not found, trying fallback method...');
+        //       // gridApi.forEachNode((node) => {
+        //       //   if (node.data && node.data.id?.wsId === record.id.wsId) {
+        //       //     console.log('Found record via fallback:', node.data.id.wsId);
+        //       //     node.setSelected(true);
+        //       //     if (node.rowIndex !== null && node.rowIndex !== undefined) {
+        //       //       gridApi.setFocusedCell(node.rowIndex, 'id');
+        //       //     }
+        //       //     found = true;
+
+        //       //     // Force selection change for new records
+        //       //     setSelectedRecordId(record.id.wsId);
+        //       //   }
+        //       // });
+        //     }
+        //   };
+
+        //   selectRecord();
+        // }
       }
     },
-    [switchToRecordView, table.columns],
+    [table.columns, records, showRecordDetails],
   );
+
+  // Initialize record details mode from activeRecord (from double-click transition)
+  useEffect(() => {
+    if (activeRecord?.recordId && gridApi) {
+      setSelectedRecordId(activeRecord.recordId);
+      setSelectedColumnId(activeRecord.columnId);
+      showRecordDetails();
+
+      // Select the record in the grid and focus on ID column
+      gridApi.deselectAll();
+      const rowNode = gridApi.getRowNode(activeRecord.recordId);
+      console.log('Initializing with record:', activeRecord.recordId, 'Found rowNode:', rowNode);
+
+      if (rowNode) {
+        rowNode.setSelected(true);
+
+        // Set focus to the ID column of the selected record
+        const rowIndex = rowNode.rowIndex;
+        if (rowIndex !== null && rowIndex !== undefined) {
+          gridApi.setFocusedCell(rowIndex, 'id');
+        }
+      } else {
+        // Fallback: try to find the row by iterating through all nodes
+        console.log('Row node not found during init, trying fallback method...');
+        gridApi.forEachNode((node) => {
+          if (node.data && node.data.id?.wsId === activeRecord.recordId) {
+            console.log('Found record via fallback during init:', node.data.id.wsId);
+            node.setSelected(true);
+            if (node.rowIndex !== null && node.rowIndex !== undefined) {
+              gridApi.setFocusedCell(node.rowIndex, 'id');
+            }
+          }
+        });
+      }
+    }
+  }, [activeRecord, gridApi, showRecordDetails]);
+
+  // Get selected record from state
+  const selectedRecord = selectedRecordId ? records?.find((record) => record.id.wsId === selectedRecordId) : null;
+
+  // Set record scope when a record is selected in details mode
+  useEffect(() => {
+    if (recordDetailsVisible && selectedRecordId) {
+      if (selectedColumnId) {
+        setColumnScope(selectedRecordId, selectedColumnId);
+      } else {
+        setRecordScope(selectedRecordId);
+      }
+    }
+  }, [recordDetailsVisible, selectedRecordId, selectedColumnId, setRecordScope, setColumnScope]);
+
+  // Handlers for record details mode
+  const handleFieldFocus = useCallback((columnId: string | undefined) => {
+    setSelectedColumnId(columnId);
+  }, []);
+
+  const handleCloseRecordDetails = useCallback(() => {
+    setRecordDetailsVisible(false);
+    setSelectedRecordId(null);
+    setSelectedColumnId(undefined);
+    // Clear grid selection
+    if (gridApi) {
+      gridApi.deselectAll();
+    }
+  }, [gridApi]);
 
   // Add keyboard event listener for copy functionality
   useEffect(() => {
@@ -196,24 +356,36 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
     };
   }, [handleKeyDown]);
 
-  // Find title column and other columns
+  // Find title column and other columns (moved up to be available in useEffect)
   const titleColumn = table.columns.find((col) => col.name.toLowerCase() === 'title');
   const otherColumns = table.columns.filter((col) => col.name.toLowerCase() !== 'title');
 
+  // Always include all columns, but we'll control visibility via AG Grid API
   const columnsWithTitleFirst = titleColumn ? [titleColumn, ...otherColumns] : otherColumns;
+
+  // Control column visibility based on limited mode only (not record details mode)
+  useEffect(() => {
+    if (gridApi && limited) {
+      // Hide all columns except ID and Title (only for limited mode)
+      const columnsToHide = otherColumns.map((col) => col.id.wsId);
+      gridApi.setColumnsVisible(columnsToHide, false);
+    } else if (gridApi && !limited) {
+      // Show all columns (for normal mode and record details mode)
+      const columnsToShow = otherColumns.map((col) => col.id.wsId);
+      gridApi.setColumnsVisible(columnsToShow, true);
+    }
+  }, [gridApi, limited, otherColumns]);
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnsWithTitleFirst.map((column) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
+      return [];
+    };
+
     const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = (params) => {
       const record = params.data;
-      // if (!record) {
-      //   return {
-      //     background: 'transparent',
-      //     backgroundSize: '0 0',
-      //     backgroundPosition: 'left center',
-      //     backgroundRepeat: 'no-repeat',
-      //   };
-      // }
+
       const hasSuggestion = record?.__suggested_values?.[column.id.wsId];
       const isReadOnly = column.readonly;
 
@@ -222,22 +394,18 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
       const isInFocusedColumn = focusedCell && focusedCell.column.getColId() === column.id.wsId;
 
       // Base styles for all cells (gray outer border)
+      const backgroundColor = isInFocusedColumn ? '#2196f322' : 'transparent';
       const baseStyles = {
-        background: `linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})`,
-        backgroundSize: `${AG.borders.outerBorderWidth} ${AG.borders.outerBorderHeight}`,
-        backgroundPosition: 'left center',
-        backgroundRepeat: 'no-repeat',
+        backgroundColor,
         paddingLeft: AG.borders.paddingLeft,
         color: isReadOnly ? AG.colors.readOnlyText : AG.colors.normalText,
-        // Add red background for focused column
-        backgroundColor: isInFocusedColumn ? '#2196f322' : 'transparent',
       };
 
       if (hasSuggestion) {
         return {
           ...baseStyles,
-          // Use background gradient for inner border with height control
-          background: `
+          // Use background gradient for inner border with height control, including focused column background
+          backgroundImage: `
             linear-gradient(to right, ${AG.colors.innerBorder} 0px, ${AG.colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth}),
             linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})
           `,
@@ -257,10 +425,16 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
       headerName: column.name,
       sortable: true,
       filter: false,
-      resizable: true,
+      resizable: !recordDetailsVisible,
       valueGetter,
       cellRenderer,
       cellStyle,
+      cellClass,
+      // Pin the title column to the left (like the ID column)
+      pinned: column.name.toLowerCase() === 'title' ? 'left' : undefined,
+      // Lock position and suppress movable for title column
+      lockPosition: column.name.toLowerCase() === 'title' ? true : false,
+      // suppressMovable: column.name.toLowerCase() === 'title' ? true : false,
       // Use custom header component
       headerComponent: CustomHeaderComponent,
       headerComponentParams: {
@@ -294,49 +468,68 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
 
   return (
     <Box h="100%" w="100%" style={{ position: 'relative' }}>
+      {/* AG Grid - always full width */}
       <div
         className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
           height: '100%',
           width: '100%',
-          // Force scrollbars to be always visible
           overflow: 'auto',
         }}
         onContextMenu={(event) => {
-          // Prevent default browser context menu on the entire grid area
           event.preventDefault();
           event.stopPropagation();
         }}
-        // onMouseDown={(event) => {
-        //   // Prevent text selection during shift-click
-        //   if (event.shiftKey) {
-        //     event.preventDefault();
-        //   }
-        // }}
       >
         <AgGridReact<SnapshotRecord>
-          // Data
           rowData={rowData}
           columnDefs={columnDefs}
+          getRowId={(params) => {
+            console.log('getRowId', params.data.id.wsId);
+            return params.data.id.wsId;
+          }}
           defaultColDef={{
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
           }}
           rowHeight={31}
           headerHeight={31}
-          animateRows={true}
+          animateRows={false}
           rowSelection="multiple"
           theme="legacy"
           suppressCellFocus={false}
           enableCellTextSelection={false}
-          // Prevent default context menu on the entire grid
           suppressContextMenu={false}
+          suppressFocusAfterRefresh={true}
+          maintainColumnOrder={true}
+          stopEditingWhenCellsLoseFocus={false}
           onGridReady={onGridReady}
           onFirstDataRendered={onFirstDataRendered}
           onColumnResized={onColumnStateChanged}
           onColumnMoved={onColumnStateChanged}
           onColumnVisible={onColumnStateChanged}
           onCellDoubleClicked={handleCellDoubleClicked}
+          onSelectionChanged={(event) => {
+            console.log('Selection changed event fired:', {
+              showRecordDetails: recordDetailsVisible,
+              selectedRowCount: event.api.getSelectedRows().length,
+              selectedRows: event.api.getSelectedRows().map((r) => r.id.wsId),
+            });
+
+            if (recordDetailsVisible) {
+              // In record details mode, update the selected record state
+              const selectedRows = event.api.getSelectedRows();
+              if (selectedRows.length === 1) {
+                const newSelectedId = selectedRows[0].id.wsId;
+                console.log('Updating selected record to:', newSelectedId);
+                setSelectedRecordId(newSelectedId);
+              } else {
+                console.log('No single row selected, clearing selection');
+                setSelectedRecordId(null);
+              }
+            }
+            // Note: Normal mode callback handling was removed as per user's changes
+          }}
           onCellContextMenu={(event) => {
             // Prevent the default browser context menu
             event.event?.preventDefault();
@@ -364,9 +557,6 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
             });
           }}
           onCellFocused={(event) => {
-            console.debug('Cell focused:', event);
-            console.debug('sourceEvent:', event.sourceEvent); // This will be undefined for keyboard, MouseEvent for mouse
-
             // Check if this focus event was caused by arrow key navigation
             if (lastKeyPressed && (lastKeyPressed.key === 'ArrowUp' || lastKeyPressed.key === 'ArrowDown')) {
               console.log('🔥 Cell focus changed due to arrow key:', lastKeyPressed.key, 'Row:', event.rowIndex);
@@ -374,22 +564,23 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
               if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
                 const currentRowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
 
-                if (currentRowNode && lastKeyPressed.shiftKey) {
-                  // Shift+Arrow key logic
+                if (currentRowNode && lastKeyPressed.shiftKey && !recordDetailsVisible) {
+                  // Shift+Arrow key logic (only in normal mode)
                   if (!currentRowNode.isSelected()) {
-                    // If the new focus cell row is not selected, add it to the set of selected rows
                     currentRowNode.setSelected(true);
                     console.log('Added row to selection:', event.rowIndex);
-                  } else if (previousFocusedRowIndex !== null && previousFocusedRowIndex !== undefined) {
-                    // Otherwise remove the row of the PREVIOUS focus cell from the set of selected rows
-                    const previousRowNode = gridApi.getDisplayedRowAtIndex(previousFocusedRowIndex);
+                  } else if (
+                    previousFocusedRowIndexRef.current !== null &&
+                    previousFocusedRowIndexRef.current !== undefined
+                  ) {
+                    const previousRowNode = gridApi.getDisplayedRowAtIndex(previousFocusedRowIndexRef.current);
                     if (previousRowNode) {
                       previousRowNode.setSelected(false);
-                      console.log('Removed previous row from selection:', previousFocusedRowIndex);
+                      console.log('Removed previous row from selection:', previousFocusedRowIndexRef.current);
                     }
                   }
                 } else if (!lastKeyPressed.shiftKey) {
-                  // Regular arrow key navigation (no shift) - select only the current row
+                  // Regular arrow key navigation
                   gridApi.deselectAll();
                   currentRowNode?.setSelected(true);
                   console.log('Single row selection:', event.rowIndex);
@@ -397,34 +588,72 @@ export const SnapshotTableGridAG = ({ snapshot, table }: SnapshotTableGridProps)
               }
             }
 
-            // Update row selection to match focused cell, but only for single-row navigation
-            if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
-              // const rowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
-              // if (rowNode) {
-              //   const selectedRows = gridApi.getSelectedRows();
-              //   // Only update selection if:
-              //   // 1. No rows are currently selected, OR
-              //   // 2. Only one row is selected and it's not the focused row
-              //   // This preserves multi-selection from shift-click, ctrl-click, etc.
-              //   if (selectedRows.length === 0 || (selectedRows.length === 1 && !rowNode.isSelected())) {
-              //     gridApi.deselectAll();
-              //     rowNode.setSelected(true);
-              //     console.debug('Row selection updated to match focused cell:', event.rowIndex);
-              //   }
-              // }
-            }
-
             // Update previous focused row index for next shift selection
-            setPreviousFocusedRowIndex(event.rowIndex);
+            previousFocusedRowIndexRef.current = event.rowIndex;
 
             // Force refresh of all cell styles when focus changes
-            // This forces the selected column styles to be recalculated
-            if (gridApi) {
-              gridApi.refreshCells({ force: true });
-            }
+            // if (gridApi) {
+            //   gridApi.refreshCells({ force: true });
+            // }
           }}
         />
       </div>
+
+      {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
+      {recordDetailsVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: overlayWidth, // Dynamically calculated width
+            height: '100%',
+            background: 'white',
+            border: '1px solid var(--mantine-color-gray-3)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1000,
+          }}
+        >
+          {selectedRecord ? (
+            <>
+              <RecordDetailsHeader
+                h="36px"
+                table={table}
+                columnId={selectedColumnId}
+                onSwitchColumn={handleFieldFocus}
+                v2
+                onClose={handleCloseRecordDetails}
+              />
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <RecordDetails
+                  snapshotId={snapshot.id}
+                  currentRecord={selectedRecord}
+                  table={table}
+                  currentColumnId={selectedColumnId}
+                  acceptCellValues={acceptCellValues}
+                  rejectCellValues={rejectCellValues}
+                  onFocusOnField={handleFieldFocus}
+                />
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: 'var(--mantine-color-gray-6)',
+                fontSize: '14px',
+              }}
+            >
+              Select a record to view its details
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Context Menu */}
       <TableContextMenu

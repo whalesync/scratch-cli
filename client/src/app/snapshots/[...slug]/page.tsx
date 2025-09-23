@@ -151,16 +151,6 @@ function SnapshotPageContent() {
             Table
           </Button>
           <Button
-            variant={displayMode === 'new-spreadsheet' ? 'outline' : 'transparent'}
-            size="xs"
-            leftSection={<Table size={12} />}
-            onClick={() => switchToNewSpreadsheetView()}
-            c={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
-            color={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
-          >
-            New Table
-          </Button>
-          <Button
             variant={displayMode === 'record' ? 'outline' : 'transparent'}
             size="xs"
             leftSection={<FileText size={12} />}
@@ -169,6 +159,16 @@ function SnapshotPageContent() {
             color={displayMode === 'record' ? 'gray.7' : 'gray.5'}
           >
             Record
+          </Button>
+          <Button
+            variant={displayMode === 'new-spreadsheet' ? 'outline' : 'transparent'}
+            size="xs"
+            leftSection={<Table size={12} />}
+            onClick={() => switchToNewSpreadsheetView()}
+            c={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
+            color={displayMode === 'new-spreadsheet' ? 'gray.7' : 'gray.5'}
+          >
+            New Table
           </Button>
         </Group>
       </Group>
