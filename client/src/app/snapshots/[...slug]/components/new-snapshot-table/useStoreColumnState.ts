@@ -30,5 +30,14 @@ export const useStoreColumnState = (snapshotId: string, tableId: string, gridApi
         }
       }, [gridApi, storageKey]);
 
-  return { columnState, setColumnState, mounted, onColumnStateChanged };
+    // Clear column state from localStorage and reset grid
+    const clearColumnState = useCallback(() => {
+      localStorage.removeItem(storageKey);
+      setColumnState([]);
+      if (gridApi) {
+        gridApi.resetColumnState();
+      }
+    }, [gridApi, storageKey]);
+
+  return { columnState, setColumnState, mounted, onColumnStateChanged, clearColumnState };
 };

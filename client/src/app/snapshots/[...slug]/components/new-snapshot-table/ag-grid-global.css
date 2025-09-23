@@ -1,6 +1,24 @@
 /* Global AG Grid theme overrides */
 /* This file contains global styles that cannot be in CSS modules */
 
+/* Remove AG Grid borders and make them straight */
+.my-grid[class*='ag-theme'] {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.my-grid[class*='ag-theme'] .ag-root-wrapper {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.my-grid[class*='ag-theme'] .ag-header {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
 /* Remove cell focus outline so that we can apply completely custom focus styles */
 .my-grid[class*='ag-theme'] .ag-cell-focus {
   /* outline: none !important; */
@@ -10,13 +28,28 @@
   /* background-color: red !important; */
 }
 
-/* Dark theme overrides */
-.my-grid[class*='-dark'] .ag-row-odd {
-  background-color: black;
+/* Make rows transparent to show body background */
+.my-grid[class*='ag-theme'] .ag-row-odd {
+  background: transparent;
 }
 
-.my-grid[class*='-dark'] .ag-row-even {
-  background-color: black;
+.my-grid[class*='ag-theme'] .ag-row-even {
+  background: transparent;
+}
+
+.my-grid[class*='ag-theme'] .ag-row {
+  background: transparent;
+}
+
+/* Make header cells transparent and align padding with cells */
+.my-grid[class*='ag-theme'] .ag-header-cell {
+  background: transparent;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.my-grid[class*='ag-theme'] .ag-header-row {
+  background: transparent;
 }
 
 @property --current-corner-color {
@@ -40,9 +73,11 @@
   border-right: none;
 }
 
-/* Alternative: Use AG Grid's built-in border variables */
+/* Remove row borders but keep cell borders */
 .my-grid.ag-theme-alpine {
   --ag-cell-horizontal-border: solid var(--ag-border-color);
+  --ag-row-border-color: transparent;
+  --ag-border-color: #ddd;
 }
 
 .my-grid.ag-theme-alpine-dark {

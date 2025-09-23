@@ -136,7 +136,7 @@ function SnapshotPageContent() {
       <Group>
         <NavToggle />
         <Group gap="xs">
-          <ConnectorIcon connector={Service.NOTION} size={24} />
+          <ConnectorIcon connector={snapshot.connectorService} size={24} />
           <TextTitleXs>{snapshot.name}</TextTitleXs>
         </Group>
         <Group gap="2px">

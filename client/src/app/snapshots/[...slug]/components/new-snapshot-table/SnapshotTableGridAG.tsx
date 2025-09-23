@@ -2,7 +2,7 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
-import { Box, Center, Loader, Text } from '@mantine/core';
+import { Box, Center, Loader, Paper, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
@@ -16,10 +16,7 @@ import {
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  FirstDataRenderedEvent,
-  GridReadyEvent,
-} from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
+import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
@@ -37,7 +34,7 @@ import styles from './SelectionCorners.module.css';
 import { SettingsModal } from './SettingsModal';
 import { TableContextMenu } from './TableContextMenu';
 import { useCellRenderer } from './useCellRenderer';
-import { useIdColDef } from './useIdColDef';
+import { useSpecialColDefs } from './useIdColDef';
 import { useStoreColumnState } from './useStoreColumnState';
 
 // Register AG Grid modules
@@ -63,14 +60,19 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const showRecordDetails = useCallback(() => {
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
-      const idColumn = gridApi.getColumn('id');
-      const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().headerName?.toLowerCase() === 'title');
+      const dotColumn = gridApi.getColumn('dot');
+      let titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().headerName?.toLowerCase() === 'title');
+      if (!titleColumn) {
+        titleColumn = (gridApi.getColumns() ?? []).filter(
+          (col) => col.getColDef().headerName?.toLowerCase() !== 'id',
+        )[0];
+      }
 
       let pinnedColumnsWidth = 0;
 
-      if (idColumn) {
-        pinnedColumnsWidth += idColumn.getActualWidth();
-        console.debug('ID column width:', idColumn.getActualWidth());
+      if (dotColumn) {
+        pinnedColumnsWidth += dotColumn.getActualWidth();
+        console.debug('ID column width:', dotColumn.getActualWidth());
       }
 
       if (titleColumn) {
@@ -106,8 +108,10 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     // selectedRows: [],
   });
 
-  // Theme toggle state for prototyping (hidden shortcut)
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  // Get theme from Mantine
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const isDarkTheme = colorScheme === 'dark';
+  const isLightMode = colorScheme === 'light';
 
   // Settings modal state
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -123,18 +127,22 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   // Track previous focused cell for shift selection logic (AG Grid doesn't provide this for keyboard navigation)
   const previousFocusedRowIndexRef = useRef<number | null>(null);
 
+  // Track original column widths for auto-sizing toggle
+  const originalColumnWidthsRef = useRef<Map<string, number>>(new Map());
+
   // Storage key for this specific snapshot and table
-  const { columnState, mounted, onColumnStateChanged } = useStoreColumnState(snapshot.id, table.id.wsId, gridApi);
+  const { columnState, mounted, onColumnStateChanged, clearColumnState } = useStoreColumnState(
+    snapshot.id,
+    table.id.wsId,
+    gridApi,
+  );
 
-  // Handle grid ready to store API reference
-  const onGridReady = useCallback((params: GridReadyEvent<SnapshotRecord>) => {
-    setGridApi(params.api);
-  }, []);
-
-  // Apply saved column state after data is rendered
-  const onFirstDataRendered = useCallback(
-    (params: FirstDataRenderedEvent<SnapshotRecord>) => {
-      if (columnState) {
+  // Handle grid ready to store API reference and apply column state immediately
+  const onGridReady = useCallback(
+    (params: GridReadyEvent<SnapshotRecord>) => {
+      setGridApi(params.api);
+      // Apply saved column state immediately when grid is ready to prevent animation
+      if (columnState && columnState.length > 0) {
         params.api.applyColumnState({
           state: columnState,
           applyOrder: true,
@@ -144,11 +152,16 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     [columnState],
   );
 
+  // Keep this for compatibility but it should not be needed now
+  const onFirstDataRendered = useCallback(() => {
+    // Column state is now applied in onGridReady
+  }, []);
+
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
   const { cellRenderer } = useCellRenderer(table);
-  const { idColumn } = useIdColDef({
+  const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: !recordDetailsVisible,
   });
@@ -210,6 +223,59 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                 title: 'No Value to Copy',
                 message: 'The selected cell has no value or suggested value to copy',
               });
+            }
+          }
+        }
+      }
+
+      // Sort shortcuts: [ for ascending, ] for descending
+      if (event.key === '[' || event.key === ']') {
+        if (!gridApi) return;
+
+        const focusedCell = gridApi.getFocusedCell();
+        if (focusedCell) {
+          const columnId = focusedCell.column.getColId();
+          const sortDirection = event.key === '[' ? 'asc' : 'desc';
+
+          // Apply sort to the focused column
+          gridApi.applyColumnState({
+            state: [
+              {
+                colId: columnId,
+                sort: sortDirection,
+              },
+            ],
+            defaultState: { sort: null }, // Clear sort from other columns
+          });
+
+          console.debug(`Sorted column ${columnId} ${sortDirection}`);
+        }
+      }
+
+      // Toggle auto-size for focused column when 'w' is pressed
+      if (event.key.toLowerCase() === 'w') {
+        if (!gridApi) return;
+
+        const focusedCell = gridApi.getFocusedCell();
+        if (focusedCell) {
+          const columnId = focusedCell.column.getColId();
+          const column = gridApi.getColumn(columnId);
+
+          if (column) {
+            const currentWidth = column.getActualWidth();
+            const originalWidths = originalColumnWidthsRef.current;
+
+            if (originalWidths.has(columnId)) {
+              // Revert to original width
+              const originalWidth = originalWidths.get(columnId)!;
+              gridApi.setColumnWidths([{ key: columnId, newWidth: originalWidth }]);
+              originalWidths.delete(columnId);
+              console.debug(`Reverted column ${columnId} to original width: ${originalWidth}px`);
+            } else {
+              // Store current width and auto-size
+              originalWidths.set(columnId, currentWidth);
+              gridApi.autoSizeColumns([columnId]);
+              console.debug(`Auto-sized column ${columnId}, stored original width: ${currentWidth}px`);
             }
           }
         }
@@ -357,27 +423,27 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   }, [handleKeyDown]);
 
   // Find title column and other columns (moved up to be available in useEffect)
-  const titleColumn = table.columns.find((col) => col.name.toLowerCase() === 'title');
-  const otherColumns = table.columns.filter((col) => col.name.toLowerCase() !== 'title');
+  const titleColumnSpecs = table.columns.find((col) => col.name.toLowerCase() === 'title');
+  const otherColumnSpecs = table.columns.filter((col) => col.name.toLowerCase() !== 'title');
 
   // Always include all columns, but we'll control visibility via AG Grid API
-  const columnsWithTitleFirst = titleColumn ? [titleColumn, ...otherColumns] : otherColumns;
+  const columnsWithTitleFirst = titleColumnSpecs ? [titleColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
 
   // Control column visibility based on limited mode only (not record details mode)
   useEffect(() => {
     if (gridApi && limited) {
       // Hide all columns except ID and Title (only for limited mode)
-      const columnsToHide = otherColumns.map((col) => col.id.wsId);
+      const columnsToHide = otherColumnSpecs.map((col) => col.id.wsId);
       gridApi.setColumnsVisible(columnsToHide, false);
     } else if (gridApi && !limited) {
       // Show all columns (for normal mode and record details mode)
-      const columnsToShow = otherColumns.map((col) => col.id.wsId);
+      const columnsToShow = otherColumnSpecs.map((col) => col.id.wsId);
       gridApi.setColumnsVisible(columnsToShow, true);
     }
-  }, [gridApi, limited, otherColumns]);
+  }, [gridApi, limited, otherColumnSpecs]);
 
   // Create column definitions from remaining table columns
-  const dataColumns: ColDef[] = columnsWithTitleFirst.map((column) => {
+  const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
       return [];
@@ -391,27 +457,26 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
 
       // Check if this cell is in the same column as the focused cell
       const focusedCell = gridApi?.getFocusedCell();
-      const isInFocusedColumn = focusedCell && focusedCell.column.getColId() === column.id.wsId;
+      const isInFocusedColumn =
+        focusedCell && !recordDetailsVisible && focusedCell.column.getColId() === column.id.wsId;
 
       // Base styles for all cells (gray outer border)
       const backgroundColor = isInFocusedColumn ? '#2196f322' : 'transparent';
+      const colors = isLightMode ? AG.colors.light : AG.colors.dark;
       const baseStyles = {
         backgroundColor,
         paddingLeft: AG.borders.paddingLeft,
-        color: isReadOnly ? AG.colors.readOnlyText : AG.colors.normalText,
+        color: isReadOnly ? colors.readOnlyText : colors.normalText,
       };
 
       if (hasSuggestion) {
         return {
           ...baseStyles,
-          // Use background gradient for inner border with height control, including focused column background
-          backgroundImage: `
-            linear-gradient(to right, ${AG.colors.innerBorder} 0px, ${AG.colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth}),
-            linear-gradient(to right, ${AG.colors.outerBorder} 0px, ${AG.colors.outerBorder} ${AG.borders.outerBorderWidth}, transparent ${AG.borders.outerBorderWidth})
-          `,
-          backgroundSize: `${AG.borders.innerBorderWidth} ${AG.borders.innerBorderHeight}, ${AG.borders.outerBorderWidth} ${AG.borders.outerBorderHeight}`,
-          backgroundPosition: '1px center, left center',
-          backgroundRepeat: 'no-repeat, no-repeat',
+          // Use background gradient for inner border only (green suggestion border)
+          backgroundImage: `linear-gradient(to right, ${colors.innerBorder} 0px, ${colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth})`,
+          backgroundSize: `${AG.borders.innerBorderWidth} ${AG.borders.innerBorderHeight}`,
+          backgroundPosition: '1px center',
+          backgroundRepeat: 'no-repeat',
         };
       }
 
@@ -422,7 +487,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     };
     const colDef: ColDef = {
       field: column.id.wsId,
-      headerName: column.name,
+      headerName: column.name.toUpperCase(),
       sortable: true,
       filter: false,
       resizable: !recordDetailsVisible,
@@ -431,9 +496,9 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
       cellStyle,
       cellClass,
       // Pin the title column to the left (like the ID column)
-      pinned: column.name.toLowerCase() === 'title' ? 'left' : undefined,
+      pinned: index === 0 ? 'left' : undefined,
       // Lock position and suppress movable for title column
-      lockPosition: column.name.toLowerCase() === 'title' ? true : false,
+      lockPosition: index === 0 ? true : false,
       // suppressMovable: column.name.toLowerCase() === 'title' ? true : false,
       // Use custom header component
       headerComponent: CustomHeaderComponent,
@@ -447,8 +512,10 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     return colDef;
   });
 
+  const headerColumnDef = dataColumns[0];
+  const otherColumnDefs = dataColumns.slice(1);
   // Combine columns in order: ID, Title (if exists), data columns, then menu column
-  const columnDefs: ColDef[] = [idColumn, ...dataColumns];
+  const columnDefs: ColDef[] = [dotColumn, headerColumnDef, idColumn, ...otherColumnDefs];
 
   if (error) {
     return (
@@ -492,9 +559,11 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
           }}
-          rowHeight={31}
-          headerHeight={31}
+          rowHeight={36}
+          headerHeight={35}
           animateRows={false}
+          suppressColumnMoveAnimation={true}
+          suppressAnimationFrame={true}
           rowSelection="multiple"
           theme="legacy"
           suppressCellFocus={false}
@@ -592,67 +661,69 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
             previousFocusedRowIndexRef.current = event.rowIndex;
 
             // Force refresh of all cell styles when focus changes
-            // if (gridApi) {
-            //   gridApi.refreshCells({ force: true });
-            // }
+            if (gridApi) {
+              gridApi.refreshCells({ force: true });
+            }
           }}
         />
       </div>
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
       {recordDetailsVisible && (
-        <div
+        <Box
           style={{
             position: 'absolute',
             top: 0,
             right: 0,
             width: overlayWidth, // Dynamically calculated width
             height: '100%',
-            background: 'white',
-            border: '1px solid var(--mantine-color-gray-3)',
+            // background: 'white',
+            // border: '1px solid var(--mantine-color-gray-3)',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 1000,
           }}
         >
-          {selectedRecord ? (
-            <>
-              <RecordDetailsHeader
-                h="36px"
-                table={table}
-                columnId={selectedColumnId}
-                onSwitchColumn={handleFieldFocus}
-                v2
-                onClose={handleCloseRecordDetails}
-              />
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <RecordDetails
-                  snapshotId={snapshot.id}
-                  currentRecord={selectedRecord}
+          <Paper style={{ width: '100%', height: '100%', borderLeft: '1px solid var(--mantine-color-gray-3)' }}>
+            {selectedRecord ? (
+              <>
+                <RecordDetailsHeader
+                  h="36px"
                   table={table}
-                  currentColumnId={selectedColumnId}
-                  acceptCellValues={acceptCellValues}
-                  rejectCellValues={rejectCellValues}
-                  onFocusOnField={handleFieldFocus}
+                  columnId={selectedColumnId}
+                  onSwitchColumn={handleFieldFocus}
+                  v2
+                  onClose={handleCloseRecordDetails}
                 />
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <RecordDetails
+                    snapshotId={snapshot.id}
+                    currentRecord={selectedRecord}
+                    table={table}
+                    currentColumnId={selectedColumnId}
+                    acceptCellValues={acceptCellValues}
+                    rejectCellValues={rejectCellValues}
+                    onFocusOnField={handleFieldFocus}
+                  />
+                </div>
+              </>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'var(--mantine-color-gray-6)',
+                  fontSize: '14px',
+                }}
+              >
+                Select a record to view its details
               </div>
-            </>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: 'var(--mantine-color-gray-6)',
-                fontSize: '14px',
-              }}
-            >
-              Select a record to view its details
-            </div>
-          )}
-        </div>
+            )}
+          </Paper>
+        </Box>
       )}
 
       {/* Context Menu */}
@@ -670,9 +741,10 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         isDarkTheme={isDarkTheme}
-        onThemeToggle={setIsDarkTheme}
+        onThemeToggle={toggleColorScheme}
         showDataTypeInHeader={showDataTypeInHeader}
         onShowDataTypeToggle={setShowDataTypeInHeader}
+        onClearColumnState={clearColumnState}
       />
     </Box>
   );

@@ -1,8 +1,8 @@
-import { ActionIcon, Box, Group, Text, Textarea, Tooltip } from '@mantine/core';
+import { ActionIcon, Box, Group, Textarea, Tooltip } from '@mantine/core';
 import { useToggle } from '@mantine/hooks';
 import { ArrowsMergeIcon, SquareSplitHorizontalIcon } from '@phosphor-icons/react';
-import { diffWordsWithSpace } from 'diff';
-import styles from './DiffViewer.module.css';
+import { FC } from 'react';
+import { DiffText } from './DiffText';
 
 interface DiffViewerProps {
   originalValue: string;
@@ -12,13 +12,8 @@ interface DiffViewerProps {
   splitMinRows?: number;
 }
 
-export const DiffViewer = ({
-  originalValue,
-  suggestedValue,
-  fz = '1rem',
-  p = '2rem',
-  splitMinRows = 5,
-}: DiffViewerProps) => {
+export const DiffViewer: FC<DiffViewerProps> = (props) => {
+  const { originalValue, suggestedValue, fz = '1rem', p = '2rem', splitMinRows = 5 } = props;
   const [mode, toggleMode] = useToggle(['diff', 'split']);
 
   // diff functions don't work with null values or undefined values
@@ -26,7 +21,7 @@ export const DiffViewer = ({
   const suggestedValueSafe = suggestedValue ?? '';
 
   // Run the diff and included whitespace in the changes
-  const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
+  // const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
 
   const switchButton = (
     <Box style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
@@ -80,7 +75,8 @@ export const DiffViewer = ({
 
   return (
     <Group p={0}>
-      <Text p={p} fz={fz} className={styles.diffViewer}>
+      <DiffText {...props} />
+      {/* <Text p={p} fz={fz} className={styles.diffViewer}>
         {changes.map((change, idx) => {
           // do this to preserve newlines in the diff viewer
           const value = change.value.replaceAll('\n', '<br/>');
@@ -105,7 +101,7 @@ export const DiffViewer = ({
 
           return <Text span key={idx} fz="1rem" dangerouslySetInnerHTML={{ __html: value }}></Text>;
         })}
-      </Text>
+      </Text> */}
       {switchButton}
     </Group>
   );

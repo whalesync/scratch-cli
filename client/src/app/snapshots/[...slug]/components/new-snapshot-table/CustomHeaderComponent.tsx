@@ -434,7 +434,6 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
           alignItems: 'center',
           flex: 1,
           cursor: props.enableSorting ? 'pointer' : 'default',
-          padding: '0 4px',
         }}
         onClick={props.enableSorting ? handleHeaderClick : undefined}
       >
