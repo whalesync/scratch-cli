@@ -92,10 +92,10 @@ export function NavMenu() {
         <Center h={40} w={40}>
           <Link href={RouteUrls.homePageUrl}>
             <Image
-              src="/dolphin-svgrepo-com.svg"
+              src="/logo-color.svg"
               alt={`${PROJECT_NAME}`}
-              w={24}
-              h={24}
+              w={40}
+              h={40}
               styles={{
                 root: {
                   fill: 'var(--mantine-color-primary-5)',
