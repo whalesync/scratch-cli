@@ -42,7 +42,7 @@ export const SubscriptionCard = () => {
         <TextRegularSm>
           {planDisplayName} - {status}
         </TextRegularSm>
-        <SecondaryButton
+        <PrimaryButton
           size="xs"
           component="a"
           target="_blank"
@@ -50,7 +50,7 @@ export const SubscriptionCard = () => {
           href={RouteUrls.manageSubscriptionPage}
         >
           Manage subscription
-        </SecondaryButton>
+        </PrimaryButton>
       </>
     );
   } else {

@@ -12,10 +12,8 @@ export const InlineButton = Button.withProps({
  * Button with default styles for primary actions like saving, continuing, or submitting.
  */
 export const PrimaryButton = Button.withProps({
-  variant: 'filled',
-  // color: 'blue',
+  variant: 'outline',
   size: 'xs',
-  bdrs: '0px',
 });
 
 /**
@@ -27,17 +25,13 @@ export const SecondaryButton = Button.withProps({
 });
 
 export const AcceptSuggestionButton = Button.withProps({
-  color: '#284283',
   size: 'xs',
   variant: 'outline',
-  bdrs: '0px',
 });
 
 export const RejectSuggestionButton = Button.withProps({
-  color: 'gray.6',
   size: 'xs',
   variant: 'outline',
-  bdrs: '0px',
 });
 
 export const DevToolButton = Button.withProps({

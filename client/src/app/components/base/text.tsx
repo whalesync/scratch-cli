@@ -9,28 +9,24 @@ import { Text } from '@mantine/core';
 export const TextTitleXs = Text.withProps({
   fz: '14px',
   fw: 500,
-  c: 'gray.9',
   style: { letterSpacing: '-0.07px', lineHeight: '22px' },
 });
 
 export const TextTitleSm = Text.withProps({
   fz: '15px',
   fw: 500,
-  c: 'gray.9',
   style: { letterSpacing: '-0.08px', lineHeight: '23px' },
 });
 
 export const TextTitleLg = Text.withProps({
   fz: 'lg',
   fw: 500,
-  c: 'gray.9',
   style: { letterSpacing: '-2%', lineHeight: '27px' },
 });
 
 export const TextTitle2XL = Text.withProps({
   fz: '24px',
   fw: '500',
-  c: 'gray.9',
   style: { letterSpacing: '-0.5%', lineHeight: '160%' },
 });
 

@@ -68,7 +68,12 @@ const LayoutTestPage = (): JSX.Element => {
             </Group>
           </Group>
         </MainContent.Header>
-        <MainContent.Body>Content Body</MainContent.Body>
+        <MainContent.Body>
+          <Box bg="primary" c="white" p="md" fw={700}>
+            This box has virtual background color, it is pink in dark mode and cyan in light mode
+            <Button color="primary">Test</Button>
+          </Box>
+        </MainContent.Body>
         <MainContent.Footer>
           <Group h="100%" align="center" gap="xs">
             <Button variant="subtle" size="xs" c="gray.6" leftSection={<PlusIcon size={16} />}>

@@ -104,7 +104,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     if (savedCapabilities) {
       try {
         const parsed = JSON.parse(savedCapabilities);
-        debugger;
         setSelectedCapabilities(parsed);
       } catch (error) {
         console.warn('Failed to parse saved capabilities:', error);
@@ -112,7 +111,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         const defaultCapabilities = availableCapabilities
           .filter((cap: Capability) => cap.enabledByDefault)
           .map((cap: Capability) => cap.code);
-        debugger;
         setSelectedCapabilities(defaultCapabilities);
       }
     } else {
@@ -120,7 +118,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       const defaultCapabilities = availableCapabilities
         .filter((cap: Capability) => cap.enabledByDefault)
         .map((cap: Capability) => cap.code);
-      debugger;
       setSelectedCapabilities(defaultCapabilities);
     }
   }, []); // availableCapabilities is a constant, no need to include in dependencies
@@ -208,7 +205,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       await sleep(100);
       const { session } = await createSession(snapshot.id);
       connect(session.id);
-      debugger;
       // setAvailableCapabilities(available_capabilities);
       // Preselect capabilities that have enabledByDefault=true
 

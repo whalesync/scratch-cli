@@ -8,7 +8,6 @@ import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { TablePreview } from '@/types/server-entities/table-list';
 import { RouteUrls } from '@/utils/route-urls';
 import {
-  Button,
   Center,
   Group,
   Loader,
@@ -203,9 +202,9 @@ export const CreateSnapshotModal = ({
         {/* Add Channel button for YouTube connections */}
         {connectorAccount.service === 'YOUTUBE' && (
           <Group justify="flex-start" mt="sm">
-            <Button variant="outline" size="sm" onClick={openAddChannelModal} disabled={isLoadingTables}>
+            <SecondaryButton variant="outline" size="sm" onClick={openAddChannelModal} disabled={isLoadingTables}>
               Add Channel
-            </Button>
+            </SecondaryButton>
           </Group>
         )}
 

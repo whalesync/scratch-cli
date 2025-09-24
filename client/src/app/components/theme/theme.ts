@@ -1,30 +1,50 @@
-import { createTheme, CSSVariablesResolver, MantineColorsTuple, MantineTheme } from '@mantine/core';
+import { createTheme, MantineColorsTuple, virtualColor } from '@mantine/core';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
 
-const myColor: MantineColorsTuple = [
-  '#ffedfd',
-  '#f7d9f2',
-  '#eab1e1',
-  '#dd86d0',
-  '#d262c1',
-  '#cc4cb9',
-  '#c93fb5',
-  '#b2319f',
-  '#9f298e',
-  '#8c1e7d',
+const penBlue: MantineColorsTuple = [
+  "#e8f3ff",
+  "#d1e2fe",
+  "#a0c1fa",
+  "#6c9ff7",
+  "#4383f5",
+  "#2c70f5",
+  "#1f67f6",
+  "#1257db",
+  "#0551cf",
+  "#0042ae",
 ];
 
+const terminalGreen: MantineColorsTuple = [
+  '#f5ffe2',
+  '#ecfdce',
+  '#d9f9a0',
+  '#c5f56d',
+  '#b4f243',
+  '#a9f027',
+  '#a3ef15',
+  '#8dd402',
+  '#7cbd00',
+  '#68a300',
+];
 
 export const SCRATCHPAD_MANTINE_THEME = createTheme({
   fontFamily: inter.style.fontFamily,
 
   cursorType: 'pointer',
-  colors: { purple: myColor },
-
-  primaryColor: 'purple',
-  primaryShade: 5,
+  colors: {
+    penBlue: penBlue,
+    terminalGreen: terminalGreen,
+    // NOTE: this does not work yet, waiting to hear from Mantine team
+    primary: virtualColor({
+      name: 'primary',
+      light: 'penBlue',
+      dark: 'terminalGreen',
+    }),
+  },
+  primaryColor: 'penBlue',
+  primaryShade: 7,
 
   fontSizes: {
     xs: '13px',
@@ -50,17 +70,7 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     lg: '10px',
     full: '100%',
   },
-  defaultRadius: '0px',
-});
 
-// Extra variables we want exposed in CSS.
-export const MANTINE_THEME_CSS_VARIABLE_RESOLVER: CSSVariablesResolver = (theme: MantineTheme) => ({
-  variables: {
-    '--mantine-font-weight-light': theme.other.fontWeightLight,
-    '--mantine-font-weight-medium': theme.other.fontWeightMedium,
-    '--mantine-font-weight-semiBold': theme.other.fontWeightSemiBold,
-    '--mantine-font-weight-bold': theme.other.fontWeightBold,
-  },
-  light: {},
-  dark: {},
+  defaultRadius: '0px',
+  
 });
