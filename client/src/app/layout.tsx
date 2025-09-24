@@ -1,4 +1,5 @@
 import '@mantine/notifications/styles.css';
+import { GoogleTagManager } from '@next/third-parties/google';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -23,6 +24,7 @@ import { ScratchpadPostHogProvider } from './providers';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      {process.env.NEXT_PUBLIC_GTM_ID && <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID as string} />}
       <body className={inter.className}>
         <MantineProvider theme={SCRATCHPAD_MANTINE_THEME} defaultColorScheme="light">
           <Notifications />
