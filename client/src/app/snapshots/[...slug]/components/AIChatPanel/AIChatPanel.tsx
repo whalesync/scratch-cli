@@ -12,7 +12,7 @@ import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Alert, Button, Center, Group, Modal, ScrollArea, Stack, Text, Textarea } from '@mantine/core';
+import { ActionIcon, Alert, Button, Center, Group, Modal, Stack, Text, Textarea } from '@mantine/core';
 import _ from 'lodash';
 import { ChevronDownIcon, OctagonMinusIcon, PanelRightIcon, Plus, SendIcon, SparklesIcon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -331,7 +331,16 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     );
     chatHistory.unshift(...pastMsgs);
   }
-
+  // fake messages to test scrolling
+  // for (let i = 0; i < 30; i++) {
+  //   chatHistory.push({
+  //     id: Date.now().toString(),
+  //     message: `message ${i}`,
+  //     role: 'user',
+  //     timestamp: new Date().toISOString(),
+  //     variant: 'message',
+  //   });
+  // }
   const chatInputEnabled = aiAgentEnabled && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
   return (
@@ -403,7 +412,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           </Group>
         </Group>
       </SideBarContent.Header>
-      <SideBarContent.Body pb="6px">
+      <SideBarContent.Body scrollRef={scrollAreaRef}>
         {/* Error Alert */}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
@@ -426,13 +435,11 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         {/* Messages */}
 
         {activeSessionId ? (
-          <ScrollArea flex={1} viewportRef={scrollAreaRef}>
-            <Stack gap="xs">
-              {chatHistory.map((msg, index) => (
-                <ChatMessageElement key={index} msg={msg} />
-              ))}
-            </Stack>
-          </ScrollArea>
+          <Stack gap="xs">
+            {chatHistory.map((msg, index) => (
+              <ChatMessageElement key={index} msg={msg} />
+            ))}
+          </Stack>
         ) : (
           <Center h="100%">
             {aiAgentEnabled ? (
@@ -459,15 +466,14 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             )}
           </Center>
         )}
-
+      </SideBarContent.Body>
+      <SideBarContent.Bottom>
         {/* Bottom Input Area */}
         <Stack gap="xs">
           {/* Style Guide Selection */}
           <ResourceSelector disabled={!aiAgentEnabled} />
           <ContextBadges activeTable={activeTable} currentView={currentView} />
         </Stack>
-      </SideBarContent.Body>
-      <SideBarContent.Bottom>
         {/* Input Area */}
         <Textarea
           ref={textInputRef}

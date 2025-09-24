@@ -7,11 +7,15 @@
 .sideBarBody {
   padding: 2px 6px 2px 6px;
   flex-grow: 1; /* Takes up all available space between header and footer */
+  overflow-y: auto; /* Enables vertical scrolling if content overflows */
+  justify-content: flex-start; /* Align text at the top */
+  align-items: flex-start; /* Align text to the left */
+  flex-direction: column; /* Stack paragraphs vertically */
 }
 
 .sideBarFooter {
   border-top: 1px solid var(--mantine-color-gray-2);
   flex-shrink: 0; /* Prevents it from shrinking */
+  flex-grow: 1;
   padding: 2px 6px 2px 6px;
-  background-color: 'blue';
 }

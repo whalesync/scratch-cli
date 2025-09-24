@@ -1,5 +1,5 @@
-import { Box, MantineStyleProps, Paper, Stack } from '@mantine/core';
-import { JSX, PropsWithChildren } from 'react';
+import { Box, MantineStyleProps, Paper } from '@mantine/core';
+import { JSX, PropsWithChildren, RefObject } from 'react';
 import classes from './SideBarContent.module.css';
 
 type ChildrenWithStyleProps = PropsWithChildren & MantineStyleProps;
@@ -27,17 +27,19 @@ const SideBarContentHeader = ({ children, ...styleProps }: ChildrenWithStyleProp
   );
 };
 
-const SideBarContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
+type SideBarContentBodyProps = { scrollRef?: RefObject<HTMLDivElement | null> } & PropsWithChildren;
+
+const SideBarContentBody = ({ children, scrollRef, ...styleProps }: SideBarContentBodyProps): JSX.Element => {
   return (
-    <Stack h="100%" w="100%" className={classes.sideBarBody} {...styleProps}>
+    <Box w="100%" h="100%" className={classes.sideBarBody} {...styleProps} ref={scrollRef}>
       {children}
-    </Stack>
+    </Box>
   );
 };
 
 const SideBarContentBottom = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
   return (
-    <Box h="140px" className={classes.sideBarFooter} {...styleProps}>
+    <Box mih="150px" className={classes.sideBarFooter} {...styleProps}>
       {children}
     </Box>
   );
