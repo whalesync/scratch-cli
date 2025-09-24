@@ -174,6 +174,11 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // When record view is open, ignore left/right arrow keys so record view can handle them
+      if (recordDetailsVisible && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        return;
+      }
+
       // Track arrow key presses for navigation detection
       if (
         event.key === 'ArrowUp' ||
@@ -281,7 +286,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         }
       }
     },
-    [gridApi, clipboard],
+    [gridApi, clipboard, recordDetailsVisible],
   );
 
   // Handle double click to open record view

@@ -28,6 +28,29 @@ import { SessionHistorySelector } from './SessionHistorySelector';
 interface AIChatPanelProps {
   activeTable: TableSpec | null;
 }
+const availableCapabilities = [
+  {
+    code: 'data:create',
+    enabledByDefault: true,
+    description: 'Create new records for a table in the active snapshot using data provided by the LLM.',
+  },
+  {
+    code: 'data:update',
+    enabledByDefault: true,
+    description: 'Update existing records in a table in the active snapshot (creates suggestions, not direct changes).',
+  },
+  {
+    code: 'data:delete',
+    enabledByDefault: true,
+    description: 'Delete records from a table in the active snapshot by their IDs.',
+  },
+  { code: 'data:field-tools', enabledByDefault: true, description: 'Tools to edit specific fields' },
+  {
+    code: 'views:filtering',
+    enabledByDefault: true,
+    description: 'Set or clear SQL-based filters on tables to show/hide specific records.',
+  },
+];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const { snapshot, currentView } = useSnapshotContext();
@@ -68,10 +91,39 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
   const { styleGuides } = useStyleGuides();
 
-  const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
+  // const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
   const { aiAgentEnabled } = useAgentCredentials();
+
+  // Load selected capabilities from localStorage on mount, or use defaults
+  useEffect(() => {
+    const STORAGE_KEY = 'ai-chat-selected-capabilities';
+    const savedCapabilities = localStorage.getItem(STORAGE_KEY);
+
+    if (savedCapabilities) {
+      try {
+        const parsed = JSON.parse(savedCapabilities);
+        debugger;
+        setSelectedCapabilities(parsed);
+      } catch (error) {
+        console.warn('Failed to parse saved capabilities:', error);
+        // Fall back to defaults
+        const defaultCapabilities = availableCapabilities
+          .filter((cap: Capability) => cap.enabledByDefault)
+          .map((cap: Capability) => cap.code);
+        debugger;
+        setSelectedCapabilities(defaultCapabilities);
+      }
+    } else {
+      // No saved capabilities, use defaults
+      const defaultCapabilities = availableCapabilities
+        .filter((cap: Capability) => cap.enabledByDefault)
+        .map((cap: Capability) => cap.code);
+      debugger;
+      setSelectedCapabilities(defaultCapabilities);
+    }
+  }, []); // availableCapabilities is a constant, no need to include in dependencies
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
@@ -154,15 +206,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     try {
       await disconnect();
       await sleep(100);
-      const { session, available_capabilities } = await createSession(snapshot.id);
+      const { session } = await createSession(snapshot.id);
       connect(session.id);
-
-      setAvailableCapabilities(available_capabilities);
+      debugger;
+      // setAvailableCapabilities(available_capabilities);
       // Preselect capabilities that have enabledByDefault=true
-      const defaultCapabilities = available_capabilities
-        .filter((cap: Capability) => cap.enabledByDefault)
-        .map((cap: Capability) => cap.code);
-      setSelectedCapabilities(defaultCapabilities);
+
       setError(null);
       setMessage('');
       setResetInputFocus(true);
@@ -351,8 +400,8 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                   await disconnect();
                 }
                 // Reset capabilities when switching sessions
-                setAvailableCapabilities([]);
-                setSelectedCapabilities([]);
+                // setAvailableCapabilities([]);
+                // setSelectedCapabilities([]);
               }}
             />
           </Group>
@@ -468,14 +517,16 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             </TextRegularXs>
           </Button>
           {/* Capabilities Selection */}
-          {availableCapabilities.length > 0 && (
-            <CapabilitiesPicker
-              availableCapabilities={availableCapabilities}
-              selectedCapabilities={selectedCapabilities}
-              onCapabilitiesChange={setSelectedCapabilities}
-            />
-          )}
-
+          {/* {availableCapabilities.length > 0 && ( */}
+          <CapabilitiesPicker
+            availableCapabilities={availableCapabilities}
+            selectedCapabilities={selectedCapabilities}
+            onCapabilitiesChange={(caps) => {
+              setSelectedCapabilities(caps);
+              const STORAGE_KEY = 'ai-chat-selected-capabilities';
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
+            }}
+          />
           <Group gap="2px" ml="auto">
             <ActionIcon
               onClick={() => {

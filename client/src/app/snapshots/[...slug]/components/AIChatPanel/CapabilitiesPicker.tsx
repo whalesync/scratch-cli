@@ -4,7 +4,7 @@ import { TextRegularXs } from '@/app/components/base/text';
 import { Capability } from '@/types/server-entities/chat-session';
 import { Button, Checkbox, Divider, Group, Modal, Stack, Text } from '@mantine/core';
 import { ChevronDownIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface CapabilitiesPickerProps {
   availableCapabilities: Capability[];
@@ -18,7 +18,7 @@ export default function CapabilitiesPicker({
   onCapabilitiesChange,
 }: CapabilitiesPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempSelectedCapabilities, setTempSelectedCapabilities] = useState<string[]>(selectedCapabilities);
+  const [tempSelectedCapabilities, setTempSelectedCapabilities] = useState<string[]>([]);
 
   const handleSave = () => {
     onCapabilitiesChange(tempSelectedCapabilities);
@@ -51,6 +51,10 @@ export default function CapabilitiesPicker({
     {} as Record<string, Capability[]>,
   );
 
+  useEffect(() => {
+    setTempSelectedCapabilities(selectedCapabilities);
+  }, [selectedCapabilities]);
+
   return (
     <>
       {/* Summary Display */}
@@ -66,14 +70,12 @@ export default function CapabilitiesPicker({
           {selectedCapabilities.length} / {availableCapabilities.length} Tools
         </TextRegularXs>
       </Button>
-
       {/* Modal */}
       <Modal opened={isOpen} onClose={handleCancel} title="Configure Capabilities" size="sm" zIndex={1003}>
         <Stack gap="md">
           <Text size="sm" c="dimmed">
             Select which capabilities the AI agent should have access to:
           </Text>
-
           <Stack gap="md">
             {Object.entries(groupedCapabilities).map(([groupName, capabilities], groupIndex) => (
               <Stack key={groupName} gap="xs">
@@ -95,7 +97,6 @@ export default function CapabilitiesPicker({
               </Stack>
             ))}
           </Stack>
-
           <Group justify="flex-end" gap="xs">
             <Button variant="subtle" onClick={handleCancel} size="sm">
               Cancel
