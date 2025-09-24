@@ -124,7 +124,7 @@ export class StripePaymentService {
             missing_payment_method: 'cancel',
           },
         },
-        automatic_tax: { enabled: this.configService.getScratchpadEnvironment() === 'production' },
+        automatic_tax: { enabled: false },
       });
 
       const result = await this.upsertSubscription(subscription.id, undefined, subscription);
