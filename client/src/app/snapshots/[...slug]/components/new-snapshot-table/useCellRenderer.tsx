@@ -17,8 +17,12 @@ export const useCellRenderer = (table: TableSpec) => {
     const columnDef = table.columns.find((col) => col.id.wsId === params.colDef?.field);
     if (!columnDef) {
       return (
-        <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-          {String(value)}
+        <Box
+          display="flex"
+          h="100%"
+          style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+        >
+          <Text className="cell-text">{String(value)}</Text>
         </Box>
       );
     }
@@ -33,12 +37,13 @@ export const useCellRenderer = (table: TableSpec) => {
       // If there's no existing value, just show the suggested value
       if (!formattedValue || formattedValue === '' || formattedValue === 'null' || formattedValue === 'undefined') {
         return (
-          <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
+          <Box
+            display="flex"
+            h="100%"
+            style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+          >
             <Text
-            // style={{
-            //   color: colors.diffAdded,
-            //   backgroundColor: colors.diffAddedBg,
-            // }}
+              className="cell-text" // css class for the text in the cell
             >
               {String(suggestedValue)}
             </Text>
@@ -50,15 +55,24 @@ export const useCellRenderer = (table: TableSpec) => {
       // const changes = diffWordsWithSpace(formattedValue, String(suggestedValue));
 
       return (
-        <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
+        <Box
+          display="flex"
+          h="100%"
+          style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+        >
           <DiffText originalValue={formattedValue} suggestedValue={String(suggestedValue)} />
         </Box>
       );
     }
 
     return (
-      <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-        <Text c="dark">{formattedValue}</Text>
+      <Box
+        className="cell-box" // css class for the text in the cell
+        display="flex"
+        h="100%"
+        style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+      >
+        <Text className="cell-text">{formattedValue}</Text>
       </Box>
     );
   };

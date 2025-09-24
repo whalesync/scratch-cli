@@ -56,7 +56,7 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <Group gap="xs" style={{ flex: 1 }}>
-        <Text size="sm" fw={600}>
+        <Text size="sm" className="ag-header-cell-text" fw={600}>
           ID
         </Text>
 

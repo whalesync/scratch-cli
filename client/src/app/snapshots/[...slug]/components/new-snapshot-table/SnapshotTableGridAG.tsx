@@ -2,7 +2,7 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
-import { Box, Center, Loader, Paper, Text, useMantineColorScheme } from '@mantine/core';
+import { Box, Center, Loader, Paper, ScrollArea, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
@@ -687,7 +687,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         >
           <Paper style={{ width: '100%', height: '100%', borderLeft: '1px solid var(--mantine-color-gray-3)' }}>
             {selectedRecord ? (
-              <>
+              <Box>
                 <RecordDetailsHeader
                   h="36px"
                   table={table}
@@ -696,18 +696,24 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                   v2
                   onClose={handleCloseRecordDetails}
                 />
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <RecordDetails
-                    snapshotId={snapshot.id}
-                    currentRecord={selectedRecord}
-                    table={table}
-                    currentColumnId={selectedColumnId}
-                    acceptCellValues={acceptCellValues}
-                    rejectCellValues={rejectCellValues}
-                    onFocusOnField={handleFieldFocus}
-                  />
-                </div>
-              </>
+                <Box p="sm">
+                  <ScrollArea h={`calc(100vh - 150px)`} type="hover" scrollbars="y">
+                    <RecordDetails
+                      snapshotId={snapshot.id}
+                      currentRecord={selectedRecord}
+                      table={table}
+                      currentColumnId={selectedColumnId}
+                      acceptCellValues={acceptCellValues}
+                      rejectCellValues={rejectCellValues}
+                      onFocusOnField={handleFieldFocus}
+                    />
+                  </ScrollArea>
+                </Box>
+
+                {/* <div style={{ flex: 1, overflow: 'hidden' }}> */}
+
+                {/* </div> */}
+              </Box>
             ) : (
               <div
                 style={{
