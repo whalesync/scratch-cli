@@ -1,4 +1,5 @@
 import { TextRegularXs } from '@/app/components/base/text';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Group, StyleProp } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
@@ -87,18 +88,18 @@ export const RecordDetailsHeader = ({
       </TextRegularXs>
       <Group gap="xs" justify="flex-end">
         <Group gap="xs">
-          <ActionIcon variant="transparent" onClick={goToPreviousColumn}>
-            <ChevronLeftIcon size={16} color="var(--mantine-color-gray-6)" />
+          <ActionIcon variant="transparent-hover" onClick={goToPreviousColumn} color="gray">
+            <StyledLucideIcon Icon={ChevronLeftIcon} size={16} />
           </ActionIcon>
-          <ActionIcon variant="transparent" onClick={() => onSwitchColumn(undefined)}>
-            <Rows4Icon size={16} color="var(--mantine-color-gray-6)" />
+          <ActionIcon variant="transparent-hover" onClick={() => onSwitchColumn(undefined)} color="gray">
+            <StyledLucideIcon Icon={Rows4Icon} size={16} />
           </ActionIcon>
-          <ActionIcon variant="transparent" onClick={goToNextColumn}>
-            <ChevronRightIcon size={16} color="var(--mantine-color-gray-6)" />
+          <ActionIcon variant="transparent-hover" onClick={goToNextColumn} color="gray">
+            <StyledLucideIcon Icon={ChevronRightIcon} size={16} />
           </ActionIcon>
         </Group>
-        <ActionIcon variant="transparent" onClick={onClose}>
-          <XIcon size={16} color="var(--mantine-color-gray-6)" />
+        <ActionIcon variant="transparent-hover" onClick={onClose} color="gray">
+          <StyledLucideIcon Icon={XIcon} size={16} />
         </ActionIcon>
       </Group>
     </Group>
@@ -112,17 +113,17 @@ export const RecordDetailsHeader = ({
       p="2px 4px"
     >
       <Group gap="xs">
-        <ActionIcon variant="transparent" onClick={goToPreviousColumn}>
-          <ChevronLeftIcon size={16} color="var(--mantine-color-gray-6)" />
+        <ActionIcon variant="transparent-hover" onClick={goToPreviousColumn} color="gray">
+          <StyledLucideIcon Icon={ChevronLeftIcon} size={16} />
         </ActionIcon>
       </Group>
       <TextRegularXs style={{ textTransform: 'uppercase' }}>{currentColumn?.name ?? 'all attributes'}</TextRegularXs>
       <Group gap="xs" justify="flex-end">
-        <ActionIcon variant="transparent" onClick={() => onSwitchColumn(undefined)}>
-          <Rows4Icon size={16} color="var(--mantine-color-gray-6)" />
+        <ActionIcon variant="transparent-hover" onClick={() => onSwitchColumn(undefined)} color="gray">
+          <StyledLucideIcon Icon={Rows4Icon} size={16} />
         </ActionIcon>
-        <ActionIcon variant="transparent" onClick={goToNextColumn}>
-          <ChevronRightIcon size={16} color="var(--mantine-color-gray-6)" />
+        <ActionIcon variant="transparent-hover" onClick={goToNextColumn} color="gray">
+          <StyledLucideIcon Icon={ChevronRightIcon} size={16} />
         </ActionIcon>
       </Group>
     </Group>

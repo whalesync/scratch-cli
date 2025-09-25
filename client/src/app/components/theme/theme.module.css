@@ -2,9 +2,13 @@
   /* A variant of transparent that changes color on hover */
   &[data-variant='transparent-hover'] {
     background: transparent;
-    &:hover {
+    &:hover:not(:disabled) {
       color: var(--mantine-color-primary-filled);
       background: transparent;
+    }
+    &:disabled {
+      background: transparent;
+      opacity: light-dark(0.5, 0.8);
     }
   }
 }

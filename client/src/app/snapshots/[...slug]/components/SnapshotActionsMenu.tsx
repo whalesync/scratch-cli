@@ -1,4 +1,5 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { snapshotApi } from '@/lib/api/snapshot';
@@ -176,8 +177,8 @@ export const SnapshotActionsMenu = () => {
       </Modal>
       <Menu shadow="md" width={250}>
         <Menu.Target>
-          <ActionIcon variant="transparent" size="md" color="gray.9">
-            <DotsThreeVerticalIcon size={16} weight="bold" />
+          <ActionIcon variant="transparent-hover" size="md" color="gray">
+            <StyledLucideIcon Icon={DotsThreeVerticalIcon} size={16} />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>

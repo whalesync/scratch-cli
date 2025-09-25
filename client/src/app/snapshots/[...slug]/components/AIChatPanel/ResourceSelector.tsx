@@ -1,5 +1,6 @@
 import { TextRegularXs } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
@@ -102,19 +103,13 @@ export function ResourceSelector({ disabled }: { disabled: boolean }) {
           >
             <Combobox.Target>
               <ActionIcon
-                variant="outline"
+                variant="transparent-hover"
                 size="sm"
-                c="gray.4"
-                color="gray.4"
+                color="gray"
                 onClick={() => combobox.toggleDropdown()}
                 disabled={disabled}
-                styles={{
-                  root: {
-                    borderRadius: '0',
-                  },
-                }}
               >
-                <AtSignIcon size={14} color="var(--mantine-color-gray-7)" />
+                <StyledLucideIcon Icon={AtSignIcon} size={14} />
               </ActionIcon>
             </Combobox.Target>
 

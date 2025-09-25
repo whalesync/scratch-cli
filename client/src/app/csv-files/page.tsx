@@ -2,19 +2,8 @@
 
 import { useCsvFiles } from '@/hooks/use-csv-file';
 import { CsvFile } from '@/types/server-entities/csv-file';
-import {
-  ActionIcon,
-  Center,
-  Group,
-  Loader,
-  Modal,
-  Stack,
-  Table,
-  Text,
-  UnstyledButton,
-  useModalsStack,
-} from '@mantine/core';
-import { Edit3, FileSpreadsheet, Plus, Trash2 } from 'lucide-react';
+import { Center, Group, Loader, Modal, Stack, Table, Text, UnstyledButton, useModalsStack } from '@mantine/core';
+import { Edit3Icon, FileSpreadsheet, Plus, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
@@ -22,6 +11,7 @@ import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
+import { ToolIconButton } from '../components/ToolIconButton';
 import { EditCsvFileModal } from './components/EditCsvFileModal';
 
 export default function CsvFilesPage() {
@@ -129,26 +119,20 @@ export default function CsvFilesPage() {
                     <Table.Td>{formatDate(csvFile.updatedAt)}</Table.Td>
                     <Table.Td w="15%" align="right">
                       <Group gap="xs" justify="flex-end">
-                        <ActionIcon
-                          variant="light"
-                          color="blue"
+                        <ToolIconButton
                           onClick={() => {
                             setSelectedCsvFile(csvFile);
                             modalStack.open('edit');
                           }}
-                        >
-                          <StyledLucideIcon Icon={Edit3} size="md" />
-                        </ActionIcon>
-                        <ActionIcon
-                          variant="light"
-                          color="red"
+                          icon={Edit3Icon}
+                        />
+                        <ToolIconButton
                           onClick={() => {
                             setSelectedCsvFile(csvFile);
                             modalStack.open('delete');
                           }}
-                        >
-                          <StyledLucideIcon Icon={Trash2} size="md" />
-                        </ActionIcon>
+                          icon={Trash2Icon}
+                        />
                       </Group>
                     </Table.Td>
                   </Table.Tr>

@@ -3,13 +3,14 @@
 import { TextTitleSm } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { formatDate } from '@/utils/helpers';
-import { ActionIcon, Group, Loader, Table, Text, Tooltip } from '@mantine/core';
+import { Group, Loader, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { CheckCircle, Edit3, HelpCircle, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, Edit3, HelpCircle, Plus, TestTubeIcon, Trash2, XCircle } from 'lucide-react';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
 
 interface ConnectorRowProps {
@@ -35,11 +36,12 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
       color = 'gray';
       icon = <StyledLucideIcon Icon={HelpCircle} />;
       testButton = (
-        <Tooltip label="Test connection" position="bottom">
-          <ActionIcon variant="subtle" size="xs" onClick={() => onTest(c.id)} loading={testingId === c.id}>
-            <StyledLucideIcon Icon={TestTube} />
-          </ActionIcon>
-        </Tooltip>
+        <ToolIconButton
+          onClick={() => onTest(c.id)}
+          loading={testingId === c.id}
+          icon={TestTubeIcon}
+          tooltip="Test connection"
+        />
       );
     }
 
@@ -91,15 +93,9 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>{formatDate(connectorAccount.updatedAt)}</Table.Td>
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
-            <ActionIcon variant="subtle" size="xs" onClick={open}>
-              <StyledLucideIcon Icon={Plus} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" size="xs" onClick={() => onUpdate(connectorAccount)}>
-              <StyledLucideIcon Icon={Edit3} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" size="xs" onClick={() => onDelete(connectorAccount.id)}>
-              <StyledLucideIcon Icon={Trash2} />
-            </ActionIcon>
+            <ToolIconButton onClick={open} icon={Plus} tooltip="Create snapshot" />
+            <ToolIconButton onClick={() => onUpdate(connectorAccount)} icon={Edit3} tooltip="Edit connector" />
+            <ToolIconButton onClick={() => onDelete(connectorAccount.id)} icon={Trash2} tooltip="Delete connector" />
           </Group>
         </Table.Td>
       </Table.Tr>

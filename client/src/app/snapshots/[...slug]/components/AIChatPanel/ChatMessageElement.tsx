@@ -1,5 +1,6 @@
 'use client';
 
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { AgentProgressMessageData } from '@/hooks/use-agent-chat-websocket';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { ChatMessage } from '@/types/server-entities/chat-session';
@@ -61,11 +62,11 @@ const AgentToolCallMessage = ({ msg }: { msg: ChatMessage }) => {
     }
   }
   const toggleButton = displayArgs ? (
-    <ActionIcon variant="transparent" size="xs" onClick={() => toggle()}>
+    <ActionIcon variant="transparent-hover" color="gray" size="xs" onClick={() => toggle()}>
       {isExpanded ? (
-        <FoldVerticalIcon color="var(--mantine-color-gray-5)" />
+        <StyledLucideIcon Icon={FoldVerticalIcon} size={14} />
       ) : (
-        <UnfoldVerticalIcon color="var(--mantine-color-gray-5)" />
+        <StyledLucideIcon Icon={UnfoldVerticalIcon} size={14} />
       )}
     </ActionIcon>
   ) : null;

@@ -8,6 +8,7 @@ export type ContentContainerProps = PropsWithChildren<{
   onBack?: () => void;
 }>;
 
+/** @deprecated */
 export const ContentContainer = ({ children, title, actions, onBack }: ContentContainerProps) => {
   return (
     <Stack p="lg" gap={0} w="100%" h="100%">

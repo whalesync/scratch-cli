@@ -1,4 +1,5 @@
 import { TextRegularXs } from '@/app/components/base/text';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { ChatSessionSummary } from '@/types/server-entities/chat-session';
 import { timeAgo } from '@/utils/helpers';
@@ -106,8 +107,14 @@ export const SessionHistorySelector = ({
       }}
     >
       <Combobox.Target>
-        <ActionIcon variant="subtle" size="sm" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
-          <HistoryIcon size={14} color="var(--mantine-color-gray-7)" />
+        <ActionIcon
+          variant="transparent-hover"
+          color="gray"
+          size="sm"
+          onClick={() => combobox.toggleDropdown()}
+          disabled={disabled}
+        >
+          <StyledLucideIcon Icon={HistoryIcon} size={14} />
         </ActionIcon>
       </Combobox.Target>
 

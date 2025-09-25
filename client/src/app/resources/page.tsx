@@ -4,7 +4,7 @@ import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import { ActionIcon, Alert, Badge, Group, Modal, Paper, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { Alert, Badge, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
@@ -13,6 +13,7 @@ import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../componen
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
+import { ToolIconButton } from '../components/ToolIconButton';
 
 export default function StyleGuidesPage() {
   const { styleGuides, isLoading, error, mutate } = useStyleGuides();
@@ -141,40 +142,28 @@ export default function StyleGuidesPage() {
                   <Table.Td>
                     <Group gap="xs" justify="flex-end">
                       {styleGuide.sourceUrl && (
-                        <Tooltip label="Redownload external content">
-                          <ActionIcon
-                            title="Redownload external content"
-                            onClick={() => handleUpdateExternalResource(styleGuide.id)}
-                            variant="subtle"
-                            size="sm"
-                            loading={isExternalResourceUpdating}
-                          >
-                            <DownloadIcon size={16} />
-                          </ActionIcon>
-                        </Tooltip>
+                        <ToolIconButton
+                          tooltip="Redownload external content"
+                          onClick={() => handleUpdateExternalResource(styleGuide.id)}
+                          loading={isExternalResourceUpdating}
+                          icon={DownloadIcon}
+                        />
                       )}
-                      <ActionIcon
+                      <ToolIconButton
                         onClick={async () => {
                           setActiveResource(styleGuide);
                           openCreateModal();
                         }}
-                        variant="subtle"
-                        size="sm"
-                      >
-                        <PencilLineIcon size={16} />
-                      </ActionIcon>
+                        icon={PencilLineIcon}
+                      />
 
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        size="sm"
+                      <ToolIconButton
                         onClick={() => {
                           setActiveResource(styleGuide);
                           openDeleteModal();
                         }}
-                      >
-                        <Trash2Icon size={16} />
-                      </ActionIcon>
+                        icon={Trash2Icon}
+                      />
                     </Group>
                   </Table.Td>
                 </Table.Tr>

@@ -376,11 +376,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                   await deleteSession(activeSessionId);
                 }}
                 size="sm"
-                variant="subtle"
+                variant="transparent-hover"
+                color="gray"
                 title="Delete session"
                 disabled={!activeSessionId}
               >
-                <XIcon size={14} color="var(--mantine-color-gray-7)" />
+                <StyledLucideIcon Icon={XIcon} size={14} />
               </ActionIcon>
             )}
           </Group>
@@ -388,11 +389,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             <ActionIcon
               onClick={createNewSession}
               size="sm"
-              variant="subtle"
+              variant="transparent-hover"
+              color="gray"
               title="New chat"
               disabled={!aiAgentEnabled}
             >
-              <Plus size={14} color="var(--mantine-color-gray-7)" />
+              <StyledLucideIcon Icon={Plus} size={14} />
             </ActionIcon>
             <SessionHistorySelector
               disabled={!aiAgentEnabled}
@@ -544,20 +546,20 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                 }
               }}
               size="md"
-              variant="transparent"
+              variant="transparent-hover"
               title="Cancel task"
               disabled={!runningAgentTaskId || !agentTaskRunning}
             >
-              <OctagonMinusIcon size={16} color="var(--mantine-color-gray-7)" />
+              <StyledLucideIcon Icon={OctagonMinusIcon} size={16} />
             </ActionIcon>
             <ActionIcon
               onClick={sendMessage}
               disabled={!message.trim() || !chatInputEnabled}
               loading={agentTaskRunning}
               size="md"
-              variant="transparent"
+              variant="transparent-hover"
             >
-              <SendIcon size={16} color="var(--mantine-color-gray-7)" />
+              <StyledLucideIcon Icon={SendIcon} size={16} />
             </ActionIcon>
           </Group>
         </Group>

@@ -92,17 +92,16 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
     <Menu shadow="md" width={240}>
       <Menu.Target>
         <ActionIcon
-          size="lg"
-          variant="subtle"
+          size="md"
+          variant="transparent-hover"
           color="gray"
           onClick={(e) => e.stopPropagation()}
-          component="div"
           style={{
             transition: 'opacity 0.2s ease',
             visibility: 'visible',
           }}
         >
-          <StyledIcon Icon={DotsThreeVerticalIcon} c="gray" />
+          <StyledIcon Icon={DotsThreeVerticalIcon} />
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>{menuItems}</Menu.Dropdown>

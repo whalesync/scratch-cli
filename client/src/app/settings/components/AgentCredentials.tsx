@@ -2,6 +2,7 @@ import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import {
@@ -111,22 +112,24 @@ export const AgentCredentials = () => {
           <Grid.Col span={2}>
             <Group gap="4px" justify="flex-end" align="flex-end">
               <ActionIcon
-                variant="subtle"
+                variant="transparent-hover"
+                color="gray"
                 onClick={() => {
                   setActiveCredential(credential);
                   modalStack.open('edit');
                 }}
               >
-                <PencilIcon />
+                <StyledLucideIcon Icon={PencilIcon} />
               </ActionIcon>
               <ActionIcon
-                variant="subtle"
+                variant="transparent-hover"
+                color="gray"
                 onClick={() => {
                   setDeleteId(credential.id);
                   modalStack.open('confirm-delete');
                 }}
               >
-                <TrashIcon />
+                <StyledLucideIcon Icon={TrashIcon} />
               </ActionIcon>
             </Group>
           </Grid.Col>
