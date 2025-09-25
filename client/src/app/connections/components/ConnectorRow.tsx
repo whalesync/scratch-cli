@@ -2,14 +2,14 @@
 
 import { TextTitleSm } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { formatDate } from '@/utils/helpers';
 import { ActionIcon, Group, Loader, Table, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { CheckCircleIcon, QuestionIcon, TestTubeIcon, XCircleIcon } from '@phosphor-icons/react';
-import { PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CheckCircle, Edit3, HelpCircle, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
 
 interface ConnectorRowProps {
@@ -33,11 +33,11 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
     if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
       text = 'Connection status unknown';
       color = 'gray';
-      icon = <QuestionIcon />;
+      icon = <StyledLucideIcon Icon={HelpCircle} />;
       testButton = (
         <Tooltip label="Test connection" position="bottom">
           <ActionIcon variant="subtle" size="xs" onClick={() => onTest(c.id)} loading={testingId === c.id}>
-            <TestTubeIcon />
+            <StyledLucideIcon Icon={TestTube} />
           </ActionIcon>
         </Tooltip>
       );
@@ -46,13 +46,13 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
     if (c.healthStatus === ConnectorHealthStatus.OK) {
       text = `Connection OK`;
       color = 'green';
-      icon = <CheckCircleIcon />;
+      icon = <StyledLucideIcon Icon={CheckCircle} />;
     }
 
     if (c.healthStatus === ConnectorHealthStatus.FAILED) {
       text = `Connection problem`;
       color = 'red';
-      icon = <XCircleIcon />;
+      icon = <StyledLucideIcon Icon={XCircle} />;
     }
 
     return (
@@ -92,13 +92,13 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
             <ActionIcon variant="subtle" size="xs" onClick={open}>
-              <PlusIcon />
+              <StyledLucideIcon Icon={Plus} />
             </ActionIcon>
             <ActionIcon variant="subtle" size="xs" onClick={() => onUpdate(connectorAccount)}>
-              <PencilLineIcon />
+              <StyledLucideIcon Icon={Edit3} />
             </ActionIcon>
             <ActionIcon variant="subtle" size="xs" onClick={() => onDelete(connectorAccount.id)}>
-              <Trash2Icon />
+              <StyledLucideIcon Icon={Trash2} />
             </ActionIcon>
           </Group>
         </Table.Td>

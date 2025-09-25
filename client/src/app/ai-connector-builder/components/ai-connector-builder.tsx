@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import {
   executeCreateRecord,
   executeUpdateRecord,
@@ -27,7 +28,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { ArrowRight, CaretDown, CaretUp, PencilSimple, Plus, Sparkle, Trash } from '@phosphor-icons/react';
+import { ArrowRight, ChevronDown, ChevronUp, Edit3, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { FC } from 'react';
 import { useAiConnectorBuilderContext } from './ai-connector-builder-context';
 import ConnectorAIChatPanel from './ConnectorAIChatPanel';
@@ -186,7 +187,7 @@ export const ApiImport: FC = () => {
                         <Button
                           variant="light"
                           size="sm"
-                          leftSection={<Sparkle size={16} />}
+                          leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                           onClick={() => {
                             // TODO: Implement "I am feeling lucky" functionality
                           }}
@@ -231,7 +232,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={handleGenerateListTablesFunction}
                             loading={loading}
                             disabled={!aiPrompt.trim()}
@@ -262,7 +263,7 @@ export const ApiImport: FC = () => {
                           <Button
                             onClick={handleExecuteListTablesFunction}
                             disabled={!listTablesFunction.trim()}
-                            leftSection={<ArrowRight size={16} />}
+                            leftSection={<StyledLucideIcon Icon={ArrowRight} size={16} />}
                             style={{ width: 'fit-content' }}
                           >
                             Test List Tables
@@ -327,7 +328,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={handleGenerateFetchSchemaFunction}
                             loading={loading}
                             disabled={!aiPrompt.trim()}
@@ -358,7 +359,7 @@ export const ApiImport: FC = () => {
                           <Button
                             onClick={handleExecuteFetchSchemaFunction}
                             disabled={!fetchSchemaFunction.trim()}
-                            leftSection={<ArrowRight size={16} />}
+                            leftSection={<StyledLucideIcon Icon={ArrowRight} size={16} />}
                             style={{ width: 'fit-content' }}
                           >
                             Test Fetch Schema
@@ -401,7 +402,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={handleGeneratePollRecordsFunction}
                             loading={loading}
                             disabled={!aiPrompt.trim()}
@@ -432,7 +433,7 @@ export const ApiImport: FC = () => {
                           <Button
                             onClick={handleExecutePollRecordsFunction}
                             disabled={!pollRecordsFunction.trim()}
-                            leftSection={<ArrowRight size={16} />}
+                            leftSection={<StyledLucideIcon Icon={ArrowRight} size={16} />}
                             style={{ width: 'fit-content' }}
                           >
                             Test Poll Records
@@ -465,7 +466,7 @@ export const ApiImport: FC = () => {
                       <Button
                         onClick={handleApplyMapping}
                         disabled={!response || !schema || !Array.isArray(schema) || schema.length === 0}
-                        leftSection={<ArrowRight size={16} />}
+                        leftSection={<StyledLucideIcon Icon={ArrowRight} size={16} />}
                         style={{ width: '140px' }}
                       >
                         Preview Records
@@ -564,7 +565,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={handleGenerateDeleteRecordFunction}
                             loading={loading}
                             disabled={!aiPrompt.trim()}
@@ -600,7 +601,7 @@ export const ApiImport: FC = () => {
                           <Button
                             onClick={handleExecuteDeleteRecordFunction}
                             disabled={!selectedDeleteId}
-                            leftSection={<Trash size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Trash2} size={16} />}
                             color="red"
                             variant="outline"
                             style={{ width: 'fit-content' }}
@@ -650,7 +651,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={async () => {
                               if (!aiPrompt.trim()) {
                                 notifications.show({
@@ -761,7 +762,7 @@ export const ApiImport: FC = () => {
                               }
                             }}
                             disabled={!createFunction.trim()}
-                            leftSection={<Plus size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Plus} size={16} />}
                             color="green"
                             variant="outline"
                             style={{ width: 'fit-content' }}
@@ -806,7 +807,7 @@ export const ApiImport: FC = () => {
                             }}
                           />
                           <Button
-                            leftSection={<Sparkle size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Sparkles} size={16} />}
                             onClick={async () => {
                               if (!aiPrompt.trim()) {
                                 notifications.show({
@@ -936,7 +937,7 @@ export const ApiImport: FC = () => {
                               }
                             }}
                             disabled={!updateFunction.trim() || !selectedUpdateId}
-                            leftSection={<PencilSimple size={16} />}
+                            leftSection={<StyledLucideIcon Icon={Edit3} size={16} />}
                             color="blue"
                             variant="outline"
                             style={{ width: 'fit-content' }}
@@ -990,7 +991,7 @@ export const ApiImport: FC = () => {
                   setTableNameModalOpened(true);
                   setNewTableName('');
                 }}
-                leftSection={<Plus size={16} />}
+                leftSection={<StyledLucideIcon Icon={Plus} size={16} />}
               >
                 Create New Connector
               </Button>
@@ -1034,7 +1035,7 @@ export const ApiImport: FC = () => {
                   }}
                   loading={loading}
                   disabled={!selectedConnectorId}
-                  leftSection={<Trash size={16} />}
+                  leftSection={<StyledLucideIcon Icon={Trash2} size={16} />}
                 >
                   Delete
                 </Button>
@@ -1067,7 +1068,7 @@ export const ApiImport: FC = () => {
                     variant="light"
                     size="xs"
                     onClick={connectorAccordeon.expandAll}
-                    leftSection={<CaretDown size={16} />}
+                    leftSection={<StyledLucideIcon Icon={ChevronDown} size={16} />}
                   >
                     Expand All
                   </Button>
@@ -1075,7 +1076,7 @@ export const ApiImport: FC = () => {
                     variant="light"
                     size="xs"
                     onClick={connectorAccordeon.collapseAll}
-                    leftSection={<CaretUp size={16} />}
+                    leftSection={<StyledLucideIcon Icon={ChevronUp} size={16} />}
                   >
                     Collapse All
                   </Button>

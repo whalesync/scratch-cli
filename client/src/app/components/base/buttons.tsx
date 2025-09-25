@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
-import { CpuIcon } from '@phosphor-icons/react';
+import { Cpu } from 'lucide-react';
+import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 
 export const InlineButton = Button.withProps({
   w: 'min-content',
@@ -37,7 +38,7 @@ export const RejectSuggestionButton = Button.withProps({
 export const DevToolButton = Button.withProps({
   variant: 'outline',
   c: 'purple',
-  leftSection: <CpuIcon />,
+  leftSection: <StyledLucideIcon Icon={Cpu} />,
 });
 
 export const ContentFooterButton = Button.withProps({

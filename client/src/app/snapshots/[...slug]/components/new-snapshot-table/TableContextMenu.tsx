@@ -1,10 +1,11 @@
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
-import { Columns, FunnelIcon, FunnelXIcon, ListBulletsIcon, ListChecksIcon, Rows, Square } from '@phosphor-icons/react';
 import { GridApi } from 'ag-grid-community';
+import { Filter, FilterX, List, ListChecks, Rows3, Square } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface TableContextMenuProps {
@@ -497,7 +498,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               gap: '6px',
             }}
           >
-            <Rows size={12} color="#888" />
+            <StyledLucideIcon Icon={Rows3} size={12} c="#888" />
             Row Actions
           </div>
           <div
@@ -521,7 +522,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListChecksIcon size={16} color="#00aa00" />
+            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
             <span>
               Accept {totalSuggestionsForSelectedRows}{' '}
               {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
@@ -549,7 +550,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListBulletsIcon size={16} color="#ff0000" />
+            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
             <span>
               Reject {totalSuggestionsForSelectedRows}{' '}
               {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
@@ -573,7 +574,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               gap: '6px',
             }}
           >
-            <Square size={12} color="#888" />
+            <StyledLucideIcon Icon={Square} size={12} c="#888" />
             Cell Actions
           </div>
           <div
@@ -597,7 +598,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListChecksIcon size={16} color="#00aa00" />
+            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
             <span>Accept suggestion</span>
           </div>
           <div
@@ -621,7 +622,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListBulletsIcon size={16} color="#ff0000" />
+            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
             <span>Reject suggestion</span>
           </div>
         </div>
@@ -641,7 +642,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               gap: '6px',
             }}
           >
-            <Columns size={12} color="#888" />
+            <StyledLucideIcon Icon={Square} size={12} c="#888" />
             Column Actions
           </div>
           <div
@@ -665,7 +666,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListChecksIcon size={16} color="#00aa00" />
+            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
             <span>Accept column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
           </div>
           <div
@@ -689,7 +690,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <ListBulletsIcon size={16} color="#ff0000" />
+            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
             <span>Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
           </div>
         </div>
@@ -720,7 +721,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <FunnelXIcon size={16} color="#888" />
+            <StyledLucideIcon Icon={FilterX} size={16} c="#888" />
             <span>Filter Out Records</span>
           </div>
           <div
@@ -744,7 +745,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <FunnelIcon size={16} color="#888" />
+            <StyledLucideIcon Icon={Filter} size={16} c="#888" />
             <span>Filter In Records</span>
           </div>
         </div>

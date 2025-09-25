@@ -1,22 +1,23 @@
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useUpsertView } from '@/hooks/use-view';
 import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
-import {
-  BracketsSquareIcon,
-  DotsThreeVertical,
-  EyeIcon,
-  EyeSlashIcon,
-  HashIcon,
-  ListBulletsIcon,
-  ListChecksIcon,
-  LockIcon,
-  LockOpenIcon,
-  TextTIcon,
-  ToggleLeftIcon,
-} from '@phosphor-icons/react';
 import { IHeaderParams } from 'ag-grid-community';
+import {
+  Brackets,
+  Eye,
+  EyeOff,
+  Hash,
+  List,
+  ListChecks,
+  Lock,
+  MoreVertical,
+  Square,
+  ToggleLeft,
+  Type,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -34,21 +35,21 @@ interface CustomHeaderComponentProps extends IHeaderParams {
 const getColumnTypeIcon = (pgType: PostgresColumnType) => {
   switch (pgType) {
     case PostgresColumnType.TEXT:
-      return <TextTIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Type} size={14} c="#888" />;
     case PostgresColumnType.TEXT_ARRAY:
-      return <BracketsSquareIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
     case PostgresColumnType.NUMERIC:
-      return <HashIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Hash} size={14} c="#888" />;
     case PostgresColumnType.NUMERIC_ARRAY:
-      return <BracketsSquareIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
     case PostgresColumnType.BOOLEAN:
-      return <ToggleLeftIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={ToggleLeft} size={14} c="#888" />;
     case PostgresColumnType.BOOLEAN_ARRAY:
-      return <BracketsSquareIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
     case PostgresColumnType.JSONB:
-      return <BracketsSquareIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
     default:
-      return <TextTIcon size={14} color="#888" />;
+      return <StyledLucideIcon Icon={Type} size={14} c="#888" />;
   }
 };
 
@@ -450,12 +451,12 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', gap: '2px' }}>
           {isColumnHidden && (
             <span title="Column is hidden">
-              <EyeSlashIcon size={12} color="#666" />
+              <StyledLucideIcon Icon={EyeOff} size={12} c="#666" />
             </span>
           )}
           {isColumnProtected && (
             <span title="Column is protected">
-              <LockIcon size={12} color="#666" />
+              <StyledLucideIcon Icon={Lock} size={12} c="#666" />
             </span>
           )}
           {props.enableSorting && (
@@ -495,7 +496,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
             }}
             title="Column menu"
           >
-            <DotsThreeVertical size={14} color="#ffffff" />
+            <StyledLucideIcon Icon={MoreVertical} size={14} c="#ffffff" />
           </button>
 
           {/* Dropdown menu */}
@@ -596,7 +597,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <ListChecksIcon size={14} color="#00aa00" />
+                    <StyledLucideIcon Icon={ListChecks} size={14} c="#00aa00" />
                     Accept Column
                   </button>
                   <button
@@ -624,7 +625,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <ListBulletsIcon size={14} color="#ff0000" />
+                    <StyledLucideIcon Icon={List} size={14} c="#ff0000" />
                     Reject Column
                   </button>
                 </>
@@ -660,7 +661,11 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                {isColumnHidden ? <EyeIcon size={14} color="#888" /> : <EyeSlashIcon size={14} color="#888" />}
+                {isColumnHidden ? (
+                  <StyledLucideIcon Icon={Eye} size={14} c="#888" />
+                ) : (
+                  <StyledLucideIcon Icon={EyeOff} size={14} c="#888" />
+                )}
                 {isColumnHidden ? 'Unhide Column' : 'Hide Column'}
               </button>
               <button
@@ -688,7 +693,11 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                {isColumnProtected ? <LockOpenIcon size={14} color="#888" /> : <LockIcon size={14} color="#888" />}
+                {isColumnProtected ? (
+                  <StyledLucideIcon Icon={Square} size={14} c="#888" />
+                ) : (
+                  <StyledLucideIcon Icon={Lock} size={14} c="#888" />
+                )}
                 {isColumnProtected ? 'Unprotect Column' : 'Protect Column'}
               </button>
             </div>

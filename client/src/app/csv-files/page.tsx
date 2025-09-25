@@ -14,10 +14,11 @@ import {
   UnstyledButton,
   useModalsStack,
 } from '@mantine/core';
-import { FileCsvIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { Edit3, FileSpreadsheet, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
+import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -112,7 +113,7 @@ export default function CsvFilesPage() {
                   <Table.Tr key={csvFile.id}>
                     <Table.Td>
                       <Group gap="sm">
-                        <FileCsvIcon size={20} />
+                        <StyledLucideIcon Icon={FileSpreadsheet} size="md" />
                         <UnstyledButton
                           fz="sm"
                           onClick={() => {
@@ -136,7 +137,7 @@ export default function CsvFilesPage() {
                             modalStack.open('edit');
                           }}
                         >
-                          <PencilSimpleIcon size={16} />
+                          <StyledLucideIcon Icon={Edit3} size="md" />
                         </ActionIcon>
                         <ActionIcon
                           variant="light"
@@ -146,7 +147,7 @@ export default function CsvFilesPage() {
                             modalStack.open('delete');
                           }}
                         >
-                          <TrashIcon size={16} />
+                          <StyledLucideIcon Icon={Trash2} size="md" />
                         </ActionIcon>
                       </Group>
                     </Table.Td>
@@ -159,7 +160,7 @@ export default function CsvFilesPage() {
       </MainContent.Body>
       <MainContent.Footer>
         <ContentFooterButton
-          leftSection={<PlusIcon size={16} />}
+          leftSection={<StyledLucideIcon Icon={Plus} size="md" />}
           onClick={() => {
             setSelectedCsvFile(null);
             modalStack.open('edit');

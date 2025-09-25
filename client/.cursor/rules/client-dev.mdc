@@ -15,7 +15,7 @@ The source under /client is the web client for this project.
 - This is a nextjs project. It uses App router.
 - Use standard Mantine for UI elements.
 - Do not use `<a>` for links, always use next/link.
-- Icons should come from the @phosphor-icons/react library.
+- Icons should come from the lucide-react library and should be wrapped in StyledLucideIcon
 
 ## Client/server communication
 

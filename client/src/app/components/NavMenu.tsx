@@ -3,57 +3,64 @@
 import { RouteUrls } from '@/utils/route-urls';
 import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
 import { Center, Image, Stack, Tooltip, UnstyledButton, useMantineColorScheme } from '@mantine/core';
-import { BookOpenIcon, FileCsvIcon, GearIcon, Icon, PlugsIcon, RobotIcon, TableIcon } from '@phosphor-icons/react';
+// import { Icon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { MoonIcon, SunIcon } from 'lucide-react';
-import { StyledIcon } from './Icons/StyledIcon';
+import { BookOpen, Bot, FileSpreadsheet, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
+import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
 
 type MenuItem = {
   href: string;
   label: string;
-  icon: Icon;
+
   enabled: boolean;
   requiresAdmin: boolean;
+  icon: LucideIcon;
+  iconType: 'lucide';
 };
 
 const upperLinks: MenuItem[] = [
   {
     href: RouteUrls.snapshotsPageUrl,
     label: 'Scratchpapers',
-    icon: TableIcon,
+    icon: Table2,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: false,
   },
   {
     href: RouteUrls.connectionsPageUrl,
     label: 'Connections',
-    icon: PlugsIcon,
+    icon: Unplug,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: false,
   },
   {
     href: RouteUrls.resourcesPageUrl,
     label: 'Resources',
-    icon: BookOpenIcon,
+    icon: BookOpen,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: false,
   },
   {
     href: RouteUrls.csvFilesPageUrl,
     label: 'CSV Files',
-    icon: FileCsvIcon,
+    icon: FileSpreadsheet,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: true,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
     label: 'AI Connector Builder',
-    icon: RobotIcon,
+    icon: Bot,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: true,
   },
@@ -63,7 +70,8 @@ const lowerLinks: MenuItem[] = [
   {
     href: RouteUrls.settingsPageUrl,
     label: 'Settings',
-    icon: GearIcon,
+    icon: Settings,
+    iconType: 'lucide',
     enabled: true,
     requiresAdmin: false,
   },
@@ -80,7 +88,7 @@ export function NavMenu() {
     return (
       <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
         <UnstyledButton component={Link} href={link.href} data-active={isActive || undefined} className={styles.link}>
-          <StyledIcon Icon={link.icon} size={20} c={color} />
+          <StyledLucideIcon Icon={link.icon} size={20} c={color} />
         </UnstyledButton>
       </Tooltip>
     );
@@ -127,9 +135,9 @@ export function NavMenu() {
           })}
           <UnstyledButton onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')} ta="center">
             {colorScheme === 'light' ? (
-              <MoonIcon size={20} color="var(--mantine-color-gray-5)" />
+              <StyledLucideIcon Icon={MoonIcon} size={20} c="gray.5" />
             ) : (
-              <SunIcon size={20} color="var(--mantine-color-gray-5)" />
+              <StyledLucideIcon Icon={SunIcon} size={20} c="gray.5" />
             )}
           </UnstyledButton>
           <Center>

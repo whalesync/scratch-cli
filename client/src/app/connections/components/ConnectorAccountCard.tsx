@@ -3,21 +3,14 @@
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Button, Card, Divider, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  CheckCircleIcon,
-  PencilSimpleLineIcon,
-  PlusIcon,
-  QuestionIcon,
-  TestTubeIcon,
-  TrashIcon,
-  XCircleIcon,
-} from '@phosphor-icons/react';
+import { CheckCircle, Edit3, HelpCircle, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
 
@@ -52,11 +45,11 @@ export function ConnectorAccountCard({
     if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
       text = 'Connection status unknown';
       color = 'gray';
-      icon = <QuestionIcon />;
+      icon = <StyledLucideIcon Icon={HelpCircle} />;
       testButton = (
         <Tooltip label="Test connection" position="bottom">
           <ActionIcon variant="subtle" size="xs" onClick={() => onTest(c.id)} loading={testingId === c.id}>
-            <TestTubeIcon />
+            <StyledLucideIcon Icon={TestTube} />
           </ActionIcon>
         </Tooltip>
       );
@@ -65,13 +58,13 @@ export function ConnectorAccountCard({
     if (c.healthStatus === ConnectorHealthStatus.OK) {
       text = `Connection OK`;
       color = 'green';
-      icon = <CheckCircleIcon />;
+      icon = <StyledLucideIcon Icon={CheckCircle} />;
     }
 
     if (c.healthStatus === ConnectorHealthStatus.FAILED) {
       text = `Connection problem`;
       color = 'red';
-      icon = <XCircleIcon />;
+      icon = <StyledLucideIcon Icon={XCircle} />;
     }
 
     return (
@@ -96,10 +89,10 @@ export function ConnectorAccountCard({
             <Group justify="flex-end">
               <HealthIcon {...connectorAccount} />
               <ActionIcon variant="subtle" size="xs" onClick={() => onUpdate(connectorAccount)}>
-                <PencilSimpleLineIcon />
+                <StyledLucideIcon Icon={Edit3} />
               </ActionIcon>
               <ActionIcon variant="subtle" size="xs" onClick={() => onDelete(connectorAccount.id)}>
-                <TrashIcon />
+                <StyledLucideIcon Icon={Trash2} />
               </ActionIcon>
             </Group>
           </Group>
@@ -125,7 +118,7 @@ export function ConnectorAccountCard({
                   </Button>
                 ))}
               </Group>
-              <PrimaryButton size="xs" onClick={open} leftSection={<PlusIcon size={12} />}>
+              <PrimaryButton size="xs" onClick={open} leftSection={<StyledLucideIcon Icon={Plus} size={12} />}>
                 New scratchpaper
               </PrimaryButton>
             </Group>

@@ -1,5 +1,6 @@
 'use client';
 
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import ModelPicker from '@/app/components/ModelPicker';
 import CapabilitiesPicker from '@/app/snapshots/[...slug]/components/AIChatPanel/CapabilitiesPicker';
@@ -22,7 +23,7 @@ import {
   TextInput,
   Textarea,
 } from '@mantine/core';
-import { MagnifyingGlass, PaperPlaneRightIcon, Plus, X, XIcon } from '@phosphor-icons/react';
+import { Plus, Search, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useConnectorAIPromptContext } from './ConnectorAIPromptContext';
 
@@ -355,7 +356,7 @@ export default function ConnectorAIChatPanel({
           )}
         </Text>
         <ActionIcon onClick={onClose} size="sm" variant="subtle" title="Close">
-          <XIcon size={16} />
+          <StyledLucideIcon Icon={X} size={16} />
         </ActionIcon>
       </Group>
 
@@ -399,7 +400,7 @@ export default function ConnectorAIChatPanel({
           }}
         />
         <ActionIcon onClick={createNewSession} size="sm" variant="subtle" title="New chat">
-          <Plus size={14} />
+          <StyledLucideIcon Icon={Plus} size={14} />
         </ActionIcon>
         {currentSessionId && (
           <ActionIcon
@@ -409,7 +410,7 @@ export default function ConnectorAIChatPanel({
             color="red"
             title="Delete session"
           >
-            <X size={14} />
+            <StyledLucideIcon Icon={X} size={14} />
           </ActionIcon>
         )}
       </Group>
@@ -533,7 +534,7 @@ export default function ConnectorAIChatPanel({
                 backgroundColor: 'transparent',
               }}
             >
-              <MagnifyingGlass size={14} />
+              <StyledLucideIcon Icon={Search} size={14} />
             </ActionIcon>
             <TextInput
               placeholder="Model"
@@ -557,7 +558,7 @@ export default function ConnectorAIChatPanel({
             loading={isLoading}
             size="md"
           >
-            <PaperPlaneRightIcon size={16} />
+            <StyledLucideIcon Icon={Send} size={16} />
           </ActionIcon>
         </Group>
       </Stack>

@@ -7,11 +7,13 @@ import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Group, Menu, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { DotsThreeVerticalIcon, PencilSimpleLineIcon, TrashIcon } from '@phosphor-icons/react';
+import { DotsThreeVerticalIcon } from '@phosphor-icons/react';
+import { Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { StyledIcon } from '../../components/Icons/StyledIcon';
+import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
@@ -64,7 +66,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const menuItems = [
     <Menu.Item
       key="rename"
-      leftSection={<PencilSimpleLineIcon />}
+      leftSection={<StyledLucideIcon Icon={Edit3} size="md" />}
       onClick={(e) => {
         e.stopPropagation();
         modalStack.open('rename');
@@ -74,7 +76,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
     </Menu.Item>,
     <Menu.Item
       key="delete"
-      leftSection={<TrashIcon />}
+      leftSection={<StyledLucideIcon Icon={Trash2} size="md" />}
       color="red"
       onClick={(e) => {
         e.stopPropagation();
