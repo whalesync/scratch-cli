@@ -141,6 +141,11 @@ export const getCapitalizedFirstLetters = (sentence: string): string => {
     return 'just now';
   }
 
+  export function formatDate(date: string | Date | undefined): string {
+    if (!date) return '';
+    return new Date(date).toLocaleString();
+  }
+
   export function formatBytes(bytes: number, includeUnit: boolean = true): string {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     if (bytes === 0) return '0 Byte';

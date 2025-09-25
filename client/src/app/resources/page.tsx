@@ -4,32 +4,12 @@ import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import {
-  ActionIcon,
-  Alert,
-  Badge,
-  Group,
-  Modal,
-  Paper,
-  Stack,
-  Table,
-  Text,
-  Tooltip,
-  UnstyledButton,
-} from '@mantine/core';
+import { ActionIcon, Alert, Badge, Group, Modal, Paper, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  DownloadSimpleIcon,
-  FileCodeIcon,
-  FileMdIcon,
-  FileTextIcon,
-  LinkIcon,
-  PencilSimpleIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@phosphor-icons/react';
+import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
+import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -95,12 +75,6 @@ export default function StyleGuidesPage() {
     );
   }
 
-  const headerActions = (
-    <SecondaryButton size="xs" leftSection={<PlusIcon size={12} />} onClick={handleNewStyleGuide}>
-      New resource
-    </SecondaryButton>
-  );
-
   const sortedResources = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
 
   const resourceIcon = (resource: StyleGuide) => {
@@ -115,14 +89,14 @@ export default function StyleGuidesPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Resources" actions={headerActions} />
-      <MainContent.Body>
+      <MainContent.BasicHeader title="Resources" />
+      <MainContent.Body p="0">
         {isLoading ? (
           <Text>Loading...</Text>
         ) : (
-          <Table>
+          <Table highlightOnHover>
             <Table.Thead>
-              <Table.Tr>
+              <Table.Tr h="30px">
                 <Table.Td w="60%">Name</Table.Td>
                 <Table.Td w="15%">Updated</Table.Td>
                 <Table.Td w="15%" align="right">
@@ -135,13 +109,16 @@ export default function StyleGuidesPage() {
             </Table.Thead>
             <Table.Tbody>
               {sortedResources.map((styleGuide) => (
-                <Table.Tr key={styleGuide.id}>
-                  <Table.Td>
+                <Table.Tr
+                  key={styleGuide.id}
+                  onClick={() => handleEditResource(styleGuide)}
+                  style={{ cursor: 'pointer' }}
+                  h="30px"
+                >
+                  <Table.Td h="30px">
                     <Group gap="sm">
                       {resourceIcon(styleGuide)}
-                      <UnstyledButton fz="sm" onClick={() => handleEditResource(styleGuide)}>
-                        {styleGuide.name}
-                      </UnstyledButton>
+                      {styleGuide.name}
                       {styleGuide.autoInclude ? (
                         <Badge size="xs" color="blue" variant="light">
                           Auto Include
@@ -172,7 +149,7 @@ export default function StyleGuidesPage() {
                             size="sm"
                             loading={isExternalResourceUpdating}
                           >
-                            <DownloadSimpleIcon size={16} />
+                            <DownloadIcon size={16} />
                           </ActionIcon>
                         </Tooltip>
                       )}
@@ -184,7 +161,7 @@ export default function StyleGuidesPage() {
                         variant="subtle"
                         size="sm"
                       >
-                        <PencilSimpleIcon size={16} />
+                        <PencilLineIcon size={16} />
                       </ActionIcon>
 
                       <ActionIcon
@@ -196,7 +173,7 @@ export default function StyleGuidesPage() {
                           openDeleteModal();
                         }}
                       >
-                        <TrashIcon size={16} />
+                        <Trash2Icon size={16} />
                       </ActionIcon>
                     </Group>
                   </Table.Td>
@@ -239,6 +216,11 @@ export default function StyleGuidesPage() {
           resourceDocument={activeResource}
         />
       </MainContent.Body>
+      <MainContent.Footer>
+        <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={handleNewStyleGuide}>
+          New resource
+        </ContentFooterButton>
+      </MainContent.Footer>
     </MainContent>
   );
 }

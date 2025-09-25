@@ -39,3 +39,9 @@ export const DevToolButton = Button.withProps({
   c: 'purple',
   leftSection: <CpuIcon />,
 });
+
+export const ContentFooterButton = Button.withProps({
+  variant: 'subtle',
+  size: 'xs',
+  c: 'gray.6',
+});

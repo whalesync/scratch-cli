@@ -10,6 +10,7 @@ import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
 import { JSX } from 'react';
+import { ContentFooterButton } from '../components/base/buttons';
 import { ConnectorIcon } from '../components/ConnectorIcon';
 
 const LayoutTestPage = (): JSX.Element => {
@@ -76,13 +77,9 @@ const LayoutTestPage = (): JSX.Element => {
         </MainContent.Body>
         <MainContent.Footer>
           <Group h="100%" align="center" gap="xs">
-            <Button variant="subtle" size="xs" c="gray.6" leftSection={<PlusIcon size={16} />}>
-              Add Row
-            </Button>
+            <ContentFooterButton leftSection={<PlusIcon size={16} />}>Add Row</ContentFooterButton>
             <Divider orientation="vertical" size="xs" h="50%" />
-            <Button variant="subtle" size="xs" c="gray.6" leftSection={<FunnelSimpleIcon size={16} />}>
-              Filter
-            </Button>
+            <ContentFooterButton leftSection={<FunnelSimpleIcon size={16} />}>Filter</ContentFooterButton>
           </Group>
         </MainContent.Footer>
       </MainContent>

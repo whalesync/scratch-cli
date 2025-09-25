@@ -1,16 +1,16 @@
 'use client';
 
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
-import { Center, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
+import { Center, Group, Loader, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { PlusIcon } from '@phosphor-icons/react';
+import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
-import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
-import { ConnectorAccountRow } from './components/ConnectorAccountRow';
+import { ConnectorRow } from './components/ConnectorRow';
 import { CreateConnectionModal } from './components/CreateConnectionModal';
 import { UpdateConnectionModal } from './components/UpdateConnectionModal';
 
@@ -74,16 +74,10 @@ export default function ConnectorAccountsPage() {
     return <ErrorInfo error={error} />;
   }
 
-  const headerActions = (
-    <SecondaryButton size="xs" leftSection={<PlusIcon size={16} />} onClick={() => modalStack.open('create')}>
-      New Connection
-    </SecondaryButton>
-  );
-
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Connections" actions={headerActions} />
-      <MainContent.Body>
+      <MainContent.BasicHeader title="Connections" />
+      <MainContent.Body p="0">
         <CreateConnectionModal {...modalStack.register('create')} />
         <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
         <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
@@ -98,29 +92,41 @@ export default function ConnectorAccountsPage() {
           </Stack>
         </Modal>
 
-        <Stack maw="1000px">
-          {connectorAccounts && connectorAccounts.length > 0 && (
-            <>
-              {connectorAccounts?.map((conn) => (
-                <ConnectorAccountRow
-                  key={conn.id}
-                  connectorAccount={conn}
-                  onTest={handleTest}
-                  onUpdate={(conn) => {
-                    setSelectedConnectorAccount(conn);
-                    modalStack.open('update');
-                  }}
-                  onDelete={() => {
-                    setSelectedConnectorAccount(conn);
-                    modalStack.open('confirm-delete');
-                  }}
-                  testingId={testingId}
-                />
-              ))}
-            </>
-          )}
-        </Stack>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Td>Name</Table.Td>
+              <Table.Td>Scratchpapers</Table.Td>
+              <Table.Td>Health</Table.Td>
+              <Table.Td>Updated</Table.Td>
+              <Table.Td align="right">Actions</Table.Td>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {connectorAccounts?.map((conn) => (
+              <ConnectorRow
+                key={conn.id}
+                connectorAccount={conn}
+                onTest={handleTest}
+                onUpdate={(conn) => {
+                  setSelectedConnectorAccount(conn);
+                  modalStack.open('update');
+                }}
+                onDelete={() => {
+                  setSelectedConnectorAccount(conn);
+                  modalStack.open('confirm-delete');
+                }}
+                testingId={testingId}
+              />
+            ))}
+          </Table.Tbody>
+        </Table>
       </MainContent.Body>
+      <MainContent.Footer>
+        <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={() => modalStack.open('create')}>
+          New connection
+        </ContentFooterButton>
+      </MainContent.Footer>
     </MainContent>
   );
 }

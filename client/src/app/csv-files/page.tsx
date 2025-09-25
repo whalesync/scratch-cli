@@ -16,7 +16,7 @@ import {
 } from '@mantine/core';
 import { FileCsvIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -56,22 +56,9 @@ export default function CsvFilesPage() {
     return <ErrorInfo error={error} />;
   }
 
-  const headerActions = (
-    <SecondaryButton
-      size="xs"
-      leftSection={<PlusIcon size={12} />}
-      onClick={() => {
-        setSelectedCsvFile(null);
-        modalStack.open('edit');
-      }}
-    >
-      New CSV File
-    </SecondaryButton>
-  );
-
   return (
     <MainContent>
-      <MainContent.BasicHeader title="CSV Files" actions={headerActions} />
+      <MainContent.BasicHeader title="CSV Files" />
       <MainContent.Body>
         {isLoading ? (
           <Center>
@@ -170,6 +157,17 @@ export default function CsvFilesPage() {
           </>
         )}
       </MainContent.Body>
+      <MainContent.Footer>
+        <ContentFooterButton
+          leftSection={<PlusIcon size={16} />}
+          onClick={() => {
+            setSelectedCsvFile(null);
+            modalStack.open('edit');
+          }}
+        >
+          New CSV File
+        </ContentFooterButton>
+      </MainContent.Footer>
     </MainContent>
   );
 }

@@ -3,11 +3,11 @@
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { ScratchpadApiError } from '@/lib/api/error';
-import { Center, Loader, SimpleGrid, Stack } from '@mantine/core';
+import { Center, Loader, Table } from '@mantine/core';
 import { SWRConfig } from 'swr';
 import { ErrorInfo } from '../../components/InfoPanel';
 import { CreateSnapshotPanel } from './CreateSnapshotPanel';
-import { SnapshotCard } from './SnapshotCard';
+import { SnapshotRow } from './SnapshotRow';
 
 export const SnapshotsList = () => {
   const { snapshots, isLoading, error } = useSnapshots();
@@ -43,18 +43,28 @@ export const SnapshotsList = () => {
     >
       <MainContent>
         <MainContent.BasicHeader title="Scratchpapers" />
-        <MainContent.Body>
-          <Stack gap="md">
-            {snapshots && snapshots.length > 0 ? (
-              <SimpleGrid cols={1} spacing="md" maw="1000px">
-                {snapshots.map((snapshot) => (
-                  <SnapshotCard key={snapshot.id} snapshot={snapshot} />
-                ))}
-              </SimpleGrid>
-            ) : null}
-            <CreateSnapshotPanel />
-          </Stack>
+        <MainContent.Body p="0">
+          <Table highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Td w="50%">Name</Table.Td>
+                <Table.Td w="20%">Objects</Table.Td>
+                <Table.Td w="20%">Created</Table.Td>
+                <Table.Td w="10%" align="right">
+                  Actions
+                </Table.Td>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {snapshots?.map((snapshot) => (
+                <SnapshotRow key={snapshot.id} snapshot={snapshot} />
+              ))}
+            </Table.Tbody>
+          </Table>
         </MainContent.Body>
+        <MainContent.Footer>
+          <CreateSnapshotPanel />
+        </MainContent.Footer>
       </MainContent>
     </SWRConfig>
   );

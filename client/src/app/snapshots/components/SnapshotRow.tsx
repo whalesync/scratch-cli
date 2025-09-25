@@ -4,19 +4,16 @@ import { useSnapshots } from '@/hooks/use-snapshot';
 import { tableName, tablesName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
+import { formatDate } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Card, Grid, Group, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
+import { ActionIcon, Group, Menu, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { DotsThreeVerticalIcon, PencilSimpleLineIcon, TrashIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { StyledIcon } from '../../components/Icons/StyledIcon';
-import styles from './SnapshotCard.module.css';
 
-/**
- * @deprecated SnapshotCard is no longer used. Use SnapshotRow instead.
- */
-export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
+export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
   const { deleteSnapshot, updateSnapshot } = useSnapshots();
   const [saving, setSaving] = useState(false);
@@ -29,15 +26,15 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
       setSaving(true);
       await deleteSnapshot(snapshot.id);
       ScratchpadNotifications.success({
-        title: 'Snapshot abandoned',
-        message: 'The snapshot and its data have been deleted.',
+        title: 'Scratchpaper abandoned',
+        message: 'The scratchpaper and its data have been deleted.',
       });
       modalStack.close('confirm-delete');
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
         title: 'Deletion failed',
-        message: 'There was an error deleting the snapshot.',
+        message: 'There was an error deleting the scratchpaper.',
       });
     } finally {
       setSaving(false);
@@ -50,14 +47,14 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
       setSaving(true);
       await updateSnapshot(snapshot.id, { name: snapshotName });
       ScratchpadNotifications.success({
-        message: 'The snapshot has been renamed.',
+        message: 'The scratchpaper has been renamed.',
       });
       modalStack.close('rename');
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
         title: 'Renaming failed',
-        message: 'There was an error renaming the snapshot.',
+        message: 'There was an error renaming the scratchpaper.',
       });
     } finally {
       setSaving(false);
@@ -111,9 +108,9 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Abandon snapshot" centered size="lg">
+      <Modal {...modalStack.register('confirm-delete')} title="Abandon scratchpaper" centered size="lg">
         <Stack>
-          <Text>Are you sure you want to abandon this snapshot? All data will be deleted.</Text>
+          <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleAbandon} loading={saving}>
@@ -122,7 +119,7 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
           </Group>
         </Stack>
       </Modal>
-      <Modal {...modalStack.register('rename')} title="Rename snapshot" centered size="lg">
+      <Modal {...modalStack.register('rename')} title="Rename scratchpaper" centered size="lg">
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">
@@ -133,40 +130,32 @@ export const SnapshotCard = ({ snapshot }: { snapshot: Snapshot }) => {
           </Group>
         </Stack>
       </Modal>
-      <Card
-        shadow="sm"
-        p="xs"
-        radius="md"
-        withBorder
+      <Table.Tr
         key={snapshot.id}
         onClick={() => router.push(RouteUrls.snapshotPage(snapshot.id))}
-        className={styles.snapshotCard}
+        style={{ cursor: 'pointer' }}
       >
-        <Grid align="center">
-          <Grid.Col span={1}>
-            <ConnectorIcon connector={snapshot.connectorService} />
-          </Grid.Col>
-          <Grid.Col span={5}>
-            <Text>{snapshot.name}</Text>
-          </Grid.Col>
-          <Grid.Col span={2}>
-            <Text fz="sm" c="dimmed">
-              {snapshot.tables.length}{' '}
-              {snapshot.tables.length === 1
-                ? tableName(snapshot.connectorService as Service)
-                : tablesName(snapshot.connectorService as Service)}
-            </Text>
-          </Grid.Col>
-          <Grid.Col span={3}>
-            <Text fz="sm" c="dimmed">
-              Created {new Date(snapshot.createdAt).toLocaleString()}
-            </Text>
-          </Grid.Col>
-          <Grid.Col span={1}>
-            <Group justify="flex-end">{menu}</Group>
-          </Grid.Col>
-        </Grid>
-      </Card>
+        <Table.Td>
+          <Group gap="sm" wrap="nowrap">
+            <ConnectorIcon size={24} connector={snapshot.connectorService} />
+            {snapshot.name}
+          </Group>
+        </Table.Td>
+        <Table.Td>
+          <Text fz="sm" c="dimmed">
+            {snapshot.tables.length}{' '}
+            {snapshot.tables.length === 1
+              ? tableName(snapshot.connectorService as Service)
+              : tablesName(snapshot.connectorService as Service)}
+          </Text>
+        </Table.Td>
+        <Table.Td>{formatDate(snapshot.createdAt)}</Table.Td>
+        <Table.Td>
+          <Group gap="xs" justify="flex-end">
+            {menu}
+          </Group>
+        </Table.Td>
+      </Table.Tr>
     </>
   );
 };

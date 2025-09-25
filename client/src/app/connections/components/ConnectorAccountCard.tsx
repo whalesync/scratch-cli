@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
 
-interface ConnectorAccountRowProps {
+interface ConnectorAccountCardProps {
   connectorAccount: ConnectorAccount;
   onTest: (id: string) => void;
   onUpdate: (conn: ConnectorAccount) => void;
@@ -29,13 +29,16 @@ interface ConnectorAccountRowProps {
   testingId: string | null;
 }
 
-export function ConnectorAccountRow({
+/**
+ * @deprecated Use ConnectorRow instead
+ */
+export function ConnectorAccountCard({
   connectorAccount,
   onTest,
   onUpdate,
   onDelete,
   testingId,
-}: ConnectorAccountRowProps) {
+}: ConnectorAccountCardProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const router = useRouter();
 

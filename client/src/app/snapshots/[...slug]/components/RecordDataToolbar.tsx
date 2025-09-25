@@ -1,5 +1,6 @@
 'use client';
 
+import { ContentFooterButton } from '@/app/components/base/buttons';
 import { TextBookSm, TextRegularXs } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
@@ -67,15 +68,13 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
     <>
       <Group justify="flex-start" align="center" h="100%">
         <Group gap="2px">
-          <Button variant="subtle" size="xs" c="gray.6" leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
+          <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
             Add Row
-          </Button>
+          </ContentFooterButton>
           <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
           <Menu shadow="md" width={250}>
             <Menu.Target>
-              <Button variant="subtle" size="xs" c="gray.6" leftSection={<FunnelSimpleIcon size={16} />}>
-                Filter
-              </Button>
+              <ContentFooterButton leftSection={<FunnelSimpleIcon size={16} />}>Filter</ContentFooterButton>
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Item onClick={() => setSqlFilterModalOpen(true)}>Set SQL Filter</Menu.Item>

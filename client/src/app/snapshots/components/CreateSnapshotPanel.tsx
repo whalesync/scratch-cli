@@ -1,11 +1,12 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ContentFooterButton, PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useContentTools } from '@/hooks/use-content-tools';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Group, Modal, Stack, TextInput, useModalsStack } from '@mantine/core';
+import { PlusIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ScratchpadNotifications } from '../../components/ScratchpadNotifications';
@@ -85,9 +86,14 @@ export const CreateSnapshotPanel = () => {
         </Stack>
       </Modal>
       <Stack>
-        <PrimaryButton w="min-content" onClick={() => modalStack.open('create-content-snapshot')} loading={isSaving}>
-          Create content scratchpaper
-        </PrimaryButton>
+        <ContentFooterButton
+          w="min-content"
+          onClick={() => modalStack.open('create-content-snapshot')}
+          leftSection={<PlusIcon size={16} />}
+          loading={isSaving}
+        >
+          New content scratchpaper
+        </ContentFooterButton>
       </Stack>
     </>
   );
