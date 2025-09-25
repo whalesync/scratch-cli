@@ -32,21 +32,26 @@ export const SecondaryButton = Button.withProps({
 export const AcceptSuggestionButton = Button.withProps({
   size: 'xs',
   variant: 'outline',
+  color: 'primary', // border
+  c: 'primary', // text
 });
 
 export const RejectSuggestionButton = Button.withProps({
   size: 'xs',
   variant: 'outline',
+  color: 'secondary',
+  c: 'secondary',
 });
 
 export const DevToolButton = Button.withProps({
   variant: 'outline',
   c: 'purple',
+  color: 'purple',
   leftSection: <StyledLucideIcon Icon={Cpu} />,
 });
 
 export const ContentFooterButton = Button.withProps({
   variant: 'subtle',
   size: 'xs',
-  c: 'gray.6',
+  c: 'gray',
 });
