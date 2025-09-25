@@ -8,22 +8,12 @@ import {
   StyleGuide,
   UpdateStyleGuideDto,
 } from '@/types/server-entities/style-guide';
-import {
-  ActionIcon,
-  Alert,
-  Checkbox,
-  Group,
-  Modal,
-  ModalProps,
-  Stack,
-  Textarea,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { CheckCircleIcon, DownloadSimpleIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { PrimaryButton, SecondaryButton } from './base/buttons';
+import { ToolIconButton } from './ToolIconButton';
 
 interface EditResourceModalProps extends ModalProps {
   resourceDocument: StyleGuide | null;
@@ -209,11 +199,13 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
             inputWrapperOrder={['label', 'input', 'description']}
             flex={1}
           />
-          <Tooltip label="Download from source">
-            <ActionIcon size="sm" variant="subtle" onClick={handleDownloadResource} loading={isSaving}>
-              <DownloadSimpleIcon size={20} />
-            </ActionIcon>
-          </Tooltip>
+          <ToolIconButton
+            size="lg"
+            onClick={handleDownloadResource}
+            loading={isSaving}
+            icon={DownloadSimpleIcon}
+            tooltip="Download from source"
+          />
         </Group>
 
         <Checkbox

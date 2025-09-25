@@ -6,7 +6,7 @@ import { Center, Group, Loader, Modal, Stack, Table, Text, UnstyledButton, useMo
 import { Edit3Icon, FileSpreadsheet, Plus, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
-import { TextRegularSm } from '../components/base/text';
+import { TextRegularSm, TextTitleSm } from '../components/base/text';
 import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -102,18 +102,18 @@ export default function CsvFilesPage() {
                 {csvFiles.map((csvFile) => (
                   <Table.Tr key={csvFile.id}>
                     <Table.Td>
-                      <Group gap="sm">
-                        <StyledLucideIcon Icon={FileSpreadsheet} size="md" />
-                        <UnstyledButton
-                          fz="sm"
-                          onClick={() => {
-                            setSelectedCsvFile(csvFile);
-                            modalStack.open('edit');
-                          }}
-                        >
-                          {csvFile.name}
-                        </UnstyledButton>
-                      </Group>
+                      <UnstyledButton
+                        fz="sm"
+                        onClick={() => {
+                          setSelectedCsvFile(csvFile);
+                          modalStack.open('edit');
+                        }}
+                      >
+                        <Group gap="sm">
+                          <StyledLucideIcon Icon={FileSpreadsheet} size="md" />
+                          <TextTitleSm>{csvFile.name}</TextTitleSm>
+                        </Group>
+                      </UnstyledButton>
                     </Table.Td>
                     <Table.Td>{formatDate(csvFile.createdAt)}</Table.Td>
                     <Table.Td>{formatDate(csvFile.updatedAt)}</Table.Td>
@@ -125,6 +125,7 @@ export default function CsvFilesPage() {
                             modalStack.open('edit');
                           }}
                           icon={Edit3Icon}
+                          size="md"
                         />
                         <ToolIconButton
                           onClick={() => {
@@ -132,6 +133,7 @@ export default function CsvFilesPage() {
                             modalStack.open('delete');
                           }}
                           icon={Trash2Icon}
+                          size="md"
                         />
                       </Group>
                     </Table.Td>

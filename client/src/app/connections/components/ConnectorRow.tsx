@@ -37,6 +37,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
       icon = <StyledLucideIcon Icon={HelpCircle} />;
       testButton = (
         <ToolIconButton
+          size="md"
           onClick={() => onTest(c.id)}
           loading={testingId === c.id}
           icon={TestTubeIcon}
@@ -93,9 +94,19 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>{formatDate(connectorAccount.updatedAt)}</Table.Td>
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
-            <ToolIconButton onClick={open} icon={Plus} tooltip="Create snapshot" />
-            <ToolIconButton onClick={() => onUpdate(connectorAccount)} icon={Edit3} tooltip="Edit connector" />
-            <ToolIconButton onClick={() => onDelete(connectorAccount.id)} icon={Trash2} tooltip="Delete connector" />
+            <ToolIconButton size="md" onClick={open} icon={Plus} tooltip="Create snapshot" />
+            <ToolIconButton
+              size="md"
+              onClick={() => onUpdate(connectorAccount)}
+              icon={Edit3}
+              tooltip="Edit connector"
+            />
+            <ToolIconButton
+              size="md"
+              onClick={() => onDelete(connectorAccount.id)}
+              icon={Trash2}
+              tooltip="Delete connector"
+            />
           </Group>
         </Table.Td>
       </Table.Tr>

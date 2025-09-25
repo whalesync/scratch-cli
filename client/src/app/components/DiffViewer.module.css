@@ -1,8 +1,8 @@
 .diffViewer {
   border-color: transparent;
   border-width: 1px;
-  border-radius: 8px;
-  background-color: white;
+  border-radius: 0px;
+  background-color: light-dark(var(--mantine-color-light-6), var(--mantine-color-dark-6));
   word-break: break-word;
   overflow-wrap: break-word;
   word-wrap: break-word;

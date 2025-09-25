@@ -1,6 +1,7 @@
 'use client';
 
-import { TextRegularXs } from '@/app/components/base/text';
+import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { Capability } from '@/types/server-entities/chat-session';
 import { Button, Checkbox, Divider, Group, Modal, Stack, Text } from '@mantine/core';
 import { ChevronDownIcon } from 'lucide-react';
@@ -80,9 +81,7 @@ export default function CapabilitiesPicker({
             {Object.entries(groupedCapabilities).map(([groupName, capabilities], groupIndex) => (
               <Stack key={groupName} gap="xs">
                 {groupIndex > 0 && <Divider />}
-                <Text size="sm" fw={500} c="blue">
-                  {groupName.charAt(0).toUpperCase() + groupName.slice(1)}
-                </Text>
+                <TextTitleSm c="primary">{groupName.charAt(0).toUpperCase() + groupName.slice(1)}</TextTitleSm>
                 <Stack gap="xs">
                   {capabilities.map((capability) => (
                     <Checkbox
@@ -98,12 +97,8 @@ export default function CapabilitiesPicker({
             ))}
           </Stack>
           <Group justify="flex-end" gap="xs">
-            <Button variant="subtle" onClick={handleCancel} size="sm">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} size="sm">
-              Save
-            </Button>
+            <SecondaryButton onClick={handleCancel}>Cancel</SecondaryButton>
+            <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
           </Group>
         </Stack>
       </Modal>

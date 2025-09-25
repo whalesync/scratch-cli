@@ -323,7 +323,7 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
                     {formatModelLabel(model)}
                     {formatModelDescription(model)}
                     {model.isPopular && (
-                      <Badge size="xs" variant="filled" color="blue">
+                      <Badge size="xs" variant="filled" color="primary">
                         Popular
                       </Badge>
                     )}

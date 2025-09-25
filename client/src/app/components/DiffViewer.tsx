@@ -1,8 +1,9 @@
-import { ActionIcon, Box, Group, Textarea, Tooltip } from '@mantine/core';
+import { Box, Group, Textarea } from '@mantine/core';
 import { useToggle } from '@mantine/hooks';
 import { ArrowsMergeIcon, SquareSplitHorizontalIcon } from '@phosphor-icons/react';
 import { FC } from 'react';
 import { DiffText } from './DiffText';
+import { ToolIconButton } from './ToolIconButton';
 
 interface DiffViewerProps {
   originalValue: string;
@@ -25,11 +26,12 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
 
   const switchButton = (
     <Box style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
-      <Tooltip label={mode === 'split' ? 'Show Diff' : 'Show Split'}>
-        <ActionIcon size="sm" onClick={() => toggleMode()} variant="subtle">
-          {mode === 'split' ? <ArrowsMergeIcon size={18} /> : <SquareSplitHorizontalIcon size={18} />}
-        </ActionIcon>
-      </Tooltip>
+      <ToolIconButton
+        icon={mode === 'split' ? ArrowsMergeIcon : SquareSplitHorizontalIcon}
+        onClick={() => toggleMode()}
+        tooltip={mode === 'split' ? 'Show Diff' : 'Show Split'}
+        size="lg"
+      />
     </Box>
   );
 
@@ -47,7 +49,7 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
             input: {
               fontSize: fz,
               padding: '1rem',
-              borderColor: 'var(--mantine-color-gray-2)',
+              borderColor: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))',
               borderRadius: '0px',
             },
           }}
@@ -63,7 +65,7 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
             input: {
               fontSize: fz,
               padding: '1rem',
-              borderColor: 'var(--mantine-color-gray-2)',
+              borderColor: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))',
               borderRadius: '0px',
             },
           }}
@@ -76,32 +78,6 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
   return (
     <Group p={0}>
       <DiffText {...props} />
-      {/* <Text p={p} fz={fz} className={styles.diffViewer}>
-        {changes.map((change, idx) => {
-          // do this to preserve newlines in the diff viewer
-          const value = change.value.replaceAll('\n', '<br/>');
-
-          if (change.added) {
-            return (
-              <Text span key={idx} className={styles.added} fz={fz} dangerouslySetInnerHTML={{ __html: value }}></Text>
-            );
-          }
-
-          if (change.removed) {
-            return (
-              <Text
-                span
-                key={idx}
-                className={styles.removed}
-                fz={fz}
-                dangerouslySetInnerHTML={{ __html: value }}
-              ></Text>
-            );
-          }
-
-          return <Text span key={idx} fz="1rem" dangerouslySetInnerHTML={{ __html: value }}></Text>;
-        })}
-      </Text> */}
       {switchButton}
     </Group>
   );

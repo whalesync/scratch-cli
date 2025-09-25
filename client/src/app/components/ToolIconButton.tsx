@@ -6,7 +6,7 @@ import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 // TODO: extend from ActionIconProps
 interface ToolIconButtonProps {
   icon: LucideIcon;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   size?: MantineSize;
   color?: string;
   title?: string;
@@ -35,7 +35,7 @@ export const ToolIconButton = ({
       loading={loading}
       disabled={disabled}
     >
-      <StyledLucideIcon Icon={icon} />
+      <StyledLucideIcon Icon={icon} size={size} />
     </ActionIcon>
   );
   if (tooltip) {

@@ -1,4 +1,5 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { TextTitleSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { tableName, tablesName } from '@/service-naming-conventions';
@@ -100,7 +101,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
             visibility: 'visible',
           }}
         >
-          <StyledIcon Icon={DotsThreeVerticalIcon} weight="bold" />
+          <StyledIcon Icon={DotsThreeVerticalIcon} weight="bold" size="md" />
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>{menuItems}</Menu.Dropdown>
@@ -139,7 +140,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         <Table.Td>
           <Group gap="sm" wrap="nowrap">
             <ConnectorIcon size={24} connector={snapshot.connectorService} />
-            {snapshot.name}
+            <TextTitleSm>{snapshot.name}</TextTitleSm>
           </Group>
         </Table.Td>
         <Table.Td>

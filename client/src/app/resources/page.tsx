@@ -10,6 +10,7 @@ import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { TextTitleSm } from '../components/base/text';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -119,7 +120,7 @@ export default function StyleGuidesPage() {
                   <Table.Td h="30px">
                     <Group gap="sm">
                       {resourceIcon(styleGuide)}
-                      {styleGuide.name}
+                      <TextTitleSm>{styleGuide.name}</TextTitleSm>
                       {styleGuide.autoInclude ? (
                         <Badge size="xs" color="blue" variant="light">
                           Auto Include
@@ -143,6 +144,7 @@ export default function StyleGuidesPage() {
                     <Group gap="xs" justify="flex-end">
                       {styleGuide.sourceUrl && (
                         <ToolIconButton
+                          size="md"
                           tooltip="Redownload external content"
                           onClick={() => handleUpdateExternalResource(styleGuide.id)}
                           loading={isExternalResourceUpdating}
@@ -150,6 +152,7 @@ export default function StyleGuidesPage() {
                         />
                       )}
                       <ToolIconButton
+                        size="md"
                         onClick={async () => {
                           setActiveResource(styleGuide);
                           openCreateModal();
@@ -158,6 +161,7 @@ export default function StyleGuidesPage() {
                       />
 
                       <ToolIconButton
+                        size="md"
                         onClick={() => {
                           setActiveResource(styleGuide);
                           openDeleteModal();
