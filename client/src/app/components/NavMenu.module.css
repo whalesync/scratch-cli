@@ -1,20 +1,16 @@
-.link {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--mantine-radius-md);
+.navButton {
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    background-color: var(--mantine-color-blue-light);
+    color: var(--mantine-color-primary-filled);
   }
 
   &[data-active] {
     &,
     &:hover {
-      background-color: var(--mantine-color-blue-light);
-      color: var(--mantine-color-blue-light-color);
+      color: var(--mantine-color-primary-filled);
     }
   }
 }

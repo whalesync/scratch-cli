@@ -11,12 +11,13 @@ import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextTitleXs } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { NavToggle } from '@/app/components/NavbarToggle';
+import { NavbarToggleButton } from '@/app/components/NavbarToggleButton';
 import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
@@ -134,7 +135,7 @@ function SnapshotPageContent() {
   const header = (
     <Group align="center" h="100%">
       <Group>
-        <NavToggle />
+        <NavbarToggleButton />
         <Group gap="xs">
           <ConnectorIcon connector={snapshot.connectorService} size={24} />
           <TextTitleXs>{snapshot.name}</TextTitleXs>
@@ -176,8 +177,8 @@ function SnapshotPageContent() {
       <Group ml="auto" gap="xs" align="center">
         <SnapshotActionsMenu />
         {!rightPanelOpened && (
-          <ActionIcon variant="transparent" onClick={toggleRightPanel}>
-            <PanelRightIcon size={14} color="var(--mantine-color-gray-7)" />
+          <ActionIcon variant="transparent-hover" onClick={toggleRightPanel} color="gray">
+            <StyledLucideIcon Icon={PanelRightIcon} size={14} />
           </ActionIcon>
         )}
       </Group>

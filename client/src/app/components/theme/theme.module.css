@@ -1,0 +1,10 @@
+.root {
+  /* A variant of transparent that changes color on hover */
+  &[data-variant='transparent-hover'] {
+    background: transparent;
+    &:hover {
+      color: var(--mantine-color-primary-filled);
+      background: transparent;
+    }
+  }
+}

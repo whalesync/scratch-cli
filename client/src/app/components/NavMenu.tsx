@@ -82,13 +82,18 @@ export function NavMenu() {
   const { isAdmin } = useScratchPadUser();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
-  const createMenuItem = (link: MenuItem, isActive: boolean, isAdmin: boolean) => {
-    const color = isActive ? 'gray.9' : isAdmin ? 'purple' : 'gray.6';
-
+  const createMenuItem = (link: MenuItem, isActive: boolean) => {
     return (
       <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
-        <UnstyledButton component={Link} href={link.href} data-active={isActive || undefined} className={styles.link}>
-          <StyledLucideIcon Icon={link.icon} size={20} c={color} />
+        <UnstyledButton
+          h={36}
+          w={36}
+          component={Link}
+          href={link.href}
+          data-active={isActive || undefined}
+          className={styles.navButton}
+        >
+          <StyledLucideIcon Icon={link.icon} size={20} />
         </UnstyledButton>
       </Tooltip>
     );
@@ -119,8 +124,7 @@ export function NavMenu() {
           .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
           .map((link) => {
             const isActive = pathname.startsWith(link.href);
-            const isAdminLink = link.requiresAdmin && isAdmin;
-            return createMenuItem(link, isActive, isAdminLink ?? false);
+            return createMenuItem(link, isActive);
           })}
       </Stack>
       <Stack justify="center" mt="auto" p="xs" gap="xs">
@@ -130,14 +134,16 @@ export function NavMenu() {
         <SignedIn>
           {lowerLinks.map((link) => {
             const isActive = pathname.startsWith(link.href);
-            const isAdminLink = link.requiresAdmin && isAdmin;
-            return createMenuItem(link, isActive, isAdminLink ?? false);
+            return createMenuItem(link, isActive);
           })}
-          <UnstyledButton onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')} ta="center">
+          <UnstyledButton
+            onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
+            className={styles.navButton}
+          >
             {colorScheme === 'light' ? (
-              <StyledLucideIcon Icon={MoonIcon} size={20} c="gray.5" />
+              <StyledLucideIcon Icon={MoonIcon} size={20} />
             ) : (
-              <StyledLucideIcon Icon={SunIcon} size={20} c="gray.5" />
+              <StyledLucideIcon Icon={SunIcon} size={20} />
             )}
           </UnstyledButton>
           <Center>

@@ -1,7 +1,7 @@
 import { Box, Group, MantineStyleProps, Stack } from '@mantine/core';
 import { JSX, PropsWithChildren } from 'react';
 import { TextTitleXs } from '../../base/text';
-import { NavToggle } from '../../NavbarToggle';
+import { NavbarToggleButton } from '../../NavbarToggleButton';
 import classes from './MainContent.module.css';
 
 const MainContent = ({ children }: { children: React.ReactNode }): JSX.Element => {
@@ -42,7 +42,7 @@ const BasicHeader = ({ title, actions }: { title?: string; actions?: React.React
   return (
     <ContentHeader>
       <Group align="center" h="100%">
-        <NavToggle />
+        <NavbarToggleButton />
         {title && <TextTitleXs>{title}</TextTitleXs>}
         {actions && (
           <Group h="100%" align="center" ml="auto">

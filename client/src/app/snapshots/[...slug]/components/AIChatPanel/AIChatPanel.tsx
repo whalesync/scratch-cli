@@ -1,6 +1,7 @@
 'use client';
 
 import { SecondaryButton } from '@/app/components/base/buttons';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
@@ -353,8 +354,14 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             onMouseEnter={() => setShowDeleteSessionButton(true)}
             onMouseLeave={() => setShowDeleteSessionButton(false)}
           >
-            <ActionIcon onClick={toggleRightPanel} size="sm" variant="subtle" title="Close chat">
-              <PanelRightIcon size={14} color="var(--mantine-color-gray-7)" />
+            <ActionIcon
+              onClick={toggleRightPanel}
+              size="sm"
+              variant="transparent-hover"
+              color="gray"
+              title="Close chat"
+            >
+              <StyledLucideIcon Icon={PanelRightIcon} size={14} />
             </ActionIcon>
 
             <TextTitleSm>

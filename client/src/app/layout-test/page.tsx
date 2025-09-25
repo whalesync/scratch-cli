@@ -4,7 +4,6 @@ import { TextTitleXs } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import SideBar from '@/app/components/layouts/SideBarContent';
-import { NavToggle } from '@/app/components/NavbarToggle';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
@@ -12,6 +11,7 @@ import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } fr
 import { JSX } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { ConnectorIcon } from '../components/ConnectorIcon';
+import { NavbarToggleButton } from '../components/NavbarToggleButton';
 
 const LayoutTestPage = (): JSX.Element => {
   const { toggleRightPanel } = useLayoutManagerStore();
@@ -31,7 +31,7 @@ const LayoutTestPage = (): JSX.Element => {
         <MainContent.Header>
           <Group align="center" h="100%">
             <Group>
-              <NavToggle />
+              <NavbarToggleButton />
               <Group gap="xs">
                 <ConnectorIcon connector={Service.NOTION} size={24} />
                 <TextTitleXs>Blog</TextTitleXs>

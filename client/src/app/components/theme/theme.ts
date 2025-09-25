@@ -1,7 +1,9 @@
 'use client';
 
-import { createTheme, MantineColorsTuple, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, MantineColorsTuple, virtualColor } from '@mantine/core';
 import { Inter } from 'next/font/google';
+import classes from './theme.module.css';
+import { variantColorResolver } from './variantColorResolver';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -53,6 +55,9 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   primaryColor: 'primary',
 
+
+  variantColorResolver: variantColorResolver,
+  
   fontSizes: {
     xs: '13px',
     sm: '14px',
@@ -80,4 +85,9 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   defaultRadius: '0px',
   
+  components: {
+    ActionIcon: ActionIcon.extend({
+      classNames: classes,
+    }),
+  },
 });
