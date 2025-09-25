@@ -10,7 +10,7 @@ import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
 import { JSX } from 'react';
-import { ContentFooterButton } from '../components/base/buttons';
+import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { ConnectorIcon } from '../components/ConnectorIcon';
 
 const LayoutTestPage = (): JSX.Element => {
@@ -70,9 +70,13 @@ const LayoutTestPage = (): JSX.Element => {
           </Group>
         </MainContent.Header>
         <MainContent.Body>
-          <Box bg="primary" c="white" p="md" fw={700}>
+          <Box c="white" p="md" fw={700}>
             This box has virtual background color, it is pink in dark mode and cyan in light mode
-            <Button color="primary">Test</Button>
+            <Button variant="outline" color="primary">
+              Test
+            </Button>
+            <PrimaryButton>Primary</PrimaryButton>
+            <SecondaryButton>Secondary</SecondaryButton>
           </Box>
         </MainContent.Body>
         <MainContent.Footer>

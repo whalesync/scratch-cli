@@ -1,3 +1,5 @@
+'use client';
+
 import { createTheme, MantineColorsTuple, virtualColor } from '@mantine/core';
 import { Inter } from 'next/font/google';
 
@@ -42,9 +44,14 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       light: 'penBlue',
       dark: 'terminalGreen',
     }),
+    secondary: virtualColor({
+      name: 'secondary',
+      light: 'gray',
+      dark: 'gray',
+    }),
   },
-  primaryColor: 'penBlue',
-  primaryShade: 7,
+
+  primaryColor: 'primary',
 
   fontSizes: {
     xs: '13px',
