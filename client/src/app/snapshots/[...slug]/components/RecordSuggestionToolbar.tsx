@@ -3,6 +3,7 @@ import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components
 import { TextRegularXs } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
@@ -54,6 +55,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
       }));
 
       await acceptCellValues(itemsToAccept);
+      trackAcceptChanges(itemsToAccept, snapshot);
       ScratchpadNotifications.success({
         title: 'Suggestions Accepted',
         message: `Accepted ${itemsToAccept.length} ${pluralize('change', itemsToAccept.length)}`,
@@ -79,6 +81,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
         columnId: suggestion.columnId,
       }));
       await rejectCellValues(itemsToReject);
+      trackRejectChanges(itemsToReject, snapshot);
       ScratchpadNotifications.success({
         title: 'Suggestions Rejected',
         message: `Rejected ${itemsToReject.length} ${pluralize('change', itemsToReject.length)}`,

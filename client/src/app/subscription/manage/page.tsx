@@ -5,6 +5,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Info } from '@/app/components/InfoPanel';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { paymentApi } from '@/lib/api/payment';
+import { trackClickManageSubscription } from '@/lib/posthog';
 import { RouteUrls } from '@/utils/route-urls';
 import { RotateCcw } from 'lucide-react';
 import { JSX, useEffect, useState } from 'react';
@@ -20,6 +21,7 @@ const ManageSubscriptionRedirect = (): JSX.Element => {
     }
     const doRedirect = async () => {
       try {
+        trackClickManageSubscription();
         const result = await paymentApi.createCustomerPortalUrl();
         window.location.replace(result.url);
       } catch (error) {

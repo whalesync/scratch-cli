@@ -8,6 +8,13 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useStyleGuides } from '@/hooks/use-style-guide';
+import {
+  trackChangeAgentCapabilities,
+  trackChangeAgentModel,
+  trackOpenOldChatSession,
+  trackSendMessage,
+  trackStartAgentSession,
+} from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
@@ -86,7 +93,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     cancelAgentRun,
     refreshSessions,
   } = useAIAgentSessionManagerContext();
-
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
@@ -208,7 +214,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       connect(session.id);
       // setAvailableCapabilities(available_capabilities);
       // Preselect capabilities that have enabledByDefault=true
-
+      trackStartAgentSession(snapshot);
       setError(null);
       setMessage('');
       setResetInputFocus(true);
@@ -290,7 +296,9 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         messageData.column_id = activeColumnId;
       }
 
+      trackSendMessage(message.length, selectedStyleGuides.length, dataScope, snapshot);
       sendAiAgentMessage(messageData);
+
       // clear the current message
       setMessage('');
     } catch (error) {
@@ -404,6 +412,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                   try {
                     await activateSession(sessionId);
                     await connect(sessionId);
+                    trackOpenOldChatSession(snapshot);
                     setMessage('');
                     setResetInputFocus(true);
                   } catch (error) {
@@ -480,7 +489,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         {/* Bottom Input Area */}
         <Stack gap="xs">
           {/* Style Guide Selection */}
-          <ResourceSelector disabled={!aiAgentEnabled} />
+          <ResourceSelector disabled={!aiAgentEnabled} snapshot={snapshot} />
           <ContextBadges activeTable={activeTable} currentView={currentView} />
         </Stack>
         {/* Input Area */}
@@ -536,6 +545,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               setSelectedCapabilities(caps);
               const STORAGE_KEY = 'ai-chat-selected-capabilities';
               localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
+              trackChangeAgentCapabilities(caps, snapshot);
             }}
           />
           <Group gap="2px" ml="auto">
@@ -577,6 +587,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           value={activeModel}
           onChange={(value) => {
             setActiveModel(value);
+            trackChangeAgentModel(value, snapshot);
             setShowModelSelector(false);
           }}
         />

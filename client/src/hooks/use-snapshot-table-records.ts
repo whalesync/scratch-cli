@@ -1,6 +1,7 @@
 import { generatePendingId } from "@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
+import { trackAcceptChanges, trackRejectChanges } from "@/lib/posthog";
 import {
   AcceptAllSuggestionsResult,
   RejectAllSuggestionsResult,
@@ -146,6 +147,7 @@ export interface UseSnapshotRecordsReturn {
       async (items: { wsId: string; columnId: string }[]) => {
         try {
           await snapshotApi.acceptCellValues(snapshotId, tableId, items);
+          trackAcceptChanges(items, snapshot);
         } catch (e) {
           // Re-throw the error so the calling component can handle it.
           throw e;
@@ -154,13 +156,14 @@ export interface UseSnapshotRecordsReturn {
           await mutate(swrKey);
         }
       },
-      [snapshotId, tableId, mutate, swrKey]
+      [snapshotId, tableId, mutate, swrKey, snapshot]
     );
   
     const rejectCellValues = useCallback(
       async (items: { wsId: string; columnId: string }[]) => {
         try {
           await snapshotApi.rejectCellValues(snapshotId, tableId, items);
+          trackRejectChanges(items, snapshot);
         } catch (e) {
           // Re-throw the error so the calling component can handle it.
           throw e;
@@ -169,7 +172,7 @@ export interface UseSnapshotRecordsReturn {
           await mutate(swrKey);
         }
       },
-      [snapshotId, tableId, mutate, swrKey]
+      [snapshotId, tableId, mutate, swrKey, snapshot]
     );
   
     const { recordsWithSuggestions, totalSuggestions } = useMemo(() => {

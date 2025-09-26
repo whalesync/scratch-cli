@@ -57,7 +57,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const suggestValueColor = '#284283';
   // const suggestValueBorderColor = '#e0e0e0';
   // const suggestValueBackgroundColor = '#fefefe';
-
+  debugger;
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="flex-end">
       <RejectSuggestionButton onClick={onRejectSuggestion} loading={saving}>

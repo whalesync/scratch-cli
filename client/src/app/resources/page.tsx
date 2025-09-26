@@ -2,6 +2,7 @@
 
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { styleGuideApi } from '@/lib/api/style-guide';
+import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
 import { Alert, Badge, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
@@ -47,6 +48,7 @@ export default function StyleGuidesPage() {
     try {
       setIsExternalResourceUpdating(true);
       await styleGuideApi.updateExternalResource(id);
+      trackClickDownloadResource();
       await mutate();
       ScratchpadNotifications.success({
         title: 'External resource updated',
@@ -146,14 +148,18 @@ export default function StyleGuidesPage() {
                         <ToolIconButton
                           size="md"
                           tooltip="Redownload external content"
-                          onClick={() => handleUpdateExternalResource(styleGuide.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpdateExternalResource(styleGuide.id);
+                          }}
                           loading={isExternalResourceUpdating}
                           icon={DownloadIcon}
                         />
                       )}
                       <ToolIconButton
                         size="md"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           setActiveResource(styleGuide);
                           openCreateModal();
                         }}
@@ -162,7 +168,8 @@ export default function StyleGuidesPage() {
 
                       <ToolIconButton
                         size="md"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setActiveResource(styleGuide);
                           openDeleteModal();
                         }}

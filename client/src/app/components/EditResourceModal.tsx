@@ -1,6 +1,7 @@
 'use client';
 
 import { styleGuideApi } from '@/lib/api/style-guide';
+import { trackClickDownloadResource } from '@/lib/posthog';
 import {
   CreateStyleGuideDto,
   DEFAULT_CONTENT_TYPE,
@@ -68,6 +69,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const isNewResource = !resourceDocument;
 
   const handleDownloadResource = async () => {
+    trackClickDownloadResource();
     setIsSaving(true);
     setError(null);
     setContentUpdatedMessage(null);

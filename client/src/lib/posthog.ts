@@ -1,8 +1,24 @@
 import { ScratchPadUser } from '@/hooks/useScratchpadUser';
+import { Snapshot } from '@/types/server-entities/snapshot';
+import _ from 'lodash';
 import posthog from 'posthog-js';
 
 export enum PostHogEvents {
   PAGE_VIEW = '$pageview',
+  CLICK_MANAGE_SUBSCRIPTION = 'click_manage_subscription',
+  ACCEPT_SUGGESTIONS = 'accept_suggestions',
+  REJECT_SUGGESTIONS = 'reject_suggestions',
+  START_AGENT_SESSION = 'start_agent_session',
+  SEND_AGENT_MESSAGE = 'send_agent_message',
+  TOGGLE_DISPLAY_MODE = 'toggle_display_mode',
+  CLICK_DOWNLOAD_RESOURCE = 'click_download_resource',
+  ADD_RESOURCE_TO_CHAT = 'add_resource_to_chat',
+  REMOVE_RESOURCE_FROM_CHAT = 'remove_resource_from_chat',
+  OPEN_OLD_CHAT_SESSION = 'open_old_chat_session',
+  CHANGE_AGENT_MODEL = 'change_agent_model',
+  CHANGE_AGENT_CAPABILITIES = 'change_agent_capabilities',
+  CLICK_CREATE_RESOURCE_IN_CHAT = 'click_create_resource_in_chat',
+  CLICK_VIEW_RESOURCE_FROM_CHAT = 'click_view_resource_from_chat',
 }
 
 export function captureEvent(eventName: PostHogEvents, additionalProperties: Record<string, unknown> = {}): void {
@@ -27,9 +43,87 @@ export function captureException(error: Error, properties: Record<string, unknow
   }
 }
 
-
 export function trackPageView(url: string): void {
   captureEvent(PostHogEvents.PAGE_VIEW, { url });
+}
+
+export function trackAcceptChanges(items: { wsId: string; columnId: string }[], snapshot: Snapshot | undefined): void {
+  const changeCount = items.length;
+  const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
+  captureEvent(PostHogEvents.ACCEPT_SUGGESTIONS, {
+    changeCount,
+    recordCount: uniqueRecordCount,
+    ...snapshotProperties(snapshot),
+  });
+}
+
+export function trackRejectChanges(items: { wsId: string; columnId: string }[], snapshot: Snapshot | undefined): void {
+  const changeCount = items.length;
+  const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
+  captureEvent(PostHogEvents.REJECT_SUGGESTIONS, {
+    changeCount,
+    recordCount: uniqueRecordCount,
+    ...snapshotProperties(snapshot),
+  });
+}
+
+/** Agent / Chat events  */
+export function trackStartAgentSession(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.START_AGENT_SESSION, { ...snapshotProperties(snapshot) });
+}
+
+export function trackChangeAgentModel(model: string, snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.CHANGE_AGENT_MODEL, { model, ...snapshotProperties(snapshot) });
+}
+
+export function trackChangeAgentCapabilities(capabilities: string[], snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.CHANGE_AGENT_CAPABILITIES, { capabilities, ...snapshotProperties(snapshot) });
+}
+
+export function trackSendMessage(
+  messageLength: number,
+  numAttachments: number,
+  dataScope: string,
+  snapshot: Snapshot | undefined,
+): void {
+  captureEvent(PostHogEvents.SEND_AGENT_MESSAGE, {
+    messageLength,
+    numAttachments,
+    dataScope,
+    ...snapshotProperties(snapshot),
+  });
+}
+
+export function trackOpenOldChatSession(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.OPEN_OLD_CHAT_SESSION, { ...snapshotProperties(snapshot) });
+}
+
+export function trackAddResourceToChat(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.ADD_RESOURCE_TO_CHAT, { ...snapshotProperties(snapshot) });
+}
+
+export function trackClickCreateResourceInChat(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.CLICK_CREATE_RESOURCE_IN_CHAT, { ...snapshotProperties(snapshot) });
+}
+
+export function trackClickViewResourceFromChat(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.CLICK_VIEW_RESOURCE_FROM_CHAT, { ...snapshotProperties(snapshot) });
+}
+
+export function trackRemoveResourceFromChat(snapshot: Snapshot | undefined): void {
+  captureEvent(PostHogEvents.REMOVE_RESOURCE_FROM_CHAT, { ...snapshotProperties(snapshot) });
+}
+
+export function trackToggleDisplayMode(mode: 'light' | 'dark'): void {
+  captureEvent(PostHogEvents.TOGGLE_DISPLAY_MODE, { mode });
+}
+
+export function trackClickManageSubscription(): void {
+  captureEvent(PostHogEvents.CLICK_MANAGE_SUBSCRIPTION, {});
+}
+
+export function trackClickDownloadResource(): void {
+  captureEvent(PostHogEvents.CLICK_DOWNLOAD_RESOURCE, {});
 }
 
 /**
@@ -46,4 +140,16 @@ export function trackUserSignIn(user: ScratchPadUser): void {
       console.error('Error tracking user sign in', error);
     }
   }
+}
+
+function snapshotProperties(snapshot: Snapshot | undefined | null): Record<string, unknown> {
+  if (!snapshot) {
+    return {};
+  }
+
+  return {
+    snapshotId: snapshot.id,
+    snapshotName: snapshot.name,
+    connector: snapshot.connectorService,
+  };
 }

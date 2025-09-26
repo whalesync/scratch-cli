@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { trackToggleDisplayMode } from '@/lib/posthog';
 import { BookOpen, Bot, FileSpreadsheet, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
@@ -137,7 +138,10 @@ export function NavMenu() {
             return createMenuItem(link, isActive);
           })}
           <UnstyledButton
-            onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
+            onClick={() => {
+              setColorScheme(colorScheme === 'light' ? 'dark' : 'light');
+              trackToggleDisplayMode(colorScheme === 'light' ? 'dark' : 'light');
+            }}
             className={styles.navButton}
           >
             {colorScheme === 'light' ? (

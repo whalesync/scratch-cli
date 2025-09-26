@@ -155,6 +155,7 @@ export class PostHogService implements OnModuleDestroy {
       credentialType: credential.service,
     });
   }
+
   trackTrialStarted(userId: string, planType: ScratchpadPlanType): void {
     this.captureEvent(PostHogEventName.TRIAL_STARTED, userId, {
       planType,
