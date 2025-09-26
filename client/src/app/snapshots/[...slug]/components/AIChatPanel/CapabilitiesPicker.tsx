@@ -63,8 +63,8 @@ export default function CapabilitiesPicker({
         variant="transparent"
         onClick={() => setIsOpen(true)}
         size="xs"
-        c="gray.6"
-        rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
+        c="gray"
+        rightSection={<ChevronDownIcon size={12} color="gray" />}
         styles={{ root: { border: 'none' } }}
       >
         <TextRegularXs c="dimmed">

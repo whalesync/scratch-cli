@@ -487,7 +487,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       </SideBarContent.Body>
       <SideBarContent.Bottom>
         {/* Bottom Input Area */}
-        <Stack gap="xs">
+        <Stack gap="2xs" my="2xs">
           {/* Style Guide Selection */}
           <ResourceSelector disabled={!aiAgentEnabled} snapshot={snapshot} />
           <ContextBadges activeTable={activeTable} currentView={currentView} />
@@ -509,10 +509,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               padding: '0px',
               border: 'none',
               borderRadius: '0px',
-              borderTop: '1px solid var(--mantine-color-gray-4)',
-              '&:focus': {
-                border: '1px solid #228be6',
-              },
             },
           }}
           minRows={5}
@@ -527,10 +523,10 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             variant="transparent"
             onClick={() => setShowModelSelector(true)}
             disabled={!aiAgentEnabled}
-            c="gray.6"
+            c="gray"
             size="xs"
             p="0px"
-            rightSection={<ChevronDownIcon size={12} color="var(--mantine-color-gray-7)" />}
+            rightSection={<ChevronDownIcon size={12} color="gray" />}
           >
             <TextRegularXs component="span" c="dimmed">
               {activeModel}
