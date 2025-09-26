@@ -1,5 +1,6 @@
 import './_ag-grid-variables.css';
 import './ag-cell.css';
+import './ag-cell-text.css';
 import './ag-grid-global.css';
 import './ag-header.css';
 import './ag-row.css';

@@ -13,36 +13,6 @@
   background: transparent;
 }
 
-/* Remove row borders but keep cell borders */
-/* --ag-cell-horizontal-border: solid red; */
-/* .my-grid.ag-theme-alpine-light {
-  --ag-row-border-color: transparent;
-  --ag-border-color: red;
-} */
-/* --ag-cell-horizontal-border: solid red; */
-/* .my-grid.ag-theme-alpine-dark {
-  --ag-cell-horizontal-border: solid var(--ag-border-color);
-  --ag-border-color: red;
-} */
-
-.my-grid.ag-theme-alpine-dark .ag-cell .cell-text {
-  color: var(--mantine-color-gray-6);
-  font-family: 'Inter', 'Inter Fallback';
-  font-size: 13px;
-}
-
 .my-grid.ag-theme-alpine-dark .ag-cell .cell-text.readonly-cell-text {
   color: var(--mantine-color-gray-7);
-}
-
-/* Row selection and hover colors - Light theme */
-.my-grid.ag-theme-alpine {
-  --ag-row-hover-color: var(--mantine-color-gray-1);
-  --ag-selected-row-background-color: var(--mantine-color-gray-4);
-}
-
-/* Row selection and hover colors - Dark theme */
-.my-grid.ag-theme-alpine-dark {
-  --ag-row-hover-color: var(--mantine-color-gray-8);
-  --ag-selected-row-background-color: var(--mantine-color-gray-7);
 }

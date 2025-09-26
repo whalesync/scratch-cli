@@ -1,0 +1,20 @@
+.my-grid[class*='ag-theme'] .ag-cell .cell-text {
+  font-family: 'Inter', 'Inter Fallback';
+  font-size: 13px;
+}
+
+.my-grid.ag-theme-alpine .ag-cell .cell-text {
+  color: black;
+}
+
+.my-grid.ag-theme-alpine .ag-cell .cell-text.readonly-cell-text {
+  color: red;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-cell .cell-text {
+  color: var(--mantine-color-gray-6);
+}
+
+.my-grid.ag-theme-alpine-dark .ag-cell .cell-text.readonly-cell-text {
+  color: var(--mantine-color-gray-7);
+}

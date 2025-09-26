@@ -449,10 +449,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       return classes;
     };
 
-    const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = (params) => {
-      const record = params.data;
-
-      const hasSuggestion = record?.__edited_fields?.[column.id.wsId];
+    const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
       const isReadOnly = column.readonly;
 
       // Check if this cell is in the same column as the focused cell
@@ -469,20 +466,8 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       const colors = isLightMode ? AG.colors.light : AG.colors.dark;
       const baseStyles = {
         backgroundColor,
-        paddingLeft: AG.borders.paddingLeft,
         color: isReadOnly ? colors.readOnlyText : colors.normalText,
       };
-
-      if (hasSuggestion) {
-        return {
-          ...baseStyles,
-          // Use background gradient for inner border only (green suggestion border)
-          // backgroundImage: `linear-gradient(to right, ${colors.innerBorder} 0px, ${colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth})`,
-          // backgroundSize: `${AG.borders.innerBorderWidth} ${AG.borders.innerBorderHeight}`,
-          // backgroundPosition: '1px center',
-          // backgroundRepeat: 'no-repeat',
-        };
-      }
 
       return baseStyles;
     };

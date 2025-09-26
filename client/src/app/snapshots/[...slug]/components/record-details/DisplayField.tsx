@@ -55,9 +55,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
   const suggestValueColor = '#284283';
-  // const suggestValueBorderColor = '#e0e0e0';
-  // const suggestValueBackgroundColor = '#fefefe';
-  debugger;
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="flex-end">
       <RejectSuggestionButton onClick={onRejectSuggestion} loading={saving}>

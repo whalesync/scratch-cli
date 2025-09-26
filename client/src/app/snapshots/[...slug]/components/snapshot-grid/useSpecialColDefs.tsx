@@ -34,7 +34,6 @@ export const useSpecialColDefs = ({
 
     const baseStyles = {
       backgroundColor,
-      paddingLeft: AG.borders.paddingLeft,
       color: colors.readOnlyText, // ID column is always read-only
       fontWeight: '500',
     };

@@ -1,7 +1,7 @@
 /* Selection corner borders shared vars */
 .my-grid {
   --corner-border-width: 1px;
-  --corner-border-length: 6px;
+  --corner-border-length: 5px;
   --edited-border-length: 16px;
   --image-border-offset: 2px;
 }
@@ -13,7 +13,7 @@
 }
 
 .my-grid.ag-theme-alpine-dark .ag-cell {
-  --corner-border-color: white;
+  --corner-border-color: var(--mantine-color-gray-4);
 }
 
 .my-grid[class*='ag-theme'] .ag-cell:not(.ag-cell-focus) {
@@ -89,14 +89,14 @@
       );
   background-position:
     var(--image-border-offset) center,
-    /* TL-V */ var(--image-border-offset) 0,
-    /* TL-H */ var(--image-border-offset) 0,
-    /* TR-V */ calc(100% - var(--image-border-offset)) 0px,
-    /* TR-H */ calc(100% - var(--image-border-offset)) 0px,
-    /* BL-V */ var(--image-border-offset) calc(100% - var(--image-border-offset)),
-    /* BL-H */ var(--image-border-offset) calc(100% - var(--corner-border-width)),
-    /* BR-V */ calc(100% - var(--image-border-offset)) calc(100% - var(--image-border-offset)),
-    /* BR-H */ calc(100% - var(--image-border-offset)) calc(100% - var(--corner-border-width));
+    /* TL-V */ var(--image-border-offset) 2px,
+    /* TL-H */ var(--image-border-offset) 2px,
+    /* TR-V */ calc(100% - var(--image-border-offset)) 2px,
+    /* TR-H */ calc(100% - var(--image-border-offset)) 2px,
+    /* BL-V */ var(--image-border-offset) calc(100% - var(--image-border-offset) - 1px),
+    /* BL-H */ var(--image-border-offset) calc(100% - var(--corner-border-width) - 1px),
+    /* BR-V */ calc(100% - var(--image-border-offset)) calc(100% - var(--image-border-offset) - 1px),
+    /* BR-H */ calc(100% - var(--image-border-offset)) calc(100% - var(--corner-border-width) - 1px);
   background-size:
     1px var(--edited-border-length),
     /* TL-V */ var(--corner-border-length) var(--corner-border-length),
