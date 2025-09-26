@@ -146,7 +146,7 @@ export const RecordDetails = ({
   } else if (currentRecord) {
     const fieldsToShow = Object.keys(currentRecord.fields);
     content = (
-      <Stack p="3rem" gap="xs">
+      <Stack p="3rem" gap="sm">
         {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
       </Stack>
     );
@@ -158,7 +158,7 @@ export const RecordDetails = ({
         {savingSuggestions ||
           (savingPendingChanges && (
             <Group gap="xs">
-              <Loader c="blue.6" size="xs" />
+              <Loader c="primary" size="xs" />
               <TextRegularXs>Saving...</TextRegularXs>
             </Group>
           ))}

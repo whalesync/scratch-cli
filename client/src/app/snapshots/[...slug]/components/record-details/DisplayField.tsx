@@ -11,7 +11,7 @@ import {
   TableSpec,
 } from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
-import { Checkbox, Group, NumberInput, ScrollArea, Stack } from '@mantine/core';
+import { Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
 import { CircleArrowRightIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
@@ -75,7 +75,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     const suggestedValue = record.__suggested_values?.[columnId];
     const suggestedValueString = suggestedValue?.toString() ?? '';
 
-    const numberField = (
+    const numberInputField = (
       <NumberInput
         key={columnId}
         value={currentValue}
@@ -91,7 +91,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         }}
       />
     );
-
     return (
       <FieldRow
         fieldName={column.name}
@@ -115,8 +114,10 @@ export const DisplayField = (props: DisplayFieldProps) => {
             </ScrollArea>
             {mode === 'multiple' && suggestionButtons}
           </Stack>
+        ) : mode === 'multiple' ? (
+          <Text className={styles.recordValueDisplay}>{currentValueString}</Text>
         ) : (
-          numberField
+          numberInputField
         )}
       </FieldRow>
     );
@@ -133,7 +134,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         label={mode === 'single' ? column.name : undefined}
         checked={currentValue}
         onChange={(e) => updateField(columnId, e.target.checked.toString())}
-        readOnly={column.readonly || hasSuggestion}
+        readOnly={column.readonly || hasSuggestion || mode === 'multiple'}
         p={basicFieldPadding}
       />
     );
@@ -200,16 +201,17 @@ export const DisplayField = (props: DisplayFieldProps) => {
               key={columnId}
               value={currentValue ?? ''}
               autosize
-              minRows={!currentValue || currentValue.length < 200 ? 3 : 5}
+              minRows={!currentValue || currentValue.length < 200 ? 1 : 5}
               w="100%"
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
-              readOnly={column.readonly || hasSuggestion}
+              readOnly={true}
               styles={{
                 input: {
                   borderColor: 'transparent',
                   fontSize: '1rem',
                   padding: '0',
+                  backgroundColor: 'transparent',
                 },
               }}
             />
@@ -251,7 +253,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
     }
   }
 
-  const textField = (
+  const textInputField = (
     <EnhancedTextArea
       flex={1}
       inputWrapperOrder={['input', 'label', 'description', 'error']}
@@ -294,8 +296,10 @@ export const DisplayField = (props: DisplayFieldProps) => {
           </ScrollArea>
           {mode === 'multiple' && suggestionButtons}
         </Stack>
+      ) : mode === 'multiple' ? (
+        <Text className={styles.recordValueDisplay}>{currentValue}</Text>
       ) : (
-        textField
+        textInputField
       )}
     </FieldRow>
   );

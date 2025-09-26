@@ -1,0 +1,7 @@
+.recordValueDisplay {
+  font-size: 1rem;
+  &::selection {
+    background-color: #ffff00;
+    color: black;
+  }
+}
