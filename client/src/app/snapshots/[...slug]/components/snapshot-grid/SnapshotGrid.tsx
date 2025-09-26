@@ -14,6 +14,8 @@ import {
   ModuleRegistry,
   ValueGetterFunc,
 } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
@@ -24,11 +26,6 @@ import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
-
-// Import AG Grid styles - using legacy theming
-import 'ag-grid-community/styles/ag-grid.css';
-// import 'ag-grid-community/styles/ag-theme-quartz.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
@@ -99,16 +96,9 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
     position: { x: number; y: number };
-    // selectedRows: SnapshotRecord[];
-    // clickedCell?: {
-    //   recordId: string;
-    //   fieldId: string;
-    //   fieldName: string;
-    // };
   }>({
     isOpen: false,
     position: { x: 0, y: 0 },
-    // selectedRows: [],
   });
 
   // Get theme from Mantine
@@ -154,11 +144,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     },
     [columnState],
   );
-
-  // Keep this for compatibility but it should not be needed now
-  const onFirstDataRendered = useCallback(() => {
-    // Column state is now applied in onGridReady
-  }, []);
 
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
@@ -625,7 +610,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
           maintainColumnOrder={true}
           stopEditingWhenCellsLoseFocus={false}
           onGridReady={onGridReady}
-          onFirstDataRendered={onFirstDataRendered}
           onColumnResized={onColumnStateChanged}
           onColumnMoved={onColumnStateChanged}
           onColumnVisible={onColumnStateChanged}

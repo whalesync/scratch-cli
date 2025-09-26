@@ -1,4 +1,4 @@
-import { AG } from '@/app/snapshots/[...slug]/components/snapshot-table/ag-grid-constants';
+import { AG } from '@/app/snapshots/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { CellStyleFunc, ColDef, ICellRendererParams } from 'ag-grid-community';

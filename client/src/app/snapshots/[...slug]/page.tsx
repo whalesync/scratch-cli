@@ -29,7 +29,7 @@ import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
-import SnapshotTableGridAG from './components/snapshot-table/SnapshotTableGridAG';
+import SnapshotTableGridAG from './components/snapshot-grid/SnapshotGrid';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 
