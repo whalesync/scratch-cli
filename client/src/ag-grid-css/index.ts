@@ -5,3 +5,4 @@ import './ag-header.css';
 import './ag-row.css';
 import './ag-borders.css';
 import './ag-scrollbar.css';
+import './ag-cell-background-image.css';

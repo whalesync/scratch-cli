@@ -47,6 +47,7 @@ export const useSpecialColDefs = ({
     sortable: true,
     filter: false,
     resizable: resizable,
+    // cellClass: idCellClass,
     // pinned: 'left',
     // lockPosition: true,
     // suppressMovable: true,
@@ -101,7 +102,6 @@ export const useSpecialColDefs = ({
 
       // Check if there are any edited fields for this record
       const hasEditedFields = record?.__edited_fields && Object.keys(record.__edited_fields).length > 0;
-      const colors = isLightMode ? AG.colors.light : AG.colors.dark;
 
       return (
         <Box display="flex" h="100%" style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -112,7 +112,7 @@ export const useSpecialColDefs = ({
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  backgroundColor: colors.diffAdded,
+                  backgroundColor: 'var(--mantine-color-suggestion-9)',
                   flexShrink: 0,
                   cursor: 'help',
                 }}

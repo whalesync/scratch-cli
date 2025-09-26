@@ -33,7 +33,7 @@ import styles from './SelectionCorners.module.css';
 import { SettingsModal } from './SettingsModal';
 import { TableContextMenu } from './TableContextMenu';
 import { useCellRenderer } from './useCellRenderer';
-import { useSpecialColDefs } from './useIdColDef';
+import { useSpecialColDefs } from './useSpecialColDefs';
 import { useStoreColumnState } from './useStoreColumnState';
 
 // Register AG Grid modules
@@ -438,9 +438,15 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
-      return [];
+      const classes: string[] = [];
+
+      // Add 'cell-edited' class if this field has been edited
+      if (params.data?.__edited_fields?.[column.id.wsId]) {
+        classes.push('cell-edited');
+      }
+
+      return classes;
     };
 
     const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = (params) => {
@@ -471,10 +477,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         return {
           ...baseStyles,
           // Use background gradient for inner border only (green suggestion border)
-          backgroundImage: `linear-gradient(to right, ${colors.innerBorder} 0px, ${colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth})`,
-          backgroundSize: `${AG.borders.innerBorderWidth} ${AG.borders.innerBorderHeight}`,
-          backgroundPosition: '1px center',
-          backgroundRepeat: 'no-repeat',
+          // backgroundImage: `linear-gradient(to right, ${colors.innerBorder} 0px, ${colors.innerBorder} ${AG.borders.innerBorderWidth}, transparent ${AG.borders.innerBorderWidth})`,
+          // backgroundSize: `${AG.borders.innerBorderWidth} ${AG.borders.innerBorderHeight}`,
+          // backgroundPosition: '1px center',
+          // backgroundRepeat: 'no-repeat',
         };
       }
 
