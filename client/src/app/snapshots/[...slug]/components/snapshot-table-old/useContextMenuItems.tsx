@@ -5,14 +5,14 @@ import {
   FILTERING_GROUP_NAME,
   FOCUS_GROUP_NAME,
   MENU_ICON_SIZE,
-} from '@/app/snapshots/[...slug]/components/snapshot-table/menus/constants';
+} from '@/app/snapshots/[...slug]/components/snapshot-table-old/menus/constants';
 import {
   FAKE_LEFT_COLUMNS,
   getSelectedRowCount,
   isActionsColumn,
   isIdColumn,
   isRecordStatusColumn,
-} from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+} from '@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers';
 import { ContextMenu, MenuItem } from '@/app/snapshots/[...slug]/components/types';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { RecordCell } from '@/types/common';

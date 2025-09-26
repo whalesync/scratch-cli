@@ -53,8 +53,7 @@ export const SnapshotActionsMenu = () => {
         message: 'The scratchpaper was renamed.',
       });
       modalStack.close('rename');
-    } catch (e) {
-      console.log(e);
+    } catch {
       ScratchpadNotifications.error({
         title: 'Renaming failed',
         message: 'There was an error renaming the scratchpaper to ' + snapshotName,
@@ -78,7 +77,7 @@ export const SnapshotActionsMenu = () => {
         message: `${result.totalRecords} ${pluralize('record', result.totalRecords)} have been downloaded from ${connectorAccount?.displayName}.`,
       });
     } catch (e) {
-      console.log(e);
+      console.error(e);
       ScratchpadNotifications.error({
         title: 'Download failed',
         message: 'There was an error starting the download.',

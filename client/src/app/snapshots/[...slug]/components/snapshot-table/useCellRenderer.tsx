@@ -42,7 +42,6 @@ export const useCellRenderer = (
         const [isProcessing, setIsProcessing] = useState(false);
 
         const handleAccept = async (e: React.MouseEvent) => {
-          console.log('🟢 Accept button clicked!', { recordId: record.id.wsId, columnId: columnDef.id.wsId });
           e.preventDefault();
           e.stopPropagation();
           if (!acceptCellValues || isProcessing) return;
@@ -67,7 +66,6 @@ export const useCellRenderer = (
         };
 
         const handleReject = async (e: React.MouseEvent) => {
-          console.log('🔴 Reject button clicked!', { recordId: record.id.wsId, columnId: columnDef.id.wsId });
           e.preventDefault();
           e.stopPropagation();
           if (!rejectCellValues || isProcessing) return;

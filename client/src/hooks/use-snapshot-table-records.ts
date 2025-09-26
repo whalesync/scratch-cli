@@ -1,4 +1,4 @@
-import { generatePendingId } from "@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers";
+import { generatePendingId } from "@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {

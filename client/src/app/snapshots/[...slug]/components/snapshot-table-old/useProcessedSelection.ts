@@ -1,4 +1,4 @@
-import { FAKE_LEFT_COLUMNS } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+import { FAKE_LEFT_COLUMNS } from '@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers';
 import { ColumnSpec, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';
 import { useCallback, useMemo } from 'react';

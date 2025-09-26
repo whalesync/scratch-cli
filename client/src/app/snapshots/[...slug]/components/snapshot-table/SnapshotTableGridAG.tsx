@@ -361,13 +361,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         // Find the column definition to get the proper column ID
         const column = table.columns.find((col) => col.id.wsId === columnId);
 
-        // Enable record details mode in the same view
-        console.log('Double-click handler:', {
-          recordId: record.id.wsId,
-          columnId: column?.id.wsId,
-          recordExists: !!records?.find((r) => r.id.wsId === record.id.wsId),
-        });
-
         setSelectedRecordId(record.id.wsId);
         setSelectedColumnId(column?.id.wsId);
         showRecordDetails();
@@ -426,7 +419,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
       // Select the record in the grid and focus on ID column
       gridApi.deselectAll();
       const rowNode = gridApi.getRowNode(activeRecord.recordId);
-      console.log('Initializing with record:', activeRecord.recordId, 'Found rowNode:', rowNode);
 
       if (rowNode) {
         rowNode.setSelected(true);
@@ -437,11 +429,8 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
           gridApi.setFocusedCell(rowIndex, 'id');
         }
       } else {
-        // Fallback: try to find the row by iterating through all nodes
-        console.log('Row node not found during init, trying fallback method...');
         gridApi.forEachNode((node) => {
           if (node.data && node.data.id?.wsId === activeRecord.recordId) {
-            console.log('Found record via fallback during init:', node.data.id.wsId);
             node.setSelected(true);
             if (node.rowIndex !== null && node.rowIndex !== undefined) {
               gridApi.setFocusedCell(node.rowIndex, 'id');
@@ -609,7 +598,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
           rowData={rowData}
           columnDefs={columnDefs}
           getRowId={(params) => {
-            console.log('getRowId', params.data.id.wsId);
             return params.data.id.wsId;
           }}
           defaultColDef={{
@@ -643,21 +631,13 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
           onColumnVisible={onColumnStateChanged}
           onCellDoubleClicked={handleCellDoubleClicked}
           onSelectionChanged={(event) => {
-            console.log('Selection changed event fired:', {
-              showRecordDetails: recordDetailsVisible,
-              selectedRowCount: event.api.getSelectedRows().length,
-              selectedRows: event.api.getSelectedRows().map((r) => r.id.wsId),
-            });
-
             if (recordDetailsVisible) {
               // In record details mode, update the selected record state
               const selectedRows = event.api.getSelectedRows();
               if (selectedRows.length === 1) {
                 const newSelectedId = selectedRows[0].id.wsId;
-                console.log('Updating selected record to:', newSelectedId);
                 setSelectedRecordId(newSelectedId);
               } else {
-                console.log('No single row selected, clearing selection');
                 setSelectedRecordId(null);
               }
             }
@@ -701,7 +681,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                   // Shift+Arrow key logic (only in normal mode)
                   if (!currentRowNode.isSelected()) {
                     currentRowNode.setSelected(true);
-                    console.log('Added row to selection:', event.rowIndex);
                   } else if (
                     previousFocusedRowIndexRef.current !== null &&
                     previousFocusedRowIndexRef.current !== undefined
@@ -709,14 +688,12 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                     const previousRowNode = gridApi.getDisplayedRowAtIndex(previousFocusedRowIndexRef.current);
                     if (previousRowNode) {
                       previousRowNode.setSelected(false);
-                      console.log('Removed previous row from selection:', previousFocusedRowIndexRef.current);
                     }
                   }
                 } else if (!lastKeyPressed.shiftKey) {
                   // Regular arrow key navigation
                   gridApi.deselectAll();
                   currentRowNode?.setSelected(true);
-                  console.log('Single row selection:', event.rowIndex);
                 }
               }
             }
@@ -774,10 +751,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                     />
                   </ScrollArea>
                 </Box>
-
-                {/* <div style={{ flex: 1, overflow: 'hidden' }}> */}
-
-                {/* </div> */}
               </Box>
             ) : (
               <div

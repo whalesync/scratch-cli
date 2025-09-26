@@ -1,4 +1,4 @@
-import { FAKE_LEFT_COLUMNS, isActionsColumn, isIdColumn, isRecordStatusColumn } from '@/app/snapshots/[...slug]/components/snapshot-table/utils/helpers';
+import { FAKE_LEFT_COLUMNS, isActionsColumn, isIdColumn, isRecordStatusColumn } from '@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers';
 import { RecordCell } from '@/types/common';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { GridSelection } from '@glideapps/glide-data-grid';

@@ -34,15 +34,3 @@
 .my-grid.ag-theme-alpine-dark .ag-cell .cell-text.readonly-cell-text {
   color: var(--mantine-color-gray-7);
 }
-
-/* Scrollbar styling for light theme */
-.my-grid.ag-theme-alpine {
-  scrollbar-width: thin;
-  scrollbar-color: #c1c8cd #f8f9fa;
-}
-
-/* Scrollbar styling for dark theme */
-.my-grid.ag-theme-alpine-dark {
-  scrollbar-width: thin;
-  scrollbar-color: #495057 #212529;
-}

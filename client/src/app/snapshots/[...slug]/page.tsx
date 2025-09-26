@@ -28,8 +28,8 @@ import { RouteUrls } from '@/utils/route-urls';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
-import SnapshotTableGridAG from './components/new-snapshot-table/SnapshotTableGridAG';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
+import SnapshotTableGridAG from './components/snapshot-table/SnapshotTableGridAG';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 
