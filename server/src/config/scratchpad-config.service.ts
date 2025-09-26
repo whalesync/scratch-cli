@@ -119,6 +119,14 @@ export class ScratchpadConfigService {
     return this.getOptionalNumberVariable('NEW_USER_OPENROUTER_CREDIT_LIMIT', 10);
   }
 
+  getSlackNotificationWebhookUrl(): string | undefined {
+    return this.getOptionalEnvVariable('SLACK_NOTIFICATION_WEBHOOK_URL');
+  }
+
+  isSlackNotificationEnabled(): boolean {
+    return this.getOptionalFlagVariable('SLACK_NOTIFICATION_ENABLED', false);
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

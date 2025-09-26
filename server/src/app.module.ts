@@ -19,6 +19,7 @@ import { PaymentModule } from './payment/payment.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
+import { SlackNotificationModule } from './slack/slack-notification.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UserModule } from './users/users.module';
@@ -49,6 +50,7 @@ import { ViewModule } from './view/view.module';
     ContentToolsModule,
     PaymentModule,
     OpenRouterModule,
+    SlackNotificationModule,
   ],
   controllers: [],
   providers: [],

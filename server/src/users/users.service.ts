@@ -7,6 +7,8 @@ import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
+import { SlackFormatters } from 'src/slack/slack-formatters';
+import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { createAiAgentCredentialId, createApiTokenId, createUserId } from 'src/types/ids';
 import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
@@ -19,6 +21,7 @@ export class UsersService {
     private readonly scratchpadConfigService: ScratchpadConfigService,
     private readonly openRouterService: OpenRouterService,
     private readonly stripePaymentService: StripePaymentService,
+    private readonly slackNotificationService: SlackNotificationService,
   ) {}
 
   public async findOne(id: string): Promise<UserCluster.User | null> {
@@ -124,6 +127,8 @@ export class UsersService {
 
     // add any additional resources to the user like subscriptions and api keys
     newUser = await this.addNewUserResources(newUser);
+
+    await this.slackNotificationService.sendMessage(SlackFormatters.newUserSignup(newUser));
 
     return newUser;
   }

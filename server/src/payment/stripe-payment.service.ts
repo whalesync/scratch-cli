@@ -5,6 +5,7 @@ import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
+import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { createInvoiceResultId, createSubscriptionId } from 'src/types/ids';
 import {
   AsyncResult,
@@ -61,6 +62,7 @@ export class StripePaymentService {
     private readonly configService: ScratchpadConfigService,
     private readonly dbService: DbService,
     private readonly postHogService: PostHogService,
+    private readonly slackNotificationService: SlackNotificationService,
   ) {
     this.stripe = new Stripe(this.configService.getStripeApiKey(), {
       apiVersion: STRIPE_API_VERSION,

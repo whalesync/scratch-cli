@@ -8,6 +8,7 @@ import { ExperimentsModule } from 'src/experiments/experiments.module';
 import { OpenRouterModule } from 'src/openrouter/openrouter.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
+import { SlackNotificationModule } from 'src/slack/slack-notification.module';
 import { AgentCredentialsController } from './agent-credentials.controller';
 import { AgentCredentialsService } from './agent-credentials.service';
 import { UsersController } from './users.controller';
@@ -23,6 +24,7 @@ import { UsersService } from './users.service';
     ExperimentsModule,
     OpenRouterModule,
     PaymentModule,
+    SlackNotificationModule,
   ],
   exports: [UsersService, AgentCredentialsService], //export this service to use in other modules
   controllers: [UsersController, AgentCredentialsController],
