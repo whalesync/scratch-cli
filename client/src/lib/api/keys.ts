@@ -39,6 +39,7 @@ export const SWR_KEYS = {
     // Matches all SWR keys for records for a given snapshot and table
     recordsKeyMatcher: (snapshotId: string, tableId: string) => (key: Arguments) => Array.isArray(key) && key[0] === 'snapshot' && key[1] === 'records' && key[2] === snapshotId && key[3] === tableId,
     views: (snapshotId: string, tableId: string) => ["snapshot", "views", snapshotId, tableId],
+    publishSummary: (id: string) => ["snapshot", "publish-summary", id],
   },
   view: {
     list: (snapshotId: string) => ["view", "list", snapshotId],

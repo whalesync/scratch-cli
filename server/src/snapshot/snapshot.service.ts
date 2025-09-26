@@ -13,6 +13,7 @@ import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/c
 import { ExistingSnapshotRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
+import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult } from './entities/download-results.entity';
@@ -803,6 +804,58 @@ export class SnapshotService {
     this.posthogService.trackPublishSnapshot(userId, snapshot);
   }
 
+  async getPublishSummary(id: SnapshotId, userId: string): Promise<PublishSummaryDto> {
+    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+
+    const summary: PublishSummaryDto = {
+      deletes: [],
+      updates: [],
+      creates: [],
+    };
+
+    for (const tableSpec of tableSpecs) {
+      // Get records to be deleted
+      const deletedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'delete');
+      if (deletedRecords.length > 0) {
+        summary.deletes.push({
+          tableId: tableSpec.id.wsId,
+          tableName: tableSpec.name,
+          records: deletedRecords.map((record) => ({
+            wsId: record.id.wsId,
+            title: this.getRecordTitle(record, tableSpec),
+          })),
+        });
+      }
+
+      // Get records to be updated
+      const updatedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'update');
+      if (updatedRecords.length > 0) {
+        summary.updates.push({
+          tableId: tableSpec.id.wsId,
+          tableName: tableSpec.name,
+          records: updatedRecords.map((record) => ({
+            wsId: record.id.wsId,
+            title: this.getRecordTitle(record, tableSpec),
+            changes: this.getRecordChanges(record, tableSpec),
+          })),
+        });
+      }
+
+      // Get count of records to be created
+      const createdRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'create');
+      if (createdRecords.length > 0) {
+        summary.creates.push({
+          tableId: tableSpec.id.wsId,
+          tableName: tableSpec.name,
+          count: createdRecords.length,
+        });
+      }
+    }
+
+    return summary;
+  }
+
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
     const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
@@ -998,6 +1051,87 @@ export class SnapshotService {
         source: 'user',
       },
     });
+  }
+
+  private async getRecordsForOperation(
+    snapshotId: SnapshotId,
+    tableSpec: AnyTableSpec,
+    operation: 'create' | 'update' | 'delete',
+  ): Promise<SnapshotRecord[]> {
+    const records: SnapshotRecord[] = [];
+
+    await this.snapshotDbService.forAllDirtyRecords(
+      snapshotId,
+      tableSpec.id.wsId,
+      operation,
+      1000, // batch size
+      async (batchRecords: SnapshotRecord[]) => {
+        records.push(...batchRecords);
+        return Promise.resolve();
+      },
+    );
+
+    return records;
+  }
+
+  private getRecordTitle(record: SnapshotRecord, tableSpec: AnyTableSpec): string {
+    // Try to find a title field - look for common title field names
+    const titleFields = ['title', 'name', 'displayName', 'label'];
+
+    for (const titleField of titleFields) {
+      const column = tableSpec.columns.find((col) => col.id.wsId === titleField);
+      if (column && record.fields[titleField]) {
+        const value = record.fields[titleField];
+        if (typeof value === 'string') {
+          return value.length > 50 ? value.substring(0, 50) + '...' : value;
+        }
+      }
+    }
+
+    // If no title field found, use the first non-id text field
+    for (const column of tableSpec.columns) {
+      if (column.id.wsId !== 'id' && column.pgType === PostgresColumnType.TEXT && record.fields[column.id.wsId]) {
+        const value = record.fields[column.id.wsId];
+        if (typeof value === 'string') {
+          return value.length > 50 ? value.substring(0, 50) + '...' : value;
+        }
+      }
+    }
+
+    // Fallback to record ID
+    return record.id.wsId;
+  }
+
+  private getRecordChanges(
+    record: SnapshotRecord,
+    tableSpec: AnyTableSpec,
+  ): Record<string, { from: unknown; to: unknown }> {
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+
+    // Get the edited fields from the metadata
+    const editedFields = record.__edited_fields;
+
+    for (const [fieldName] of Object.entries(editedFields)) {
+      // Skip special metadata fields
+      if (fieldName.startsWith('__')) {
+        continue;
+      }
+
+      // Find the column spec for this field
+      const column = tableSpec.columns.find((col) => col.id.wsId === fieldName);
+      if (!column) {
+        continue;
+      }
+
+      // For now, we don't have access to the original values, so we'll show the current value
+      // In a real implementation, you might want to store original values or fetch them
+      changes[fieldName] = {
+        from: 'Original value', // TODO: Get actual original value
+        to: record.fields[fieldName],
+      };
+    }
+
+    return changes;
   }
 }
 

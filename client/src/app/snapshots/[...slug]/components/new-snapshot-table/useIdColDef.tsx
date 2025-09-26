@@ -65,9 +65,13 @@ export const useSpecialColDefs = ({ onSettingsClick, resizable = true }: UseIdCo
     width: 22,
     minWidth: 22,
     maxWidth: 22,
-    cellStyle: () => {
+    cellStyle: (params) => {
+      const record = params.data as SnapshotRecord;
+      const isDeleted = record?.__edited_fields?.__deleted;
+
       return {
         padding: 5,
+        backgroundColor: isDeleted ? (isLightMode ? '#fde0e0' : '#4a1a1a') : 'transparent',
       };
     },
     valueGetter: () => '',

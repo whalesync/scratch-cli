@@ -5,7 +5,7 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { GridApi } from 'ag-grid-community';
-import { Filter, FilterX, List, ListChecks, Rows3, Square } from 'lucide-react';
+import { Columns3, FileText, Filter, FilterX, List, ListChecks, Rows3, Square, Trash2, Undo2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface TableContextMenuProps {
@@ -15,6 +15,7 @@ interface TableContextMenuProps {
   gridApi: GridApi<SnapshotRecord> | null;
   tableColumns: Array<{ id: { wsId: string }; name: string }>;
   tableId: string;
+  onShowRecordJson?: (record: SnapshotRecord) => void;
 }
 
 export const TableContextMenu: React.FC<TableContextMenuProps> = ({
@@ -24,6 +25,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   gridApi,
   tableColumns,
   tableId,
+  onShowRecordJson,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -31,7 +33,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
 
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
-  const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
+  const { acceptCellValues, rejectCellValues, refreshRecords, bulkUpdateRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: tableId,
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
@@ -141,6 +143,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
 
   // Get focused cell information
   const focusedCell = gridApi?.getFocusedCell();
+
   let focusedCellInfo: {
     recordId: string;
     fieldId: string;
@@ -150,7 +153,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   } | null = null;
 
   if (focusedCell && gridApi) {
-    const rowNode = gridApi.getRowNode(focusedCell.rowIndex.toString());
+    const rowNode = gridApi.getDisplayedRowAtIndex(focusedCell.rowIndex);
     const record = rowNode?.data as SnapshotRecord;
     const column = tableColumns.find((col) => col.id.wsId === focusedCell.column.getColId());
 
@@ -462,6 +465,75 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     }
   };
 
+  const handleShowRecordJson = () => {
+    if (selectedRows.length === 1 && onShowRecordJson) {
+      onShowRecordJson(selectedRows[0]);
+      onClose();
+    }
+  };
+
+  const handleDeleteRecords = async () => {
+    if (selectedRows.length === 0) return;
+
+    try {
+      setIsProcessing(true);
+      onClose(); // Close menu immediately
+
+      const ops = selectedRows.map((record) => ({
+        op: 'delete' as const,
+        wsId: record.id.wsId,
+      }));
+
+      await bulkUpdateRecords({ ops });
+
+      ScratchpadNotifications.success({
+        title: 'Records Deleted',
+        message: `Deleted ${selectedRows.length} ${selectedRows.length === 1 ? 'record' : 'records'}`,
+      });
+
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error deleting records:', error);
+      ScratchpadNotifications.error({
+        title: 'Error deleting records',
+        message: error instanceof Error ? error.message : 'Failed to delete records',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUndeleteRecords = async () => {
+    if (selectedRows.length === 0) return;
+
+    try {
+      setIsProcessing(true);
+      onClose(); // Close menu immediately
+
+      const ops = selectedRows.map((record) => ({
+        op: 'undelete' as const,
+        wsId: record.id.wsId,
+      }));
+
+      await bulkUpdateRecords({ ops });
+
+      ScratchpadNotifications.success({
+        title: 'Records Restored',
+        message: `Restored ${selectedRows.length} ${selectedRows.length === 1 ? 'record' : 'records'}`,
+      });
+
+      await refreshRecords();
+    } catch (error) {
+      console.error('Error restoring records:', error);
+      ScratchpadNotifications.error({
+        title: 'Error restoring records',
+        message: error instanceof Error ? error.message : 'Failed to restore records',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div
       ref={menuRef}
@@ -485,7 +557,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       }}
     >
       {/* Row Actions */}
-      {selectedRowsWithSuggestions.length > 0 && (
+      {selectedRows.length > 0 && (
         <div style={{ padding: '4px 0' }}>
           <div
             style={{
@@ -501,8 +573,72 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
             <StyledLucideIcon Icon={Rows3} size={12} c="#888" />
             Row Actions
           </div>
+
+          {/* Suggestion actions - only show if there are suggestions */}
+          {selectedRowsWithSuggestions.length > 0 && (
+            <>
+              <div
+                onClick={handleAcceptSelectedRows}
+                style={{
+                  padding: '8px 12px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  opacity: isProcessing ? 0.5 : 1,
+                  backgroundColor: 'transparent',
+                  transition: 'background-color 0.1s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.backgroundColor = '#3a3a3a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
+                <span>
+                  Accept {totalSuggestionsForSelectedRows}{' '}
+                  {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
+                  {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
+                </span>
+              </div>
+              <div
+                onClick={handleRejectSelectedRows}
+                style={{
+                  padding: '8px 12px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  opacity: isProcessing ? 0.5 : 1,
+                  backgroundColor: 'transparent',
+                  transition: 'background-color 0.1s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.backgroundColor = '#3a3a3a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
+                <span>
+                  Reject {totalSuggestionsForSelectedRows}{' '}
+                  {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
+                  {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Filter actions - always show for any selected rows */}
           <div
-            onClick={handleAcceptSelectedRows}
+            onClick={handleFilterOutRecords}
             style={{
               padding: '8px 12px',
               cursor: isProcessing ? 'not-allowed' : 'pointer',
@@ -522,15 +658,11 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
-            <span>
-              Accept {totalSuggestionsForSelectedRows}{' '}
-              {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
-              {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
-            </span>
+            <StyledLucideIcon Icon={FilterX} size={16} c="#888" />
+            <span>Filter Out Records</span>
           </div>
           <div
-            onClick={handleRejectSelectedRows}
+            onClick={handleFilterInRecords}
             style={{
               padding: '8px 12px',
               cursor: isProcessing ? 'not-allowed' : 'pointer',
@@ -550,13 +682,87 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
-            <span>
-              Reject {totalSuggestionsForSelectedRows}{' '}
-              {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
-              {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
-            </span>
+            <StyledLucideIcon Icon={Filter} size={16} c="#888" />
+            <span>Filter In Records</span>
           </div>
+
+          {/* Record actions - only show for single row selection */}
+          {selectedRows.length === 1 && (
+            <>
+              <div
+                onClick={handleShowRecordJson}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'transparent',
+                  transition: 'background-color 0.1s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3a3a3a';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <StyledLucideIcon Icon={FileText} size={16} c="#888" />
+                <span>View Record as JSON</span>
+              </div>
+              {selectedRows[0].__edited_fields?.__deleted ? (
+                <div
+                  onClick={handleUndeleteRecords}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: isProcessing ? 0.5 : 1,
+                    backgroundColor: 'transparent',
+                    transition: 'background-color 0.1s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.backgroundColor = '#3a3a3a';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <StyledLucideIcon Icon={Undo2} size={16} c="#00aa00" />
+                  <span>Restore Record</span>
+                </div>
+              ) : (
+                <div
+                  onClick={handleDeleteRecords}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: isProcessing ? 0.5 : 1,
+                    backgroundColor: 'transparent',
+                    transition: 'background-color 0.1s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.backgroundColor = '#3a3a3a';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <StyledLucideIcon Icon={Trash2} size={16} c="#ff0000" />
+                  <span>Delete Record</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -642,7 +848,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               gap: '6px',
             }}
           >
-            <StyledLucideIcon Icon={Square} size={12} c="#888" />
+            <StyledLucideIcon Icon={Columns3} size={12} c="#888" />
             Column Actions
           </div>
           <div
@@ -692,61 +898,6 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
           >
             <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
             <span>Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Actions */}
-      {selectedRows.length > 0 && (
-        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Filtering</div>
-          <div
-            onClick={handleFilterOutRecords}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={FilterX} size={16} c="#888" />
-            <span>Filter Out Records</span>
-          </div>
-          <div
-            onClick={handleFilterInRecords}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={Filter} size={16} c="#888" />
-            <span>Filter In Records</span>
           </div>
         </div>
       )}

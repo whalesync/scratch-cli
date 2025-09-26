@@ -27,6 +27,7 @@ import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
+import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -89,6 +90,12 @@ export class SnapshotController {
   @Post(':id/publish')
   async publish(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     return this.service.publish(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/publish-summary')
+  async getPublishSummary(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<PublishSummaryDto> {
+    return await this.service.getPublishSummary(id, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

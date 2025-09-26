@@ -30,6 +30,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 // import 'ag-grid-community/styles/ag-theme-quartz.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
+import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
 import { SettingsModal } from './SettingsModal';
 import { TableContextMenu } from './TableContextMenu';
@@ -41,10 +42,11 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
-  const { records, error, isLoading, acceptCellValues, rejectCellValues } = useSnapshotTableRecords({
-    snapshotId: snapshot.id,
-    tableId: table.id.wsId,
-  });
+  const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically } =
+    useSnapshotTableRecords({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+    });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
   const { activeRecord } = useTableContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
@@ -55,6 +57,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<string | undefined>(undefined);
   const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
+  const [jsonModalRecord, setJsonModalRecord] = useState<SnapshotRecord | null>(null);
   // const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
 
   const showRecordDetails = useCallback(() => {
@@ -160,7 +163,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
-  const { cellRenderer } = useCellRenderer(table);
+  const { cellRenderer } = useCellRenderer(table, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: !recordDetailsVisible,
@@ -170,6 +173,17 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu((prev) => ({ ...prev, isOpen: false }));
   }, []);
+
+  const handleShowRecordJson = useCallback((record: SnapshotRecord) => {
+    setJsonModalRecord(record);
+  }, []);
+
+  const handleRecordUpdate = useCallback(
+    (recordId: string, field: string, value: string) => {
+      updateRecordOptimistically(recordId, field, value);
+    },
+    [updateRecordOptimistically],
+  );
 
   // Handlers for record details mode
   const handleCloseRecordDetails = useCallback(() => {
@@ -187,19 +201,18 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // Handle Esc key to close record view
+      if (event.key === 'Escape' && recordDetailsVisible) {
+        // event.preventDefault();
+        handleCloseRecordDetails();
+        return;
+      }
       // Only handle keyboard events if they originate from within the AG Grid
       const target = event.target as HTMLElement;
       const isFromGrid = target?.closest('.ag-root-wrapper') !== null;
 
       if (!isFromGrid) {
         return; // Ignore events from outside the grid (like AI chat)
-      }
-
-      // Handle Esc key to close record view
-      if (event.key === 'Escape' && recordDetailsVisible) {
-        event.preventDefault();
-        handleCloseRecordDetails();
-        return;
       }
 
       // Handle Enter key to open record view with current focused cell
@@ -496,7 +509,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = (params) => {
       const record = params.data;
 
-      const hasSuggestion = record?.__suggested_values?.[column.id.wsId];
+      const hasSuggestion = record?.__edited_fields?.[column.id.wsId];
       const isReadOnly = column.readonly;
 
       // Check if this cell is in the same column as the focused cell
@@ -757,6 +770,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
                       acceptCellValues={acceptCellValues}
                       rejectCellValues={rejectCellValues}
                       onFocusOnField={handleFieldFocus}
+                      onRecordUpdate={handleRecordUpdate}
                     />
                   </ScrollArea>
                 </Box>
@@ -791,6 +805,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         gridApi={gridApi}
         tableColumns={table.columns}
         tableId={table.id.wsId}
+        onShowRecordJson={handleShowRecordJson}
       />
 
       {/* Settings Modal */}
@@ -803,6 +818,9 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         onShowDataTypeToggle={setShowDataTypeInHeader}
         onClearColumnState={clearColumnState}
       />
+
+      {/* Record JSON Modal */}
+      <RecordJsonModal isOpen={!!jsonModalRecord} onClose={() => setJsonModalRecord(null)} record={jsonModalRecord} />
     </Box>
   );
 };

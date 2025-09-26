@@ -1,4 +1,5 @@
 import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
+import { PublishSummary } from '@/types/server-entities/publish-summary';
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -97,6 +98,22 @@ export const snapshotApi = {
     if (!res.ok) {
       throw new ScratchpadApiError(res.statusText ?? "Failed to start publish", res.status, res.statusText);
     }
+  },
+
+  async getPublishSummary(id: string): Promise<PublishSummary> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${id}/publish-summary`,
+      {
+        method: "GET",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new ScratchpadApiError(res.statusText ?? "Failed to get publish summary", res.status, res.statusText);
+    }
+    return res.json();
   },
 
   async delete(id: string): Promise<void> {

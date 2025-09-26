@@ -1,0 +1,33 @@
+.my-grid[class*='ag-theme'] .ag-header {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid #c8ced5 !important;
+}
+
+.my-grid[class*='ag-theme'] .ag-header-cell {
+  background: transparent;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.my-grid[class*='ag-theme'] .ag-header-row {
+  background: transparent;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-header {
+  border-bottom: 1px solid white !important;
+}
+
+/* header */
+
+.my-grid.ag-theme-alpine .ag-header-cell-text {
+  color: black !important;
+  font-weight: 500 !important;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-header-cell-text {
+  color: var(--mantine-color-gray-6) !important;
+}
+
+/* Make header cells transparent and align padding with cells */

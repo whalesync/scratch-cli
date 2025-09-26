@@ -1,13 +1,17 @@
-import { DiffText } from '@/app/components/DiffText';
+import { DiffText2 } from '@/app/components/DiffText2';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, TableSpec, formatFieldValue } from '@/types/server-entities/snapshot';
-import { Box, Text } from '@mantine/core';
+import { ActionIcon, Box, Group, Text } from '@mantine/core';
 import { ICellRendererParams } from 'ag-grid-community';
+import { Check, X } from 'lucide-react';
+import { useState } from 'react';
 // Custom cell renderer with diff support for suggested values
 
-export const useCellRenderer = (table: TableSpec) => {
-  // const { colorScheme } = useMantineColorScheme();
-  // const isLightMode = colorScheme === 'light';
-
+export const useCellRenderer = (
+  table: TableSpec,
+  acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
+  rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
+) => {
   type TValue = unknown;
   type TContext = unknown;
   const cellRenderer = (params: ICellRendererParams<SnapshotRecord, TValue, TContext>): React.ReactNode => {
@@ -34,33 +38,131 @@ export const useCellRenderer = (table: TableSpec) => {
     const suggestedValue = record?.__suggested_values?.[columnDef.id.wsId];
     // const colors = isLightMode ? AG.colors.light : AG.colors.dark;
     if (suggestedValue) {
+      const SuggestionButtons = () => {
+        const [isProcessing, setIsProcessing] = useState(false);
+
+        const handleAccept = async (e: React.MouseEvent) => {
+          console.log('🟢 Accept button clicked!', { recordId: record.id.wsId, columnId: columnDef.id.wsId });
+          e.preventDefault();
+          e.stopPropagation();
+          if (!acceptCellValues || isProcessing) return;
+          try {
+            setIsProcessing(true);
+            await acceptCellValues([{ wsId: record.id.wsId, columnId: columnDef.id.wsId }]);
+            ScratchpadNotifications.success({
+              title: 'Suggestion Accepted',
+              message: `Accepted suggestion for ${columnDef.name}`,
+            });
+          } catch (error) {
+            debugger;
+            console.error('Error accepting suggestion:', error);
+            ScratchpadNotifications.error({
+              title: 'Error accepting suggestion',
+              message: error instanceof Error ? error.message : 'Failed to accept suggestion',
+            });
+          } finally {
+            debugger;
+            setIsProcessing(false);
+          }
+        };
+
+        const handleReject = async (e: React.MouseEvent) => {
+          console.log('🔴 Reject button clicked!', { recordId: record.id.wsId, columnId: columnDef.id.wsId });
+          e.preventDefault();
+          e.stopPropagation();
+          if (!rejectCellValues || isProcessing) return;
+
+          try {
+            setIsProcessing(true);
+            await rejectCellValues([{ wsId: record.id.wsId, columnId: columnDef.id.wsId }]);
+            ScratchpadNotifications.success({
+              title: 'Suggestion Rejected',
+              message: `Rejected suggestion for ${columnDef.name}`,
+            });
+          } catch (error) {
+            console.error('Error rejecting suggestion:', error);
+            ScratchpadNotifications.error({
+              title: 'Error rejecting suggestion',
+              message: error instanceof Error ? error.message : 'Failed to reject suggestion',
+            });
+          } finally {
+            setIsProcessing(false);
+          }
+        };
+
+        return (
+          <Group
+            gap={2}
+            style={{
+              position: 'absolute',
+              right: '0px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 1000,
+            }}
+            className="suggestion-buttons"
+          >
+            <ActionIcon
+              size="xs"
+              variant="light"
+              color="green"
+              // onClick={handleAccept}
+              onMouseDown={handleAccept}
+              disabled={isProcessing}
+            >
+              <Check size={10} />
+            </ActionIcon>
+            <ActionIcon
+              size="xs"
+              variant="light"
+              color="red"
+              // onClick={handleReject}
+              onMouseDown={handleReject}
+              disabled={isProcessing}
+            >
+              <X size={10} />
+            </ActionIcon>
+          </Group>
+        );
+      };
+
       // If there's no existing value, just show the suggested value
       if (!formattedValue || formattedValue === '' || formattedValue === 'null' || formattedValue === 'undefined') {
         return (
           <Box
             display="flex"
             h="100%"
-            style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+            style={{
+              alignItems: 'center',
+              overflow: 'hidden',
+              textOverflow: 'clip',
+              whiteSpace: 'nowrap',
+              position: 'relative',
+            }}
+            className="cell-with-suggestion"
           >
-            <Text
-              className="cell-text" // css class for the text in the cell
-            >
-              {String(suggestedValue)}
-            </Text>
+            <Text className="cell-text">{String(suggestedValue)}</Text>
+            <SuggestionButtons />
           </Box>
         );
       }
 
       // Use diff to show changes when there's both existing and suggested values
-      // const changes = diffWordsWithSpace(formattedValue, String(suggestedValue));
-
       return (
         <Box
           display="flex"
           h="100%"
-          style={{ alignItems: 'center', overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' }}
+          style={{
+            alignItems: 'center',
+            overflow: 'hidden',
+            textOverflow: 'clip',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+          }}
+          className="cell-with-suggestion"
         >
-          <DiffText originalValue={formattedValue} suggestedValue={String(suggestedValue)} />
+          <DiffText2 originalValue={formattedValue} suggestedValue={String(suggestedValue)} />
+          <SuggestionButtons />
         </Box>
       );
     }

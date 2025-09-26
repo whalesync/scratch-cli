@@ -30,6 +30,7 @@ export interface UseSnapshotRecordsReturn {
     acceptAllSuggestions: () => Promise<AcceptAllSuggestionsResult>;
     rejectAllSuggestions: () => Promise<RejectAllSuggestionsResult>;
     createNewRecord: () => Promise<void>;
+    updateRecordOptimistically: (recordId: string, field: string, value: string) => void;
   }
   
   export const useSnapshotTableRecords = (args: {
@@ -236,6 +237,42 @@ export interface UseSnapshotRecordsReturn {
       await bulkUpdateRecords(dto);
       
     }, [snapshot, tableId, bulkUpdateRecords]);
+
+    const updateRecordOptimistically = useCallback((recordId: string, field: string, value: string) => {
+      const optimisticData = (data: ListRecordsResponse | undefined) => {
+        if (!data) {
+          return undefined;
+        }
+
+        const newRecords = [...data.records];
+        const recordIndex = newRecords.findIndex((r) => r.id.wsId === recordId);
+        
+        if (recordIndex === -1) {
+          return data;
+        }
+
+        // Clone the record to avoid mutating the original cache
+        const record = { ...newRecords[recordIndex] };
+        
+        // Update the data field
+        record.fields = { ...record.fields, [field]: value };
+        
+        // Update the edited fields metadata
+        const newEditedFields = { ...(record.__edited_fields || {}) };
+        newEditedFields[field] = new Date().toISOString();
+        record.__edited_fields = newEditedFields;
+        
+        newRecords[recordIndex] = record;
+
+        return {
+          ...data,
+          records: newRecords,
+        };
+      };
+
+      // Update the cache optimistically without revalidation
+      mutate(swrKey, optimisticData(data), { revalidate: false });
+    }, [mutate, swrKey, data]);
   
     return {
       records: data?.records ?? undefined,
@@ -252,6 +289,7 @@ export interface UseSnapshotRecordsReturn {
       acceptAllSuggestions,
       rejectAllSuggestions,
       createNewRecord,
+      updateRecordOptimistically,
     };
   };
   

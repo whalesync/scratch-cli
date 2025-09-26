@@ -1,0 +1,12 @@
+/* Make rows transparent to show body background */
+.my-grid[class*='ag-theme'] .ag-row-odd {
+  background: transparent;
+}
+
+.my-grid[class*='ag-theme'] .ag-row-even {
+  background: transparent;
+}
+
+.my-grid[class*='ag-theme'] .ag-row {
+  background: transparent;
+}

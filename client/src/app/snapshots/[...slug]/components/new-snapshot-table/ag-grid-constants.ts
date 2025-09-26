@@ -1,4 +1,8 @@
 
+/**
+ * TODO: move these to a CSS module
+ */
+
 const suggestionGreen = `rgba(44, 233, 213, 1)`
 const suggestionBlue = `rgba(5, 81, 207, 1)`
 export const AG = {

@@ -2,9 +2,10 @@ import '@mantine/notifications/styles.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import '../ag-grid-css';
+// import '../ag-grid-css/ag-grid-global.css';
+// import '../ag-grid-css/ag-grid-variables.css';
 import './globals.css';
-import './snapshots/[...slug]/components/new-snapshot-table/ag-grid-global.css';
-import './snapshots/[...slug]/components/new-snapshot-table/ag-grid-variables.css';
 
 const inter = Inter({ subsets: ['latin'] });
 

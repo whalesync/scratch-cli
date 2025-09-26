@@ -3,6 +3,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { snapshotApi } from '@/lib/api/snapshot';
+import { serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -30,6 +31,7 @@ import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
+import { PublishConfirmationModal } from './PublishConfirmationModal';
 
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
@@ -40,6 +42,7 @@ export const SnapshotActionsMenu = () => {
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotResult | null>(null);
   const [snapshotName, setSnapshotName] = useState(snapshot?.name ?? '');
   const [saving, setSaving] = useState(false);
+  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -85,9 +88,16 @@ export const SnapshotActionsMenu = () => {
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
+    if (!snapshot) return;
+    setShowPublishConfirmation(true);
+  };
+
+  const handleConfirmPublish = async () => {
     if (!snapshot) return;
     try {
+      setSaving(true);
+      setShowPublishConfirmation(false);
       modalStack.open('publish');
       await publish?.();
 
@@ -101,7 +111,7 @@ export const SnapshotActionsMenu = () => {
         autoClose: 2000,
       });
     } catch (e) {
-      console.log(e);
+      console.debug(e);
       notifications.update({
         id: 'publish-notification',
         title: 'Publish failed',
@@ -111,6 +121,7 @@ export const SnapshotActionsMenu = () => {
         autoClose: 2000,
       });
     } finally {
+      setSaving(false);
       modalStack.close('publish');
     }
   };
@@ -205,6 +216,16 @@ export const SnapshotActionsMenu = () => {
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
+      {connectorAccount && (
+        <PublishConfirmationModal
+          isOpen={showPublishConfirmation}
+          onClose={() => setShowPublishConfirmation(false)}
+          onConfirm={handleConfirmPublish}
+          snapshotId={snapshot?.id ?? ''}
+          serviceName={serviceName(connectorAccount?.service)}
+          isPublishing={saving}
+        />
+      )}
     </>
   );
 };

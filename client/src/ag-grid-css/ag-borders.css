@@ -1,0 +1,33 @@
+/* ----- Row Border ----- */
+.my-grid.ag-theme-alpine {
+  --ag-row-border-color: transparent;
+  --ag-row-border-width: 0px;
+}
+
+.my-grid.ag-theme-alpine-dark {
+  --ag-row-border-color: transparent;
+  --ag-row-border-width: 0px;
+}
+
+/* ----- Column Border ----- */
+.my-grid.ag-theme-alpine .ag-cell {
+  border-left: 1px solid #c8ced4;
+  border-top: 0px;
+  border-bottom: 0px;
+  border-right: 0px;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-cell {
+  border-left: 1px solid #c8ced4;
+  border-top: 0px;
+  border-bottom: 0px;
+  border-right: 0px;
+}
+
+/* ----- Border of the PINNED AREA ONLY ----- */
+.my-grid.ag-theme-alpine {
+  --ag-border-color: transparent;
+}
+.my-grid.ag-theme-alpine-dark {
+  --ag-border-color: transparent;
+}

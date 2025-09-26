@@ -15,6 +15,7 @@ interface RecordDetailsProps {
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   onFocusOnField?: (columnId: string | undefined) => void;
+  onRecordUpdate?: (recordId: string, field: string, value: string) => void;
 }
 
 export const RecordDetails = ({
@@ -24,6 +25,7 @@ export const RecordDetails = ({
   acceptCellValues,
   rejectCellValues,
   onFocusOnField,
+  onRecordUpdate,
 }: RecordDetailsProps) => {
   const { currentView } = useSnapshotContext();
   const { addPendingChange, savingPendingChanges } = useTableContext();
@@ -35,11 +37,14 @@ export const RecordDetails = ({
     async (field: string, value: string) => {
       if (!currentRecord) return;
 
-      // Update the local in-memory copy of the record
-      currentRecord.fields[field] = value;
+      // Notify parent to update the cache optimistically
+      if (onRecordUpdate) {
+        onRecordUpdate(currentRecord.id.wsId, field, value);
+      }
+
       addPendingChange({ recordWsId: currentRecord.id.wsId, field, value });
     },
-    [currentRecord, addPendingChange],
+    [currentRecord, addPendingChange, onRecordUpdate],
   );
   const handleFocusOnField = useCallback(
     (columnId: string | undefined) => {

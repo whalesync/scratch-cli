@@ -1,0 +1,209 @@
+/* Cell text colors for light and dark themes */
+.my-grid.ag-theme-alpine .ag-cell .cell-text {
+  color: black;
+  font-family: 'Inter', 'Inter Fallback';
+  font-size: 13px;
+}
+
+/* Remove cell focus outline so that we can apply completely custom focus styles */
+.my-grid[class*='ag-theme'] .ag-cell-focus {
+  box-shadow: none !important;
+}
+
+.my-grid.ag-theme-alpine .ag-cell-focus {
+  --corner-border-width: 1px;
+  --corner-border-color: black;
+  --corner-border-length: 6px;
+  /* Mirror the regular border here */
+  border-left: 1px solid #c8ced4 !important;
+  border-top: 0px !important;
+  border-bottom: 0px !important;
+  border-right: 0px !important;
+  /* Then use the linear gradients for the corners as a background image */
+  background-image:
+      /* Top Left - Horizontal */
+    linear-gradient(
+      to right,
+      var(--corner-border-color) var(--corner-border-width),
+      transparent var(--corner-border-width)
+    ),
+    /* Top Left - Vertical */
+      linear-gradient(
+        to bottom,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Top Right - Horizontal */
+      linear-gradient(
+        to left,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Top Right - Vertical */
+      linear-gradient(
+        to bottom,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Left - Horizontal */
+      linear-gradient(
+        to right,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Left - Vertical */
+      linear-gradient(
+        to top,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Right - Horizontal */
+      linear-gradient(
+        to left,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Right - Vertical */
+      linear-gradient(
+        to top,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      );
+  background-position:
+    0 0,
+    0 0,
+    100% 1px,
+    100% 0,
+    0 100%,
+    0 calc(100% - var(--corner-border-width)),
+    100% 100%,
+    100% calc(100% - var(--corner-border-width));
+  background-size:
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length);
+  background-repeat: no-repeat;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-cell-focus {
+  --corner-border-width: 1px;
+  --corner-border-color: white;
+  --corner-border-length: 6px;
+  /* Mirror the regular border here */
+  border-left: 1px solid #c8ced4 !important;
+  border-top: 0px !important;
+  border-bottom: 0px !important;
+  border-right: 0px !important;
+  /* Then use the linear gradients for the corners as a background image */
+  background-image:
+      /* Top Left - Horizontal */
+    linear-gradient(
+      to right,
+      var(--corner-border-color) var(--corner-border-width),
+      transparent var(--corner-border-width)
+    ),
+    /* Top Left - Vertical */
+      linear-gradient(
+        to bottom,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Top Right - Horizontal */
+      linear-gradient(
+        to left,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Top Right - Vertical */
+      linear-gradient(
+        to bottom,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Left - Horizontal */
+      linear-gradient(
+        to right,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Left - Vertical */
+      linear-gradient(
+        to top,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Right - Horizontal */
+      linear-gradient(
+        to left,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      ),
+    /* Bottom Right - Vertical */
+      linear-gradient(
+        to top,
+        var(--corner-border-color) var(--corner-border-width),
+        transparent var(--corner-border-width)
+      );
+  background-position:
+    0 0,
+    0 0,
+    100% 1px,
+    100% 0,
+    0 100%,
+    0 calc(100% - var(--corner-border-width)),
+    100% 100%,
+    100% calc(100% - var(--corner-border-width));
+  background-size:
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length),
+    var(--corner-border-length) var(--corner-border-length);
+  background-repeat: no-repeat;
+}
+
+/* Suggestion buttons - show on hover */
+.my-grid .ag-cell {
+  padding-right: 8px !important;
+}
+
+/* Suggestion buttons - show on hover */
+.my-grid .ag-cell:hover .cell-with-suggestion .suggestion-buttons {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.my-grid .cell-with-suggestion .suggestion-buttons {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Corner indicators for selected cells */
+/* 
+.my-grid .ag-cell-selected {
+  background-image:
+    linear-gradient(135deg, #2196f3 0%, #2196f3 50%, transparent 50%),
+    linear-gradient(225deg, #2196f3 0%, #2196f3 50%, transparent 50%),
+    linear-gradient(315deg, #2196f3 0%, #2196f3 50%, transparent 50%),
+    linear-gradient(45deg, #2196f3 0%, #2196f3 50%, transparent 50%);
+  background-position:
+    top left,
+    top right,
+    bottom left,
+    bottom right;
+  background-size:
+    8px 8px,
+    8px 8px,
+    8px 8px,
+    8px 8px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+} */
