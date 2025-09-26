@@ -2,7 +2,6 @@
 
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { Center, Group, Loader, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
@@ -10,6 +9,7 @@ import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../componen
 import { TextRegularSm } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
+import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 import { ConnectorRow } from './components/ConnectorRow';
 import { CreateConnectionModal } from './components/CreateConnectionModal';
 import { UpdateConnectionModal } from './components/UpdateConnectionModal';
@@ -27,16 +27,14 @@ export default function ConnectorAccountsPage() {
     setTestingId(id);
     const r = await testConnection(id);
     if (r.health === 'error') {
-      notifications.show({
+      ScratchpadNotifications.error({
         title: 'Connection Test Failed',
         message: r.error,
-        color: 'red',
       });
     } else {
-      notifications.show({
+      ScratchpadNotifications.success({
         title: 'Connection Test Succeeded',
         message: 'Successfully connected to the service.',
-        color: 'green',
       });
     }
     setTestingId(null);
@@ -50,10 +48,10 @@ export default function ConnectorAccountsPage() {
       setSelectedConnectorAccount(null);
     } catch (e) {
       console.error(e);
-      notifications.show({
+      ScratchpadNotifications.error({
         title: 'Error',
         message: 'Failed to delete connection.',
-        color: 'red',
+        autoClose: 5000,
       });
     } finally {
       setIsDeleting(false);

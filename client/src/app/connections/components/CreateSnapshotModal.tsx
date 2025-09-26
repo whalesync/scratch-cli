@@ -164,7 +164,7 @@ export const CreateSnapshotModal = ({
         {isLoadingTables ? (
           <Center mih={200}>
             <Group gap="sm">
-              <Loader />
+              <Loader c="primary" />
               <Text>Loading {tableTermPlural}...</Text>
             </Group>
           </Center>

@@ -1,12 +1,12 @@
 'use client';
 
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { Snapshot, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
-import { notifications } from '@mantine/notifications';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useSWRConfig } from 'swr';
 
@@ -103,10 +103,9 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
 
       try {
         await snapshotApi.clearActiveRecordFilter(snapshot.id, tableId);
-        notifications.show({
+        ScratchpadNotifications.success({
           title: 'Filter Cleared',
           message: 'All records are now visible',
-          color: 'green',
         });
 
         // Invalidate records cache to refresh the data
@@ -119,10 +118,10 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
         );
       } catch (e) {
         const error = e as Error;
-        notifications.show({
+        ScratchpadNotifications.error({
           title: 'Error clearing filter',
           message: error.message,
-          color: 'red',
+          autoClose: 5000,
         });
       }
     },

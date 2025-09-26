@@ -4,6 +4,7 @@ import classes from './notifications.module.css';
 interface NotificationData {
   title?: string;
   message: string;
+  autoClose?: number;
 };
 
 /* 
@@ -18,6 +19,7 @@ export const ScratchpadNotifications = {
       variant: 'light',
       position: 'bottom-right',
       classNames: classes,
+      autoClose: data.autoClose,
     });
   },
   success: (data: NotificationData) => {
@@ -28,6 +30,7 @@ export const ScratchpadNotifications = {
       variant: 'light',
       position: 'bottom-right',
       classNames: classes,
+      autoClose: data.autoClose,
     });
   },
   warning: (data: NotificationData) => {
@@ -38,6 +41,7 @@ export const ScratchpadNotifications = {
       variant: 'light',
       position: 'bottom-right',
       classNames: classes,
+      autoClose: data.autoClose,
     });
   },
   error: (data: NotificationData) => {
@@ -48,6 +52,7 @@ export const ScratchpadNotifications = {
       variant: 'light',
       position: 'bottom-right',
       classNames: classes,
+      autoClose: data.autoClose,
     });
   },
 };

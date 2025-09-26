@@ -7,19 +7,7 @@ import { serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import {
-  ActionIcon,
-  CheckIcon,
-  Group,
-  Loader,
-  Menu,
-  Modal,
-  Stack,
-  Text,
-  TextInput,
-  useModalsStack,
-} from '@mantine/core';
-import { notifications } from '@mantine/notifications';
+import { ActionIcon, Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import {
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
@@ -100,24 +88,17 @@ export const SnapshotActionsMenu = () => {
       modalStack.open('publish');
       await publish?.();
 
-      notifications.update({
-        id: 'publish-notification',
+      ScratchpadNotifications.success({
         title: 'Published',
         message: `Your data has been published to ${connectorAccount?.service}`,
-        color: 'green',
-        icon: <CheckIcon size={18} />,
-        loading: false,
-        autoClose: 2000,
+        autoClose: 5000,
       });
     } catch (e) {
       console.debug(e);
-      notifications.update({
-        id: 'publish-notification',
+      ScratchpadNotifications.error({
         title: 'Publish failed',
         message: (e as Error).message ?? 'There was an error publishing your data',
-        color: 'red',
-        loading: false,
-        autoClose: 2000,
+        autoClose: 5000,
       });
     } finally {
       setSaving(false);
