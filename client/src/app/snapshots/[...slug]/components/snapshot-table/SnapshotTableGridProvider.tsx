@@ -32,7 +32,7 @@ import { createContext, ReactNode, useCallback, useContext, useMemo, useState } 
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useUpsertView } from '../../../../../hooks/use-view';
 import { ICONS } from '../../icons';
-import { useTableContext } from '../contexts/table-context';
+// import { useTableContext } from '../contexts/table-context';
 import { ContextMenu, MenuItem } from '../types';
 import { ACCEPT_REJECT_GROUP_NAME, COLUMN_VIEW_GROUP_NAME, MENU_ICON_SIZE } from './menus/constants';
 import { useContextMenuItems } from './useContextMenuItems';
@@ -66,7 +66,7 @@ export const SnapshotTableGridProvider = ({
 }: SnapshotTableGridProps & { children: ReactNode }) => {
   // From higher level contexts
   const { refreshViews, setCurrentViewId, currentView, currentViewId, viewDataAsAgent } = useSnapshotContext();
-  const { switchToRecordView } = useTableContext();
+  // const { switchDisplayMode } = useTableContext();
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus, clearAllFocus } =
     useAgentChatContext();
 
@@ -245,11 +245,11 @@ export const SnapshotTableGridProvider = ({
         event.preventDefault();
         const record = sortedRecords?.[row];
         if (!record) return;
-        const column = table.columns[col - FAKE_LEFT_COLUMNS];
-        switchToRecordView(record.id.wsId, column?.id.wsId);
+        // const column = table.columns[col - FAKE_LEFT_COLUMNS];
+        // switchToRecordView(record.id.wsId, column?.id.wsId);
       }
     },
-    [bulkUpdateRecords, switchToRecordView, sortedRecords, table.columns],
+    [bulkUpdateRecords, sortedRecords, table.columns],
   );
 
   const getCellContent = useCallback(
@@ -660,15 +660,15 @@ export const SnapshotTableGridProvider = ({
         e.preventDefault();
         e.stopPropagation();
 
-        const { records, columns } = processedSelection.selectedRecordsAndColumns;
-        if (records.length === 1) {
-          const record = records[0];
-          let columnId: string | undefined;
-          if (columns.length === 1) {
-            columnId = columns[0].id.wsId;
-          }
-          switchToRecordView(record.id.wsId, columnId).catch(console.error);
-        }
+        // const { records, columns } = processedSelection.selectedRecordsAndColumns;
+        // if (records.length === 1) {
+        //   const record = records[0];
+        //   let columnId: string | undefined;
+        //   if (columns.length === 1) {
+        //     columnId = columns[0].id.wsId;
+        //   }
+        //   switchToRecordView(record.id.wsId, columnId).catch(console.error);
+        // }
       } else if (e.key.toLowerCase() === '_' && e.ctrlKey && currentSelection) {
         /* Toggle max column width */
         e.preventDefault();
@@ -700,7 +700,6 @@ export const SnapshotTableGridProvider = ({
       addWriteFocus,
       removeWriteFocus,
       clearAllFocus,
-      switchToRecordView,
       columnWidths,
       setColumnWidths,
     ],
@@ -1241,8 +1240,8 @@ export const SnapshotTableGridProvider = ({
     handleAcceptCell,
     handleRejectCell,
     refreshRecords,
-    async (recordId: string) => {
-      await switchToRecordView(recordId);
+    async () => {
+      // await switchToRecordView(recordId);
     },
   );
 

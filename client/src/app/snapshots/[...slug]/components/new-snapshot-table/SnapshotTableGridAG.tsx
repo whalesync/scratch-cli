@@ -47,7 +47,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
   const { activeRecord } = useTableContext();
-  const { setRecordScope, setColumnScope } = useAgentChatContext();
+  const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
 
   // Record details mode state
@@ -171,11 +171,60 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
     setContextMenu((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
+  // Handlers for record details mode
+  const handleCloseRecordDetails = useCallback(() => {
+    setRecordDetailsVisible(false);
+    setSelectedRecordId(null);
+    setSelectedColumnId(undefined);
+    // Reset data scope back to table
+    setTableScope();
+    // Clear grid selection
+    if (gridApi) {
+      gridApi.deselectAll();
+    }
+  }, [gridApi, setTableScope]);
+
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // When record view is open, ignore left/right arrow keys so record view can handle them
-      if (recordDetailsVisible && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      // Only handle keyboard events if they originate from within the AG Grid
+      const target = event.target as HTMLElement;
+      const isFromGrid = target?.closest('.ag-root-wrapper') !== null;
+
+      if (!isFromGrid) {
+        return; // Ignore events from outside the grid (like AI chat)
+      }
+
+      // Handle Esc key to close record view
+      if (event.key === 'Escape' && recordDetailsVisible) {
+        event.preventDefault();
+        handleCloseRecordDetails();
+        return;
+      }
+
+      // Handle Enter key to open record view with current focused cell
+      if (event.key === 'Enter' && !recordDetailsVisible && gridApi) {
+        event.preventDefault();
+        const focusedCell = gridApi.getFocusedCell();
+        if (focusedCell) {
+          const rowNode = gridApi.getDisplayedRowAtIndex(focusedCell.rowIndex);
+          const record = rowNode?.data as SnapshotRecord;
+          const columnId = focusedCell.column.getColId();
+
+          if (record && record.id?.wsId) {
+            // Find the column definition to get the proper column ID
+            const column = table.columns.find((col) => col.id.wsId === columnId);
+
+            console.debug('Enter key pressed - opening record view:', {
+              recordId: record.id.wsId,
+              columnId: column?.id.wsId,
+            });
+
+            setSelectedRecordId(record.id.wsId);
+            setSelectedColumnId(column?.id.wsId);
+            showRecordDetails();
+          }
+        }
         return;
       }
 
@@ -286,7 +335,7 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         }
       }
     },
-    [gridApi, clipboard, recordDetailsVisible],
+    [gridApi, clipboard, recordDetailsVisible, handleCloseRecordDetails, showRecordDetails, table.columns],
   );
 
   // Handle double click to open record view
@@ -408,16 +457,6 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const handleFieldFocus = useCallback((columnId: string | undefined) => {
     setSelectedColumnId(columnId);
   }, []);
-
-  const handleCloseRecordDetails = useCallback(() => {
-    setRecordDetailsVisible(false);
-    setSelectedRecordId(null);
-    setSelectedColumnId(undefined);
-    // Clear grid selection
-    if (gridApi) {
-      gridApi.deselectAll();
-    }
-  }, [gridApi]);
 
   // Add keyboard event listener for copy functionality
   useEffect(() => {
@@ -563,6 +602,13 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
           defaultColDef={{
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
+            suppressKeyboardEvent: (params) => {
+              // When record view is open, suppress left/right arrow keys so record view can handle them
+              if (recordDetailsVisible && (params.event.key === 'ArrowLeft' || params.event.key === 'ArrowRight')) {
+                return true; // Suppress the keyboard event
+              }
+              return false; // Allow the keyboard event
+            },
           }}
           rowHeight={36}
           headerHeight={35}

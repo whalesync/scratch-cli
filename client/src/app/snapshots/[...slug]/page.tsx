@@ -2,9 +2,9 @@
 
 import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotTableContext } from '@/types/server-entities/snapshot';
-import { ActionIcon, Button, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
+import { ActionIcon, Group, Modal, ScrollArea, useModalsStack } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
-import { FileText, PanelRightIcon, Table } from 'lucide-react';
+import { PanelRightIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
@@ -21,7 +21,6 @@ import { NavbarToggleButton } from '@/app/components/NavbarToggleButton';
 import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
-import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { tablesName } from '@/service-naming-conventions';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
@@ -31,35 +30,34 @@ import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
 import SnapshotTableGridAG from './components/new-snapshot-table/SnapshotTableGridAG';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
-import { RecordView } from './components/RecordView';
-import SnapshotTableGrid from './components/snapshot-table/SnapshotTableGrid';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 
 function SnapshotPageContent() {
-  const { snapshotId: id, tableId, updateSnapshotPath } = useSnapshotParams();
+  const { tableId, updateSnapshotPath } = useSnapshotParams();
   const {
     activeTable,
     setActiveTable,
-    displayMode,
-    switchToSpreadsheetView,
-    switchToRecordView,
-    switchToNewSpreadsheetView,
+    // switchDisplayMode,
+    // displayMode,
+    // switchToSpreadsheetView,
+    // switchToRecordView,
+    // switchToNewSpreadsheetView,
   } = useTableContext();
   const router = useRouter();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
 
-  const { snapshot, isLoading, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { snapshot, isLoading } = useSnapshotContext();
 
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   // Get count information for the current table
-  const { records } = useSnapshotTableRecords({
-    snapshotId: id,
-    tableId: activeTable ? activeTable.id.wsId : '',
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
-  });
+  // const { records } = useSnapshotTableRecords({
+  //   snapshotId: id,
+  //   tableId: activeTable ? activeTable.id.wsId : '',
+  //   viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
+  // });
 
   useEffect(() => {
     if (!activeTable) {
@@ -140,7 +138,7 @@ function SnapshotPageContent() {
           <ConnectorIcon connector={snapshot.connectorService} size={24} />
           <TextTitleXs>{snapshot.name}</TextTitleXs>
         </Group>
-        <Group gap="2px">
+        {/* <Group gap="2px">
           <Button
             variant={displayMode === 'spreadsheet' ? 'outline' : 'transparent'}
             size="xs"
@@ -171,7 +169,7 @@ function SnapshotPageContent() {
           >
             New Table
           </Button>
-        </Group>
+        </Group> */}
       </Group>
 
       <Group ml="auto" gap="xs" align="center">
@@ -195,14 +193,14 @@ function SnapshotPageContent() {
   let content = null;
   let contentFooter = null;
   if (snapshot && activeTable) {
-    content =
-      displayMode === 'spreadsheet' ? (
-        <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
-      ) : displayMode === 'new-spreadsheet' ? (
-        <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />
-      ) : (
-        <RecordView table={activeTable} />
-      );
+    content = <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />;
+    // displayMode === 'spreadsheet' ? (
+    //   <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
+    // ) : displayMode === 'new-spreadsheet' ? (
+    //   <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />
+    // ) : (
+    //   <RecordView table={activeTable} />
+    // );
     contentFooter = <RecordDataToolbar table={activeTable} />;
   }
 
