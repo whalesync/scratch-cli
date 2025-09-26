@@ -24,6 +24,7 @@ import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
+import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
@@ -456,7 +457,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       // Base styles for all cells (gray outer border)
       const backgroundColor = isInFocusedColumn
         ? isLightMode
-          ? 'var(--mantine-color-gray-2)'
+          ? 'var(--mantine-color-gray-4)'
           : 'var(--mantine-color-gray-7)'
         : 'transparent';
       const colors = isLightMode ? AG.colors.light : AG.colors.dark;
@@ -687,19 +688,50 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
                   v2
                   onClose={handleCloseRecordDetails}
                 />
-                <Box p="sm">
-                  <ScrollArea h={`calc(100vh - 150px)`} type="hover" scrollbars="y">
-                    <RecordDetails
-                      snapshotId={snapshot.id}
-                      currentRecord={selectedRecord}
-                      table={table}
-                      currentColumnId={selectedColumnId}
-                      acceptCellValues={acceptCellValues}
-                      rejectCellValues={rejectCellValues}
-                      onFocusOnField={handleFieldFocus}
-                      onRecordUpdate={handleRecordUpdate}
-                    />
-                  </ScrollArea>
+                <Box p="sm" style={{ position: 'relative', height: '100%' }}>
+                  {/* Determine if there are suggestions to adjust layout */}
+                  {(() => {
+                    const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
+                    const hasSuggestions =
+                      columnsWithSuggestions.length > 0 &&
+                      (!selectedColumnId || columnsWithSuggestions.includes(selectedColumnId));
+                    const SUGGESTION_TOOLBAR_HEIGHT = 40;
+
+                    return (
+                      <>
+                        <ScrollArea
+                          h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`}
+                          type="hover"
+                          scrollbars="y"
+                        >
+                          <RecordDetails
+                            snapshotId={snapshot.id}
+                            currentRecord={selectedRecord}
+                            table={table}
+                            currentColumnId={selectedColumnId}
+                            acceptCellValues={acceptCellValues}
+                            rejectCellValues={rejectCellValues}
+                            onFocusOnField={handleFieldFocus}
+                            onRecordUpdate={handleRecordUpdate}
+                          />
+                        </ScrollArea>
+                        {hasSuggestions && (
+                          <RecordSuggestionToolbar
+                            record={selectedRecord}
+                            table={table}
+                            columnId={selectedColumnId}
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: `${SUGGESTION_TOOLBAR_HEIGHT}px`,
+                            }}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
                 </Box>
               </Box>
             ) : (

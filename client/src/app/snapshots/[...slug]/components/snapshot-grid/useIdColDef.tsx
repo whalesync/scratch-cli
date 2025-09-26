@@ -28,7 +28,7 @@ export const useSpecialColDefs = ({
 
     const backgroundColor = isInFocusedColumn
       ? isLightMode
-        ? 'var(--mantine-color-gray-2)'
+        ? 'var(--mantine-color-gray-4)'
         : 'var(--mantine-color-gray-7)'
       : 'transparent';
 
