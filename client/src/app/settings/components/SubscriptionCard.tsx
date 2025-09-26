@@ -7,7 +7,7 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Group } from '@mantine/core';
-import { CreditCardIcon } from '@phosphor-icons/react';
+import { CreditCardIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 
 export const SubscriptionCard = () => {
@@ -17,6 +17,8 @@ export const SubscriptionCard = () => {
   if (!user?.experimentalFlags?.REQUIRE_SUBSCRIPTION) {
     return null;
   }
+
+  const cardIcon = <CreditCardIcon size={16} />;
 
   let content = null;
   if (isSubscribed) {
@@ -29,7 +31,7 @@ export const SubscriptionCard = () => {
           size="xs"
           component="a"
           target="_blank"
-          leftSection={<CreditCardIcon />}
+          leftSection={cardIcon}
           href={RouteUrls.manageSubscriptionPage}
         >
           Manage Subscription
@@ -46,7 +48,7 @@ export const SubscriptionCard = () => {
           size="xs"
           component="a"
           target="_blank"
-          leftSection={<CreditCardIcon />}
+          leftSection={cardIcon}
           href={RouteUrls.manageSubscriptionPage}
         >
           Manage subscription
@@ -61,7 +63,7 @@ export const SubscriptionCard = () => {
           size="xs"
           component="a"
           target="_blank"
-          leftSection={<CreditCardIcon />}
+          leftSection={cardIcon}
           href={RouteUrls.productCheckoutPage(ScratchpadPlanType.STARTER_PLAN)}
         >
           Subscribe

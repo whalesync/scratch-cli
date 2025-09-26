@@ -1,9 +1,9 @@
 import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
-import { StyledIcon } from '@/app/components/Icons/StyledIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
 import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
 import { Box, Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
-import { ArrowDownIcon } from '@phosphor-icons/react';
+import { ArrowDownIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export const AgentUsageInfoCard = () => {
@@ -55,14 +55,14 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
             <Table.Tr>
               <Table.Th onClick={() => setSortBy('model')} style={{ cursor: 'pointer' }} w="50%">
                 Modal
-                {sortBy === 'model' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} ml="xs" />}
+                {sortBy === 'model' && <StyledLucideIcon Icon={ArrowDownIcon} c="gray" size={12} ml="xs" />}
               </Table.Th>
               <Table.Th ta="right" onClick={() => setSortBy('requests')} style={{ cursor: 'pointer' }} w="25%">
-                {sortBy === 'requests' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} mr="xs" />}
+                {sortBy === 'requests' && <StyledLucideIcon Icon={ArrowDownIcon} c="gray" size={12} mr="xs" />}
                 Requests
               </Table.Th>
               <Table.Th ta="right" onClick={() => setSortBy('tokens')} style={{ cursor: 'pointer' }}>
-                {sortBy === 'tokens' && <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} mr="xs" />}
+                {sortBy === 'tokens' && <StyledLucideIcon Icon={ArrowDownIcon} c="gray" size={12} mr="xs" />}
                 Tokens
               </Table.Th>
             </Table.Tr>
@@ -101,7 +101,7 @@ const UsageEventListTab = ({ events }: { events?: AgentUsageEvent[] }) => {
             <Table.Th ta="right">Tokens</Table.Th>
             <Table.Th>
               When
-              <StyledIcon Icon={ArrowDownIcon} c="gray.5" size={12} ml="xs" />
+              <StyledLucideIcon Icon={ArrowDownIcon} c="gray" size={12} ml="xs" />
             </Table.Th>
           </Table.Tr>
         </Table.Thead>

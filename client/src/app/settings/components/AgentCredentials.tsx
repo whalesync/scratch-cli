@@ -1,26 +1,12 @@
 import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
-import { PrimaryButton } from '@/app/components/base/buttons';
+import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
-import {
-  ActionIcon,
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Center,
-  Grid,
-  Group,
-  Loader,
-  Modal,
-  Stack,
-  Text,
-  useModalsStack,
-} from '@mantine/core';
-import { PencilIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { Alert, Badge, Box, Center, Grid, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
+import { PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
@@ -44,8 +30,8 @@ export const AgentCredentials = () => {
         <Stack gap="sm">
           <Text>Are you sure you want to delete these credentials?</Text>
           <Group justify="flex-end">
-            <Button onClick={() => modalStack.close('confirm-delete')}>Cancel</Button>
-            <Button
+            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
+            <PrimaryButton
               onClick={() => {
                 deleteCredentials(deleteId!);
                 modalStack.close('confirm-delete');
@@ -53,7 +39,7 @@ export const AgentCredentials = () => {
               }}
             >
               Delete
-            </Button>
+            </PrimaryButton>
           </Group>
         </Stack>
       </Modal>
@@ -111,26 +97,24 @@ export const AgentCredentials = () => {
           </Grid.Col>
           <Grid.Col span={2}>
             <Group gap="4px" justify="flex-end" align="flex-end">
-              <ActionIcon
-                variant="transparent-hover"
-                color="gray"
+              <ToolIconButton
+                size="md"
                 onClick={() => {
                   setActiveCredential(credential);
                   modalStack.open('edit');
                 }}
-              >
-                <StyledLucideIcon Icon={PencilIcon} />
-              </ActionIcon>
-              <ActionIcon
-                variant="transparent-hover"
-                color="gray"
+                icon={PencilLineIcon}
+                disabled={credential.source === 'SYSTEM'}
+              />
+              <ToolIconButton
+                size="md"
                 onClick={() => {
                   setDeleteId(credential.id);
                   modalStack.open('confirm-delete');
                 }}
-              >
-                <StyledLucideIcon Icon={TrashIcon} />
-              </ActionIcon>
+                icon={Trash2Icon}
+                disabled={credential.source === 'SYSTEM'}
+              />
             </Group>
           </Grid.Col>
         </Grid>
@@ -164,7 +148,7 @@ export const AgentCredentials = () => {
               setActiveCredential(null);
               modalStack.open('edit');
             }}
-            leftSection={<PlusIcon />}
+            leftSection={<PlusIcon size={16} />}
           >
             New credential
           </PrimaryButton>
