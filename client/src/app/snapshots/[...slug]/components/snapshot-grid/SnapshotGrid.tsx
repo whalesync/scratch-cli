@@ -38,7 +38,7 @@ import { useStoreColumnState } from './useStoreColumnState';
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
+export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
   const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically } =
     useSnapshotTableRecords({
       snapshotId: snapshot.id,
@@ -152,6 +152,8 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: !recordDetailsVisible,
+    gridApi,
+    recordDetailsVisible,
   });
 
   // Context menu handlers
@@ -349,49 +351,9 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         setSelectedRecordId(record.id.wsId);
         setSelectedColumnId(column?.id.wsId);
         showRecordDetails();
-
-        // Select the record in the grid and focus on ID column
-        // if (gridApi) {
-        //   const selectRecord = () => {
-        //     gridApi.deselectAll();
-        //     const rowNode = gridApi.getRowNode(record.id.wsId);
-        //     console.log('Trying to select record:', record.id.wsId, 'Found rowNode:', rowNode);
-
-        //     if (rowNode) {
-        //       rowNode.setSelected(true);
-
-        //       // Set focus to the ID column of the selected record
-        //       // const rowIndex = rowNode.rowIndex;
-        //       // if (rowIndex !== null && rowIndex !== undefined) {
-        //       //   gridApi.setFocusedCell(rowIndex, 'id');
-        //       // }
-
-        //       // Force selection change event to fire for new records
-        //       setSelectedRecordId(record.id.wsId);
-        //     } else {
-        //       // Fallback: try to find the row by iterating through all nodes
-        //       alert('Row node not found, trying fallback method...');
-        //       // gridApi.forEachNode((node) => {
-        //       //   if (node.data && node.data.id?.wsId === record.id.wsId) {
-        //       //     console.log('Found record via fallback:', node.data.id.wsId);
-        //       //     node.setSelected(true);
-        //       //     if (node.rowIndex !== null && node.rowIndex !== undefined) {
-        //       //       gridApi.setFocusedCell(node.rowIndex, 'id');
-        //       //     }
-        //       //     found = true;
-
-        //       //     // Force selection change for new records
-        //       //     setSelectedRecordId(record.id.wsId);
-        //       //   }
-        //       // });
-        //     }
-        //   };
-
-        //   selectRecord();
-        // }
       }
     },
-    [table.columns, records, showRecordDetails],
+    [table.columns, showRecordDetails],
   );
 
   // Initialize record details mode from activeRecord (from double-click transition)
@@ -492,7 +454,11 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
         focusedCell && !recordDetailsVisible && focusedCell.column.getColId() === column.id.wsId;
 
       // Base styles for all cells (gray outer border)
-      const backgroundColor = isInFocusedColumn ? '#2196f322' : 'transparent';
+      const backgroundColor = isInFocusedColumn
+        ? isLightMode
+          ? 'var(--mantine-color-gray-2)'
+          : 'var(--mantine-color-gray-7)'
+        : 'transparent';
       const colors = isLightMode ? AG.colors.light : AG.colors.dark;
       const baseStyles = {
         backgroundColor,
@@ -782,4 +748,4 @@ export const SnapshotTableGridAG = ({ snapshot, table, limited = false }: Snapsh
   );
 };
 
-export default SnapshotTableGridAG;
+export default SnapshotGrid;

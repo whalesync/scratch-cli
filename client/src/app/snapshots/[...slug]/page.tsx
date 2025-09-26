@@ -29,7 +29,7 @@ import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
-import SnapshotTableGridAG from './components/snapshot-grid/SnapshotGrid';
+import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
 import { SnapshotActionsMenu } from './components/SnapshotActionsMenu';
 import { useSnapshotParams } from './hooks/use-snapshot-params';
 
@@ -193,7 +193,7 @@ function SnapshotPageContent() {
   let content = null;
   let contentFooter = null;
   if (snapshot && activeTable) {
-    content = <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />;
+    content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
     // displayMode === 'spreadsheet' ? (
     //   <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
     // ) : displayMode === 'new-spreadsheet' ? (

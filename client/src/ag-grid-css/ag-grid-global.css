@@ -34,3 +34,15 @@
 .my-grid.ag-theme-alpine-dark .ag-cell .cell-text.readonly-cell-text {
   color: var(--mantine-color-gray-7);
 }
+
+/* Row selection and hover colors - Light theme */
+.my-grid.ag-theme-alpine {
+  --ag-row-hover-color: var(--mantine-color-gray-1);
+  --ag-selected-row-background-color: var(--mantine-color-gray-4);
+}
+
+/* Row selection and hover colors - Dark theme */
+.my-grid.ag-theme-alpine-dark {
+  --ag-row-hover-color: var(--mantine-color-gray-8);
+  --ag-selected-row-background-color: var(--mantine-color-gray-7);
+}

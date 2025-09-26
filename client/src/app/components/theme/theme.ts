@@ -41,6 +41,11 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     penBlue: penBlue,
     terminalGreen: terminalGreen,
     // NOTE: this does not work yet, waiting to hear from Mantine team
+    suggestion: virtualColor({
+      name: 'suggestion',
+      light: 'penBlue',
+      dark: 'terminalGreen',
+    }),
     primary: virtualColor({
       name: 'primary',
       light: 'penBlue',

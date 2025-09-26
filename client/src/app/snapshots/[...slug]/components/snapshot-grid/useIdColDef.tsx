@@ -1,20 +1,39 @@
 import { AG } from '@/app/snapshots/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { CellStyleFunc, ColDef, ICellRendererParams } from 'ag-grid-community';
+import { CellStyleFunc, ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from './IdHeaderComponent';
 
 interface UseIdColDefProps {
   onSettingsClick: () => void;
   resizable?: boolean;
+  gridApi?: GridApi<SnapshotRecord> | null;
+  recordDetailsVisible?: boolean;
 }
 
-export const useSpecialColDefs = ({ onSettingsClick, resizable = true }: UseIdColDefProps) => {
+export const useSpecialColDefs = ({
+  onSettingsClick,
+  resizable = true,
+  gridApi,
+  recordDetailsVisible,
+}: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
   const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
     const colors = isLightMode ? AG.colors.light : AG.colors.dark;
+
+    // Check if this cell is in the same column as the focused cell
+    const focusedCell = gridApi?.getFocusedCell();
+    const isInFocusedColumn = focusedCell && !recordDetailsVisible && focusedCell.column.getColId() === 'id';
+
+    const backgroundColor = isInFocusedColumn
+      ? isLightMode
+        ? 'var(--mantine-color-gray-2)'
+        : 'var(--mantine-color-gray-7)'
+      : 'transparent';
+
     const baseStyles = {
+      backgroundColor,
       paddingLeft: AG.borders.paddingLeft,
       color: colors.readOnlyText, // ID column is always read-only
       fontWeight: '500',
@@ -46,7 +65,7 @@ export const useSpecialColDefs = ({ onSettingsClick, resizable = true }: UseIdCo
       // const value = params.value;
       return (
         <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-          <Text className="cell-text readonly-cell-text">{String(params.data?.id?.wsId)}</Text>
+          <Text className="cell-text">{String(params.data?.id?.wsId)}</Text>
         </Box>
       );
     },

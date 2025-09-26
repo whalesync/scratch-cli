@@ -1,7 +1,7 @@
 import { DiffText2 } from '@/app/components/DiffText2';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, TableSpec, formatFieldValue } from '@/types/server-entities/snapshot';
-import { ActionIcon, Box, Group, Text } from '@mantine/core';
+import { ActionIcon, Box, Group, Text, useMantineColorScheme } from '@mantine/core';
 import { ICellRendererParams } from 'ag-grid-community';
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
@@ -14,6 +14,8 @@ export const useCellRenderer = (
 ) => {
   type TValue = unknown;
   type TContext = unknown;
+  const { colorScheme } = useMantineColorScheme();
+  const isLightMode = colorScheme === 'light';
   const cellRenderer = (params: ICellRendererParams<SnapshotRecord, TValue, TContext>): React.ReactNode => {
     const value = params.value;
 
@@ -40,6 +42,8 @@ export const useCellRenderer = (
     if (suggestedValue) {
       const SuggestionButtons = () => {
         const [isProcessing, setIsProcessing] = useState(false);
+        // const { colorScheme } = useMantineColorScheme();
+        // const isLightMode = colorScheme === 'light';
 
         const handleAccept = async (e: React.MouseEvent) => {
           e.preventDefault();
@@ -53,14 +57,12 @@ export const useCellRenderer = (
               message: `Accepted suggestion for ${columnDef.name}`,
             });
           } catch (error) {
-            debugger;
             console.error('Error accepting suggestion:', error);
             ScratchpadNotifications.error({
               title: 'Error accepting suggestion',
               message: error instanceof Error ? error.message : 'Failed to accept suggestion',
             });
           } finally {
-            debugger;
             setIsProcessing(false);
           }
         };
@@ -90,20 +92,23 @@ export const useCellRenderer = (
 
         return (
           <Group
-            gap={2}
+            gap={3}
             style={{
               position: 'absolute',
               right: '0px',
               top: '50%',
               transform: 'translateY(-50%)',
               zIndex: 1000,
+              backgroundColor: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(5px)',
+              padding: '5px',
             }}
             className="suggestion-buttons"
           >
             <ActionIcon
               size="xs"
-              variant="light"
-              color="green"
+              // variant="light"
+              color="suggestion"
               // onClick={handleAccept}
               onMouseDown={handleAccept}
               disabled={isProcessing}

@@ -1,4 +1,4 @@
-import { Box, Text } from '@mantine/core';
+import { Box, Text, useMantineColorScheme } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
 import { FC } from 'react';
 
@@ -15,6 +15,9 @@ interface DiffTextProps {
  * We should probably merge the 2, but for the initial release it is quicker to keep them separate.
  */
 export const DiffText2: FC<DiffTextProps> = ({ originalValue, suggestedValue }: DiffTextProps) => {
+  const { colorScheme } = useMantineColorScheme();
+  const isLightMode = colorScheme === 'light';
+
   // diff functions don't work with null values or undefined values
   const originalValueSafe = originalValue ?? '';
   const suggestedValueSafe = suggestedValue ?? '';
@@ -34,7 +37,7 @@ export const DiffText2: FC<DiffTextProps> = ({ originalValue, suggestedValue }: 
         alignItems: 'center',
         width: '100%',
         height: '100%',
-        gap: '5px', // Add spacing between diff elements
+        gap: '4px', // Add spacing between diff elements
       }}
     >
       {changes.map((change, idx) => {
@@ -46,8 +49,10 @@ export const DiffText2: FC<DiffTextProps> = ({ originalValue, suggestedValue }: 
             <Text
               span
               key={idx}
-              c="green"
-              bg="green.1"
+              c="suggestion"
+              bg={isLightMode ? 'suggestion.1' : 'suggestion.9'}
+              px={4}
+              py={1}
               className="cell-text"
               dangerouslySetInnerHTML={{ __html: value }}
             ></Text>
@@ -59,8 +64,10 @@ export const DiffText2: FC<DiffTextProps> = ({ originalValue, suggestedValue }: 
             <Text
               span
               key={idx}
-              c="red"
-              bg="red.1"
+              c="removed"
+              bg={isLightMode ? 'gray.1' : 'gray.8'}
+              px={4}
+              py={1}
               className="cell-text"
               dangerouslySetInnerHTML={{ __html: value }}
               style={{
