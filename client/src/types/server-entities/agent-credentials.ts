@@ -21,3 +21,8 @@ export interface AiAgentCredential {
     description?: string;
     enabled?: boolean;
   }
+
+  export interface CreditUsage {
+    totalCredits: number;
+    totalUsage: number;
+  }

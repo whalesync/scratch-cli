@@ -1,6 +1,6 @@
 import { agentCredentialsApi } from "@/lib/api/agent-credentials";
 import { SWR_KEYS } from "@/lib/api/keys";
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
+import { CreateAiAgentCredentialDto, CreditUsage, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
 import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useScratchPadUser } from "./useScratchpadUser";
@@ -30,6 +30,10 @@ export const useAgentCredentials = () => {
       mutate(SWR_KEYS.agentCredentials.list());
     };
 
+    const getCreditUsage = async (id: string): Promise<CreditUsage> => {
+      return await agentCredentialsApi.getCreditUsage(id);
+    };
+
     const activeOpenRouterCredentials = useMemo(() => {
       return data?.find((credential) => credential.enabled && credential.service === 'openrouter');
     }, [data]);
@@ -50,6 +54,7 @@ export const useAgentCredentials = () => {
       createCredentials,
       updateCredentials,
       deleteCredentials,
+      getCreditUsage,
       activeOpenRouterCredentials,
       aiAgentEnabled,
     };

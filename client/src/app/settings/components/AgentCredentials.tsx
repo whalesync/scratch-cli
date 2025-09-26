@@ -4,16 +4,31 @@ import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
+import { AiAgentCredential, CreditUsage } from '@/types/server-entities/agent-credentials';
 import { Alert, Badge, Box, Center, Grid, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
-import { PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { useSetState } from '@mantine/hooks';
+import { CircleDollarSignIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, deleteCredentials } = useAgentCredentials();
+  const { agentCredentials, isLoading, error, deleteCredentials, getCreditUsage } = useAgentCredentials();
   const modalStack = useModalsStack(['edit', 'confirm-delete']);
   const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [credentailUsage, setCredentialUsage] = useSetState<{
+    [key: string]: CreditUsage | string;
+  }>({});
+
+  const handleGetCreditUsage = async (id: string) => {
+    try {
+      const creditUsage = await getCreditUsage(id);
+      setCredentialUsage({ [`${id}`]: creditUsage });
+    } catch (error) {
+      console.error('Error fetching credit usage', error);
+      setCredentialUsage({ [`${id}`]: 'Error fetching credit usage' });
+    }
+  };
 
   const modals = (
     <>
@@ -59,6 +74,19 @@ export const AgentCredentials = () => {
     }
   };
 
+  const getCreditUsageElement = (id: string): React.ReactNode => {
+    if (!credentailUsage[id]) {
+      return null;
+    }
+    const creditUsage = credentailUsage[id];
+    if (typeof creditUsage === 'string') {
+      return <TextRegularXs c="red.5">{creditUsage}</TextRegularXs>;
+    }
+    return (
+      <TextRegularXs c="dimmed">{`${creditUsage.totalUsage} credits used out of ${creditUsage.totalCredits} available`}</TextRegularXs>
+    );
+  };
+
   const list = isLoading ? (
     <Center mih={200}>
       <Group gap="xs">
@@ -93,6 +121,7 @@ export const AgentCredentials = () => {
             <Stack gap="xs">
               <TextRegularSm>{credential.label}</TextRegularSm>
               <TextRegularXs c="dimmed">{credential.description}</TextRegularXs>
+              {getCreditUsageElement(credential.id)}
             </Stack>
           </Grid.Col>
           <Grid.Col span={2}>
@@ -105,6 +134,12 @@ export const AgentCredentials = () => {
                 }}
                 icon={PencilLineIcon}
                 disabled={credential.source === 'SYSTEM'}
+              />
+              <ToolIconButton
+                size="md"
+                onClick={() => handleGetCreditUsage(credential.id)}
+                icon={CircleDollarSignIcon}
+                tooltip="Check current credit balance"
               />
               <ToolIconButton
                 size="md"
@@ -133,7 +168,7 @@ export const AgentCredentials = () => {
         <TextTitleSm mb="xs">Agent Credentials</TextTitleSm>
         {error && (
           <Alert color="red" mb="sm">
-            {error}
+            {error.toString()}
           </Alert>
         )}
         <Stack gap="xs" mb="sm" mih={100}>

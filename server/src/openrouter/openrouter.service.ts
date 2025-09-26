@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { AsyncResult, generalError, ok } from 'src/types/results';
-import { OpenRouterCreateKeyResponse, OpenRouterGetCreditsResponse } from './types';
+import { AsyncResult, badRequestError, generalError, ok } from 'src/types/results';
+import {
+  OpenRouterCreateKeyResponse,
+  OpenRouterDeleteKeyResponse,
+  OpenRouterGetCreditsResponse,
+  OpenRouterUpdateApiKeyResponse,
+  OpenRouterUpdateRequest,
+} from './types';
 
 /*
  * Service for managing OpenRouter API keys using the provisioning API.
@@ -15,6 +21,10 @@ export class OpenRouterService {
 
   constructor(private readonly configService: ScratchpadConfigService) {}
 
+  /**
+   Key Management API
+   https://openrouter.ai/docs/api-reference/keys
+   */
   async createKey(userId: string): AsyncResult<{ key: string; hash: string }> {
     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
     if (!provisioningKey) {
@@ -58,6 +68,96 @@ export class OpenRouterService {
     }
   }
 
+  async updateApiKey(hash: string, dto: OpenRouterUpdateRequest): AsyncResult<void> {
+    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
+    if (!provisioningKey) {
+      return generalError('OpenRouter provisioning key is not set');
+    }
+
+    try {
+      const response = await axios.patch(`${this.openRouterApiUrl}/keys/${hash}`, dto, {
+        headers: {
+          Authorization: `Bearer ${provisioningKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': this.httpReferer,
+          'X-Title': this.httpXTitle,
+        },
+      });
+      const responseData = response.data as OpenRouterUpdateApiKeyResponse;
+      if (!responseData.data) {
+        return generalError('Failed to update OpenRouter key, no data returned');
+      }
+      return ok();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = (error.response?.data as { message?: string })?.message || error.message;
+        return generalError(`Failed to delete OpenRouter key: ${errorMessage}`);
+      }
+      return generalError(`Failed to delete OpenRouter key: ${String(error)}`);
+    }
+  }
+
+  async disableApiKey(hash: string): AsyncResult<void> {
+    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
+    if (!provisioningKey) {
+      return generalError('OpenRouter provisioning key is not set');
+    }
+    return this.updateApiKey(hash, { disabled: true });
+  }
+
+  async enableApiKey(hash: string): AsyncResult<void> {
+    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
+    if (!provisioningKey) {
+      return generalError('OpenRouter provisioning key is not set');
+    }
+    return this.updateApiKey(hash, { disabled: false });
+  }
+
+  async updateApiKeyCreditLimit(hash: string, limit: number): AsyncResult<void> {
+    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
+    if (!provisioningKey) {
+      return generalError('OpenRouter provisioning key is not set');
+    }
+
+    if (limit <= 0) {
+      return badRequestError('Credit limit must be greater than 0');
+    }
+
+    return this.updateApiKey(hash, { limit });
+  }
+
+  async deleteApiKey(hash: string): AsyncResult<void> {
+    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
+    if (!provisioningKey) {
+      return generalError('OpenRouter provisioning key is not set');
+    }
+
+    try {
+      const response = await axios.delete(`${this.openRouterApiUrl}/keys/${hash}`, {
+        headers: {
+          Authorization: `Bearer ${provisioningKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': this.httpReferer,
+          'X-Title': this.httpXTitle,
+        },
+      });
+      const responseData = response.data as OpenRouterDeleteKeyResponse;
+      if (!responseData.data.success) {
+        return generalError('Failed to delete OpenRouter key');
+      }
+      return ok();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = (error.response?.data as { message?: string })?.message || error.message;
+        return generalError(`Failed to delete OpenRouter key: ${errorMessage}`);
+      }
+      return generalError(`Failed to delete OpenRouter key: ${String(error)}`);
+    }
+  }
+
+  /*
+   General API Methods
+   */
   async getCredits(apiKey: string): AsyncResult<{ totalCredits: number; totalUsage: number }> {
     try {
       const response = await axios.get(`${this.openRouterApiUrl}/credits`, {
@@ -75,24 +175,4 @@ export class OpenRouterService {
       return generalError(`Failed to get OpenRouter credits: ${String(error)}`);
     }
   }
-
-  //   async disableKey(hash: string): AsyncResult<void> {
-  //     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
-  //     if (!provisioningKey) {
-  //       return generalError('OpenRouter provisioning key is not set');
-  //     }
-  //   }
-
-  //   async enableKey(hash: string): AsyncResult<void> {
-  //     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
-  //     if (!provisioningKey) {
-  //       return generalError('OpenRouter provisioning key is not set');
-  //     }
-  //   }
-  //   async deleteKey(hash: string): AsyncResult<void> {
-  //     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
-  //     if (!provisioningKey) {
-  //       return generalError('OpenRouter provisioning key is not set');
-  //     }
-  //   }
 }

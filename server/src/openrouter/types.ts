@@ -23,3 +23,20 @@ export interface OpenRouterGetCreditsResponse {
     total_usage: number;
   };
 }
+
+export interface OpenRouterDeleteKeyResponse {
+  data: {
+    success: boolean;
+  };
+}
+
+export interface OpenRouterUpdateRequest {
+  name?: string;
+  disabled?: boolean;
+  include_byok_in_limit?: boolean;
+  limit?: number;
+}
+
+export interface OpenRouterUpdateApiKeyResponse {
+  data: OpenRouterKeyData;
+}

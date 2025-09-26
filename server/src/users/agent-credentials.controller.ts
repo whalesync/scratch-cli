@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   ForbiddenException,
   Get,
   HttpCode,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
@@ -13,13 +15,18 @@ import {
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
+import { OpenRouterService } from 'src/openrouter/openrouter.service';
+import { isErr } from 'src/types/results';
 import { AgentCredentialsService } from './agent-credentials.service';
 import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from './dto/create-agent-credential.dto';
-import { AiAgentCredential } from './entities/credentials.entity';
+import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
 
 @Controller('user/credentials')
 export class AgentCredentialsController {
-  constructor(private readonly service: AgentCredentialsService) {}
+  constructor(
+    private readonly service: AgentCredentialsService,
+    private readonly openRouterService: OpenRouterService,
+  ) {}
 
   @UseGuards(ScratchpadAuthGuard)
   @Get()
@@ -111,5 +118,30 @@ export class AgentCredentialsController {
     }
 
     await this.service.delete(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/credits')
+  async getCreditUsage(@Param('id') id: string, @Req() req: RequestWithUser): Promise<CreditUsage> {
+    const credential = await this.service.findOne(id);
+
+    if (!credential) {
+      throw new NotFoundException();
+    }
+
+    if (credential.userId !== req.user.id) {
+      throw new ForbiddenException();
+    }
+
+    if (credential.service !== 'openrouter') {
+      throw new BadRequestException('Credential is not an OpenRouter credential');
+    }
+
+    const credits = await this.openRouterService.getCredits(credential.apiKey);
+    if (isErr(credits)) {
+      throw new InternalServerErrorException();
+    }
+
+    return new CreditUsage(credits.v.totalCredits, credits.v.totalUsage);
   }
 }

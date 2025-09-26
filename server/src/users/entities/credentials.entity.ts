@@ -1,6 +1,7 @@
 import { AiAgentCredential as PrismaAiAgentCredential } from '@prisma/client';
 
 export type AgentService = 'openrouter';
+
 export class AiAgentCredential {
   id: string;
   createdAt: Date;
@@ -29,4 +30,14 @@ export class AiAgentCredential {
 
 function obfuscateApiKey(apiKey: string): string {
   return apiKey.slice(0, 4) + '********' + apiKey.slice(-4);
+}
+
+export class CreditUsage {
+  totalCredits: number;
+  totalUsage: number;
+
+  constructor(totalCredits: number, totalUsage: number) {
+    this.totalCredits = totalCredits;
+    this.totalUsage = totalUsage;
+  }
 }
