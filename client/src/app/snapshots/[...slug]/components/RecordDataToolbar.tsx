@@ -10,7 +10,7 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
-import { useDisclosure, useHotkeys } from '@mantine/hooks';
+import { useDisclosure } from '@mantine/hooks';
 import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
 import { HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
@@ -25,7 +25,18 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
   const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
   const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
-  useHotkeys([['ctrl+h', () => openHelpOverlay()]]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'h') {
+        event.preventDefault();
+        openHelpOverlay();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [openHelpOverlay]);
 
   const { count, filteredCount, createNewRecord } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',

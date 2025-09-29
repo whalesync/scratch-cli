@@ -120,6 +120,20 @@ export function isLargeTextColumn(column: ColumnSpec, value: string | undefined 
   return column.markdown || column.pgType === PostgresColumnType.JSONB || (column.pgType === PostgresColumnType.TEXT && value && value.length > 100);
 }
 
+export function isUrlColumn(column: ColumnSpec, value: string | undefined | null): boolean {
+  if(column.pgType === PostgresColumnType.TEXT && column.name.toLowerCase().includes('url') && value) {
+    try {
+      new URL(value);
+      return true;
+    } catch (error) {
+      console.debug('Failed to parse URL:', error);
+      return false;
+    }
+  }
+
+  return false;
+}
+
 export function formatFieldValue(value: unknown, column: ColumnSpec): string {
   if (value === null || value === undefined) {
     return '';

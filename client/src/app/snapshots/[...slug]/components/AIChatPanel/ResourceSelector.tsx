@@ -12,10 +12,9 @@ import {
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
-import { useHotkeys } from '@mantine/hooks';
 import { FileIcon, PlusIcon } from '@phosphor-icons/react';
 import { AtSignIcon } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './ResourceSelector.module.css';
 
@@ -25,15 +24,19 @@ export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; sn
   const { activeResources, setActiveResources } = useAgentChatContext();
   const [isEditResourceModalOpen, setIsEditResourceModalOpen] = useState(false);
   const [resourceToEdit, setResourceToEdit] = useState<StyleGuide | null>(null);
-  useHotkeys([
-    [
-      'ctrl+enter',
-      () => {
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
         combobox.openDropdown('keyboard');
         combobox.focusTarget();
-      },
-    ],
-  ]);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [combobox]);
 
   const comboBoxOptions = useMemo(() => {
     const list = resources

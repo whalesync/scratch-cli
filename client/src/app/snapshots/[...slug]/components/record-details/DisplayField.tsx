@@ -6,12 +6,13 @@ import {
   getSafeBooleanValue,
   getSafeNumberValue,
   isLargeTextColumn,
+  isUrlColumn,
   PostgresColumnType,
   SnapshotRecord,
   TableSpec,
 } from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
-import { Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
+import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
 import { CircleArrowRightIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
@@ -275,6 +276,17 @@ export const DisplayField = (props: DisplayFieldProps) => {
     />
   );
 
+  const displayField =
+    mode === 'multiple' && isUrlColumn(column, currentValue) ? (
+      <Anchor className={styles.recordValueDisplay} href={currentValue} target="_blank">
+        {currentValue}
+      </Anchor>
+    ) : mode === 'multiple' ? (
+      <Text className={styles.recordValueDisplay}>{currentValue}</Text>
+    ) : (
+      textInputField
+    );
+
   return (
     <FieldRow
       fieldName={column.name}
@@ -296,10 +308,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
           </ScrollArea>
           {mode === 'multiple' && suggestionButtons}
         </Stack>
-      ) : mode === 'multiple' ? (
-        <Text className={styles.recordValueDisplay}>{currentValue}</Text>
       ) : (
-        textInputField
+        displayField
       )}
     </FieldRow>
   );
