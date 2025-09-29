@@ -25,6 +25,15 @@
   border-right: 0px !important;
 }
 
+/* Override left border for first column */
+.my-grid.ag-theme-alpine .ag-cell.ag-column-first {
+  border-left: 0px !important;
+}
+
+.my-grid.ag-theme-alpine-dark .ag-cell.ag-column-first {
+  border-left: 0px !important;
+}
+
 /* ----- Border of the PINNED AREA ONLY ----- */
 .my-grid.ag-theme-alpine {
   --ag-border-color: var(--mantine-color-gray-2);

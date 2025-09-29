@@ -78,7 +78,7 @@ export const RecordDetailsHeader = ({
     <Group
       w={w ?? '100%'}
       h={h}
-      style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}
+      style={{ borderBottom: '1px solid light-dark(#c8ced5, var(--mantine-color-gray-2))' }}
       justify="space-between"
       align="center"
       p="2px 4px"
