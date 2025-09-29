@@ -93,7 +93,7 @@ When the MCP server changes:
 The client, server and agent are all automatically deployed to Vercel and Render from the `prod` branch. To trigger a new deployment, you just need to do a merge from `master` to `prod` and push changes. First make sure your `master` and `prod` branches are up to date, then from the `prod` branch create a merge with the comment included below.
 
 ```bash
-checkout master
+git checkout master
 git pull
 git checkout prod
 git pull origin prod

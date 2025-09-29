@@ -12,7 +12,3 @@
   border-radius: 0;
   background: transparent;
 }
-
-.my-grid.ag-theme-alpine-dark .ag-cell .cell-text.readonly-cell-text {
-  color: var(--mantine-color-gray-7);
-}

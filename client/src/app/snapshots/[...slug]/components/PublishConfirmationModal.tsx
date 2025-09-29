@@ -22,11 +22,7 @@ export const PublishConfirmationModal = ({
   isPublishing,
 }: PublishConfirmationModalProps) => {
   const [showChanges, setShowChanges] = useState(false);
-  const {
-    publishSummary,
-    isLoading: isLoadingSummary,
-    refetch: refetchSummary,
-  } = usePublishSummary(snapshotId, isOpen);
+  const { publishSummary, isLoading: isLoadingSummary, fetchSummary } = usePublishSummary(snapshotId);
 
   const handleClose = () => {
     setShowChanges(false);
@@ -36,7 +32,7 @@ export const PublishConfirmationModal = ({
   const handleShowChanges = () => {
     setShowChanges(!showChanges);
     if (!showChanges && !publishSummary) {
-      refetchSummary();
+      fetchSummary();
     }
   };
 

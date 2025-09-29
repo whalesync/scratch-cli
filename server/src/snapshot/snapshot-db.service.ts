@@ -622,8 +622,10 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     operation: 'create' | 'update' | 'delete',
     batchSize: number,
     callback: (records: SnapshotRecord[]) => Promise<void>,
+    markAsClean: boolean,
   ) {
     let hasMore = true;
+    let offset = 0;
     while (hasMore) {
       const records = await this.knex.transaction(async (trx) => {
         const query = trx<DbRecord>(tableId)
@@ -631,6 +633,8 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
           .select('*')
           .where(DIRTY_COLUMN, true)
           .limit(batchSize)
+          .offset(offset)
+          .orderBy('wsId')
           .forUpdate()
           .skipLocked();
 
@@ -650,7 +654,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
         }
 
         const dbRecords = await query;
-        if (dbRecords.length > 0) {
+        if (dbRecords.length > 0 && markAsClean) {
           // Mark the records as clean.
           await trx(tableId)
             .withSchema(snapshotId)
@@ -676,9 +680,13 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
             }),
           ),
         );
-      } else {
+      }
+
+      // If we got fewer records than batchSize, we're done
+      if (records.length < batchSize) {
         hasMore = false;
       }
+      offset += batchSize;
     }
   }
 

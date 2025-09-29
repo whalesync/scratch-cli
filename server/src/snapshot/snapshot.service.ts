@@ -816,7 +816,7 @@ export class SnapshotService {
 
     for (const tableSpec of tableSpecs) {
       // Get records to be deleted
-      const deletedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'delete');
+      const deletedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'delete', false);
       if (deletedRecords.length > 0) {
         summary.deletes.push({
           tableId: tableSpec.id.wsId,
@@ -829,7 +829,7 @@ export class SnapshotService {
       }
 
       // Get records to be updated
-      const updatedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'update');
+      const updatedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'update', false);
       if (updatedRecords.length > 0) {
         summary.updates.push({
           tableId: tableSpec.id.wsId,
@@ -843,7 +843,7 @@ export class SnapshotService {
       }
 
       // Get count of records to be created
-      const createdRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'create');
+      const createdRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'create', false);
       if (createdRecords.length > 0) {
         summary.creates.push({
           tableId: tableSpec.id.wsId,
@@ -901,6 +901,7 @@ export class SnapshotService {
         // Save the created IDs.
         await this.snapshotDbService.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
       },
+      true,
     );
   }
 
@@ -921,6 +922,7 @@ export class SnapshotService {
         );
         await connector.updateRecords(tableSpec, sanitizedRecords, snapshot.connectorAccount);
       },
+      true,
     );
   }
 
@@ -949,6 +951,7 @@ export class SnapshotService {
           records.map((r) => r.id.wsId),
         );
       },
+      true,
     );
   }
 
@@ -1057,6 +1060,7 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableSpec: AnyTableSpec,
     operation: 'create' | 'update' | 'delete',
+    markAsClean: boolean,
   ): Promise<SnapshotRecord[]> {
     const records: SnapshotRecord[] = [];
 
@@ -1069,6 +1073,7 @@ export class SnapshotService {
         records.push(...batchRecords);
         return Promise.resolve();
       },
+      markAsClean,
     );
 
     return records;
