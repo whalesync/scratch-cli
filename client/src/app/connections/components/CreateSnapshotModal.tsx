@@ -187,11 +187,7 @@ export const CreateSnapshotModal = ({
                   {tables
                     .sort((a, b) => a.displayName.localeCompare(b.displayName))
                     .map((table) => (
-                      <Radio
-                        key={`${table.id.wsId}-${table.displayName}`}
-                        value={table.id.wsId}
-                        label={table.displayName}
-                      />
+                      <Radio key={`${table.id.remoteId.join('-')}`} value={table.id.wsId} label={table.displayName} />
                     ))}
                 </Stack>
               </ScrollArea>

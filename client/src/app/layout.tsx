@@ -1,11 +1,9 @@
-import '@mantine/core/styles.css';
+// import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../ag-grid-css';
-// import '../ag-grid-css/ag-grid-global.css';
-// import '../ag-grid-css/ag-grid-variables.css';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
