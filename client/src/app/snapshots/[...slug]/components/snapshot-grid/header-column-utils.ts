@@ -10,8 +10,8 @@
  * This is what happens in git sync.
  */
 
+import { ColumnSpec, TableSpec } from '@/types/server-entities/snapshot';
 import { GridApi } from "ag-grid-community";
-import {ColumnSpec, TableSpec} from '@/types/server-entities/snapshot';
 
 export const getTitleColumn = (gridApi: GridApi) => {
   let titleColumn = gridApi.getColumns()?.find((col) => {
@@ -54,4 +54,14 @@ export function getHeaderColumnSpec(table: TableSpec): ColumnSpec | undefined {
 export function getOtherColumnSpecs(table: TableSpec): ColumnSpec[]{
   const otherColumnSpecs = table.columns.filter((col) => !commonTitleColumnPatterns.includes(col.name.toLowerCase()));
   return otherColumnSpecs;
+}
+
+export function getDotColumn(gridApi: GridApi) {
+  return gridApi.getColumns()?.find((col) => {
+    // dot column has no header name and field is empty
+    return (
+      (col.getColDef().headerName === undefined || col.getColDef().headerName === '') &&
+      (col.getColDef().field === undefined || col.getColDef().field === '')
+    );
+  });
 }

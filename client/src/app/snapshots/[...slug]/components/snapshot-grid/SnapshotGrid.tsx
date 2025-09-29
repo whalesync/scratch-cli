@@ -2,6 +2,7 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import {
+  getDotColumn,
   getHeaderColumnSpec,
   getOtherColumnSpecs,
   getTitleColumn,
@@ -67,10 +68,9 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
-      const dotColumn = gridApi.getColumn('dot');
+      const dotColumn = getDotColumn(gridApi);
       const titleColumn = getTitleColumn(gridApi);
 
-      debugger;
       let pinnedColumnsWidth = 0;
 
       if (dotColumn) {
@@ -390,7 +390,6 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const otherColumnSpecs = getOtherColumnSpecs(table);
 
   // Always include all columns, but we'll control visibility via AG Grid API
-  debugger;
   const columnsWithTitleFirst = headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
 
   // Control column visibility based on limited mode only (not record details mode)
@@ -629,9 +628,6 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             right: 0,
             width: overlayWidth, // Dynamically calculated width
             height: '100%',
-            // background: 'white',
-            // border: '1px solid var(--mantine-color-gray-3)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 1000,

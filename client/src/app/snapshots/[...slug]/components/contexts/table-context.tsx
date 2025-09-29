@@ -107,7 +107,6 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     }));
 
     try {
-      debugger;
       setSavingPendingChanges(true);
       await bulkUpdateRecords({ ops });
       setPendingChanges([]);
