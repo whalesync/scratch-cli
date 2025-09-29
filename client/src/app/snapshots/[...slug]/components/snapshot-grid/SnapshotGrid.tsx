@@ -1,6 +1,11 @@
 'use client';
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import {
+  getHeaderColumnSpec,
+  getOtherColumnSpecs,
+  getTitleColumn,
+} from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Center, Loader, Paper, ScrollArea, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
@@ -62,13 +67,9 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
       const dotColumn = gridApi.getColumn('dot');
-      let titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().headerName?.toLowerCase() === 'title');
-      if (!titleColumn) {
-        titleColumn = (gridApi.getColumns() ?? []).filter(
-          (col) => col.getColDef().headerName?.toLowerCase() !== 'id',
-        )[0];
-      }
+      const titleColumn = getTitleColumn(gridApi);
 
+      debugger;
       let pinnedColumnsWidth = 0;
 
       if (dotColumn) {
@@ -417,11 +418,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   }, [handleKeyDown]);
 
   // Find title column and other columns (moved up to be available in useEffect)
-  const titleColumnSpecs = table.columns.find((col) => col.name.toLowerCase() === 'title');
-  const otherColumnSpecs = table.columns.filter((col) => col.name.toLowerCase() !== 'title');
+  const headerColumnSpecs = getHeaderColumnSpec(table);
+  const otherColumnSpecs = getOtherColumnSpecs(table);
 
   // Always include all columns, but we'll control visibility via AG Grid API
-  const columnsWithTitleFirst = titleColumnSpecs ? [titleColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
+  debugger;
+  const columnsWithTitleFirst = headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
 
   // Control column visibility based on limited mode only (not record details mode)
   useEffect(() => {
@@ -488,7 +490,6 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       pinned: index === 0 ? 'left' : undefined,
       // Lock position and suppress movable for title column
       lockPosition: index === 0 ? true : false,
-      // suppressMovable: column.name.toLowerCase() === 'title' ? true : false,
       // Use custom header component
       headerComponent: CustomHeaderComponent,
       headerComponentParams: {

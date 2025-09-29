@@ -1,7 +1,7 @@
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { identifyRecordTitleColumn, TableSpec } from '@/types/server-entities/snapshot';
+import { TableSpec } from '@/types/server-entities/snapshot';
 import { Center, Group, Loader, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useSnapshotParams } from '../hooks/use-snapshot-params';
@@ -10,6 +10,7 @@ import { RecordDetails } from './record-details/RecordDetails';
 import { RecordDetailsHeader } from './record-details/RecordDetailsHeader';
 import { RecordListTable, RecordListTableRef } from './record-details/RecordListTable';
 import { RecordSuggestionToolbar } from './RecordSuggestionToolbar';
+import { identifyRecordTitleColumn } from './snapshot-grid/header-column-utils';
 
 interface RecordViewProps {
   table: TableSpec;

@@ -1,9 +1,10 @@
 import { TextRegularXs } from '@/app/components/base/text';
-import { identifyRecordTitleColumn, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Stack, StyleProp, Table, Tooltip } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import _ from 'lodash';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { identifyRecordTitleColumn } from '../snapshot-grid/header-column-utils';
 
 interface RecordListTableProps {
   records: SnapshotRecord[] | undefined;

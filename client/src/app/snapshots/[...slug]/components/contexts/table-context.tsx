@@ -29,7 +29,9 @@ interface TableContextValue {
   // switchToSpreadsheetView: () => Promise<void>;
   // switchToNewSpreadsheetView: () => Promise<void>;
   switchDisplayMode: (recordId?: string, columnId?: string) => Promise<void>;
-  activeRecord: ActiveRecord | undefined;
+  activeRecord: ActiveRecord | null;
+  setActiveRecord: (activeRecord: ActiveRecord | null) => void;
+  recordDetailsVisible: boolean;
   addPendingChange: (update: PendingUpdate) => void;
   savePendingUpdates: () => Promise<void>;
   pendingChanges: PendingUpdate[];
@@ -50,10 +52,14 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   /** State */
   const [activeTable, setActiveTable] = useState<TableSpec | undefined>(undefined);
   // const [displayMode, setDisplayMode] = useState<DisplayMode>(recordIdParam ? 'record' : 'spreadsheet');
-  const [activeRecord, setActiveRecord] = useState<ActiveRecord>({
-    recordId: recordIdParam,
-    columnId: columnIdParam,
-  });
+  const [activeRecord, setActiveRecord] = useState<ActiveRecord | null>(
+    recordIdParam
+      ? {
+          recordId: recordIdParam,
+          columnId: columnIdParam,
+        }
+      : null,
+  );
   const [pendingChanges, setPendingChanges] = useState<PendingUpdate[]>([]);
   const [savingPendingChanges, setSavingPendingChanges] = useState(false);
 
@@ -101,6 +107,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     }));
 
     try {
+      debugger;
       setSavingPendingChanges(true);
       await bulkUpdateRecords({ ops });
       setPendingChanges([]);
@@ -118,13 +125,13 @@ export const TableProvider = ({ children }: TableProviderProps) => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeRecord) {
+      if (activeRecord?.recordId && !savingPendingChanges) {
         savePendingUpdates();
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [savePendingUpdates, activeRecord, activeTable?.id.wsId]);
+  }, [savePendingUpdates, activeRecord, savingPendingChanges]);
 
   const switchDisplayMode = useCallback(
     async (recordId?: string, columnId?: string) => {
@@ -133,6 +140,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
       }
 
       // setDisplayMode(mode);
+      debugger;
       setActiveRecord({ recordId, columnId });
       await savePendingUpdates();
 
@@ -198,8 +206,10 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   const value: TableContextValue = {
     activeTable,
     setActiveTable,
+    setActiveRecord,
     // displayMode,
     activeRecord,
+    recordDetailsVisible: !!activeRecord?.recordId,
     // switchToRecordView,
     // switchToSpreadsheetView,
     // switchToNewSpreadsheetView,
