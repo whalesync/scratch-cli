@@ -45,25 +45,26 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
+  console.log('SnapshotGrid rendered');
   const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically } =
     useSnapshotTableRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
     });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
-  const { activeRecord } = useTableContext();
+  const { activeRecord, setActiveRecord } = useTableContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
 
   // Record details mode state
-  const [recordDetailsVisible, setRecordDetailsVisible] = useState(false);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [selectedColumnId, setSelectedColumnId] = useState<string | undefined>(undefined);
+  // const [recordDetailsVisible, setRecordDetailsVisible] = useState(false);
+  // const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  // const [selectedColumnId, setSelectedColumnId] = useState<string | undefined>(undefined);
   const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
   const [jsonModalRecord, setJsonModalRecord] = useState<SnapshotRecord | null>(null);
   // const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
 
-  const showRecordDetails = useCallback(() => {
+  const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
       const dotColumn = gridApi.getColumn('dot');
@@ -82,16 +83,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         console.debug('Title column width:', titleColumn.getActualWidth());
       }
 
-      console.debug('Total pinned columns width:', pinnedColumnsWidth);
-
       // Calculate overlay width as 100% minus the pinned columns width
       const overlayWidthCalc = `calc(100% - ${pinnedColumnsWidth}px)`;
       setOverlayWidth(overlayWidthCalc);
-
-      console.debug('Setting overlay width to:', overlayWidthCalc);
     }
 
-    setRecordDetailsVisible(true);
+    // setRecordDetailsVisible(true);
   }, [gridApi]);
 
   // Context menu state
@@ -153,9 +150,9 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const { cellRenderer } = useCellRenderer(table, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
-    resizable: !recordDetailsVisible,
+    resizable: !activeRecord?.recordId,
     gridApi,
-    recordDetailsVisible,
+    recordDetailsVisible: !!activeRecord?.recordId,
   });
 
   // Context menu handlers
@@ -176,22 +173,23 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
   // Handlers for record details mode
   const handleCloseRecordDetails = useCallback(() => {
-    setRecordDetailsVisible(false);
-    setSelectedRecordId(null);
-    setSelectedColumnId(undefined);
+    // setRecordDetailsVisible(false);
+    // setSelectedRecordId(null);
+    // setSelectedColumnId(undefined);
     // Reset data scope back to table
+    setActiveRecord(null);
     setTableScope();
     // Clear grid selection
     if (gridApi) {
       gridApi.deselectAll();
     }
-  }, [gridApi, setTableScope]);
+  }, [gridApi, setActiveRecord, setTableScope]);
 
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Handle Esc key to close record view
-      if (event.key === 'Escape' && recordDetailsVisible) {
+      if (event.key === 'Escape' && activeRecord?.recordId) {
         // event.preventDefault();
         handleCloseRecordDetails();
         return;
@@ -205,7 +203,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       }
 
       // Handle Enter key to open record view with current focused cell
-      if (event.key === 'Enter' && !recordDetailsVisible && gridApi) {
+      if (event.key === 'Enter' && !activeRecord?.recordId && gridApi) {
         event.preventDefault();
         const focusedCell = gridApi.getFocusedCell();
         if (focusedCell) {
@@ -222,9 +220,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
               columnId: column?.id.wsId,
             });
 
-            setSelectedRecordId(record.id.wsId);
-            setSelectedColumnId(column?.id.wsId);
-            showRecordDetails();
+            setActiveRecord({ recordId: record.id.wsId, columnId: column?.id.wsId });
+            // setSelectedRecordId(record.id.wsId);
+            // setSelectedColumnId(column?.id.wsId);
+            // showRecordDetails();
           }
         }
         return;
@@ -337,7 +336,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         }
       }
     },
-    [gridApi, clipboard, recordDetailsVisible, handleCloseRecordDetails, showRecordDetails, table.columns],
+    [activeRecord?.recordId, gridApi, handleCloseRecordDetails, table.columns, setActiveRecord, clipboard],
   );
 
   // Handle double click to open record view
@@ -350,63 +349,32 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         // Find the column definition to get the proper column ID
         const column = table.columns.find((col) => col.id.wsId === columnId);
 
-        setSelectedRecordId(record.id.wsId);
-        setSelectedColumnId(column?.id.wsId);
-        showRecordDetails();
+        recalculateOverlayWidth();
+        setActiveRecord({ recordId: record.id.wsId, columnId: column?.id.wsId });
       }
     },
-    [table.columns, showRecordDetails],
+    [table.columns, setActiveRecord, recalculateOverlayWidth],
   );
 
-  // Initialize record details mode from activeRecord (from double-click transition)
-  useEffect(() => {
-    if (activeRecord?.recordId && gridApi) {
-      setSelectedRecordId(activeRecord.recordId);
-      setSelectedColumnId(activeRecord.columnId);
-      showRecordDetails();
-
-      // Select the record in the grid and focus on ID column
-      gridApi.deselectAll();
-      const rowNode = gridApi.getRowNode(activeRecord.recordId);
-
-      if (rowNode) {
-        rowNode.setSelected(true);
-
-        // Set focus to the ID column of the selected record
-        const rowIndex = rowNode.rowIndex;
-        if (rowIndex !== null && rowIndex !== undefined) {
-          gridApi.setFocusedCell(rowIndex, 'id');
-        }
-      } else {
-        gridApi.forEachNode((node) => {
-          if (node.data && node.data.id?.wsId === activeRecord.recordId) {
-            node.setSelected(true);
-            if (node.rowIndex !== null && node.rowIndex !== undefined) {
-              gridApi.setFocusedCell(node.rowIndex, 'id');
-            }
-          }
-        });
-      }
-    }
-  }, [activeRecord, gridApi, showRecordDetails]);
-
   // Get selected record from state
-  const selectedRecord = selectedRecordId ? records?.find((record) => record.id.wsId === selectedRecordId) : null;
+  const selectedRecord = activeRecord?.recordId
+    ? records?.find((record) => record.id.wsId === activeRecord.recordId)
+    : null;
 
   // Set record scope when a record is selected in details mode
   useEffect(() => {
-    if (recordDetailsVisible && selectedRecordId) {
-      if (selectedColumnId) {
-        setColumnScope(selectedRecordId, selectedColumnId);
+    if (activeRecord?.recordId) {
+      if (activeRecord.columnId) {
+        setColumnScope(activeRecord.recordId, activeRecord.columnId);
       } else {
-        setRecordScope(selectedRecordId);
+        setRecordScope(activeRecord.recordId);
       }
     }
-  }, [recordDetailsVisible, selectedRecordId, selectedColumnId, setRecordScope, setColumnScope]);
+  }, [activeRecord?.recordId, activeRecord?.columnId, setRecordScope, setColumnScope]);
 
   // Handlers for record details mode
   const handleFieldFocus = useCallback((columnId: string | undefined) => {
-    setSelectedColumnId(columnId);
+    setActiveRecord({ recordId: activeRecord?.recordId, columnId: columnId });
   }, []);
 
   // Add keyboard event listener for copy functionality
@@ -457,7 +425,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       // Check if this cell is in the same column as the focused cell
       const focusedCell = gridApi?.getFocusedCell();
       const isInFocusedColumn =
-        focusedCell && !recordDetailsVisible && focusedCell.column.getColId() === column.id.wsId;
+        focusedCell && !activeRecord?.recordId && focusedCell.column.getColId() === column.id.wsId;
 
       // Base styles for all cells (gray outer border)
       const backgroundColor = isInFocusedColumn
@@ -481,7 +449,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       headerName: column.name.toUpperCase(),
       sortable: true,
       filter: false,
-      resizable: !recordDetailsVisible,
+      resizable: !activeRecord?.recordId,
       valueGetter,
       cellRenderer,
       cellStyle,
@@ -549,7 +517,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             minWidth: AG.grid.defaultMinWidth,
             suppressKeyboardEvent: (params) => {
               // When record view is open, suppress left/right arrow keys so record view can handle them
-              if (recordDetailsVisible && (params.event.key === 'ArrowLeft' || params.event.key === 'ArrowRight')) {
+              if (activeRecord?.recordId && (params.event.key === 'ArrowLeft' || params.event.key === 'ArrowRight')) {
                 return true; // Suppress the keyboard event
               }
               return false; // Allow the keyboard event
@@ -574,14 +542,14 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           onColumnVisible={onColumnStateChanged}
           onCellDoubleClicked={handleCellDoubleClicked}
           onSelectionChanged={(event) => {
-            if (recordDetailsVisible) {
+            if (activeRecord?.recordId) {
               // In record details mode, update the selected record state
               const selectedRows = event.api.getSelectedRows();
               if (selectedRows.length === 1) {
                 const newSelectedId = selectedRows[0].id.wsId;
-                setSelectedRecordId(newSelectedId);
+                setActiveRecord({ recordId: newSelectedId, columnId: activeRecord?.columnId });
               } else {
-                setSelectedRecordId(null);
+                setActiveRecord(null);
               }
             }
             // Note: Normal mode callback handling was removed as per user's changes
@@ -620,7 +588,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
               if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
                 const currentRowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
 
-                if (currentRowNode && lastKeyPressed.shiftKey && !recordDetailsVisible) {
+                if (currentRowNode && lastKeyPressed.shiftKey && !activeRecord?.recordId) {
                   // Shift+Arrow key logic (only in normal mode)
                   if (!currentRowNode.isSelected()) {
                     currentRowNode.setSelected(true);
@@ -653,7 +621,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       </div>
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
-      {recordDetailsVisible && (
+      {activeRecord?.recordId && (
         <Box
           style={{
             position: 'absolute',
@@ -675,7 +643,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
                 <RecordDetailsHeader
                   h="36px"
                   table={table}
-                  columnId={selectedColumnId}
+                  columnId={activeRecord.columnId}
                   onSwitchColumn={handleFieldFocus}
                   v2
                   onClose={handleCloseRecordDetails}
@@ -686,7 +654,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
                     const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
                     const hasSuggestions =
                       columnsWithSuggestions.length > 0 &&
-                      (!selectedColumnId || columnsWithSuggestions.includes(selectedColumnId));
+                      (!activeRecord.columnId || columnsWithSuggestions.includes(activeRecord.columnId));
                     const SUGGESTION_TOOLBAR_HEIGHT = 40;
 
                     return (
@@ -700,7 +668,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
                             snapshotId={snapshot.id}
                             currentRecord={selectedRecord}
                             table={table}
-                            currentColumnId={selectedColumnId}
+                            currentColumnId={activeRecord.columnId}
                             acceptCellValues={acceptCellValues}
                             rejectCellValues={rejectCellValues}
                             onFocusOnField={handleFieldFocus}
@@ -711,7 +679,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
                           <RecordSuggestionToolbar
                             record={selectedRecord}
                             table={table}
-                            columnId={selectedColumnId}
+                            columnId={activeRecord.columnId}
                             style={{
                               position: 'absolute',
                               bottom: 0,

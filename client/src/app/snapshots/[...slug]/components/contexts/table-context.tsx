@@ -6,7 +6,6 @@ import { sleep } from '@/utils/helpers';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../../hooks/use-snapshot-params';
 import { useSnapshotContext } from './SnapshotContext';
-import { useAgentChatContext } from './agent-chat-context';
 
 export interface ActiveRecord {
   recordId: string | undefined;
@@ -28,7 +27,7 @@ interface TableContextValue {
   // switchToRecordView: (recordId: string, columnId?: string) => Promise<void>;
   // switchToSpreadsheetView: () => Promise<void>;
   // switchToNewSpreadsheetView: () => Promise<void>;
-  switchDisplayMode: (recordId?: string, columnId?: string) => Promise<void>;
+  // switchDisplayMode: (recordId?: string, columnId?: string) => Promise<void>;
   activeRecord: ActiveRecord | null;
   setActiveRecord: (activeRecord: ActiveRecord | null) => void;
   recordDetailsVisible: boolean;
@@ -46,8 +45,7 @@ interface TableProviderProps {
 
 export const TableProvider = ({ children }: TableProviderProps) => {
   /** Dependant Hooks */
-  const { snapshotId, recordId: recordIdParam, columnId: columnIdParam, updateSnapshotPath } = useSnapshotParams();
-  const { setWriteFocus, setTableScope, setColumnScope, setRecordScope } = useAgentChatContext();
+  const { snapshotId, recordId: recordIdParam, columnId: columnIdParam } = useSnapshotParams();
   const { viewDataAsAgent, currentViewId } = useSnapshotContext();
   /** State */
   const [activeTable, setActiveTable] = useState<TableSpec | undefined>(undefined);
@@ -74,22 +72,24 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   const addPendingChange = useCallback(
     (update: PendingUpdate) => {
       console.debug('addPendingChange', update);
-      const existing = pendingChanges.findIndex(
-        (candidate) => candidate.recordWsId === update.recordWsId && candidate.field === update.field,
-      );
-      if (existing !== -1) {
-        // reset the value in the list
-        const newPendingUpdates = [...pendingChanges];
-        newPendingUpdates[existing] = { recordWsId: update.recordWsId, field: update.field, value: update.value };
-        setPendingChanges(newPendingUpdates);
-      } else {
-        setPendingChanges([
-          ...pendingChanges,
-          { recordWsId: update.recordWsId, field: update.field, value: update.value },
-        ]);
-      }
+      setPendingChanges((currentPendingChanges) => {
+        const existing = currentPendingChanges.findIndex(
+          (candidate) => candidate.recordWsId === update.recordWsId && candidate.field === update.field,
+        );
+        if (existing !== -1) {
+          // reset the value in the list
+          const newPendingUpdates = [...currentPendingChanges];
+          newPendingUpdates[existing] = { recordWsId: update.recordWsId, field: update.field, value: update.value };
+          return newPendingUpdates;
+        } else {
+          return [
+            ...currentPendingChanges,
+            { recordWsId: update.recordWsId, field: update.field, value: update.value },
+          ];
+        }
+      });
     },
-    [pendingChanges],
+    [], // Remove pendingChanges dependency to prevent unnecessary re-renders
   );
 
   const savePendingUpdates = useCallback(async () => {
@@ -133,76 +133,6 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     return () => clearInterval(interval);
   }, [savePendingUpdates, activeRecord, savingPendingChanges]);
 
-  const switchDisplayMode = useCallback(
-    async (recordId?: string, columnId?: string) => {
-      if (!activeTable) {
-        throw new Error('Active table not set');
-      }
-
-      // setDisplayMode(mode);
-      debugger;
-      setActiveRecord({ recordId, columnId });
-      await savePendingUpdates();
-
-      if (recordId) {
-        if (columnId) {
-          setColumnScope(recordId, columnId);
-          setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
-          updateSnapshotPath(snapshotId, activeTable.id.wsId, recordId, columnId);
-        } else {
-          setRecordScope(recordId);
-          updateSnapshotPath(snapshotId, activeTable.id.wsId, recordId);
-        }
-      } else {
-        setTableScope();
-        setWriteFocus([]);
-        updateSnapshotPath(snapshotId, activeTable.id.wsId);
-      }
-
-      // if (mode === 'record' && recordId) {
-      //   if (columnId) {
-      //     setColumnScope(recordId, columnId);
-      //     setWriteFocus([{ recordWsId: recordId, columnWsId: columnId }]);
-      //     updateSnapshotPath(snapshotId, activeTable.id.wsId, recordId, columnId);
-      //   } else {
-      //     setRecordScope(recordId);
-      //     updateSnapshotPath(snapshotId, activeTable.id.wsId, recordId);
-      //   }
-      // }
-
-      // if (mode === 'spreadsheet') {
-      //   setTableScope();
-      //   setWriteFocus([]);
-      //   updateSnapshotPath(snapshotId, activeTable.id.wsId);
-      // }
-    },
-    [
-      activeTable,
-      setColumnScope,
-      setWriteFocus,
-      updateSnapshotPath,
-      snapshotId,
-      setRecordScope,
-      setTableScope,
-      savePendingUpdates,
-    ],
-  );
-
-  // const switchToRecordView = useCallback(
-  //   async (recordId: string, columnId?: string) => {
-  //     switchDisplayMode('record', recordId, columnId);
-  //   },
-  //   [switchDisplayMode],
-  // );
-
-  // const switchToSpreadsheetView = useCallback(async () => {
-  //   switchDisplayMode('spreadsheet');
-  // }, [switchDisplayMode]);
-
-  // const switchToNewSpreadsheetView = useCallback(async () => {
-  //   switchDisplayMode('new-spreadsheet');
-  // }, [switchDisplayMode]);
-
   const value: TableContextValue = {
     activeTable,
     setActiveTable,
@@ -213,7 +143,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     // switchToRecordView,
     // switchToSpreadsheetView,
     // switchToNewSpreadsheetView,
-    switchDisplayMode,
+    // switchDisplayMode,
     addPendingChange,
     savePendingUpdates,
     pendingChanges,
