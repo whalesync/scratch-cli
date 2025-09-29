@@ -1,3 +1,4 @@
+import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
