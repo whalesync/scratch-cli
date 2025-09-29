@@ -12,6 +12,7 @@ import {
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
+import { useHotkeys } from '@mantine/hooks';
 import { FileIcon, PlusIcon } from '@phosphor-icons/react';
 import { AtSignIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
@@ -24,6 +25,15 @@ export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; sn
   const { activeResources, setActiveResources } = useAgentChatContext();
   const [isEditResourceModalOpen, setIsEditResourceModalOpen] = useState(false);
   const [resourceToEdit, setResourceToEdit] = useState<StyleGuide | null>(null);
+  useHotkeys([
+    [
+      'ctrl+enter',
+      () => {
+        combobox.openDropdown('keyboard');
+        combobox.focusTarget();
+      },
+    ],
+  ]);
 
   const comboBoxOptions = useMemo(() => {
     const list = resources

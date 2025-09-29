@@ -3,12 +3,16 @@
 import { ContentFooterButton } from '@/app/components/base/buttons';
 import { TextBookSm, TextRegularXs } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
+import { KeyboardShortcutHelpModal } from '@/app/components/KeyboardShortcutHelpModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
+import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
+import { HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
@@ -20,6 +24,8 @@ interface RecordDataToolbarProps {
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
   const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
+  const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
+  useHotkeys([['ctrl+h', () => openHelpOverlay()]]);
 
   const { count, filteredCount, createNewRecord } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
@@ -66,6 +72,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
 
   return (
     <>
+      <KeyboardShortcutHelpModal opened={helpOverlayOpen} onClose={closeHelpOverlay} />
       <Group justify="flex-start" align="center" h="100%">
         <Group gap="2px">
           <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
@@ -97,6 +104,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
               )}
             </>
           )}
+          <ToolIconButton icon={HelpCircleIcon} onClick={openHelpOverlay} size="md" />
         </Group>
       </Group>
       {/* SQL Filter Modal */}
