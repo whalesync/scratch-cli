@@ -31,7 +31,8 @@ export const PublishConfirmationModal = ({
 
   const handleShowChanges = () => {
     setShowChanges(!showChanges);
-    if (!showChanges && !publishSummary) {
+    if (!showChanges) {
+      // Always refetch when showing changes to get the latest data
       fetchSummary();
     }
   };
