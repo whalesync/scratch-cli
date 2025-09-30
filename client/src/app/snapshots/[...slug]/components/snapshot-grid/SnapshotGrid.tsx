@@ -188,6 +188,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      debugger;
       // Handle Esc key to close record view
       if (event.key === 'Escape' && activeRecord?.recordId) {
         // event.preventDefault();
@@ -373,9 +374,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   }, [activeRecord?.recordId, activeRecord?.columnId, setRecordScope, setColumnScope]);
 
   // Handlers for record details mode
-  const handleFieldFocus = useCallback((columnId: string | undefined) => {
-    setActiveRecord({ recordId: activeRecord?.recordId, columnId: columnId });
-  }, []);
+  const handleFieldFocus = useCallback(
+    (columnId: string | undefined) => {
+      setActiveRecord({ recordId: activeRecord?.recordId, columnId: columnId });
+    },
+    [setActiveRecord, activeRecord?.recordId],
+  );
 
   // Add keyboard event listener for copy functionality
   useEffect(() => {
