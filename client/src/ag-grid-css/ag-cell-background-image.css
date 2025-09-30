@@ -1,9 +1,9 @@
 /* Selection corner borders shared vars */
 .my-grid {
-  --corner-border-width: 1px;
-  --corner-border-length: 5px;
+  --corner-border-width: 2px;
+  --corner-border-length: 6px;
   --edited-border-length: 16px;
-  --image-border-offset: 2px;
+  --image-border-offset: 0px;
 }
 
 /* ----------- Vars for the focus border ------------ */
@@ -89,14 +89,14 @@
       );
   background-position:
     var(--image-border-offset) center,
-    /* TL-V */ var(--image-border-offset) 2px,
-    /* TL-H */ var(--image-border-offset) 2px,
-    /* TR-V */ calc(100% - var(--image-border-offset)) 2px,
-    /* TR-H */ calc(100% - var(--image-border-offset)) 2px,
+    /* TL-V */ var(--image-border-offset) var(--image-border-offset),
+    /* TL-H */ var(--image-border-offset) var(--image-border-offset),
+    /* TR-V */ calc(100% - var(--image-border-offset)) var(--image-border-offset),
+    /* TR-H */ calc(100% - var(--image-border-offset)) var(--image-border-offset),
     /* BL-V */ var(--image-border-offset) calc(100% - var(--image-border-offset) - 1px),
-    /* BL-H */ var(--image-border-offset) calc(100% - var(--corner-border-width) - 1px),
+    /* BL-H */ var(--image-border-offset) calc(100% - var(--image-border-offset) - 1px),
     /* BR-V */ calc(100% - var(--image-border-offset)) calc(100% - var(--image-border-offset) - 1px),
-    /* BR-H */ calc(100% - var(--image-border-offset)) calc(100% - var(--corner-border-width) - 1px);
+    /* BR-H */ calc(100% - var(--image-border-offset)) calc(100% - var(--image-border-offset) - 1px);
   background-size:
     1px var(--edited-border-length),
     /* TL-V */ var(--corner-border-length) var(--corner-border-length),

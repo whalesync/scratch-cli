@@ -3,6 +3,13 @@
   font-size: 13px;
 }
 
+.my-grid[class*='ag-theme'] .ag-row.ag-row-selected .cell-text {
+  font-weight: 600;
+}
+.my-grid[class*='ag-theme'] .ag-cell.ag-cell-focus-column .cell-text {
+  font-weight: 600;
+}
+
 .my-grid.ag-theme-alpine .ag-cell .cell-text {
   color: black;
 }

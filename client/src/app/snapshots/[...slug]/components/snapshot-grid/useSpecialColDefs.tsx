@@ -3,6 +3,7 @@ import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { CellStyleFunc, ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from './IdHeaderComponent';
+import { getCellClassFn } from './useCellClass';
 
 interface UseIdColDefProps {
   onSettingsClick: () => void;
@@ -19,6 +20,7 @@ export const useSpecialColDefs = ({
 }: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
     const colors = isLightMode ? AG.colors.light : AG.colors.dark;
 
@@ -69,7 +71,8 @@ export const useSpecialColDefs = ({
         </Box>
       );
     },
-    cellStyle,
+    // cellStyle,
+    cellClass: getCellClassFn({ gridApi, activeRecord: null, columnId: 'id' }),
   };
 
   const dotColumn: ColDef = {
@@ -81,9 +84,9 @@ export const useSpecialColDefs = ({
     pinned: 'left',
     lockPosition: true,
     // suppressMovable: true,
-    width: 22,
-    minWidth: 22,
-    maxWidth: 22,
+    width: AG.dotColumn.width,
+    minWidth: AG.dotColumn.width,
+    maxWidth: AG.dotColumn.width,
     cellStyle: (params) => {
       const record = params.data as SnapshotRecord;
       const isDeleted = record?.__edited_fields?.__deleted;

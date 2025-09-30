@@ -4,6 +4,22 @@
   padding-right: 10px;
   padding-left: 10px;
 }
+
+.my-grid.ag-theme-alpine .ag-cell.ag-cell-focus-column {
+  /* Closest to eee, which is what Joel requested */
+  background-color: var(--mantine-color-gray-2);
+}
+.my-grid.ag-theme-alpine-dark .ag-cell.ag-cell-focus-column {
+  background-color: var(--mantine-color-gray-7);
+}
+
+.my-grid.ag-theme-alpine .ag-cell.ag-cell-focus {
+  background-color: var(--mantine-color-gray-4);
+}
+/* .my-grid.ag-theme-alpine-dark .ag-cell.ag-cell-focus {
+  background-color: red;
+} */
+
 /* Suggestion buttons - show on hover */
 .my-grid .ag-cell:hover .cell-with-suggestion .suggestion-buttons {
   opacity: 1 !important;

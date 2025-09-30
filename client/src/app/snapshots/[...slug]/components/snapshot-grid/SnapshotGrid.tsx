@@ -2,7 +2,6 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import {
-  getDotColumn,
   getHeaderColumnSpec,
   getOtherColumnSpecs,
   getTitleColumn,
@@ -12,7 +11,6 @@ import { Box, Center, Loader, Paper, ScrollArea, Text, useMantineColorScheme } f
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
-  CellClassFunc,
   CellDoubleClickedEvent,
   CellStyleFunc,
   ColDef,
@@ -38,6 +36,7 @@ import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
 import { SettingsModal } from './SettingsModal';
 import { TableContextMenu } from './TableContextMenu';
+import { getCellClassFn } from './useCellClass';
 import { useCellRenderer } from './useCellRenderer';
 import { useSpecialColDefs } from './useSpecialColDefs';
 import { useStoreColumnState } from './useStoreColumnState';
@@ -68,15 +67,15 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
-      const dotColumn = getDotColumn(gridApi);
+      // const dotColumn = getDotColumn(gridApi);
       const titleColumn = getTitleColumn(gridApi);
 
-      let pinnedColumnsWidth = 0;
+      let pinnedColumnsWidth = AG.dotColumn.width;
 
-      if (dotColumn) {
-        pinnedColumnsWidth += dotColumn.getActualWidth();
-        console.debug('ID column width:', dotColumn.getActualWidth());
-      }
+      // if (dotColumn) {
+      //   pinnedColumnsWidth += dotColumn.getActualWidth();
+      //   console.debug('ID column width:', dotColumn.getActualWidth());
+      // }
 
       if (titleColumn) {
         pinnedColumnsWidth += titleColumn.getActualWidth();
@@ -413,34 +412,30 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
-    const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
-      const classes: string[] = [];
+    // const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
+    //   const classes: string[] = [];
 
-      // Add 'cell-edited' class if this field has been edited
-      if (params.data?.__edited_fields?.[column.id.wsId]) {
-        classes.push('cell-edited');
-      }
+    //   const focusedCell = gridApi?.getFocusedCell();
+    //   const isInFocusedColumn =
+    //     focusedCell && !activeRecord?.recordId && focusedCell.column.getColId() === column.id.wsId;
 
-      return classes;
-    };
+    //   if (isInFocusedColumn) {
+    //     classes.push('ag-cell-focus-column');
+    //   }
+
+    //   // Add 'cell-edited' class if this field has been edited
+    //   if (params.data?.__edited_fields?.[column.id.wsId]) {
+    //     classes.push('cell-edited');
+    //   }
+
+    //   return classes;
+    // };
 
     const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
       const isReadOnly = column.readonly;
-
-      // Check if this cell is in the same column as the focused cell
-      const focusedCell = gridApi?.getFocusedCell();
-      const isInFocusedColumn =
-        focusedCell && !activeRecord?.recordId && focusedCell.column.getColId() === column.id.wsId;
-
-      // Base styles for all cells (gray outer border)
-      const backgroundColor = isInFocusedColumn
-        ? isLightMode
-          ? 'var(--mantine-color-gray-4)'
-          : 'var(--mantine-color-gray-7)'
-        : 'transparent';
       const colors = isLightMode ? AG.colors.light : AG.colors.dark;
       const baseStyles = {
-        backgroundColor,
+        // backgroundColor,
         color: isReadOnly ? colors.readOnlyText : colors.normalText,
       };
 
@@ -458,7 +453,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       valueGetter,
       cellRenderer,
       cellStyle,
-      cellClass,
+      cellClass: getCellClassFn({ gridApi, activeRecord, columnId: column.id.wsId }),
       // Pin the title column to the left (like the ID column)
       pinned: index === 0 ? 'left' : undefined,
       // Lock position and suppress movable for title column

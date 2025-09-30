@@ -1,27 +1,16 @@
-
-/**
- * TODO: move these to a CSS module
- */
-
-
 export const AG = {
+  /**
+   * TODO: move these to a CSS module
+   */
   colors: {
     light: {
-      
-      // Text colors
       readOnlyText: '#6b7280',
-       // Text colors
       normalText: '#ffffff',
       
     },
     dark: {
-      
-      // Text colors
       readOnlyText: '#6b7280',
-       // Text colors
       normalText: '#ffffff',
-      
-
     },
   },
   
@@ -30,4 +19,7 @@ export const AG = {
     defaultMinWidth: 200,
     defaultFlex: 1,
   },
+  dotColumn: {
+    width: 22,
+  }
 } as const;

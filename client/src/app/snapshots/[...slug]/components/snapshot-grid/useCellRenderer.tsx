@@ -38,12 +38,9 @@ export const useCellRenderer = (
     // Access suggested values directly from the record data
     const record = params.data as SnapshotRecord;
     const suggestedValue = record?.__suggested_values?.[columnDef.id.wsId];
-    // const colors = isLightMode ? AG.colors.light : AG.colors.dark;
     if (suggestedValue) {
       const SuggestionButtons = () => {
         const [isProcessing, setIsProcessing] = useState(false);
-        // const { colorScheme } = useMantineColorScheme();
-        // const isLightMode = colorScheme === 'light';
 
         const handleAccept = async (e: React.MouseEvent) => {
           e.preventDefault();
