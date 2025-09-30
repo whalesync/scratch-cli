@@ -1,5 +1,5 @@
-import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import { PublishSummary } from '@/types/server-entities/publish-summary';
+import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -49,7 +49,7 @@ export const snapshotApi = {
       body: JSON.stringify(dto),
     });
     if (!res.ok) {
-      throw new ScratchpadApiError("Failed to create snapshot", res.status, res.statusText);
+      throw new ScratchpadApiError("Failed to create a scratchpaper", res.status, res.statusText);
     }
     return res.json();
   },

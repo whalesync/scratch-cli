@@ -94,7 +94,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>{formatDate(connectorAccount.updatedAt)}</Table.Td>
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
-            <ToolIconButton size="md" onClick={open} icon={Plus} tooltip="Create snapshot" />
+            <ToolIconButton size="md" onClick={open} icon={Plus} tooltip="Create a Scratchpaper" />
             <ToolIconButton
               size="md"
               onClick={() => onUpdate(connectorAccount)}
