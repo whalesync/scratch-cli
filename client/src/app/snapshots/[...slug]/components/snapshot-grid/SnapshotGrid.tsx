@@ -53,7 +53,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       tableId: table.id.wsId,
     });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
-  const { activeRecord, setActiveRecord } = useTableContext();
+  const { activeRecord, setActiveRecord, savePendingUpdates } = useTableContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
 
@@ -172,10 +172,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   );
 
   // Handlers for record details mode
-  const handleCloseRecordDetails = useCallback(() => {
-    // setRecordDetailsVisible(false);
-    // setSelectedRecordId(null);
-    // setSelectedColumnId(undefined);
+  const handleCloseRecordDetails = useCallback(async () => {
+    // Save any pending changes before closing
+    if (savePendingUpdates) {
+      await savePendingUpdates();
+    }
+
     // Reset data scope back to table
     setActiveRecord(null);
     setTableScope();
@@ -183,7 +185,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     if (gridApi) {
       gridApi.deselectAll();
     }
-  }, [gridApi, setActiveRecord, setTableScope]);
+  }, [gridApi, setActiveRecord, setTableScope, savePendingUpdates]);
 
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(

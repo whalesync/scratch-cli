@@ -7,7 +7,7 @@ import { useState } from 'react';
 interface PublishConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   snapshotId: string;
   serviceName?: string;
   isPublishing: boolean;
@@ -140,7 +140,13 @@ export const PublishConfirmationModal = ({
           <SecondaryButton onClick={handleClose} disabled={isPublishing}>
             Cancel
           </SecondaryButton>
-          <PrimaryButton onClick={onConfirm} loading={isPublishing}>
+          <PrimaryButton
+            onClick={async () => {
+              onConfirm();
+              handleClose();
+            }}
+            loading={isPublishing}
+          >
             Publish Changes
           </PrimaryButton>
         </Group>
