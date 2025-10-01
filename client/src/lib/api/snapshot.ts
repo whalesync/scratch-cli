@@ -5,7 +5,7 @@ import {
   ListRecordsResponse,
 } from "../../types/server-entities/records";
 import { API_CONFIG } from "./config";
-import { ScratchpadApiError } from "./error";
+import { checkForApiError, ScratchpadApiError } from "./error";
 
 export const snapshotApi = {
   list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
@@ -19,9 +19,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch snapshots", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch snapshots");
     return res.json();
   },
 
@@ -33,9 +31,7 @@ export const snapshotApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch snapshot", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch snapshot");
     return res.json();
   },
 
@@ -48,9 +44,7 @@ export const snapshotApi = {
       },
       body: JSON.stringify(dto),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError("Failed to create a scratchpaper", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to create a scratchpaper");
     return res.json();
   },
 
@@ -63,9 +57,7 @@ export const snapshotApi = {
       },
       body: JSON.stringify(updateDto),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to update snapshot", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to update snapshot");
     return res.json();
   },
 
@@ -79,9 +71,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to start download", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to start download");
     return res.json();
   },
 
@@ -95,9 +85,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to start publish", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to start publish");
   },
 
   async getPublishSummary(id: string): Promise<PublishSummary> {
@@ -110,9 +98,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to get publish summary", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to get publish summary");
     return res.json();
   },
 
@@ -123,9 +109,7 @@ export const snapshotApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to delete snapshot", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to delete snapshot");
   },
 
   async listRecords(
@@ -153,9 +137,7 @@ export const snapshotApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to list records", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to list records");
     return res.json();
   },
 
@@ -173,9 +155,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to get record", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to get record");
     return res.json();
   },
 
@@ -195,11 +175,7 @@ export const snapshotApi = {
         body: JSON.stringify({ sqlWhereClause }),
       }
     );
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      const errorMessage = errorData.message || res.statusText || "Failed to set active records filter";
-      throw new ScratchpadApiError(errorMessage, res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to set active records filter");
   },
 
   async clearActiveRecordFilter(
@@ -215,9 +191,7 @@ export const snapshotApi = {
         },
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to clear active record filter", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to clear active record filter");
   },
 
   /**
@@ -245,9 +219,7 @@ export const snapshotApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to list records", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to list records");
     return res.json();
   },
 
@@ -300,9 +272,7 @@ export const snapshotApi = {
         body: JSON.stringify({ items }),
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to accept cell values", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to accept cell values");
   },
 
   async rejectCellValues(
@@ -321,9 +291,7 @@ export const snapshotApi = {
         body: JSON.stringify({ items }),
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to reject cell values", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to reject cell values");
   },
 
 
@@ -363,9 +331,7 @@ export const snapshotApi = {
         body: JSON.stringify({ viewId }),
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to reject all suggestions", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to reject all suggestions");
     return res.json();
   },
 

@@ -19,6 +19,7 @@ import { ArrowsClockwiseIcon, ArrowUpRightIcon, InfoIcon, MagnifyingGlassIcon } 
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { PrimaryButton } from '../base/buttons';
+import { TextRegularSm, TextTitleLg } from '../base/text';
 import styles from './Info.module.css';
 
 /*
@@ -59,23 +60,19 @@ const NotFoundIcon = (): JSX.Element => {
 };
 
 const LoaderWidget = (): JSX.Element => {
-  return <Loader size="lg" mb="sm" />;
+  return <Loader size="lg" mb="sm" color="primary" />;
 };
 
 const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <Text fw={500} c="gray.9" mb="2px" {...props}>
+    <TextTitleLg mb="2px" {...props}>
       {children}
-    </Text>
+    </TextTitleLg>
   );
 };
 
 const Description = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
-  return (
-    <Text fw={400} c="gray.7" {...props}>
-      {children}
-    </Text>
-  );
+  return <TextRegularSm {...props}>{children}</TextRegularSm>;
 };
 
 const StatusPageDescription = (): JSX.Element => {
@@ -126,7 +123,7 @@ const DetailsDisclosure = ({ children }: { children: ReactNode }): JSX.Element =
       </Anchor>
 
       <Collapse in={detailsVisible}>
-        <Box w={500} mah={400} p="md" bg="red.2">
+        <Box w={500} mah={400} p="md" bg="var(--mantine-color-red-light)">
           <Text size="xs">{children}</Text>
         </Box>
       </Collapse>

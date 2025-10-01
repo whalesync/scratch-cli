@@ -6,11 +6,12 @@ import { PageLayout } from '@/app/components/layouts/PageLayout';
 import SideBar from '@/app/components/layouts/SideBarContent';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Title } from '@mantine/core';
+import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Stack, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
 import { JSX } from 'react';
 import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
 import { ConnectorIcon } from '../components/ConnectorIcon';
+import { ErrorInfo } from '../components/InfoPanel';
 import { NavbarToggleButton } from '../components/NavbarToggleButton';
 
 const LayoutTestPage = (): JSX.Element => {
@@ -70,14 +71,17 @@ const LayoutTestPage = (): JSX.Element => {
           </Group>
         </MainContent.Header>
         <MainContent.Body>
-          <Box c="white" p="md" fw={700}>
-            This box has virtual background color, it is pink in dark mode and cyan in light mode
-            <Button variant="outline" color="primary">
-              Test
-            </Button>
-            <PrimaryButton>Primary</PrimaryButton>
-            <SecondaryButton>Secondary</SecondaryButton>
-          </Box>
+          <Stack gap="md">
+            <Box c="white" p="md" fw={700}>
+              This box has virtual background color, it is pink in dark mode and cyan in light mode
+              <Button variant="outline" color="primary">
+                Test
+              </Button>
+              <PrimaryButton>Primary</PrimaryButton>
+              <SecondaryButton>Secondary</SecondaryButton>
+            </Box>
+            <ErrorInfo error="Hello" title="Error" />
+          </Stack>
         </MainContent.Body>
         <MainContent.Footer>
           <Group h="100%" align="center" gap="xs">

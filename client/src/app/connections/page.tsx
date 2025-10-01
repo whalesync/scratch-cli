@@ -61,16 +61,30 @@ export default function ConnectorAccountsPage() {
 
   if (isLoading) {
     return (
-      <Center h="100%">
-        <Loader />
-        <TextRegularSm>Loading connections...</TextRegularSm>
-      </Center>
+      <MainContent>
+        <MainContent.BasicHeader title="Connections" />
+        <MainContent.Body p="0">
+          <Center h="100%">
+            <Loader />
+            <TextRegularSm>Loading connections...</TextRegularSm>
+          </Center>
+        </MainContent.Body>
+      </MainContent>
     );
   }
 
   if (error) {
-    return <ErrorInfo error={error} />;
+    return (
+      <MainContent>
+        <MainContent.BasicHeader title="Connections" />
+        <MainContent.Body p="0">
+          <ErrorInfo error={error} />
+        </MainContent.Body>
+      </MainContent>
+    );
   }
+
+  const sortedConnectorAccounts = connectorAccounts?.sort((a, b) => a.displayName.localeCompare(b.displayName)) || [];
 
   return (
     <MainContent>
@@ -101,7 +115,7 @@ export default function ConnectorAccountsPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {connectorAccounts?.map((conn) => (
+            {sortedConnectorAccounts.map((conn) => (
               <ConnectorRow
                 key={conn.id}
                 connectorAccount={conn}

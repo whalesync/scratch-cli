@@ -168,31 +168,32 @@ export const CreateSnapshotModal = ({
               <Text>Loading {tableTermPlural}...</Text>
             </Group>
           </Center>
-        ) : error ? (
-          <Text c="red">{error}</Text>
         ) : (
-          <Radio.Group
-            value={selectedTable}
-            onChange={(value) => {
-              setSelectedTable(value as string);
-            }}
-          >
-            <Group justify="flex-start">
-              <Text size="sm">Select a {tableTerm} to include in the scratchpaper</Text>
-            </Group>
+          <>
+            {error && <Text c="red">{error}</Text>}
+            <Radio.Group
+              value={selectedTable}
+              onChange={(value) => {
+                setSelectedTable(value as string);
+              }}
+            >
+              <Group justify="flex-start">
+                <Text size="sm">Select a {tableTerm} to include in the scratchpaper</Text>
+              </Group>
 
-            <Paper withBorder p="md" mt="sm">
-              <ScrollArea h={400}>
-                <Stack mt="xs">
-                  {tables
-                    .sort((a, b) => a.displayName.localeCompare(b.displayName))
-                    .map((table) => (
-                      <Radio key={`${table.id.remoteId.join('-')}`} value={table.id.wsId} label={table.displayName} />
-                    ))}
-                </Stack>
-              </ScrollArea>
-            </Paper>
-          </Radio.Group>
+              <Paper withBorder p="md" mt="sm">
+                <ScrollArea mah={400} flex={1}>
+                  <Stack mt="xs">
+                    {tables
+                      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+                      .map((table) => (
+                        <Radio key={`${table.id.remoteId.join('-')}`} value={table.id.wsId} label={table.displayName} />
+                      ))}
+                  </Stack>
+                </ScrollArea>
+              </Paper>
+            </Radio.Group>
+          </>
         )}
 
         {/* Add Channel button for YouTube connections */}
