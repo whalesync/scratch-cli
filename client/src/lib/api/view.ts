@@ -1,6 +1,6 @@
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 import { API_CONFIG } from './config';
-import { ScratchpadApiError } from './error';
+import { checkForApiError } from './error';
 
 export const viewApi = {
   getBySnapshot: async (snapshotId: string): Promise<ColumnView[]> => {
@@ -10,9 +10,7 @@ export const viewApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? 'Failed to get views by snapshot', res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to get view list for this scratchpaper");
     return res.json();
   },
 
@@ -30,9 +28,7 @@ export const viewApi = {
       },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? 'Failed to upsert view', res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to update view");
     return res.json();
   },
 
@@ -43,8 +39,6 @@ export const viewApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? 'Failed to delete view', res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to delete view");
   },
 }; 

@@ -1,6 +1,6 @@
 import { CreateGenericTableDto, GenericTable } from "@/types/server-entities/generic-table";
 import { API_CONFIG } from "./config";
-import { ScratchpadApiError } from "./error";
+import { checkForApiError } from "./error";
 
 export const genericTableApi = {
   list: async (): Promise<GenericTable[]> => {
@@ -11,9 +11,7 @@ export const genericTableApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch generic tables", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch generic tables");
     return res.json();
   },
 
@@ -25,9 +23,7 @@ export const genericTableApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch generic table", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch generic table");
     return res.json();
   },
 
@@ -40,9 +36,7 @@ export const genericTableApi = {
       },
       body: JSON.stringify({ ...dto }),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to create generic table", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to create generic table");
     return res.json();
   },
 
@@ -55,9 +49,7 @@ export const genericTableApi = {
       },
       body: JSON.stringify({ ...dto }),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to update generic table", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to update generic table");
     return res.json();
   },
 
@@ -69,8 +61,6 @@ export const genericTableApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to delete generic table", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to delete generic table");
   },
 }; 

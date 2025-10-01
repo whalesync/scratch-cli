@@ -310,9 +310,7 @@ export const snapshotApi = {
         body: JSON.stringify({ viewId }),
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to accept all suggestions", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to accept all suggestions");
     return res.json();
   },
 
@@ -352,9 +350,7 @@ export const snapshotApi = {
         body: JSON.stringify({ recordIds, fields }),
       }
     );
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to deep fetch records", res.status, res.statusText);
-    }
-    return res.json();
+    await checkForApiError(res, "Failed to deep fetch records");
+    return res.json()
   },
 };

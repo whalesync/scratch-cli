@@ -1,5 +1,5 @@
 import { API_CONFIG } from './config';
-import { ScratchpadApiError } from './error';
+import { checkForApiError } from './error';
 
 export interface GeneratePollRecordsRequest {
   prompt: string;
@@ -33,9 +33,7 @@ export const generatePollRecords = async (prompt: string, connectorId: string): 
     body: JSON.stringify({ prompt }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to generate poll records function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to generate poll records function");
 
   const data = await response.json();
   return data.function;
@@ -51,9 +49,7 @@ export const executePollRecords = async (functionString: string, apiKey: string,
     body: JSON.stringify({ function: functionString, apiKey, tableId }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute poll records function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to execute poll records function");
 
   return response.json();
 };
@@ -68,9 +64,7 @@ export const generateDeleteRecord = async (prompt: string, connectorId: string):
     body: JSON.stringify({ prompt }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to generate delete record function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to generate delete record function");
 
   const data = await response.json();
   return data.function;
@@ -91,10 +85,8 @@ export const executeDeleteRecord = async (
     body: JSON.stringify({ functionString, recordId, apiKey, tableId }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute delete record function', response.status, response.statusText);
-  }
-
+  await checkForApiError(response, "Failed to execute delete record function");
+  
   return response.json();
 };
 
@@ -108,9 +100,7 @@ export const generateCreateRecord = async (prompt: string, connectorId: string):
     body: JSON.stringify({ prompt }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to generate create record function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to generate create record function");
 
   const data = await response.json();
   return data.function;
@@ -131,9 +121,7 @@ export const executeCreateRecord = async (
     body: JSON.stringify({ functionString, recordData, apiKey, tableId }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute create record function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to execute create record function");
 
   return response.json();
 };
@@ -148,9 +136,7 @@ export const generateUpdateRecord = async (prompt: string, connectorId: string):
     body: JSON.stringify({ prompt }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to generate update record function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to generate update record function");
 
   const data = await response.json();
   return data.function;
@@ -172,9 +158,7 @@ export const executeUpdateRecord = async (
     body: JSON.stringify({ functionString, recordId, recordData, apiKey, tableId }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute update record function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to execute update record function");
 
   return response.json();
 };
@@ -189,9 +173,7 @@ export const generateListTables = async (prompt: string, connectorId: string): P
     body: JSON.stringify({ prompt }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to generate list tables function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to generate list tables function");
 
   const data = await response.json();
   return data.function;
@@ -207,9 +189,7 @@ export const executeListTables = async (functionString: string, apiKey: string):
     body: JSON.stringify({ functionString, apiKey }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute list tables function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to execute list tables function");
 
   return response.json();
 };
@@ -224,9 +204,7 @@ export const executeSchema = async (functionString: string, apiKey: string, tabl
     body: JSON.stringify({ functionString, apiKey, tableId }),
   });
 
-  if (!response.ok) {
-    throw new ScratchpadApiError('Failed to execute schema function', response.status, response.statusText);
-  }
+  await checkForApiError(response, "Failed to execute schema function");
 
   return response.json();
 };

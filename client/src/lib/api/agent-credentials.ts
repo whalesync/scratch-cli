@@ -5,7 +5,7 @@ import {
   UpdateAiAgentCredentialDto,
 } from '@/types/server-entities/agent-credentials';
 import { API_CONFIG } from './config';
-import { ScratchpadApiError } from './error';
+import { checkForApiError, ScratchpadApiError } from './error';
 
 export const agentCredentialsApi = {
   list: async (): Promise<AiAgentCredential[]> => {
@@ -16,7 +16,7 @@ export const agentCredentialsApi = {
         'Content-Type': 'application/json',
       },
     });
-    if (!res.ok) throw new ScratchpadApiError('Failed to fetch agent credentials', res.status, res.statusText);
+    await checkForApiError(res, 'Failed to fetch agent credentials');
     return res.json();
   },
   create: async (data: CreateAiAgentCredentialDto): Promise<AiAgentCredential> => {
@@ -41,7 +41,7 @@ export const agentCredentialsApi = {
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) throw new ScratchpadApiError('Failed to update agent credential', res.status, res.statusText);
+    await checkForApiError(res, 'Failed to update agent credential');
     return res.json();
   },
   delete: async (id: string): Promise<void> => {
@@ -51,7 +51,7 @@ export const agentCredentialsApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) throw new ScratchpadApiError('Failed to delete agent credential', res.status, res.statusText);
+    await checkForApiError(res, 'Failed to delete agent credential');
   },
   getCreditUsage: async (id: string): Promise<CreditUsage> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}/credits`, {
@@ -60,7 +60,7 @@ export const agentCredentialsApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    if (!res.ok) throw new ScratchpadApiError('Failed to get credit usage', res.status, res.statusText);
+    await checkForApiError(res, 'Failed to get credit usage');
     return res.json();
   },
 };

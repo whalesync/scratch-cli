@@ -1,6 +1,6 @@
 import { CreateCustomConnectorDto, CustomConnector } from "@/types/server-entities/custom-connector";
 import { API_CONFIG } from "./config";
-import { ScratchpadApiError } from "./error";
+import { checkForApiError } from "./error";
 
 export const customConnectorApi = {
   list: async (): Promise<CustomConnector[]> => {
@@ -11,9 +11,7 @@ export const customConnectorApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch custom connectors", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch custom connectors");
     return res.json();
   },
 
@@ -25,9 +23,7 @@ export const customConnectorApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to fetch custom connector", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to fetch custom connector");
     return res.json();
   },
 
@@ -40,9 +36,7 @@ export const customConnectorApi = {
       },
       body: JSON.stringify({ ...dto }),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to create custom connector", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to create custom connector");
     return res.json();
   },
 
@@ -55,9 +49,7 @@ export const customConnectorApi = {
       },
       body: JSON.stringify({ ...dto }),
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to update custom connector", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to update custom connector");
     return res.json();
   },
 
@@ -69,8 +61,6 @@ export const customConnectorApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) {
-      throw new ScratchpadApiError(res.statusText ?? "Failed to delete custom connector", res.status, res.statusText);
-    }
+    await checkForApiError(res, "Failed to delete custom connector");
   },
 }; 

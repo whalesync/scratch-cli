@@ -1,6 +1,6 @@
 import { AgentUsageEvent, UsageSummary } from "@/types/server-entities/agent-usage-events";
 import { API_CONFIG } from "./config";
-import { ScratchpadApiError } from "./error";
+import { checkForApiError } from "./error";
 
 export const agentUsageEventsApi = {
   list: async (cursor?: string, take?: number): Promise<AgentUsageEvent[]> => {
@@ -19,7 +19,7 @@ export const agentUsageEventsApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) throw new ScratchpadApiError("Failed to fetch agent usage events", res.status, res.statusText);
+    await checkForApiError(res, "Failed to fetch agent usage events");
     return res.json();
   },
 
@@ -32,7 +32,7 @@ export const agentUsageEventsApi = {
         "Content-Type": "application/json",
       },
     });
-    if (!res.ok) throw new ScratchpadApiError("Failed to fetch agent usage summary", res.status, res.statusText);
+    await checkForApiError(res, "Failed to fetch agent usage summary");
     return res.json();
   },
 };
