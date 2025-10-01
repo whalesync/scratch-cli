@@ -7,7 +7,7 @@ import {
   getTitleColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
-import { Box, Center, Loader, Paper, ScrollArea, Text, useMantineColorScheme } from '@mantine/core';
+import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
@@ -26,12 +26,10 @@ import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
-import { RecordDetails } from '../record-details/RecordDetails';
-import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
-import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
+import RecordDetailsOverlay from './RecordDetailsOverlay';
 import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
 import { SettingsModal } from './SettingsModal';
@@ -189,7 +187,6 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      debugger;
       // Handle Esc key to close record view
       if (event.key === 'Escape' && activeRecord?.recordId) {
         // event.preventDefault();
@@ -621,92 +618,96 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       </div>
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
-      {activeRecord?.recordId && (
-        <Box
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: overlayWidth, // Dynamically calculated width
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1000,
-          }}
-        >
-          <Paper style={{ width: '100%', height: '100%', borderLeft: '1px solid var(--mantine-color-gray-3)' }}>
-            {selectedRecord ? (
-              <Box>
-                <RecordDetailsHeader
-                  h="36px"
-                  table={table}
-                  columnId={activeRecord.columnId}
-                  onSwitchColumn={handleFieldFocus}
-                  v2
-                  onClose={handleCloseRecordDetails}
-                />
-                <Box p="sm" style={{ position: 'relative', height: '100%' }}>
-                  {/* Determine if there are suggestions to adjust layout */}
-                  {(() => {
-                    const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
-                    const hasSuggestions =
-                      columnsWithSuggestions.length > 0 &&
-                      (!activeRecord.columnId || columnsWithSuggestions.includes(activeRecord.columnId));
-                    const SUGGESTION_TOOLBAR_HEIGHT = 40;
+      {activeRecord?.recordId && selectedRecord && (
+        <RecordDetailsOverlay
+          width={overlayWidth}
+          snapshotId={snapshot.id}
+          selectedRecord={selectedRecord}
+          activeRecord={activeRecord}
+          table={table}
+          handleFieldFocus={handleFieldFocus}
+          handleCloseRecordDetails={handleCloseRecordDetails}
+          acceptCellValues={acceptCellValues}
+          rejectCellValues={rejectCellValues}
+          handleRecordUpdate={handleRecordUpdate}
+        />
+        // <Box
+        //   style={{
+        //     position: 'absolute',
+        //     top: 0,
+        //     right: 0,
+        //     width: overlayWidth, // Dynamically calculated width
+        //     height: '100%',
+        //     display: 'flex',
+        //     flexDirection: 'column',
+        //     zIndex: 1000,
+        //   }}
+        // >
+        //   <Paper
+        //     style={{
+        //       width: '100%',
+        //       backgroundColor: 'red',
+        //       height: '100%',
+        //       borderLeft: '1px solid var(--mantine-color-gray-3)',
+        //     }}
+        //   >
+        //     <Box>
+        //       <RecordDetailsHeader
+        //         h={36}
+        //         table={table}
+        //         columnId={activeRecord.columnId}
+        //         onSwitchColumn={handleFieldFocus}
+        //         v2
+        //         onClose={handleCloseRecordDetails}
+        //       />
+        //       <Box p="sm" style={{ position: 'relative', height: '100%' }}>
+        //         {/* Determine if there are suggestions to adjust layout */}
+        //         {(() => {
+        //           const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
+        //           const hasSuggestions =
+        //             columnsWithSuggestions.length > 0 &&
+        //             (!activeRecord.columnId || columnsWithSuggestions.includes(activeRecord.columnId));
+        //           const SUGGESTION_TOOLBAR_HEIGHT = 0;
 
-                    return (
-                      <>
-                        <ScrollArea
-                          h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`}
-                          type="hover"
-                          scrollbars="y"
-                        >
-                          <RecordDetails
-                            snapshotId={snapshot.id}
-                            currentRecord={selectedRecord}
-                            table={table}
-                            currentColumnId={activeRecord.columnId}
-                            acceptCellValues={acceptCellValues}
-                            rejectCellValues={rejectCellValues}
-                            onFocusOnField={handleFieldFocus}
-                            onRecordUpdate={handleRecordUpdate}
-                          />
-                        </ScrollArea>
-                        {hasSuggestions && (
-                          <RecordSuggestionToolbar
-                            record={selectedRecord}
-                            table={table}
-                            columnId={activeRecord.columnId}
-                            style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: `${SUGGESTION_TOOLBAR_HEIGHT}px`,
-                            }}
-                          />
-                        )}
-                      </>
-                    );
-                  })()}
-                </Box>
-              </Box>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  color: 'var(--mantine-color-gray-6)',
-                  fontSize: '14px',
-                }}
-              >
-                Select a record to view its details
-              </div>
-            )}
-          </Paper>
-        </Box>
+        //           return (
+        //             <>
+        //               <ScrollArea
+        //                 h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`}
+        //                 type="hover"
+        //                 scrollbars="y"
+        //               >
+        //                 <RecordDetails
+        //                   snapshotId={snapshot.id}
+        //                   currentRecord={selectedRecord}
+        //                   table={table}
+        //                   currentColumnId={activeRecord.columnId}
+        //                   acceptCellValues={acceptCellValues}
+        //                   rejectCellValues={rejectCellValues}
+        //                   onFocusOnField={handleFieldFocus}
+        //                   onRecordUpdate={handleRecordUpdate}
+        //                 />
+        //               </ScrollArea>
+        //               {hasSuggestions && (
+        //                 <RecordSuggestionToolbar
+        //                   record={selectedRecord}
+        //                   table={table}
+        //                   columnId={activeRecord.columnId}
+        //                   style={{
+        //                     position: 'absolute',
+        //                     bottom: 0,
+        //                     left: 0,
+        //                     right: 0,
+        //                     height: `${SUGGESTION_TOOLBAR_HEIGHT}px`,
+        //                   }}
+        //                 />
+        //               )}
+        //             </>
+        //           );
+        //         })()}
+        //       </Box>
+        //     </Box>
+        //   </Paper>
+        // </Box>
       )}
 
       {/* Context Menu */}
