@@ -75,6 +75,7 @@ export class OAuthService {
     // Embed connection method and optional custom client info into state (base64 JSON)
     const statePayload = {
       userId,
+      service,
       connectionMethod: options?.connectionMethod ?? 'OAUTH_SYSTEM',
       customClientId: options?.customClientId,
       customClientSecret: options?.customClientSecret,

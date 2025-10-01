@@ -4,7 +4,6 @@ import { SecondaryButton } from '@/app/components/base/buttons';
 import { oauthApi } from '@/lib/api/oauth';
 import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
-import { cleanupOAuthService } from '@/utils/oauth';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { CheckCircle, XCircle } from '@phosphor-icons/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -55,19 +54,17 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // Determine service from URL parameter, localStorage, or state parameter
+        // Determine service from URL parameter or state parameter
         const serviceParam = searchParams.get('service');
-        const serviceFromStorage = getServiceFromStorage();
         const serviceFromState = extractServiceFromState();
 
         console.debug('OAuth callback debug:', {
           serviceParam,
-          serviceFromStorage,
           serviceFromState,
           state,
         });
 
-        const service = (serviceParam as OAuthService) || serviceFromStorage || serviceFromState;
+        const service = (serviceParam as OAuthService) || serviceFromState;
 
         if (!service || !isValidOAuthService(service)) {
           setState({
@@ -84,9 +81,6 @@ export default function OAuthCallbackPage() {
           message: `Successfully connected to ${serviceName(service)}!`,
           connectorAccountId: result.connectorAccountId,
         });
-
-        // Clean up localStorage
-        cleanupOAuthService();
 
         // Redirect to connections page after a short delay
         setTimeout(() => {
@@ -109,9 +103,6 @@ export default function OAuthCallbackPage() {
             message: errorMessage,
           });
         }
-
-        // Clean up localStorage on error too
-        cleanupOAuthService();
       }
     };
 
@@ -119,27 +110,17 @@ export default function OAuthCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getServiceFromStorage = (): OAuthService | null => {
-    try {
-      // Try to get the service from localStorage (set when initiating OAuth)
-      const storedService = localStorage.getItem('oauth_service');
-      return (storedService as OAuthService) || null;
-    } catch {
-      return null;
-    }
-  };
-
   const extractServiceFromState = (): OAuthService | null => {
     try {
-      // The state parameter contains encoded user info
-      // For now, we'll need to determine the service from the URL or state
-      // This is a temporary solution - in a real implementation, we might
-      // encode the service name in the state parameter
+      const state = searchParams.get('state');
+      if (!state) return null;
 
-      // Check if we can determine service from the current URL or other means
-      // For now, we'll return null and rely on localStorage or URL params
-      // TODO: Improve this to actually extract service from state or URL
-      return null;
+      // Decode the base64 state parameter
+      const decoded = atob(state);
+      const parsed = JSON.parse(decoded);
+
+      // Extract service from the parsed state
+      return (parsed.service as OAuthService) || null;
     } catch {
       return null;
     }
