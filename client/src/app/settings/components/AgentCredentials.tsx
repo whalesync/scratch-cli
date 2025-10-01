@@ -4,17 +4,41 @@ import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { AiAgentCredential, CreditUsage } from '@/types/server-entities/agent-credentials';
-import { Alert, Badge, Box, Center, Grid, Group, Loader, Modal, Stack, Text, useModalsStack } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Box,
+  Center,
+  Grid,
+  Group,
+  Loader,
+  Modal,
+  Progress,
+  Stack,
+  Text,
+  useModalsStack,
+} from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
-import { CircleDollarSignIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import {
+  CircleDollarSignIcon,
+  PencilLineIcon,
+  PlusIcon,
+  ToggleLeftIcon,
+  ToggleRightIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, deleteCredentials, getCreditUsage } = useAgentCredentials();
+  const { agentCredentials, isLoading, error, deleteCredentials, getCreditUsage, toggleCredential } =
+    useAgentCredentials();
   const modalStack = useModalsStack(['edit', 'confirm-delete']);
   const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { isDevToolsEnabled } = useDevTools();
 
   const [credentailUsage, setCredentialUsage] = useSetState<{
     [key: string]: CreditUsage | string;
@@ -82,10 +106,21 @@ export const AgentCredentials = () => {
     if (typeof creditUsage === 'string') {
       return <TextRegularXs c="red.5">{creditUsage}</TextRegularXs>;
     }
+
+    const max = creditUsage.totalCredits === 0 ? 100 : creditUsage.totalCredits;
+    const value = creditUsage.totalUsage === 0 ? 0 : (creditUsage.totalUsage / max) * 100;
+
     return (
-      <TextRegularXs c="dimmed">{`${creditUsage.totalUsage} credits used out of ${creditUsage.totalCredits} available`}</TextRegularXs>
+      <Stack w="100%" gap="xs">
+        <Progress color="primary" value={value} striped />
+        <TextRegularXs c="dimmed">{`${creditUsage.totalUsage} credits used out of ${creditUsage.totalCredits === 0 ? 'unlimited' : creditUsage.totalCredits}`}</TextRegularXs>
+      </Stack>
     );
   };
+  const sortedCredentials =
+    agentCredentials?.sort((a, b) => {
+      return a.createdAt.localeCompare(b.createdAt);
+    }) || [];
 
   const list = isLoading ? (
     <Center mih={200}>
@@ -96,13 +131,13 @@ export const AgentCredentials = () => {
     </Center>
   ) : agentCredentials && agentCredentials.length > 0 ? (
     <>
-      {agentCredentials?.map((credential) => (
+      {sortedCredentials.map((credential) => (
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
             <Group gap="xs">
               <TextRegularSm>{getServiceIcon(credential.service)}</TextRegularSm>
               {credential.enabled ? (
-                <Badge color="green" variant="light" size="xs">
+                <Badge color="primary" variant="light" size="xs">
                   Active
                 </Badge>
               ) : (
@@ -128,6 +163,22 @@ export const AgentCredentials = () => {
             <Group gap="4px" justify="flex-end" align="flex-end">
               <ToolIconButton
                 size="md"
+                onClick={async () => {
+                  // toggle the credential
+                  try {
+                    setSaving(true);
+                    await toggleCredential(credential.id, !credential.enabled);
+                  } catch (error) {
+                    console.error('Error toggling credential', error);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                icon={credential.enabled ? ToggleRightIcon : ToggleLeftIcon}
+                loading={saving}
+              />
+              <ToolIconButton
+                size="md"
                 onClick={() => {
                   setActiveCredential(credential);
                   modalStack.open('edit');
@@ -135,12 +186,14 @@ export const AgentCredentials = () => {
                 icon={PencilLineIcon}
                 disabled={credential.source === 'SYSTEM'}
               />
-              <ToolIconButton
-                size="md"
-                onClick={() => handleGetCreditUsage(credential.id)}
-                icon={CircleDollarSignIcon}
-                tooltip="Check current credit balance"
-              />
+              {isDevToolsEnabled && (
+                <ToolIconButton
+                  size="md"
+                  onClick={() => handleGetCreditUsage(credential.id)}
+                  icon={CircleDollarSignIcon}
+                  tooltip="Check current credit balance"
+                />
+              )}
               <ToolIconButton
                 size="md"
                 onClick={() => {

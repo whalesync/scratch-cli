@@ -8,6 +8,8 @@ export interface AiAgentCredential {
     description?: string;
     enabled: boolean;
     source: 'USER' | 'SYSTEM';
+    createdAt: string;
+    updatedAt: string;
   }
   
   export interface CreateAiAgentCredentialDto {

@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
+import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
 import { AgentCredentialsService } from './agent-credentials.service';
@@ -139,7 +140,13 @@ export class AgentCredentialsController {
 
     const credits = await this.openRouterService.getCredits(credential.apiKey);
     if (isErr(credits)) {
-      throw new InternalServerErrorException();
+      WSLogger.error({
+        source: AgentCredentialsController.name,
+        message: `Failed to get OpenRouter credits for credential ${id}`,
+        error: credits.error,
+        cause: credits.cause,
+      });
+      throw new InternalServerErrorException(credits.error);
     }
 
     return new CreditUsage(credits.v.totalCredits, credits.v.totalUsage);

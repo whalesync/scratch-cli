@@ -34,6 +34,12 @@ export const useAgentCredentials = () => {
       return await agentCredentialsApi.getCreditUsage(id);
     };
 
+    const toggleCredential = async (id: string, enabled: boolean) => {
+      await agentCredentialsApi.update(id, { enabled });
+      mutate(SWR_KEYS.agentCredentials.list());
+      mutate(SWR_KEYS.agentCredentials.detail(id));
+    };
+
     const activeOpenRouterCredentials = useMemo(() => {
       return data?.find((credential) => credential.enabled && credential.service === 'openrouter');
     }, [data]);
@@ -57,5 +63,6 @@ export const useAgentCredentials = () => {
       getCreditUsage,
       activeOpenRouterCredentials,
       aiAgentEnabled,
-    };
+      toggleCredential,
   };
+};
