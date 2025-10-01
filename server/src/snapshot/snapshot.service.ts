@@ -7,6 +7,7 @@ import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
+import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
@@ -31,17 +32,13 @@ export class SnapshotService {
     private readonly snapshotDbService: SnapshotDbService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
+    private readonly connectorAccountService: ConnectorAccountService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
     const { connectorAccountId, tableIds } = createSnapshotDto;
 
-    const connectorAccount = await this.db.client.connectorAccount.findUnique({
-      where: {
-        id: connectorAccountId,
-        userId,
-      },
-    });
+    const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, userId);
     if (!connectorAccount) {
       throw new NotFoundException('Connector account not found');
     }
@@ -754,7 +751,12 @@ export class SnapshotService {
   }
 
   private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<DownloadSnapshotResult> {
-    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
+    // need a full connector account object with decoded credentials
+    const connectorAccount = await this.connectorAccountService.findOne(
+      snapshot.connectorAccount.id,
+      snapshot.connectorAccount.userId,
+    );
+    const connector = await this.connectorService.getConnector(connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     let totalCount = 0;
     const tables: { id: string; name: string; records: number }[] = [];
@@ -777,7 +779,7 @@ export class SnapshotService {
             records: records.length,
           });
         },
-        snapshot.connectorAccount,
+        connectorAccount,
       );
     }
 
@@ -857,7 +859,12 @@ export class SnapshotService {
   }
 
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
-    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
+    // need a full connector account object with decoded credentials
+    const connectorAccount = await this.connectorAccountService.findOne(
+      snapshot.connectorAccount.id,
+      snapshot.connectorAccount.userId,
+    );
+    const connector = await this.connectorService.getConnector(connectorAccount);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
     // First create everything.
