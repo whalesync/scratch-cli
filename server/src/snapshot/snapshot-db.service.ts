@@ -624,70 +624,64 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
     callback: (records: SnapshotRecord[]) => Promise<void>,
     markAsClean: boolean,
   ) {
-    let hasMore = true;
-    let offset = 0;
-    while (hasMore) {
-      const records = await this.knex.transaction(async (trx) => {
-        const query = trx<DbRecord>(tableId)
-          .withSchema(snapshotId)
-          .select('*')
-          .where(DIRTY_COLUMN, true)
-          .limit(batchSize)
-          .offset(offset)
-          .orderBy('wsId')
-          .forUpdate()
-          .skipLocked();
+    // Process all dirty records in a single transaction to avoid pagination issues
+    await this.knex.transaction(async (trx) => {
+      const query = trx<DbRecord>(tableId)
+        .withSchema(snapshotId)
+        .select('*')
+        .where(DIRTY_COLUMN, true)
+        .orderBy('wsId')
+        .forUpdate()
+        .skipLocked();
 
-        // Find the records for the given operation.
-        switch (operation) {
-          case 'create':
-            query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NOT NULL`);
-            break;
-          case 'update':
-            query
-              .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NULL`)
-              .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NULL`);
-            break;
-          case 'delete':
-            query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NOT NULL`);
-            break;
+      // Find the records for the given operation.
+      switch (operation) {
+        case 'create':
+          query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NOT NULL`);
+          break;
+        case 'update':
+          query
+            .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__created' IS NULL`)
+            .whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NULL`);
+          break;
+        case 'delete':
+          query.whereRaw(`${EDITED_FIELDS_COLUMN}->>'__deleted' IS NOT NULL`);
+          break;
+      }
+
+      const allDbRecords = await query;
+
+      if (allDbRecords.length > 0) {
+        // Process records in batches
+        for (let i = 0; i < allDbRecords.length; i += batchSize) {
+          const batch = allDbRecords.slice(i, i + batchSize);
+
+          await callback(
+            batch.map(
+              ({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, __metadata, ...fields }) => ({
+                id: { wsId, remoteId },
+                __edited_fields,
+                __dirty,
+                __suggested_values: __suggested_values ?? {},
+                fields,
+                __metadata,
+              }),
+            ),
+          );
         }
 
-        const dbRecords = await query;
-        if (dbRecords.length > 0 && markAsClean) {
-          // Mark the records as clean.
+        if (markAsClean) {
+          // Mark all processed records as clean
           await trx(tableId)
             .withSchema(snapshotId)
             .whereIn(
               'wsId',
-              dbRecords.map((r) => r.wsId),
+              allDbRecords.map((r) => r.wsId),
             )
             .update({ [DIRTY_COLUMN]: false, [EDITED_FIELDS_COLUMN]: '{}' });
         }
-        return dbRecords;
-      });
-
-      if (records.length > 0) {
-        await callback(
-          records.map(
-            ({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, __metadata, ...fields }) => ({
-              id: { wsId, remoteId },
-              __edited_fields,
-              __dirty,
-              __suggested_values: __suggested_values ?? {},
-              fields,
-              __metadata,
-            }),
-          ),
-        );
       }
-
-      // If we got fewer records than batchSize, we're done
-      if (records.length < batchSize) {
-        hasMore = false;
-      }
-      offset += batchSize;
-    }
+    });
   }
 
   async updateRemoteIds(snapshotId: SnapshotId, table: AnyTableSpec, records: { wsId: string; remoteId: string }[]) {
