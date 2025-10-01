@@ -39,19 +39,9 @@ const DEFAULT_CANCEL_PATH = '/settings';
 // Client path that we redirect to if the user clicks the "Manage Subscription" button in the settings page.
 const PORTAL_RETURN_PATH = '/settings';
 
-/**
- * Metadata we add to all subscriptions created by Scratchpad.
- */
-export interface StripeSubscriptionMetadata {
-  application?: 'scratchpad';
-  productType?: ScratchpadPlanType;
-  environment?: 'production' | 'test' | 'local';
-}
-
-export interface StripeSubscriptionItemMetadata {
-  application?: 'scratchpad';
-  productType?: ScratchpadPlanType;
-}
+// Attached to all subscriptions created by Scratchpad. IF you change this you have to change the StripePaymentService in Whalesync so that
+// the value matches. That is how Whalesync knows which webhooks to ignore.
+const METADATA_APPLICATION_NAME = 'scratchpad';
 
 @Injectable()
 export class StripePaymentService {
@@ -79,7 +69,14 @@ export class StripePaymentService {
     let response: Stripe.Customer;
     try {
       // Keep it mostly empty to create a blank customer.
-      response = await this.stripe.customers.create({ name: user.name ?? '', email: user.email ?? undefined });
+      response = await this.stripe.customers.create({
+        name: user.name ?? '',
+        email: user.email ?? undefined,
+        metadata: {
+          source: 'scratchpaper', // used to identify new users created from Scratchpaper vs Whalesync
+          internal_id: user.id,
+        },
+      });
       WSLogger.info({
         source: StripePaymentService.name,
         message: `New customer created with ID ${response.id} for user ${user.id}`,
@@ -117,7 +114,7 @@ export class StripePaymentService {
         items: [{ price: stripePriceId, quantity: 1 }],
         trial_period_days: TRIAL_PERIOD_DAYS,
         metadata: {
-          application: 'scratchpad',
+          application: METADATA_APPLICATION_NAME,
           productType: ScratchpadPlanType.STARTER_PLAN,
           environment: this.configService.getScratchpadEnvironment(),
         },
@@ -212,7 +209,7 @@ export class StripePaymentService {
         subscription_data: {
           trial_period_days: TRIAL_PERIOD_DAYS,
           metadata: {
-            application: 'scratchpad',
+            application: METADATA_APPLICATION_NAME,
             productType: productType,
             environment: this.configService.getScratchpadEnvironment(),
           },
@@ -404,7 +401,7 @@ export class StripePaymentService {
     let updateCount = 0;
 
     for (const line of invoice.lines.data) {
-      if (line.metadata.application !== 'scratchpad') {
+      if (line.metadata.application !== METADATA_APPLICATION_NAME) {
         WSLogger.debug({
           source: StripePaymentService.name,
           message: `Skipping upsert for non-scratchpaper line item`,
@@ -542,7 +539,7 @@ export class StripePaymentService {
       productType,
     });
 
-    return subscription.metadata.application === 'scratchpad' && productType !== null;
+    return subscription.metadata.application === METADATA_APPLICATION_NAME && productType !== null;
   }
 
   /**
