@@ -177,6 +177,12 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           youtubeField: 'url',
         },
         {
+          id: { wsId: 'studioUrl', remoteId: ['studioUrl'] },
+          name: 'Studio URL',
+          readonly: true,
+          pgType: PostgresColumnType.TEXT,
+        },
+        {
           id: { wsId: 'publishedAt', remoteId: ['publishedAt'] },
           name: 'Published At',
           readonly: true,
@@ -365,6 +371,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         categoryId: youtubeRecord.snippet?.categoryId || '',
         defaultLanguage: youtubeRecord.snippet?.defaultLanguage || '',
         tags: youtubeRecord.snippet?.tags || [],
+        studioUrl: `https://studio.youtube.com/video/${videoId}/edit`,
       },
     };
   }
