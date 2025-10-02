@@ -184,23 +184,11 @@ function SnapshotPageContent() {
   );
 
   const aiChatPanel = activeTable ? <AIChatPanel activeTable={activeTable} /> : null;
-  // const footer = (
-  //   <Group justify="flex-start" align="center" h="100%">
-  //     Footer - TODO
-  //   </Group>
-  // );
 
   let content = null;
   let contentFooter = null;
   if (snapshot && activeTable) {
     content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
-    // displayMode === 'spreadsheet' ? (
-    //   <SnapshotTableGrid snapshot={snapshot} table={activeTable} />
-    // ) : displayMode === 'new-spreadsheet' ? (
-    //   <SnapshotTableGridAG snapshot={snapshot} table={activeTable} />
-    // ) : (
-    //   <RecordView table={activeTable} />
-    // );
     contentFooter = <RecordDataToolbar table={activeTable} />;
   }
 

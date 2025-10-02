@@ -55,9 +55,11 @@ export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayo
           {rightPanelOpened && rightPanel}
         </div>
       )}
-      <div className={classes.contentAreaWrapper} {...visibilityProps}>
+      <div className={classes.contentAreaWrapper} {...visibilityProps} data-internal-name="content-area-wrapper-outer">
         <SubscriptionVerifier>
-          <Box h="100%">{children}</Box>
+          <Box h="100%" data-internal-name="content-area-wrapper-inner">
+            {children}
+          </Box>
         </SubscriptionVerifier>
       </div>
     </div>

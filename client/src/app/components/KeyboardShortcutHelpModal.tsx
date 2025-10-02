@@ -9,7 +9,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
     <Stack gap="md">
       {/* Grid Navigation */}
       <Box>
-        <TextTitleSm>Grid Navigation</TextTitleSm>
+        <TextTitleSm mb="xs">Grid Navigation</TextTitleSm>
         <Stack gap="xs">
           <Group justify="space-between">
             <TextRegularSm>Open record details</TextRegularSm>
@@ -66,7 +66,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitleSm>General</TextTitleSm>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextRegularSm>Open this help modal</TextRegularSm>
+            <TextRegularSm mb="xs">Open this help modal</TextRegularSm>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -80,7 +80,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
 
       {/* AI Chat */}
       <Box>
-        <TextTitleSm>Chat</TextTitleSm>
+        <TextTitleSm mb="xs">Chat</TextTitleSm>
         <Stack gap="xs">
           <Group justify="space-between">
             <TextRegularSm>Send message</TextRegularSm>
@@ -122,7 +122,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
   );
 
   return (
-    <Modal title={title} size="lg" mih="600px" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
+    <Modal title={title} size="lg" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
       {shortcutsContent}
       <Group justify="flex-end" mt="lg">
         <SecondaryButton onClick={props.onClose}>Close</SecondaryButton>

@@ -83,7 +83,6 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
 
   return (
     <>
-      <KeyboardShortcutHelpModal opened={helpOverlayOpen} onClose={closeHelpOverlay} />
       <Group justify="flex-start" align="center" h="100%">
         <Group gap="2px">
           <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
@@ -149,6 +148,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
           </Group>
         </Box>
       </Modal>
+      <KeyboardShortcutHelpModal opened={helpOverlayOpen} onClose={closeHelpOverlay} />
     </>
   );
 };
