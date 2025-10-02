@@ -218,6 +218,8 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
               columnId: column?.id.wsId,
             });
 
+            recalculateOverlayWidth();
+
             setActiveRecord({ recordId: record.id.wsId, columnId: column?.id.wsId });
             // setSelectedRecordId(record.id.wsId);
             // setSelectedColumnId(column?.id.wsId);
@@ -317,6 +319,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         const focusedCell = gridApi.getFocusedCell();
         if (focusedCell) {
           const columnId = focusedCell.column.getColId();
+          if (columnId === '0') {
+            // ignore for the dot column
+            return;
+          }
           const column = gridApi.getColumn(columnId);
 
           if (column) {
@@ -339,7 +345,15 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         }
       }
     },
-    [activeRecord?.recordId, gridApi, handleCloseRecordDetails, table.columns, setActiveRecord, clipboard],
+    [
+      activeRecord?.recordId,
+      gridApi,
+      handleCloseRecordDetails,
+      table.columns,
+      setActiveRecord,
+      clipboard,
+      recalculateOverlayWidth,
+    ],
   );
 
   // Handle double click to open record view
