@@ -2,7 +2,7 @@
 
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Paper, ScrollArea } from '@mantine/core';
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { ActiveRecord } from '../contexts/table-context';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
@@ -19,6 +19,7 @@ type Props = {
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   handleRecordUpdate: (recordId: string, field: string, value: string) => void;
+  handleRowNavigation: (direction: 'up' | 'down', source: KeyboardEvent | null) => void;
 };
 
 export const RecordDetailsOverlay: FC<Props> = (props) => {
@@ -33,11 +34,25 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
     rejectCellValues,
     handleRecordUpdate,
     snapshotId,
+    handleRowNavigation,
   } = props;
   const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
   const hasSuggestions =
     columnsWithSuggestions.length > 0 &&
     (!activeRecord.columnId || columnsWithSuggestions.includes(activeRecord.columnId));
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        event.stopPropagation();
+        handleRowNavigation(event.key === 'ArrowUp' ? 'up' : 'down', event);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleRowNavigation]);
 
   const HEADER_HEIGHT = 36;
 

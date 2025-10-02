@@ -43,7 +43,6 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
-  console.log('SnapshotGrid rendered');
   const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically } =
     useSnapshotTableRecords({
       snapshotId: snapshot.id,
@@ -237,7 +236,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       ) {
         setLastKeyPressed(event);
         // Clear the key after a short delay to avoid false positives
-        setTimeout(() => setLastKeyPressed(null), 100);
+        setTimeout(() => setLastKeyPressed(null), 50);
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
@@ -289,6 +288,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         const focusedCell = gridApi.getFocusedCell();
         if (focusedCell) {
           const columnId = focusedCell.column.getColId();
+
+          if (columnId === '0') {
+            return;
+          }
           const sortDirection = event.key === '[' ? 'asc' : 'desc';
 
           // Apply sort to the focused column
@@ -302,7 +305,8 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             defaultState: { sort: null }, // Clear sort from other columns
           });
 
-          console.debug(`Sorted column ${columnId} ${sortDirection}`);
+          // refocus the cell after sorting to keep the focus on the GridView
+          gridApi.setFocusedCell(focusedCell.rowIndex, focusedCell.column);
         }
       }
 
@@ -353,6 +357,25 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       }
     },
     [table.columns, setActiveRecord, recalculateOverlayWidth],
+  );
+
+  const handleMoveCellFocus = useCallback(
+    (direction: 'up' | 'down') => {
+      if (!gridApi) return;
+
+      const focusedCell = gridApi.getFocusedCell();
+
+      if (focusedCell) {
+        // Calculate the row index one row higher (ensure it doesn't go below 0)
+        const newRowIndex = Math.max(0, focusedCell.rowIndex - (direction === 'up' ? 1 : -1));
+
+        // Set focus to the same column but one row higher
+        gridApi.setFocusedCell(newRowIndex, focusedCell.column);
+
+        // console.debug(`Moved focus from row ${focusedCell.rowIndex} to row ${newRowIndex}`);
+      }
+    },
+    [gridApi],
   );
 
   // Get selected record from state
@@ -513,8 +536,14 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
             suppressKeyboardEvent: (params) => {
-              // When record view is open, suppress left/right arrow keys so record view can handle them
-              if (activeRecord?.recordId && (params.event.key === 'ArrowLeft' || params.event.key === 'ArrowRight')) {
+              // When record view is open, suppress arrow keys so record view can handle them
+              if (
+                activeRecord?.recordId &&
+                (params.event.key === 'ArrowLeft' ||
+                  params.event.key === 'ArrowRight' ||
+                  params.event.key === 'ArrowUp' ||
+                  params.event.key === 'ArrowDown')
+              ) {
                 return true; // Suppress the keyboard event
               }
               return false; // Allow the keyboard event
@@ -630,6 +659,13 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           acceptCellValues={acceptCellValues}
           rejectCellValues={rejectCellValues}
           handleRecordUpdate={handleRecordUpdate}
+          handleRowNavigation={(direction, event) => {
+            handleMoveCellFocus(direction);
+            if (event) {
+              setLastKeyPressed(event);
+              setTimeout(() => setLastKeyPressed(null), 50);
+            }
+          }}
         />
       )}
 

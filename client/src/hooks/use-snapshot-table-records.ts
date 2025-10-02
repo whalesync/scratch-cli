@@ -46,7 +46,7 @@ export interface UseSnapshotRecordsReturn {
     const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
   
     const { mutate } = useSWRConfig();
-    const { data, error, isLoading } = useSWR(swrKey, () =>
+    const { data, error, isLoading } = useSWR(tableId ? swrKey : null, () =>
       snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
       {
         revalidateOnFocus: true,

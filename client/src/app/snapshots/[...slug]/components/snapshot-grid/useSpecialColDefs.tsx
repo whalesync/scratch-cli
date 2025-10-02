@@ -60,9 +60,9 @@ export const useSpecialColDefs = ({
     headerComponentParams: {
       onSettingsClick,
     },
-    // valueGetter: (params) => {
-    //   return params.data?.id?.wsId || '';
-    // },
+    valueGetter: (params) => {
+      return params.data?.id?.wsId || '';
+    },
     cellRenderer: (params: ICellRendererParams<SnapshotRecord, unknown>) => {
       // const value = params.value;
       return (
@@ -78,7 +78,7 @@ export const useSpecialColDefs = ({
   const dotColumn: ColDef = {
     field: '',
     headerName: '',
-    sortable: true,
+    sortable: false,
     filter: false,
     resizable: resizable,
     pinned: 'left',
