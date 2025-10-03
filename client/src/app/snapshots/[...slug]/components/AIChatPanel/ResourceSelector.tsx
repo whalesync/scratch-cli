@@ -18,9 +18,22 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './ResourceSelector.module.css';
 
-export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; snapshot?: Snapshot }) {
+export function ResourceSelector({
+  disabled,
+  snapshot,
+  resetInputFocus,
+}: {
+  disabled: boolean;
+  snapshot?: Snapshot;
+  resetInputFocus: () => void;
+}) {
   const { styleGuides: resources, mutate: refreshResourceList } = useStyleGuides();
-  const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
+  const combobox = useCombobox({
+    onDropdownClose: () => {
+      combobox.resetSelectedOption();
+      resetInputFocus();
+    },
+  });
   const { activeResources, setActiveResources } = useAgentChatContext();
   const [isEditResourceModalOpen, setIsEditResourceModalOpen] = useState(false);
   const [resourceToEdit, setResourceToEdit] = useState<StyleGuide | null>(null);
@@ -36,7 +49,7 @@ export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; sn
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [combobox]);
+  }, [combobox, resetInputFocus]);
 
   const comboBoxOptions = useMemo(() => {
     const list = resources
@@ -73,7 +86,7 @@ export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; sn
       trackRemoveResourceFromChat(snapshot);
       setActiveResources(activeResources.filter((id) => id !== resourceId));
     },
-    [activeResources, setActiveResources],
+    [activeResources, setActiveResources, snapshot],
   );
 
   const handleAdd = useCallback(
@@ -87,8 +100,9 @@ export function ResourceSelector({ disabled, snapshot }: { disabled: boolean; sn
         setActiveResources([...activeResources, resourceId]);
       }
       combobox.closeDropdown();
+      resetInputFocus();
     },
-    [activeResources, setActiveResources, combobox, setIsEditResourceModalOpen, setResourceToEdit],
+    [combobox, resetInputFocus, snapshot, setActiveResources, activeResources],
   );
 
   const selectedResources = resources.filter((resource) => activeResources.includes(resource.id));

@@ -486,13 +486,15 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         )}
       </SideBarContent.Body>
       <SideBarContent.Bottom>
-        {/* Bottom Input Area */}
         <Stack gap="2xs" my="2xs">
-          {/* Style Guide Selection */}
-          <ResourceSelector disabled={!aiAgentEnabled} snapshot={snapshot} />
+          <ResourceSelector
+            disabled={!aiAgentEnabled}
+            snapshot={snapshot}
+            resetInputFocus={() => textInputRef.current?.focus()}
+          />
           <ContextBadges activeTable={activeTable} currentView={currentView} />
         </Stack>
-        {/* Input Area */}
+        {/* User Input for Chat */}
         <Textarea
           ref={textInputRef}
           placeholder="Type your message..."
@@ -512,9 +514,8 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             },
           }}
           minRows={5}
-          maxRows={5}
           rows={5}
-          autosize={false}
+          autosize={true}
         />
 
         {/* Model and Submit Row */}
