@@ -14,6 +14,7 @@ def build_snapshot_context(
     active_table_id: Optional[str] = None,
     record_id: Optional[str] = None,
     column_id: Optional[str] = None,
+    max_records_to_include: Optional[int] = 50,
 ) -> str:
     """
     Build snapshot context string for inclusion in prompts.
@@ -80,21 +81,35 @@ def build_snapshot_context(
         # Add records if available
         if preloaded_records and table.name in preloaded_records:
             records = preloaded_records[table.name]
-            # snapshot_context += f"Records ({len(records)}):\n\n"
+
+            snapshot_context += f"NOTES:\n"
+            snapshot_context += f" - {len(records)} records are currently loaded\n"
+
+            if truncate_record_content:
+                snapshot_context += (
+                    f" - Large field values are truncated to 200 characters\n"
+                )
 
             # Add filtered records information if available
             if filtered_counts and table.name in filtered_counts:
                 filtered_count = filtered_counts[table.name]
                 if filtered_count > 0:
-                    snapshot_context += f"Note: {filtered_count} records are currently filtered out and not shown in this list.\n\n"
+                    snapshot_context += f" - {filtered_count} records are currently filtered out and not included in this list.\n"
+
+            # Add max records information if necessary
+            if max_records_to_include and len(records) > max_records_to_include:
+                snapshot_context += f" - Only the first {max_records_to_include} records in included in this list.\n"
+
+            snapshot_context += "\n"
 
             # Format records using the shared function
             records_summary = format_records_for_prompt(
                 records,
-                limit=50,
+                limit=max_records_to_include,
                 truncate_record_content=truncate_record_content,
                 columns_to_exclude=columns_to_exclude,
             )
+
             snapshot_context += f"RECORDS:\n{records_summary}\n"
         else:
             snapshot_context += "Records: Not loaded\n"
@@ -129,13 +144,17 @@ def build_focus_context(
     if read_focus:
         focus_context += "Read Focus Cells:\n"
         for cell in read_focus:
-            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+            focus_context += (
+                f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+            )
         focus_context += "\n"
 
     if write_focus:
         focus_context += "Write Focus Cells:\n"
         for cell in write_focus:
-            focus_context += f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+            focus_context += (
+                f"- Record ID: {cell.recordWsId}, Column ID: {cell.columnWsId}\n"
+            )
         focus_context += "\n"
 
     return focus_context
