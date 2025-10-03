@@ -1,15 +1,14 @@
 import {
   AiAgentCredential,
   CreateAiAgentCredentialDto,
-  CreditUsage,
-  UpdateAiAgentCredentialDto,
+  UpdateAiAgentCredentialDto
 } from '@/types/server-entities/agent-credentials';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';
 
 export const agentCredentialsApi = {
-  list: async (): Promise<AiAgentCredential[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials`, {
+  list: async (includeUsage: boolean = false): Promise<AiAgentCredential[]> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials?includeUsage=${includeUsage}`, {
       method: 'GET',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -52,15 +51,5 @@ export const agentCredentialsApi = {
       },
     });
     await checkForApiError(res, 'Failed to delete agent credential');
-  },
-  getCreditUsage: async (id: string): Promise<CreditUsage> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}/credits`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to get credit usage');
-    return res.json();
   },
 };

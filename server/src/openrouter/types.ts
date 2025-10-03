@@ -2,10 +2,20 @@ export interface OpenRouterKeyData {
   name: string;
   label: string;
   limit: number;
+  usage: number;
   disabled: true;
   created_at: string;
   updated_at: string;
   hash: string;
+}
+
+export interface OpenRouterGetCurrentApiKeyData {
+  label: string;
+  limit: number;
+  usage: number;
+  is_free_tier: boolean;
+  limit_remaining: number;
+  is_provisioning_key: boolean;
 }
 
 export interface OpenRouterCreateKeyResponse {
@@ -39,4 +49,8 @@ export interface OpenRouterUpdateRequest {
 
 export interface OpenRouterUpdateApiKeyResponse {
   data: OpenRouterKeyData;
+}
+
+export interface OpenRouterGetCurrentApiKeyResponse {
+  data: OpenRouterGetCurrentApiKeyData;
 }

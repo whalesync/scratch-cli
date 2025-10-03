@@ -13,8 +13,9 @@ export class AiAgentCredential {
   description: string | null;
   source: 'USER' | 'SYSTEM';
   enabled: boolean;
+  usage?: CreditUsage;
 
-  constructor(credential: PrismaAiAgentCredential, includeApiKey: boolean = false) {
+  constructor(credential: PrismaAiAgentCredential, includeApiKey: boolean = false, usage?: CreditUsage) {
     this.id = credential.id;
     this.createdAt = credential.createdAt;
     this.updatedAt = credential.updatedAt;
@@ -25,6 +26,7 @@ export class AiAgentCredential {
     this.description = credential.description ?? null;
     this.source = credential.source as 'USER' | 'SYSTEM';
     this.enabled = credential.enabled;
+    this.usage = usage;
   }
 }
 
@@ -33,11 +35,11 @@ function obfuscateApiKey(apiKey: string): string {
 }
 
 export class CreditUsage {
-  totalCredits: number;
-  totalUsage: number;
+  limit: number;
+  usage: number;
 
-  constructor(totalCredits: number, totalUsage: number) {
-    this.totalCredits = totalCredits;
-    this.totalUsage = totalUsage;
+  constructor(limit: number, usage: number) {
+    this.limit = limit;
+    this.usage = usage;
   }
 }

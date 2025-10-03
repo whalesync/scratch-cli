@@ -5,7 +5,8 @@ import { AsyncResult, badRequestError, generalError, ok } from 'src/types/result
 import {
   OpenRouterCreateKeyResponse,
   OpenRouterDeleteKeyResponse,
-  OpenRouterGetCreditsResponse,
+  OpenRouterGetCurrentApiKeyData,
+  OpenRouterGetCurrentApiKeyResponse,
   OpenRouterUpdateApiKeyResponse,
   OpenRouterUpdateRequest,
 } from './types';
@@ -126,6 +127,10 @@ export class OpenRouterService {
     return this.updateApiKey(hash, { limit });
   }
 
+  /**
+   * https://openrouter.ai/docs/api-reference/api-keys/delete-api-key
+   * @param hash - The hash of the API key to delete
+   */
   async deleteApiKey(hash: string): AsyncResult<void> {
     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
     if (!provisioningKey) {
@@ -156,23 +161,27 @@ export class OpenRouterService {
   }
 
   /*
-   General API Methods
+   Get the current API key data including rate limits and credit usage
+   https://openrouter.ai/docs/api-reference/api-keys/get-current-api-key
    */
-  async getCredits(apiKey: string): AsyncResult<{ totalCredits: number; totalUsage: number }> {
+  async getCurrentApiKeyData(apiKey: string): AsyncResult<OpenRouterGetCurrentApiKeyData> {
     try {
-      const response = await axios.get(`${this.openRouterApiUrl}/credits`, {
+      const response = await axios.get(`${this.openRouterApiUrl}/key`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': this.httpReferer,
+          'X-Title': this.httpXTitle,
         },
       });
-      const responseData = response.data as OpenRouterGetCreditsResponse;
-      return ok({ totalCredits: responseData.data.total_credits, totalUsage: responseData.data.total_usage });
+      const responseData = response.data as OpenRouterGetCurrentApiKeyResponse;
+      return ok(responseData.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = (error.response?.data as { message?: string })?.message || error.message;
-        return generalError(`Failed to get OpenRouter credits: ${errorMessage}`);
+        return generalError(`Failed to get OpenRouter current API key data: ${errorMessage}`);
       }
-      return generalError(`Failed to get OpenRouter credits: ${String(error)}`);
+      return generalError(`Failed to get OpenRouter current API key data: ${String(error)}`);
     }
   }
 }

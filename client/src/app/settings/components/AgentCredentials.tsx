@@ -4,8 +4,7 @@ import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { useDevTools } from '@/hooks/use-dev-tools';
-import { AiAgentCredential, CreditUsage } from '@/types/server-entities/agent-credentials';
+import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import {
   Alert,
   Badge,
@@ -20,39 +19,15 @@ import {
   Text,
   useModalsStack,
 } from '@mantine/core';
-import { useSetState } from '@mantine/hooks';
-import {
-  CircleDollarSignIcon,
-  PencilLineIcon,
-  PlusIcon,
-  ToggleLeftIcon,
-  ToggleRightIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, deleteCredentials, getCreditUsage, toggleCredential } =
-    useAgentCredentials();
+  const { agentCredentials, isLoading, error, deleteCredentials, toggleCredential } = useAgentCredentials();
   const modalStack = useModalsStack(['edit', 'confirm-delete']);
   const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const { isDevToolsEnabled } = useDevTools();
-
-  const [credentailUsage, setCredentialUsage] = useSetState<{
-    [key: string]: CreditUsage | string;
-  }>({});
-
-  const handleGetCreditUsage = async (id: string) => {
-    try {
-      const creditUsage = await getCreditUsage(id);
-      setCredentialUsage({ [`${id}`]: creditUsage });
-    } catch (error) {
-      console.error('Error fetching credit usage', error);
-      setCredentialUsage({ [`${id}`]: 'Error fetching credit usage' });
-    }
-  };
 
   const modals = (
     <>
@@ -98,25 +73,23 @@ export const AgentCredentials = () => {
     }
   };
 
-  const getCreditUsageElement = (id: string): React.ReactNode => {
-    if (!credentailUsage[id]) {
+  const buildUsageElement = (credential: AiAgentCredential): React.ReactNode => {
+    if (!credential.usage) {
       return null;
     }
-    const creditUsage = credentailUsage[id];
-    if (typeof creditUsage === 'string') {
-      return <TextRegularXs c="red.5">{creditUsage}</TextRegularXs>;
-    }
 
-    const max = creditUsage.totalCredits === 0 ? 100 : creditUsage.totalCredits;
-    const value = creditUsage.totalUsage === 0 ? 0 : (creditUsage.totalUsage / max) * 100;
+    // limit is 0 for unlimited, set arbitrary high max for the progress bar
+    const max = credential.usage.limit === 0 ? 10000 : credential.usage.limit;
+    const value = credential.usage.usage === 0 ? 0 : (credential.usage.usage / max) * 100;
 
     return (
       <Stack w="100%" gap="xs">
         <Progress color="primary" value={value} striped />
-        <TextRegularXs c="dimmed">{`${creditUsage.totalUsage} credits used out of ${creditUsage.totalCredits === 0 ? 'unlimited' : creditUsage.totalCredits}`}</TextRegularXs>
+        <TextRegularXs c="dimmed">{`${credential.usage.usage} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</TextRegularXs>
       </Stack>
     );
   };
+
   const sortedCredentials =
     agentCredentials?.sort((a, b) => {
       return a.createdAt.localeCompare(b.createdAt);
@@ -156,7 +129,7 @@ export const AgentCredentials = () => {
             <Stack gap="xs">
               <TextRegularSm>{credential.label}</TextRegularSm>
               <TextRegularXs c="dimmed">{credential.description}</TextRegularXs>
-              {getCreditUsageElement(credential.id)}
+              {buildUsageElement(credential)}
             </Stack>
           </Grid.Col>
           <Grid.Col span={3}>
@@ -186,14 +159,6 @@ export const AgentCredentials = () => {
                 icon={PencilLineIcon}
                 disabled={credential.source === 'SYSTEM'}
               />
-              {isDevToolsEnabled && (
-                <ToolIconButton
-                  size="md"
-                  onClick={() => handleGetCreditUsage(credential.id)}
-                  icon={CircleDollarSignIcon}
-                  tooltip="Check current credit balance"
-                />
-              )}
               <ToolIconButton
                 size="md"
                 onClick={() => {

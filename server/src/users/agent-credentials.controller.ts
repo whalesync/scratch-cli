@@ -1,15 +1,14 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   ForbiddenException,
   Get,
   HttpCode,
-  InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -31,8 +30,40 @@ export class AgentCredentialsController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Get()
-  async findAll(@Req() req: RequestWithUser): Promise<AiAgentCredential[]> {
-    return (await this.service.findByUserId(req.user.id)).map((s) => new AiAgentCredential(s));
+  async findAll(
+    @Query('includeUsage') includeUsage: boolean = false,
+    @Req() req: RequestWithUser,
+  ): Promise<AiAgentCredential[]> {
+    const creds = await this.service.findByUserId(req.user.id);
+    const results: AiAgentCredential[] = [];
+    if (creds && creds.length > 0) {
+      if (includeUsage) {
+        for (const cred of creds) {
+          if (cred.service === 'openrouter' && cred.externalApiKeyId) {
+            let usageData: CreditUsage | undefined;
+            const apiKeyData = await this.openRouterService.getCurrentApiKeyData(cred.apiKey);
+            if (isErr(apiKeyData)) {
+              WSLogger.error({
+                source: AgentCredentialsController.name,
+                message: `Failed to get data for ${cred.id}`,
+                error: apiKeyData.error,
+                cause: apiKeyData.cause,
+              });
+            } else {
+              usageData = new CreditUsage(apiKeyData.v.limit, apiKeyData.v.usage);
+            }
+
+            results.push(new AiAgentCredential(cred, true, usageData));
+          } else {
+            results.push(new AiAgentCredential(cred));
+          }
+        }
+      } else {
+        results.push(...creds.map((s) => new AiAgentCredential(s)));
+      }
+    }
+
+    return results;
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -119,36 +150,5 @@ export class AgentCredentialsController {
     }
 
     await this.service.delete(id, req.user.id);
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Get(':id/credits')
-  async getCreditUsage(@Param('id') id: string, @Req() req: RequestWithUser): Promise<CreditUsage> {
-    const credential = await this.service.findOne(id);
-
-    if (!credential) {
-      throw new NotFoundException();
-    }
-
-    if (credential.userId !== req.user.id) {
-      throw new ForbiddenException();
-    }
-
-    if (credential.service !== 'openrouter') {
-      throw new BadRequestException('Credential is not an OpenRouter credential');
-    }
-
-    const credits = await this.openRouterService.getCredits(credential.apiKey);
-    if (isErr(credits)) {
-      WSLogger.error({
-        source: AgentCredentialsController.name,
-        message: `Failed to get OpenRouter credits for credential ${id}`,
-        error: credits.error,
-        cause: credits.cause,
-      });
-      throw new InternalServerErrorException(credits.error);
-    }
-
-    return new CreditUsage(credits.v.totalCredits, credits.v.totalUsage);
   }
 }

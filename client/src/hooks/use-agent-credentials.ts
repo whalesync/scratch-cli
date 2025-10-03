@@ -1,6 +1,6 @@
 import { agentCredentialsApi } from "@/lib/api/agent-credentials";
 import { SWR_KEYS } from "@/lib/api/keys";
-import { CreateAiAgentCredentialDto, CreditUsage, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
+import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
 import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useScratchPadUser } from "./useScratchpadUser";
@@ -11,7 +11,7 @@ export const useAgentCredentials = () => {
 
     const { data, error, isLoading } = useSWR(
       SWR_KEYS.agentCredentials.list(),
-      () => agentCredentialsApi.list()
+      () => agentCredentialsApi.list(true)
     );
   
     const createCredentials = async (dto: CreateAiAgentCredentialDto) => {
@@ -28,10 +28,6 @@ export const useAgentCredentials = () => {
     const deleteCredentials = async (id: string) => {
       await agentCredentialsApi.delete(id);
       mutate(SWR_KEYS.agentCredentials.list());
-    };
-
-    const getCreditUsage = async (id: string): Promise<CreditUsage> => {
-      return await agentCredentialsApi.getCreditUsage(id);
     };
 
     const toggleCredential = async (id: string, enabled: boolean) => {
@@ -60,7 +56,6 @@ export const useAgentCredentials = () => {
       createCredentials,
       updateCredentials,
       deleteCredentials,
-      getCreditUsage,
       activeOpenRouterCredentials,
       aiAgentEnabled,
       toggleCredential,

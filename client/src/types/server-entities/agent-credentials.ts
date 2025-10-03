@@ -10,6 +10,7 @@ export interface AiAgentCredential {
     source: 'USER' | 'SYSTEM';
     createdAt: string;
     updatedAt: string;
+    usage?: CreditUsage;
   }
   
   export interface CreateAiAgentCredentialDto {
@@ -25,6 +26,6 @@ export interface AiAgentCredential {
   }
 
   export interface CreditUsage {
-    totalCredits: number;
-    totalUsage: number;
+    limit: number;
+    usage: number;
   }
