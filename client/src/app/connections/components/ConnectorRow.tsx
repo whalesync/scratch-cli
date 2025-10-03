@@ -1,6 +1,6 @@
 'use client';
 
-import { TextTitleSm } from '@/app/components/base/text';
+import { TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -10,7 +10,7 @@ import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities
 import { formatDate } from '@/utils/helpers';
 import { Group, Loader, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { CheckCircle, Edit3, HelpCircle, Plus, TestTubeIcon, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, Edit3, HelpCircle, Plus, RefreshCcwIcon, Trash2, XCircle } from 'lucide-react';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
 
 interface ConnectorRowProps {
@@ -30,39 +30,28 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
     let text = '';
     let color = 'gray';
     let icon = <></>;
-    let testButton = null;
     if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
       text = 'Connection status unknown';
       color = 'gray';
-      icon = <StyledLucideIcon Icon={HelpCircle} />;
-      testButton = (
-        <ToolIconButton
-          size="md"
-          onClick={() => onTest(c.id)}
-          loading={testingId === c.id}
-          icon={TestTubeIcon}
-          tooltip="Test connection"
-        />
-      );
+      icon = <StyledLucideIcon Icon={HelpCircle} size="md" />;
     }
 
     if (c.healthStatus === ConnectorHealthStatus.OK) {
       text = `Connection OK`;
       color = 'green';
-      icon = <StyledLucideIcon Icon={CheckCircle} />;
+      icon = <StyledLucideIcon Icon={CheckCircle} size="md" />;
     }
 
     if (c.healthStatus === ConnectorHealthStatus.FAILED) {
       text = `Connection problem`;
       color = 'red';
-      icon = <StyledLucideIcon Icon={XCircle} />;
+      icon = <StyledLucideIcon Icon={XCircle} size="md" />;
     }
 
     return (
       <Group c={color} gap="xs">
         {icon}
-        <Text size="sm">{text}</Text>
-        {testButton}
+        <TextRegularXs>{text}</TextRegularXs>
       </Group>
     );
   };
@@ -100,6 +89,13 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
               onClick={() => onUpdate(connectorAccount)}
               icon={Edit3}
               tooltip="Edit connector"
+            />
+            <ToolIconButton
+              size="md"
+              onClick={() => onTest(connectorAccount.id)}
+              loading={testingId === connectorAccount.id}
+              icon={RefreshCcwIcon}
+              tooltip="Verify connection"
             />
             <ToolIconButton
               size="md"

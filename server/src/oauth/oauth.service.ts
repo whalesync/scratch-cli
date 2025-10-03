@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthType, Service } from '@prisma/client';
+import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
 import { createConnectorAccountId } from '../types/ids';
@@ -26,6 +27,7 @@ export class OAuthService {
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
     private readonly youtubeProvider: YouTubeOAuthProvider,
+    private readonly posthogService: PostHogService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
@@ -222,7 +224,7 @@ export class OAuthService {
     const encryptedCredentials = await this.encryptCredentials(credentials);
 
     // Create new account
-    return this.db.client.connectorAccount.create({
+    const newConnectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),
         userId,
@@ -232,8 +234,18 @@ export class OAuthService {
         })`,
         authType: AuthType.OAUTH,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
+        healthStatus: 'OK', // assume healthy because this connection is created via a successful oauth flow
+        healthStatusLastCheckedAt: new Date(),
       },
     });
+
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
+      service: serviceEnum,
+      authType: AuthType.OAUTH,
+      healthStatus: 'OK',
+    });
+
+    return newConnectorAccount;
   }
 
   /**

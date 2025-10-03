@@ -69,10 +69,15 @@ export class ConnectorAccountService {
         modifier: createDto.modifier,
       },
     });
+
+    const testResult = await this.testConnection(connectorAccount.id, userId);
+
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
       service: createDto.service,
       authType: createDto.authType || AuthType.API_KEY,
+      healthStatus: testResult.health,
     });
+
     return connectorAccount;
   }
 
