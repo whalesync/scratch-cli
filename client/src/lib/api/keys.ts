@@ -2,7 +2,7 @@ import { Arguments } from "swr";
 
 export const SWR_KEYS = {
   agentCredentials: {
-    list: () => ["agent-credentials"],
+    list: (includeUsageStats: boolean = false) => ["agent-credentials", includeUsageStats ? "with-usage" : "without-usage"],
     detail: (id: string) => ["agent-credentials", "detail", id],
   },
   connectorAccounts: {

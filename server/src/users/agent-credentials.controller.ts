@@ -90,9 +90,12 @@ export class AgentCredentialsController {
     }
 
     if (credential.userId !== req.user.id) {
-      throw new ForbiddenException();
+      throw new ForbiddenException('You are not authorized to access this agent credential');
     }
-    return new AiAgentCredential(credential);
+
+    // only include the api key if the request is authenticated with an agent token
+    const includeApiKey = req.user.authType === 'agent-token';
+    return new AiAgentCredential(credential, includeApiKey);
   }
 
   @UseGuards(ScratchpadAuthGuard)

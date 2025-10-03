@@ -95,17 +95,27 @@ class ChatService:
             )
 
     def _get_openrouter_api_key(
-        self, session: ChatSession, user: AgentUser
+        self, session: ChatSession, user: AgentUser, credential_id: Optional[str] = None
     ) -> tuple[str, Optional[Any]]:
         """Get the OpenRouter API key for the agent, handling user credentials and validation"""
         try:
             # load agent credentials for the user, this both verifies the api_token is active AND gets any
             # openrouter credentials for the user has access to
-            user_open_router_credentials = (
-                ScratchpadApi.get_agent_credentials_by_service(
-                    user.userId, "openrouter"
+            if credential_id:
+                logger.info(
+                    "Loading personal openrouter credentials by id",
                 )
-            )
+                user_open_router_credentials = (
+                    ScratchpadApi.get_agent_credentials_by_id(
+                        user.userId, credential_id
+                    )
+                )
+            else:
+                user_open_router_credentials = (
+                    ScratchpadApi.get_agent_credentials_by_service(
+                        user.userId, "openrouter"
+                    )
+                )
 
             if user_open_router_credentials:
                 logger.info(
@@ -322,6 +332,7 @@ class ChatService:
         data_scope: Optional[str] = None,
         record_id: Optional[str] = None,
         column_id: Optional[str] = None,
+        credential_id: Optional[str] = None,
         timeout_seconds: float = 60.0,
         progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
@@ -340,7 +351,7 @@ class ChatService:
 
         # Determine the API key to use for the agent
         api_key, user_open_router_credentials = self._get_openrouter_api_key(
-            session, user
+            session, user, credential_id
         )
 
         # Log agent processing details

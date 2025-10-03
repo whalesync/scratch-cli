@@ -8,7 +8,7 @@ import { checkForApiError, ScratchpadApiError } from './error';
 
 export const agentCredentialsApi = {
   list: async (includeUsage: boolean = false): Promise<AiAgentCredential[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials?includeUsage=${includeUsage}`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials${includeUsage ? '?includeUsage=true' : ''}`, {
       method: 'GET',
       headers: {
         ...API_CONFIG.getAuthHeaders(),

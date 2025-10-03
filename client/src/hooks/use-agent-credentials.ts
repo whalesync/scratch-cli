@@ -5,13 +5,13 @@ import { useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useScratchPadUser } from "./useScratchpadUser";
 
-export const useAgentCredentials = () => {
+export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     const { mutate } = useSWRConfig();
     const {user} = useScratchPadUser();
 
     const { data, error, isLoading } = useSWR(
-      SWR_KEYS.agentCredentials.list(),
-      () => agentCredentialsApi.list(true)
+      SWR_KEYS.agentCredentials.list(includeUsageStats),
+      () => agentCredentialsApi.list(includeUsageStats)
     );
   
     const createCredentials = async (dto: CreateAiAgentCredentialDto) => {

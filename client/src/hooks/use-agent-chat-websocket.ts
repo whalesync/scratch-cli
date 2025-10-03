@@ -1,6 +1,6 @@
 import { API_CONFIG } from '@/lib/api/config';
 import { RecordCell } from '@/types/common';
-import { ChatMessage } from '@/types/server-entities/chat-session';
+import { ChatMessage, DataScope } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
 import { useCallback, useRef, useState } from 'react';
 
@@ -13,6 +13,24 @@ export interface WebSocketMessage {
   timestamp?: string;
 }
 
+// The DTO for sending a message to the agent
+export interface SendMessageRequestDTO {
+  message: string;
+  agent_jwt?: string;
+  credential_id?: string;
+  style_guides?: { name: string; content: string }[];
+  capabilities?: string[];
+  model?: string;
+  view_id?: string;
+  read_focus?: RecordCell[];
+  write_focus?: RecordCell[];
+  active_table_id?: string;
+  data_scope?: DataScope;
+  record_id?: string;
+  column_id?: string;
+  max_records_in_prompt?: number;
+} 
+
 interface UseWebSocketOptions {
   onMessage?: (message: WebSocketMessage) => Promise<void>;
 }
@@ -24,22 +42,23 @@ interface UseWebSocketReturn {
   connectionStatus: 'offline' | 'connecting' | 'connected';
   connectionError: string | null;
   messageHistory: ChatMessage[];
-  sendAiAgentMessage: (payload: AIAgentMessage) => void;
+  sendAiAgentMessage: (payload: SendMessageRequestDTO) => void;
   sendPing: () => void;
   sendEchoError: () => void;
   clearChat: () => void;
 }
 
-export type AIAgentMessage = {
-  message: string;
-  agent_jwt?: string;
-  style_guides?: Array<{ name: string; content: string }>;
-  capabilities?: string[];
-  model?: string;
-  view_id?: string;
-  read_focus?: RecordCell[];
-  write_focus?: RecordCell[];
-}
+// export type AIAgentMessage = {
+//   message: string;
+//   agent_jwt?: string;
+//   credential_id?: string;
+//   style_guides?: Array<{ name: string; content: string }>;
+//   capabilities?: string[];
+//   model?: string;
+//   view_id?: string;
+//   read_focus?: RecordCell[];
+//   write_focus?: RecordCell[];
+// }
 
 export function useAIAgentChatWebSocket({
   onMessage,
@@ -147,7 +166,7 @@ export function useAIAgentChatWebSocket({
     wsRef.current.send(JSON.stringify(message));
   }, [wsRef, connectionStatus]);
   
-  const sendAiAgentMessage = useCallback((data: AIAgentMessage) => {
+  const sendAiAgentMessage = useCallback((data: SendMessageRequestDTO) => {
     // update with the most recent agent JWT token
     data.agent_jwt = API_CONFIG.getAgentJwt() || undefined;
 

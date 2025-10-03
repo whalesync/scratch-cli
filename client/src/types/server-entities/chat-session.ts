@@ -1,4 +1,3 @@
-import { RecordCell } from "@/types/common";
 
 export interface ChatSessionSummary {
   id: string;
@@ -13,21 +12,6 @@ export interface SessionListResponse {
 
 export type DataScope = 'table' | 'record' | 'column';
 
-// The DTO for sending a message to the agent
-export interface SendMessageRequestDTO {
-  message: string;
-  agent_jwt?: string;
-  style_guides?: { name: string; content: string }[];
-  capabilities?: string[];
-  model?: string;
-  view_id?: string;
-  read_focus?: RecordCell[];
-  write_focus?: RecordCell[];
-  active_table_id?: string;
-  data_scope?: DataScope;
-  record_id?: string;
-  column_id?: string;
-}
 
 export interface ChatMessage {
   id:string;

@@ -23,7 +23,7 @@ import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon }
 import { useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, deleteCredentials, toggleCredential } = useAgentCredentials();
+  const { agentCredentials, isLoading, error, deleteCredentials, toggleCredential } = useAgentCredentials(true);
   const modalStack = useModalsStack(['edit', 'confirm-delete']);
   const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);

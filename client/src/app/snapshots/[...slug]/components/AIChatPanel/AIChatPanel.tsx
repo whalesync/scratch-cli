@@ -5,7 +5,12 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
+import {
+  AgentProgressMessageData,
+  SendMessageRequestDTO,
+  useAIAgentChatWebSocket,
+  WebSocketMessage,
+} from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import {
@@ -16,7 +21,7 @@ import {
   trackStartAgentSession,
 } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { Capability, SendMessageRequestDTO } from '@/types/server-entities/chat-session';
+import { Capability } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -63,6 +68,7 @@ const availableCapabilities = [
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const { snapshot, currentView } = useSnapshotContext();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
+  const { activeOpenRouterCredentials } = useAgentCredentials();
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +263,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       const messageData: SendMessageRequestDTO = {
         message: message.trim(),
         model: activeModel,
+        credential_id: activeOpenRouterCredentials?.id,
       };
 
       // Include style guide content if selected

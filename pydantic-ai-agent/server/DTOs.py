@@ -46,6 +46,9 @@ class SendMessageRequestDTO(BaseModel):
         default=None,
         description="DEPRECATED:API token for Scratchpaper server authentication",
     )
+    credential_id: Optional[str] = Field(
+        default=None, description="ID of the credentials to use for the agent"
+    )
     style_guides: Optional[List[Guideline]] = Field(
         default=None,
         description="List of style guides with name and content to override system prompt sections",
@@ -76,6 +79,10 @@ class SendMessageRequestDTO(BaseModel):
     )
     column_id: Optional[str] = Field(
         default=None, description="ID of the column to scope the data to"
+    )
+    max_records_in_prompt: Optional[int] = Field(
+        default=50,
+        description="Maximum number of records to include in the snapshot context prompt",
     )
 
 

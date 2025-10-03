@@ -323,6 +323,7 @@ async def websocket_endpoint(
                         request.data_scope,
                         request.record_id,
                         request.column_id,
+                        request.credential_id,
                         300.0,
                         progress_callback,
                     )
