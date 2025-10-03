@@ -166,3 +166,35 @@ export const getCapitalizedFirstLetters = (sentence: string): string => {
     return pattern.test(str);
   }
   
+
+  /**
+   * Calculate a numeric hash for a string
+   * @param str String to hash
+   * @returns A positive 32-bit integer hash of the string
+   */
+  export function hashString(str: string): number {
+    let hash = 5381; // A common initial value for DJB2
+    let i = str.length;
+
+    while (i) {
+        hash = (hash * 33) ^ str.charCodeAt(--i);
+    }
+
+    return hash >>> 0; // Ensure a positive 32-bit integer
+}
+
+/**
+ * Calculate a numeric hash for a list of strings for quick comparison. Order of the strings matters.
+ * @param strings List of strings to hash
+ * @returns A positive 32-bit integer hash of the list of strings
+ */
+export function hashStringList(strings: string[]): number {
+    let combinedHash = 0;
+
+    for (const s of strings) {
+        const stringHash = hashString(s);
+        combinedHash = (combinedHash * 31) ^ stringHash; // Combine hashes with XOR and multiplication
+    }
+
+    return combinedHash >>> 0; // Ensure a positive 32-bit integer
+}

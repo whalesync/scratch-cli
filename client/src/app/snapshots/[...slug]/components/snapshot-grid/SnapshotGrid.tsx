@@ -43,10 +43,11 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
-  const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically } =
+  const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically, recordDataHash } =
     useSnapshotTableRecords({
       snapshotId: snapshot.id,
       tableId: table.id.wsId,
+      generateHash: true,
     });
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
   const { activeRecord, setActiveRecord, savePendingUpdates } = useTableContext();
@@ -54,12 +55,59 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const clipboard = useClipboard({ timeout: 500 });
 
   // Record details mode state
-  // const [recordDetailsVisible, setRecordDetailsVisible] = useState(false);
-  // const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  // const [selectedColumnId, setSelectedColumnId] = useState<string | undefined>(undefined);
   const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
   const [jsonModalRecord, setJsonModalRecord] = useState<SnapshotRecord | null>(null);
-  // const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+
+  const lastRecordDataHash = useRef<number>(0);
+
+  useEffect(() => {
+    if (records && gridApi) {
+      // NOTE: this is called when the records are updated, so it's not called when the records are filtered, sorted, etc.
+      // We need to evaluate the current selection and focus state of the grid and reset values if certain cells are no longer visible
+      // as well as ensure styling is reapplied correctly to avoid inconsistencies between old and new data in the grid
+      // The goal is to do all of this through AG Grid's API -- not manually changing state or classes
+
+      if (recordDataHash != lastRecordDataHash.current) {
+        console.debug('Record set changed, reset selected cell', {
+          records: records.length,
+          hash: recordDataHash,
+        });
+        // clear all current selections to clean up the table
+        gridApi.deselectAll();
+
+        const focusedCell = gridApi.getFocusedCell();
+        if (activeRecord?.recordId && !records.some((record) => record.id.wsId === activeRecord.recordId)) {
+          // active record is not in the new record set, close the overlay and clear focus
+          setActiveRecord(null);
+          gridApi.clearFocusedCell();
+        } else if (activeRecord?.recordId) {
+          // active record is still in the new records, update the grid selection to the new location of the active record
+          gridApi.forEachNode((node) => {
+            if (node.data?.id.wsId === activeRecord.recordId) {
+              // select the row
+              node.setSelected(true);
+              return;
+            }
+          });
+        } else if (focusedCell) {
+          // Check if the old focused cell is still visible, if not clear the focus, otherwise ensure the row is properly selected
+          const rowNode = gridApi.getDisplayedRowAtIndex(focusedCell.rowIndex);
+          if (rowNode) {
+            rowNode.setSelected(true);
+          } else {
+            // row & cell is no longer visible
+            gridApi.clearFocusedCell();
+          }
+        }
+
+        // refresh the cells to ensure styling is reapplied correctly
+        gridApi.refreshCells();
+
+        // record the hash of this new record set so we can compare it next time
+        lastRecordDataHash.current = recordDataHash;
+      }
+    }
+  }, [records, gridApi, activeRecord, setActiveRecord, recordDataHash]);
 
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {

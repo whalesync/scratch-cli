@@ -7,6 +7,7 @@ import {
   RejectAllSuggestionsResult,
   SnapshotRecord
 } from "@/types/server-entities/snapshot";
+import { hashStringList } from "@/utils/helpers";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
@@ -18,6 +19,7 @@ import { useSnapshot } from "./use-snapshot";
 
 export interface UseSnapshotRecordsReturn {
     records: SnapshotRecord[] | undefined;
+    recordDataHash: number;
     isLoading: boolean;
     error: Error | undefined;
     bulkUpdateRecords: (dto: BulkUpdateRecordsDto) => Promise<void>;
@@ -40,12 +42,14 @@ export interface UseSnapshotRecordsReturn {
     cursor?: string,
     take?: number,
     viewId?: string
+    generateHash?: boolean;
   }): UseSnapshotRecordsReturn => {
-    const { snapshotId, tableId, cursor, take = 1000, viewId = undefined } = args;
+    const { snapshotId, tableId, cursor, take = 1000, viewId = undefined, generateHash = false } = args;
     const {snapshot} = useSnapshot(snapshotId);
     const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
   
     const { mutate } = useSWRConfig();
+    
     const { data, error, isLoading } = useSWR(tableId ? swrKey : null, () =>
       snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
       {
@@ -55,6 +59,13 @@ export interface UseSnapshotRecordsReturn {
       }
     );
   
+    const recordDataHash = useMemo(() => {
+      if(generateHash) {
+        return hashStringList(data?.records?.map((r) => r.id.wsId) ?? []);
+      }
+      return -1;
+    }, [data?.records, generateHash]);
+
     const refreshRecords = useCallback(async () => {
       await mutate(swrKey);
     }, [mutate, swrKey]);
@@ -279,6 +290,7 @@ export interface UseSnapshotRecordsReturn {
   
     return {
       records: data?.records ?? undefined,
+      recordDataHash,
       isLoading,
       error,
       bulkUpdateRecords,
