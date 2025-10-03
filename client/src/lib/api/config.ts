@@ -1,5 +1,5 @@
 /**
- * Provides base configuration values for all the API calls.
+ * Singleton providing base configuration values for all the API calls.
  */
 class ApiConfig {
   private apiUrl: string;

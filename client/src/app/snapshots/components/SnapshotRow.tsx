@@ -1,20 +1,18 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { tableName, tablesName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Group, Menu, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { DotsThreeVerticalIcon } from '@phosphor-icons/react';
+import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
-import { StyledIcon } from '../../components/Icons/StyledIcon';
-import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
@@ -64,50 +62,6 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
     }
   };
 
-  const menuItems = [
-    <Menu.Item
-      key="rename"
-      leftSection={<StyledLucideIcon Icon={Edit3} size="md" />}
-      onClick={(e) => {
-        e.stopPropagation();
-        modalStack.open('rename');
-      }}
-    >
-      Rename
-    </Menu.Item>,
-    <Menu.Item
-      key="delete"
-      leftSection={<StyledLucideIcon Icon={Trash2} size="md" />}
-      color="red"
-      onClick={(e) => {
-        e.stopPropagation();
-        modalStack.open('confirm-delete');
-      }}
-    >
-      Abandon
-    </Menu.Item>,
-  ];
-
-  const menu = (
-    <Menu shadow="md" width={240}>
-      <Menu.Target>
-        <ActionIcon
-          size="md"
-          variant="transparent-hover"
-          color="gray"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            transition: 'opacity 0.2s ease',
-            visibility: 'visible',
-          }}
-        >
-          <StyledIcon Icon={DotsThreeVerticalIcon} weight="bold" size="md" />
-        </ActionIcon>
-      </Menu.Target>
-      <Menu.Dropdown>{menuItems}</Menu.Dropdown>
-    </Menu>
-  );
-
   return (
     <>
       <Modal {...modalStack.register('confirm-delete')} title="Abandon scratchpaper" centered size="lg">
@@ -154,7 +108,24 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         <Table.Td>{formatDate(snapshot.createdAt)}</Table.Td>
         <Table.Td>
           <Group gap="xs" justify="flex-end">
-            {menu}
+            <ToolIconButton
+              size="md"
+              onClick={(e) => {
+                e.stopPropagation();
+                modalStack.open('rename');
+              }}
+              icon={Edit3}
+              tooltip="Rename scratchpaper"
+            />
+            <ToolIconButton
+              size="md"
+              onClick={(e) => {
+                e.stopPropagation();
+                modalStack.open('confirm-delete');
+              }}
+              icon={Trash2}
+              tooltip="Abandon scratchpaper"
+            />
           </Group>
         </Table.Td>
       </Table.Tr>

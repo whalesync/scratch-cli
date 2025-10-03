@@ -4,6 +4,7 @@ import { TextTitleXs } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import SideBar from '@/app/components/layouts/SideBarContent';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Stack, Title } from '@mantine/core';
@@ -16,6 +17,12 @@ import { NavbarToggleButton } from '../components/NavbarToggleButton';
 
 const LayoutTestPage = (): JSX.Element => {
   const { toggleRightPanel } = useLayoutManagerStore();
+  const { isDevToolsEnabled } = useDevTools();
+
+  if (!isDevToolsEnabled) {
+    return <></>;
+  }
+
   const footer = <Box p="0">Footer</Box>;
   const rightPanel = (
     <SideBar>

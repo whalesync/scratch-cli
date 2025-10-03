@@ -194,35 +194,6 @@ export const snapshotApi = {
     await checkForApiError(res, "Failed to clear active record filter");
   },
 
-  /**
-   * List records for the active view of a table.
-   * @deprecated
-   */
-  async listActiveViewRecords(
-    snapshotId: string,
-    tableId: string,
-    cursor?: string,
-    take?: number,
-  ): Promise<ListRecordsResponse> {
-    const url = new URL(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
-    );
-    if (cursor) {
-      url.searchParams.append("cursor", cursor);
-    }
-    if (take) {
-      url.searchParams.append("take", take.toString());
-    }
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, "Failed to list records");
-    return res.json();
-  },
-
   async bulkUpdateRecords(
     snapshotId: string,
     tableId: string,

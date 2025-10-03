@@ -13,6 +13,9 @@ interface SuggestionToolbarProps {
   table: TableSpec;
 }
 
+/**
+ * @deprecated Use RecordSuggestionToolbar instead.
+ */
 export const SuggestionToolbar = (props: SuggestionToolbarProps): JSX.Element | null => {
   const { table } = props;
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();

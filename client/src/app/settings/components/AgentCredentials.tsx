@@ -152,14 +152,14 @@ export const AgentCredentials = () => {
               )}
             </Group>
           </Grid.Col>
-          <Grid.Col span={7}>
+          <Grid.Col span={6}>
             <Stack gap="xs">
               <TextRegularSm>{credential.label}</TextRegularSm>
               <TextRegularXs c="dimmed">{credential.description}</TextRegularXs>
               {getCreditUsageElement(credential.id)}
             </Stack>
           </Grid.Col>
-          <Grid.Col span={2}>
+          <Grid.Col span={3}>
             <Group gap="4px" justify="flex-end" align="flex-end">
               <ToolIconButton
                 size="md"

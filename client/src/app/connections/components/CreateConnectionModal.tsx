@@ -111,11 +111,11 @@ export const CreateConnectionModal = (props: ModalProps) => {
     props.onClose?.();
   };
 
-  // TODO - this should be powered by the server via a FeatureFlag
+  // TODO (Chris) - this should be powered by the server via a FeatureFlag
   const availableServices = isAdmin ? [...LIVE_SERVICES, ...INTERNAL_SERVICES] : LIVE_SERVICES;
 
   return (
-    <Modal title="Create Connection" size="xl" centered {...props}>
+    <Modal title="Create Connection" size="lg" centered {...props}>
       <Stack>
         <Select
           label="Service"
