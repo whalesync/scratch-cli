@@ -1,7 +1,7 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
-import { ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
+import { AuthType, ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
 import { Alert, Group, Modal, ModalProps, Select, Stack, TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
 
@@ -50,7 +50,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
         <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
-        {connectorAccount?.service !== Service.CSV && (
+        {connectorAccount?.authType === AuthType.API_KEY && connectorAccount?.service !== Service.CSV && (
           <TextInput label="API Key" value={updatedApiKey} onChange={(e) => setUpdatedApiKey(e.currentTarget.value)} />
         )}
         {connectorAccount?.service === Service.CUSTOM && customConnectors && (

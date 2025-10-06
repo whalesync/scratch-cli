@@ -17,4 +17,8 @@ export class CreateConnectorAccountDto {
   @IsString()
   @IsOptional()
   readonly modifier?: string;
+
+  @IsString()
+  @IsOptional()
+  readonly displayName?: string;
 }

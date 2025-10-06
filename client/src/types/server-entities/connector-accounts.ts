@@ -12,6 +12,10 @@ export enum ConnectorHealthStatus {
   OK = "OK",
   FAILED = "FAILED",
 }
+export enum AuthType {
+  API_KEY = "API_KEY",
+  OAUTH = "OAUTH",
+}
 
 export interface ConnectorAccount {
   id: string; // ConnectorAccountId
@@ -25,12 +29,14 @@ export interface ConnectorAccount {
   healthStatusLastCheckedAt: string | null; // DateTime
   modifier: string | null; // ID of the custom connector or other modifier entity
   extras: Record<string, unknown> | null; // Additional service-specific configuration
+  authType: AuthType;
 }
 
 export interface CreateConnectorAccountDto {
   service: Service;
   apiKey: string;
   modifier?: string; // Optional custom connector ID
+  displayName?: string;
 }
 
 export interface UpdateConnectorAccountDto {

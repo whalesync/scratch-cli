@@ -13,6 +13,7 @@ import { useState } from 'react';
 type AuthMethod = 'api_key' | 'oauth' | 'oauth_custom';
 
 export const CreateConnectionModal = (props: ModalProps) => {
+  const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
   const [newService, setNewService] = useState<Service | null>(null);
   const [newModifier, setNewModifier] = useState<string | null>(null);
@@ -67,10 +68,13 @@ export const CreateConnectionModal = (props: ModalProps) => {
     setIsOAuthLoading(true);
     try {
       const isCustom = authMethod === 'oauth_custom';
+      const connectionName = newDisplayName ?? undefined;
+      console.log('connectionName', connectionName);
       await initiateOAuth(newService as OAuthService, {
         connectionMethod: isCustom ? 'OAUTH_CUSTOM' : 'OAUTH_SYSTEM',
         customClientId: isCustom ? customClientId : undefined,
         customClientSecret: isCustom ? customClientSecret : undefined,
+        connectionName: connectionName,
       });
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
@@ -100,10 +104,12 @@ export const CreateConnectionModal = (props: ModalProps) => {
       service: newService,
       apiKey: newService === Service.CSV ? '' : newApiKey,
       modifier: newModifier || undefined,
+      displayName: newDisplayName || undefined,
     });
     setNewApiKey('');
     setNewService(null);
     setNewModifier(null);
+    setNewDisplayName(null);
     setAuthMethod('oauth'); // Reset to default
     // if (newAccount && newAccount.id) {
     //   await handleTest(newAccount.id);
@@ -130,6 +136,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
           value={newService}
           onChange={(value) => {
             setNewService(value as Service);
+            setNewDisplayName(serviceName(value as Service));
             // Set default auth method based on service capabilities
             setAuthMethod(getDefaultAuthMethod(value as Service));
             setCustomClientId('');
@@ -145,6 +152,13 @@ export const CreateConnectionModal = (props: ModalProps) => {
               </Group>
             );
           }}
+        />
+        <TextInput
+          label="Name"
+          placeholder="Enter a name for your connection"
+          value={newDisplayName ?? ''}
+          required
+          onChange={(e) => setNewDisplayName(e.currentTarget.value)}
         />
 
         {newService && getSupportedAuthMethods(newService).length > 1 && (

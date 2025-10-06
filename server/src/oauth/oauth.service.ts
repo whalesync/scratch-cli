@@ -67,6 +67,7 @@ export class OAuthService {
       connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
       customClientId?: string;
       customClientSecret?: string;
+      connectionName?: string;
     },
   ): OAuthInitiateResponse {
     const provider = this.providers.get(service);
@@ -81,6 +82,7 @@ export class OAuthService {
       connectionMethod: options?.connectionMethod ?? 'OAUTH_SYSTEM',
       customClientId: options?.customClientId,
       customClientSecret: options?.customClientSecret,
+      connectionName: options?.connectionName,
       ts: Date.now(),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
@@ -114,6 +116,7 @@ export class OAuthService {
       connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
       customClientId?: string;
       customClientSecret?: string;
+      connectionName?: string;
       ts: number;
     };
     try {
@@ -123,6 +126,7 @@ export class OAuthService {
         connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
         customClientId?: string;
         customClientSecret?: string;
+        connectionName?: string;
         ts: number;
       };
       statePayload = parsed;
@@ -145,6 +149,7 @@ export class OAuthService {
       connectionMethod: statePayload.connectionMethod,
       customClientId: statePayload.customClientId,
       customClientSecret: statePayload.customClientSecret,
+      connectionName: statePayload.connectionName,
     });
 
     return { connectorAccountId: connectorAccount.id };
@@ -205,6 +210,7 @@ export class OAuthService {
       connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
       customClientId?: string;
       customClientSecret?: string;
+      connectionName?: string;
     },
   ) {
     const serviceEnum = this.mapServiceStringToEnum(service);
@@ -229,9 +235,11 @@ export class OAuthService {
         id: createConnectorAccountId(),
         userId,
         service: serviceEnum,
-        displayName: `${service.charAt(0).toUpperCase() + service.slice(1)} (${
-          connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? 'Private OAuth' : 'OAuth'
-        })`,
+        displayName:
+          connectionInfo?.connectionName ??
+          `${service.charAt(0).toUpperCase() + service.slice(1)} (${
+            connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? 'Private OAuth' : 'OAuth'
+          })`,
         authType: AuthType.OAUTH,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
         healthStatus: 'OK', // assume healthy because this connection is created via a successful oauth flow

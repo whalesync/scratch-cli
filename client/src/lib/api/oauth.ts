@@ -1,3 +1,4 @@
+import { OAuthInitiateOptions } from '@/types/server-entities/oauth';
 import { API_CONFIG } from './config';
 
 export interface OAuthInitiateResponse {
@@ -20,18 +21,19 @@ export const oauthApi = {
    */
   initiate: async (
     service: string,
-    options?: { connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM'; customClientId?: string; customClientSecret?: string },
+    options?: OAuthInitiateOptions,
   ): Promise<OAuthInitiateResponse> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/${service}/initiate`, {
       method: 'POST',
       headers: {
-        ...API_CONFIG.getAuthHeaders(),
+      ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         connectionMethod: options?.connectionMethod,
         customClientId: options?.customClientId,
         customClientSecret: options?.customClientSecret,
+        connectionName: options?.connectionName,
       }),
     });
 

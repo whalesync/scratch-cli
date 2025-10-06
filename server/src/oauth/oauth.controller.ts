@@ -17,9 +17,15 @@ export class OAuthController {
       connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
       customClientId?: string;
       customClientSecret?: string;
+      connectionName?: string;
     },
   ): OAuthInitiateResponse {
-    return this.oauthService.initiateOAuth(service, req.user.id, body);
+    return this.oauthService.initiateOAuth(service, req.user.id, {
+      connectionMethod: body.connectionMethod,
+      customClientId: body.customClientId,
+      customClientSecret: body.customClientSecret,
+      connectionName: body.connectionName,
+    });
   }
 
   @UseGuards(ScratchpadAuthGuard)

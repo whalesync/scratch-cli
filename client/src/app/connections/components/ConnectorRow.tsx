@@ -63,7 +63,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>
           <Group gap="sm">
             <ConnectorIcon size={24} connector={connectorAccount.service} />
-            <TextTitleSm>{serviceName(connectorAccount.service)}</TextTitleSm>
+            <TextTitleSm>{connectorAccount.displayName || serviceName(connectorAccount.service)}</TextTitleSm>
           </Group>
         </Table.Td>
         <Table.Td>

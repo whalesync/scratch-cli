@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
+import _ from 'lodash';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { createConnectorAccountId } from '../../types/ids';
@@ -63,7 +64,7 @@ export class ConnectorAccountService {
         id: createConnectorAccountId(),
         userId,
         service: createDto.service,
-        displayName: `${createDto.service.toLowerCase()} base`,
+        displayName: createDto.displayName ?? `${_.startCase(createDto.service.toLowerCase())}`,
         authType: createDto.authType || AuthType.API_KEY,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
         modifier: createDto.modifier,

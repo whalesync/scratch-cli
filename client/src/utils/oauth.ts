@@ -1,5 +1,6 @@
 import { oauthApi } from '@/lib/api/oauth';
 import { OAuthService } from '@/types/oauth';
+import { OAuthInitiateOptions } from '@/types/server-entities/oauth';
 
 /**
  * Initiate OAuth flow for a service
@@ -7,7 +8,7 @@ import { OAuthService } from '@/types/oauth';
  */
 export const initiateOAuth = async (
   service: OAuthService,
-  options?: { connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM'; customClientId?: string; customClientSecret?: string },
+  options?: OAuthInitiateOptions,
 ): Promise<void> => {
   try {
     // Get the OAuth URL from the server (service is now included in state parameter)
