@@ -14,6 +14,7 @@ export class AiAgentCredential {
   source: 'USER' | 'SYSTEM';
   enabled: boolean;
   usage?: CreditUsage;
+  default: boolean;
 
   constructor(credential: PrismaAiAgentCredential, includeApiKey: boolean = false, usage?: CreditUsage) {
     this.id = credential.id;
@@ -27,6 +28,7 @@ export class AiAgentCredential {
     this.source = credential.source as 'USER' | 'SYSTEM';
     this.enabled = credential.enabled;
     this.usage = usage;
+    this.default = credential.default;
   }
 }
 

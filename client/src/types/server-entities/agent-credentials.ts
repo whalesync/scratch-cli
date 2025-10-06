@@ -11,6 +11,7 @@ export interface AiAgentCredential {
     createdAt: string;
     updatedAt: string;
     usage?: CreditUsage;
+    default: boolean;
   }
   
   export interface CreateAiAgentCredentialDto {
@@ -18,11 +19,13 @@ export interface AiAgentCredential {
     apiKey: string;
     description?: string;
     enabled: boolean;
+    default?: boolean;
   }
   
   export interface UpdateAiAgentCredentialDto {
     description?: string;
     enabled?: boolean;
+    default?: boolean;
   }
 
   export interface CreditUsage {

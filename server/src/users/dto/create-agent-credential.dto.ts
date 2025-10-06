@@ -13,6 +13,10 @@ export class CreateAgentCredentialDto {
 
   @IsBoolean()
   enabled: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  default?: boolean;
 }
 
 export class UpdateAgentCredentialDto {

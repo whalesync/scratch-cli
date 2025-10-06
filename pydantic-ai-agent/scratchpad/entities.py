@@ -122,6 +122,7 @@ class AgentCredential:
     updatedAt: str
     source: str
     enabled: bool
+    default: bool
 
 
 @dataclass

@@ -166,6 +166,7 @@ export class UsersService {
             description: `Starter OpenRouter credentials for Scratchpaper.ai`,
             enabled: true,
             source: AiAgentCredentialSource.SYSTEM,
+            default: true,
           },
         });
       } else {

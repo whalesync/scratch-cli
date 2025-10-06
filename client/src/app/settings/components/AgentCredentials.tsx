@@ -123,6 +123,11 @@ export const AgentCredentials = () => {
                   Inactive
                 </BadgeWithTooltip>
               )}
+              {credential.default && (
+                <Badge color="primary" variant="light" size="xs">
+                  Default
+                </Badge>
+              )}
             </Group>
           </Grid.Col>
           <Grid.Col span={6}>

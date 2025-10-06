@@ -23,6 +23,9 @@ export class AgentCredentialsService {
     });
   }
 
+  /**
+   * @deprecated - (Chris) Agent should not be using this anymore
+   */
   public async findActiveServiceCredentials(
     userId: string,
     service: string = 'openrouter',
@@ -39,6 +42,7 @@ export class AgentCredentialsService {
     apiKey: string;
     description?: string;
     enabled: boolean;
+    default?: boolean;
   }): Promise<AiAgentCredential> {
     return this.db.client.aiAgentCredential.create({
       data: {
@@ -48,6 +52,7 @@ export class AgentCredentialsService {
         apiKey: data.apiKey,
         description: data.description,
         enabled: data.enabled,
+        default: data.default,
       },
     });
   }
@@ -75,5 +80,27 @@ export class AgentCredentialsService {
     this.posthogService.trackDeleteAgentCredential(userId, credential);
 
     return credential;
+  }
+
+  /**
+   * Sets the default key for the user and ensures all other keys are not default
+   * @param id - the id of the key to set as default
+   * @param userId - the id of the user
+   * @returns the updated key
+   */
+  public async setDefaultKey(id: string, userId: string): Promise<AiAgentCredential> {
+    return this.db.client.$transaction(async (tx) => {
+      // First, set all keys for this user to not default
+      await tx.aiAgentCredential.updateMany({
+        where: { userId },
+        data: { default: false },
+      });
+
+      // Then set the specified key as default
+      return tx.aiAgentCredential.update({
+        where: { id, userId },
+        data: { default: true },
+      });
+    });
   }
 }
