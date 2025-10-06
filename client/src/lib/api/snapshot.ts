@@ -1,5 +1,5 @@
 import { PublishSummary } from '@/types/server-entities/publish-summary';
-import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
+import { AcceptAllSuggestionsResult, CreateSnapshotDto, DownloadSnapshotResult, DownloadSnapshotWithouotJobResult, RejectAllSuggestionsResult, Snapshot, SnapshotRecord, UpdateSnapshotDto } from "@/types/server-entities/snapshot";
 import {
   BulkUpdateRecordsDto,
   ListRecordsResponse,
@@ -58,6 +58,20 @@ export const snapshotApi = {
       body: JSON.stringify(updateDto),
     });
     await checkForApiError(res, "Failed to update snapshot");
+    return res.json();
+  },
+
+  async downloadWithoutJob(id: string): Promise<DownloadSnapshotWithouotJobResult> {
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${id}/download-without-job`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+      }
+    );
+    await checkForApiError(res, "Failed to start download");
     return res.json();
   },
 

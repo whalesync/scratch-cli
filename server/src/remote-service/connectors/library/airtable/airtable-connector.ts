@@ -1,4 +1,5 @@
 import { Service } from '@prisma/client';
+import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { AirtableTableSpec } from '../custom-spec-registry';
@@ -55,12 +56,13 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   async downloadTableRecords(
     tableSpec: AirtableTableSpec,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
-    for await (const records of this.client.listRecords(baseId, tableId)) {
-      await callback(this.wireToConnectorRecord(records, tableSpec));
+    for await (const rawRecords of this.client.listRecords(baseId, tableId)) {
+      const records = this.wireToConnectorRecord(rawRecords, tableSpec);
+      await callback({ records });
     }
   }
 

@@ -4,7 +4,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { serviceName } from '@/service-naming-conventions';
-import { DownloadSnapshotResult } from '@/types/server-entities/snapshot';
+import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
@@ -19,18 +19,28 @@ import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
-import { PublishConfirmationModal } from './PublishConfirmationModal';
+import { DownloadProgressModal } from './snapshot-grid/modals/DownloadProgressModal';
+import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
+
+enum Modals {
+  DOWNLOAD_WITHOUT_JOB = 'download-without-job',
+  DOWNLOAD = 'download',
+  PUBLISH = 'publish',
+  RENAME = 'rename',
+  CONFIRM_DELETE = 'confirm-delete',
+}
 
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-  const modalStack = useModalsStack(['confirm-delete', 'download', 'publish', 'rename']);
+  const modalStack = useModalsStack(Object.values(Modals));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [downloadResult, setDownloadResult] = useState<DownloadSnapshotResult | null>(null);
+  const [downloadResult, setDownloadResult] = useState<DownloadSnapshotWithouotJobResult | null>(null);
   const [snapshotName, setSnapshotName] = useState(snapshot?.name ?? '');
   const [saving, setSaving] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
+  const [downloadInProgress, setDownloadInProgress] = useState<DownloadSnapshotResult | null>(null);
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -40,7 +50,7 @@ export const SnapshotActionsMenu = () => {
       ScratchpadNotifications.success({
         message: 'The scratchpaper was renamed.',
       });
-      modalStack.close('rename');
+      modalStack.close(Modals.RENAME);
     } catch {
       ScratchpadNotifications.error({
         title: 'Renaming failed',
@@ -54,8 +64,23 @@ export const SnapshotActionsMenu = () => {
   const handleDownload = async () => {
     if (!snapshot) return;
     try {
-      modalStack.open('download');
       const result = await snapshotApi.download(snapshot.id);
+      setDownloadInProgress(result);
+    } catch (e) {
+      console.error(e);
+      ScratchpadNotifications.error({
+        title: 'Download failed',
+        message: 'There was an error starting the download.',
+      });
+    }
+  };
+
+  const handleDownloadWithoutJob = async () => {
+    if (!snapshot) return;
+    try {
+      modalStack.open(Modals.DOWNLOAD_WITHOUT_JOB);
+
+      const result = await snapshotApi.downloadWithoutJob(snapshot.id);
       setDownloadResult(result); // for future UI use
       // short sleep to avoid flicker in the modal for ultra fast downloads
       await sleep(500);
@@ -71,7 +96,7 @@ export const SnapshotActionsMenu = () => {
         message: 'There was an error starting the download.',
       });
     } finally {
-      modalStack.close('download');
+      modalStack.close(Modals.DOWNLOAD_WITHOUT_JOB);
     }
   };
 
@@ -85,7 +110,7 @@ export const SnapshotActionsMenu = () => {
     try {
       setSaving(true);
       setShowPublishConfirmation(false);
-      modalStack.open('publish');
+      modalStack.open(Modals.PUBLISH);
       await publish?.();
 
       ScratchpadNotifications.success({
@@ -102,7 +127,7 @@ export const SnapshotActionsMenu = () => {
       });
     } finally {
       setSaving(false);
-      modalStack.close('publish');
+      modalStack.close(Modals.PUBLISH);
     }
   };
 
@@ -132,34 +157,34 @@ export const SnapshotActionsMenu = () => {
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Abandon scratchpaper" centered size="lg">
+      <Modal {...modalStack.register(Modals.CONFIRM_DELETE)} title="Abandon scratchpaper" centered size="lg">
         <Stack>
           <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
+            <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DELETE)}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleAbandon} loading={saving}>
               Delete
             </PrimaryButton>
           </Group>
         </Stack>
       </Modal>
-      <Modal {...modalStack.register('download')} title="Downloading records" centered size="md">
+      <Modal {...modalStack.register(Modals.DOWNLOAD_WITHOUT_JOB)} title="Downloading records" centered size="md">
         <Group gap="xs" wrap="nowrap">
           <Loader size="xs" />
           <Text>Your data is being downloaded from the remote source. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register('publish')} title="Publishing scratchpaper" centered size="md">
+      <Modal {...modalStack.register(Modals.PUBLISH)} title="Publishing scratchpaper" centered size="md">
         <Group gap="xs" wrap="nowrap">
           <Loader size="xs" />
           <Text>Your data is being published to {connectorAccount?.displayName}. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register('rename')} title="Rename scratchpaper" centered size="lg">
+      <Modal {...modalStack.register(Modals.RENAME)} title="Rename scratchpaper" centered size="lg">
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('rename')}>Cancel</SecondaryButton>
+            <SecondaryButton onClick={() => modalStack.close(Modals.RENAME)}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleRename} loading={saving}>
               Save
             </PrimaryButton>
@@ -175,12 +200,22 @@ export const SnapshotActionsMenu = () => {
         <Menu.Dropdown>
           <Menu.Item
             disabled={menuItemsDisabled}
-            onClick={() => modalStack.open('rename')}
+            onClick={() => modalStack.open(Modals.RENAME)}
             leftSection={<PencilSimpleLineIcon />}
           >
             Rename
           </Menu.Item>
-          <Menu.Item disabled={menuItemsDisabled} onClick={handleDownload} leftSection={<DownloadSimpleIcon />}>
+          <Menu.Item
+            disabled={menuItemsDisabled}
+            onClick={() => {
+              if (process.env.NEXT_PUBLIC_USE_JOBS === 'true') {
+                handleDownload();
+              } else {
+                handleDownloadWithoutJob();
+              }
+            }}
+            leftSection={<DownloadSimpleIcon />}
+          >
             Download
           </Menu.Item>
           <Menu.Item onClick={handlePublish} leftSection={<UploadIcon />}>
@@ -190,12 +225,13 @@ export const SnapshotActionsMenu = () => {
             color="red"
             disabled={menuItemsDisabled}
             leftSection={saving ? <Loader size="xs" /> : <TrashIcon />}
-            onClick={() => modalStack.open('confirm-delete')}
+            onClick={() => modalStack.open(Modals.CONFIRM_DELETE)}
           >
             Abandon
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
+      {/* Fully remove the modal when not shown, to clean up state */}
       {connectorAccount && (
         <PublishConfirmationModal
           isOpen={showPublishConfirmation}
@@ -204,6 +240,13 @@ export const SnapshotActionsMenu = () => {
           snapshotId={snapshot?.id ?? ''}
           serviceName={serviceName(connectorAccount?.service)}
           isPublishing={saving}
+        />
+      )}
+      {downloadInProgress && snapshot?.id && (
+        <DownloadProgressModal
+          snapshotId={snapshot.id}
+          jobId={downloadInProgress.jobId}
+          onClose={() => setDownloadInProgress(null)}
         />
       )}
     </>

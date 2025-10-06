@@ -10,7 +10,18 @@ import { usePathname } from 'next/navigation';
 import { PROJECT_NAME } from '@/constants';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
-import { BookOpen, Bot, FileSpreadsheet, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
+import {
+  BookOpen,
+  Bot,
+  FileSpreadsheet,
+  LucideIcon,
+  MoonIcon,
+  Pickaxe,
+  Settings,
+  SunIcon,
+  Table2,
+  Unplug,
+} from 'lucide-react';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
 
@@ -49,6 +60,18 @@ const upperLinks: MenuItem[] = [
     enabled: true,
     requiresAdmin: false,
   },
+  ...(process.env.NEXT_PUBLIC_USE_JOBS === 'true'
+    ? [
+        {
+          href: RouteUrls.jobsPageUrl,
+          label: 'Jobs',
+          icon: Pickaxe,
+          iconType: 'lucide' as const,
+          enabled: true,
+          requiresAdmin: false,
+        },
+      ]
+    : []),
   {
     href: RouteUrls.csvFilesPageUrl,
     label: 'CSV Files',

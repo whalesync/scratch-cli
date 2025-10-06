@@ -103,7 +103,7 @@ export const CreateSnapshotModal = ({
         name: snapshotName ?? `New ${connectorAccount.displayName} scratchpaper`,
       });
       props.onClose?.();
-      await router.push(RouteUrls.snapshotPage(snapshot.id));
+      router.push(RouteUrls.snapshotPage(snapshot.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { BlockObjectRequest, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
-import { Service } from '@prisma/client';
+import { ConnectorAccount, Service } from '@prisma/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
@@ -13,7 +13,12 @@ import { NotionSchemaParser } from './notion-schema-parser';
 export const PAGE_CONTENT_COLUMN_NAME = 'Page Content';
 export const PAGE_CONTENT_COLUMN_ID = 'WS_PAGE_CONTENT';
 
-export class NotionConnector extends Connector<typeof Service.NOTION> {
+type NotionDownloadProgress = {
+  nextCursor: string | undefined;
+};
+
+const page_size = Number(process.env.NOTION_PAGE_SIZE ?? 100);
+export class NotionConnector extends Connector<typeof Service.NOTION, NotionDownloadProgress> {
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
   private readonly markdownConverter: NotionToMarkdown;
@@ -78,16 +83,19 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
 
   async downloadTableRecords(
     tableSpec: NotionTableSpec,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
+    account: ConnectorAccount,
+    progress?: NotionDownloadProgress,
   ): Promise<void> {
     const [databaseId] = tableSpec.id.remoteId;
-
+    const notionDownloadProgress = (progress ?? {}) as NotionDownloadProgress;
     let hasMore = true;
-    let nextCursor: string | undefined = undefined;
+    let nextCursor = notionDownloadProgress.nextCursor;
     while (hasMore) {
       const response = await this.client.databases.query({
         database_id: databaseId,
         start_cursor: nextCursor,
+        page_size,
       });
       const records = await Promise.all(
         response.results
@@ -129,10 +137,14 @@ export class NotionConnector extends Connector<typeof Service.NOTION> {
             return converted;
           }),
       );
-      await callback(records);
 
       hasMore = response.has_more;
       nextCursor = response.next_cursor ?? undefined;
+
+      await callback({
+        records,
+        connectorProgress: { nextCursor },
+      });
     }
   }
 

@@ -1,5 +1,6 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import { CsvFileService } from 'src/csv-file/csv-file.service';
+import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { CsvTableSpec } from '../custom-spec-registry';
@@ -60,7 +61,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   async downloadTableRecords(
     tableSpec: CsvTableSpec,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
     account: ConnectorAccount,
   ): Promise<void> {
     // Get the CSV file
@@ -80,7 +81,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Call the callback with records, 100 at a time
     for (let i = 0; i < records.length; i += 100) {
-      await callback(records.slice(i, i + 100));
+      await callback({ records: records.slice(i, i + 100) });
     }
   }
 

@@ -48,6 +48,10 @@ export function createId(prefix: IdPrefixes): string {
   return `${prefix}${nanoid()}`;
 }
 
+export function createPlainId(): string {
+  return nanoid();
+}
+
 export function typeForId(id: AnyId): IdType | null {
   return (_.findKey(IdPrefixes, (value) => id.startsWith(value)) as IdType) ?? null;
 }

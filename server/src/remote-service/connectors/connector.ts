@@ -1,4 +1,5 @@
 import { ConnectorAccount, Service } from '@prisma/client';
+import { JsonSafeObject } from 'src/utils/objects';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
   ConnectorRecord,
@@ -8,7 +9,7 @@ import {
   TablePreview,
 } from './types';
 
-export abstract class Connector<T extends Service> {
+export abstract class Connector<T extends Service, TConnectorProgress extends JsonSafeObject = JsonSafeObject> {
   abstract readonly service: T;
 
   abstract testConnection(): Promise<void>;
@@ -19,8 +20,9 @@ export abstract class Connector<T extends Service> {
 
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     account: ConnectorAccount,
+    progress: TConnectorProgress,
   ): Promise<void>;
 
   /**

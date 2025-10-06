@@ -92,13 +92,17 @@ export type EditedFieldsMetadata = {
   [wsId: string]: string;
 };
 
-export interface DownloadSnapshotResult {
+export interface DownloadSnapshotWithouotJobResult {
   totalRecords: number;
   tables: {
     id: string;
     name: string;
     records: number;
   }[];
+}
+
+export interface DownloadSnapshotResult {
+  jobId: string;
 }
 
 export interface AcceptAllSuggestionsResult {

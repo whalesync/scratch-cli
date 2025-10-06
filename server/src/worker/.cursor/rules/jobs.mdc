@@ -1,0 +1,21 @@
+---
+alwaysApply: true
+---
+
+# Worker System
+
+## Tools
+
+A worker system built with BullMQ for processing background jobs efficiently.
+
+## Jobs
+
+- Jobs are defined in ./jobs/job-definitions/\*.jd.ts
+- They should be job-framework agnostic.
+- The full type structure of the job should be encapsulated by their JobDefinitionBuilder<...> definition.
+- Job handlers should not be nestjhs services so that we can more easily move them to a sandboxed environment.
+
+## Other types
+
+- base-types.ts contains helper types used to define individual jobs
+- union-types.ts contains the union type of all job definitions and other types derived from the union type

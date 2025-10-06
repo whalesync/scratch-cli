@@ -12,6 +12,7 @@ import { RestApiImportModule } from './custom-connector-builder/custom-connector
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
 import { ExperimentsModule } from './experiments/experiments.module';
+import { JobModule } from './job/job.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
@@ -24,6 +25,7 @@ import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UserModule } from './users/users.module';
 import { ViewModule } from './view/view.module';
+import { WorkerModule } from './worker/workers.module';
 
 @Module({
   imports: [
@@ -51,6 +53,7 @@ import { ViewModule } from './view/view.module';
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,
+    ...(process.env.USE_JOBS === 'true' ? [WorkerModule, JobModule] : []),
   ],
   controllers: [],
   providers: [],

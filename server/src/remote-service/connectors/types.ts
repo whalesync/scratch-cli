@@ -1,4 +1,4 @@
-import { EditedFieldsMetadata } from '../../snapshot/snapshot-db.service';
+import { EditedFieldsMetadata } from 'src/snapshot/snapshot-db';
 import { SnapshotRecordId } from '../../types/ids';
 
 export type TablePreview = {

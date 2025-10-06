@@ -31,7 +31,7 @@ import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
-import { DownloadSnapshotResult } from './entities/download-results.entity';
+import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
@@ -96,6 +96,15 @@ export class SnapshotController {
   @Get(':id/publish-summary')
   async getPublishSummary(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<PublishSummaryDto> {
     return await this.service.getPublishSummary(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/download-without-job')
+  async downloadWithoutJob(
+    @Param('id') id: SnapshotId,
+    @Req() req: RequestWithUser,
+  ): Promise<DownloadSnapshotWithouotJobResult> {
+    return this.service.downloadWithoutJob(id, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

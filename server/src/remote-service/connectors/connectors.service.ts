@@ -19,7 +19,7 @@ export class ConnectorsService {
     private readonly oauthService: OAuthService,
   ) {}
 
-  async getConnector(account: ConnectorAccount & DecryptedCredentials): Promise<Connector<Service>> {
+  async getConnector(account: ConnectorAccount & DecryptedCredentials): Promise<Connector<Service, any>> {
     switch (account.service) {
       case Service.AIRTABLE:
         if (!account.apiKey) {

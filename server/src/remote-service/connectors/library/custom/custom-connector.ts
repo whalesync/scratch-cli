@@ -4,6 +4,7 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import * as _ from 'lodash';
 import { WSLogger } from 'src/logger';
+import { JsonSafeObject } from 'src/utils/objects';
 import {
   executeCreateRecord,
   executeDeleteRecord,
@@ -176,7 +177,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   async downloadTableRecords(
     tableSpec: CustomTableSpec,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
     account: ConnectorAccount,
   ): Promise<void> {
     // Get the custom connector configuration using the modifier field
@@ -232,7 +233,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       }));
 
       // Call the callback with the standardized records
-      await callback(connectorRecords);
+      await callback({ records: connectorRecords });
     } else {
       // Handle legacy format - use tableSpec columns to map the data
       const recordsArray = Array.isArray(data) ? data : [];
@@ -263,7 +264,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       });
 
       // Call the callback with the mapped records
-      await callback(mappedRecords);
+      await callback({ records: mappedRecords });
     }
   }
 

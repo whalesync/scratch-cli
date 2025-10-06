@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount, Service } from '@prisma/client';
+import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
 import {
@@ -195,7 +196,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   async downloadTableRecords(
     tableSpec: YouTubeTableSpec,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
     _account: ConnectorAccount,
   ): Promise<void> {
     const channelId = tableSpec.id.remoteId[0];
@@ -212,7 +213,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         videosResponse.items.map((video) => this.formatRecordWithoutTranscript(video, tableSpec)),
       );
 
-      await callback(records);
+      await callback({ records });
 
       nextPageToken = videosResponse.nextPageToken || undefined;
     } while (nextPageToken);

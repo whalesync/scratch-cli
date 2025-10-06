@@ -5,9 +5,10 @@ import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { UserModule } from 'src/users/users.module';
+import { WorkerModule } from 'src/worker/workers.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { AiSnapshotController } from './ai-snapshot.controller';
-import { SnapshotDbService } from './snapshot-db.service';
+import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotController } from './snapshot.controller';
 import { SnapshotDataGateway } from './snapshot.gateway';
@@ -22,9 +23,11 @@ import { SnapshotService } from './snapshot.service';
     UserModule,
     PosthogModule,
     ConnectorAccountModule,
+    ...(process.env.USE_JOBS === 'true' ? [WorkerModule] : []),
+    SnapshotDbModule,
   ],
   controllers: [SnapshotController, AiSnapshotController],
-  providers: [SnapshotService, SnapshotDbService, SnapshotEventService, SnapshotDataGateway],
+  providers: [SnapshotService, SnapshotEventService, SnapshotDataGateway],
   exports: [SnapshotService],
 })
 export class SnapshotModule {}

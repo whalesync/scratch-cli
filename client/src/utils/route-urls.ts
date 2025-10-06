@@ -26,6 +26,7 @@ export class RouteUrls {
     `/snapshots/${id}/${tableId}/${recordId}/${columnId}`;
   static snapshotsPageUrl = "/snapshots";
   static resourcesPageUrl = "/resources";
+  static jobsPageUrl = "/jobs";
   static csvFilesPageUrl = "/csv-files";
   static settingsPageUrl = "/settings";
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;

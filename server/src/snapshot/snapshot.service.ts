@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import _ from 'lodash';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -7,6 +8,7 @@ import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
+import { BullEnqueuerService } from 'src/worker/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -17,7 +19,7 @@ import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
-import { DownloadSnapshotResult } from './entities/download-results.entity';
+import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotTableContext } from './types';
@@ -33,6 +35,7 @@ export class SnapshotService {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
+    @Optional() private readonly bullEnqueuerService?: BullEnqueuerService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
@@ -72,18 +75,32 @@ export class SnapshotService {
     });
 
     // Make a new schema and create tables to store its data.
-    await this.snapshotDbService.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
+    await this.snapshotDbService.snapshotDb.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
 
     // Start downloading in the background
     // TODO: Do this work somewhere real.
-    this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
-      WSLogger.error({
-        source: 'SnapshotService.create',
-        message: 'Error downloading snapshot',
-        snapshotId: newSnapshot.id,
-        error,
+    // this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
+    //   WSLogger.error({
+    //     source: 'SnapshotService.create',
+    //     message: 'Error downloading snapshot',
+    //     snapshotId: newSnapshot.id,
+    //     error,
+    //   });
+    // });
+
+    if (this.bullEnqueuerService) {
+      await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, userId);
+    } else {
+      // Fall back to synchronous download when jobs are not available
+      this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
+        WSLogger.error({
+          source: 'SnapshotService.create',
+          message: 'Error downloading snapshot',
+          snapshotId: newSnapshot.id,
+          error,
+        });
       });
-    });
+    }
 
     this.posthogService.trackCreateSnapshot(userId, newSnapshot);
 
@@ -93,7 +110,7 @@ export class SnapshotService {
   async delete(id: SnapshotId, userId: string): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId); // Permissions
 
-    await this.snapshotDbService.cleanUpSnapshot(id);
+    await this.snapshotDbService.snapshotDb.cleanUpSnapshot(id);
     await this.db.client.snapshot.delete({
       where: { id },
     });
@@ -175,7 +192,7 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    return this.snapshotDbService.getRecord(snapshotId, tableId, recordId);
+    return this.snapshotDbService.snapshotDb.getRecord(snapshotId, tableId, recordId);
   }
 
   async listRecords(
@@ -205,7 +222,7 @@ export class SnapshotService {
 
     const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
 
-    const result = await this.snapshotDbService.listRecords(
+    const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
       cursor,
@@ -260,7 +277,7 @@ export class SnapshotService {
 
     const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
 
-    const result = await this.snapshotDbService.listRecords(
+    const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
       cursor,
@@ -328,7 +345,7 @@ export class SnapshotService {
       },
     });
 
-    return this.snapshotDbService.bulkUpdateRecords(snapshotId, tableId, filteredOps, type);
+    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(snapshotId, tableId, filteredOps, type);
   }
 
   async deepFetchRecords(
@@ -354,7 +371,7 @@ export class SnapshotService {
     }
 
     // Fetch existing records from the database
-    const existingRecords = await this.snapshotDbService.getRecordsByIds(snapshotId, tableId, recordIds);
+    const existingRecords = await this.snapshotDbService.snapshotDb.getRecordsByIds(snapshotId, tableId, recordIds);
 
     const records: SnapshotRecord[] = [];
     let totalCount = 0;
@@ -381,7 +398,11 @@ export class SnapshotService {
           fields,
           async (connectorRecords) => {
             // Upsert the records as they come back, similar to regular download
-            await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, connectorRecords);
+            await this.snapshotDbService.snapshotDb.upsertRecords(
+              snapshot.id as SnapshotId,
+              tableSpec,
+              connectorRecords,
+            );
             totalCount += connectorRecords.length;
 
             // Convert ConnectorRecord to SnapshotRecord for response
@@ -526,7 +547,7 @@ export class SnapshotService {
       }
     }
 
-    await this.snapshotDbService.acceptCellValues(snapshotId, tableId, items, tableSpec);
+    await this.snapshotDbService.snapshotDb.acceptCellValues(snapshotId, tableId, items, tableSpec);
 
     // Count unique wsId values in the items list
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
@@ -568,7 +589,7 @@ export class SnapshotService {
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
     const uniqueRecordCount = uniqueWsIds.size;
 
-    await this.snapshotDbService.rejectValues(snapshotId, tableId, items);
+    await this.snapshotDbService.snapshotDb.rejectValues(snapshotId, tableId, items);
 
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
@@ -605,7 +626,13 @@ export class SnapshotService {
     }
 
     // get all of the records for the table with suggestions and build a list of items to accept
-    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, undefined, 10000, viewConfig);
+    const records = await this.snapshotDbService.snapshotDb.listRecords(
+      snapshotId,
+      tableId,
+      undefined,
+      10000,
+      viewConfig,
+    );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.acceptCellValues(snapshotId, tableId, allSuggestions, userId);
@@ -670,7 +697,13 @@ export class SnapshotService {
     }
 
     // get all of the records for the table with suggestions and build a list of items to reject
-    const records = await this.snapshotDbService.listRecords(snapshotId, tableId, undefined, 10000, viewConfig);
+    const records = await this.snapshotDbService.snapshotDb.listRecords(
+      snapshotId,
+      tableId,
+      undefined,
+      10000,
+      viewConfig,
+    );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.rejectValues(snapshotId, tableId, allSuggestions, userId);
@@ -744,13 +777,29 @@ export class SnapshotService {
     }
   }
 
-  async download(id: SnapshotId, userId: string): Promise<DownloadSnapshotResult> {
+  async downloadWithoutJob(id: SnapshotId, userId: string): Promise<DownloadSnapshotWithouotJobResult> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
 
     return this.downloadSnapshotInBackground(snapshot);
   }
 
-  private async downloadSnapshotInBackground(snapshot: SnapshotWithConnectorAccount): Promise<DownloadSnapshotResult> {
+  async download(id: SnapshotId, userId: string): Promise<DownloadSnapshotResult> {
+    if (!this.bullEnqueuerService) {
+      // Fall back to synchronous download when jobs are not available
+      await this.downloadWithoutJob(id, userId);
+      return {
+        jobId: 'sync-download', // Use a placeholder ID for synchronous downloads
+      };
+    }
+    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, userId);
+    return {
+      jobId: job.id as string,
+    };
+  }
+
+  private async downloadSnapshotInBackground(
+    snapshot: SnapshotWithConnectorAccount,
+  ): Promise<DownloadSnapshotWithouotJobResult> {
     // need a full connector account object with decoded credentials
     const connectorAccount = await this.connectorAccountService.findOne(
       snapshot.connectorAccount.id,
@@ -770,8 +819,9 @@ export class SnapshotService {
 
       await connector.downloadTableRecords(
         tableSpec,
-        async (records) => {
-          await this.snapshotDbService.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
+        async (params) => {
+          const { records } = params;
+          await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
           totalCount += records.length;
           tables.push({
             id: tableSpec.id.wsId,
@@ -780,6 +830,11 @@ export class SnapshotService {
           });
         },
         connectorAccount,
+        {
+          publicProgress: {},
+          jobProgress: {},
+          connectorProgress: {},
+        },
       );
     }
 
@@ -894,7 +949,7 @@ export class SnapshotService {
     connector: Connector<S>,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
-    await this.snapshotDbService.forAllDirtyRecords(
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
       'create',
@@ -906,7 +961,7 @@ export class SnapshotService {
 
         const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords, snapshot.connectorAccount);
         // Save the created IDs.
-        await this.snapshotDbService.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
+        await this.snapshotDbService.snapshotDb.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
       },
       true,
     );
@@ -918,7 +973,7 @@ export class SnapshotService {
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
-    await this.snapshotDbService.forAllDirtyRecords(
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
       'update',
@@ -939,7 +994,7 @@ export class SnapshotService {
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Finally the deletes since hopefully nothing references them.
-    await this.snapshotDbService.forAllDirtyRecords(
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
       'delete',
@@ -952,7 +1007,7 @@ export class SnapshotService {
         await connector.deleteRecords(tableSpec, recordIds, snapshot.connectorAccount);
 
         // Remove them from the snapshot.
-        await this.snapshotDbService.deleteRecords(
+        await this.snapshotDbService.snapshotDb.deleteRecords(
           snapshot.id as SnapshotId,
           tableSpec,
           records.map((r) => r.id.wsId),
@@ -998,7 +1053,11 @@ export class SnapshotService {
 
     // Validate SQL WHERE clause if provided
     if (dto.sqlWhereClause && dto.sqlWhereClause.trim() !== '') {
-      const errorMessage = await this.snapshotDbService.validateSqlFilter(snapshotId, tableId, dto.sqlWhereClause);
+      const errorMessage = await this.snapshotDbService.snapshotDb.validateSqlFilter(
+        snapshotId,
+        tableId,
+        dto.sqlWhereClause,
+      );
       if (errorMessage) {
         throw new BadRequestException(
           `Invalid SQL WHERE clause. Please check your syntax and column names. ${errorMessage}`,
@@ -1071,7 +1130,7 @@ export class SnapshotService {
   ): Promise<SnapshotRecord[]> {
     const records: SnapshotRecord[] = [];
 
-    await this.snapshotDbService.forAllDirtyRecords(
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshotId,
       tableSpec.id.wsId,
       operation,
