@@ -1,71 +1,52 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/require-await */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { JobStatus } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { JobEntity } from 'src/job/entities/job.entity';
-import { WSLogger } from 'src/logger';
+import { JobHandlerService } from 'src/worker/job-handler.service';
+import { JobResult, Progress } from 'src/worker/jobs/base-types';
+import { JobData } from 'src/worker/jobs/union-types';
 import { JobService } from '../job/job.service';
-import { JobHandlerService } from './job-handler.service';
-import { JobResult, Progress } from './jobs/base-types';
-import { JobData } from './jobs/union-types';
+// import { JobHandlerService } from './job-handler.service';
+// import { JobResult, Progress } from './jobs/base-types';
 
 @Injectable()
 export class QueueService implements OnModuleInit, OnModuleDestroy {
-  private redis: IORedis | null = null;
-  private pubSubRedis: IORedis | null = null;
-  private worker: Worker | null = null;
+  private redis: IORedis;
+  private pubSubRedis: IORedis;
+  private worker: Worker;
   private activeJobs: Map<string, AbortController> = new Map();
 
   constructor(
     // private readonly workerPool: WorkerPoolService,
     private readonly jobHandlerService: JobHandlerService,
     private readonly jobService: JobService,
-  ) {}
+  ) {
+    this.redis = new IORedis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      maxRetriesPerRequest: null,
+    });
 
-  private getRedis(): IORedis {
-    if (!this.redis) {
-      this.redis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        maxRetriesPerRequest: null,
-      });
-    }
-    return this.redis;
-  }
-
-  private getPubSubRedis(): IORedis {
-    if (!this.pubSubRedis) {
-      this.pubSubRedis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        maxRetriesPerRequest: null,
-      });
-    }
-    return this.pubSubRedis;
+    // Create a separate Redis client for pub/sub operations
+    this.pubSubRedis = new IORedis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      maxRetriesPerRequest: null,
+    });
   }
 
   async onModuleInit() {
-    if (process.env.USE_JOBS !== 'true') {
-      return;
-    }
     // Create the worker to process jobs
     this.worker = new Worker('worker-queue', async (job: Job) => this.processJob(job), {
-      connection: this.getRedis(),
+      connection: this.redis,
       concurrency: 2, // Process up to 2 jobs concurrently
     });
 
     // Set up event listeners
     this.worker.on('completed', (job: Job, result: JobResult) => {
-      WSLogger.info({
-        source: 'QueueService',
-        message: 'Job completed successfully',
-        jobId: job.id?.toString(),
-        jobType: (job.data as JobData)?.type,
-        executionTime: result.executionTime,
-      });
+      console.log(`Job ${job.id} completed successfully:`, result);
       // Clean up the abort controller when job completes
       if (job.id) {
         this.activeJobs.delete(job.id.toString());
@@ -73,14 +54,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.worker.on('failed', (job: Job | undefined, err: Error) => {
-      WSLogger.error({
-        source: 'QueueService',
-        message: 'Job failed',
-        jobId: job?.id?.toString(),
-        jobType: job ? (job.data as JobData)?.type : undefined,
-        error: err.message,
-        stack: err.stack,
-      });
+      console.error(`Job ${job?.id} failed:`, err.message);
       // Clean up the abort controller when job fails
       if (job?.id) {
         this.activeJobs.delete(job.id.toString());
@@ -88,17 +62,12 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.worker.on('error', (err: Error) => {
-      WSLogger.error({
-        source: 'QueueService',
-        message: 'Worker error',
-        error: err.message,
-        stack: err.stack,
-      });
+      console.error('Worker error:', err);
     });
 
     // Subscribe to job cancellation messages using the separate pub/sub client
-    void this.getPubSubRedis().psubscribe('job-cancel:*');
-    this.getPubSubRedis().on('pmessage', (pattern, channel, message) => {
+    void this.pubSubRedis.psubscribe('job-cancel:*');
+    this.pubSubRedis.on('pmessage', (pattern, channel, message) => {
       if (pattern === 'job-cancel:*') {
         this.handleCancellationMessage(channel, message);
       }
@@ -139,14 +108,6 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     const handler = this.jobHandlerService.getHandler(jobData);
     const abortController = new AbortController();
 
-    WSLogger.info({
-      source: 'QueueService',
-      message: 'Starting job processing',
-      jobId: job.id?.toString(),
-      jobType: jobData.type,
-      userId: jobData.userId,
-    });
-
     // Create job record in database
     let dbJob: JobEntity | null = null;
     try {
@@ -156,19 +117,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         data: jobData,
         bullJobId: job.id?.toString(),
       });
-      WSLogger.debug({
-        source: 'QueueService',
-        message: 'Job record created in database',
-        jobId: job.id?.toString(),
-        dbJobId: dbJob.id,
-      });
     } catch (error) {
-      WSLogger.error({
-        source: 'QueueService',
-        message: 'Failed to create job record in database',
-        jobId: job.id?.toString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      console.error('Failed to create job record:', error);
     }
 
     // Store the abort controller for this job
@@ -194,20 +144,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
           status: JobStatus.ACTIVE,
           startedAt: new Date(),
         });
-        WSLogger.debug({
-          source: 'QueueService',
-          message: 'Job status updated to ACTIVE',
-          jobId: job.id?.toString(),
-          dbJobId: dbJob.id,
-        });
       } catch (error) {
-        WSLogger.error({
-          source: 'QueueService',
-          message: 'Failed to update job status to ACTIVE',
-          jobId: job.id?.toString(),
-          dbJobId: dbJob.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        console.error('Failed to update job status to ACTIVE:', error);
       }
     }
 
@@ -228,20 +166,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
             result: {},
             completedAt: new Date(),
           });
-          WSLogger.debug({
-            source: 'QueueService',
-            message: 'Job status updated to COMPLETED',
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-          });
         } catch (error) {
-          WSLogger.error({
-            source: 'QueueService',
-            message: 'Failed to update job status to COMPLETED',
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          console.error('Failed to update job status to COMPLETED:', error);
         }
       }
 
@@ -296,15 +222,9 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.worker) {
-      await this.worker.close();
-    }
-    if (this.redis) {
-      await this.redis.quit();
-    }
-    if (this.pubSubRedis) {
-      await this.pubSubRedis.quit();
-    }
+    await this.worker.close();
+    await this.redis.quit();
+    await this.pubSubRedis.quit();
   }
 }
 

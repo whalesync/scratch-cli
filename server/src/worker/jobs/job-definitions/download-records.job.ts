@@ -7,6 +7,7 @@ import type { SnapshotId } from '../../../types/ids';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
+import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { WSLogger } from '../../../logger';
 
 export type DownloadRecordsPublicProgress = {
@@ -34,6 +35,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDb: SnapshotDb,
+    private readonly connectorAccountService: ConnectorAccountService,
   ) {}
 
   async run(params: {
@@ -113,9 +115,13 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           connectorProgress: connectorProgress ?? {},
         });
       };
+      const connectorAccount = await this.connectorAccountService.findOne(
+        snapshot.connectorAccount.id,
+        snapshot.connectorAccount.userId,
+      );
 
       try {
-        await connector.downloadTableRecords(tableSpec, callback, snapshot.connectorAccount, progress);
+        await connector.downloadTableRecords(tableSpec, callback, connectorAccount, progress);
         // Mark table as completed
         currentTable.status = 'completed';
       } catch (error) {
