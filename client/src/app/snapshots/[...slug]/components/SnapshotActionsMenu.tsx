@@ -28,6 +28,7 @@ enum Modals {
   PUBLISH = 'publish',
   RENAME = 'rename',
   CONFIRM_DELETE = 'confirm-delete',
+  CONFIRM_DOWNLOAD = 'confirm-download',
 }
 
 export const SnapshotActionsMenu = () => {
@@ -168,6 +169,29 @@ export const SnapshotActionsMenu = () => {
           </Group>
         </Stack>
       </Modal>
+      <Modal {...modalStack.register(Modals.CONFIRM_DOWNLOAD)} title="Downloading records" centered size="lg">
+        <Stack>
+          <Text>
+            Are you sure you want to download records for this scratchpaper? Any unpublished changes and suggestions
+            will be lost.
+          </Text>
+          <Group justify="flex-end">
+            <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DOWNLOAD)}>Cancel</SecondaryButton>
+            <PrimaryButton
+              onClick={() => {
+                modalStack.close(Modals.CONFIRM_DOWNLOAD);
+                if (process.env.NEXT_PUBLIC_USE_JOBS === 'true') {
+                  handleDownload();
+                } else {
+                  handleDownloadWithoutJob();
+                }
+              }}
+            >
+              Continue
+            </PrimaryButton>
+          </Group>
+        </Stack>
+      </Modal>
       <Modal {...modalStack.register(Modals.DOWNLOAD_WITHOUT_JOB)} title="Downloading records" centered size="md">
         <Group gap="xs" wrap="nowrap">
           <Loader size="xs" />
@@ -208,11 +232,7 @@ export const SnapshotActionsMenu = () => {
           <Menu.Item
             disabled={menuItemsDisabled}
             onClick={() => {
-              if (process.env.NEXT_PUBLIC_USE_JOBS === 'true') {
-                handleDownload();
-              } else {
-                handleDownloadWithoutJob();
-              }
+              modalStack.open(Modals.CONFIRM_DOWNLOAD);
             }}
             leftSection={<DownloadSimpleIcon />}
           >
