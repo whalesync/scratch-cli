@@ -25,9 +25,18 @@ import { Capability } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Alert, Button, Center, Group, Modal, Stack, Text, Textarea } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Textarea, Tooltip } from '@mantine/core';
 import _ from 'lodash';
-import { ChevronDownIcon, OctagonMinusIcon, PanelRightIcon, Plus, SendIcon, SparklesIcon, XIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  LucideFileKey,
+  OctagonMinusIcon,
+  PanelRightIcon,
+  Plus,
+  SendIcon,
+  SparklesIcon,
+  XIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TextRegularXs, TextTitleSm } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
@@ -526,7 +535,17 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         />
 
         {/* Model and Submit Row */}
-        <Group gap="xs" align="flex-start">
+        <Group gap="xs" align="flex-end">
+          <Tooltip
+            multiline
+            w={220}
+            label={`Using ${activeOpenRouterCredentials?.label} key. ${activeOpenRouterCredentials?.description}`}
+          >
+            <Box>
+              <StyledLucideIcon Icon={LucideFileKey} size="md" c="dimmed" strokeWidth={1} />
+            </Box>
+          </Tooltip>
+
           <Button
             variant="transparent"
             onClick={() => setShowModelSelector(true)}
@@ -552,6 +571,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               trackChangeAgentCapabilities(caps, snapshot);
             }}
           />
+
           <Group gap="2px" ml="auto">
             <ActionIcon
               onClick={() => {

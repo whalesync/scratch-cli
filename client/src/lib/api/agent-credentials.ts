@@ -52,4 +52,14 @@ export const agentCredentialsApi = {
     });
     await checkForApiError(res, 'Failed to delete agent credential');
   },
+  setDefaultKey: async (id: string): Promise<AiAgentCredential> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}/set-default`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    await checkForApiError(res, 'Failed to set default agent credential');
+    return res.json();
+  },
 };

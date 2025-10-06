@@ -6,7 +6,6 @@ export interface AiAgentCredential {
     service: AgentService;
     label: string;
     description?: string;
-    enabled: boolean;
     source: 'USER' | 'SYSTEM';
     createdAt: string;
     updatedAt: string;
@@ -18,13 +17,11 @@ export interface AiAgentCredential {
     service: AgentService;
     apiKey: string;
     description?: string;
-    enabled: boolean;
     default?: boolean;
   }
   
   export interface UpdateAiAgentCredentialDto {
     description?: string;
-    enabled?: boolean;
     default?: boolean;
   }
 

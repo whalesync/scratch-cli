@@ -22,14 +22,14 @@ export const EditAgentCredentialsModal = ({
   onSuccess,
   ...modalProps
 }: EditAgentCredentialsModalProps) => {
-  const { createCredentials, updateCredentials } = useAgentCredentials();
+  const { createCredentials, updateCredentials } = useAgentCredentials(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useSetState<CreateAiAgentCredentialDto>({
     service: 'openrouter',
     apiKey: '',
     description: '',
-    enabled: true,
+    default: false,
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export const EditAgentCredentialsModal = ({
         service: credentials.service,
         apiKey: '',
         description: credentials.description ?? '',
-        enabled: credentials.enabled,
+        default: credentials.default,
       });
     } else {
       // setup for create
@@ -51,7 +51,7 @@ export const EditAgentCredentialsModal = ({
         service: 'openrouter',
         apiKey: '',
         description: '',
-        enabled: true,
+        default: false,
       });
     }
   }, [credentials, modalProps.opened, setFormData]);
@@ -62,15 +62,7 @@ export const EditAgentCredentialsModal = ({
       setError(null);
 
       if (credentials) {
-        const updateDto: UpdateAiAgentCredentialDto =
-          credentials.source === 'SYSTEM'
-            ? {
-                enabled: formData.enabled,
-              }
-            : {
-                description: formData.description,
-                enabled: formData.enabled,
-              };
+        const updateDto: UpdateAiAgentCredentialDto = { description: formData.description, default: formData.default };
         await updateCredentials(credentials.id, updateDto);
       } else {
         await createCredentials(formData);
@@ -117,9 +109,9 @@ export const EditAgentCredentialsModal = ({
           disabled={credentials?.source === 'SYSTEM'}
         />
         <Checkbox
-          label="Active"
-          checked={formData.enabled}
-          onChange={(event) => setFormData({ enabled: event.target.checked })}
+          label="Make default?"
+          checked={formData.default}
+          onChange={(event) => setFormData({ default: event.target.checked })}
         />
         <Group justify="flex-end">
           <SecondaryButton variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>

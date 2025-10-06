@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -125,8 +126,13 @@ export class AgentCredentialsController {
     }
 
     if (credential.source === 'SYSTEM' && updateAgentCredentialDto.description) {
-      // users cannot update the details of the system generated credentials, only the enabled flag
+      // users cannot update the details of the system generated credentials, only the default flag
       throw new ForbiddenException();
+    }
+
+    // No values provided, throw error
+    if (updateAgentCredentialDto.default === undefined && updateAgentCredentialDto.description === undefined) {
+      throw new BadRequestException('At least one of description or default must be provided');
     }
 
     const updatedCredential = await this.service.update(id, req.user.id, updateAgentCredentialDto);
@@ -153,5 +159,11 @@ export class AgentCredentialsController {
     }
 
     await this.service.delete(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/set-default')
+  async setDefaultKey(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
+    return new AiAgentCredential(await this.service.setDefaultKey(id, req.user.id));
   }
 }

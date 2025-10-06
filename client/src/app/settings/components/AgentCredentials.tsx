@@ -1,7 +1,7 @@
-import { BadgeWithTooltip } from '@/app/components/BadgeWithTooltip';
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
@@ -20,14 +20,22 @@ import {
   useModalsStack,
 } from '@mantine/core';
 import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export const AgentCredentials = () => {
-  const { agentCredentials, isLoading, error, deleteCredentials, toggleCredential } = useAgentCredentials(true);
+  const { agentCredentials, isLoading, error, deleteCredentials, toggleDefaultCredential } = useAgentCredentials(true);
   const modalStack = useModalsStack(['edit', 'confirm-delete']);
   const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const sortedCredentials = useMemo(() => {
+    return (
+      agentCredentials?.sort((a, b) => {
+        return a.createdAt.localeCompare(b.createdAt);
+      }) || []
+    );
+  }, [agentCredentials]);
 
   const modals = (
     <>
@@ -90,11 +98,6 @@ export const AgentCredentials = () => {
     );
   };
 
-  const sortedCredentials =
-    agentCredentials?.sort((a, b) => {
-      return a.createdAt.localeCompare(b.createdAt);
-    }) || [];
-
   const list = isLoading ? (
     <Center mih={200}>
       <Group gap="xs">
@@ -102,27 +105,13 @@ export const AgentCredentials = () => {
         <Text>Loading...</Text>
       </Group>
     </Center>
-  ) : agentCredentials && agentCredentials.length > 0 ? (
+  ) : sortedCredentials && sortedCredentials.length > 0 ? (
     <>
       {sortedCredentials.map((credential) => (
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
             <Group gap="xs">
               <TextRegularSm>{getServiceIcon(credential.service)}</TextRegularSm>
-              {credential.enabled ? (
-                <Badge color="primary" variant="light" size="xs">
-                  Active
-                </Badge>
-              ) : (
-                <BadgeWithTooltip
-                  color="gray"
-                  variant="light"
-                  size="xs"
-                  tooltip="These credentials are not active and will not be used by the agent."
-                >
-                  Inactive
-                </BadgeWithTooltip>
-              )}
               {credential.default && (
                 <Badge color="primary" variant="light" size="xs">
                   Default
@@ -145,14 +134,18 @@ export const AgentCredentials = () => {
                   // toggle the credential
                   try {
                     setSaving(true);
-                    await toggleCredential(credential.id, !credential.enabled);
+                    await toggleDefaultCredential(credential.id);
+                    ScratchpadNotifications.success({
+                      message: 'Default credential set successfully',
+                    });
                   } catch (error) {
                     console.error('Error toggling credential', error);
                   } finally {
                     setSaving(false);
                   }
                 }}
-                icon={credential.enabled ? ToggleRightIcon : ToggleLeftIcon}
+                icon={credential.default ? ToggleRightIcon : ToggleLeftIcon}
+                disabled={credential.default}
                 loading={saving}
               />
               <ToolIconButton

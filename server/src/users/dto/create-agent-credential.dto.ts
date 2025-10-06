@@ -12,9 +12,6 @@ export class CreateAgentCredentialDto {
   description?: string;
 
   @IsBoolean()
-  enabled: boolean;
-
-  @IsBoolean()
   @IsOptional()
   default?: boolean;
 }
@@ -26,5 +23,5 @@ export class UpdateAgentCredentialDto {
 
   @IsBoolean()
   @IsOptional()
-  enabled?: boolean;
+  default?: boolean;
 }

@@ -9,35 +9,37 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     const { mutate } = useSWRConfig();
     const {user} = useScratchPadUser();
 
-    const { data, error, isLoading } = useSWR(
+    const { data, error, isLoading, mutate: mutateList } = useSWR(
       SWR_KEYS.agentCredentials.list(includeUsageStats),
       () => agentCredentialsApi.list(includeUsageStats)
     );
   
     const createCredentials = async (dto: CreateAiAgentCredentialDto) => {
       await agentCredentialsApi.create(dto);
-      mutate(SWR_KEYS.agentCredentials.list());
+      mutateList();
     };
   
     const updateCredentials = async (id: string, dto: UpdateAiAgentCredentialDto) => {
       await agentCredentialsApi.update(id, dto);
-      mutate(SWR_KEYS.agentCredentials.list());
+      mutateList();
       mutate(SWR_KEYS.agentCredentials.detail(id));
     };
 
     const deleteCredentials = async (id: string) => {
       await agentCredentialsApi.delete(id);
-      mutate(SWR_KEYS.agentCredentials.list());
+      mutateList();
     };
 
-    const toggleCredential = async (id: string, enabled: boolean) => {
-      await agentCredentialsApi.update(id, { enabled });
-      mutate(SWR_KEYS.agentCredentials.list());
+    const toggleDefaultCredential = async (id: string) => {
+      await agentCredentialsApi.setDefaultKey(id);
+      mutateList();
       mutate(SWR_KEYS.agentCredentials.detail(id));
     };
 
     const activeOpenRouterCredentials = useMemo(() => {
-      return data?.find((credential) => credential.enabled && credential.service === 'openrouter');
+      // try to find the default credential
+      return data?.find((credential) => credential.default && credential.service === 'openrouter');
+
     }, [data]);
   
     const aiAgentEnabled = useMemo(() => {
@@ -56,8 +58,8 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
       createCredentials,
       updateCredentials,
       deleteCredentials,
-      activeOpenRouterCredentials,
       aiAgentEnabled,
-      toggleCredential,
+      toggleDefaultCredential,
+      activeOpenRouterCredentials
   };
 };

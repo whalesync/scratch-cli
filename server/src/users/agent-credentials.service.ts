@@ -41,30 +41,46 @@ export class AgentCredentialsService {
     service: string;
     apiKey: string;
     description?: string;
-    enabled: boolean;
     default?: boolean;
   }): Promise<AiAgentCredential> {
-    return this.db.client.aiAgentCredential.create({
-      data: {
-        id: createAiAgentCredentialId(),
-        userId: data.userId,
-        service: data.service,
-        apiKey: data.apiKey,
-        description: data.description,
-        enabled: data.enabled,
-        default: data.default,
-      },
+    return this.db.client.$transaction(async (tx) => {
+      if (data.default) {
+        await tx.aiAgentCredential.updateMany({
+          where: { userId: data.userId },
+          data: { default: false },
+        });
+      }
+      return tx.aiAgentCredential.create({
+        data: {
+          id: createAiAgentCredentialId(),
+          userId: data.userId,
+          service: data.service,
+          apiKey: data.apiKey,
+          description: data.description,
+          enabled: true, // TODO(chris):default to true until we remove this deprecated column
+          default: data.default,
+        },
+      });
     });
   }
 
   public async update(
     id: string,
     userId: string,
-    data: { apiKey?: string; description?: string; enabled?: boolean },
+    data: { apiKey?: string; description?: string; default?: boolean },
   ): Promise<AiAgentCredential> {
-    return this.db.client.aiAgentCredential.update({
-      where: { id, userId },
-      data,
+    return this.db.client.$transaction(async (tx) => {
+      if (data.default) {
+        await tx.aiAgentCredential.updateMany({
+          where: { userId },
+          data: { default: false },
+        });
+      }
+
+      return tx.aiAgentCredential.update({
+        where: { id, userId },
+        data,
+      });
     });
   }
 
