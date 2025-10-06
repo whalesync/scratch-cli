@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
@@ -12,6 +13,7 @@ export class JobHandlerService {
   constructor(
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly connectorAccountService: ConnectorAccountService,
   ) {}
 
   getHandler = <TDefinition extends JobDefinition>(data: TDefinition['data']): JobHandler<TDefinition> => {
@@ -25,7 +27,12 @@ export class JobHandlerService {
       case 'add-three-numbers':
         return new AddThreeNumbersJobHandler(prisma);
       case 'download-records':
-        return new DownloadRecordsJobHandler(prisma, this.connectorService, this.snapshotDbService.snapshotDb);
+        return new DownloadRecordsJobHandler(
+          prisma,
+          this.connectorService,
+          this.snapshotDbService.snapshotDb,
+          this.connectorAccountService,
+        );
 
       default:
         throw new Error(`Unknown job type. Data: ${JSON.stringify(data)}`);

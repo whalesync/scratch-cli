@@ -61,7 +61,12 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     if (!snapshot) {
       throw new Error(`Snapshot with id ${data.snapshotId} not found`);
     }
-    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
+
+    const connectorAccount = await this.connectorAccountService.findOne(
+      snapshot.connectorAccount.id,
+      snapshot.connectorAccount.userId,
+    );
+    const connector = await this.connectorService.getConnector(connectorAccount);
 
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
@@ -115,10 +120,6 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           connectorProgress: connectorProgress ?? {},
         });
       };
-      const connectorAccount = await this.connectorAccountService.findOne(
-        snapshot.connectorAccount.id,
-        snapshot.connectorAccount.userId,
-      );
 
       try {
         await connector.downloadTableRecords(tableSpec, callback, connectorAccount, progress);

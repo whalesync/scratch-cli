@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { SnapshotDbModule } from 'src/snapshot/snapshot-db.module';
 import { ScratchpadConfigModule } from '../config/scratchpad-config.module';
@@ -11,7 +12,7 @@ import { QueueTestService } from './test/queue-test.service';
 import { WorkersController } from './test/workers.controller';
 
 @Module({
-  imports: [ScratchpadConfigModule, ConnectorsModule, SnapshotDbModule, JobModule],
+  imports: [ScratchpadConfigModule, ConnectorsModule, SnapshotDbModule, JobModule, ConnectorAccountModule],
   controllers: [WorkersController],
   providers: [WorkerPoolService, QueueService, QueueTestService, JobHandlerService, BullEnqueuerService],
   exports: [WorkerPoolService, QueueService, JobHandlerService, BullEnqueuerService],

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/require-await */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { JobStatus } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
@@ -47,7 +44,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     return this.pubSubRedis;
   }
 
-  async onModuleInit() {
+  onModuleInit() {
     if (process.env.USE_JOBS !== 'true') {
       return;
     }
@@ -228,11 +225,13 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
             result: {},
             completedAt: new Date(),
           });
-          WSLogger.debug({
+          WSLogger.info({
             source: 'QueueService',
-            message: 'Job status updated to COMPLETED',
+            message: 'Job completed successfully',
             jobId: job.id?.toString(),
             dbJobId: dbJob.id,
+            jobType: jobData.type,
+            userId: jobData.userId,
           });
         } catch (error) {
           WSLogger.error({
@@ -257,16 +256,42 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
             error: error instanceof Error ? error.message : 'Unknown error',
             completedAt: new Date(),
           });
+          WSLogger.error({
+            source: 'QueueService',
+            message: `Job status updated to ${status}`,
+            jobId: job.id?.toString(),
+            dbJobId: dbJob.id,
+            jobType: jobData.type,
+            userId: jobData.userId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         } catch (updateError) {
-          console.error('Failed to update job status to FAILED/CANCELLED:', updateError);
+          WSLogger.error({
+            source: 'QueueService',
+            message: 'Failed to update job status to FAILED/CANCELLED',
+            jobId: job.id?.toString(),
+            dbJobId: dbJob.id,
+            error: updateError instanceof Error ? updateError.message : 'Unknown error',
+          });
         }
       }
 
       if (error instanceof JobCanceledError) {
-        console.log(`Job ${job.id} was cancelled:`, error.message);
+        WSLogger.warn({
+          source: 'QueueService',
+          message: 'Job was cancelled',
+          jobId: job.id?.toString(),
+          error: error.message,
+        });
         throw error;
       }
-      console.error(`Job ${job.id} failed:`, error);
+      WSLogger.error({
+        source: 'QueueService',
+        message: 'Job failed unexpectedly',
+        jobId: job.id?.toString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       throw error;
     } finally {
       // Clean up the abort controller when job finishes
