@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { JobStatus } from '@prisma/client';
+import { DbJob } from '@prisma/client';
 import IORedis from 'ioredis';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
-import { JobEntity, JobProgressEntity } from './entities/job.entity';
+import { DbJobStatus, JobEntity } from './entities/job.entity';
 
 @Injectable()
 export class JobService {
@@ -29,86 +28,72 @@ export class JobService {
     type: string;
     data: Record<string, unknown>;
     bullJobId?: string;
-  }): Promise<JobEntity> {
-    const job = await this.db.client.job.create({
+  }): Promise<DbJob> {
+    const job = await this.db.client.dbJob.create({
       data: {
         id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         userId: params.userId,
         type: params.type,
         data: params.data as any,
         bullJobId: params.bullJobId,
-        status: JobStatus.PENDING,
+        status: 'active',
       },
     });
 
-    return job as JobEntity;
+    return job;
   }
 
   async updateJobStatus(params: {
     id: string;
-    status: JobStatus;
+    status: DbJobStatus;
     result?: Record<string, unknown>;
     error?: string;
-    startedAt?: Date;
-    completedAt?: Date;
-  }): Promise<JobEntity> {
-    const updateData: any = {
-      status: params.status,
-      updatedAt: new Date(),
-    };
-
-    if (params.result !== undefined) {
-      updateData.result = params.result as any;
-    }
-
-    if (params.error !== undefined) {
-      updateData.error = params.error;
-    }
-
-    if (params.startedAt !== undefined) {
-      updateData.startedAt = params.startedAt;
-    }
-
-    if (params.completedAt !== undefined) {
-      updateData.completedAt = params.completedAt;
-    }
-
-    const job = await this.db.client.job.update({
+    processedOn?: Date;
+    finishedOn?: Date;
+    progress?: Progress;
+  }): Promise<DbJob> {
+    const job = await this.db.client.dbJob.update({
       where: { id: params.id },
-      data: updateData,
+      data: {
+        status: params.status,
+        error: params.error,
+        processedOn: params.processedOn,
+        finishedOn: params.finishedOn,
+        progress: params.progress,
+      },
     });
 
-    return job as JobEntity;
+    return job;
   }
 
-  async getJobsByUserId(userId: string, limit = 50, offset = 0): Promise<JobEntity[]> {
-    const jobs = await this.db.client.job.findMany({
+  async getJobsByUserId(userId: string, limit = 50, offset = 0): Promise<DbJob[]> {
+    const jobs = await this.db.client.dbJob.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
     });
 
-    return jobs as JobEntity[];
+    return jobs;
   }
 
-  async getJobById(id: string): Promise<JobEntity | null> {
-    const job = await this.db.client.job.findUnique({
+  async getJobById(id: string): Promise<DbJob | null> {
+    const job = await this.db.client.dbJob.findUnique({
       where: { id },
     });
 
-    return job as JobEntity | null;
+    return job;
   }
 
-  async getJobByBullJobId(bullJobId: string): Promise<JobEntity | null> {
-    const job = await this.db.client.job.findFirst({
+  async getJobByBullJobId(bullJobId: string): Promise<DbJob | null> {
+    const job = await this.db.client.dbJob.findFirst({
       where: { bullJobId },
     });
 
-    return job as JobEntity | null;
+    return job;
   }
 
-  async getJobProgress(jobId: string): Promise<JobProgressEntity> {
+  async getJobProgress(jobId: string): Promise<JobEntity> {
     // Get the job from the queue
     const queue = new (await import('bullmq')).Queue('worker-queue', {
       connection: this.getRedis(),
@@ -123,11 +108,13 @@ export class JobService {
     const state = await job.getState();
 
     return {
-      jobId: job.id as string,
+      bullJobId: job.id as string,
+      dbJobId: job.id as string,
+      type: job.name,
       publicProgress: (job.progress as Progress).publicProgress,
       state: state,
-      processedOn: job.processedOn,
-      finishedOn: job.finishedOn,
+      processedOn: job.processedOn ? new Date(job.processedOn) : null,
+      finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
       failedReason: job.failedReason,
     };
   }

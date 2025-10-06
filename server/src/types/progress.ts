@@ -8,4 +8,5 @@ export type Progress<
   publicProgress: TPublicProgress;
   jobProgress: TJobProgress;
   connectorProgress: TConnectorProgress;
+  timestamp: number;
 };

@@ -39,7 +39,7 @@ export type JobHandlerBuilder<TDefinition extends JobDefinitionBuilder<any, any,
     ? {
         run: (params: {
           data: TData;
-          checkpoint: (progress: Progress<TPublicProgress, TJobProgress>) => Promise<void>;
+          checkpoint: (progress: Omit<Progress<TPublicProgress, TJobProgress>, 'timestamp'>) => Promise<void>;
           progress: Progress<TPublicProgress, TJobProgress>;
           abortSignal: AbortSignal;
         }) => Promise<TResult>;

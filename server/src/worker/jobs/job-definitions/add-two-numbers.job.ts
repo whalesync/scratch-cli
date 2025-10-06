@@ -20,9 +20,9 @@ export const AddTwoNumbersJobHandler: JobHandlerBuilder<AddTwoNumbersJobDefiniti
     progress: Progress<AddTwoNumbersJobDefinition['publicProgress'], AddTwoNumbersJobDefinition['initialJobProgress']>;
     abortSignal: AbortSignal;
     checkpoint: (
-      progress: Progress<
-        AddTwoNumbersJobDefinition['publicProgress'],
-        AddTwoNumbersJobDefinition['initialJobProgress']
+      progress: Omit<
+        Progress<AddTwoNumbersJobDefinition['publicProgress'], AddTwoNumbersJobDefinition['initialJobProgress']>,
+        'timestamp'
       >,
     ) => Promise<void>;
   }) => {

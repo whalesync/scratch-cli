@@ -1,8 +1,8 @@
 import { API_CONFIG } from './config';
-import { JobProgressEntity } from '../../types/server-entities/job';
+import { JobEntity } from '../../types/server-entities/job';
 
 export const progressApi = {
-  getJobProgress: async (jobId: string): Promise<JobProgressEntity> => {
+  getJobProgress: async (jobId: string): Promise<JobEntity> => {
     const response = await fetch(`${API_CONFIG.getApiUrl()}/jobs/${jobId}/progress`, {
       method: 'GET',
       headers: {

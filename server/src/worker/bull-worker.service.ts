@@ -1,8 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { JobStatus } from '@prisma/client';
+import { DbJob } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import { JobEntity } from 'src/job/entities/job.entity';
 import { WSLogger } from 'src/logger';
 import { JobService } from '../job/job.service';
 import { JobHandlerService } from './job-handler.service';
@@ -61,7 +60,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         message: 'Job completed successfully',
         jobId: job.id?.toString(),
         jobType: (job.data as JobData)?.type,
-        executionTime: result.executionTime,
+        executionTime: result?.executionTime,
       });
       // Clean up the abort controller when job completes
       if (job.id) {
@@ -145,7 +144,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     });
 
     // Create job record in database
-    let dbJob: JobEntity | null = null;
+    let dbJob: DbJob | null = null;
     try {
       dbJob = await this.jobService.createJob({
         userId: jobData.userId || 'unknown', // Extract userId from job data
@@ -173,9 +172,12 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       this.activeJobs.set(job.id.toString(), abortController);
     }
 
+    let latestProgress = job.progress as Progress;
     const checkpoint = async (progress: Progress<any, any, any>) => {
       if (progress) {
-        await job.updateProgress({ ...progress, timestamp: Date.now() });
+        const newProgress = { ...progress, timestamp: Date.now() };
+        latestProgress = newProgress;
+        await job.updateProgress(newProgress);
       }
       // Check if job was cancelled
       if (abortController.signal.aborted) {
@@ -188,8 +190,8 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       try {
         await this.jobService.updateJobStatus({
           id: dbJob.id,
-          status: JobStatus.ACTIVE,
-          startedAt: new Date(),
+          status: 'active',
+          processedOn: new Date(),
         });
         WSLogger.debug({
           source: 'QueueService',
@@ -221,9 +223,10 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         try {
           await this.jobService.updateJobStatus({
             id: dbJob.id,
-            status: JobStatus.COMPLETED,
+            status: 'completed',
             result: {},
-            completedAt: new Date(),
+            finishedOn: new Date(),
+            progress: latestProgress,
           });
           WSLogger.info({
             source: 'QueueService',
@@ -249,12 +252,12 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       // Update job status to FAILED or CANCELLED
       if (dbJob) {
         try {
-          const status = error instanceof JobCanceledError ? JobStatus.CANCELLED : JobStatus.FAILED;
+          const status = error instanceof JobCanceledError ? 'canceled' : 'failed';
           await this.jobService.updateJobStatus({
             id: dbJob.id,
             status,
             error: error instanceof Error ? error.message : 'Unknown error',
-            completedAt: new Date(),
+            finishedOn: new Date(),
           });
           WSLogger.error({
             source: 'QueueService',

@@ -18,8 +18,8 @@ import {
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useState } from 'react';
+import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
-import { DownloadProgressModal } from './snapshot-grid/modals/DownloadProgressModal';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
 enum Modals {

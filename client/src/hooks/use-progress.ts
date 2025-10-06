@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { progressApi } from '../lib/api/progress';
-import { JobProgressEntity } from '@/types/server-entities/job';
+import { JobEntity } from '@/types/server-entities/job';
 
 export const useJobProgress = (jobId: string | null, continuePolling = false) => {
-  const { data, error, isLoading, mutate } = useSWR<JobProgressEntity>(
+  const { data, error, isLoading, mutate } = useSWR<JobEntity>(
     jobId ? `progress-${jobId}` : null,
     jobId ? () => progressApi.getJobProgress(jobId) : null,
     {

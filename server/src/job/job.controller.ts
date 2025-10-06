@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
-import { JobEntity, JobProgressEntity } from './entities/job.entity';
+import { dbJobToJobEntity, JobEntity } from './entities/job.entity';
 import { JobService } from './job.service';
 
 @Controller('jobs')
@@ -19,12 +19,13 @@ export class JobController {
     const limitNum = limit ? parseInt(limit, 10) : 50;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
-    return this.jobService.getJobsByUserId(userId, limitNum, offsetNum);
+    const dbJobs = await this.jobService.getJobsByUserId(userId, limitNum, offsetNum);
+    return dbJobs.map(dbJobToJobEntity);
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Get(':jobId/progress')
-  async getJobProgress(@Param('jobId') jobId: string): Promise<JobProgressEntity> {
+  async getJobProgress(@Param('jobId') jobId: string): Promise<JobEntity> {
     return this.jobService.getJobProgress(jobId);
   }
 

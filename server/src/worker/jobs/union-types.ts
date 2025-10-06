@@ -17,7 +17,9 @@ export type JobHandler<TDefinition extends JobDefinition> = {
     data: TDefinition['data'];
     progress: Progress<TDefinition['publicProgress'], TDefinition['initialJobProgress']>;
     abortSignal: AbortSignal;
-    checkpoint: (progress: Progress<TDefinition['publicProgress'], TDefinition['initialJobProgress']>) => Promise<void>;
+    checkpoint: (
+      progress: Omit<Progress<TDefinition['publicProgress'], TDefinition['initialJobProgress']>, 'timestamp'>,
+    ) => Promise<void>;
   }) => Promise<TDefinition['result']>;
   terminate?: (params: {
     reason: 'canceled' | 'termina-failure';

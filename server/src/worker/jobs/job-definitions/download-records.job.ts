@@ -46,9 +46,9 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     >;
     abortSignal: AbortSignal;
     checkpoint: (
-      progress: Progress<
-        DownloadRecordsJobDefinition['publicProgress'],
-        DownloadRecordsJobDefinition['initialJobProgress']
+      progress: Omit<
+        Progress<DownloadRecordsJobDefinition['publicProgress'], DownloadRecordsJobDefinition['initialJobProgress']>,
+        'timestamp'
       >,
     ) => Promise<void>;
   }) {
