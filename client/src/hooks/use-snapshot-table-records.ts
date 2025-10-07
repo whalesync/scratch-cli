@@ -1,4 +1,5 @@
 import { generatePendingId } from "@/app/snapshots/[...slug]/components/snapshot-table-old/utils/helpers";
+import { isUnauthorizedError } from "@/lib/api/error";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import { trackAcceptChanges, trackRejectChanges } from "@/lib/posthog";
@@ -288,11 +289,20 @@ export interface UseSnapshotRecordsReturn {
       mutate(swrKey, optimisticData(data), { revalidate: false });
     }, [mutate, swrKey, data]);
   
+
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+
     return {
       records: data?.records ?? undefined,
       recordDataHash,
       isLoading,
-      error,
+      error: displayError, // show a sanitized error message to the user to avoid exposing the exception details
       bulkUpdateRecords,
       refreshRecords,
       acceptCellValues,

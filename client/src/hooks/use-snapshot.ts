@@ -1,3 +1,4 @@
+import { isUnauthorizedError } from "@/lib/api/error";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { snapshotApi } from "@/lib/api/snapshot";
 import {
@@ -5,14 +6,17 @@ import {
   Snapshot,
   UpdateSnapshotDto
 } from "@/types/server-entities/snapshot";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 export const useSnapshots = (connectorAccountId?: string) => {
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(
     SWR_KEYS.snapshot.list(connectorAccountId ?? "all"),
-    () => snapshotApi.list(connectorAccountId)
+    () => snapshotApi.list(connectorAccountId),
+    {refreshInterval: 10000,
+      revalidateOnReconnect: true,
+    }
   );
 
   const createSnapshot = async (dto: CreateSnapshotDto): Promise<Snapshot> => {
@@ -36,12 +40,18 @@ export const useSnapshots = (connectorAccountId?: string) => {
   const refreshSnapshots = async () => {
     await mutate(SWR_KEYS.snapshot.list(connectorAccountId ?? "all"));
   }
-
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
 
   return {
     snapshots: data,
     isLoading,
-    error,
+    error: displayError,
     createSnapshot,
     updateSnapshot,
     deleteSnapshot,
@@ -93,10 +103,19 @@ export const useSnapshot = (id: string): UseSnapshotReturn => {
     );
   }, [id, data, mutate, globalMutate]);
 
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+
+
   return {
     snapshot: data,
     isLoading,
-    error,
+    error: displayError,
     publish,
     refreshSnapshot,
   };

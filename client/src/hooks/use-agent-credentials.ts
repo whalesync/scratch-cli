@@ -1,4 +1,5 @@
 import { agentCredentialsApi } from "@/lib/api/agent-credentials";
+import { isUnauthorizedError } from "@/lib/api/error";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from "@/types/server-entities/agent-credentials";
 import { useMemo } from "react";
@@ -51,10 +52,18 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
       return true; 
     }, [activeOpenRouterCredentials, user]);
 
+    const displayError = useMemo(() => {
+      if(isUnauthorizedError(error)) {
+        // ignore this error as it will be fixed after the token is refreshed
+        return undefined;
+      }
+      return error?.message;
+    }, [error]);
+    
     return {
       agentCredentials: data,
       isLoading,
-      error,
+      error: displayError,
       createCredentials,
       updateCredentials,
       deleteCredentials,

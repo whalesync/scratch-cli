@@ -24,3 +24,7 @@ export async function checkForApiError(res: Response, fallbackMessage: string): 
     throw new ScratchpadApiError(errorResponse.message || errorResponse.error || fallbackMessage, res.status, res.statusText);
   }
 }
+
+export const isUnauthorizedError = (error: unknown): boolean => {
+  return !!(error && error instanceof ScratchpadApiError && error.statusCode === 401);
+}

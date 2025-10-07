@@ -62,9 +62,6 @@ export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.El
 
   /*
    * Periodically refresh the JWT token so the version in authState is as recent as possible
-   * TODO: This is a temporary solution to keep the token fresh - ideally this is handled by clerk but we need to
-   * change how we are providing the token to all the pages. Instead of storing the token in state, the pages should
-   * use the Clerk API to get get the token.
    */
   useEffect(() => {
     const interval = setInterval(() => {

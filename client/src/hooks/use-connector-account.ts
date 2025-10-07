@@ -1,13 +1,14 @@
-import useSWR from "swr";
 import { connectorAccountsApi } from "@/lib/api/connector-accounts";
+import { isUnauthorizedError } from "@/lib/api/error";
 import { SWR_KEYS } from "@/lib/api/keys";
 import {
+  ConnectorAccount,
   CreateConnectorAccountDto,
   TestConnectionResponse,
   UpdateConnectorAccountDto,
-  ConnectorAccount,
 } from "@/types/server-entities/connector-accounts";
-import { useSWRConfig } from "swr";
+import { useMemo } from "react";
+import useSWR, { useSWRConfig } from "swr";
 
 export const useConnectorAccounts = () => {
   const { mutate } = useSWRConfig();
@@ -46,10 +47,18 @@ export const useConnectorAccounts = () => {
     return r;
   };
 
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+  
   return {
     connectorAccounts: data,
     isLoading,
-    error,
+    error: displayError,
     createConnectorAccount,
     updateConnectorAccount,
     deleteConnectorAccount,

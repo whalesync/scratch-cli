@@ -1,6 +1,8 @@
+import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { viewApi } from '@/lib/api/view';
 import { ViewConfig } from '@/types/server-entities/view';
+import { useMemo } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 
@@ -14,11 +16,18 @@ export const useViews = (snapshotId: string, refreshIntervalMS: number = 30000) 
       refreshInterval: refreshIntervalMS,
     }
   );
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);  
 
   return {
     views: data,
     isLoading,
-    error,
+    error: displayError,
     refreshViews: async () => {
       return await mutate();
     },

@@ -1,6 +1,8 @@
-import useSWR from 'swr';
+import { isUnauthorizedError } from '@/lib/api/error';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
+import { useMemo } from 'react';
+import useSWR from 'swr';
 
 export function useStyleGuides() {
   const { data, error, isLoading, mutate } = useSWR<StyleGuide[]>(
@@ -11,10 +13,18 @@ export function useStyleGuides() {
     }
   );
 
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+
   return {
     styleGuides: data || [],
     isLoading,
-    error,
+    error: displayError,
     mutate,
   };
 }
@@ -28,10 +38,18 @@ export function useStyleGuide(id: string) {
     }
   );
 
+  const displayError = useMemo(() => {
+    if(isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+
   return {
     styleGuide: data,
     isLoading,
-    error,
+    error: displayError,
     mutate,
   };
 } 
