@@ -8,6 +8,10 @@ import {
   executePollRecords as executePollRecordsFn,
   executeSchema as executeSchemaFn,
   executeUpdateRecord as executeUpdateRecordFn,
+  RawRecordData,
+  RawSchemaFieldData,
+  RawTableData,
+  RecordOperationResponse,
 } from './function-executor';
 
 @Injectable()
@@ -39,7 +43,7 @@ export class RestApiImportService {
     private readonly customConnectorService: CustomConnectorService,
   ) {}
 
-  async executePollRecords(functionString: string, apiKey: string, tableId: string[]): Promise<unknown> {
+  async executePollRecords(functionString: string, apiKey: string, tableId: string[]): Promise<RawRecordData[]> {
     return executePollRecordsFn(functionString, apiKey, tableId);
   }
 
@@ -48,11 +52,11 @@ export class RestApiImportService {
     recordId: string,
     apiKey: string,
     tableId: string[],
-  ): Promise<unknown> {
+  ): Promise<void> {
     return executeDeleteRecordFn(functionString, recordId, apiKey, tableId);
   }
 
-  async executeSchema(functionString: string, apiKey: string, tableId: string[]): Promise<unknown> {
+  async executeSchema(functionString: string, apiKey: string, tableId: string[]): Promise<RawSchemaFieldData[]> {
     return executeSchemaFn(functionString, apiKey, tableId);
   }
 
@@ -61,7 +65,7 @@ export class RestApiImportService {
     recordData: Record<string, unknown>,
     apiKey: string,
     tableId: string[],
-  ): Promise<unknown> {
+  ): Promise<RecordOperationResponse> {
     return executeCreateRecordFn(functionString, recordData, apiKey, tableId);
   }
 
@@ -71,11 +75,11 @@ export class RestApiImportService {
     recordData: Record<string, unknown>,
     apiKey: string,
     tableId: string[],
-  ): Promise<unknown> {
+  ): Promise<RecordOperationResponse> {
     return executeUpdateRecordFn(functionString, recordId, recordData, apiKey, tableId);
   }
 
-  async executeListTables(functionString: string, apiKey: string): Promise<unknown> {
+  async executeListTables(functionString: string, apiKey: string): Promise<RawTableData[]> {
     return executeListTables(functionString, apiKey);
   }
 

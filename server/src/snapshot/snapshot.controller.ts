@@ -12,14 +12,19 @@ import {
   Post,
   Query,
   Req,
+  Res,
   Sse,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
+import { Client } from 'pg';
+import { to as copyTo } from 'pg-copy-streams';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
+import { Readable } from 'stream';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
@@ -33,6 +38,7 @@ import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
+import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
 
@@ -41,6 +47,7 @@ export class SnapshotController {
   constructor(
     private readonly service: SnapshotService,
     private readonly snapshotEventService: SnapshotEventService,
+    private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
   @UseGuards(ScratchpadAuthGuard)
@@ -347,5 +354,98 @@ export class SnapshotController {
     };
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, event);
     return 'event sent at ' + new Date().toISOString();
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get(':id/download-csv')
+  async downloadCsv(
+    @Param('id') snapshotId: SnapshotId,
+    @Query('tableId') tableId: string,
+    @Query('filteredOnly') filteredOnly: string,
+    @Req() req: RequestWithUser,
+    @Res() res: Response,
+  ): Promise<void> {
+    // Verify user has access to the snapshot
+    const snapshotData = await this.service.findOne(snapshotId, req.user.id);
+    if (!snapshotData) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // Convert to Snapshot entity to get tables
+    const snapshot = new Snapshot(snapshotData);
+
+    // Find the table specification
+    const tableSpec = snapshot.tables.find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    try {
+      // Use PostgreSQL COPY command for efficient streaming
+      // First get the column names to exclude internal metadata fields
+      const columnQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = '${snapshotId}' 
+        AND table_name = '${tableId}'
+        AND column_name NOT IN ('__edited_fields', '__suggested_values', '__metadata', '__dirty')
+        ORDER BY ordinal_position
+      `;
+
+      interface ColumnInfo {
+        rows: {
+          column_name: string;
+        }[];
+      }
+      const columns = await this.snapshotDbService.snapshotDb.knex.raw<ColumnInfo>(columnQuery);
+      const columnNames = columns.rows.map((row) => `"${row.column_name}"`).join(', ');
+
+      // Check if we should apply the SQL filter
+      const shouldApplyFilter = filteredOnly === 'true';
+      const sqlWhereClause = shouldApplyFilter ? snapshot.activeRecordSqlFilter?.[tableId] : null;
+
+      // Build the WHERE clause if filter should be applied and exists
+      const whereClause =
+        shouldApplyFilter && sqlWhereClause && sqlWhereClause.trim() !== '' ? ` WHERE ${sqlWhereClause}` : '';
+
+      const sql = `
+        COPY (
+          SELECT ${columnNames} FROM "${snapshotId}"."${tableId}"${whereClause}
+        ) TO STDOUT WITH (FORMAT CSV, HEADER TRUE, QUOTE '"', ESCAPE '"', DELIMITER ',')
+      `;
+
+      // Knex client is a custom pool with acquireConnection/releaseConnection methods
+
+      type KnexClientPool = {
+        acquireConnection: () => Promise<Client>;
+        releaseConnection: (conn: Client) => Promise<void>;
+      };
+
+      const knexClient = this.snapshotDbService.snapshotDb.knex.client as KnexClientPool;
+      const conn = await knexClient.acquireConnection();
+
+      try {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${snapshot.name || 'snapshot'}_${tableId}.csv"`);
+
+        // Use copyTo from pg-copy-streams for efficient streaming
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        const stream = conn.query(copyTo(sql)) as Readable;
+
+        stream.on('error', (e: Error) => {
+          res.destroy(e);
+        });
+
+        stream.pipe(res).on('finish', () => {
+          void knexClient.releaseConnection(conn);
+        });
+      } catch (e) {
+        await knexClient.releaseConnection(conn);
+        throw e;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate CSV: ${errorMessage}`);
+    }
   }
 }

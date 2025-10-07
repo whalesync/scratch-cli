@@ -2,6 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
+import { useDownloadCsv } from '@/hooks/use-download-csv';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { tableName, tablesName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
@@ -9,7 +10,7 @@ import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { Edit3, Trash2 } from 'lucide-react';
+import { Download, Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
@@ -17,8 +18,10 @@ import { ConnectorIcon } from '../../components/ConnectorIcon';
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
   const { deleteSnapshot, updateSnapshot } = useSnapshots();
+  const { handleDownloadCsv } = useDownloadCsv();
   const [saving, setSaving] = useState(false);
   const [snapshotName, setSnapshotName] = useState(snapshot.name ?? undefined);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
 
   const handleAbandon = async () => {
@@ -98,12 +101,14 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
           </Group>
         </Table.Td>
         <Table.Td>
-          <Text fz="sm" c="dimmed">
-            {snapshot.tables.length}{' '}
-            {snapshot.tables.length === 1
-              ? tableName(snapshot.connectorService as Service)
-              : tablesName(snapshot.connectorService as Service)}
-          </Text>
+          <Stack gap="xs">
+            <Text fz="sm" c="dimmed">
+              {snapshot.tables.length}{' '}
+              {snapshot.tables.length === 1
+                ? tableName(snapshot.connectorService as Service)
+                : tablesName(snapshot.connectorService as Service)}
+            </Text>
+          </Stack>
         </Table.Td>
         <Table.Td>{formatDate(snapshot.createdAt)}</Table.Td>
         <Table.Td>
@@ -125,6 +130,16 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
               }}
               icon={Trash2}
               tooltip="Abandon scratchpaper"
+            />
+            <ToolIconButton
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadCsv(snapshot, snapshot.tables[0].id.wsId, snapshot.tables[0].name, setDownloading);
+              }}
+              icon={Download}
+              tooltip={`Export as CSV`}
+              loading={downloading === snapshot.tables[0].id.wsId}
             />
           </Group>
         </Table.Td>

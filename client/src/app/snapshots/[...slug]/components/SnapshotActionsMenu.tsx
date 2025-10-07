@@ -2,6 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
+import { useDownloadCsv } from '@/hooks/use-download-csv';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
@@ -15,9 +16,10 @@ import {
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
+import { Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
@@ -35,6 +37,7 @@ export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
+  const { handleDownloadCsv } = useDownloadCsv();
   const modalStack = useModalsStack(Object.values(Modals));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotWithouotJobResult | null>(null);
@@ -42,6 +45,7 @@ export const SnapshotActionsMenu = () => {
   const [saving, setSaving] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [downloadInProgress, setDownloadInProgress] = useState<DownloadSnapshotResult | null>(null);
+  const [downloadingCsv, setDownloadingCsv] = useState<string | null>(null);
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -238,6 +242,43 @@ export const SnapshotActionsMenu = () => {
           >
             Download
           </Menu.Item>
+          {snapshot?.tables && snapshot.tables.length > 0 && (
+            <>
+              <Menu.Divider />
+
+              {snapshot.tables.map((table) => (
+                <React.Fragment key={table.id.wsId}>
+                  <Menu.Item
+                    disabled={menuItemsDisabled || downloadingCsv === table.id.wsId}
+                    onClick={() => {
+                      handleDownloadCsv(snapshot, table.id.wsId, table.name, setDownloadingCsv, false);
+                    }}
+                    leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
+                  >
+                    Export All as CSV
+                  </Menu.Item>
+                  {snapshot.activeRecordSqlFilter?.[table.id.wsId] &&
+                    snapshot.activeRecordSqlFilter[table.id.wsId].trim() !== '' && (
+                      <Menu.Item
+                        disabled={menuItemsDisabled || downloadingCsv === table.id.wsId}
+                        onClick={() => {
+                          handleDownloadCsv(
+                            snapshot,
+                            table.id.wsId,
+                            table.name + ' (filtered)',
+                            setDownloadingCsv,
+                            true,
+                          );
+                        }}
+                        leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
+                      >
+                        Export Filtered as CSV
+                      </Menu.Item>
+                    )}
+                </React.Fragment>
+              ))}
+            </>
+          )}
           <Menu.Item onClick={handlePublish} leftSection={<UploadIcon />}>
             Publish
           </Menu.Item>

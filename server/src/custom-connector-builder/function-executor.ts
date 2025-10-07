@@ -1,5 +1,30 @@
 import { runInNewContext } from 'vm';
 
+// Type for the raw table data returned by the dynamically executed listTables function
+export interface RawTableData {
+  id: string[];
+  displayName: string;
+}
+
+// Type for raw record data returned by pollRecords function
+export interface RawRecordData {
+  id: string;
+  fields: Record<string, unknown>;
+}
+
+// Type for raw schema field data returned by fetchSchema function
+export interface RawSchemaFieldData {
+  id: string;
+  displayName: string;
+  type: string;
+}
+
+// Type for create/update record response
+export interface RecordOperationResponse {
+  id: string;
+  [key: string]: unknown;
+}
+
 // Create controlled versions of functions you want to allow
 const customFetch = async (url: string, options: RequestInit) => {
   console.log('Custom fetch called with:', url, options);
@@ -10,7 +35,11 @@ const customLogger = (message: string, data?: unknown) => {
   console.log(`[SANDBOXED] ${message}`, data);
 };
 
-export async function executePollRecords(functionString: string, apiKey: string, tableId: string[]): Promise<unknown> {
+export async function executePollRecords(
+  functionString: string,
+  apiKey: string,
+  tableId: string[],
+): Promise<RawRecordData[]> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -31,7 +60,7 @@ export async function executePollRecords(functionString: string, apiKey: string,
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<RawRecordData[]>;
 
     return await result;
   } catch (error) {
@@ -40,7 +69,11 @@ export async function executePollRecords(functionString: string, apiKey: string,
   }
 }
 
-export async function executeSchema(functionString: string, apiKey: string, tableId: string[]): Promise<unknown> {
+export async function executeSchema(
+  functionString: string,
+  apiKey: string,
+  tableId: string[],
+): Promise<RawSchemaFieldData[]> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -61,7 +94,7 @@ export async function executeSchema(functionString: string, apiKey: string, tabl
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<RawSchemaFieldData[]>;
 
     return await result;
   } catch (error) {
@@ -70,7 +103,7 @@ export async function executeSchema(functionString: string, apiKey: string, tabl
   }
 }
 
-export async function executeListTables(functionString: string, apiKey: string): Promise<unknown> {
+export async function executeListTables(functionString: string, apiKey: string): Promise<RawTableData[]> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -91,7 +124,7 @@ export async function executeListTables(functionString: string, apiKey: string):
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<RawTableData[]>;
 
     return await result;
   } catch (error) {
@@ -105,7 +138,7 @@ export async function executeDeleteRecord(
   recordId: string,
   apiKey: string,
   tableId: string[],
-): Promise<unknown> {
+): Promise<void> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -126,7 +159,7 @@ export async function executeDeleteRecord(
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<void>;
 
     return await result;
   } catch (error) {
@@ -140,7 +173,7 @@ export async function executeCreateRecord(
   recordData: Record<string, unknown>,
   apiKey: string,
   tableId: string[],
-): Promise<unknown> {
+): Promise<RecordOperationResponse> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -161,7 +194,7 @@ export async function executeCreateRecord(
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<RecordOperationResponse>;
 
     return await result;
   } catch (error) {
@@ -176,7 +209,7 @@ export async function executeUpdateRecord(
   recordData: Record<string, unknown>,
   apiKey: string,
   tableId: string[],
-): Promise<unknown> {
+): Promise<RecordOperationResponse> {
   try {
     // Create a completely isolated sandbox with NO access to globals
     const sandbox = {
@@ -197,7 +230,7 @@ export async function executeUpdateRecord(
     const result = runInNewContext(functionWithCall, sandbox, {
       timeout: 5000, // 5 second timeout
       displayErrors: true,
-    }) as Promise<unknown>;
+    }) as Promise<RecordOperationResponse>;
 
     return await result;
   } catch (error) {
