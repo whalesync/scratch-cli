@@ -5,7 +5,7 @@ include:
 # NOTE: this doesn't work yet
 push master to prod:
   stage: deploy
-  image: alpine/git:latest
+  image: alpine:latest
   before_script:
     - apk add --no-cache git
   script:
