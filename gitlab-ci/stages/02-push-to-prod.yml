@@ -1,0 +1,23 @@
+include:
+  - "/gitlab-ci/stages.yml"
+  - "/gitlab-ci/common.yml"
+
+push master to prod:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git
+  script:
+    - git config user.email "team+ci-bot@whalesync.com"
+    - git config user.name "ci-bot"
+    - git remote set-url origin https://oauth2:$CICD_ACCESS_TOKEN@gitlab.com:whalesync/spinner.git
+    - git fetch --all --prune
+    - git checkout master
+    - git pull
+    - git checkout prod
+    - git pull origin prod
+    - git merge -m "(Auto) Merge branch 'master' into prod" --no-ff -X theirs master
+    - git push origin prod
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  when: manual

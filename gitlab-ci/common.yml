@@ -1,0 +1,5 @@
+variables:
+  # Node.js version for client and server
+  NODE_VERSION: "20"
+  # Python version for pydantic-ai-agent
+  PYTHON_VERSION: "3.11"

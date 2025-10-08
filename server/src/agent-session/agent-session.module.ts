@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AgentSessionService } from './agent-session.service';
-import { AgentSessionController } from './agent-session.controller';
 import { DbModule } from '../db/db.module';
+import { AgentSessionController } from './agent-session.controller';
+import { AgentSessionService } from './agent-session.service';
 
 @Module({
   imports: [DbModule],

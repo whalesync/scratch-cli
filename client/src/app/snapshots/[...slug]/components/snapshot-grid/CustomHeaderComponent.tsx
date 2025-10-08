@@ -82,7 +82,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     if (sortState !== currentSort) {
       setCurrentSort(sortState);
     }
-  });
+  }, [props.column, currentSort]);
 
   // Listen for sort changes from grid API if available
   useEffect(() => {

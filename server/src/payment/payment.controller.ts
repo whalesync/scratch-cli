@@ -107,6 +107,7 @@ export class StripePaymentController {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const result = await this.stripePaymentService.handleWebhookCallback(req.body.toString(), signature);
     if (isErr(result)) {
       if (result.code === ErrorCode.UnauthorizedError || result.code === ErrorCode.StripeLibraryError) {

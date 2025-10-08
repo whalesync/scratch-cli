@@ -1,0 +1,79 @@
+include:
+  - "/gitlab-ci/stages.yml"
+  - "/gitlab-ci/common.yml"
+
+# =============================================================================
+# CLIENT SUBPROJECT
+# =============================================================================
+
+build and test client:
+  stage: build
+  image: node:$NODE_VERSION
+  interruptible: true
+  script:
+    - cd client
+    - yarn install --frozen-lockfile
+    - yarn lint-strict
+    - export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY_DEVELOPMENT
+    - yarn build
+  artifacts:
+    paths:
+      - client/.next
+    expire_in: 1 hour
+  only:
+    changes:
+      - client/**/*
+    refs:
+      - merge_requests
+      - master
+
+# =============================================================================
+# SERVER SUBPROJECT
+# =============================================================================
+
+build and test server:
+  stage: build
+  image: node:$NODE_VERSION
+  interruptible: true
+  script:
+    - cd server
+    - yarn install --frozen-lockfile
+    - yarn prisma generate
+    - yarn lint
+    - yarn test
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "export const BUILD_VERSION = '$BUILD_VERSION';" > src/version.ts
+    - echo "Labelling this build as $BUILD_VERSION"
+    - yarn build
+  artifacts:
+    paths:
+      - server/dist
+    expire_in: 1 hour
+  only:
+    changes:
+      - server/**/*
+    refs:
+      - merge_requests
+      - master
+
+# =============================================================================
+# PYDANTIC-AI-AGENT SUBPROJECT
+# =============================================================================
+
+build and test agent:
+  stage: build
+  image: python:$PYTHON_VERSION-slim
+  script:
+    - cd pydantic-ai-agent
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - echo "Checking for Python syntax errors"
+    - find . -name "*.py" -not -path "./venv/*" -not -path "./testing/*" -print -exec python -m py_compile {} \;
+    - echo "Checking for Python code style issues"
+    - black --check .
+  only:
+    changes:
+      - pydantic-ai-agent/**/*
+    refs:
+      - merge_requests
+      - master
