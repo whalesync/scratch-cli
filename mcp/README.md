@@ -53,3 +53,42 @@ The bundled file will be output to `dist/ncc` and be called `index.js`
 You can then distribute the `index.js` file and setup the MCP server in cursor like normal, pointing just to that file.
 
 The user will need Node.js installed locally in order to run it.
+
+### Setup MCP Server:
+
+- Go to Cursor -> Settings -> Cursor Settings -> Tools & Integrations
+- Under MCP Tools click on Add Custom MCP button
+- Add the following config:
+
+```
+{
+  "mcpServers": {
+    "spinner-mcp": {
+      "command": "node",
+      "args": [
+        "{path to repo}/mcp/dist/bin/stdio.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "SCRATCHPAD_SERVER_URL": "http://localhost:3010",
+        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratchpaper>"
+
+      }
+    }
+  }
+}
+```
+
+By default the MCP server uses the localhost Scratchpaper server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
+
+```
+  "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",
+```
+
+You can have multiple instances of the MCP server configured, each using a different set of ENV variables
+
+- Restart Cursor. Go back to the same config. You should see a green dot next to the server name and the tools should be listed (at the time of writing: get_records and update_record)
+
+When the MCP server changes:
+
+1. `cd mcp & yarn run build`
