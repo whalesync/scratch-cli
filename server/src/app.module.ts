@@ -23,6 +23,7 @@ import { ConnectorsModule } from './remote-service/connectors/connectors.module'
 import { SlackNotificationModule } from './slack/slack-notification.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/users.module';
 import { ViewModule } from './view/view.module';
 import { WorkerModule } from './worker/workers.module';
@@ -47,6 +48,7 @@ import { WorkerModule } from './worker/workers.module';
     CustomConnectorModule,
     StyleGuideModule,
     CsvFileModule,
+    UploadsModule,
     ViewModule,
     AiAgentTokenUsageModule,
     ContentToolsModule,
@@ -72,6 +74,11 @@ export class AppModule implements NestModule {
         method: RequestMethod.POST,
       })
       .apply(JsonBodyMiddleware)
+      .exclude(
+        { path: '/uploads/preview-csv', method: RequestMethod.POST },
+        { path: '/uploads/import-csv', method: RequestMethod.POST },
+        { path: '/payment/webhook', method: RequestMethod.POST },
+      )
       .forRoutes('*');
   }
 }

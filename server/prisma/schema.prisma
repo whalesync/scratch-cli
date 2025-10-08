@@ -38,6 +38,7 @@ model User {
   subscriptions           Subscription[]
   invoiceResults          InvoiceResult[]
   jobs                    DbJob[]
+  snapshots               Snapshot[]
 }
 
 enum TokenType {
@@ -125,8 +126,11 @@ model Snapshot {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
-  connectorAccountId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  connectorAccountId String?
 
   tableSpecs Json[] // TableSpec[]
 
@@ -136,6 +140,7 @@ model Snapshot {
   activeRecordSqlFilter Json? // {[tableId: string]: string}
 
   @@index([connectorAccountId])
+  @@index([userId])
 }
 
 model CustomConnector {

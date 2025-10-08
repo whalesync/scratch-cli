@@ -15,6 +15,7 @@
     "@glideapps/glide-data-grid": "^6.0.3",
     "@glideapps/glide-data-grid-cells": "^6.0.3",
     "@mantine/core": "^8.3.0",
+    "@mantine/dropzone": "^8.3.3",
     "@mantine/form": "^8.3.0",
     "@mantine/hooks": "^8.3.0",
     "@mantine/notifications": "^8.3.0",

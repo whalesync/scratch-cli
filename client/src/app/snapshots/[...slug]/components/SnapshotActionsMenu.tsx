@@ -2,7 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
-import { useDownloadCsv } from '@/hooks/use-download-csv';
+import { useExportAsCsv } from '@/hooks/use-download-csv';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
@@ -36,8 +36,8 @@ enum Modals {
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
-  const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId);
-  const { handleDownloadCsv } = useDownloadCsv();
+  const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId ?? undefined);
+  const { handleDownloadCsv } = useExportAsCsv();
   const modalStack = useModalsStack(Object.values(Modals));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotWithouotJobResult | null>(null);
@@ -160,6 +160,10 @@ export const SnapshotActionsMenu = () => {
 
   const menuItemsDisabled = isLoading || saving;
 
+  const hasActiveRecordSqlFilter = (tableId: string) => {
+    return snapshot?.activeRecordSqlFilter?.[tableId] && snapshot.activeRecordSqlFilter[tableId].trim() !== '';
+  };
+
   return (
     <>
       <Modal {...modalStack.register(Modals.CONFIRM_DELETE)} title="Abandon scratchpaper" centered size="lg">
@@ -233,8 +237,11 @@ export const SnapshotActionsMenu = () => {
           >
             Rename
           </Menu.Item>
+
+          <Menu.Divider />
+          <Menu.Label>Sync with remote source</Menu.Label>
           <Menu.Item
-            disabled={menuItemsDisabled}
+            disabled={menuItemsDisabled || snapshot?.connectorService === null}
             onClick={() => {
               modalStack.open(Modals.CONFIRM_DOWNLOAD);
             }}
@@ -242,10 +249,18 @@ export const SnapshotActionsMenu = () => {
           >
             Download
           </Menu.Item>
+          <Menu.Item
+            onClick={handlePublish}
+            leftSection={<UploadIcon />}
+            disabled={snapshot?.connectorService === null}
+          >
+            Publish
+          </Menu.Item>
+
+          <Menu.Divider />
+          <Menu.Label>CSV</Menu.Label>
           {snapshot?.tables && snapshot.tables.length > 0 && (
             <>
-              <Menu.Divider />
-
               {snapshot.tables.map((table) => (
                 <React.Fragment key={table.id.wsId}>
                   <Menu.Item
@@ -257,31 +272,24 @@ export const SnapshotActionsMenu = () => {
                   >
                     Export All as CSV
                   </Menu.Item>
-                  {snapshot.activeRecordSqlFilter?.[table.id.wsId] &&
-                    snapshot.activeRecordSqlFilter[table.id.wsId].trim() !== '' && (
-                      <Menu.Item
-                        disabled={menuItemsDisabled || downloadingCsv === table.id.wsId}
-                        onClick={() => {
-                          handleDownloadCsv(
-                            snapshot,
-                            table.id.wsId,
-                            table.name + ' (filtered)',
-                            setDownloadingCsv,
-                            true,
-                          );
-                        }}
-                        leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
-                      >
-                        Export Filtered as CSV
-                      </Menu.Item>
-                    )}
+
+                  <Menu.Item
+                    disabled={
+                      menuItemsDisabled || downloadingCsv === table.id.wsId || !hasActiveRecordSqlFilter(table.id.wsId)
+                    }
+                    onClick={() => {
+                      handleDownloadCsv(snapshot, table.id.wsId, table.name + ' (filtered)', setDownloadingCsv, true);
+                    }}
+                    leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
+                  >
+                    Export Filtered as CSV
+                  </Menu.Item>
                 </React.Fragment>
               ))}
             </>
           )}
-          <Menu.Item onClick={handlePublish} leftSection={<UploadIcon />}>
-            Publish
-          </Menu.Item>
+          <Menu.Divider />
+
           <Menu.Item
             color="red"
             disabled={menuItemsDisabled}

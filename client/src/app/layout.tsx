@@ -1,4 +1,5 @@
 // import '@mantine/core/styles.css';
+import '@mantine/dropzone/styles.css';
 import '@mantine/notifications/styles.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
@@ -18,6 +19,7 @@ import { ClerkAuthContextProvider } from '@/contexts/auth';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ColorSchemeScript, mantineHtmlProps, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
+import { GlobalDropzone } from './components/dropzone/GlobalDropzone';
 import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
 import { ScratchpadPostHogProvider } from './providers';
 
@@ -35,7 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Notifications />
           <ClerkProvider>
             <ClerkAuthContextProvider>
-              <ScratchpadPostHogProvider>{children}</ScratchpadPostHogProvider>
+              <ScratchpadPostHogProvider>
+                {children}
+                <GlobalDropzone />
+              </ScratchpadPostHogProvider>
               <div id="portal" />
             </ClerkAuthContextProvider>
           </ClerkProvider>

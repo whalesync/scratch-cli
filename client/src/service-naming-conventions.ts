@@ -98,11 +98,14 @@ export const recordsName = (serviceCode: Service): string => {
     }
 
 export const getLogo = (serviceCode: Service | null | undefined): string => {
+    if(!serviceCode) {
+      return '/connector-icons/csv.svg';
+    }
     const logo = ServiceNamingConventions[serviceCode ?? Service.CUSTOM]?.logo;
     if (logo) {
         return `/connector-icons/${logo}`;
     }
-    return '/connector-icons/gear-svgrepo-com.svg';
+    return '/connector-icons/csv.svg';
 }
 
 export const getOauthLabel = (serviceCode: Service): string => {
@@ -111,4 +114,11 @@ export const getOauthLabel = (serviceCode: Service): string => {
 
 export const getOauthPrivateLabel = (serviceCode: Service): string => {
     return ServiceNamingConventions[serviceCode]?.oauthPrivateLabel ?? 'Private OAuth';
+}
+
+export const getServiceName = (serviceCode: Service | null | undefined): string => {
+    if (!serviceCode) {
+        return 'CSV';
+    }
+    return ServiceNamingConventions[serviceCode]?.service ?? 'Unknown';
 }

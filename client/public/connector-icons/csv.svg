@@ -1,0 +1,16 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CSV file icon">
+  <!-- File body -->
+  <path d="M10 5h20l10 10v30a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5z" fill="#F3F4F6"/>
+  <!-- Folded corner -->
+  <path d="M30 5v10h10L30 5z" fill="#E5E7EB"/>
+  <!-- Border -->
+  <path d="M10 5h20l10 10v30a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5z" fill="none" stroke="#9CA3AF" stroke-width="1.2"/>
+
+  <!-- Grid to suggest table/CSV -->
+  <rect x="12" y="22" width="26" height="16" rx="2" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>
+  <path d="M12 30h26M20 22v16M28 22v16M36 22v16" stroke="#D1D5DB" stroke-width="1"/>
+
+  <!-- CSV label bar -->
+  <rect x="12" y="17" width="26" height="5" rx="1.5" fill="#10B981"/>
+  <text x="25" y="21" text-anchor="middle" font-family="Inter, system-ui, Arial, sans-serif" font-size="3.6" font-weight="700" fill="white">CSV</text>
+</svg>

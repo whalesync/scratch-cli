@@ -408,6 +408,14 @@ export class SnapshotController {
       const whereClause =
         shouldApplyFilter && sqlWhereClause && sqlWhereClause.trim() !== '' ? ` WHERE ${sqlWhereClause}` : '';
 
+      // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
+      if (!shouldApplyFilter) {
+        await this.snapshotDbService.snapshotDb.knex(`${snapshotId}.${tableId}`).update({
+          __dirty: false,
+          __edited_fields: {},
+        });
+      }
+
       const sql = `
         COPY (
           SELECT ${columnNames} FROM "${snapshotId}"."${tableId}"${whereClause}
@@ -426,7 +434,8 @@ export class SnapshotController {
 
       try {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${snapshot.name || 'snapshot'}_${tableId}.csv"`);
+        const filename = `${snapshot.name || 'snapshot'}_${tableId}.csv`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
         // Use copyTo from pg-copy-streams for efficient streaming
 

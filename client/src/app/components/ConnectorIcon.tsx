@@ -4,7 +4,7 @@ import { Image } from '@mantine/core';
 import { ImageProps } from 'next/image';
 
 export function ConnectorIcon(props: { connector: string | null; size?: number } & Omit<ImageProps, 'src' | 'alt'>) {
-  const iconUrl = props.connector ? getLogo(props.connector as Service) : '';
+  const iconUrl = getLogo(props.connector as Service);
 
   return (
     <Image

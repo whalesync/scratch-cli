@@ -62,6 +62,10 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       throw new Error(`Snapshot with id ${data.snapshotId} not found`);
     }
 
+    if (!snapshot.connectorAccount) {
+      throw new Error(`Cannot download records for connectorless snapshot ${data.snapshotId}`);
+    }
+
     const connectorAccount = await this.connectorAccountService.findOne(
       snapshot.connectorAccount.id,
       snapshot.connectorAccount.userId,

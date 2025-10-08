@@ -1,8 +1,12 @@
 import { API_CONFIG } from '@/lib/api/config';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useSWRConfig } from 'swr';
 
-export const useDownloadCsv = () => {
+export const useExportAsCsv = () => {
+  const { mutate: globalMutate } = useSWRConfig();
+  
   const handleDownloadCsv = async (
     snapshot: Snapshot,
     tableId: string,
@@ -31,7 +35,10 @@ export const useDownloadCsv = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${snapshot.name || 'snapshot'}_${tableName}.csv`;
+      const filename = `${snapshot.name || 'snapshot'}_${tableName}.csv`;
+      a.download = filename;
+      a.style.display = 'none';
+      a.setAttribute('download', filename);
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -40,6 +47,13 @@ export const useDownloadCsv = () => {
       ScratchpadNotifications.success({
         message: 'CSV downloaded successfully.',
       });
+
+      // Refresh the records cache for "Export All" to show the clean state (same as websocket pattern)
+      if (!filteredOnly) {
+        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, tableId), undefined, {
+          revalidate: true,
+        });
+      }
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({

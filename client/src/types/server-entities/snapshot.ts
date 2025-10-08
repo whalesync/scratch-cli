@@ -11,12 +11,12 @@ export interface ColumnSpec {
 
 export enum PostgresColumnType {
   TEXT = "text",
-  TEXT_ARRAY = "text[]",
   NUMERIC = "numeric",
-  NUMERIC_ARRAY = "numeric[]",
   BOOLEAN = "boolean",
-  BOOLEAN_ARRAY = "boolean[]",
   JSONB = "jsonb",
+  TEXT_ARRAY = "text[]",
+  NUMERIC_ARRAY = "numeric[]",
+  BOOLEAN_ARRAY = "boolean[]",
 }
 
 export interface TableSpec {
@@ -43,12 +43,14 @@ export interface Snapshot {
   name: string | null;
   createdAt: string;
   updatedAt: string;
-  connectorAccountId: string;
   tables: TableSpec[];
-  connectorDisplayName: string | null;
-  connectorService: string | null;
   tableContexts: SnapshotTableContext[];
   activeRecordSqlFilter?: Record<string, string>;
+
+  userId: string;
+  connectorAccountId: string | null;
+  connectorDisplayName: string | null;
+  connectorService: string | null;
 }
 
 export interface CreateSnapshotDto {

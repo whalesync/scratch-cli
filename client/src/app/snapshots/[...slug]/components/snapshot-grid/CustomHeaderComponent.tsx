@@ -3,21 +3,10 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useUpsertView } from '@/hooks/use-view';
-import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
+import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
+import { getColumnTypeIcon } from '@/utils/columns';
 import { IHeaderParams } from 'ag-grid-community';
-import {
-  Brackets,
-  Eye,
-  EyeOff,
-  Hash,
-  List,
-  ListChecks,
-  Lock,
-  MoreVertical,
-  Square,
-  ToggleLeft,
-  Type,
-} from 'lucide-react';
+import { Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -30,28 +19,6 @@ interface CustomHeaderComponentProps extends IHeaderParams {
   columnSpec?: ColumnSpec;
   showDataTypeInHeader?: boolean;
 }
-
-// Function to get column type icon
-const getColumnTypeIcon = (pgType: PostgresColumnType) => {
-  switch (pgType) {
-    case PostgresColumnType.TEXT:
-      return <StyledLucideIcon Icon={Type} size={14} c="#888" />;
-    case PostgresColumnType.TEXT_ARRAY:
-      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
-    case PostgresColumnType.NUMERIC:
-      return <StyledLucideIcon Icon={Hash} size={14} c="#888" />;
-    case PostgresColumnType.NUMERIC_ARRAY:
-      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
-    case PostgresColumnType.BOOLEAN:
-      return <StyledLucideIcon Icon={ToggleLeft} size={14} c="#888" />;
-    case PostgresColumnType.BOOLEAN_ARRAY:
-      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
-    case PostgresColumnType.JSONB:
-      return <StyledLucideIcon Icon={Brackets} size={14} c="#888" />;
-    default:
-      return <StyledLucideIcon Icon={Type} size={14} c="#888" />;
-  }
-};
 
 export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (props) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
