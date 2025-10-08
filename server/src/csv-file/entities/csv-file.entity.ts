@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { CsvFileCluster } from 'src/db/cluster-types';
 
 export class CsvFile {

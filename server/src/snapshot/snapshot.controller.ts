@@ -429,7 +429,7 @@ export class SnapshotController {
         res.setHeader('Content-Disposition', `attachment; filename="${snapshot.name || 'snapshot'}_${tableId}.csv"`);
 
         // Use copyTo from pg-copy-streams for efficient streaming
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
         const stream = conn.query(copyTo(sql)) as Readable;
 
         stream.on('error', (e: Error) => {

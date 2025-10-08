@@ -2,6 +2,7 @@ include:
   - "/gitlab-ci/stages.yml"
   - "/gitlab-ci/common.yml"
 
+# NOTE: this doesn't work yet
 push master to prod:
   stage: deploy
   image: alpine:latest
