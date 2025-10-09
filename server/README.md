@@ -70,7 +70,7 @@ To update the database's schema to match the code's current state:
 $ yarn run prisma migrate
 ```
 
-### Configure Environment Variables
+### Environment Variables
 
 Create a `.env` file in the root directory by copying `.env.example`.
 
@@ -86,11 +86,35 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scratchpad?schema=pu
 
 Some values will require reaching out to other team members or checking values in 1Password.
 
+### Create an OpenRouter account
+
+The agent server uses OpenRouter to interact with the various LLMs. For running locally you will need an API key and a Provisioning key. The provisioning key is used to create new API keys for new users.
+
+1. Go to [Openrouter.ai](https://openrouter.ai/) and create an account for your Whalesync email account
+
+2. Setup a provisioning key
+
+- Go to [Provisioning Keys](https://openrouter.ai/settings/provisioning-keys) and create a new key for your local environment.
+- Set that value into `OPENROUTER_PROVISIONING_KEY` variable in your `.env` file
+
+3. Create your own API key
+
+- Go to [API keys](https://openrouter.ai/settings/keys)
+- Create a new API key
+- This can be set into your `pydantic-ai-agent/.env` file
+- It can also be used by adding an Agent Credential on the Scratchpaper settings screen
+
 ### Start the Server
 
 ```bash
 yarn run start:dev
 ```
+
+### Admin account
+
+Once you have started the client and server, go to http://localhost:3000 and create an account.
+
+Once the account exists, go into your database and update the `role` of your new user record to `ADMIN` so that you have full access to dev tools locally.
 
 ## Production Hosting
 
@@ -100,7 +124,7 @@ The Scratchpad API server is hosted on Render.
 
 [Manage Render Project](https://dashboard.render.com/web/srv-d347khidbo4c73bouaj0)
 
-- Owned by team@whalesync.com (Credentials in 1password)
+- Owned by team@whalesync.com (Credentials in 1Password)
 
 ## Tech Stack
 

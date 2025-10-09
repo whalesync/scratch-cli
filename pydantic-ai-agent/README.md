@@ -21,8 +21,17 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env and add your OpenAI API key
 ```
+
+Set your `OPENROUTER_API_KEY` and `LOGFIRE_TOKEN` values
+
+The `OPENROUTER_API_KEY` will be used as a fallback for admin users that don't have credentials configured. You can create your own or use the `Scratchpaper Devs - shared API key` that is in 1Password.
+
+If you are doing a lot of iteration on the Agent, it is recommended you use the shared key as it has a higher token credit limit.
+
+For the `LOGFIRE_TOKEN` ask Ivan or Chris for this value
+
+Set the `LOGFIRE_ENVIRONMENT` to include your name so your log events are isolated from other devs
 
 4. Run the agent:
 
