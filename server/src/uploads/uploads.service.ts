@@ -4,14 +4,28 @@
 import { Injectable } from '@nestjs/common';
 import { parse, Parser } from 'csv-parse';
 import { from as copyFrom } from 'pg-copy-streams';
+import { WSLogger } from 'src/logger';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { PostgresColumnType } from 'src/remote-service/connectors/types';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
+import { SnapshotTableContext } from 'src/snapshot/types';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { Readable } from 'stream';
 import { DbService } from '../db/db.service';
 
+export type CsvPreviewRow =
+  | {
+      type: 'success';
+      values: string[];
+    }
+  | {
+      type: 'error';
+      error: string[];
+    };
+export type CsvPreviewResponse = {
+  rows: CsvPreviewRow[];
+};
 @Injectable()
 export class UploadsService {
   constructor(
@@ -19,72 +33,73 @@ export class UploadsService {
     private readonly snapshotDbService: SnapshotDbService,
     private readonly db: DbService,
   ) {}
-  async previewCsv(buffer: Buffer, userId: string): Promise<{ rows: string[][] }> {
+  async previewCsv(buffer: Buffer): Promise<CsvPreviewResponse> {
     return new Promise((resolve, reject) => {
       try {
         const stream = Readable.from(buffer.toString('utf-8'));
-        const records: string[][] = [];
-        let lineCount = 0;
-        const maxLines = 6; // First 3 lines (headers + 2 data rows)
+        const result: CsvPreviewResponse = {
+          rows: [],
+        };
+        const maxLines = 10; // First 3 lines (headers + 2 data rows)
+
+        const checkDone = () => {
+          if (result.rows.length >= maxLines) {
+            stream.destroy();
+            parser.destroy();
+            resolve(result);
+            return true;
+          } else {
+            return false;
+          }
+        };
 
         const parser: Parser = parse({
           columns: false, // Don't use first row as headers yet
           skip_empty_lines: true,
           trim: true,
-        });
-
-        parser.on('readable', () => {
-          let record: string[] | null;
-          while ((record = parser.read() as string[] | null) !== null && lineCount < maxLines) {
-            records.push(record);
-            lineCount++;
-
-            // Terminate parsing once we have enough lines
-            if (lineCount >= maxLines) {
-              // Stop the stream and resolve immediately
-              stream.destroy();
-              parser.destroy();
-
-              // Process the results
-              if (records.length === 0) {
-                reject(new Error('CSV file is empty'));
-                return;
-              }
-
-              // Log the data as requested
-              console.debug('CSV Preview for user:', userId);
-              console.debug('Rows:', records);
-
-              resolve({
-                rows: records,
+          to: maxLines,
+          relax_column_count: true, // Allow inconsistent column counts
+          skip_records_with_error: true, // Skip malformed records
+          on_record: (record: string[]) => {
+            result.rows.push({
+              type: 'success',
+              values: record,
+            });
+            checkDone();
+            return record;
+          },
+          on_skip: (err: any) => {
+            const errorMessage = (err?.message as string) || 'Unknown parsing error';
+            const lineNumber = parser.info.lines;
+            if (lineNumber > result.rows.length) {
+              result.rows.push({
+                type: 'error',
+                error: [errorMessage],
               });
-              return;
+              checkDone();
+            } else if (lineNumber === result.rows.length) {
+              const row = result.rows[lineNumber - 1];
+              if (!row || row.type !== 'error' || row.error.length === 0) {
+                WSLogger.error({ message: 'Should not happen', source: 'uploads' });
+              } else {
+                row.error.push(errorMessage);
+              }
+            } else {
+              WSLogger.error({ message: 'Should not happen', source: 'uploads' });
             }
-          }
-        });
-
-        parser.on('error', (error: Error) => {
-          console.error('Error parsing CSV:', error);
-          reject(new Error(`Failed to parse CSV: ${error.message}`));
+          },
         });
 
         parser.on('end', () => {
-          if (records.length === 0) {
-            reject(new Error('CSV file is empty'));
-            return;
-          }
-
-          // Log the data as requested
-          console.debug('CSV Preview for user:', userId);
-          console.debug('Rows:', records);
-
-          resolve({
-            rows: records,
-          });
+          resolve(result);
+        });
+        parser.on('finish', () => {
+          resolve(result);
         });
 
         // Pipe the stream to the parser
         stream.pipe(parser);
+        console.log();
       } catch (error) {
         console.error('Error setting up CSV parsing:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -130,12 +145,12 @@ export class UploadsService {
           tableSpecs,
           tableContexts: [
             {
-              id: { wsId: tableId, remoteId: '-' },
+              id: { wsId: tableId, remoteId: ['-'] },
               activeViewId: null,
               ignoredColumns: [],
               readOnlyColumns: [],
             },
-          ],
+          ] satisfies SnapshotTableContext[],
         },
       });
 
@@ -226,7 +241,11 @@ export class UploadsService {
                 // Create the COPY stream - include wsId as first column, then the data columns
                 const copyStream = conn.query(
                   copyFrom(
-                    `COPY "${snapshotId}"."${tableId}" ("wsId", ${columnNames.map((name) => `"${name}"`).join(', ')}) FROM STDIN WITH (FORMAT CSV)`,
+                    `COPY "${snapshotId}"."${tableId}" ("wsId", ${columnNames.map((name) => `"${name}"`).join(', ')}) 
+                    FROM STDIN 
+                    WITH (
+                      FORMAT CSV
+                    )`,
                   ),
                 );
 
@@ -332,12 +351,12 @@ export class UploadsService {
           tableSpecs,
           tableContexts: [
             {
-              id: { wsId: tableId, remoteId: '-' },
+              id: { wsId: tableId, remoteId: ['-'] },
               activeViewId: null,
               ignoredColumns: [],
               readOnlyColumns: [],
             },
-          ],
+          ] satisfies SnapshotTableContext[],
         },
       });
 

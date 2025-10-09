@@ -14,9 +14,11 @@ import {
   Table,
   Text,
   TextInput,
-  Title,
+  useMantineColorScheme,
+  useMantineTheme,
 } from '@mantine/core';
 import { X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // Custom type for modal that includes IGNORE option
@@ -39,6 +41,9 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
 };
 
 export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPreviewModalProps) => {
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
+  const router = useRouter();
   const [firstRowIsHeader, setFirstRowIsHeader] = useState(true);
   const [columnNames, setColumnNames] = useState<string[]>([]);
   const [columnTypes, setColumnTypes] = useState<ModalColumnType[]>([]);
@@ -48,19 +53,22 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
   // Initialize column names and types when data changes
   useEffect(() => {
     if (data && data.rows.length > 0) {
-      const firstRow = data.rows[0];
-      const numColumns = firstRow.length;
+      // Find the first success row to determine column count
+      const firstSuccessRow = data.rows.find((row) => row.type === 'success');
+      if (firstSuccessRow && firstSuccessRow.type === 'success') {
+        const numColumns = firstSuccessRow.values.length;
 
-      if (firstRowIsHeader) {
-        // Use first row as column names
-        setColumnNames([...firstRow]);
-      } else {
-        // Use default column names
-        setColumnNames(Array.from({ length: numColumns }, (_, i) => `Column ${i + 1}`));
+        if (firstRowIsHeader) {
+          // Use first success row as column names
+          setColumnNames([...firstSuccessRow.values]);
+        } else {
+          // Use default column names
+          setColumnNames(Array.from({ length: numColumns }, (_, i) => `Column ${i + 1}`));
+        }
+
+        // Initialize column types as text (default) - only when data changes, not when checkbox changes
+        setColumnTypes(Array.from({ length: numColumns }, () => PostgresColumnType.TEXT));
       }
-
-      // Initialize column types as text (default) - only when data changes, not when checkbox changes
-      setColumnTypes(Array.from({ length: numColumns }, () => PostgresColumnType.TEXT));
     }
   }, [data, firstRowIsHeader]); // Removed firstRowIsHeader from dependencies
 
@@ -75,13 +83,16 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
   // Update column names when checkbox changes
   useEffect(() => {
     if (data && data.rows.length > 0) {
-      const firstRow = data.rows[0];
-      const numColumns = firstRow.length;
+      // Find the first success row to determine column count
+      const firstSuccessRow = data.rows.find((row) => row.type === 'success');
+      if (firstSuccessRow && firstSuccessRow.type === 'success') {
+        const numColumns = firstSuccessRow.values.length;
 
-      if (firstRowIsHeader) {
-        setColumnNames([...firstRow]);
-      } else {
-        setColumnNames(Array.from({ length: numColumns }, (_, i) => `Column ${i + 1}`));
+        if (firstRowIsHeader) {
+          setColumnNames([...firstSuccessRow.values]);
+        } else {
+          setColumnNames(Array.from({ length: numColumns }, (_, i) => `Column ${i + 1}`));
+        }
       }
     }
   }, [firstRowIsHeader, data]);
@@ -120,8 +131,12 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
       });
 
       console.log('CSV imported successfully:', result);
-      // Success - close modal
-      onClose();
+
+      // Close modal first
+      // onClose();
+
+      // Navigate to the new snapshot page
+      router.push(`/snapshots/${result.snapshotId}`);
     } catch (error) {
       console.error('Import failed:', error);
       // Error handling could be improved with notifications
@@ -137,6 +152,10 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
   // When firstRowIsHeader is false: show rows 0 to N-1 (ignore last row to maintain consistent preview)
   const displayRows = firstRowIsHeader ? rows.slice(1) : rows.slice(0, -1);
 
+  // Count error rows for display
+  const errorRows = displayRows.filter((row) => row.type === 'error');
+  // const successRows = displayRows.filter((row) => row.type === 'success');
+
   return (
     <>
       <style jsx>{`
@@ -144,18 +163,21 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
           width: 150px !important;
         }
       `}</style>
-      <Modal
-        opened={opened}
-        onClose={onClose}
-        title={<Title order={3}>Preview: Create Scratchpaper from CSV</Title>}
-        size="80%"
-        centered
-      >
+      <Modal opened={opened} onClose={onClose} title="Preview: Create Scratchpaper from CSV" size="80%" centered>
         <Stack gap="xl">
           {/* Filename display */}
           <Text size="sm" fw={500}>
             File name: {fileName}
           </Text>
+
+          {/* Error summary */}
+          {errorRows.length > 0 && (
+            <div style={{ padding: '8px', border: '1px solid #ffeaa7' }}>
+              <Text size="sm" fw={500}>
+                ⚠️ {errorRows.length} of {displayRows.length} rows had parsing issues and might be skipped during import
+              </Text>
+            </div>
+          )}
 
           {/* Header checkbox */}
           <Checkbox
@@ -180,8 +202,8 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
                       key={`header-${index}`}
                       style={{
                         padding: '4px',
-                        backgroundColor: 'black',
-                        borderBottom: '2px solid #dee2e6',
+                        backgroundColor: colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
+                        borderBottom: `2px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
                         minWidth: '100px',
                         maxWidth: '200px',
                         width: '150px',
@@ -251,25 +273,50 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
               </Table.Thead>
               {/* Data rows */}
               <Table.Tbody>
-                {displayRows.map((row, rowIndex) => (
-                  <Table.Tr key={rowIndex}>
-                    {columnNames.map((_, colIndex) => (
-                      <Table.Td
-                        key={colIndex}
-                        style={{
-                          minWidth: '140px',
-                          maxWidth: '200px',
-                          width: '150px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {row[colIndex] || ''}
-                      </Table.Td>
-                    ))}
-                  </Table.Tr>
-                ))}
+                {displayRows.map((row, rowIndex) => {
+                  if (row.type === 'error') {
+                    // Error row - span all columns
+                    return (
+                      <Table.Tr key={rowIndex} style={{ backgroundColor: '#fff3cd' }}>
+                        <Table.Td
+                          colSpan={columnNames.length}
+                          style={{
+                            padding: '8px',
+                            textAlign: 'center',
+                            color: '#d63031',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          ⚠️ {row.error.join('; ')}
+                        </Table.Td>
+                      </Table.Tr>
+                    );
+                  } else {
+                    // Success row - show values
+                    return (
+                      <Table.Tr key={rowIndex}>
+                        {row.values.map((value, colIndex) => (
+                          <Table.Td
+                            key={colIndex}
+                            style={{
+                              minWidth: '140px',
+                              maxWidth: '200px',
+                              width: '150px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {value || ''}
+                          </Table.Td>
+                        ))}
+                      </Table.Tr>
+                    );
+                  }
+                })}
               </Table.Tbody>
             </Table>
           </div>

@@ -1,9 +1,19 @@
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
-export interface CsvPreviewResponse {
-  rows: string[][];
-}
+export type CsvPreviewRow =
+  | {
+      type: 'success';
+      values: string[];
+    }
+  | {
+      type: 'error';
+      error: string[];
+    };
+
+export type CsvPreviewResponse = {
+  rows: CsvPreviewRow[];
+};
 
 export interface CsvImportRequest {
   file: File;
