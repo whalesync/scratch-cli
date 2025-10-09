@@ -2,10 +2,11 @@ import { API_CONFIG } from "@/lib/api/config";
 import { SWR_KEYS } from "@/lib/api/keys";
 import { usersApi } from "@/lib/api/users";
 import { User } from "@/types/server-entities/users";
+import { RouteUrls } from "@/utils/route-urls";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { UserResource } from "@clerk/types";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import useSWR from "swr";
 
 export interface ScratchPadUser {
@@ -24,8 +25,16 @@ export const useScratchPadUser = (): ScratchPadUser => {
     SWR_KEYS.users.activeUser(),
     usersApi.activeUser,
     {
-      revalidateOnFocus: true,
       refreshInterval: 1000 * 60 * 5, // 5 minutes - want to get updated agent JWT tokens
+      onSuccess: (data) => {
+        /// update our static config when the values change
+        if(data.websocketToken !== API_CONFIG.getSnapshotWebsocketToken()) {
+          API_CONFIG.setSnapshotWebsocketToken(data.websocketToken || '');
+        }
+        if(data.agentJwt !== API_CONFIG.getAgentJwt()) {
+          API_CONFIG.setAgentJwt(data.agentJwt || '');
+        }
+      }
     }
   );
 
@@ -42,15 +51,9 @@ export const useScratchPadUser = (): ScratchPadUser => {
       };
       asyncSignOut()
         .catch(console.error)
-        .finally(() => router.push("/sign-in"));
+        .finally(() => router.push(RouteUrls.signInPageUrl));
     }
   }, [router, signOut]);
-
-  useEffect(() => {
-    if (user) {
-      API_CONFIG.setAgentJwt(user.agentJwt || '');
-    } 
-  }, [user]);
 
   return {
     isLoading: isLoading || !isLoaded,

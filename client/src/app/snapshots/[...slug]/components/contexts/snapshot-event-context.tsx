@@ -1,8 +1,10 @@
 'use client';
 
-import { SnapshotEvent, SnapshotRecordEvent, useSnapshotEventWebsocket } from '@/hooks/use-snapshot-event-websocket';
+import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { createContext, ReactNode, useCallback, useContext } from 'react';
+import { useSetState } from '@mantine/hooks';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useSWRConfig } from 'swr';
 
 interface SnapshotEventContextValue {
@@ -33,7 +35,17 @@ export const useSnapshotEventContext = () => {
 export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventProviderProps) => {
   const { mutate: globalMutate } = useSWRConfig();
 
-  // const { currentView } = useSnapshotContext();
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [subscriptions, setSubscriptions] = useSetState<Subscriptions>({
+    snapshot: false,
+    tables: [],
+  });
+  const [messageLog, setMessageLog] = useState<string[]>([]);
+
+  const addToMessageLog = (message: string) => {
+    setMessageLog((prev: string[]) => [message, ...prev].slice(0, 30));
+  };
 
   // Handle snapshot events (snapshot-updated, filter-changed)
   const handleSnapshotEvent = useCallback(
@@ -70,25 +82,93 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
     [snapshotId, globalMutate],
   );
 
-  // Handle websocket errors
-  const handleError = useCallback((error: Error) => {
-    console.log('SnapshotEventProvider', 'Websocket error:', error);
-  }, []);
+  useEffect(() => {
+    // Create Socket.IO connection
+    const newSocket = io(API_CONFIG.getApiUrl(), {
+      transports: ['websocket'],
+      path: '/snapshot-events',
+      auth: {
+        token: API_CONFIG.getSnapshotWebsocketToken(),
+      },
+      // Configure timeouts to be more resilient to browser throttling
+      timeout: 60000, // 60 seconds - increased from default 20s
+      // Enable reconnection with exponential backoff
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
 
-  // Handle connection close
-  const handleCloseConnection = useCallback(() => {
-    console.debug('SnapshotEventProvider', 'Websocket connection closed');
-  }, []);
+    // Connection event handlers
+    newSocket.on('connect', () => {
+      log('connected');
+      setIsConnected(true);
+    });
 
-  // Use the websocket hook
-  // TODO - we could probably merge the hook into this context
-  const { isConnected, subscriptions, sendPing, messageLog } = useSnapshotEventWebsocket({
-    snapshotId,
-    onSnapshotEvent: handleSnapshotEvent,
-    onRecordEvent: handleRecordEvent,
-    onError: handleError,
-    onCloseConnection: handleCloseConnection,
-  });
+    newSocket.on('disconnect', (reason, description) => {
+      log('disconnected', { reason, description });
+      setIsConnected(false);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      log('connection error', error);
+    });
+
+    newSocket.on('exception', (error) => {
+      log('exception', error);
+      addToMessageLog('Socket exception: ' + (error.message || 'Unknown error'));
+    });
+
+    // Handly different messages:
+    newSocket.on('pong', (data) => {
+      log('Received message:', data);
+      addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
+    });
+
+    newSocket.on('snapshot-event-subscription-confirmed', (data) => {
+      const confirmedEvent = data as SubscriptionConfirmedEvent;
+      addToMessageLog(confirmedEvent.message);
+      setSubscriptions({ snapshot: true });
+    });
+
+    newSocket.on('record-event-subscription-confirmed', (data) => {
+      const confirmedEvent = data as SubscriptionConfirmedEvent;
+      addToMessageLog(confirmedEvent.message);
+      const tableId = confirmedEvent.tableId;
+      if (tableId) {
+        setSubscriptions((current) => ({ tables: [...current.tables, tableId] }));
+      }
+    });
+
+    newSocket.on('snapshot-event', (data) => {
+      addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
+      handleSnapshotEvent?.(data as SnapshotEvent);
+    });
+
+    newSocket.on('record-event', (data) => {
+      addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
+      handleRecordEvent?.(data as SnapshotRecordEvent);
+    });
+
+    setSocket(newSocket);
+
+    // Cleanup on unmount
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [handleRecordEvent, handleSnapshotEvent, setSubscriptions]); // Only depend on the websocket token, not the entire user object
+
+  useEffect(() => {
+    if (socket && isConnected) {
+      socket.emit('subscribe', { snapshotId });
+    }
+  }, [socket, isConnected, snapshotId]);
+
+  const sendPing = () => {
+    if (socket && isConnected) {
+      socket.emit('ping');
+    }
+  };
 
   const value: SnapshotEventContextValue = {
     isConnected,
@@ -99,3 +179,40 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
   return <SnapshotEventContext.Provider value={value}>{children}</SnapshotEventContext.Provider>;
 };
+
+type Subscriptions = {
+  snapshot: boolean;
+  tables: string[];
+};
+
+const log = (message: string, data?: unknown) => {
+  if (data) {
+    console.debug('Snapshot Websocket Event:', message, data);
+  } else {
+    console.debug('Snapshot Websocket Event:', message);
+  }
+};
+
+export interface SnapshotEvent {
+  type: 'snapshot-updated' | 'filter-changed';
+  data: {
+    tableId?: string;
+    source: 'user' | 'agent';
+  };
+}
+
+export interface SnapshotRecordEvent {
+  type: 'record-changes';
+  data: {
+    tableId: string;
+    numRecords: number;
+    changeType: 'suggested' | 'accepted' | 'rejected';
+    source: 'user' | 'agent';
+  };
+}
+
+export interface SubscriptionConfirmedEvent {
+  snapshotId: string;
+  tableId?: string;
+  message: string;
+}

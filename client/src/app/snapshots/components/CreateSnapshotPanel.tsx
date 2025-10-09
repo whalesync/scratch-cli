@@ -109,7 +109,7 @@ export const CreateSnapshotPanel = () => {
           )}
           <TextInput
             label="Content Name"
-            description="Defines the name of the CSV file and related snapshot table"
+            description="Defines the name scratchpaper table"
             required
             value={contentName}
             onChange={(e) => setContentName(e.target.value)}

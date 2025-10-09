@@ -26,6 +26,10 @@ import { SnapshotService } from './snapshot.service';
   },
   path: '/snapshot-events',
   transports: ['websocket'],
+  // Configure timeouts to be more resilient to browser throttling
+  pingTimeout: 60000, // 60 seconds - matches client configuration
+  pingInterval: 25000, // 25 seconds - matches client configuration
+  upgradeTimeout: 10000, // 10 seconds for transport upgrade
 })
 export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
