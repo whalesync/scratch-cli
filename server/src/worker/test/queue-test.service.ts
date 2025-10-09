@@ -19,8 +19,9 @@ export class QueueTestService implements OnModuleDestroy {
   private getRedis(): IORedis {
     if (!this.redis) {
       this.redis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: this.config.getRedisHost(),
+        port: this.config.getRedisPort(),
+        password: this.config.getRedisPassword(),
         maxRetriesPerRequest: null,
       });
     }

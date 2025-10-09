@@ -13,6 +13,7 @@ import {
 import { Server } from 'socket.io';
 import { SocketWithUser } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
@@ -36,6 +37,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   server: Server;
 
   constructor(
+    readonly configService: ScratchpadConfigService,
     readonly snapshotEventService: SnapshotEventService,
     readonly snapshotService: SnapshotService,
   ) {}

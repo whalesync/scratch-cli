@@ -3,6 +3,7 @@ import { ClerkModule } from 'src/clerk/clerk.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
+import { RedisModule } from 'src/redis/redis.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { UserModule } from 'src/users/users.module';
 import { WorkerModule } from 'src/worker/workers.module';
@@ -23,6 +24,7 @@ import { SnapshotService } from './snapshot.service';
     UserModule,
     PosthogModule,
     ConnectorAccountModule,
+    RedisModule,
     ...(process.env.USE_JOBS === 'true' ? [WorkerModule] : []),
     SnapshotDbModule,
   ],

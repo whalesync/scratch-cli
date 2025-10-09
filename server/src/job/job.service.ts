@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
 import IORedis from 'ioredis';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
 import { DbJobStatus, JobEntity } from './entities/job.entity';
@@ -10,13 +11,17 @@ import { DbJobStatus, JobEntity } from './entities/job.entity';
 export class JobService {
   private redis: IORedis | null = null;
 
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly configService: ScratchpadConfigService,
+  ) {}
 
   private getRedis(): IORedis {
     if (!this.redis) {
       this.redis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: this.configService.getRedisHost(),
+        port: this.configService.getRedisPort(),
+        password: this.configService.getRedisPassword(),
         maxRetriesPerRequest: null,
       });
     }

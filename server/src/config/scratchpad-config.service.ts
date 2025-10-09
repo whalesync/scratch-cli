@@ -127,6 +127,18 @@ export class ScratchpadConfigService {
     return this.getOptionalFlagVariable('SLACK_NOTIFICATION_ENABLED', false);
   }
 
+  getRedisHost(): string {
+    return this.getOptionalEnvVariable<string>('REDIS_HOST') ?? 'localhost';
+  }
+
+  getRedisPort(): number {
+    return this.getOptionalNumberVariable('REDIS_PORT', 6379);
+  }
+
+  getRedisPassword(): string | undefined {
+    return this.getOptionalEnvVariable<string>('REDIS_PASSWORD');
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

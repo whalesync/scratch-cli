@@ -20,7 +20,7 @@ To be most the job definitions should be as pure as possible, getting possible s
 ### Environment Variables
 
 ```env
-REDIS_URL=localhost
+REDIS_HOST=localhost
 REDIS_PORT=6379
 DATABASE_URL=your_database_url
 ```

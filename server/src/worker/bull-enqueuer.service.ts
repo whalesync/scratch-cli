@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createPlainId } from 'src/types/ids';
 import { DownloadRecordsJobDefinition } from './jobs/job-definitions/download-records.job';
 import { JobData } from './jobs/union-types';
@@ -10,11 +11,12 @@ export class BullEnqueuerService implements OnModuleDestroy {
   private redis: IORedis;
   private queue: Queue;
 
-  constructor() {
+  constructor(private readonly configService: ScratchpadConfigService) {
     if (process.env.USE_JOBS === 'true') {
       this.redis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: this.configService.getRedisHost(),
+        port: this.configService.getRedisPort(),
+        password: this.configService.getRedisPassword(),
         maxRetriesPerRequest: null,
       });
 

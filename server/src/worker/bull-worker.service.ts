@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { JobService } from '../job/job.service';
 import { JobHandlerService } from './job-handler.service';
@@ -19,13 +20,15 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     // private readonly workerPool: WorkerPoolService,
     private readonly jobHandlerService: JobHandlerService,
     private readonly jobService: JobService,
+    private readonly configService: ScratchpadConfigService,
   ) {}
 
   private getRedis(): IORedis {
     if (!this.redis) {
       this.redis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: this.configService.getRedisHost(),
+        port: this.configService.getRedisPort(),
+        password: this.configService.getRedisPassword(),
         maxRetriesPerRequest: null,
       });
     }
@@ -35,8 +38,9 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   private getPubSubRedis(): IORedis {
     if (!this.pubSubRedis) {
       this.pubSubRedis = new IORedis({
-        host: process.env.REDIS_URL || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: this.configService.getRedisHost(),
+        port: this.configService.getRedisPort(),
+        password: this.configService.getRedisPassword(),
         maxRetriesPerRequest: null,
       });
     }

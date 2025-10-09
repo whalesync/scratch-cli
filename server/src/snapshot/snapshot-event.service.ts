@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Snapshot } from '@prisma/client';
-import { Observable, Subject } from 'rxjs';
+import { Observable } from 'rxjs';
+import { WSLogger } from 'src/logger';
+import { RedisPubSubService } from 'src/redis/redis-pubsub.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 
 export interface SnapshotRecordEvent {
@@ -23,42 +25,42 @@ export interface SnapshotEvent {
 
 @Injectable()
 export class SnapshotEventService {
-  private recordEventSubjects: Record<string, Subject<SnapshotRecordEvent>> = {};
-  private snapshotEventSubjects: Record<string, Subject<SnapshotEvent>> = {};
-
-  constructor() {}
+  constructor(private readonly redisPubSub: RedisPubSubService) {}
 
   getRecordEvents(snapshot: Snapshot, tableSpec: AnyTableSpec): Observable<SnapshotRecordEvent> {
-    const key = this.createKey('records', snapshot.id, tableSpec.id.wsId);
-    // see if there is a subject registered for this snapshotId
-    if (!this.recordEventSubjects[key]) {
-      this.recordEventSubjects[key] = new Subject<SnapshotRecordEvent>();
-    }
-    return this.recordEventSubjects[key].asObservable();
+    const channel = this.createKey('records', snapshot.id, tableSpec.id.wsId);
+    return this.redisPubSub.subscribe<SnapshotRecordEvent>(channel);
   }
 
   getSnapshotEvents(snapshot: Snapshot): Observable<SnapshotEvent> {
-    const key = this.createKey('snapshot', snapshot.id);
-    if (!this.snapshotEventSubjects[key]) {
-      this.snapshotEventSubjects[key] = new Subject<SnapshotEvent>();
-    }
-    return this.snapshotEventSubjects[key].asObservable();
+    const channel = this.createKey('snapshot', snapshot.id);
+    return this.redisPubSub.subscribe<SnapshotEvent>(channel);
   }
 
-  sendRecordEvent(snapshot: string, tableId: string, event: SnapshotRecordEvent) {
-    const key = this.createKey('records', snapshot, tableId);
-    if (!this.recordEventSubjects[key]) {
-      return;
-    }
-    this.recordEventSubjects[key].next(event);
+  sendRecordEvent(snapshot: string, tableId: string, event: SnapshotRecordEvent): void {
+    const channel = this.createKey('records', snapshot, tableId);
+    this.redisPubSub.publish(channel, event).catch((error) => {
+      WSLogger.error({
+        source: SnapshotEventService.name,
+        message: 'Failed to publish record event to Redis',
+        error: error,
+        channel: channel,
+        event: event,
+      });
+    });
   }
 
-  sendSnapshotEvent(snapshotId: string, event: SnapshotEvent) {
-    const key = this.createKey('snapshot', snapshotId);
-    if (!this.snapshotEventSubjects[key]) {
-      return;
-    }
-    this.snapshotEventSubjects[key].next(event);
+  sendSnapshotEvent(snapshotId: string, event: SnapshotEvent): void {
+    const channel = this.createKey('snapshot', snapshotId);
+    this.redisPubSub.publish(channel, event).catch((error) => {
+      WSLogger.error({
+        source: SnapshotEventService.name,
+        message: 'Failed to publish snapshot event to Redis',
+        error: error,
+        channel: channel,
+        event: event,
+      });
+    });
   }
 
   private createKey(prefix: string, snapshotId: string, tableId?: string) {
