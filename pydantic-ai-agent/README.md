@@ -1,6 +1,6 @@
 # PydanticAI Agent
 
-A simple PydanticAI agent that demonstrates basic agent functionality.
+The agent server is the bridge between the user, the Scratchpaper data and the LLMs by assembling the context and providing a set of tools for the LLM to use and interact with the Scratchpaper backend.
 
 ## Setup
 
@@ -33,7 +33,7 @@ For the `LOGFIRE_TOKEN` ask Ivan or Chris for this value
 
 Set the `LOGFIRE_ENVIRONMENT` to include your name so your log events are isolated from other devs
 
-4. Run the agent:
+4. Run the agent server:
 
 ```bash
 python main.py
@@ -76,10 +76,6 @@ python main.py
    # Check formatting without making changes
    black --check .
    ```
-
-## Usage
-
-The agent will start and wait for input. You can interact with it by typing messages, and it will respond using structured outputs defined by Pydantic models.
 
 ## Deactivating VENV
 
