@@ -51,7 +51,7 @@ class SnapshotForAi(BaseModel):
     connectorService: Optional[str]
     createdAt: str
     updatedAt: str
-    connectorAccountId: str
+    connectorAccountId: Optional[str]
     tables: List[TableSpec]
     tableContexts: List[TableContext]
     tableViews: Dict[str, TableViewConfig]
