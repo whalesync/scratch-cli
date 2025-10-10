@@ -197,17 +197,6 @@ export const ChatMessageElement = ({
   const maxWidth = msg.role === 'user' ? '90%' : '100%';
   const padding = '4px';
 
-  let content = null;
-  if (msg.role === 'user') {
-    content = <Text size="xs">{msg.message}</Text>;
-  } else {
-    content = (
-      <Box fz="xs" style={{ overflow: 'hidden' }}>
-        <MarkdownRenderer>{msg.message}</MarkdownRenderer>
-      </Box>
-    );
-  }
-
   return (
     <Paper
       p={padding}
@@ -221,7 +210,9 @@ export const ChatMessageElement = ({
       w="100%"
     >
       <Stack gap="4px" w="100%">
-        {content}
+        <Box fz="xs" style={{ overflow: 'hidden' }}>
+          <MarkdownRenderer>{msg.message}</MarkdownRenderer>
+        </Box>
         <Text c="dimmed" fz="8px" ta="right">
           {timeAgo(msg.timestamp)}
         </Text>

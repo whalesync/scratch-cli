@@ -22,7 +22,7 @@ export const MarkdownRenderer = (props: Options): JSX.Element => {
           return <List p="2px" fw="inherit" fz="inherit" type="ordered" listStyleType="decimal" ref={ref} {...props} />;
         }),
         ul: React.forwardRef<HTMLUListElement, React.HTMLAttributes<HTMLUListElement>>(({ ...props }, ref) => (
-          <List p="2px" fw="inherit" fz="inherit" type="unordered" ref={ref} {...props} />
+          <List fw="inherit" fz="inherit" type="unordered" listStyleType="disc" ref={ref} {...props} />
         )),
         li: React.forwardRef<HTMLLIElement, React.ComponentProps<typeof List.Item>>(({ ...props }, ref) => (
           <List.Item lh={1.5} fw="inherit" fz="inherit" ref={ref} {...props} />
