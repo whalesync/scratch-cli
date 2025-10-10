@@ -44,6 +44,11 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          // ignore arrow keys in input and textarea
+          return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
         handleRowNavigation(event.key === 'ArrowUp' ? 'up' : 'down', event);
