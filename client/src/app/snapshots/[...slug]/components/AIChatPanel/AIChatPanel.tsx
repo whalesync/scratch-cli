@@ -191,19 +191,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     onMessage: handleWebsocketMessage,
   });
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (activeSession?.chat_history && activeSession.chat_history.length > 0) {
-      scrollToBottom();
-    }
-  }, [activeSession?.chat_history, scrollToBottom]);
-
-  useEffect(() => {
-    if (messageHistory && messageHistory.length > 0) {
-      scrollToBottom();
-    }
-  }, [messageHistory, scrollToBottom]);
-
   useEffect(() => {
     if (resetInputFocus && connectionStatus === 'connected') {
       textInputRef.current?.focus();
@@ -233,6 +220,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       setError(null);
       setMessage('');
       setResetInputFocus(true);
+      scrollToBottom();
     } catch (error) {
       setError(`Failed to create session: ${error}}`);
     }
@@ -356,7 +344,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     );
     chatHistory.unshift(...pastMsgs);
   }
-  // fake messages to test scrolling
+  // fake messages to test scrolling -- uncomment to if you want to test scrolling behavior, or div boundaries
   // for (let i = 0; i < 30; i++) {
   //   chatHistory.push({
   //     id: Date.now().toString(),
@@ -431,6 +419,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                     trackOpenOldChatSession(snapshot);
                     setMessage('');
                     setResetInputFocus(true);
+                    scrollToBottom();
                   } catch (error) {
                     setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
                   }
