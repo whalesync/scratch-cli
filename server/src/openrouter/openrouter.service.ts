@@ -32,8 +32,10 @@ export class OpenRouterService {
       return generalError('OpenRouter provisioning key is not set');
     }
 
+    const scratchpadEnvironment = this.configService.getScratchpadEnvironment();
+
     const payload = {
-      name: `User ${userId} Starter Key`,
+      name: `User ${userId} Starter Key${scratchpadEnvironment !== 'production' ? ` (${scratchpadEnvironment})` : ''}`,
       limit: this.configService.getNewUserOpenRouterCreditLimit(),
       include_byok_in_limit: true,
     };
