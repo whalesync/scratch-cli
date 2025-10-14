@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common';
-import { BullEnqueuerService } from '../bull-enqueuer.service';
+import { BullEnqueuerService } from '../../worker-enqueuer/bull-enqueuer.service';
 import { AddThreeNumbersJobDefinition } from '../jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobDefinition } from '../jobs/job-definitions/add-two-numbers.job';
 import { QueueTestService } from './queue-test.service';

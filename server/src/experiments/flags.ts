@@ -1,7 +1,9 @@
 /**
  * Configuration and tuning flags that are system-wide and not user-scoped.
  */
-export enum SystemFlag {}
+export enum SystemFlag {
+  USE_JOBS = 'USE_JOBS',
+}
 
 /**
  * User-scoped feature flags

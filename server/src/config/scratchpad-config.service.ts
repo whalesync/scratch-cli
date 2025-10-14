@@ -9,14 +9,30 @@ export type NodeEnvironment = 'development' | 'test' | 'staging' | 'production';
 /** This should be used for checking the deployment flavor. */
 export type ScratchpadEnvironment = 'development' | 'test' | 'staging' | 'production';
 
+/**
+ * The current type of this microservice. This same binary is used to run multiple kinds of microservices, and the
+ * behavior of each microservice is different.
+ */
+export enum MicroserviceType {
+  FRONTEND = 'api',
+  // Just runs worker tasks for bull MQ
+  WORKER = 'worker',
+  // Runs cron tasks
+  CRON = 'cron',
+  // ONLY used for local development. This is essentially *all* microservice types in one.
+  MONOLITH = 'monolith',
+}
+
 @Injectable()
 export class ScratchpadConfigService {
   private readonly databaseUrl: string;
   private readonly environment: ScratchpadEnvironment;
+  private readonly serviceType: MicroserviceType;
 
   constructor(private readonly configService: ConfigService) {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
     this.environment = ScratchpadConfigService.getScratchpadEnvironment();
+    this.serviceType = ScratchpadConfigService.getScratchpadServiceType();
 
     if (process.env.LOG_LEVEL) {
       WSLogger.info({
@@ -30,6 +46,10 @@ export class ScratchpadConfigService {
 
   getScratchpadEnvironment(): ScratchpadEnvironment {
     return this.environment;
+  }
+
+  getServiceType(): MicroserviceType {
+    return this.serviceType;
   }
 
   getDatabaseUrl(): string {
@@ -139,6 +159,10 @@ export class ScratchpadConfigService {
     return this.getOptionalEnvVariable<string>('REDIS_PASSWORD');
   }
 
+  getUseJobs(): boolean {
+    return this.getOptionalFlagVariable('USE_JOBS', false);
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {
@@ -168,6 +192,10 @@ export class ScratchpadConfigService {
     return returnedVar.toLowerCase() === 'true';
   }
 
+  /*
+   * STATIC METHODS
+   */
+
   public static getScratchpadEnvironment(): ScratchpadEnvironment {
     return checkIsString(process.env.APP_ENV, 'APP_ENV', [
       'development',
@@ -189,7 +217,40 @@ export class ScratchpadConfigService {
     // Otherwise, test or staging
     return `https://${env}.scratchpaper.ai`;
   }
+
+  public static getScratchpadServiceType(): MicroserviceType {
+    return checkIsString(process.env.SERVICE_TYPE, 'SERVICE_TYPE', [
+      MicroserviceType.FRONTEND,
+      MicroserviceType.WORKER,
+      MicroserviceType.CRON,
+      MicroserviceType.MONOLITH,
+    ]) as MicroserviceType;
+  }
+
+  public static isFrontendAPIService(): boolean {
+    const type = process.env.SERVICE_TYPE;
+    return type === MicroserviceType.FRONTEND || type === MicroserviceType.MONOLITH;
+  }
+
+  public static isTaskWorkerService(): boolean {
+    const type = process.env.SERVICE_TYPE;
+    return type === MicroserviceType.WORKER || type === MicroserviceType.MONOLITH;
+  }
+
+  public static isCronService(): boolean {
+    const type = process.env.SERVICE_TYPE;
+    return type === MicroserviceType.CRON || type === MicroserviceType.MONOLITH;
+  }
+
+  public static isMonolithService(): boolean {
+    const type = process.env.SERVICE_TYPE;
+    return type === MicroserviceType.MONOLITH;
+  }
 }
+
+/*
+ * UTILITY FUNCTIONS
+ */
 
 function checkIsString(value: string | undefined, varName: string, restrictToOptions?: string[]): string {
   if (value === undefined || value.length === 0) {

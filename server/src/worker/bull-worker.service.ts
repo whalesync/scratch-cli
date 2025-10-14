@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
@@ -50,9 +48,6 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
-    if (process.env.USE_JOBS !== 'true') {
-      return;
-    }
     // Create the worker to process jobs
     this.worker = new Worker('worker-queue', async (job: Job) => this.processJob(job), {
       connection: this.getRedis(),

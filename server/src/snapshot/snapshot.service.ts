@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -10,7 +11,7 @@ import { DecryptedCredentials } from 'src/remote-service/connector-account/types
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
-import { BullEnqueuerService } from 'src/worker/bull-enqueuer.service';
+import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -32,13 +33,14 @@ type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 export class SnapshotService {
   constructor(
     private readonly db: DbService,
+    private readonly configService: ScratchpadConfigService,
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly uploadsService: UploadsService,
-    @Optional() private readonly bullEnqueuerService?: BullEnqueuerService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
@@ -97,7 +99,7 @@ export class SnapshotService {
     //   });
     // });
 
-    if (this.bullEnqueuerService) {
+    if (this.configService.getUseJobs()) {
       await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, userId);
     } else {
       // Fall back to synchronous download when jobs are not available
@@ -801,7 +803,7 @@ export class SnapshotService {
   }
 
   async download(id: SnapshotId, userId: string): Promise<DownloadSnapshotResult> {
-    if (!this.bullEnqueuerService) {
+    if (!this.configService.getUseJobs()) {
       // Fall back to synchronous download when jobs are not available
       await this.downloadWithoutJob(id, userId);
       return {

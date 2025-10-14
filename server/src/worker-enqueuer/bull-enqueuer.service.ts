@@ -3,8 +3,8 @@ import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createPlainId } from 'src/types/ids';
-import { DownloadRecordsJobDefinition } from './jobs/job-definitions/download-records.job';
-import { JobData } from './jobs/union-types';
+import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
+import { JobData } from 'src/worker/jobs/union-types';
 
 @Injectable()
 export class BullEnqueuerService implements OnModuleDestroy {
@@ -12,7 +12,7 @@ export class BullEnqueuerService implements OnModuleDestroy {
   private queue: Queue;
 
   constructor(private readonly configService: ScratchpadConfigService) {
-    if (process.env.USE_JOBS === 'true') {
+    if (configService.getUseJobs()) {
       this.redis = new IORedis({
         host: this.configService.getRedisHost(),
         port: this.configService.getRedisPort(),

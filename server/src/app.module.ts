@@ -6,7 +6,9 @@ import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-u
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
+import { ScratchpadConfigService } from './config/scratchpad-config.service';
 import { ContentToolsModule } from './content-tools/content-tools.module';
+import { CronModule } from './cron/cron.module';
 import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
@@ -26,11 +28,12 @@ import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/users.module';
 import { ViewModule } from './view/view.module';
+import { WorkerEnqueuerModule } from './worker-enqueuer/worker-enqueuer.module';
 import { WorkerModule } from './worker/workers.module';
 
 @Module({
   imports: [
-    ScratchpadConfigModule,
+    ScratchpadConfigModule, // Load first so static environment variables are available
     PosthogModule,
     ExperimentsModule,
     AdminModule,
@@ -55,7 +58,9 @@ import { WorkerModule } from './worker/workers.module';
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,
-    ...(process.env.USE_JOBS === 'true' ? [WorkerModule, JobModule] : []),
+    WorkerEnqueuerModule,
+    ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
+    ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),
   ],
   controllers: [],
   providers: [],
