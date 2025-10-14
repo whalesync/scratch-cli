@@ -40,8 +40,6 @@ from server.auth import AgentUser
 
 logger = getLogger(__name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
 
 # TODO: refactor this as a service or singleton class
 class ChatService:
@@ -111,6 +109,7 @@ class ChatService:
                     )
                 )
             else:
+                # TODO(chris): remove this code path when this endpoint gets deperecated on the API server
                 user_open_router_credentials = (
                     ScratchpadApi.get_agent_credentials_by_service(
                         user.userId, "openrouter"
@@ -142,15 +141,7 @@ class ChatService:
                 detail="Error authenticating credentials for agent processing. Please try again or contact support if the problem persists.",
             )
 
-        require_user_agent_credentials = (
-            os.getenv("REQUIRE_USER_AGENT_CREDENTIALS", "false").lower() == "true"
-        )
-
-        if (
-            require_user_agent_credentials
-            and not user_open_router_credentials
-            and not user.role.lower() == "admin"
-        ):
+        if not user_open_router_credentials:
             log_error(
                 f"User does not have openrouter credentials configured for user {user.userId}, role {user.role}",
                 session_id=session.id,
@@ -166,9 +157,6 @@ class ChatService:
                 f"🔑 Using personal openrouter credentials: {user_open_router_credentials.id}"
             )
             api_key = user_open_router_credentials.apiKey
-        else:
-            logger.info(f"🔑 Using Whalesync OpenRouter credentials")
-            api_key = OPENROUTER_API_KEY
 
         # Trim whitespace from API key to prevent authentication issues
         if api_key:
