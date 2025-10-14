@@ -165,7 +165,7 @@ export const CreateSnapshotPanel = () => {
           }
         }}
         data={csvPreviewData}
-        fileName={csvFile?.name}
+        fileName={csvFile?.name ?? ''}
         file={csvFile}
       />
     </>

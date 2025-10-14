@@ -70,7 +70,11 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       snapshot.connectorAccount.id,
       snapshot.connectorAccount.userId,
     );
-    const connector = await this.connectorService.getConnector(connectorAccount);
+    const connector = await this.connectorService.getConnector({
+      service: snapshot.connectorAccount.service,
+      connectorAccount,
+      decryptedCredentials: connectorAccount,
+    });
 
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 

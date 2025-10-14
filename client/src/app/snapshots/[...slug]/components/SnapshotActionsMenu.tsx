@@ -241,7 +241,7 @@ export const SnapshotActionsMenu = () => {
           <Menu.Divider />
           <Menu.Label>Sync with source</Menu.Label>
           <Menu.Item
-            disabled={menuItemsDisabled || snapshot?.connectorService === null}
+            disabled={menuItemsDisabled}
             onClick={() => {
               modalStack.open(Modals.CONFIRM_DOWNLOAD);
             }}
@@ -252,7 +252,7 @@ export const SnapshotActionsMenu = () => {
           <Menu.Item
             onClick={handlePublish}
             leftSection={<UploadIcon />}
-            disabled={snapshot?.connectorService === null}
+            // disabled={snapshot?.connectorService === null}
           >
             {getPushOperationName(connectorAccount?.service)}
           </Menu.Item>
@@ -301,16 +301,17 @@ export const SnapshotActionsMenu = () => {
         </Menu.Dropdown>
       </Menu>
       {/* Fully remove the modal when not shown, to clean up state */}
-      {connectorAccount && (
+      {snapshot && (
         <PublishConfirmationModal
           isOpen={showPublishConfirmation}
           onClose={() => setShowPublishConfirmation(false)}
           onConfirm={handleConfirmPublish}
           snapshotId={snapshot?.id ?? ''}
-          serviceName={serviceName(connectorAccount?.service)}
+          serviceName={serviceName(snapshot.connectorService)}
           isPublishing={saving}
         />
       )}
+
       {downloadInProgress && snapshot?.id && (
         <DownloadProgressModal
           snapshotId={snapshot.id}

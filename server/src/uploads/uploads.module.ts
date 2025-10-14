@@ -10,6 +10,6 @@ import { UploadsService } from './uploads.service';
   imports: [DbModule, ScratchpadConfigModule, SnapshotDbModule],
   controllers: [UploadsController],
   providers: [UploadsService, UploadsDbService],
-  exports: [UploadsService],
+  exports: [UploadsService, UploadsDbService],
 })
 export class UploadsModule {}

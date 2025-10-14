@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { Service } from '@prisma/client';
+import { ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
+import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
@@ -51,7 +52,11 @@ export class SnapshotService {
     // Poll the connector for the set of columns.
     // This probably could be something the user selects, which would mean we poll for it earlier and just take the
     // results back here.
-    const connector = await this.connectorService.getConnector(connectorAccount);
+    const connector = await this.connectorService.getConnector({
+      service: connectorAccount.service,
+      connectorAccount,
+      decryptedCredentials: connectorAccount,
+    });
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
     for (const tableId of tableIds) {
@@ -71,6 +76,7 @@ export class SnapshotService {
         userId,
         connectorAccountId,
         name: createSnapshotDto.name,
+        service: connectorAccount.service,
         tableSpecs, // Cast to any for Prisma JSON storage
         tableContexts,
       },
@@ -368,7 +374,11 @@ export class SnapshotService {
       throw new BadRequestException('Cannot deep fetch records for connectorless snapshots');
     }
 
-    const connector = await this.connectorService.getConnector(snapshot.connectorAccount);
+    const connector = await this.connectorService.getConnector({
+      service: snapshot.connectorAccount.service,
+      connectorAccount: snapshot.connectorAccount,
+      decryptedCredentials: null,
+    });
 
     // Check if the connector supports deep fetch
     if (!connector.downloadRecordDeep) {
@@ -815,7 +825,11 @@ export class SnapshotService {
       snapshot.connectorAccount.id,
       snapshot.connectorAccount.userId,
     );
-    const connector = await this.connectorService.getConnector(connectorAccount);
+    const connector = await this.connectorService.getConnector({
+      service: snapshot.connectorAccount.service,
+      connectorAccount,
+      decryptedCredentials: connectorAccount,
+    });
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     let totalCount = 0;
     const tables: { id: string; name: string; records: number }[] = [];
@@ -865,9 +879,9 @@ export class SnapshotService {
   async publish(id: SnapshotId, userId: string): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
 
-    if (!snapshot.connectorAccount) {
-      throw new BadRequestException('Cannot publish connectorless snapshots');
-    }
+    // if (!snapshot.connectorAccount) {
+    //   throw new BadRequestException('Cannot publish connectorless snapshots');
+    // }
 
     // TODO: Do this work somewhere real.
     // For now it's running synchronously, but could also be done in the background.
@@ -879,9 +893,9 @@ export class SnapshotService {
   async getPublishSummary(id: SnapshotId, userId: string): Promise<PublishSummaryDto> {
     const snapshot = await this.findOneWithConnectorAccount(id, userId);
 
-    if (!snapshot.connectorAccount) {
-      throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
-    }
+    // if (!snapshot.connectorAccount) {
+    //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
+    // }
 
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
@@ -935,14 +949,18 @@ export class SnapshotService {
 
   private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
     // need a full connector account object with decoded credentials
-    if (!snapshot.connectorAccount) {
-      throw new Error('Snapshot does not have a connector account');
-    }
-    const connectorAccount = await this.connectorAccountService.findOne(
-      snapshot.connectorAccount.id,
-      snapshot.connectorAccount.userId,
-    );
-    const connector = await this.connectorService.getConnector(connectorAccount);
+    // if (!snapshot.connectorAccount) {
+    //   throw new Error('Snapshot does not have a connector account');
+    // }
+    const connectorAccount: (ConnectorAccount & DecryptedCredentials) | null = snapshot.connectorAccount
+      ? await this.connectorAccountService.findOne(snapshot.connectorAccount.id, snapshot.connectorAccount.userId)
+      : null;
+    const connector = await this.connectorService.getConnector({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      service: snapshot.service,
+      connectorAccount: connectorAccount,
+      decryptedCredentials: connectorAccount,
+    });
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
     // First create everything.
@@ -973,9 +991,9 @@ export class SnapshotService {
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     const connectorAccount = snapshot.connectorAccount;
-    if (!connectorAccount) {
-      throw new BadRequestException('Cannot publish creates to connectorless snapshots');
-    }
+    // if (!connectorAccount) {
+    //   throw new BadRequestException('Cannot publish creates to connectorless snapshots');
+    // }
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
@@ -1001,9 +1019,9 @@ export class SnapshotService {
   ): Promise<void> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
     const connectorAccount = snapshot.connectorAccount;
-    if (!connectorAccount) {
-      throw new BadRequestException('Cannot publish updates to connectorless snapshots');
-    }
+    // if (!connectorAccount) {
+    //   throw new BadRequestException('Cannot publish updates to connectorless snapshots');
+    // }
 
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
@@ -1027,9 +1045,9 @@ export class SnapshotService {
   ): Promise<void> {
     // Finally the deletes since hopefully nothing references them.
     const connectorAccount = snapshot.connectorAccount;
-    if (!connectorAccount) {
-      throw new BadRequestException('Cannot publish deletes to connectorless snapshots');
-    }
+    // if (!connectorAccount) {
+    //   throw new BadRequestException('Cannot publish deletes to connectorless snapshots');
+    // }
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
@@ -1278,6 +1296,7 @@ export class SnapshotService {
           userId, // Direct user association
           connectorAccountId: null, // Connectorless snapshot
           name: scratchpaperName,
+          service: Service.CSV,
           tableSpecs,
           tableContexts: [
             {
@@ -1386,6 +1405,7 @@ export class SnapshotService {
           userId, // Direct user association
           connectorAccountId: null, // Connectorless snapshot
           name: scratchpaperName,
+          service: Service.CSV,
           tableSpecs,
           tableContexts: [
             {

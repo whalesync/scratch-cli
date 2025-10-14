@@ -152,13 +152,21 @@ export class ConnectorAccountService {
 
   async listTables(id: string, userId: string): Promise<TablePreview[]> {
     const account = await this.findOne(id, userId);
-    const connector = await this.connectorsService.getConnector(account);
+    const connector = await this.connectorsService.getConnector({
+      service: account.service,
+      connectorAccount: account,
+      decryptedCredentials: account,
+    });
     return connector.listTables(account);
   }
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {
     const account = await this.findOne(id, userId);
-    const connector = await this.connectorsService.getConnector(account);
+    const connector = await this.connectorsService.getConnector({
+      service: account.service,
+      connectorAccount: account,
+      decryptedCredentials: account,
+    });
     try {
       await connector.testConnection();
 

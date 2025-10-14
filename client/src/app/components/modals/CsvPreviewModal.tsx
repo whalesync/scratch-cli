@@ -20,7 +20,7 @@ import {
 } from '@mantine/core';
 import { X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
 
 // Custom type for modal that includes IGNORE option
@@ -30,7 +30,7 @@ interface CsvPreviewModalProps {
   opened: boolean;
   onClose: () => void;
   data: CsvPreviewResponse | null;
-  fileName?: string;
+  fileName: string | null;
   file: File | null;
 }
 
@@ -42,7 +42,7 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
   return getColumnTypeIcon(type as PostgresColumnType);
 };
 
-export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPreviewModalProps) => {
+export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, data, fileName, file }) => {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const [firstRowIsHeader, setFirstRowIsHeader] = useState(true);
@@ -79,8 +79,7 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
   // Initialize scratchpaper name from filename
   useEffect(() => {
     if (fileName) {
-      const nameWithoutExtension = fileName.replace(/\.[^/.]+$/, '');
-      setScratchpaperName(nameWithoutExtension);
+      setScratchpaperName(fileName);
     }
   }, [fileName]);
 

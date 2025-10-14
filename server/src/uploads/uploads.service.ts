@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
+import { Service } from '@prisma/client';
 import { parse, Parser } from 'csv-parse';
 import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
@@ -693,7 +694,7 @@ export class UploadsService {
     }
 
     const snapshotId = createSnapshotId();
-    const tableId = 'csv_data'; // Single table for CSV imports
+    const tableId = uploadId; // Use uploadId as tableId so we can track it back to the upload
     const uploadSchemaName = this.uploadsDbService.getUserUploadSchema(userId);
     const uploadTableName = upload.typeId;
 
@@ -732,7 +733,7 @@ export class UploadsService {
 
       const tableSpecs = [
         {
-          id: { wsId: tableId, remoteId: ['-'] },
+          id: { wsId: tableId, remoteId: [uploadId] }, // Store uploadId in remoteId so we can find it
           name: snapshotName,
           columns,
         },
@@ -743,13 +744,13 @@ export class UploadsService {
         data: {
           id: snapshotId,
           userId,
-          connectorAccountId: null, // Connectorless snapshot
+          connectorAccountId: null, // No connector account needed for CSV
           name: snapshotName,
-          type: 'CSV', // Set type to CSV
+          service: Service.CSV, // Set service to CSV
           tableSpecs,
           tableContexts: [
             {
-              id: { wsId: tableId, remoteId: ['-'] },
+              id: { wsId: tableId, remoteId: [uploadId] },
               activeViewId: null,
               ignoredColumns: [],
               readOnlyColumns: [],

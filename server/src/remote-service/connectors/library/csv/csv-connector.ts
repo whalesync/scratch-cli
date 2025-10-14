@@ -1,60 +1,93 @@
-import { ConnectorAccount, Service } from '@prisma/client';
-import { CsvFileService } from 'src/csv-file/csv-file.service';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+import { Service } from '@prisma/client';
+import { DbService } from 'src/db/db.service';
+import { createCsvFileRecordId } from 'src/types/ids';
+import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { CsvTableSpec } from '../custom-spec-registry';
-import { parseCsv } from './csv-parser';
 
 export class CsvConnector extends Connector<typeof Service.CSV> {
   service = Service.CSV;
 
-  constructor(private readonly csvFileService: CsvFileService) {
+  constructor(
+    private readonly db: DbService,
+    private readonly uploadsDbService: UploadsDbService,
+  ) {
     super();
   }
 
   public async testConnection(): Promise<void> {
-    // CSV connector doesn't need to test connection since it uses local files
+    // CSV connector doesn't need to test connection since it uses PostgreSQL
   }
 
-  async listTables(account: ConnectorAccount): Promise<TablePreview[]> {
-    // Get all CSV files for the user
-    const csvFiles = await this.csvFileService.findAll(account.userId);
-
-    return csvFiles.map((csvFile) => ({
-      id: {
-        wsId: csvFile.id,
-        remoteId: [csvFile.id],
-      },
-      displayName: csvFile.name,
-    }));
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async listTables(): Promise<TablePreview[]> {
+    // CSV uploads don't support listing tables - each snapshot is tied to a specific upload
+    // This method shouldn't be called for CSV snapshots
+    throw new Error('CSV connector does not support listing tables');
   }
 
-  async fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<CsvTableSpec> {
-    // Get the CSV file
-    const csvFile = await this.csvFileService.findOne(id.wsId, account.userId);
-    if (!csvFile) {
-      throw new Error(`CSV file not found: ${id.wsId}`);
+  async fetchTableSpec(id: EntityId): Promise<CsvTableSpec> {
+    // For CSV, the uploadId is stored in remoteId array
+    const uploadId = id.remoteId[0];
+
+    // Get the upload
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    // Parse the CSV to get headers
-    const csvData = parseCsv(csvFile.body);
+    // Get table structure from the upload table
+    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const tableName = upload.typeId;
 
-    // Create column specs from headers
-    const columns = csvData.headers.map((header, index) => ({
-      id: {
-        wsId: header,
-        remoteId: [header],
-      },
-      name: header,
-      pgType: PostgresColumnType.TEXT, // All CSV fields are strings
-      markdown: header.toLowerCase().endsWith('_md') || header.toLowerCase().endsWith('.md') ? true : undefined,
-      readonly: index === 0 && (header.toLowerCase() === 'id' || header.toLowerCase().endsWith('_id')), // First field is readonly if it is the identity field
-    }));
+    const tableInfo = await this.uploadsDbService.knex(tableName).withSchema(schemaName).columnInfo();
+
+    // Filter out metadata columns
+    const dataColumns = Object.keys(tableInfo).filter(
+      (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
+    );
+
+    // Create column specs
+    const columns = dataColumns.map((name) => {
+      const colInfo = tableInfo[name];
+      // Map Postgres types to our PostgresColumnType enum
+      let pgType = PostgresColumnType.TEXT;
+      if (
+        colInfo.type === 'integer' ||
+        colInfo.type === 'bigint' ||
+        colInfo.type === 'numeric' ||
+        colInfo.type === 'decimal' ||
+        colInfo.type === 'double precision'
+      ) {
+        pgType = PostgresColumnType.NUMERIC;
+      } else if (colInfo.type === 'boolean') {
+        pgType = PostgresColumnType.BOOLEAN;
+      }
+
+      return {
+        id: {
+          wsId: name,
+          remoteId: [name],
+        },
+        name: name,
+        pgType,
+        markdown: name.toLowerCase().endsWith('_md') || name.toLowerCase().endsWith('.md') ? true : undefined,
+        readonly: false,
+      };
+    });
 
     return {
       id,
-      name: csvFile.name,
+      name: upload.name,
       columns,
     };
   }
@@ -62,26 +95,38 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
   async downloadTableRecords(
     tableSpec: CsvTableSpec,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
-    account: ConnectorAccount,
   ): Promise<void> {
-    // Get the CSV file
-    const csvFile = await this.csvFileService.findOne(tableSpec.id.wsId, account.userId);
-    if (!csvFile) {
-      throw new Error(`CSV file not found: ${tableSpec.id.wsId}`);
+    // For CSV, the uploadId is stored in remoteId array
+    const uploadId = tableSpec.id.remoteId[0];
+
+    // Get the upload
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    // Parse the CSV
-    const csvData = parseCsv(csvFile.body);
+    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const tableName = upload.typeId;
+
+    // Read records from the upload table
+    const records = await this.uploadsDbService.knex(tableName).withSchema(schemaName).select('*');
 
     // Convert to ConnectorRecord format
-    const records: ConnectorRecord[] = csvData.records.map((record) => ({
-      id: record.fields[csvData.headers[0]] || record.id, // Use first field as ID, fallback to row number
-      fields: record.fields,
-    }));
+    const connectorRecords: ConnectorRecord[] = records.map((record: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { remoteId, createdAt, updatedAt, ...fields } = record;
+      return {
+        id: remoteId as string,
+        fields,
+      };
+    });
 
     // Call the callback with records, 100 at a time
-    for (let i = 0; i < records.length; i += 100) {
-      await callback({ records: records.slice(i, i + 100) });
+    for (let i = 0; i < connectorRecords.length; i += 100) {
+      await callback({ records: connectorRecords.slice(i, i + 100) });
     }
   }
 
@@ -89,168 +134,93 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getBatchSize(operation: 'create' | 'update' | 'delete'): number {
-    // For CSV, we can process all records at once since they're in memory
     return 1000;
   }
 
   async createRecords(
     tableSpec: CsvTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
-    account: ConnectorAccount,
   ): Promise<{ wsId: string; remoteId: string }[]> {
-    // Get the current CSV file
-    const csvFile = await this.csvFileService.findOne(tableSpec.id.wsId, account.userId);
-    if (!csvFile) {
-      throw new Error(`CSV file not found: ${tableSpec.id.wsId}`);
+    // For CSV, the uploadId is stored in remoteId array
+    const uploadId = tableSpec.id.remoteId[0];
+
+    // Get the upload
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    // Parse existing CSV
-    const csvData = parseCsv(csvFile.body);
-    const existingRecords = csvData.records;
-    const identityField = csvData.headers[0];
+    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const tableName = upload.typeId;
 
-    // Add new records
-    const newRecords = records.map((record) => {
-      // Use the provided identity value or generate a unique one
-      const identityValue =
-        (record.fields[identityField] as string) || this.generateUniqueId(existingRecords, identityField);
-
+    // Insert new records with generated cfr_ IDs
+    const recordsToInsert = records.map((record) => {
+      const remoteId = createCsvFileRecordId();
       return {
-        id: identityValue,
-        fields: {
-          ...record.fields,
-          [identityField]: identityValue, // Ensure identity field is set
-        } as Record<string, string>,
+        remoteId,
+        ...record.fields,
       };
     });
 
-    // Combine existing and new records
-    const allRecords = [...existingRecords, ...newRecords];
+    await this.uploadsDbService.knex(tableName).withSchema(schemaName).insert(recordsToInsert);
 
-    // Convert back to CSV format
-    const newCsvContent = this.convertToCsv(csvData.headers, allRecords);
-
-    // Update the CSV file
-    await this.csvFileService.update(
-      tableSpec.id.wsId,
-      {
-        body: newCsvContent,
-      },
-      account.userId,
-    );
-
-    // Return the new record IDs
+    // Return the mapping of wsId to remoteId
     return records.map((record, index) => ({
       wsId: record.wsId,
-      remoteId: newRecords[index].id,
+      remoteId: recordsToInsert[index].remoteId,
     }));
   }
 
   async updateRecords(
     tableSpec: CsvTableSpec,
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
-    account: ConnectorAccount,
   ): Promise<void> {
-    // Get the current CSV file
-    const csvFile = await this.csvFileService.findOne(tableSpec.id.wsId, account.userId);
-    if (!csvFile) {
-      throw new Error(`CSV file not found: ${tableSpec.id.wsId}`);
+    // For CSV, the uploadId is stored in remoteId array
+    const uploadId = tableSpec.id.remoteId[0];
+
+    // Get the upload
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    // Parse existing CSV
-    const csvData = parseCsv(csvFile.body);
-    const identityField = csvData.headers[0];
+    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const tableName = upload.typeId;
 
-    // We don't care about the status of the CSV, this will just update all of them
-    // Update records by finding them by identity field
+    // Update records by remoteId
     for (const record of records) {
-      const recordToUpdate = csvData.records.find((r) => r.fields[identityField] === record.id.remoteId);
-      if (recordToUpdate) {
-        // Update the fields, but don't allow updating the identity field
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { [identityField]: _, ...fieldsToUpdate } = record.partialFields as Record<string, string>;
-        Object.assign(recordToUpdate.fields, fieldsToUpdate);
-      }
+      await this.uploadsDbService
+        .knex(tableName)
+        .withSchema(schemaName)
+        .where({ remoteId: record.id.remoteId })
+        .update(record.partialFields);
+    }
+  }
+
+  async deleteRecords(tableSpec: CsvTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+    // For CSV, the uploadId is stored in remoteId array
+    const uploadId = tableSpec.id.remoteId[0];
+
+    // Get the upload
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    // Convert back to CSV format
-    const newCsvContent = this.convertToCsv(csvData.headers, csvData.records);
+    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const tableName = upload.typeId;
 
-    // Update the CSV file
-    await this.csvFileService.update(
-      tableSpec.id.wsId,
-      {
-        body: newCsvContent,
-      },
-      account.userId,
-    );
-  }
-
-  async deleteRecords(
-    tableSpec: CsvTableSpec,
-    recordIds: { wsId: string; remoteId: string }[],
-    account: ConnectorAccount,
-  ): Promise<void> {
-    // Get the current CSV file
-    const csvFile = await this.csvFileService.findOne(tableSpec.id.wsId, account.userId);
-    if (!csvFile) {
-      throw new Error(`CSV file not found: ${tableSpec.id.wsId}`);
-    }
-
-    // Parse existing CSV
-    const csvData = parseCsv(csvFile.body);
-    const identityField = csvData.headers[0];
-
-    // Create a set of identity values to delete
-    const identitiesToDelete = new Set(recordIds.map((record) => record.remoteId));
-
-    // Filter out the records to delete
-    const remainingRecords = csvData.records.filter((record) => !identitiesToDelete.has(record.fields[identityField]));
-
-    // Convert back to CSV format
-    const newCsvContent = this.convertToCsv(csvData.headers, remainingRecords);
-
-    // Update the CSV file
-    await this.csvFileService.update(
-      tableSpec.id.wsId,
-      {
-        body: newCsvContent,
-      },
-      account.userId,
-    );
-  }
-
-  private convertToCsv(headers: string[], records: { fields: Record<string, string> }[]): string {
-    // Create header row
-    const headerRow = headers.map((header) => this.escapeCsvField(header)).join(',');
-
-    // Create data rows
-    const dataRows = records.map((record) =>
-      headers.map((header) => this.escapeCsvField(record.fields[header] || '')).join(','),
-    );
-
-    // Combine header and data rows
-    return [headerRow, ...dataRows].join('\n');
-  }
-
-  // public downloadRecordDeep = undefined;
-
-  private escapeCsvField(field: string): string {
-    // If the field contains comma, quote, or newline, wrap it in quotes and escape internal quotes
-    if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-      return `"${field.replace(/"/g, '""')}"`;
-    }
-    return field;
-  }
-
-  private generateUniqueId(existingRecords: { fields: Record<string, string> }[], identityField: string): string {
-    // Find the highest numeric ID and increment it
-    const existingIds = existingRecords
-      .map((record) => record.fields[identityField])
-      .filter((id) => !isNaN(Number(id)))
-      .map((id) => parseInt(id, 10));
-
-    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-    return (maxId + 1).toString();
+    // Delete records by remoteId
+    const remoteIds = recordIds.map((r) => r.remoteId);
+    await this.uploadsDbService.knex(tableName).withSchema(schemaName).whereIn('remoteId', remoteIds).delete();
   }
 }

@@ -71,19 +71,19 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   abstract createRecords(
     tableSpec: TableSpecs[T],
     records: { wsId: string; fields: Record<string, unknown> }[],
-    account: ConnectorAccount,
+    account: ConnectorAccount | null,
   ): Promise<{ wsId: string; remoteId: string }[]>;
 
   // TODO: Should this return updated records?
   abstract updateRecords(
     tableSpec: TableSpecs[T],
     records: SnapshotRecordSanitizedForUpdate[],
-    account: ConnectorAccount,
+    account?: ConnectorAccount | null,
   ): Promise<void>;
 
   abstract deleteRecords(
     tableSpec: TableSpecs[T],
     recordIds: { wsId: string; remoteId: string }[],
-    account: ConnectorAccount,
+    account: ConnectorAccount | null,
   ): Promise<void>;
 }

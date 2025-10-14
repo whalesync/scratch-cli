@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { EntityId } from "./table-list";
+import { Service } from "./connector-accounts";
 
 export interface ColumnSpec {
   id: EntityId;
@@ -50,7 +51,7 @@ export interface Snapshot {
   userId: string;
   connectorAccountId: string | null;
   connectorDisplayName: string | null;
-  connectorService: string | null;
+  connectorService: Service;
 }
 
 export interface CreateSnapshotDto {

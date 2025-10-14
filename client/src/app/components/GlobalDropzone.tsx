@@ -73,7 +73,6 @@ export const GlobalDropzone = () => {
     const csvFile = files.find((file) => file.name.toLowerCase().endsWith('.csv'));
 
     if (csvFile) {
-      debugger;
       console.debug('CSV file dropped:', csvFile.name);
 
       const reader = new FileReader();

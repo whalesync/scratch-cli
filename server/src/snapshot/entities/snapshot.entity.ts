@@ -9,7 +9,7 @@ export class Snapshot {
   updatedAt: Date;
   connectorAccountId: string | null;
   connectorDisplayName: string | null;
-  connectorService: string | null;
+  connectorService: string;
   tables: AnyTableSpec[];
   tableContexts: SnapshotTableContext[];
   activeRecordSqlFilter?: Record<string, string>;
@@ -23,7 +23,7 @@ export class Snapshot {
     this.connectorAccountId = snapshot.connectorAccountId;
     this.tables = snapshot.tableSpecs as AnyTableSpec[];
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
-    this.connectorService = snapshot.connectorAccount?.service ?? null;
+    this.connectorService = snapshot.service as string;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
 
     this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;

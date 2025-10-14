@@ -1,10 +1,11 @@
 'use client';
 
-import { Badge, Button, Center, Group, Loader, Table, Text, ThemeIcon } from '@mantine/core';
+import { Badge, Button, Center, Group, Loader, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
 import { Check, Circle, Dot, Eye, X } from 'lucide-react';
 import { useState } from 'react';
 import { useJobs } from '../../hooks/use-jobs';
 import { JobEntity } from '../../types/server-entities/job';
+import { formatDate, timeAgo } from '../../utils/helpers';
 import { DownloadProgressModal2 } from '../components/jobs/download/DownloadJobProgressModal2';
 import MainContent from '../components/layouts/MainContent';
 
@@ -74,10 +75,6 @@ const getStatusColor = (status: JobEntity['state']) => {
 //   }
 // };
 
-const formatDate = (dateString: Date) => {
-  return dateString.toLocaleString();
-};
-
 export default function JobsPage() {
   const { jobs, error, isLoading } = useJobs();
   const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);
@@ -125,7 +122,6 @@ export default function JobsPage() {
               <Table.Tr>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Type</Table.Th>
-                <Table.Th>Created</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Completed</Table.Th>
                 <Table.Th>Error</Table.Th>
@@ -148,13 +144,26 @@ export default function JobsPage() {
                     <Text size="sm">{job.type}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{job.processedOn ? formatDate(job.processedOn) : '-'}</Text>
+                    {job.processedOn ? (
+                      <Tooltip label={formatDate(job.processedOn)}>
+                        <Text size="sm" c="dimmed">
+                          {timeAgo(job.processedOn)}
+                        </Text>
+                      </Tooltip>
+                    ) : (
+                      '-'
+                    )}
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{job.processedOn ? formatDate(job.processedOn) : '-'}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{job.finishedOn ? formatDate(job.finishedOn) : '-'}</Text>
+                    {job.finishedOn ? (
+                      <Tooltip label={formatDate(job.finishedOn)}>
+                        <Text size="sm" c="dimmed">
+                          {timeAgo(job.finishedOn)}
+                        </Text>
+                      </Tooltip>
+                    ) : (
+                      '-'
+                    )}
                   </Table.Td>
                   <Table.Td>
                     {job.failedReason ? (
