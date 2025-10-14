@@ -7,6 +7,7 @@ import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
+import { UploadsService } from 'src/uploads/uploads.service';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { BullEnqueuerService } from 'src/worker/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
@@ -35,6 +36,7 @@ export class SnapshotService {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
+    private readonly uploadsService: UploadsService,
     @Optional() private readonly bullEnqueuerService?: BullEnqueuerService,
   ) {}
 
@@ -1237,6 +1239,177 @@ export class SnapshotService {
     }
 
     return changes;
+  }
+
+  /**
+   * @deprecated
+   */
+  async importCsv(
+    buffer: Buffer,
+    userId: string,
+    scratchpaperName: string,
+    columnNames: string[],
+    columnTypes: PostgresColumnType[],
+    firstRowIsHeader: boolean,
+  ): Promise<{ snapshotId: string; tableId: string }> {
+    try {
+      // Create a connectorless snapshot
+      const snapshotId = createSnapshotId();
+      const tableId = 'csv_data'; // Single table for CSV imports
+
+      // Create table specs from user configuration
+      const tableSpecs = [
+        {
+          id: { wsId: tableId, remoteId: ['-'] },
+          name: scratchpaperName,
+          columns: columnNames.map((name, index) => ({
+            id: { wsId: name, remoteId: ['-'] },
+            name: name,
+            pgType: columnTypes[index] || PostgresColumnType.TEXT,
+            readonly: false,
+          })),
+        },
+      ] satisfies AnyTableSpec[];
+
+      // Create the snapshot in the database
+      await this.db.client.snapshot.create({
+        data: {
+          id: snapshotId,
+          userId, // Direct user association
+          connectorAccountId: null, // Connectorless snapshot
+          name: scratchpaperName,
+          tableSpecs,
+          tableContexts: [
+            {
+              id: { wsId: tableId, remoteId: ['-'] },
+              activeViewId: null,
+              ignoredColumns: [],
+              readOnlyColumns: [],
+            },
+          ] satisfies SnapshotTableContext[],
+        },
+      });
+
+      // Create the database schema and table
+      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs);
+
+      // Stream CSV data to PostgreSQL using COPY
+      await this.uploadsService.streamCsvToPostgres(buffer, snapshotId, tableId, columnNames, firstRowIsHeader);
+
+      return { snapshotId, tableId };
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to import CSV: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * @deprecated
+   */
+  private async insertTemplateData(snapshotId: SnapshotId, tableId: string, sampleData: any[]): Promise<void> {
+    try {
+      const knex = this.snapshotDbService.snapshotDb.knex;
+
+      // Insert each record with a generated wsId
+      for (const record of sampleData) {
+        const wsId = `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        await knex(`${snapshotId}.${tableId}`).insert({
+          wsId,
+          ...record,
+          __edited_fields: {},
+          __suggested_values: {},
+          __metadata: {},
+          __dirty: false,
+        });
+      }
+
+      console.log(`Successfully inserted ${sampleData.length} template records to ${snapshotId}.${tableId}`);
+    } catch (error) {
+      console.error('Error inserting template data:', error);
+      throw new Error(`Failed to insert template data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  /**
+   * @deprecated
+   */
+  async createTemplate(userId: string, scratchpaperName: string): Promise<{ snapshotId: string; tableId: string }> {
+    try {
+      // Create a connectorless snapshot
+      const snapshotId = createSnapshotId();
+      const tableId = 'content_data'; // Single table for template imports
+
+      // Sample data for the template (same as the original CONTENT_FILE_BODY)
+      const sampleData = [
+        { id: '1', name: 'Sample Item', content_md: 'This is some test content', status: 'unpublished' },
+      ];
+
+      // Create table specs for the template
+      const tableSpecs = [
+        {
+          id: { wsId: tableId, remoteId: ['-'] },
+          name: scratchpaperName,
+          columns: [
+            {
+              id: { wsId: 'id', remoteId: ['-'] },
+              name: 'id',
+              pgType: PostgresColumnType.TEXT,
+              readonly: false,
+            },
+            {
+              id: { wsId: 'name', remoteId: ['-'] },
+              name: 'name',
+              pgType: PostgresColumnType.TEXT,
+              readonly: false,
+            },
+            {
+              id: { wsId: 'content_md', remoteId: ['-'] },
+              name: 'content_md',
+              pgType: PostgresColumnType.TEXT,
+              readonly: false,
+            },
+            {
+              id: { wsId: 'status', remoteId: ['-'] },
+              name: 'status',
+              pgType: PostgresColumnType.TEXT,
+              readonly: false,
+            },
+          ],
+        },
+      ] satisfies AnyTableSpec[];
+
+      // Create the snapshot in the database
+      await this.db.client.snapshot.create({
+        data: {
+          id: snapshotId,
+          userId, // Direct user association
+          connectorAccountId: null, // Connectorless snapshot
+          name: scratchpaperName,
+          tableSpecs,
+          tableContexts: [
+            {
+              id: { wsId: tableId, remoteId: ['-'] },
+              activeViewId: null,
+              ignoredColumns: [],
+              readOnlyColumns: [],
+            },
+          ] satisfies SnapshotTableContext[],
+        },
+      });
+
+      // Create the database schema and table
+      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs);
+
+      // Insert sample data using regular Knex (no streaming needed for small data)
+      await this.insertTemplateData(snapshotId, tableId, sampleData);
+
+      return { snapshotId, tableId };
+    } catch (error) {
+      console.error('Error creating template:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to create template: ${errorMessage}`);
+    }
   }
 }
 

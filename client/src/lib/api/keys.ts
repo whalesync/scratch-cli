@@ -56,6 +56,12 @@ export const SWR_KEYS = {
     list: (snapshotId: string) => ["agent-sessions", "list", snapshotId],
     detail: (id: string) => ["agent-sessions", "detail", id],
   },
+  uploads: {
+    list: () => ["uploads", "list"],
+    detail: (id: string) => ["uploads", "detail", id],
+    csvData: (id: string, limit?: number, offset?: number) => ["uploads", "csv-data", id, limit, offset],
+    mdData: (id: string) => ["uploads", "md-data", id],
+  },
 };
 
 export const API_IMPORT_KEYS = {

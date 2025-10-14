@@ -10,6 +10,8 @@ type ServiceNamingConvention = {
   logo?: string
   oauthLabel?: string
   oauthPrivateLabel?: string
+  pushOperationName: string
+  pullOperationName: string
 };
 
 
@@ -24,6 +26,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     bases: null,
     logo: "notion.svg",
     oauthLabel: "OAuth",
+    pushOperationName: "Publish",
+    pullOperationName: "Download",
   },
   [Service.AIRTABLE]: {
     service: "Airtable",
@@ -34,6 +38,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: "records",
     bases: "bases",
     logo: "airtable.svg",
+    pushOperationName: "Publish",
+    pullOperationName: "Download",
   },
   [Service.YOUTUBE]: {
     service: "YouTube",
@@ -46,6 +52,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     logo: "youtube-color-svgrepo-com.svg",
     oauthLabel: "OAuth (100 api credits/day)",
     oauthPrivateLabel: "Private OAuth (10,000 api credits/day)",
+    pushOperationName: "Publish",
+    pullOperationName: "Download",
   },
   [Service.CUSTOM]: {
     service: "Custom",
@@ -56,6 +64,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: "records",
     bases: null,
     logo: "gear-svgrepo-com.svg",
+    pushOperationName: "Publish",
+    pullOperationName: "Download",
   },
   [Service.CSV]: {
     service: "CSV",
@@ -66,6 +76,8 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: "rows",
     bases: null,
     logo: "csv-svgrepo-com.svg",
+    pushOperationName: "Publish",
+    pullOperationName: "Download",
   },
 };
 
@@ -117,8 +129,22 @@ export const getOauthPrivateLabel = (serviceCode: Service): string => {
 }
 
 export const getServiceName = (serviceCode: Service | null | undefined): string => {
-    if (!serviceCode) {
-        return 'CSV';
-    }
-    return ServiceNamingConventions[serviceCode]?.service ?? 'Unknown';
+  if (!serviceCode) {
+      return 'CSV';
+  }
+  return ServiceNamingConventions[serviceCode]?.service ?? 'Unknown';
+}
+
+export const getPullOperationName = (serviceCode: Service | null | undefined): string => {
+  if (!serviceCode) {
+      return 'Reload';
+  }
+  return ServiceNamingConventions[serviceCode]?.pullOperationName ?? 'Download';
+}
+
+export const getPushOperationName = (serviceCode: Service | null | undefined): string => {
+  if (!serviceCode) {
+      return 'Save';
+  }
+  return ServiceNamingConventions[serviceCode]?.pushOperationName ?? 'Publish';
 }

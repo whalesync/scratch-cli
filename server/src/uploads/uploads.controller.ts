@@ -1,22 +1,38 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Body, Controller, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { PostgresColumnType } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
-import { CsvPreviewResponse, UploadsService } from './uploads.service';
+import { ListUploadsResponseDto } from './dto/list-uploads.dto';
+import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
+import { PreviewMdResponseDto } from './dto/preview-md.dto';
+import { UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
+import { UploadMdResponseDto } from './dto/upload-md.dto';
+import { UploadsService } from './uploads.service';
 
 @Controller('uploads')
 @UseGuards(ScratchpadAuthGuard)
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
-  @Post('preview-csv')
+  @Post('csv/preview')
   @UseInterceptors(FileInterceptor('file'))
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async previewCsv(@UploadedFile() file: any, @Req() req: RequestWithUser): Promise<CsvPreviewResponse> {
+  async previewCsv(@UploadedFile() file: any, @Req() req: RequestWithUser): Promise<PreviewCsvResponseDto> {
     if (!file) {
       throw new Error('No file uploaded');
     }
@@ -28,19 +44,27 @@ export class UploadsController {
     return this.uploadsService.previewCsv(file.buffer);
   }
 
-  @Post('import-csv')
+  @Post('md/preview')
   @UseInterceptors(FileInterceptor('file'))
-  async importCsv(
+  async previewMarkdown(@UploadedFile() file: any, @Req() req: RequestWithUser): Promise<PreviewMdResponseDto> {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+
+    if (!file.mimetype.includes('markdown') && !file.originalname.toLowerCase().endsWith('.md')) {
+      throw new Error('File must be a Markdown file');
+    }
+
+    return this.uploadsService.previewMarkdown(file.buffer, req.user.id);
+  }
+
+  @Post('csv')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCsv(
     @UploadedFile() file: any,
-    @Body()
-    body: {
-      scratchpaperName: string;
-      columnNames: string[]; // Array from form data
-      columnTypes: PostgresColumnType[]; // Array from form data
-      firstRowIsHeader: boolean; // Boolean from form data
-    },
+    @Body() body: UploadCsvDto,
     @Req() req: RequestWithUser,
-  ): Promise<{ snapshotId: string; tableId: string }> {
+  ): Promise<UploadCsvResponseDto> {
     if (!file) {
       throw new Error('No file uploaded');
     }
@@ -49,29 +73,71 @@ export class UploadsController {
       throw new Error('File must be a CSV');
     }
 
-    if (!body.scratchpaperName || !body.columnNames || !body.columnTypes) {
-      throw new Error('Missing required parameters: scratchpaperName, columnNames, columnTypes');
-    }
+    const result = await this.uploadsService.uploadCsv(file.buffer, req.user.id, body);
 
-    return this.uploadsService.importCsv(
-      file.buffer,
-      req.user.id,
-      body.scratchpaperName,
-      body.columnNames,
-      body.columnTypes,
-      body.firstRowIsHeader,
-    );
+    return {
+      uploadId: result.uploadId,
+      tableId: result.tableId,
+      rowCount: result.rowCount,
+    };
   }
 
-  @Post('create-template')
-  async createTemplate(
-    @Body() body: { scratchpaperName: string },
-    @Req() req: RequestWithUser,
-  ): Promise<{ snapshotId: string; tableId: string }> {
-    if (!body.scratchpaperName) {
-      throw new Error('Missing required parameter: scratchpaperName');
+  @Post('md')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadMarkdown(@UploadedFile() file: any, @Req() req: RequestWithUser): Promise<UploadMdResponseDto> {
+    if (!file) {
+      throw new Error('No file uploaded');
     }
 
-    return await this.uploadsService.createTemplate(req.user.id, body.scratchpaperName);
+    if (!file.mimetype.includes('markdown') && !file.originalname.toLowerCase().endsWith('.md')) {
+      throw new Error('File must be a Markdown file');
+    }
+
+    const result = await this.uploadsService.uploadMarkdown(file.buffer, req.user.id, file.originalname);
+
+    return {
+      uploadId: result.uploadId,
+      mdUploadId: result.mdUploadId,
+      frontMatterKeys: result.frontMatterKeys,
+    };
+  }
+
+  @Get()
+  async listUploads(@Req() req: RequestWithUser): Promise<ListUploadsResponseDto> {
+    const uploads = await this.uploadsService.listUploads(req.user.id);
+    return { uploads };
+  }
+
+  @Get('csv/:id/data')
+  async getCsvData(
+    @Param('id') uploadId: string,
+    @Query('limit') limit: string,
+    @Query('offset') offset: string,
+    @Req() req: RequestWithUser,
+  ): Promise<{ rows: any[]; total: number }> {
+    const limitNum = limit ? parseInt(limit, 10) : 100;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+
+    return this.uploadsService.getCsvData(uploadId, req.user.id, limitNum, offsetNum);
+  }
+
+  @Get('md/:id/data')
+  async getMdData(@Param('id') uploadId: string, @Req() req: RequestWithUser) {
+    return this.uploadsService.getMdData(uploadId, req.user.id);
+  }
+
+  @Delete(':id')
+  async deleteUpload(@Param('id') uploadId: string, @Req() req: RequestWithUser): Promise<{ message: string }> {
+    await this.uploadsService.deleteUpload(uploadId, req.user.id);
+    return { message: 'Upload deleted successfully' };
+  }
+
+  @Post('csv/:id/create-scratchpaper')
+  async createScratchpaperFromCsv(
+    @Param('id') uploadId: string,
+    @Body() body: { name: string },
+    @Req() req: RequestWithUser,
+  ): Promise<{ snapshotId: string; tableId: string }> {
+    return await this.uploadsService.createSnapshotFromCsvUpload(uploadId, req.user.id, body.name);
   }
 }

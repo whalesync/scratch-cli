@@ -75,8 +75,15 @@ export class AppModule implements NestModule {
       })
       .apply(JsonBodyMiddleware)
       .exclude(
+        // Legacy snapshot CSV upload endpoints (deprecated)
         { path: '/uploads/preview-csv', method: RequestMethod.POST },
-        { path: '/uploads/import-csv', method: RequestMethod.POST },
+        { path: '/snapshot/import-csv', method: RequestMethod.POST },
+        // New uploads endpoints
+        { path: '/uploads/csv/preview', method: RequestMethod.POST },
+        { path: '/uploads/csv', method: RequestMethod.POST },
+        { path: '/uploads/md/preview', method: RequestMethod.POST },
+        { path: '/uploads/md', method: RequestMethod.POST },
+        // Payment webhook
         { path: '/payment/webhook', method: RequestMethod.POST },
       )
       .forRoutes('*');

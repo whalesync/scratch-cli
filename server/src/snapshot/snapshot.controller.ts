@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import {
   Body,
   Controller,
@@ -15,8 +19,11 @@ import {
   Res,
   Sse,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { Client } from 'pg';
 import { to as copyTo } from 'pg-copy-streams';
@@ -27,7 +34,7 @@ import { SnapshotId } from 'src/types/ids';
 import { Readable } from 'stream';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
-import { SnapshotRecord } from '../remote-service/connectors/types';
+import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
@@ -456,5 +463,58 @@ export class SnapshotController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
+  }
+
+  /**
+   * @deprecated
+   */
+  @Post('import-csv')
+  @UseInterceptors(FileInterceptor('file'))
+  async importCsv(
+    @UploadedFile() file: any,
+    @Body()
+    body: {
+      scratchpaperName: string;
+      columnNames: string[]; // Array from form data
+      columnTypes: PostgresColumnType[]; // Array from form data
+      firstRowIsHeader: boolean; // Boolean from form data
+    },
+    @Req() req: RequestWithUser,
+  ): Promise<{ snapshotId: string; tableId: string }> {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+
+    if (!file.mimetype.includes('csv') && !file.originalname.toLowerCase().endsWith('.csv')) {
+      throw new Error('File must be a CSV');
+    }
+
+    if (!body.scratchpaperName || !body.columnNames || !body.columnTypes) {
+      throw new Error('Missing required parameters: scratchpaperName, columnNames, columnTypes');
+    }
+
+    return await this.service.importCsv(
+      file.buffer,
+      req.user.id,
+      body.scratchpaperName,
+      body.columnNames,
+      body.columnTypes,
+      body.firstRowIsHeader,
+    );
+  }
+
+  /**
+   * @deprecated
+   */
+  @Post('create-template')
+  async createTemplate(
+    @Body() body: { scratchpaperName: string },
+    @Req() req: RequestWithUser,
+  ): Promise<{ snapshotId: string; tableId: string }> {
+    if (!body.scratchpaperName) {
+      throw new Error('Missing required parameter: scratchpaperName');
+    }
+
+    return await this.service.createTemplate(req.user.id, body.scratchpaperName);
   }
 }

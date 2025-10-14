@@ -1,5 +1,6 @@
 'use client';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
 import { PostgresColumnType } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
@@ -18,8 +19,9 @@ import {
   useMantineTheme,
 } from '@mantine/core';
 import { X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useSWRConfig } from 'swr';
 
 // Custom type for modal that includes IGNORE option
 type ModalColumnType = PostgresColumnType | 'IGNORE';
@@ -43,12 +45,14 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
 export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPreviewModalProps) => {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
-  const router = useRouter();
   const [firstRowIsHeader, setFirstRowIsHeader] = useState(true);
   const [columnNames, setColumnNames] = useState<string[]>([]);
   const [columnTypes, setColumnTypes] = useState<ModalColumnType[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [scratchpaperName, setScratchpaperName] = useState('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const { mutate } = useSWRConfig();
 
   // Initialize column names and types when data changes
   useEffect(() => {
@@ -122,23 +126,28 @@ export const CsvPreviewModal = ({ opened, onClose, data, fileName, file }: CsvPr
       const filteredColumnNames = filteredData.map(({ name }) => name);
       const filteredColumnTypes = filteredData.map(({ type }) => type as PostgresColumnType);
 
-      const result = await uploadsApi.importCsv({
+      const result = await uploadsApi.uploadCsv({
         file,
-        scratchpaperName,
+        uploadName: scratchpaperName,
         columnNames: filteredColumnNames,
         columnTypes: filteredColumnTypes,
         firstRowIsHeader,
       });
 
-      console.log('CSV imported successfully:', result);
+      console.debug('CSV uploaded successfully:', result);
 
-      // Close modal first
-      // onClose();
+      // Invalidate uploads list cache (this will refresh the page if using SWR)
+      await mutate(SWR_KEYS.uploads.list());
 
-      // Navigate to the new snapshot page
-      router.push(`/snapshots/${result.snapshotId}`);
+      // Close modal
+      onClose();
+
+      // Navigate to uploads page only if not already there
+      if (pathname !== '/uploads') {
+        router.push('/uploads');
+      }
     } catch (error) {
-      console.error('Import failed:', error);
+      console.error('Upload failed:', error);
       // Error handling could be improved with notifications
     } finally {
       setIsImporting(false);

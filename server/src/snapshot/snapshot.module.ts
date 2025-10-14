@@ -5,6 +5,7 @@ import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
+import { UploadsModule } from 'src/uploads/uploads.module';
 import { UserModule } from 'src/users/users.module';
 import { WorkerModule } from 'src/worker/workers.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
@@ -27,6 +28,7 @@ import { SnapshotService } from './snapshot.service';
     RedisModule,
     ...(process.env.USE_JOBS === 'true' ? [WorkerModule] : []),
     SnapshotDbModule,
+    UploadsModule,
   ],
   controllers: [SnapshotController, AiSnapshotController],
   providers: [SnapshotService, SnapshotEventService, SnapshotDataGateway],

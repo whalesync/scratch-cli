@@ -15,6 +15,64 @@ export type CsvPreviewResponse = {
   rows: CsvPreviewRow[];
 };
 
+export interface MdFieldValue {
+  value: unknown;
+  type: string;
+}
+
+export interface MdPreviewResponse {
+  data: Record<string, MdFieldValue>; // Front matter with type info
+  PAGE_CONTENT: string; // Markdown content
+}
+
+export interface CsvUploadRequest {
+  file: File;
+  uploadName: string;
+  columnNames: string[];
+  columnTypes: string[];
+  firstRowIsHeader: boolean;
+}
+
+export interface CsvUploadResponse {
+  uploadId: string;
+  tableId: string;
+  rowCount: number;
+}
+
+export interface MdUploadResponse {
+  uploadId: string;
+  mdUploadId: string;
+  frontMatterKeys: string[];
+}
+
+export interface Upload {
+  id: string;
+  userId: string;
+  name: string;
+  type: string; // 'CSV' | 'MD'
+  typeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListUploadsResponse {
+  uploads: Upload[];
+}
+
+export interface CsvDataResponse {
+  rows: Record<string, unknown>[];
+  total: number;
+}
+
+export interface MdDataResponse {
+  id: string;
+  PAGE_CONTENT: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Legacy imports (deprecated - for snapshot CSV imports)
 export interface CsvImportRequest {
   file: File;
   scratchpaperName: string;
@@ -38,15 +96,15 @@ export interface TemplateCreateResponse {
 }
 
 export const uploadsApi = {
+  // CSV Preview
   previewCsv: async (file: File): Promise<CsvPreviewResponse> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/preview-csv`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/preview`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
-        // Don't set Content-Type header - let the browser set it with boundary for multipart
       },
       body: formData,
     });
@@ -55,28 +113,154 @@ export const uploadsApi = {
     return res.json();
   },
 
+  // Markdown Preview
+  previewMarkdown: async (file: File): Promise<MdPreviewResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md/preview`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+      body: formData,
+    });
+
+    await checkForApiError(res, 'Failed to preview Markdown');
+    return res.json();
+  },
+
+  // Upload CSV
+  uploadCsv: async (request: CsvUploadRequest): Promise<CsvUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', request.file);
+    formData.append('uploadName', request.uploadName);
+
+    request.columnNames.forEach((name, index) => {
+      formData.append(`columnNames[${index}]`, name);
+    });
+
+    request.columnTypes.forEach((type, index) => {
+      formData.append(`columnTypes[${index}]`, type);
+    });
+
+    formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
+
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+      body: formData,
+    });
+
+    await checkForApiError(res, 'Failed to upload CSV');
+    return res.json();
+  },
+
+  // Upload Markdown
+  uploadMarkdown: async (file: File): Promise<MdUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+      body: formData,
+    });
+
+    await checkForApiError(res, 'Failed to upload Markdown');
+    return res.json();
+  },
+
+  // List all uploads
+  listUploads: async (): Promise<ListUploadsResponse> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+
+    await checkForApiError(res, 'Failed to list uploads');
+    return res.json();
+  },
+
+  // Get CSV data
+  getCsvData: async (uploadId: string, limit = 100, offset = 0): Promise<CsvDataResponse> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/data?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+
+    await checkForApiError(res, 'Failed to get CSV data');
+    return res.json();
+  },
+
+  // Get Markdown data
+  getMdData: async (uploadId: string): Promise<MdDataResponse> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md/${uploadId}/data`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+
+    await checkForApiError(res, 'Failed to get Markdown data');
+    return res.json();
+  },
+
+  // Delete upload
+  deleteUpload: async (uploadId: string): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/${uploadId}`, {
+      method: 'DELETE',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+
+    await checkForApiError(res, 'Failed to delete upload');
+  },
+
+  // Create scratchpaper from CSV upload
+  createScratchpaperFromCsv: async (uploadId: string, name: string): Promise<{ snapshotId: string; tableId: string }> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    await checkForApiError(res, 'Failed to create scratchpaper from CSV');
+    return res.json();
+  },
+
+  // ===== DEPRECATED - Legacy Snapshot CSV Import Methods =====
   importCsv: async (request: CsvImportRequest): Promise<CsvImportResponse> => {
     const formData = new FormData();
     formData.append('file', request.file);
     formData.append('scratchpaperName', request.scratchpaperName);
-    
-    // Append each column name individually
+
     request.columnNames.forEach((name, index) => {
       formData.append(`columnNames[${index}]`, name);
     });
-    
-    // Append each column type individually
+
     request.columnTypes.forEach((type, index) => {
       formData.append(`columnTypes[${index}]`, type);
     });
-    
+
     formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
 
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/import-csv`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/import-csv`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
-        // Don't set Content-Type header - let the browser set it with boundary for multipart
       },
       body: formData,
     });
@@ -86,7 +270,7 @@ export const uploadsApi = {
   },
 
   createTemplate: async (request: TemplateCreateRequest): Promise<TemplateCreateResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/create-template`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/create-template`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),

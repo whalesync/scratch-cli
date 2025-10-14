@@ -1,32 +1,65 @@
 'use client';
-import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
+import { CsvPreviewResponse, MdPreviewResponse, uploadsApi } from '@/lib/api/uploads';
 import { Dropzone, DropzoneProps } from '@mantine/dropzone';
 import { useState } from 'react';
 import { CsvPreviewModal } from '../modals/CsvPreviewModal';
+import { MdPreviewModal } from '../modals/MdPreviewModal';
 import { useDrag } from './useDrag';
 
 export const GlobalDropzone = () => {
   const { isDragging, setIsDragging } = useDrag();
-  const [previewData, setPreviewData] = useState<CsvPreviewResponse | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string>('');
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [modalOpened, setModalOpened] = useState(false);
+
+  // CSV preview state
+  const [csvPreviewData, setCsvPreviewData] = useState<CsvPreviewResponse | null>(null);
+  const [csvPreviewFileName, setCsvPreviewFileName] = useState<string>('');
+  const [csvPreviewFile, setCsvPreviewFile] = useState<File | null>(null);
+  const [csvModalOpened, setCsvModalOpened] = useState(false);
+
+  // MD preview state
+  const [mdPreviewData, setMdPreviewData] = useState<MdPreviewResponse | null>(null);
+  const [mdPreviewFileName, setMdPreviewFileName] = useState<string>('');
+  const [mdPreviewFile, setMdPreviewFile] = useState<File | null>(null);
+  const [mdModalOpened, setMdModalOpened] = useState(false);
 
   const handleDrop: DropzoneProps['onDrop'] = async (files) => {
-    const csvFile = files.find((file) => file.name.toLowerCase().endsWith('.csv'));
-    if (csvFile) {
-      console.debug('CSV file dropped:', csvFile.name);
+    const file = files[0];
+    if (!file) {
+      setIsDragging(false);
+      return;
+    }
+
+    const fileName = file.name.toLowerCase();
+
+    // Handle CSV files
+    if (fileName.endsWith('.csv')) {
+      console.debug('CSV file dropped:', file.name);
 
       try {
-        const preview = await uploadsApi.previewCsv(csvFile);
+        const preview = await uploadsApi.previewCsv(file);
         console.debug('CSV preview:', preview);
 
-        setPreviewData(preview);
-        setPreviewFileName(csvFile.name);
-        setPreviewFile(csvFile);
-        setModalOpened(true);
+        setCsvPreviewData(preview);
+        setCsvPreviewFileName(file.name);
+        setCsvPreviewFile(file);
+        setCsvModalOpened(true);
       } catch (error) {
         console.error('Failed to preview CSV:', error);
+      }
+    }
+    // Handle MD files
+    else if (fileName.endsWith('.md')) {
+      console.debug('MD file dropped:', file.name);
+
+      try {
+        const preview = await uploadsApi.previewMarkdown(file);
+        console.debug('MD preview:', preview);
+
+        setMdPreviewData(preview);
+        setMdPreviewFileName(file.name);
+        setMdPreviewFile(file);
+        setMdModalOpened(true);
+      } catch (error) {
+        console.error('Failed to preview MD:', error);
       }
     }
 
@@ -47,6 +80,8 @@ export const GlobalDropzone = () => {
           accept={{
             'text/csv': ['.csv'],
             'application/vnd.ms-excel': ['.csv'],
+            'text/markdown': ['.md'],
+            'text/plain': ['.md'],
           }}
           multiple={false}
           style={{
@@ -84,18 +119,34 @@ export const GlobalDropzone = () => {
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
             }}
           >
-            <div>Drop your CSV file here</div>
-            <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.7 }}>Release to upload</div>
+            <div>Drop your CSV / MD / MD with FM file here</div>
+            <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.7 }}>Release to preview</div>
           </div>
         </Dropzone>
       )}
 
       <CsvPreviewModal
-        opened={modalOpened}
-        onClose={() => setModalOpened(false)}
-        data={previewData}
-        fileName={previewFileName}
-        file={previewFile}
+        opened={csvModalOpened}
+        onClose={() => {
+          setCsvModalOpened(false);
+          setCsvPreviewData(null);
+          setCsvPreviewFile(null);
+        }}
+        data={csvPreviewData}
+        fileName={csvPreviewFileName}
+        file={csvPreviewFile}
+      />
+
+      <MdPreviewModal
+        opened={mdModalOpened}
+        onClose={() => {
+          setMdModalOpened(false);
+          setMdPreviewData(null);
+          setMdPreviewFile(null);
+        }}
+        data={mdPreviewData}
+        fileName={mdPreviewFileName}
+        file={mdPreviewFile}
       />
     </>
   );

@@ -4,7 +4,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { useExportAsCsv } from '@/hooks/use-download-csv';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { serviceName } from '@/service-naming-conventions';
+import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -239,7 +239,7 @@ export const SnapshotActionsMenu = () => {
           </Menu.Item>
 
           <Menu.Divider />
-          <Menu.Label>Sync with remote source</Menu.Label>
+          <Menu.Label>Sync with source</Menu.Label>
           <Menu.Item
             disabled={menuItemsDisabled || snapshot?.connectorService === null}
             onClick={() => {
@@ -247,14 +247,14 @@ export const SnapshotActionsMenu = () => {
             }}
             leftSection={<DownloadSimpleIcon />}
           >
-            Download
+            {getPullOperationName(connectorAccount?.service)}
           </Menu.Item>
           <Menu.Item
             onClick={handlePublish}
             leftSection={<UploadIcon />}
             disabled={snapshot?.connectorService === null}
           >
-            Publish
+            {getPushOperationName(connectorAccount?.service)}
           </Menu.Item>
 
           <Menu.Divider />

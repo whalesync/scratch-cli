@@ -19,11 +19,14 @@ export enum IdPrefixes {
   SNAPSHOT_TABLE_VIEW = 'stv_',
   STYLE_GUIDE = 'sgd_',
   CSV_FILE = 'csv_',
+  CSV_FILE_RECORD = 'cfr_', // Record in CSV upload table
+  CSV_SNAPSHOT_RECORD = 'csr_', // Record in snapshot created from CSV
   VIEW = 'vew_',
   AI_AGENT_CREDENTIAL = 'aac_',
   AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',
   SUBSCRIPTION = 'sub_',
   INVOICE_RESULT = 'inv_',
+  UPLOAD = 'upl_',
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -197,4 +200,35 @@ export function isInvoiceResultId(id: unknown): id is InvoiceResultId {
 
 export function createInvoiceResultId(): InvoiceResultId {
   return createId(IdPrefixes.INVOICE_RESULT) as InvoiceResultId;
+}
+
+// ------- Upload -------
+export type UploadId = PrefixedId<IdPrefixes.UPLOAD>;
+
+export function isUploadId(id: unknown): id is UploadId {
+  return isId(id, IdPrefixes.UPLOAD);
+}
+
+export function createUploadId(): UploadId {
+  return createId(IdPrefixes.UPLOAD) as UploadId;
+}
+
+export type CsvFileRecordId = PrefixedId<IdPrefixes.CSV_FILE_RECORD>;
+
+export function isCsvFileRecordId(id: unknown): id is CsvFileRecordId {
+  return isId(id, IdPrefixes.CSV_FILE_RECORD);
+}
+
+export function createCsvFileRecordId(): CsvFileRecordId {
+  return createId(IdPrefixes.CSV_FILE_RECORD) as CsvFileRecordId;
+}
+
+export type CsvSnapshotRecordId = PrefixedId<IdPrefixes.CSV_SNAPSHOT_RECORD>;
+
+export function isCsvSnapshotRecordId(id: unknown): id is CsvSnapshotRecordId {
+  return isId(id, IdPrefixes.CSV_SNAPSHOT_RECORD);
+}
+
+export function createCsvSnapshotRecordId(): CsvSnapshotRecordId {
+  return createId(IdPrefixes.CSV_SNAPSHOT_RECORD) as CsvSnapshotRecordId;
 }

@@ -28,6 +28,7 @@ export class RouteUrls {
   static resourcesPageUrl = "/resources";
   static jobsPageUrl = "/jobs";
   static csvFilesPageUrl = "/csv-files";
+  static uploadsPageUrl = "/uploads";
   static settingsPageUrl = "/settings";
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
   static manageSubscriptionPage = "/subscription/manage";
@@ -56,6 +57,7 @@ export class RouteUrls {
     RouteUrls.snapshotsPageUrl,
     RouteUrls.resourcesPageUrl,
     RouteUrls.csvFilesPageUrl,
+    RouteUrls.uploadsPageUrl,
   ];
 
   /** Routes that require an active subscription or free trial to access*/

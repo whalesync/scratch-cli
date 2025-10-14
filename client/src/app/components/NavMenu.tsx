@@ -21,6 +21,7 @@ import {
   SunIcon,
   Table2,
   Unplug,
+  Upload,
 } from 'lucide-react';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
@@ -48,6 +49,14 @@ const upperLinks: MenuItem[] = [
     href: RouteUrls.connectionsPageUrl,
     label: 'Connections',
     icon: Unplug,
+    iconType: 'lucide',
+    enabled: true,
+    requiresAdmin: false,
+  },
+  {
+    href: RouteUrls.uploadsPageUrl,
+    label: 'Uploads',
+    icon: Upload,
     iconType: 'lucide',
     enabled: true,
     requiresAdmin: false,
