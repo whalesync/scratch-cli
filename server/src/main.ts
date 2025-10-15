@@ -32,7 +32,7 @@ async function bootstrap(): Promise<void> {
     origin: '*', // Allow any origin for development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With'],
-    exposedHeaders: ['Content-Type', 'Cache-Control'],
+    exposedHeaders: ['Content-Type', 'Cache-Control', 'Content-Disposition'],
     credentials: true,
   });
 

@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import { parse, Parser } from 'csv-parse';
+import { Response } from 'express';
 import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';
@@ -13,6 +14,7 @@ import { PostgresColumnType } from 'src/remote-service/connectors/types';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotTableContext } from 'src/snapshot/types';
 import { createCsvFileRecordId, createSnapshotId, createUploadId, SnapshotId } from 'src/types/ids';
+import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { Readable, Transform } from 'stream';
 import { DbService } from '../db/db.service';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
@@ -269,9 +271,17 @@ export class UploadsService {
 
       // Stream CSV data to the table
       let rowCount = 0;
-      await this.streamCsvToUploadsTable(buffer, userId, tableId, dto.columnNames, dto.firstRowIsHeader, (count) => {
-        rowCount = count;
-      });
+      await this.streamCsvToUploadsTable(
+        buffer,
+        userId,
+        tableId,
+        dto.columnNames,
+        dto.columnIndices,
+        dto.firstRowIsHeader,
+        (count) => {
+          rowCount = count;
+        },
+      );
 
       // Create Upload record in public schema
       const upload = await this.db.client.upload.create({
@@ -316,6 +326,7 @@ export class UploadsService {
     userId: string,
     tableId: string,
     columnNames: string[],
+    columnIndices: number[],
     firstRowIsHeader: boolean,
     onComplete?: (recordCount: number) => void,
   ): Promise<void> {
@@ -337,20 +348,17 @@ export class UploadsService {
               return;
             }
 
-            // Ensure we have the right number of columns
-            const paddedRecord = [...chunk];
-            while (paddedRecord.length < columnNames.length) {
-              paddedRecord.push('');
-            }
-            if (paddedRecord.length > columnNames.length) {
-              paddedRecord.splice(columnNames.length);
-            }
+            // Extract only the columns we want to keep, using the original indices
+            // This handles IGNORE columns by skipping them at the correct positions
+            const filteredRecord = columnIndices.map((originalIndex) => {
+              return chunk[originalIndex] !== undefined ? chunk[originalIndex] : '';
+            });
 
             // Generate a unique remoteId for this record (CSV upload table represents the remote source)
             const remoteId = createCsvFileRecordId();
 
-            // Create the full record with remoteId as first column, then the data columns
-            const fullRecord = [remoteId, ...paddedRecord];
+            // Create the full record with remoteId as first column, then the filtered data columns
+            const fullRecord = [remoteId, ...filteredRecord];
 
             recordCount++;
 
@@ -498,7 +506,7 @@ export class UploadsService {
   /**
    * Get CSV data for a specific upload
    */
-  async getCsvData(uploadId: string, userId: string, limit = 100, offset = 0): Promise<{ rows: any[]; total: number }> {
+  async getCsvData(uploadId: string, userId: string, limit = 10, offset = 0): Promise<{ rows: any[]; total: number }> {
     const upload = await this.getUpload(uploadId, userId);
 
     if (upload.type !== 'CSV') {
@@ -516,6 +524,95 @@ export class UploadsService {
     const rows = await this.uploadsDbService.knex(tableId).withSchema(schemaName).limit(limit).offset(offset);
 
     return { rows, total };
+  }
+
+  /**
+   * Download a CSV upload as a CSV file (authenticated)
+   */
+  async downloadCsv(uploadId: string, userId: string, res: Response): Promise<void> {
+    // Verify user has access to the upload
+    const upload = await this.getUpload(uploadId, userId);
+
+    if (upload.type !== 'CSV') {
+      throw new NotFoundException('Upload is not a CSV');
+    }
+
+    await this.streamCsvDownload(upload, res);
+  }
+
+  /**
+   * Download a CSV upload as a CSV file (public - no auth required)
+   * Security relies on upload IDs being unguessable
+   */
+  async downloadCsvPublic(uploadId: string, res: Response): Promise<void> {
+    const upload = await this.db.client.upload.findUnique({
+      where: { id: uploadId },
+    });
+
+    if (!upload) {
+      throw new NotFoundException('Upload not found');
+    }
+
+    if (upload.type !== 'CSV') {
+      throw new NotFoundException('Upload is not a CSV');
+    }
+
+    await this.streamCsvDownload(upload as Upload, res);
+  }
+
+  /**
+   * Helper method to stream CSV download
+   */
+  private async streamCsvDownload(upload: Upload, res: Response): Promise<void> {
+    try {
+      const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+      const tableId = upload.typeId;
+
+      // Get column names from the table, excluding metadata columns
+      const columnQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = '${schemaName}' 
+        AND table_name = '${tableId}'
+        AND column_name NOT IN ('remoteId', 'createdAt', 'updatedAt')
+        ORDER BY ordinal_position
+      `;
+
+      interface ColumnInfo {
+        rows: {
+          column_name: string;
+        }[];
+      }
+      const columns = await this.uploadsDbService.knex.raw<ColumnInfo>(columnQuery);
+      const columnNames = columns.rows.map((row) => row.column_name);
+
+      // Set response headers
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      const filename = upload.name;
+      // Use RFC 5987 encoding for better browser compatibility
+      // Include both filename (for old browsers) and filename* (RFC 5987 for modern browsers)
+      const encodedFilename = encodeURIComponent(filename);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`);
+
+      // Use the CSV stream helper to stream the data
+      const { stream, cleanup } = await createCsvStream({
+        knex: this.uploadsDbService.knex,
+        schema: schemaName,
+        table: tableId,
+        columnNames,
+      });
+
+      stream.on('error', (e: Error) => {
+        res.destroy(e);
+      });
+
+      stream.pipe(res).on('finish', () => {
+        void cleanup();
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate CSV: ${errorMessage}`);
+    }
   }
 
   /**

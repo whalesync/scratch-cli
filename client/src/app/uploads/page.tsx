@@ -23,17 +23,20 @@ import {
   useModalsStack,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { FileText, Plus, Trash2, Upload as UploadIcon } from 'lucide-react';
+import { Download, Eye, FileText, Plus, Trash2, Upload as UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { CsvPreviewModal } from '../components/modals/CsvPreviewModal';
+import { CsvViewModal } from '../components/modals/CsvViewModal';
 import { MdPreviewModal } from '../components/modals/MdPreviewModal';
+import { MdViewModal } from '../components/modals/MdViewModal';
 
 export default function UploadsPage() {
   const { uploads, isLoading, error, mutate } = useUploads();
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingScratchpaper, setIsCreatingScratchpaper] = useState(false);
+  const [downloadingUploadId, setDownloadingUploadId] = useState<string | null>(null);
   const modalStack = useModalsStack(['confirm-delete']);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -49,6 +52,11 @@ export default function UploadsPage() {
   const [mdPreviewFile, setMdPreviewFile] = useState<File | null>(null);
   const [mdPreviewFileName, setMdPreviewFileName] = useState<string>('');
   const [showMdPreview, setShowMdPreview] = useState(false);
+
+  // View state (for existing uploads)
+  const [viewUpload, setViewUpload] = useState<Upload | null>(null);
+  const [showCsvView, setShowCsvView] = useState(false);
+  const [showMdView, setShowMdView] = useState(false);
 
   const handleDelete = async () => {
     if (!selectedUpload) return;
@@ -96,6 +104,33 @@ export default function UploadsPage() {
       });
     } finally {
       setIsCreatingScratchpaper(false);
+    }
+  };
+
+  const handleDownload = async (upload: Upload) => {
+    setDownloadingUploadId(upload.id);
+    try {
+      await uploadsApi.downloadCsv(upload.id, upload.name);
+      // No need for success notification - browser handles the download
+    } catch (err) {
+      console.error('Failed to download CSV:', err);
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to download CSV',
+        color: 'red',
+      });
+    } finally {
+      // Small delay to show the loading state before clearing
+      setTimeout(() => setDownloadingUploadId(null), 500);
+    }
+  };
+
+  const handleView = (upload: Upload) => {
+    setViewUpload(upload);
+    if (upload.type === 'CSV') {
+      setShowCsvView(true);
+    } else if (upload.type === 'MD') {
+      setShowMdView(true);
     }
   };
 
@@ -231,6 +266,26 @@ export default function UploadsPage() {
             file={mdPreviewFile}
           />
 
+          <CsvViewModal
+            opened={showCsvView}
+            onClose={() => {
+              setShowCsvView(false);
+              setViewUpload(null);
+            }}
+            uploadId={viewUpload?.id || null}
+            uploadName={viewUpload?.name || null}
+          />
+
+          <MdViewModal
+            opened={showMdView}
+            onClose={() => {
+              setShowMdView(false);
+              setViewUpload(null);
+            }}
+            uploadId={viewUpload?.id || null}
+            uploadName={viewUpload?.name || null}
+          />
+
           <Modal {...modalStack.register('confirm-delete')} title="Delete Upload" centered size="lg">
             <Stack>
               <Text>Are you sure you want to delete this upload?</Text>
@@ -265,7 +320,7 @@ export default function UploadsPage() {
                   <Table.Td>Name</Table.Td>
                   <Table.Td w="140px">Created</Table.Td>
                   <Table.Td w="140px">Updated</Table.Td>
-                  <Table.Td w="80px" align="right">
+                  <Table.Td w="170px" align="right">
                     Actions
                   </Table.Td>
                 </Table.Tr>
@@ -297,17 +352,34 @@ export default function UploadsPage() {
                     </Table.Td>
                     <Table.Td align="right">
                       <Group gap="xs" justify="flex-end">
+                        <Tooltip label="View data">
+                          <ActionIcon variant="subtle" color="gray" onClick={() => handleView(upload)}>
+                            <StyledLucideIcon Icon={Eye} size={16} />
+                          </ActionIcon>
+                        </Tooltip>
                         {upload.type === 'CSV' && (
-                          <Tooltip label="Create scratchpaper">
-                            <ActionIcon
-                              variant="subtle"
-                              color="blue"
-                              onClick={() => handleCreateScratchpaper(upload)}
-                              loading={isCreatingScratchpaper}
-                            >
-                              <StyledLucideIcon Icon={Plus} size={16} />
-                            </ActionIcon>
-                          </Tooltip>
+                          <>
+                            <Tooltip label="Download CSV">
+                              <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                onClick={() => handleDownload(upload)}
+                                loading={downloadingUploadId === upload.id}
+                              >
+                                <StyledLucideIcon Icon={Download} size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Create scratchpaper">
+                              <ActionIcon
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => handleCreateScratchpaper(upload)}
+                                loading={isCreatingScratchpaper}
+                              >
+                                <StyledLucideIcon Icon={Plus} size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          </>
                         )}
                         <Tooltip label="Delete upload">
                           <ActionIcon

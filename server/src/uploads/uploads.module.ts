@@ -3,12 +3,13 @@ import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { SnapshotDbModule } from 'src/snapshot/snapshot-db.module';
 import { DbModule } from '../db/db.module';
 import { UploadsDbService } from './uploads-db.service';
+import { UploadsPublicController } from './uploads-public.controller';
 import { UploadsController } from './uploads.controller';
 import { UploadsService } from './uploads.service';
 
 @Module({
   imports: [DbModule, ScratchpadConfigModule, SnapshotDbModule],
-  controllers: [UploadsController],
+  controllers: [UploadsController, UploadsPublicController],
   providers: [UploadsService, UploadsDbService],
   exports: [UploadsService, UploadsDbService],
 })

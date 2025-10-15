@@ -12,6 +12,7 @@ import { ConnectorsModule } from '../remote-service/connectors/connectors.module
 import { AiSnapshotController } from './ai-snapshot.controller';
 import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
+import { SnapshotPublicController } from './snapshot-public.controller';
 import { SnapshotController } from './snapshot.controller';
 import { SnapshotDataGateway } from './snapshot.gateway';
 import { SnapshotService } from './snapshot.service';
@@ -30,7 +31,7 @@ import { SnapshotService } from './snapshot.service';
     SnapshotDbModule,
     UploadsModule,
   ],
-  controllers: [SnapshotController, AiSnapshotController],
+  controllers: [SnapshotController, AiSnapshotController, SnapshotPublicController],
   providers: [SnapshotService, SnapshotEventService, SnapshotDataGateway],
   exports: [SnapshotService],
 })

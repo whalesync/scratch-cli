@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import { Service } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { createCsvFileRecordId } from 'src/types/ids';
@@ -151,6 +150,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
+    // Update the upload's updatedAt timestamp to track when data was modified
+    await this.db.client.upload.update({
+      where: { id: uploadId },
+      data: { updatedAt: new Date() },
+    });
+
     const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
     const tableName = upload.typeId;
 
@@ -188,6 +193,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
+    // Update the upload's updatedAt timestamp to track when data was modified
+    await this.db.client.upload.update({
+      where: { id: uploadId },
+      data: { updatedAt: new Date() },
+    });
+
     const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
     const tableName = upload.typeId;
 
@@ -213,6 +224,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     if (!upload) {
       throw new Error(`CSV upload not found: ${uploadId}`);
     }
+
+    // Update the upload's updatedAt timestamp to track when data was modified
+    await this.db.client.upload.update({
+      where: { id: uploadId },
+      data: { updatedAt: new Date() },
+    });
 
     const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
     const tableName = upload.typeId;

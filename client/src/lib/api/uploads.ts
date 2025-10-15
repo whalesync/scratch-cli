@@ -30,6 +30,7 @@ export interface CsvUploadRequest {
   uploadName: string;
   columnNames: string[];
   columnTypes: string[];
+  columnIndices: number[]; // Original column indices in the CSV (for handling IGNORE columns)
   firstRowIsHeader: boolean;
 }
 
@@ -144,6 +145,10 @@ export const uploadsApi = {
       formData.append(`columnTypes[${index}]`, type);
     });
 
+    request.columnIndices.forEach((colIndex, index) => {
+      formData.append(`columnIndices[${index}]`, colIndex.toString());
+    });
+
     formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
 
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv`, {
@@ -226,6 +231,24 @@ export const uploadsApi = {
     await checkForApiError(res, 'Failed to delete upload');
   },
 
+  // Download CSV upload - triggers download without opening a new window
+  downloadCsv: async (uploadId: string, uploadName: string): Promise<void> => {
+    // Use public endpoint that doesn't require authentication
+    // Security relies on upload IDs being unguessable
+    const url = `${API_CONFIG.getApiUrl()}/uploads/public/csv/${uploadId}/download`;
+    
+    // Create a hidden anchor element and click it to trigger download
+    // Set the download attribute with the filename to avoid browser using page title
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = uploadName; // Set the filename explicitly
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    
+
+  },
+
   // Create scratchpaper from CSV upload
   createScratchpaperFromCsv: async (uploadId: string, name: string): Promise<{ snapshotId: string; tableId: string }> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
@@ -238,34 +261,6 @@ export const uploadsApi = {
     });
 
     await checkForApiError(res, 'Failed to create scratchpaper from CSV');
-    return res.json();
-  },
-
-  // ===== DEPRECATED - Legacy Snapshot CSV Import Methods =====
-  importCsv: async (request: CsvImportRequest): Promise<CsvImportResponse> => {
-    const formData = new FormData();
-    formData.append('file', request.file);
-    formData.append('scratchpaperName', request.scratchpaperName);
-
-    request.columnNames.forEach((name, index) => {
-      formData.append(`columnNames[${index}]`, name);
-    });
-
-    request.columnTypes.forEach((type, index) => {
-      formData.append(`columnTypes[${index}]`, type);
-    });
-
-    formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
-
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/import-csv`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-      body: formData,
-    });
-
-    await checkForApiError(res, 'Failed to import CSV');
     return res.json();
   },
 

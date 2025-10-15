@@ -17,32 +17,20 @@ export const useExportAsCsv = () => {
     if (!snapshot) return;
     try {
       setDownloading(tableId);
-      const response = await fetch(
-        `${API_CONFIG.getApiUrl()}/snapshot/${snapshot.id}/download-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`,
-        {
-          method: 'GET',
-          headers: {
-            ...API_CONFIG.getAuthHeaders(),
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      
+      // Use public endpoint that doesn't require authentication
+      // Security relies on snapshot IDs being unguessable
+      const url = `${API_CONFIG.getApiUrl()}/snapshot/public/${snapshot.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
+      const filename = `${snapshot.name || 'snapshot'}_${tableName}.csv`;
+      
+      // Create a hidden anchor element and click it to trigger download
+      // This allows the browser to handle streaming natively
       const a = document.createElement('a');
       a.href = url;
-      const filename = `${snapshot.name || 'snapshot'}_${tableName}.csv`;
       a.download = filename;
       a.style.display = 'none';
-      a.setAttribute('download', filename);
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
 
       ScratchpadNotifications.success({
         message: 'CSV downloaded successfully.',
@@ -61,7 +49,8 @@ export const useExportAsCsv = () => {
         message: 'There was an error downloading the CSV file.',
       });
     } finally {
-      setDownloading(null);
+      // Small delay to show the loading state before clearing
+      setTimeout(() => setDownloading(null), 500);
     }
   };
 

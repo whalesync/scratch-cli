@@ -4,6 +4,7 @@ export class UploadCsvDto {
   uploadName: string;
   columnNames: string[];
   columnTypes: PostgresColumnType[];
+  columnIndices: number[]; // Original column indices in the CSV (for handling IGNORE columns)
   firstRowIsHeader: boolean;
 }
 

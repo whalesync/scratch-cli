@@ -2,7 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { useExportAsCsv } from '@/hooks/use-download-csv';
+import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { getServiceName, tableName, tablesName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';

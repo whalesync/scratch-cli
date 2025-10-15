@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import {
   Body,
   Controller,
@@ -19,22 +15,17 @@ import {
   Res,
   Sse,
   UnauthorizedException,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { Client } from 'pg';
-import { to as copyTo } from 'pg-copy-streams';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId } from 'src/types/ids';
-import { Readable } from 'stream';
+import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
-import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
@@ -360,8 +351,8 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
-  @Get(':id/download-csv')
-  async downloadCsv(
+  @Get(':id/export-as-csv')
+  async exportAsCsv(
     @Param('id') snapshotId: SnapshotId,
     @Query('tableId') tableId: string,
     @Query('filteredOnly') filteredOnly: string,
@@ -384,8 +375,7 @@ export class SnapshotController {
     }
 
     try {
-      // Use PostgreSQL COPY command for efficient streaming
-      // First get the column names to exclude internal metadata fields
+      // Get column names to exclude internal metadata fields
       const columnQuery = `
         SELECT column_name 
         FROM information_schema.columns 
@@ -401,7 +391,7 @@ export class SnapshotController {
         }[];
       }
       const columns = await this.snapshotDbService.snapshotDb.knex.raw<ColumnInfo>(columnQuery);
-      const columnNames = columns.rows.map((row) => `"${row.column_name}"`).join(', ');
+      const columnNames = columns.rows.map((row) => row.column_name);
 
       // Check if we should apply the SQL filter
       const shouldApplyFilter = filteredOnly === 'true';
@@ -419,84 +409,31 @@ export class SnapshotController {
         });
       }
 
-      const sql = `
-        COPY (
-          SELECT ${columnNames} FROM "${snapshotId}"."${tableId}"${whereClause}
-        ) TO STDOUT WITH (FORMAT CSV, HEADER TRUE, QUOTE '"', ESCAPE '"', DELIMITER ',')
-      `;
+      // Set response headers
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      const filename = `${snapshot.name || 'snapshot'}_${tableId}.csv`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-      // Knex client is a custom pool with acquireConnection/releaseConnection methods
+      // Use the CSV stream helper to stream the data
+      const { stream, cleanup } = await createCsvStream({
+        knex: this.snapshotDbService.snapshotDb.knex,
+        schema: snapshotId,
+        table: tableId,
+        columnNames,
+        whereClause,
+      });
 
-      type KnexClientPool = {
-        acquireConnection: () => Promise<Client>;
-        releaseConnection: (conn: Client) => Promise<void>;
-      };
+      stream.on('error', (e: Error) => {
+        res.destroy(e);
+      });
 
-      const knexClient = this.snapshotDbService.snapshotDb.knex.client as KnexClientPool;
-      const conn = await knexClient.acquireConnection();
-
-      try {
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        const filename = `${snapshot.name || 'snapshot'}_${tableId}.csv`;
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-        // Use copyTo from pg-copy-streams for efficient streaming
-
-        const stream = conn.query(copyTo(sql)) as Readable;
-
-        stream.on('error', (e: Error) => {
-          res.destroy(e);
-        });
-
-        stream.pipe(res).on('finish', () => {
-          void knexClient.releaseConnection(conn);
-        });
-      } catch (e) {
-        await knexClient.releaseConnection(conn);
-        throw e;
-      }
+      stream.pipe(res).on('finish', () => {
+        void cleanup();
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
-  }
-
-  /**
-   * @deprecated
-   */
-  @Post('import-csv')
-  @UseInterceptors(FileInterceptor('file'))
-  async importCsv(
-    @UploadedFile() file: any,
-    @Body()
-    body: {
-      scratchpaperName: string;
-      columnNames: string[]; // Array from form data
-      columnTypes: PostgresColumnType[]; // Array from form data
-      firstRowIsHeader: boolean; // Boolean from form data
-    },
-    @Req() req: RequestWithUser,
-  ): Promise<{ snapshotId: string; tableId: string }> {
-    if (!file) {
-      throw new Error('No file uploaded');
-    }
-
-    if (!file.mimetype.includes('csv') && !file.originalname.toLowerCase().endsWith('.csv')) {
-      throw new Error('File must be a CSV');
-    }
-
-    if (!body.scratchpaperName || !body.columnNames || !body.columnTypes) {
-      throw new Error('Missing required parameters: scratchpaperName, columnNames, columnTypes');
-    }
-
-    return await this.service.importCsv(
-      file.buffer,
-      req.user.id,
-      body.scratchpaperName,
-      body.columnNames,
-      body.columnTypes,
-      body.firstRowIsHeader,
-    );
   }
 
   /**

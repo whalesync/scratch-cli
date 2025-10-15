@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Service } from '@prisma/client';
+import { Response } from 'express';
 import _ from 'lodash';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotCluster } from 'src/db/cluster-types';
@@ -10,6 +11,7 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
+import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
@@ -23,6 +25,7 @@ import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
+import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotTableContext } from './types';
@@ -1263,70 +1266,6 @@ export class SnapshotService {
   /**
    * @deprecated
    */
-  async importCsv(
-    buffer: Buffer,
-    userId: string,
-    scratchpaperName: string,
-    columnNames: string[],
-    columnTypes: PostgresColumnType[],
-    firstRowIsHeader: boolean,
-  ): Promise<{ snapshotId: string; tableId: string }> {
-    try {
-      // Create a connectorless snapshot
-      const snapshotId = createSnapshotId();
-      const tableId = 'csv_data'; // Single table for CSV imports
-
-      // Create table specs from user configuration
-      const tableSpecs = [
-        {
-          id: { wsId: tableId, remoteId: ['-'] },
-          name: scratchpaperName,
-          columns: columnNames.map((name, index) => ({
-            id: { wsId: name, remoteId: ['-'] },
-            name: name,
-            pgType: columnTypes[index] || PostgresColumnType.TEXT,
-            readonly: false,
-          })),
-        },
-      ] satisfies AnyTableSpec[];
-
-      // Create the snapshot in the database
-      await this.db.client.snapshot.create({
-        data: {
-          id: snapshotId,
-          userId, // Direct user association
-          connectorAccountId: null, // Connectorless snapshot
-          name: scratchpaperName,
-          service: Service.CSV,
-          tableSpecs,
-          tableContexts: [
-            {
-              id: { wsId: tableId, remoteId: ['-'] },
-              activeViewId: null,
-              ignoredColumns: [],
-              readOnlyColumns: [],
-            },
-          ] satisfies SnapshotTableContext[],
-        },
-      });
-
-      // Create the database schema and table
-      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs);
-
-      // Stream CSV data to PostgreSQL using COPY
-      await this.uploadsService.streamCsvToPostgres(buffer, snapshotId, tableId, columnNames, firstRowIsHeader);
-
-      return { snapshotId, tableId };
-    } catch (error) {
-      console.error('Error importing CSV:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to import CSV: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * @deprecated
-   */
   private async insertTemplateData(snapshotId: SnapshotId, tableId: string, sampleData: any[]): Promise<void> {
     try {
       const knex = this.snapshotDbService.snapshotDb.knex;
@@ -1430,6 +1369,110 @@ export class SnapshotService {
       console.error('Error creating template:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to create template: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Export a snapshot as CSV without authentication (public endpoint)
+   * Security relies on snapshot IDs being unguessable
+   */
+  async exportAsCsvPublic(
+    snapshotId: SnapshotId,
+    tableId: string,
+    filteredOnly: boolean,
+    res: Response,
+  ): Promise<void> {
+    // Get snapshot without user check
+    const snapshotData = await this.db.client.snapshot.findUnique({
+      where: { id: snapshotId },
+      include: SnapshotCluster._validator.include,
+    });
+
+    if (!snapshotData) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // Convert to Snapshot entity to get tables
+    const snapshot = new Snapshot(snapshotData);
+
+    // Find the table specification
+    const tableSpec = snapshot.tables.find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    await this.streamCsvExport(snapshotId, tableId, snapshot, filteredOnly, res);
+  }
+
+  /**
+   * Helper method to stream CSV export
+   */
+  private async streamCsvExport(
+    snapshotId: SnapshotId,
+    tableId: string,
+    snapshot: Snapshot,
+    filteredOnly: boolean,
+    res: Response,
+  ): Promise<void> {
+    try {
+      // Get column names to exclude internal metadata fields
+      const columnQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = '${snapshotId}' 
+        AND table_name = '${tableId}'
+        AND column_name NOT IN ('__edited_fields', '__suggested_values', '__metadata', '__dirty')
+        ORDER BY ordinal_position
+      `;
+
+      interface ColumnInfo {
+        rows: {
+          column_name: string;
+        }[];
+      }
+      const columns = await this.snapshotDbService.snapshotDb.knex.raw<ColumnInfo>(columnQuery);
+      const columnNames = columns.rows.map((row) => row.column_name);
+
+      // Check if we should apply the SQL filter
+      const sqlWhereClause = filteredOnly ? snapshot.activeRecordSqlFilter?.[tableId] : null;
+
+      // Build the WHERE clause if filter should be applied and exists
+      const whereClause =
+        filteredOnly && sqlWhereClause && sqlWhereClause.trim() !== '' ? ` WHERE ${sqlWhereClause}` : '';
+
+      // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
+      if (!filteredOnly) {
+        await this.snapshotDbService.snapshotDb.knex(`${snapshotId}.${tableId}`).update({
+          __dirty: false,
+          __edited_fields: {},
+        });
+      }
+
+      // Set response headers
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      const filename = `${snapshot.name || 'snapshot'}_${tableId}.csv`;
+      const encodedFilename = encodeURIComponent(filename);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`);
+
+      // Use the CSV stream helper to stream the data
+      const { stream, cleanup } = await createCsvStream({
+        knex: this.snapshotDbService.snapshotDb.knex,
+        schema: snapshotId,
+        table: tableId,
+        columnNames,
+        whereClause,
+      });
+
+      stream.on('error', (e: Error) => {
+        res.destroy(e);
+      });
+
+      stream.pipe(res).on('finish', () => {
+        void cleanup();
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
   }
 }

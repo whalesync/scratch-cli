@@ -124,12 +124,14 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
 
       const filteredColumnNames = filteredData.map(({ name }) => name);
       const filteredColumnTypes = filteredData.map(({ type }) => type as PostgresColumnType);
+      const filteredColumnIndices = filteredData.map(({ index }) => index);
 
       const result = await uploadsApi.uploadCsv({
         file,
         uploadName: scratchpaperName,
         columnNames: filteredColumnNames,
         columnTypes: filteredColumnTypes,
+        columnIndices: filteredColumnIndices,
         firstRowIsHeader,
       });
 

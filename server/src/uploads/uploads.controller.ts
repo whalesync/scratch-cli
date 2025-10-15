@@ -11,11 +11,13 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { ListUploadsResponseDto } from './dto/list-uploads.dto';
@@ -119,6 +121,11 @@ export class UploadsController {
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
     return this.uploadsService.getCsvData(uploadId, req.user.id, limitNum, offsetNum);
+  }
+
+  @Get('csv/:id/download')
+  async downloadCsv(@Param('id') uploadId: string, @Req() req: RequestWithUser, @Res() res: Response): Promise<void> {
+    await this.uploadsService.downloadCsv(uploadId, req.user.id, res);
   }
 
   @Get('md/:id/data')

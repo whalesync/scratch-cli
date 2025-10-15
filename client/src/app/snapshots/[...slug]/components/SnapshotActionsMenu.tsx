@@ -2,7 +2,7 @@ import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
-import { useExportAsCsv } from '@/hooks/use-download-csv';
+import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
