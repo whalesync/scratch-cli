@@ -21,11 +21,12 @@ import {
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
+import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
@@ -493,6 +494,15 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     }
   }, [gridApi, limited, otherColumnSpecs]);
 
+  // Show suggestion toolbar if there are suggestions and no record is active
+  const showSuggestionToolbar = useMemo(() => {
+    return (
+      records &&
+      records.some((record) => record.__suggested_values && Object.keys(record.__suggested_values).length > 0) &&
+      !activeRecord?.recordId
+    );
+  }, [records, activeRecord?.recordId]);
+
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
     // const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
@@ -581,7 +591,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       <div
         className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
-          height: '100%',
+          height: showSuggestionToolbar ? 'calc(100% - 44px)' : '100%',
           width: '100%',
           overflow: 'auto',
         }}
@@ -709,6 +719,19 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           }}
         />
       </div>
+
+      {showSuggestionToolbar && (
+        <GridSuggestionToolbar
+          table={table}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 44,
+          }}
+        />
+      )}
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
       {activeRecord?.recordId && selectedRecord && (

@@ -4,20 +4,17 @@ import { TextRegularXs } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { TableSpec } from '@/types/server-entities/snapshot';
-import { Group, Loader } from '@mantine/core';
+import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 
-interface SuggestionToolbarProps {
+type GridSuggestionToolbarProps = {
   table: TableSpec;
-}
+} & BoxProps;
 
-/**
- * @deprecated Use RecordSuggestionToolbar instead.
- */
-export const SuggestionToolbar = (props: SuggestionToolbarProps): JSX.Element | null => {
-  const { table } = props;
+export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
+  const { table, ...boxProps } = props;
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
   const { totalSuggestions, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
@@ -71,7 +68,7 @@ export const SuggestionToolbar = (props: SuggestionToolbarProps): JSX.Element | 
   }
 
   return (
-    <MainContent.Footer>
+    <MainContent.Footer {...boxProps}>
       <Group h="100%" align="center">
         {saving ? (
           <>
