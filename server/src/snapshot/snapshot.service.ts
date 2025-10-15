@@ -958,8 +958,7 @@ export class SnapshotService {
       ? await this.connectorAccountService.findOne(snapshot.connectorAccount.id, snapshot.connectorAccount.userId)
       : null;
     const connector = await this.connectorService.getConnector({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      service: snapshot.service,
+      service: snapshot.service as Service,
       connectorAccount: connectorAccount,
       decryptedCredentials: connectorAccount,
     });

@@ -14,8 +14,7 @@ export class Snapshot {
   tableContexts: SnapshotTableContext[];
   activeRecordSqlFilter?: Record<string, string>;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(snapshot: SnapshotCluster.Snapshot, includeActiveFilters: boolean = false) {
+  constructor(snapshot: SnapshotCluster.Snapshot) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? null;
     this.createdAt = snapshot.createdAt;
@@ -23,9 +22,8 @@ export class Snapshot {
     this.connectorAccountId = snapshot.connectorAccountId;
     this.tables = snapshot.tableSpecs as AnyTableSpec[];
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
-    this.connectorService = snapshot.service as string;
+    this.connectorService = snapshot.service;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
-
     this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
   }
 }

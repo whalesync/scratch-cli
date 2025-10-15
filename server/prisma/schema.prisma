@@ -124,7 +124,7 @@ enum ConnectorHealthStatus {
 model Snapshot {
   id        String   @id // type: SnapshotId
   name      String?
-  service   Service // Service that created this snapshot (CSV, NOTION, AIRTABLE, etc.)
+  service   String // Service that created this snapshot (CSV, NOTION, AIRTABLE, etc.)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

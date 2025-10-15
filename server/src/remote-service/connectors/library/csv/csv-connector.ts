@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { Service } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { createCsvFileRecordId } from 'src/types/ids';
