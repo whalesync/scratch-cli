@@ -28,6 +28,7 @@ import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useTableContext } from '../contexts/table-context';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
+import { getComparatorFunctionForColumnSpec } from './comparators';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import { SettingsModal } from './modals/SettingsModal';
 import RecordDetailsOverlay from './RecordDetailsOverlay';
@@ -548,6 +549,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         columnSpec: column,
         showDataTypeInHeader: showDataTypeInHeader,
       },
+      comparator: getComparatorFunctionForColumnSpec(column),
     };
     return colDef;
   });
