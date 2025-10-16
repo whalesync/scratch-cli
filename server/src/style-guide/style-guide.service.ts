@@ -7,11 +7,12 @@ import {
 } from '@nestjs/common';
 import Parser from '@postlight/parser';
 import axios, { AxiosError, HttpStatusCode } from 'axios';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { WSLogger } from 'src/logger';
 import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
-import { createStyleGuideId } from '../types/ids';
+import { createStyleGuideId, StyleGuideId } from '../types/ids';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { ExternalContent } from './entities/external-content.entity';
@@ -22,6 +23,7 @@ export class StyleGuideService {
   constructor(
     private readonly db: DbService,
     private readonly posthogService: PostHogService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async create(createStyleGuideDto: CreateStyleGuideDto, userId: string): Promise<StyleGuide> {
@@ -39,7 +41,16 @@ export class StyleGuideService {
     });
 
     this.posthogService.trackCreateResource(userId, styleGuide);
-
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'create',
+      message: `Created resource ${styleGuide.name}`,
+      entityId: styleGuide.id as StyleGuideId,
+      context: {
+        sourceUrl: styleGuide.sourceUrl,
+        contentType: styleGuide.contentType,
+      },
+    });
     return new StyleGuide(styleGuide);
   }
 
@@ -79,7 +90,21 @@ export class StyleGuideService {
       where: { id },
     });
 
-    return updatedStyleGuide ? new StyleGuide(updatedStyleGuide) : null;
+    if (!updatedStyleGuide) {
+      return null;
+    }
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Updated resource ${updatedStyleGuide.name}`,
+      entityId: updatedStyleGuide.id as StyleGuideId,
+      context: {
+        changedFields: Object.keys(updateStyleGuideDto),
+      },
+    });
+
+    return new StyleGuide(updatedStyleGuide);
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
@@ -92,7 +117,15 @@ export class StyleGuideService {
       where: { id, userId },
     });
 
-    this.posthogService.trackRemoveResource(userId, styleGuide);
+    if (result.count > 0) {
+      this.posthogService.trackRemoveResource(userId, styleGuide);
+      await this.auditLogService.logEvent({
+        userId,
+        eventType: 'delete',
+        message: `Deleted resource ${styleGuide.name}`,
+        entityId: styleGuide.id as StyleGuideId,
+      });
+    }
 
     return result.count > 0;
   }

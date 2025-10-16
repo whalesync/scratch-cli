@@ -326,3 +326,17 @@ model Upload {
   @@index([userId])
   @@index([type])
 }
+
+model AuditLogEvent {
+  id        String   @id // type: AuditLogEventId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String // user who triggered the event
+  message   String // message describing the event
+  eventType String // create, update, delete, publish, etc.
+  entityId  String // ID of the entity that was affected by this event like a snapshot or connection
+  context   Json? // Additional details about the event that can be used to to show what changed or store additional context
+
+  @@index([userId])
+  @@index([entityId])
+}

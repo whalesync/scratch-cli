@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ConnectorAccount, Service } from '@prisma/client';
 import { Response } from 'express';
 import _ from 'lodash';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
@@ -45,6 +46,7 @@ export class SnapshotService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly uploadsService: UploadsService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
@@ -118,6 +120,16 @@ export class SnapshotService {
     }
 
     this.posthogService.trackCreateSnapshot(userId, newSnapshot);
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'create',
+      message: `Created snapshot ${newSnapshot.name}`,
+      entityId: newSnapshot.id as SnapshotId,
+      context: {
+        tables: tableSpecs.map((t) => t.id.wsId),
+        service: connectorAccount.service,
+      },
+    });
 
     return newSnapshot;
   }
@@ -131,6 +143,12 @@ export class SnapshotService {
     });
 
     this.posthogService.trackRemoveSnapshot(userId, snapshot);
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'delete',
+      message: `Deleted snapshot ${snapshot.name}`,
+      entityId: snapshot.id as SnapshotId,
+    });
   }
 
   findAll(connectorAccountId: string, userId: string): Promise<SnapshotCluster.Snapshot[]> {
@@ -191,6 +209,16 @@ export class SnapshotService {
     });
 
     this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Updated snapshot ${updatedSnapshot.name}`,
+      entityId: updatedSnapshot.id as SnapshotId,
+      context: {
+        changes: Object.keys(updateSnapshotDto),
+      },
+    });
 
     return updatedSnapshot;
   }
@@ -894,6 +922,12 @@ export class SnapshotService {
     await this.publishSnapshot(snapshot);
 
     this.posthogService.trackPublishSnapshot(userId, snapshot);
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'publish',
+      message: `Published snapshot ${snapshot.name}`,
+      entityId: snapshot.id as SnapshotId,
+    });
   }
 
   async getPublishSummary(id: SnapshotId, userId: string): Promise<PublishSummaryDto> {

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditLogModule } from 'src/audit/audit-log.module';
 import { ClerkModule } from 'src/clerk/clerk.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
@@ -30,6 +31,7 @@ import { SnapshotService } from './snapshot.service';
     WorkerEnqueuerModule,
     SnapshotDbModule,
     UploadsModule,
+    AuditLogModule,
   ],
   controllers: [SnapshotController, AiSnapshotController, SnapshotPublicController],
   providers: [SnapshotService, SnapshotEventService, SnapshotDataGateway],

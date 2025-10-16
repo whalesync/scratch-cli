@@ -27,6 +27,7 @@ export enum IdPrefixes {
   SUBSCRIPTION = 'sub_',
   INVOICE_RESULT = 'inv_',
   UPLOAD = 'upl_',
+  AUDIT_LOG_EVENT = 'ael_', // Audit log event
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -213,6 +214,7 @@ export function createUploadId(): UploadId {
   return createId(IdPrefixes.UPLOAD) as UploadId;
 }
 
+// ------- CsvFileRecord -------
 export type CsvFileRecordId = PrefixedId<IdPrefixes.CSV_FILE_RECORD>;
 
 export function isCsvFileRecordId(id: unknown): id is CsvFileRecordId {
@@ -223,6 +225,7 @@ export function createCsvFileRecordId(): CsvFileRecordId {
   return createId(IdPrefixes.CSV_FILE_RECORD) as CsvFileRecordId;
 }
 
+// ------- CsvSnapshotRecord -------
 export type CsvSnapshotRecordId = PrefixedId<IdPrefixes.CSV_SNAPSHOT_RECORD>;
 
 export function isCsvSnapshotRecordId(id: unknown): id is CsvSnapshotRecordId {
@@ -231,4 +234,15 @@ export function isCsvSnapshotRecordId(id: unknown): id is CsvSnapshotRecordId {
 
 export function createCsvSnapshotRecordId(): CsvSnapshotRecordId {
   return createId(IdPrefixes.CSV_SNAPSHOT_RECORD) as CsvSnapshotRecordId;
+}
+
+// ------- AuditLogEvent -------
+export type AuditLogEventId = PrefixedId<IdPrefixes.AUDIT_LOG_EVENT>;
+
+export function isAuditLogEventId(id: unknown): id is AuditLogEventId {
+  return isId(id, IdPrefixes.AUDIT_LOG_EVENT);
+}
+
+export function createAuditLogEventId(): AuditLogEventId {
+  return createId(IdPrefixes.AUDIT_LOG_EVENT) as AuditLogEventId;
 }

@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
 import _ from 'lodash';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
-import { createConnectorAccountId } from '../../types/ids';
+import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
 import { EncryptedData, getEncryptionService } from '../../utils/encryption';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { TablePreview } from '../connectors/types';
@@ -18,6 +19,7 @@ export class ConnectorAccountService {
     private readonly db: DbService,
     private readonly connectorsService: ConnectorsService,
     private readonly posthogService: PostHogService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private async encryptCredentials(credentials: DecryptedCredentials): Promise<EncryptedData> {
@@ -79,6 +81,17 @@ export class ConnectorAccountService {
       healthStatus: testResult.health,
     });
 
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'create',
+      message: `Created new connection ${connectorAccount.displayName}`,
+      entityId: connectorAccount.id as ConnectorAccountId,
+      context: {
+        service: connectorAccount.service,
+        authType: connectorAccount.authType,
+      },
+    });
+
     return connectorAccount;
   }
 
@@ -134,6 +147,18 @@ export class ConnectorAccountService {
       },
     });
 
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Updated connection ${account.displayName}`,
+      entityId: account.id as ConnectorAccountId,
+      context: {
+        service: account.service,
+        authType: account.authType,
+        changedFields: Object.keys(updateDto),
+      },
+    });
+
     return this.getDecryptedAccount(account);
   }
 
@@ -147,6 +172,13 @@ export class ConnectorAccountService {
     });
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, userId, {
       service: account.service,
+    });
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'delete',
+      message: `Deleted connection ${account.displayName}`,
+      entityId: account.id as ConnectorAccountId,
     });
   }
 

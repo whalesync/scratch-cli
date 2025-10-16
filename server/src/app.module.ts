@@ -3,6 +3,7 @@ import { AdminModule } from './admin/admin.module';
 import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
 import { AgentSessionModule } from './agent-session/agent-session.module';
 import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
+import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
@@ -35,6 +36,7 @@ import { WorkerModule } from './worker/workers.module';
   imports: [
     ScratchpadConfigModule, // Load first so static environment variables are available
     PosthogModule,
+    AuditLogModule,
     ExperimentsModule,
     AdminModule,
     AgentJwtModule,

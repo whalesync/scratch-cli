@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AiAgentCredential } from '@prisma/client';
-import { createAiAgentCredentialId } from 'src/types/ids';
+import { AuditLogService } from 'src/audit/audit-log.service';
+import { AiAgentCredentialId, createAiAgentCredentialId } from 'src/types/ids';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 
@@ -9,6 +10,7 @@ export class AgentCredentialsService {
   constructor(
     private readonly db: DbService,
     private readonly posthogService: PostHogService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   public async findOne(id: string): Promise<AiAgentCredential | null> {
@@ -43,7 +45,7 @@ export class AgentCredentialsService {
     description?: string;
     default?: boolean;
   }): Promise<AiAgentCredential> {
-    return this.db.client.$transaction(async (tx) => {
+    const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({
           where: { userId: data.userId },
@@ -62,6 +64,20 @@ export class AgentCredentialsService {
         },
       });
     });
+
+    this.posthogService.trackCreateAgentCredential(data.userId, result);
+
+    await this.auditLogService.logEvent({
+      userId: data.userId,
+      eventType: 'create',
+      message: `Created new credential`,
+      entityId: result.id as AiAgentCredentialId,
+      context: {
+        service: result.service,
+      },
+    });
+
+    return result;
   }
 
   public async update(
@@ -69,7 +85,7 @@ export class AgentCredentialsService {
     userId: string,
     data: { apiKey?: string; description?: string; default?: boolean },
   ): Promise<AiAgentCredential> {
-    return this.db.client.$transaction(async (tx) => {
+    const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({
           where: { userId },
@@ -82,6 +98,18 @@ export class AgentCredentialsService {
         data,
       });
     });
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Updated credential`,
+      entityId: id as AiAgentCredentialId,
+      context: {
+        changedFields: Object.keys(data),
+      },
+    });
+
+    return result;
   }
 
   public async delete(id: string, userId: string): Promise<AiAgentCredential | null> {
@@ -94,6 +122,13 @@ export class AgentCredentialsService {
     }
 
     this.posthogService.trackDeleteAgentCredential(userId, credential);
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'delete',
+      message: `Deleted credential`,
+      entityId: id as AiAgentCredentialId,
+    });
 
     return credential;
   }
