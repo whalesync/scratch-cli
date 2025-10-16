@@ -31,7 +31,7 @@ export function captureEvent(eventName: PostHogEvents, additionalProperties: Rec
 }
 
 /**
- * Send an execption to PostHog outside of the default error handling flow
+ * Send an exception to PostHog outside of the default error handling flow
  * @param error The error to send
  * @param properties Set of extra KVPs to send with the exception
  */
