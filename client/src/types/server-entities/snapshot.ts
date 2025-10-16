@@ -24,6 +24,8 @@ export interface TableSpec {
   id: EntityId;
   name: string;
   columns: ColumnSpec[];
+  // The remoteId of the column that should be used as the title/header column for visualizing records
+  titleColumnRemoteId?: string[];
 }
 
 export type SnapshotTableContext = {

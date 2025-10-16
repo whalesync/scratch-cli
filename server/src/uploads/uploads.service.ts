@@ -782,6 +782,7 @@ export class UploadsService {
     uploadId: string,
     userId: string,
     snapshotName: string,
+    titleColumnRemoteId?: string[],
   ): Promise<{ snapshotId: string; tableId: string }> {
     // Get the upload
     const upload = await this.getUpload(uploadId, userId);
@@ -833,6 +834,7 @@ export class UploadsService {
           id: { wsId: tableId, remoteId: [uploadId] }, // Store uploadId in remoteId so we can find it
           name: snapshotName,
           columns,
+          titleColumnRemoteId,
         },
       ] satisfies AnyTableSpec[];
 

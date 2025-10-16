@@ -250,14 +250,18 @@ export const uploadsApi = {
   },
 
   // Create scratchpaper from CSV upload
-  createScratchpaperFromCsv: async (uploadId: string, name: string): Promise<{ snapshotId: string; tableId: string }> => {
+  createScratchpaperFromCsv: async (
+    uploadId: string,
+    name: string,
+    titleColumnRemoteId?: string[]
+  ): Promise<{ snapshotId: string; tableId: string }> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, titleColumnRemoteId }),
     });
 
     await checkForApiError(res, 'Failed to create scratchpaper from CSV');

@@ -20,6 +20,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
+import {
+  CreateScratchpaperFromCsvDto,
+  CreateScratchpaperFromCsvResponseDto,
+} from './dto/create-scratchpaper-from-csv.dto';
 import { ListUploadsResponseDto } from './dto/list-uploads.dto';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
 import { PreviewMdResponseDto } from './dto/preview-md.dto';
@@ -142,9 +146,14 @@ export class UploadsController {
   @Post('csv/:id/create-scratchpaper')
   async createScratchpaperFromCsv(
     @Param('id') uploadId: string,
-    @Body() body: { name: string },
+    @Body() body: CreateScratchpaperFromCsvDto,
     @Req() req: RequestWithUser,
-  ): Promise<{ snapshotId: string; tableId: string }> {
-    return await this.uploadsService.createSnapshotFromCsvUpload(uploadId, req.user.id, body.name);
+  ): Promise<CreateScratchpaperFromCsvResponseDto> {
+    return await this.uploadsService.createSnapshotFromCsvUpload(
+      uploadId,
+      req.user.id,
+      body.name,
+      body.titleColumnRemoteId,
+    );
   }
 }

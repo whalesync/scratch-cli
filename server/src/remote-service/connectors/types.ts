@@ -30,6 +30,8 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   columns: ColumnType[];
   // Denotes this table as a collection of markdown files with each row being a separate markdown file
   markdownFiles?: boolean;
+  // The remoteId of the column that should be used as the title/header column for visualizing records
+  titleColumnRemoteId?: EntityId['remoteId'];
 };
 
 /** Types of columns we support. Add more if needed. */

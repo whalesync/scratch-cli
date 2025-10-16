@@ -4,7 +4,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import {
   getHeaderColumnSpec,
   getOtherColumnSpecs,
-  getTitleColumn,
+  identifyRecordTitleColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
@@ -114,8 +114,9 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
-      // const dotColumn = getDotColumn(gridApi);
-      const titleColumn = getTitleColumn(gridApi);
+      // Use the table spec to identify the title column (respects titleColumnRemoteId)
+      const titleColumnWsId = identifyRecordTitleColumn(table);
+      const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === titleColumnWsId);
 
       let pinnedColumnsWidth = AG.dotColumn.width;
 
@@ -135,7 +136,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     }
 
     // setRecordDetailsVisible(true);
-  }, [gridApi]);
+  }, [gridApi, table]);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{

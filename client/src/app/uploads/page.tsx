@@ -30,6 +30,7 @@ import { CsvPreviewModal } from '../components/modals/CsvPreviewModal';
 import { CsvViewModal } from '../components/modals/CsvViewModal';
 import { MdPreviewModal } from '../components/modals/MdPreviewModal';
 import { MdViewModal } from '../components/modals/MdViewModal';
+import { SelectTitleColumnModal } from '../components/modals/SelectTitleColumnModal';
 
 export default function UploadsPage() {
   const { uploads, isLoading, error, mutate } = useUploads();
@@ -37,9 +38,12 @@ export default function UploadsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingScratchpaper, setIsCreatingScratchpaper] = useState(false);
   const [downloadingUploadId, setDownloadingUploadId] = useState<string | null>(null);
-  const modalStack = useModalsStack(['confirm-delete']);
+  const modalStack = useModalsStack(['confirm-delete', 'select-title-column']);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Title column selection state
+  const [uploadForTitleSelection, setUploadForTitleSelection] = useState<Upload | null>(null);
 
   // CSV preview state
   const [csvPreviewData, setCsvPreviewData] = useState<CsvPreviewResponse | null>(null);
@@ -85,12 +89,25 @@ export default function UploadsPage() {
   };
 
   const handleCreateScratchpaper = async (upload: Upload) => {
+    // Show the title column selection modal
+    setUploadForTitleSelection(upload);
+    modalStack.open('select-title-column');
+  };
+
+  const handleConfirmCreateScratchpaper = async (titleColumnRemoteId: string[]) => {
+    if (!uploadForTitleSelection) return;
+
+    modalStack.close('select-title-column');
     setIsCreatingScratchpaper(true);
     try {
-      const result = await uploadsApi.createScratchpaperFromCsv(upload.id, upload.name);
+      const result = await uploadsApi.createScratchpaperFromCsv(
+        uploadForTitleSelection.id,
+        uploadForTitleSelection.name,
+        titleColumnRemoteId,
+      );
       notifications.show({
         title: 'Success',
-        message: `Scratchpaper "${upload.name}" created successfully`,
+        message: `Scratchpaper "${uploadForTitleSelection.name}" created successfully`,
         color: 'green',
       });
       // Navigate to the new scratchpaper
@@ -104,6 +121,7 @@ export default function UploadsPage() {
       });
     } finally {
       setIsCreatingScratchpaper(false);
+      setUploadForTitleSelection(null);
     }
   };
 
@@ -297,6 +315,13 @@ export default function UploadsPage() {
               </Group>
             </Stack>
           </Modal>
+
+          <SelectTitleColumnModal
+            {...modalStack.register('select-title-column')}
+            uploadId={uploadForTitleSelection?.id || ''}
+            uploadName={uploadForTitleSelection?.name || ''}
+            onConfirm={handleConfirmCreateScratchpaper}
+          />
 
           {sortedUploads.length === 0 ? (
             <Center h="400px">
