@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,8 +16,11 @@ import {
   Res,
   Sse,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
@@ -30,6 +34,7 @@ import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
+import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
@@ -172,6 +177,27 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested', viewId);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/import-suggestions')
+  @UseInterceptors(FileInterceptor('file'))
+  async importSuggestions(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: ImportSuggestionsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<ImportSuggestionsResponseDto> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.includes('csv') && !file.originalname.toLowerCase().endsWith('.csv')) {
+      throw new BadRequestException('File must be a CSV');
+    }
+
+    return await this.service.importSuggestions(snapshotId, tableId, file.buffer, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

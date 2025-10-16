@@ -88,6 +88,8 @@ export class AppModule implements NestModule {
         { path: '/uploads/csv', method: RequestMethod.POST },
         { path: '/uploads/md/preview', method: RequestMethod.POST },
         { path: '/uploads/md', method: RequestMethod.POST },
+        // Import suggestions endpoint
+        { path: '/snapshot/*/tables/*/import-suggestions', method: RequestMethod.POST },
         // Payment webhook
         { path: '/payment/webhook', method: RequestMethod.POST },
       )

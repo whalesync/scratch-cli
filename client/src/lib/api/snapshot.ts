@@ -318,6 +318,28 @@ export const snapshotApi = {
     return res.json();
   },
 
+  async importSuggestions(
+    snapshotId: string,
+    tableId: string,
+    file: File
+  ): Promise<{ recordsProcessed: number; suggestionsCreated: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/import-suggestions`,
+      {
+        method: "POST",
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+        },
+        body: formData,
+      }
+    );
+    await checkForApiError(res, "Failed to import suggestions");
+    return res.json();
+  },
+
   async deepFetchRecords(
     snapshotId: string,
     tableId: string,

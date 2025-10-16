@@ -16,10 +16,10 @@ import {
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
-import { Download } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
@@ -46,6 +46,8 @@ export const SnapshotActionsMenu = () => {
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [downloadInProgress, setDownloadInProgress] = useState<DownloadSnapshotResult | null>(null);
   const [downloadingCsv, setDownloadingCsv] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -77,6 +79,33 @@ export const SnapshotActionsMenu = () => {
         title: 'Download failed',
         message: 'There was an error starting the download.',
       });
+    }
+  };
+
+  const handleImportSuggestions = async (file: File | null, tableId: string) => {
+    if (!snapshot || !file) {
+      console.debug('handleImportSuggestions: early return', { snapshot: !!snapshot, file: !!file });
+      return;
+    }
+
+    console.debug('handleImportSuggestions: starting', { snapshotId: snapshot.id, tableId, fileName: file.name });
+
+    try {
+      setUploadingFile(tableId);
+      const result = await snapshotApi.importSuggestions(snapshot.id, tableId, file);
+      console.debug('handleImportSuggestions: success', result);
+      ScratchpadNotifications.success({
+        title: 'Import completed',
+        message: `Processed ${result.recordsProcessed} records and created ${result.suggestionsCreated} suggestions.`,
+      });
+    } catch (error) {
+      console.error('handleImportSuggestions: error', error);
+      ScratchpadNotifications.error({
+        title: 'Import failed',
+        message: error instanceof Error ? error.message : 'There was an error importing the suggestions.',
+      });
+    } finally {
+      setUploadingFile(null);
     }
   };
 
@@ -284,6 +313,43 @@ export const SnapshotActionsMenu = () => {
                   >
                     Export Filtered as CSV
                   </Menu.Item>
+
+                  <Menu.Item
+                    disabled={menuItemsDisabled || uploadingFile === table.id.wsId}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.debug('Menu.Item clicked for table:', table.id.wsId);
+                      const input = fileInputRefs.current[table.id.wsId];
+                      if (input) {
+                        console.debug('Triggering file input click');
+                        input.click();
+                      } else {
+                        console.debug('File input ref not found for table:', table.id.wsId);
+                      }
+                    }}
+                    leftSection={uploadingFile === table.id.wsId ? <Loader size="xs" /> : <Upload size={16} />}
+                    closeMenuOnClick={false}
+                  >
+                    Import Suggestions
+                  </Menu.Item>
+                  <input
+                    key={`file-input-${table.id.wsId}`}
+                    type="file"
+                    ref={(el) => {
+                      fileInputRefs.current[table.id.wsId] = el;
+                    }}
+                    accept=".csv"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      console.debug('File input onChange triggered', { files: e.target.files?.length });
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        console.debug('File selected:', file.name);
+                        handleImportSuggestions(file, table.id.wsId);
+                        e.target.value = ''; // Reset input
+                      }
+                    }}
+                  />
                 </React.Fragment>
               ))}
             </>

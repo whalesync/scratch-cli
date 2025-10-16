@@ -19,8 +19,9 @@ import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { ExistingSnapshotRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
-import { BulkUpdateRecordsDto, RecordOperation } from './dto/bulk-update-records.dto';
+import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
+import { ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -1474,6 +1475,146 @@ export class SnapshotService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
+  }
+
+  async importSuggestions(
+    snapshotId: SnapshotId,
+    tableId: string,
+    buffer: Buffer,
+    userId: string,
+  ): Promise<ImportSuggestionsResponseDto> {
+    // Verify user has access to the snapshot
+    const snapshot = await this.findOne(snapshotId, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // Find the table specification
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    // Parse CSV to process suggestions
+    const csvParse = await import('csv-parse');
+    const parse = csvParse.parse;
+
+    return new Promise((resolve, reject) => {
+      const parser = parse({
+        columns: true, // Parse header row as column names
+        skip_empty_lines: true,
+        trim: true,
+      });
+
+      const records: Array<Record<string, string>> = [];
+      const chunkSize = 5;
+      let recordsProcessed = 0;
+      let suggestionsCreated = 0;
+
+      parser.on('readable', function () {
+        let record: Record<string, string> | null;
+        while ((record = parser.read() as Record<string, string> | null) !== null) {
+          records.push(record);
+        }
+      });
+
+      parser.on('error', (err) => {
+        reject(new BadRequestException(`CSV parsing error: ${err.message}`));
+      });
+
+      parser.on('end', () => {
+        void (async () => {
+          try {
+            // Validate that wsId column exists
+            if (records.length === 0) {
+              throw new BadRequestException('CSV file is empty');
+            }
+
+            const firstRecord = records[0];
+            if (!firstRecord['wsId']) {
+              throw new BadRequestException('CSV must have a "wsId" column as the first column');
+            }
+
+            // Create a map of column names to column IDs
+            const columnMap = new Map<string, string>();
+            for (const column of tableSpec.columns) {
+              columnMap.set(column.name, column.id.wsId);
+            }
+
+            // Process records in chunks
+            for (let i = 0; i < records.length; i += chunkSize) {
+              const chunk = records.slice(i, i + chunkSize);
+              const operations: UpdateRecordOperation[] = [];
+
+              for (const record of chunk) {
+                const wsId = record['wsId'];
+                if (!wsId) {
+                  continue; // Skip records without wsId
+                }
+
+                const data: Record<string, unknown> = {};
+                let hasData = false;
+
+                // Process each column in the CSV (except wsId)
+                for (const [columnName, value] of Object.entries(record)) {
+                  if (columnName === 'wsId') {
+                    continue; // Skip the wsId column
+                  }
+
+                  // Only include non-empty values
+                  if (value && value.trim() !== '') {
+                    const columnId = columnMap.get(columnName);
+                    if (columnId) {
+                      data[columnId] = value;
+                      hasData = true;
+                    } else {
+                      WSLogger.warn({
+                        source: 'SnapshotService.importSuggestions',
+                        message: `Column "${columnName}" not found in table spec`,
+                        snapshotId,
+                        tableId,
+                      });
+                    }
+                  }
+                }
+
+                if (hasData) {
+                  operations.push({
+                    op: 'update',
+                    wsId,
+                    data,
+                  });
+                  suggestionsCreated += Object.keys(data).length;
+                }
+
+                recordsProcessed++;
+              }
+
+              // Create suggestions for this chunk
+              if (operations.length > 0) {
+                await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, userId, 'suggested', undefined);
+              }
+            }
+
+            resolve({
+              recordsProcessed,
+              suggestionsCreated,
+            });
+          } catch (error) {
+            if (error instanceof BadRequestException) {
+              reject(error);
+            } else {
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              reject(new BadRequestException(`Failed to import suggestions: ${errorMessage}`));
+            }
+          }
+        })();
+      });
+
+      // Start parsing
+      parser.write(buffer);
+      parser.end();
+    });
   }
 }
 
