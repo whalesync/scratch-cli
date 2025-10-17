@@ -12,11 +12,22 @@ import {
 export abstract class Connector<T extends Service, TConnectorProgress extends JsonSafeObject = JsonSafeObject> {
   abstract readonly service: T;
 
+  /**
+   * Test the current state of the connection to the Datasource. Should throw an error if the connection is not valid.
+   */
   abstract testConnection(): Promise<void>;
 
   abstract listTables(account: ConnectorAccount): Promise<TablePreview[]>;
 
   abstract fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<TableSpecs[T]>;
+
+  // abstract fetchRecords(
+  //   remoteRecordIds: string[],
+  //   tableSpec: TableSpecs[T],
+  //   callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
+  //   account: ConnectorAccount,
+  //   progress: TConnectorProgress,
+  // ): Promise<void>;
 
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],

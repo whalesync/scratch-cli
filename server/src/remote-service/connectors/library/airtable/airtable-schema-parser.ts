@@ -1,6 +1,6 @@
 import { WSLogger } from 'src/logger';
 import { sanitizeForWsId } from '../../ids';
-import { PostgresColumnType, TablePreview } from '../../types';
+import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { AirtableColumnSpec } from '../custom-spec-registry';
 import { AirtableBase, AirtableDataType, AirtableFieldsV2, AirtableTableV2 } from './airtable-types';
 
@@ -18,8 +18,7 @@ export class AirtableSchemaParser {
   parseColumn(field: AirtableFieldsV2): AirtableColumnSpec {
     const pgType = this.getPostgresType(field);
     const readonly = this.isColumnReadonly(field);
-    // KLUDGE: hacky markdown support
-    const markdown = this.isMarkdownField(field);
+    const metadata = this.getColumnMetadata(field);
 
     WSLogger.debug({ source: 'AirtableSchemaParser', message: 'Parsing column', field, pgType, readonly });
     return {
@@ -30,8 +29,59 @@ export class AirtableSchemaParser {
       name: field.name,
       pgType,
       readonly,
-      markdown,
+      metadata,
     };
+  }
+  private getColumnMetadata(field: AirtableFieldsV2): ColumnMetadata | undefined {
+    const type = field.type as AirtableDataType;
+
+    switch (type) {
+      // NUMERIC types
+      case AirtableDataType.NUMBER:
+      case AirtableDataType.PERCENT:
+      case AirtableDataType.CURRENCY:
+        return { numberFormat: 'decimal' };
+
+      case AirtableDataType.RATING:
+        return { numberFormat: 'integer' };
+
+      case AirtableDataType.DURATION:
+        return { numberFormat: 'integer' };
+
+      case AirtableDataType.COUNT:
+        return { numberFormat: 'integer' };
+
+      case AirtableDataType.AUTO_NUMBER:
+        return { numberFormat: 'integer' };
+
+      case AirtableDataType.DATE:
+      case AirtableDataType.DATE_TIME:
+      case AirtableDataType.CREATED_TIME:
+      case AirtableDataType.LAST_MODIFIED_TIME:
+        return { dateFormat: 'datetime' };
+
+      // TEXT types
+      case AirtableDataType.EMAIL:
+        return { textFormat: 'email' };
+
+      case AirtableDataType.URL:
+        return { textFormat: 'url' };
+
+      case AirtableDataType.PHONE_NUMBER:
+        return { textFormat: 'phone' };
+
+      case AirtableDataType.MULTILINE_TEXT:
+        return { textFormat: 'long_text' };
+
+      case AirtableDataType.RICH_TEXT:
+        if (field.name.toLowerCase().endsWith('_md')) {
+          return { textFormat: 'markdown' };
+        }
+        return { textFormat: 'rich_text' };
+
+      default:
+        return undefined;
+    }
   }
 
   private getPostgresType(field: AirtableFieldsV2): PostgresColumnType {
@@ -94,6 +144,9 @@ export class AirtableSchemaParser {
       case AirtableDataType.CHECKBOX:
         return PostgresColumnType.BOOLEAN;
 
+      // DATE types
+      // TODO: Handle DATE types.
+
       // TEXT types
       case AirtableDataType.SINGLE_LINE_TEXT:
       case AirtableDataType.EMAIL:
@@ -102,10 +155,6 @@ export class AirtableSchemaParser {
       case AirtableDataType.PHONE_NUMBER:
       case AirtableDataType.SINGLE_SELECT:
       case AirtableDataType.SINGLE_COLLABORATOR:
-      case AirtableDataType.DATE:
-      case AirtableDataType.DATE_TIME:
-      case AirtableDataType.CREATED_TIME:
-      case AirtableDataType.LAST_MODIFIED_TIME:
       case AirtableDataType.CREATED_BY:
       case AirtableDataType.LAST_MODIFIED_BY:
       case AirtableDataType.BARCODE:
@@ -113,6 +162,10 @@ export class AirtableSchemaParser {
       case AirtableDataType.BUTTON:
       case AirtableDataType.AI_TEXT:
       case AirtableDataType.EXTERNAL_SYNC_SOURCE:
+      case AirtableDataType.DATE:
+      case AirtableDataType.DATE_TIME:
+      case AirtableDataType.CREATED_TIME:
+      case AirtableDataType.LAST_MODIFIED_TIME:
       case AirtableDataType.UNKNOWN:
       default:
         return PostgresColumnType.TEXT;
@@ -140,11 +193,5 @@ export class AirtableSchemaParser {
       default:
         return false;
     }
-  }
-
-  private isMarkdownField(field: AirtableFieldsV2): boolean {
-    const type = field.type as AirtableDataType;
-    const name = field.name.toLowerCase();
-    return type === AirtableDataType.MULTILINE_TEXT && name.endsWith('_md');
   }
 }

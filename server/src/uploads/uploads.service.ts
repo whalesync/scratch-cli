@@ -9,8 +9,8 @@ import { Response } from 'express';
 import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';
+import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { PostgresColumnType } from 'src/remote-service/connectors/types';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotTableContext } from 'src/snapshot/types';
 import { createCsvFileRecordId, createSnapshotId, createUploadId, SnapshotId } from 'src/types/ids';
@@ -800,6 +800,7 @@ export class UploadsService {
       // Get table structure from upload table
       const tableInfo = await this.uploadsDbService.knex(uploadTableName).withSchema(uploadSchemaName).columnInfo();
 
+      const schemaParser = new CsvSchemaParser();
       // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
       const columnNames = Object.keys(tableInfo).filter(
         (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
@@ -808,23 +809,14 @@ export class UploadsService {
       const columns = columnNames.map((name) => {
         const colInfo = tableInfo[name];
         // Map Postgres types to our PostgresColumnType enum
-        let pgType = PostgresColumnType.TEXT;
-        if (
-          colInfo.type === 'integer' ||
-          colInfo.type === 'bigint' ||
-          colInfo.type === 'numeric' ||
-          colInfo.type === 'decimal' ||
-          colInfo.type === 'double precision'
-        ) {
-          pgType = PostgresColumnType.NUMERIC;
-        } else if (colInfo.type === 'boolean') {
-          pgType = PostgresColumnType.BOOLEAN;
-        }
+        const pgType = schemaParser.getPostgresType(colInfo);
+        const metadata = schemaParser.getColumnMetadata(name, colInfo);
 
         return {
           id: { wsId: name, remoteId: [name] },
           name: name,
           pgType,
+          metadata,
           readonly: false,
         };
       });

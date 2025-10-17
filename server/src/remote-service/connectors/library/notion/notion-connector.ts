@@ -69,8 +69,10 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       },
       name: 'Page Content',
       pgType: PostgresColumnType.TEXT,
-      markdown: true,
       notionDataType: 'rich_text',
+      metadata: {
+        textFormat: 'rich_text',
+      },
     });
 
     const tableTitle = database.title.map((t) => t.plain_text).join('');

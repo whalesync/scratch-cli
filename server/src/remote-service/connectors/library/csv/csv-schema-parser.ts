@@ -1,0 +1,35 @@
+import { Knex } from 'knex';
+import { ColumnMetadata, PostgresColumnType } from '../../types';
+
+export class CsvSchemaParser {
+  getColumnMetadata(columnName: string, colInfo: Knex.ColumnInfo): ColumnMetadata | undefined {
+    if (colInfo.type === 'integer' || colInfo.type === 'bigint') {
+      return { numberFormat: 'integer' };
+    }
+
+    if (colInfo.type === 'numeric' || colInfo.type === 'decimal' || colInfo.type === 'double precision') {
+      return { numberFormat: 'decimal' };
+    }
+
+    if (columnName.toLowerCase().endsWith('_md') || columnName.toLowerCase().endsWith('.md')) {
+      return { textFormat: 'markdown' };
+    }
+
+    return undefined;
+  }
+
+  getPostgresType(colInfo: Knex.ColumnInfo): PostgresColumnType {
+    if (
+      colInfo.type === 'integer' ||
+      colInfo.type === 'bigint' ||
+      colInfo.type === 'numeric' ||
+      colInfo.type === 'decimal' ||
+      colInfo.type === 'double precision'
+    ) {
+      return PostgresColumnType.NUMERIC;
+    } else if (colInfo.type === 'boolean') {
+      return PostgresColumnType.BOOLEAN;
+    }
+    return PostgresColumnType.TEXT;
+  }
+}

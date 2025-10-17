@@ -28,8 +28,6 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   id: EntityId;
   name: string;
   columns: ColumnType[];
-  // Denotes this table as a collection of markdown files with each row being a separate markdown file
-  markdownFiles?: boolean;
   // The remoteId of the column that should be used as the title/header column for visualizing records
   titleColumnRemoteId?: EntityId['remoteId'];
 };
@@ -45,6 +43,13 @@ export enum PostgresColumnType {
   JSONB = 'jsonb',
 }
 
+export type ColumnMetadata = {
+  // Defintes the flavor of the text in the column and influences how it is displayed in the UI.
+  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
+  dateFormat?: 'date' | 'datetime' | 'time';
+  numberFormat?: 'decimal' | 'integer';
+};
+
 export type BaseColumnSpec = {
   id: EntityId;
   name: string;
@@ -52,7 +57,8 @@ export type BaseColumnSpec = {
   pgType: PostgresColumnType;
   limitedToValues?: string[];
   readonly?: boolean;
-  markdown?: boolean;
+
+  metadata?: ColumnMetadata;
 };
 
 /**

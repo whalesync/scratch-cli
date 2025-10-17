@@ -121,6 +121,9 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           name: 'Description',
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'snippet.description',
+          metadata: {
+            textFormat: 'long_text',
+          },
         },
         {
           id: { wsId: 'transcript', remoteId: ['transcript'] },
@@ -128,6 +131,9 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           // readonly: true,
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'transcript',
+          metadata: {
+            textFormat: 'long_text',
+          },
         },
         {
           id: { wsId: 'transcriptId', remoteId: ['transcriptId'] },
@@ -176,12 +182,18 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           readonly: true,
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'url',
+          metadata: {
+            textFormat: 'url',
+          },
         },
         {
           id: { wsId: 'studioUrl', remoteId: ['studioUrl'] },
           name: 'Studio URL',
           readonly: true,
           pgType: PostgresColumnType.TEXT,
+          metadata: {
+            textFormat: 'url',
+          },
         },
         {
           id: { wsId: 'publishedAt', remoteId: ['publishedAt'] },
@@ -189,6 +201,9 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           readonly: true,
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'snippet.publishedAt',
+          metadata: {
+            dateFormat: 'datetime',
+          },
         },
       ],
     } as YouTubeTableSpec;

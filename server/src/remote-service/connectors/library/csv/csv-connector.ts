@@ -5,8 +5,9 @@ import { createCsvFileRecordId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import { ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { CsvTableSpec } from '../custom-spec-registry';
+import { CsvSchemaParser } from './csv-schema-parser';
 
 export class CsvConnector extends Connector<typeof Service.CSV> {
   service = Service.CSV;
@@ -53,22 +54,13 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
     );
 
+    const schemaParser = new CsvSchemaParser();
     // Create column specs
     const columns = dataColumns.map((name) => {
       const colInfo = tableInfo[name];
       // Map Postgres types to our PostgresColumnType enum
-      let pgType = PostgresColumnType.TEXT;
-      if (
-        colInfo.type === 'integer' ||
-        colInfo.type === 'bigint' ||
-        colInfo.type === 'numeric' ||
-        colInfo.type === 'decimal' ||
-        colInfo.type === 'double precision'
-      ) {
-        pgType = PostgresColumnType.NUMERIC;
-      } else if (colInfo.type === 'boolean') {
-        pgType = PostgresColumnType.BOOLEAN;
-      }
+      const pgType = schemaParser.getPostgresType(colInfo);
+      const metadata = schemaParser.getColumnMetadata(name, colInfo);
 
       return {
         id: {
@@ -77,8 +69,8 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
         },
         name: name,
         pgType,
-        markdown: name.toLowerCase().endsWith('_md') || name.toLowerCase().endsWith('.md') ? true : undefined,
         readonly: false,
+        metadata,
       };
     });
 

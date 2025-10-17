@@ -1,13 +1,20 @@
 import _ from "lodash";
-import { EntityId } from "./table-list";
 import { Service } from "./connector-accounts";
+import { EntityId } from "./table-list";
+
+
+export type ColumnMetadata = {
+  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
+  dateFormat?: 'date' | 'datetime' | 'time';
+  numberFormat?: 'decimal' | 'integer';
+};
 
 export interface ColumnSpec {
   id: EntityId;
   name: string;
   readonly?: boolean;
   pgType: PostgresColumnType;
-  markdown?: boolean;
+  metadata?: ColumnMetadata;
 }
 
 export enum PostgresColumnType {
@@ -126,7 +133,7 @@ export function isTextColumn(column: ColumnSpec) {
 }
 
 export function isLargeTextColumn(column: ColumnSpec, value: string | undefined | null) {
-  return column.markdown || column.pgType === PostgresColumnType.JSONB || (column.pgType === PostgresColumnType.TEXT && value && value.length > 100);
+  return column.metadata?.textFormat === 'markdown' || column.metadata?.textFormat === 'rich_text' || column.pgType === PostgresColumnType.JSONB || (column.pgType === PostgresColumnType.TEXT && value && value.length > 100);
 }
 
 export function isUrlColumn(column: ColumnSpec, value: string | undefined | null): boolean {

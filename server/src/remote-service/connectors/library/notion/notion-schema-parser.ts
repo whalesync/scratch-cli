@@ -1,6 +1,6 @@
 import { DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { sanitizeForWsId } from '../../ids';
-import { PostgresColumnType, TablePreview } from '../../types';
+import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec } from '../custom-spec-registry';
 
 export class NotionSchemaParser {
@@ -42,6 +42,7 @@ export class NotionSchemaParser {
   parseColumn(property: DatabaseObjectResponse['properties'][string]): NotionColumnSpec {
     const pgType = this.getPostgresType(property);
     const readonly = this.isColumnReadonly(property);
+    const metadata = this.getColumnMetadata(property);
     return {
       id: {
         wsId: sanitizeForWsId(property.name),
@@ -50,9 +51,36 @@ export class NotionSchemaParser {
       name: property.name,
       pgType,
       readonly,
-      markdown: property.type === 'rich_text',
       notionDataType: property.type,
+      metadata,
     };
+  }
+
+  private getColumnMetadata(property: DatabaseObjectResponse['properties'][string]): ColumnMetadata | undefined {
+    switch (property.type) {
+      case 'number':
+        return { numberFormat: 'decimal' };
+
+      case 'rich_text':
+        return { textFormat: 'rich_text' };
+
+      case 'date':
+      case 'created_time':
+      case 'last_edited_time':
+        return { dateFormat: 'datetime' };
+
+      case 'url':
+        return { textFormat: 'url' };
+
+      case 'phone_number':
+        return { textFormat: 'phone' };
+
+      case 'email':
+        return { textFormat: 'email' };
+
+      default:
+        return undefined;
+    }
   }
 
   private getPostgresType(property: DatabaseObjectResponse['properties'][string]): PostgresColumnType {
@@ -81,16 +109,16 @@ export class NotionSchemaParser {
       case 'rich_text':
       case 'select':
       case 'status':
-      case 'date':
       case 'people':
       case 'files':
       case 'url':
       case 'email':
       case 'phone_number':
-      case 'created_time':
       case 'created_by':
-      case 'last_edited_time':
       case 'last_edited_by':
+      case 'date':
+      case 'created_time':
+      case 'last_edited_time':
       default:
         return PostgresColumnType.TEXT;
     }
