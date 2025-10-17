@@ -24,28 +24,31 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   private readonly userId: string;
   private readonly db: DbService;
+  private readonly account: ConnectorAccount;
   constructor(
     userId: string,
     db: DbService,
     private apiKey: string,
+    account: ConnectorAccount,
   ) {
     super();
     this.userId = userId;
     this.db = db;
+    this.account = account;
   }
 
   public async testConnection(): Promise<void> {
     // Don't throw.
   }
 
-  async listTables(account: ConnectorAccount): Promise<TablePreview[]> {
+  async listTables(): Promise<TablePreview[]> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         id: true,
         name: true,
@@ -55,7 +58,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     // If we have a listTables function, execute it to get the tables
@@ -101,14 +104,14 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     return [];
   }
 
-  async fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<CustomTableSpec> {
+  async fetchTableSpec(id: EntityId): Promise<CustomTableSpec> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         id: true,
         name: true,
@@ -117,7 +120,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     // If we have a fetch schema function, call it to get the schema
@@ -177,22 +180,21 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
   async downloadTableRecords(
     tableSpec: CustomTableSpec,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
-    account: ConnectorAccount,
   ): Promise<void> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         pollRecords: true,
       },
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     if (!customConnector.pollRecords) {
@@ -276,22 +278,21 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
   async createRecords(
     tableSpec: CustomTableSpec,
     records: { wsId: string; fields: Record<string, unknown> }[],
-    account: ConnectorAccount,
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         createRecord: true,
       },
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     if (!customConnector.createRecord) {
@@ -361,22 +362,21 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
     }[],
-    account: ConnectorAccount,
   ): Promise<void> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         updateRecord: true,
       },
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     if (!customConnector.updateRecord) {
@@ -426,25 +426,21 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     }
   }
 
-  async deleteRecords(
-    tableSpec: CustomTableSpec,
-    recordIds: { wsId: string; remoteId: string }[],
-    account: ConnectorAccount,
-  ): Promise<void> {
+  async deleteRecords(tableSpec: CustomTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
     // Get the custom connector configuration using the modifier field
-    if (!account.modifier) {
+    if (!this.account.modifier) {
       throw new Error('No custom connector specified for this account');
     }
 
     const customConnector = await this.db.client.customConnector.findUnique({
-      where: { id: account.modifier },
+      where: { id: this.account.modifier },
       select: {
         deleteRecord: true,
       },
     });
 
     if (!customConnector) {
-      throw new Error(`Custom connector with id ${account.modifier} not found`);
+      throw new Error(`Custom connector with id ${this.account.modifier} not found`);
     }
 
     if (!customConnector.deleteRecord) {

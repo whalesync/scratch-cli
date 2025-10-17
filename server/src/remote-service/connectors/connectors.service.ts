@@ -25,9 +25,13 @@ export class ConnectorsService {
     decryptedCredentials: DecryptedCredentials | null;
   }): Promise<Connector<Service, any>> {
     const { service, connectorAccount, decryptedCredentials } = params;
+
     switch (service) {
       case Service.AIRTABLE:
-        if (!connectorAccount || !decryptedCredentials?.apiKey) {
+        if (!connectorAccount) {
+          throw new Error('Connector account is required for Airtable');
+        }
+        if (!decryptedCredentials?.apiKey) {
           throw new Error('API key is required for Airtable');
         }
         return new AirtableConnector(decryptedCredentials.apiKey);
@@ -50,17 +54,17 @@ export class ConnectorsService {
         if (!connectorAccount || !decryptedCredentials?.apiKey) {
           throw new Error('API key is required for Custom connector');
         }
-        return new CustomConnector(connectorAccount.userId, this.db, decryptedCredentials.apiKey);
+        return new CustomConnector(connectorAccount.userId, this.db, decryptedCredentials.apiKey, connectorAccount);
       case Service.CSV:
         return new CsvConnector(this.db, this.uploadsDbService);
       case Service.YOUTUBE:
-        if (!connectorAccount || !decryptedCredentials?.apiKey) {
-          throw new Error('API key is required for YouTube');
+        if (!connectorAccount) {
+          throw new Error('Connector account is required for YouTube');
         }
         if (connectorAccount.authType === AuthType.OAUTH) {
           // For OAuth accounts, get the valid access token and OAuth credentials
           const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
-          return new YouTubeConnector(accessToken);
+          return new YouTubeConnector(accessToken, connectorAccount);
         } else {
           // YouTube doesn't support API key authentication, only OAuth
           throw new Error('YouTube only supports OAuth authentication');

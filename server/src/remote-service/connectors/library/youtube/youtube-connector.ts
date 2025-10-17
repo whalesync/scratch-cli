@@ -19,7 +19,10 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   readonly service = Service.YOUTUBE;
   private readonly apiClient: YoutubeApiClient;
 
-  constructor(private readonly accessToken: string) {
+  constructor(
+    private readonly accessToken: string,
+    private readonly account: ConnectorAccount,
+  ) {
     super();
     this.apiClient = new YoutubeApiClient(accessToken);
   }
@@ -29,7 +32,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     await this.apiClient.getChannels();
   }
 
-  async listTables(account: ConnectorAccount): Promise<TablePreview[]> {
+  async listTables(): Promise<TablePreview[]> {
     const channelsResponse = await this.apiClient.getChannels();
 
     if (!channelsResponse.items) {
@@ -57,7 +60,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
     // Get additional channels from extras if they exist
     const additionalChannels: TablePreview[] = [];
-    const accountWithExtras = account as ConnectorAccount & { extras?: Record<string, unknown> };
+    const accountWithExtras = this.account as ConnectorAccount & { extras?: Record<string, unknown> };
     if (
       accountWithExtras.extras &&
       typeof accountWithExtras.extras === 'object' &&
@@ -99,7 +102,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     return [...ownChannels, ...additionalChannels];
   }
 
-  async fetchTableSpec(id: EntityId, _account: ConnectorAccount): Promise<YouTubeTableSpec> {
+  async fetchTableSpec(id: EntityId): Promise<YouTubeTableSpec> {
     const channelId = id.remoteId[0];
 
     // Get channel info to get the channel title
@@ -212,7 +215,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   async downloadTableRecords(
     tableSpec: YouTubeTableSpec,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
-    _account: ConnectorAccount,
   ): Promise<void> {
     const channelId = tableSpec.id.remoteId[0];
     let nextPageToken: string | undefined;
@@ -309,7 +311,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   createRecords(
     _tableSpec: YouTubeTableSpec,
     _records: { wsId: string; fields: Record<string, unknown> }[],
-    _account: ConnectorAccount,
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // YouTube doesn't support creating videos through the API
     // Videos must be uploaded through the YouTube interface
@@ -318,11 +319,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     );
   }
 
-  async updateRecords(
-    _tableSpec: YouTubeTableSpec,
-    records: SnapshotRecordSanitizedForUpdate[],
-    _account: ConnectorAccount,
-  ): Promise<void> {
+  async updateRecords(_tableSpec: YouTubeTableSpec, records: SnapshotRecordSanitizedForUpdate[]): Promise<void> {
     // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags
     for (const record of records) {
       const videoId = record.id.remoteId;
@@ -355,11 +352,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     }
   }
 
-  deleteRecords(
-    _tableSpec: YouTubeTableSpec,
-    _recordIds: { wsId: string; remoteId: string }[],
-    _account: ConnectorAccount,
-  ): Promise<void> {
+  deleteRecords(_tableSpec: YouTubeTableSpec, _recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
     // YouTube doesn't support deleting videos through the API
     // Videos must be deleted through the YouTube interface
     return Promise.reject(

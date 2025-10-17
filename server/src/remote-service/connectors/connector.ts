@@ -9,30 +9,43 @@ import {
   TablePreview,
 } from './types';
 
+/**
+ * Defines a utility that abstracts the interaction with a data source.
+ */
 export abstract class Connector<T extends Service, TConnectorProgress extends JsonSafeObject = JsonSafeObject> {
   abstract readonly service: T;
 
   /**
-   * Test the current state of the connection to the Datasource. Should throw an error if the connection is not valid.
+   * Test the current state of the connection to the Datasource.
+   * @throws Error if the connection is not valid.
    */
   abstract testConnection(): Promise<void>;
 
-  abstract listTables(account: ConnectorAccount): Promise<TablePreview[]>;
+  /**
+   * List the tables available in the data source that can be used for snapshots
+   * @returns A list of table previews.
+   * @throws Error if the tables cannot be listed.
+   */
+  abstract listTables(): Promise<TablePreview[]>;
 
-  abstract fetchTableSpec(id: EntityId, account: ConnectorAccount): Promise<TableSpecs[T]>;
+  /**
+   * Fetch the detailed table spec for a given table id.
+   * @param id The id of the table to fetch the spec for.
+   * @returns The table spec.
+   * @throws Error if the table spec cannot be fetched.
+   */
+  abstract fetchTableSpec(id: EntityId): Promise<TableSpecs[T]>;
 
-  // abstract fetchRecords(
-  //   remoteRecordIds: string[],
-  //   tableSpec: TableSpecs[T],
-  //   callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
-  //   account: ConnectorAccount,
-  //   progress: TConnectorProgress,
-  // ): Promise<void>;
-
+  /**
+   * Download all available records for a given table.
+   * @param tableSpec The table spec to download records for.
+   * @param callback The callback that will process batches of records as they are downloaded.
+   * @param progress The progress object to update with the download progress.
+   * @throws Error if there is a problem downloading the records.
+   */
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
-    account: ConnectorAccount,
     progress: TConnectorProgress,
   ): Promise<void>;
 
@@ -77,24 +90,37 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
     };
   }
 
+  /**
+   * Get the batch size for a given operation.
+   * @param operation The operation to get the batch size for.
+   * @returns The batch size for the given operation. Must be a value greater than 0.
+   */
   abstract getBatchSize(operation: 'create' | 'update' | 'delete'): number;
 
+  /**
+   * Attempts to push creates to the data source.
+   * @param tableSpec - The table spec to create records for.
+   * @param records - The records to create.
+   * @throws Error if there is a problem creating the records.
+   */
   abstract createRecords(
     tableSpec: TableSpecs[T],
     records: { wsId: string; fields: Record<string, unknown> }[],
-    account: ConnectorAccount | null,
   ): Promise<{ wsId: string; remoteId: string }[]>;
 
-  // TODO: Should this return updated records?
-  abstract updateRecords(
-    tableSpec: TableSpecs[T],
-    records: SnapshotRecordSanitizedForUpdate[],
-    account?: ConnectorAccount | null,
-  ): Promise<void>;
+  /**
+   * Attempts to push updates to the data source.
+   * @param tableSpec - The table spec to update records for.
+   * @param records - The records to update.
+   * @throws Error if there is a problem updating the records.
+   */
+  abstract updateRecords(tableSpec: TableSpecs[T], records: SnapshotRecordSanitizedForUpdate[]): Promise<void>;
 
-  abstract deleteRecords(
-    tableSpec: TableSpecs[T],
-    recordIds: { wsId: string; remoteId: string }[],
-    account: ConnectorAccount | null,
-  ): Promise<void>;
+  /**
+   * Delete records from the data source
+   * @param tableSpec - The table spec to delete records from.
+   * @param recordIds - The record ids to delete.
+   * @throws Error if there is a problem deleting the records.
+   */
+  abstract deleteRecords(tableSpec: TableSpecs[T], recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
 }

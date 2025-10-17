@@ -68,7 +68,7 @@ export class SnapshotService {
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
     for (const tableId of tableIds) {
-      tableSpecs.push(await connector.fetchTableSpec(tableId, connectorAccount));
+      tableSpecs.push(await connector.fetchTableSpec(tableId));
       tableContexts.push({
         id: tableId,
         activeViewId: null,
@@ -887,7 +887,6 @@ export class SnapshotService {
             records: records.length,
           });
         },
-        connectorAccount,
         {
           publicProgress: {},
           jobProgress: {},
@@ -1029,10 +1028,6 @@ export class SnapshotService {
     connector: Connector<S>,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
-    const connectorAccount = snapshot.connectorAccount;
-    // if (!connectorAccount) {
-    //   throw new BadRequestException('Cannot publish creates to connectorless snapshots');
-    // }
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
@@ -1043,7 +1038,7 @@ export class SnapshotService {
           .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
           .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
 
-        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords, connectorAccount);
+        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords);
         // Save the created IDs.
         await this.snapshotDbService.snapshotDb.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
       },
@@ -1057,10 +1052,6 @@ export class SnapshotService {
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
-    const connectorAccount = snapshot.connectorAccount;
-    // if (!connectorAccount) {
-    //   throw new BadRequestException('Cannot publish updates to connectorless snapshots');
-    // }
 
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
@@ -1071,7 +1062,7 @@ export class SnapshotService {
         const sanitizedRecords = records.map((record) =>
           connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
         );
-        await connector.updateRecords(tableSpec, sanitizedRecords, connectorAccount);
+        await connector.updateRecords(tableSpec, sanitizedRecords);
       },
       true,
     );
@@ -1083,10 +1074,7 @@ export class SnapshotService {
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Finally the deletes since hopefully nothing references them.
-    const connectorAccount = snapshot.connectorAccount;
-    // if (!connectorAccount) {
-    //   throw new BadRequestException('Cannot publish deletes to connectorless snapshots');
-    // }
+
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
       tableSpec.id.wsId,
@@ -1097,7 +1085,7 @@ export class SnapshotService {
           .filter((r) => !!r.id.remoteId)
           .map((r) => ({ wsId: r.id.wsId, remoteId: r.id.remoteId! }));
 
-        await connector.deleteRecords(tableSpec, recordIds, connectorAccount);
+        await connector.deleteRecords(tableSpec, recordIds);
 
         // Remove them from the snapshot.
         await this.snapshotDbService.snapshotDb.deleteRecords(

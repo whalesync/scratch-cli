@@ -130,7 +130,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       };
 
       try {
-        await connector.downloadTableRecords(tableSpec, callback, connectorAccount, progress);
+        await connector.downloadTableRecords(tableSpec, callback, progress);
         // Mark table as completed
         currentTable.status = 'completed';
       } catch (error) {

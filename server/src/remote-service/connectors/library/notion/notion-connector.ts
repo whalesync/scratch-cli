@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
 import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
 import { BlockObjectRequest, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
-import { ConnectorAccount, Service } from '@prisma/client';
+import { Service } from '@prisma/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
@@ -86,7 +86,6 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   async downloadTableRecords(
     tableSpec: NotionTableSpec,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
-    account: ConnectorAccount,
     progress?: NotionDownloadProgress,
   ): Promise<void> {
     const [databaseId] = tableSpec.id.remoteId;

@@ -189,7 +189,7 @@ export class ConnectorAccountService {
       connectorAccount: account,
       decryptedCredentials: account,
     });
-    return connector.listTables(account);
+    return connector.listTables();
   }
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {
