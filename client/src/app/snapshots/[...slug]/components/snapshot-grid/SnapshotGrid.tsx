@@ -130,7 +130,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         console.debug('Title column width:', titleColumn.getActualWidth());
       }
 
-      // Calculate overlay width as 100% minus the pinned columns width
+      // Calculate overlay width as 100% minus the pinned columns width, with extra pixels to show resize handle
       const overlayWidthCalc = `calc(100% - ${pinnedColumnsWidth}px)`;
       setOverlayWidth(overlayWidthCalc);
     }
@@ -176,6 +176,15 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     gridApi,
   );
 
+  // Handle column resize to update overlay width when record details are visible
+  const handleColumnResized = useCallback(() => {
+    onColumnStateChanged();
+    // Recalculate overlay width if the overlay is visible
+    if (activeRecord?.recordId) {
+      recalculateOverlayWidth();
+    }
+  }, [onColumnStateChanged, activeRecord?.recordId, recalculateOverlayWidth]);
+
   // Handle grid ready to store API reference and apply column state immediately
   const onGridReady = useCallback(
     (params: GridReadyEvent<SnapshotRecord>) => {
@@ -197,7 +206,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const { cellRenderer } = useCellRenderer(table, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
-    resizable: !activeRecord?.recordId,
+    resizable: true,
     gridApi,
     recordDetailsVisible: !!activeRecord?.recordId,
   });
@@ -543,7 +552,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       headerName: column.name.toUpperCase(),
       sortable: true,
       filter: false,
-      resizable: !activeRecord?.recordId,
+      resizable: true,
       valueGetter,
       cellRenderer,
       cellStyle,
@@ -638,7 +647,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           maintainColumnOrder={true}
           stopEditingWhenCellsLoseFocus={false}
           onGridReady={onGridReady}
-          onColumnResized={onColumnStateChanged}
+          onColumnResized={handleColumnResized}
           onColumnMoved={onColumnStateChanged}
           onColumnVisible={onColumnStateChanged}
           onCellDoubleClicked={handleCellDoubleClicked}
