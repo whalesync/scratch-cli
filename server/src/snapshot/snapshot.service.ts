@@ -910,6 +910,7 @@ export class SnapshotService {
       try {
         await connector.downloadTableRecords(
           tableSpec,
+          snapshot.columnContexts as SnapshotColumnContexts,
           async (params) => {
             const { records } = params;
             await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
@@ -1102,7 +1103,7 @@ export class SnapshotService {
         const sanitizedRecords = records.map((record) =>
           connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
         );
-        await connector.updateRecords(tableSpec, sanitizedRecords);
+        await connector.updateRecords(tableSpec, snapshot.columnContexts as SnapshotColumnContexts, sanitizedRecords);
       },
       true,
     );

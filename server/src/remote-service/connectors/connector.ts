@@ -1,5 +1,6 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import { JsonSafeObject } from 'src/utils/objects';
+import { SnapshotColumnContexts } from '../../snapshot/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
   ConnectorErrorDetails,
@@ -52,6 +53,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    */
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],
+    columnContexts: SnapshotColumnContexts,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
   ): Promise<void>;
@@ -121,7 +123,11 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @param records - The records to update.
    * @throws Error if there is a problem updating the records.
    */
-  abstract updateRecords(tableSpec: TableSpecs[T], records: SnapshotRecordSanitizedForUpdate[]): Promise<void>;
+  abstract updateRecords(
+    tableSpec: TableSpecs[T],
+    columnContexts: SnapshotColumnContexts,
+    records: SnapshotRecordSanitizedForUpdate[],
+  ): Promise<void>;
 
   /**
    * Delete records from the data source

@@ -7,16 +7,21 @@ import {
   PageObjectResponse,
   RequestTimeoutError,
 } from '@notionhq/client';
-import { BlockObjectRequest, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
+import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
-import { NotionToMarkdown } from 'notion-to-md';
 import { WSLogger } from 'src/logger';
+import TurndownService from 'turndown';
+import { SnapshotColumnContexts } from '../../../../snapshot/types';
 import { Connector } from '../../connector';
-
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForWsId } from '../../ids';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
+import { createNotionBlockDiff } from './conversion/notion-block-diff';
+import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
+import { convertNotionBlockObjectToHtmlv2 } from './conversion/notion-rich-text-conversion';
+import { convertToNotionBlocks } from './conversion/notion-rich-text-push';
+import { ConvertedNotionBlock } from './conversion/notion-rich-text-push-types';
 import { NotionSchemaParser } from './notion-schema-parser';
 
 export const PAGE_CONTENT_COLUMN_NAME = 'Page Content';
@@ -30,19 +35,13 @@ const page_size = Number(process.env.NOTION_PAGE_SIZE ?? 100);
 export class NotionConnector extends Connector<typeof Service.NOTION, NotionDownloadProgress> {
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
-  private readonly markdownConverter: NotionToMarkdown;
+  private readonly turndownService: TurndownService = new TurndownService();
 
   service = Service.NOTION;
 
   constructor(apiKey: string) {
     super();
     this.client = new Client({ auth: apiKey });
-    this.markdownConverter = new NotionToMarkdown({
-      notionClient: this.client,
-      config: {
-        parseChildPages: false,
-      },
-    });
   }
 
   displayName(): string {
@@ -55,6 +54,42 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       filter: { property: 'object', value: 'database' },
       page_size: 1,
     });
+  }
+
+  /**
+   * Recursively fetches all blocks from a page, including nested children
+   */
+  private async fetchBlocksWithChildren(blockId: string): Promise<ConvertedNotionBlock[]> {
+    const blocks: ConvertedNotionBlock[] = [];
+    let hasMore = true;
+    let startCursor: string | undefined = undefined;
+
+    while (hasMore) {
+      const response = await this.client.blocks.children.list({
+        block_id: blockId,
+        start_cursor: startCursor,
+        page_size: 100,
+      });
+
+      for (const block of response.results) {
+        // Add children property to match ConvertedNotionBlock type
+        const blockWithChildren = {
+          ...block,
+          children: [] as ConvertedNotionBlock[],
+        } as ConvertedNotionBlock;
+
+        if (block['has_children']) {
+          blockWithChildren.children = await this.fetchBlocksWithChildren(block.id);
+        }
+
+        blocks.push(blockWithChildren);
+      }
+
+      hasMore = response.has_more;
+      startCursor = response.next_cursor || undefined;
+    }
+
+    return blocks;
   }
 
   async listTables(): Promise<TablePreview[]> {
@@ -82,6 +117,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       },
       name: 'Page Content',
       pgType: PostgresColumnType.TEXT,
+      dataConverterTypes: ['html', 'markdown'],
       notionDataType: 'rich_text',
       metadata: {
         textFormat: 'rich_text',
@@ -98,6 +134,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async downloadTableRecords(
     tableSpec: NotionTableSpec,
+    columnContexts: SnapshotColumnContexts,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress?: NotionDownloadProgress,
   ): Promise<void> {
@@ -129,19 +166,25 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
             const pageContentColumn = tableSpec.columns.find((c) => c.id.wsId === PAGE_CONTENT_COLUMN_ID);
             if (pageContentColumn) {
               try {
-                // do this separately to avoid blocking the main thread and killing the download
-                const mdblocks = await this.markdownConverter.pageToMarkdown(page.id);
-                const mdString = this.markdownConverter.toMarkdownString(mdblocks);
-                let content = mdString['parent'];
-                if (typeof content === 'string' && content.startsWith('\n')) {
-                  content = content.replace(/^\n+/, '');
+                // Check what data converter the user wants for this column
+                const dataConverter = columnContexts[tableSpec.id.wsId]?.[pageContentColumn.id.wsId]?.dataConverter;
+                const blocks = await this.fetchBlocksWithChildren(page.id);
+                let htmlContent = '';
+                for (const block of blocks) {
+                  const blockHtml = convertNotionBlockObjectToHtmlv2(block);
+                  htmlContent += blockHtml;
                 }
-                converted.fields[pageContentColumn.id.wsId] = content;
+                if (dataConverter === 'html' || !dataConverter) {
+                  converted.fields[pageContentColumn.id.wsId] = htmlContent;
+                } else if (dataConverter === 'markdown') {
+                  const markdownContent = String(this.turndownService.turndown(htmlContent));
+                  converted.fields[pageContentColumn.id.wsId] = markdownContent;
+                }
               } catch (e) {
-                converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content to markdown';
+                converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content';
                 WSLogger.error({
                   source: 'NotionConnector',
-                  message: 'Error converting page content to markdown',
+                  message: 'Error converting page content',
                   error: e,
                   pageId: page.id,
                 });
@@ -302,6 +345,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async updateRecords(
     tableSpec: NotionTableSpec,
+    columnContexts: SnapshotColumnContexts,
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
   ): Promise<void> {
     for (const record of records) {
@@ -335,7 +379,10 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
       // Update page content if needed
       if (hasPageContentUpdate && pageContentValue) {
-        await this.updatePageContent(record.id.remoteId, pageContentValue);
+        // Check if the data converter for this column is markdown
+        const dataConverter = columnContexts[tableSpec.id.wsId]?.[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
+        const isMarkdown = dataConverter === 'markdown';
+        await this.updatePageContent(record.id.remoteId, pageContentValue, isMarkdown);
       }
     }
   }
@@ -349,188 +396,30 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
   }
 
-  private async updatePageContent(pageId: string, markdownContent: string): Promise<void> {
-    try {
-      // Clear existing page content
-      await this.clearPageContent(pageId);
+  private async updatePageContent(pageId: string, content: string, isMarkdown: boolean): Promise<void> {
+    // Fetch existing blocks from the page
+    const existingBlocksArray = await this.fetchBlocksWithChildren(pageId);
 
-      // Convert markdown to Notion blocks and append them
-      const blocks = this.convertMarkdownToNotionBlocks(markdownContent);
-      if (blocks.length > 0) {
-        await this.client.blocks.children.append({
-          block_id: pageId,
-          children: blocks,
-        });
-      }
-    } catch (error) {
-      WSLogger.error({
-        source: 'NotionConnector',
-        message: 'Error updating page content',
-        error,
-        pageId,
-      });
-      throw error;
-    }
+    // Wrap blocks in a NotionBlockObject structure for the diff function
+    const existingBlocks = {
+      id: pageId,
+      type: 'page',
+      object: 'block',
+      children: existingBlocksArray,
+    };
+
+    // Convert new content (markdown/HTML) to Notion blocks
+    const newBlocks = convertToNotionBlocks(content, isMarkdown);
+
+    // Create a diff between old and new blocks
+    const diff = createNotionBlockDiff(existingBlocks, newBlocks, pageId);
+
+    // Execute the diff operations using the executor
+    const executor = new NotionBlockDiffExecutor(this.client);
+    const idMappings = new Map<string, string>(diff.idMappings || []);
+    await executor.executeOperations(pageId, diff.operations, idMappings);
   }
 
-  private async clearPageContent(pageId: string): Promise<void> {
-    try {
-      // Get all existing blocks
-      const response = await this.client.blocks.children.list({
-        block_id: pageId,
-      });
-
-      // Delete all existing blocks
-      for (const block of response.results) {
-        await this.client.blocks.delete({
-          block_id: block.id,
-        });
-      }
-    } catch (error) {
-      WSLogger.error({
-        source: 'NotionConnector',
-        message: 'Error clearing page content',
-        error,
-        pageId,
-      });
-      throw error;
-    }
-  }
-
-  private convertMarkdownToNotionBlocks(markdown: string): BlockObjectRequest[] {
-    const lines = markdown.split('\n');
-    const blocks: BlockObjectRequest[] = [];
-    let currentParagraph: string[] = [];
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (trimmedLine === '') {
-        // Empty line - flush current paragraph if any
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-      } else if (trimmedLine.startsWith('# ')) {
-        // H1 heading
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-        blocks.push({
-          object: 'block',
-          type: 'heading_1',
-          heading_1: {
-            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(2) } }],
-          },
-        });
-      } else if (trimmedLine.startsWith('## ')) {
-        // H2 heading
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-        blocks.push({
-          object: 'block',
-          type: 'heading_2',
-          heading_2: {
-            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(3) } }],
-          },
-        });
-      } else if (trimmedLine.startsWith('### ')) {
-        // H3 heading
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-        blocks.push({
-          object: 'block',
-          type: 'heading_3',
-          heading_3: {
-            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(4) } }],
-          },
-        });
-      } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-        // Bullet list item
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-        blocks.push({
-          object: 'block',
-          type: 'bulleted_list_item',
-          bulleted_list_item: {
-            rich_text: [{ type: 'text', text: { content: trimmedLine.substring(2) } }],
-          },
-        });
-      } else if (/^\d+\.\s/.test(trimmedLine)) {
-        // Numbered list item
-        if (currentParagraph.length > 0) {
-          blocks.push({
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-            },
-          });
-          currentParagraph = [];
-        }
-        const content = trimmedLine.replace(/^\d+\.\s/, '');
-        blocks.push({
-          object: 'block',
-          type: 'numbered_list_item',
-          numbered_list_item: {
-            rich_text: [{ type: 'text', text: { content } }],
-          },
-        });
-      } else {
-        // Regular paragraph line
-        currentParagraph.push(line);
-      }
-    }
-
-    // Flush any remaining paragraph content
-    if (currentParagraph.length > 0) {
-      blocks.push({
-        object: 'block',
-        type: 'paragraph',
-        paragraph: {
-          rich_text: [{ type: 'text', text: { content: currentParagraph.join('\n') } }],
-        },
-      });
-    }
-
-    return blocks;
-  }
   /**
    * Evalutes the specific the error from the Notion client and return a ConnectorErrorDetails object.
    * @param error - The error to evaluate.

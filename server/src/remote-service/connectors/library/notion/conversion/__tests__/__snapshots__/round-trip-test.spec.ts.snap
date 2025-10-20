@@ -1,0 +1,5558 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts content-marketing notion blocks to HTML: content-marketing-html-to-notion-roundtrip 1`] = `
+[
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": true,
+            "code": false,
+            "color": "default",
+            "italic": true,
+            "strikethrough": true,
+            "underline": true,
+          },
+          "href": null,
+          "plain_text": "Article Status: Final Review | Author: Sarah Chen | Category: Content Marketing | Reading Time: 22 min",
+          "text": {
+            "content": "Article Status: Final Review | Author: Sarah Chen | Category: Content Marketing | Reading Time: 22 min",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "image": {
+      "caption": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "B2B Content Marketing Strategy Framework 2024",
+          "text": {
+            "content": "B2B Content Marketing Strategy Framework 2024",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+      "external": {
+        "url": "https://i.postimg.cc/Xqqv1mgg/SLH230168-22-l-lis.jpg",
+      },
+    },
+    "object": "block",
+    "type": "image",
+  },
+  {
+    "has_children": false,
+    "heading_1": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Introduction: The B2B Content Revolution",
+          "text": {
+            "content": "Introduction: The B2B Content Revolution",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_1",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content marketing has transformed from a nice-to-have into the backbone of successful B2B marketing strategies. In 2024, with buyers consuming an average of 13 pieces of content before making a purchase decision, your content strategy can make or break your pipeline.",
+          "text": {
+            "content": "Content marketing has transformed from a nice-to-have into the backbone of successful B2B marketing strategies. In 2024, with buyers consuming an average of 13 pieces of content before making a purchase decision, your content strategy can make or break your pipeline.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "This comprehensive guide draws from our experience working with 500+ B2B companies and analyzing over 10,000 content pieces to bring you actionable insights that drive real results.",
+          "text": {
+            "content": "This comprehensive guide draws from our experience working with 500+ B2B companies and analyzing over 10,000 content pieces to bring you actionable insights that drive real results.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "quote": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": ""Content marketing generates 3x more leads than traditional marketing while costing 62% less." - Content Marketing Institute, 2024",
+          "text": {
+            "content": ""Content marketing generates 3x more leads than traditional marketing while costing 62% less." - Content Marketing Institute, 2024",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "quote",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "What We'll Cover",
+          "text": {
+            "content": "What We'll Cover",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "The State of B2B Content Marketing in 2024",
+          "text": {
+            "content": "The State of B2B Content Marketing in 2024",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Building Your Content Strategy Foundation",
+          "text": {
+            "content": "Building Your Content Strategy Foundation",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content Types That Convert",
+          "text": {
+            "content": "Content Types That Convert",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "divider": {},
+    "has_children": false,
+    "object": "block",
+    "type": "divider",
+  },
+  {
+    "has_children": false,
+    "heading_1": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "1. The State of B2B Content Marketing in 2024",
+          "text": {
+            "content": "1. The State of B2B Content Marketing in 2024",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_1",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "The B2B content landscape has evolved dramatically. Buyers are more informed, skeptical, and selective about the content they consume. Let's examine the current state with hard data.",
+          "text": {
+            "content": "The B2B content landscape has evolved dramatically. Buyers are more informed, skeptical, and selective about the content they consume. Let's examine the current state with hard data.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Key Statistics:
+• 71% of B2B buyers consume blog content during their journey
+• Video content has 50x better ROI than text
+• Interactive content generates 2x more conversions
+• 87% of marketers use AI for content creation",
+          "text": {
+            "content": "Key Statistics:
+• 71% of B2B buyers consume blog content during their journey
+• Video content has 50x better ROI than text
+• Interactive content generates 2x more conversions
+• 87% of marketers use AI for content creation",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "The Shift to Quality Over Quantity",
+          "text": {
+            "content": "The Shift to Quality Over Quantity",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content Length Trends",
+          "text": {
+            "content": "Content Length Trends",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Gone are the days of content farms and keyword stuffing. Google's helpful content update and sophisticated buyer behaviors have forced a paradigm shift.",
+          "text": {
+            "content": "Gone are the days of content farms and keyword stuffing. Google's helpful content update and sophisticated buyer behaviors have forced a paradigm shift.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Our analysis of 10,000 B2B articles revealed that comprehensive guides (3,000+ words) generate 4x more organic traffic and 3.5x more backlinks than shorter pieces.",
+          "text": {
+            "content": "Our analysis of 10,000 B2B articles revealed that comprehensive guides (3,000+ words) generate 4x more organic traffic and 3.5x more backlinks than shorter pieces.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": true,
+    "object": "block",
+    "table": {
+      "children": [
+        {
+          "has_children": false,
+          "object": "block",
+          "table_row": {
+            "cells": [
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Word Count",
+                  "text": {
+                    "content": "Word Count",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Metrics",
+                  "text": {
+                    "content": "Metrics",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            ],
+          },
+          "type": "table_row",
+        },
+        {
+          "has_children": false,
+          "object": "block",
+          "table_row": {
+            "cells": [
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "<1000 words",
+                  "text": {
+                    "content": "<1000 words",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "450 visits/mo, 12 shares, 0.5% conversion",
+                  "text": {
+                    "content": "450 visits/mo, 12 shares, 0.5% conversion",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            ],
+          },
+          "type": "table_row",
+        },
+        {
+          "has_children": false,
+          "object": "block",
+          "table_row": {
+            "cells": [
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "1000-2000 words",
+                  "text": {
+                    "content": "1000-2000 words",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "890 visits/mo, 34 shares, 1.2% conversion",
+                  "text": {
+                    "content": "890 visits/mo, 34 shares, 1.2% conversion",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            ],
+          },
+          "type": "table_row",
+        },
+        {
+          "has_children": false,
+          "object": "block",
+          "table_row": {
+            "cells": [
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "2000-3000 words",
+                  "text": {
+                    "content": "2000-3000 words",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "1,670 visits/mo, 78 shares, 2.1% conversion",
+                  "text": {
+                    "content": "1,670 visits/mo, 78 shares, 2.1% conversion",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            ],
+          },
+          "type": "table_row",
+        },
+        {
+          "has_children": false,
+          "object": "block",
+          "table_row": {
+            "cells": [
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": ">3000 words",
+                  "text": {
+                    "content": ">3000 words",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+              [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "3,420 visits/mo, 156 shares, 3.8% conversion",
+                  "text": {
+                    "content": "3,420 visits/mo, 156 shares, 3.8% conversion",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            ],
+          },
+          "type": "table_row",
+        },
+      ],
+      "has_column_header": true,
+      "has_row_header": false,
+      "table_width": 2,
+    },
+    "type": "table",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Tracking Content Performance",
+          "text": {
+            "content": "Tracking Content Performance",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "To measure content effectiveness, implement tracking scripts to monitor engagement metrics like time on page and conversion rates.",
+          "text": {
+            "content": "To measure content effectiveness, implement tracking scripts to monitor engagement metrics like time on page and conversion rates.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "code": {
+      "caption": [],
+      "language": "javascript",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "function trackContentEngagement(event) {
+  analytics.track('ContentView', {
+    page: window.location.pathname,
+    timeSpent: getTimeOnPage()
+  });
+}",
+          "text": {
+            "content": "function trackContentEngagement(event) {
+  analytics.track('ContentView', {
+    page: window.location.pathname,
+    timeSpent: getTimeOnPage()
+  });
+}",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "code",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content Consumption Patterns",
+          "text": {
+            "content": "Content Consumption Patterns",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Understanding how B2B buyers consume content is crucial for strategy development. Our research identifies five distinct consumption phases.",
+          "text": {
+            "content": "Understanding how B2B buyers consume content is crucial for strategy development. Our research identifies five distinct consumption phases.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "divider": {},
+    "has_children": false,
+    "object": "block",
+    "type": "divider",
+  },
+  {
+    "has_children": false,
+    "heading_1": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "2. Building Your Content Strategy Foundation",
+          "text": {
+            "content": "2. Building Your Content Strategy Foundation",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_1",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "A successful content strategy starts with a solid foundation. Here's our proven framework for building one that delivers results.",
+          "text": {
+            "content": "A successful content strategy starts with a solid foundation. Here's our proven framework for building one that delivers results.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Step 1: Define Your Content Pillars",
+          "text": {
+            "content": "Step 1: Define Your Content Pillars",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content pillars are the 3-5 core topics that support your brand narrative and business goals. They should align with your expertise and audience needs.",
+          "text": {
+            "content": "Content pillars are the 3-5 core topics that support your brand narrative and business goals. They should align with your expertise and audience needs.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Pillar Example 1: Digital Transformation
+• Cloud migration
+• Process automation
+• Change management",
+          "text": {
+            "content": "Pillar Example 1: Digital Transformation
+• Cloud migration
+• Process automation
+• Change management",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Pillar Example 2: Data Analytics
+• Business intelligence
+• Predictive analytics
+• Data governance",
+          "text": {
+            "content": "Pillar Example 2: Data Analytics
+• Business intelligence
+• Predictive analytics
+• Data governance",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Pillar Example 3: Customer Experience
+• Journey mapping
+• Personalization
+• Omnichannel strategy",
+          "text": {
+            "content": "Pillar Example 3: Customer Experience
+• Journey mapping
+• Personalization
+• Omnichannel strategy",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "to_do": {
+      "checked": false,
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Define your content pillars and buyer personas",
+          "text": {
+            "content": "Define your content pillars and buyer personas",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "to_do",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Ready to transform your content marketing? Download our complete B2B Content Marketing Playbook with templates, checklists, and frameworks.",
+          "text": {
+            "content": "Ready to transform your content marketing? Download our complete B2B Content Marketing Playbook with templates, checklists, and frameworks.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [],
+    },
+    "type": "paragraph",
+  },
+]
+`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts content-marketing notion blocks to HTML: content-marketing-notion-to-html 1`] = `"<article><div><u><del><em><strong>Article Status: Final Review | Author: Sarah Chen | Category: Content Marketing | Reading Time: 22 min</strong></em></del></u></div><figure><img style="width:100%;height:auto;" src="https://i.postimg.cc/Xqqv1mgg/SLH230168-22-l-lis.jpg" alt="B2B Content Marketing Strategy Framework 2024"><figcaption align="center">B2B Content Marketing Strategy Framework 2024</figcaption></figure><h1>Introduction: The B2B Content Revolution</h1><p>Content marketing has transformed from a nice-to-have into the backbone of successful B2B marketing strategies. In 2024, with buyers consuming an average of 13 pieces of content before making a purchase decision, your content strategy can make or break your pipeline.</p><p>This comprehensive guide draws from our experience working with 500+ B2B companies and analyzing over 10,000 content pieces to bring you actionable insights that drive real results.</p><blockquote>&quot;Content marketing generates 3x more leads than traditional marketing while costing 62% less.&quot; - Content Marketing Institute, 2024</blockquote><h2>What We&#039;ll Cover</h2><li>The State of B2B Content Marketing in 2024</li><li>Building Your Content Strategy Foundation</li><li>Content Types That Convert</li><hr/><h1>1. The State of B2B Content Marketing in 2024</h1><p>The B2B content landscape has evolved dramatically. Buyers are more informed, skeptical, and selective about the content they consume. Let&#039;s examine the current state with hard data.</p><div>Key Statistics:<br>• 71% of B2B buyers consume blog content during their journey<br>• Video content has 50x better ROI than text<br>• Interactive content generates 2x more conversions<br>• 87% of marketers use AI for content creation</div><h2>The Shift to Quality Over Quantity</h2><h3>Content Length Trends</h3><p>Gone are the days of content farms and keyword stuffing. Google&#039;s helpful content update and sophisticated buyer behaviors have forced a paradigm shift.</p><p>Our analysis of 10,000 B2B articles revealed that comprehensive guides (3,000+ words) generate 4x more organic traffic and 3.5x more backlinks than shorter pieces.</p><table><thead><tr><th scope="col">Word Count</th><th scope="col">Metrics</th></tr></thead><tbody><tr><td>&lt;1000 words</td><td>450 visits/mo, 12 shares, 0.5% conversion</td></tr><tr><td>1000-2000 words</td><td>890 visits/mo, 34 shares, 1.2% conversion</td></tr><tr><td>2000-3000 words</td><td>1,670 visits/mo, 78 shares, 2.1% conversion</td></tr><tr><td>&gt;3000 words</td><td>3,420 visits/mo, 156 shares, 3.8% conversion</td></tr></tbody></table><h3>Tracking Content Performance</h3><p>To measure content effectiveness, implement tracking scripts to monitor engagement metrics like time on page and conversion rates.</p><div style="background-color:#f1f1f1; padding:20px; width:100%; font-size:115%;"><code>function trackContentEngagement(event) {<br>  analytics.track(&#039;ContentView&#039;, {<br>    page: window.location.pathname,<br>    timeSpent: getTimeOnPage()<br>  });<br>}</code></div><h2>Content Consumption Patterns</h2><p>Understanding how B2B buyers consume content is crucial for strategy development. Our research identifies five distinct consumption phases.</p><hr/><h1>2. Building Your Content Strategy Foundation</h1><p>A successful content strategy starts with a solid foundation. Here&#039;s our proven framework for building one that delivers results.</p><h2>Step 1: Define Your Content Pillars</h2><p>Content pillars are the 3-5 core topics that support your brand narrative and business goals. They should align with your expertise and audience needs.</p><div>Pillar Example 1: Digital Transformation<br>• Cloud migration<br>• Process automation<br>• Change management</div><div>Pillar Example 2: Data Analytics<br>• Business intelligence<br>• Predictive analytics<br>• Data governance</div><div>Pillar Example 3: Customer Experience<br>• Journey mapping<br>• Personalization<br>• Omnichannel strategy</div><div><label><input type="checkbox"> Define your content pillars and buyer personas</label></div><div>Ready to transform your content marketing? Download our complete B2B Content Marketing Playbook with templates, checklists, and frameworks.</div><p><br></p></article>"`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts product-launch notion blocks to HTML: product-launch-html-to-notion-roundtrip 1`] = `
+[
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "LAUNCH DATE: April 15, 2024 | BUDGET: $500,000 | TARGET: 15,000 trial signups | STATUS: In Progress",
+          "text": {
+            "content": "LAUNCH DATE: April 15, 2024 | BUDGET: $500,000 | TARGET: 15,000 trial signups | STATUS: In Progress",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "heading_1": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Executive Summary",
+          "text": {
+            "content": "Executive Summary",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_1",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "ProjectSync Pro represents our most significant product launch of 2024. This AI-powered project management platform will position us as the innovation leader in the $15B project management software market.",
+          "text": {
+            "content": "ProjectSync Pro represents our most significant product launch of 2024. This AI-powered project management platform will position us as the innovation leader in the $15B project management software market.",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Primary Goal: 15,000 trial signups in first 30 days",
+          "text": {
+            "content": "Primary Goal: 15,000 trial signups in first 30 days",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Revenue Target: $2M ARR by end of Q3",
+          "text": {
+            "content": "Revenue Target: $2M ARR by end of Q3",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Market Share: Capture 5% of mid-market",
+          "text": {
+            "content": "Market Share: Capture 5% of mid-market",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "embed": {
+      "caption": [],
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "embed",
+  },
+  {
+    "bookmark": {
+      "caption": [],
+      "url": "https://www.projectsyncpro.com/launch",
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bookmark",
+  },
+  {
+    "divider": {},
+    "has_children": false,
+    "object": "block",
+    "type": "divider",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Messaging Framework",
+          "text": {
+            "content": "Messaging Framework",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "C-Suite (Pain: Project failure rates)
+→ Key Message: Reduce project failure by 90% Project Managers (Pain: Admin overhead)
+→ Key Message: Save 15 hours per week  Team Leads (Pain: Resource visibility)
+→ Key Message: Real-time project insights",
+          "text": {
+            "content": "C-Suite (Pain: Project failure rates)
+→ Key Message: Reduce project failure by 90% Project Managers (Pain: Admin overhead)
+→ Key Message: Save 15 hours per week  Team Leads (Pain: Resource visibility)
+→ Key Message: Real-time project insights",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": true,
+            "code": false,
+            "color": "default",
+            "italic": true,
+            "strikethrough": true,
+            "underline": true,
+          },
+          "href": null,
+          "plain_text": "Campaign Timeline",
+          "text": {
+            "content": "Campaign Timeline",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "to_do": {
+      "checked": true,
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "March 15: Begin teaser campaign on social media",
+          "text": {
+            "content": "March 15: Begin teaser campaign on social media",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "to_do",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "to_do": {
+      "checked": false,
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "April 1: Launch email campaign to existing customers",
+          "text": {
+            "content": "April 1: Launch email campaign to existing customers",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "to_do",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "to_do": {
+      "checked": false,
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "April 15: Official product launch and press release",
+          "text": {
+            "content": "April 15: Official product launch and press release",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "to_do",
+  },
+]
+`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts product-launch notion blocks to HTML: product-launch-notion-to-html 1`] = `"<article><div>LAUNCH DATE: April 15, 2024 | BUDGET: $500,000 | TARGET: 15,000 trial signups | STATUS: In Progress</div><h1>Executive Summary</h1><p>ProjectSync Pro represents our most significant product launch of 2024. This AI-powered project management platform will position us as the innovation leader in the $15B project management software market.</p><div>Primary Goal: 15,000 trial signups in first 30 days</div><div>Revenue Target: $2M ARR by end of Q3</div><div>Market Share: Capture 5% of mid-market</div><iframe style="width:100%;height:400px;border:0;" src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p style="border: 1px solid #f1f1f1; padding:20px; width:100%;"><a href="https://www.projectsyncpro.com/launch" target="_blank">https://www.projectsyncpro.com/launch</a><br/>https://www.projectsyncpro.com/launch</p><hr/><h2>Messaging Framework</h2><div><div><p>C-Suite (Pain: Project failure rates)<br>→ Key Message: Reduce project failure by 90%</p><p>Project Managers (Pain: Admin overhead)<br>→ Key Message: Save 15 hours per week</p></div><div><p>Team Leads (Pain: Resource visibility)<br>→ Key Message: Real-time project insights</p></div></div><h2><u><del><em><strong>Campaign Timeline</strong></em></del></u></h2><div><label><input type="checkbox" checked> March 15: Begin teaser campaign on social media</label></div><div><label><input type="checkbox"> April 1: Launch email campaign to existing customers</label></div><div><label><input type="checkbox"> April 15: Official product launch and press release</label></div></article>"`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts social-strategy notion blocks to HTML: social-strategy-html-to-notion-roundtrip 1`] = `
+[
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Month: April 2024 | Theme: Spring Into Productivity | Goal: 100K impressions, 5K engagements",
+          "text": {
+            "content": "Month: April 2024 | Theme: Spring Into Productivity | Goal: 100K impressions, 5K engagements",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "has_children": false,
+    "heading_1": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "April 2024 Social Media Strategy",
+          "text": {
+            "content": "April 2024 Social Media Strategy",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_1",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Monthly Themes & Campaigns",
+          "text": {
+            "content": "Monthly Themes & Campaigns",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Week 1-2: Product Launch - ProjectSync Pro",
+          "text": {
+            "content": "Week 1-2: Product Launch - ProjectSync Pro",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Week 3: Thought Leadership - Industry Insights",
+          "text": {
+            "content": "Week 3: Thought Leadership - Industry Insights",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Week 4: Community - User Stories",
+          "text": {
+            "content": "Week 4: Community - User Stories",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "divider": {},
+    "has_children": false,
+    "object": "block",
+    "type": "divider",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Platform Strategy",
+          "text": {
+            "content": "Platform Strategy",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "callout": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Platform Performance Targets:
+
+LinkedIn: 5 posts/week, Tue-Thu 9AM
+Content Mix: 40% thought leadership, 30% product, 30% culture
+KPI: Engagement rate >2%
+
+Twitter/X: 10 posts/week, Daily 12PM & 5PM
+Content Mix: 50% news, 30% engagement, 20% promotional
+KPI: Impressions >50K
+
+Instagram: 3 posts/week, Wed/Fri/Sun 6PM
+Content Mix: 60% behind-scenes, 40% product demos
+KPI: Story completion >75%",
+          "text": {
+            "content": "Platform Performance Targets:
+
+LinkedIn: 5 posts/week, Tue-Thu 9AM
+Content Mix: 40% thought leadership, 30% product, 30% culture
+KPI: Engagement rate >2%
+
+Twitter/X: 10 posts/week, Daily 12PM & 5PM
+Content Mix: 50% news, 30% engagement, 20% promotional
+KPI: Impressions >50K
+
+Instagram: 3 posts/week, Wed/Fri/Sun 6PM
+Content Mix: 60% behind-scenes, 40% product demos
+KPI: Story completion >75%",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "callout",
+  },
+  {
+    "bookmark": {
+      "caption": [],
+      "url": "https://www.socialmediaexaminer.com/social-media-marketing-trends-2024",
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bookmark",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Content Examples",
+          "text": {
+            "content": "Content Examples",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": true,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Time: 9:00 AM EST",
+          "text": {
+            "content": "Time: 9:00 AM EST",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "quote": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "The future of project management isn't about more features—it's about intelligent automation. What's your take on AI in project management?",
+          "text": {
+            "content": "The future of project management isn't about more features—it's about intelligent automation. What's your take on AI in project management?",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "quote",
+  },
+  {
+    "has_children": false,
+    "heading_2": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Response Guidelines",
+          "text": {
+            "content": "Response Guidelines",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_2",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Response time goal: <15 minutes during business hours",
+          "text": {
+            "content": "Response time goal: <15 minutes during business hours",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Always respond with value-added insights",
+          "text": {
+            "content": "Always respond with value-added insights",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Tag relevant team members for complex questions",
+          "text": {
+            "content": "Tag relevant team members for complex questions",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "has_children": false,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+]
+`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts social-strategy notion blocks to HTML: social-strategy-notion-to-html 1`] = `"<article><div>Month: April 2024 | Theme: Spring Into Productivity | Goal: 100K impressions, 5K engagements</div><h1>April 2024 Social Media Strategy</h1><h2>Monthly Themes &amp; Campaigns</h2><div>Week 1-2: Product Launch - ProjectSync Pro</div><div>Week 3: Thought Leadership - Industry Insights</div><div>Week 4: Community - User Stories</div><hr/><h2>Platform Strategy</h2><div>Platform Performance Targets:<br><br>LinkedIn: 5 posts/week, Tue-Thu 9AM<br>Content Mix: 40% thought leadership, 30% product, 30% culture<br>KPI: Engagement rate &gt;2%<br><br>Twitter/X: 10 posts/week, Daily 12PM &amp; 5PM<br>Content Mix: 50% news, 30% engagement, 20% promotional<br>KPI: Impressions &gt;50K<br><br>Instagram: 3 posts/week, Wed/Fri/Sun 6PM<br>Content Mix: 60% behind-scenes, 40% product demos<br>KPI: Story completion &gt;75%</div><p style="border: 1px solid #f1f1f1; padding:20px; width:100%;"><a href="https://www.socialmediaexaminer.com/social-media-marketing-trends-2024" target="_blank">https://www.socialmediaexaminer.com/social-media-marketing-trends-2024</a><br/>https://www.socialmediaexaminer.com/social-media-marketing-trends-2024</p><h2>Content Examples</h2><p><strong>Time: 9:00 AM EST</strong></p><blockquote>The future of project management isn&#039;t about more features—it&#039;s about intelligent automation. What&#039;s your take on AI in project management?</blockquote><h2>Response Guidelines</h2><li>Response time goal: &lt;15 minutes during business hours</li><li>Always respond with value-added insights</li><li>Tag relevant team members for complex questions</li></article>"`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts whale-encyclopedia notion blocks to HTML: whale-encyclopedia-html-to-notion-roundtrip 1`] = `
+[
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Baleen Whales",
+          "text": {
+            "content": "Baleen Whales",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Blue Whale",
+              "text": {
+                "content": "Blue Whale",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Size: Up to 100 feet",
+                  "text": {
+                    "content": "Size: Up to 100 feet",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Weight: Up to 200 tons",
+                      "text": {
+                        "content": "Weight: Up to 200 tons",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Heart alone weighs 400 pounds",
+                          "text": {
+                            "content": "Heart alone weighs 400 pounds",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Tongue weighs 3 tons",
+                          "text": {
+                            "content": "Tongue weighs 3 tons",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Length comparison to buses",
+                      "text": {
+                        "content": "Length comparison to buses",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "has_children": false,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Diet: Krill exclusively",
+                  "text": {
+                    "content": "Diet: Krill exclusively",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "has_children": false,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Humpback Whale",
+              "text": {
+                "content": "Humpback Whale",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Migration patterns",
+                  "text": {
+                    "content": "Migration patterns",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Arctic feeding grounds",
+                      "text": {
+                        "content": "Arctic feeding grounds",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Alaska waters",
+                          "text": {
+                            "content": "Alaska waters",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "children": [
+                      {
+                        "bulleted_list_item": {
+                          "color": "default",
+                          "rich_text": [
+                            {
+                              "annotations": {
+                                "bold": false,
+                                "code": false,
+                                "color": "default",
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                              },
+                              "href": null,
+                              "plain_text": "Summer feeding season",
+                              "text": {
+                                "content": "Summer feeding season",
+                                "link": null,
+                              },
+                              "type": "text",
+                            },
+                          ],
+                        },
+                        "has_children": false,
+                        "object": "block",
+                        "type": "bulleted_list_item",
+                      },
+                    ],
+                    "has_children": true,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Tropical breeding grounds",
+                      "text": {
+                        "content": "Tropical breeding grounds",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "has_children": false,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Evolution Timeline",
+          "text": {
+            "content": "Whale Evolution Timeline",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Terrestrial habitat",
+                          "text": {
+                            "content": "Terrestrial habitat",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Near water sources",
+                          "text": {
+                            "content": "Near water sources",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Four legs",
+                      "text": {
+                        "content": "Four legs",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+              {
+                "has_children": false,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Long skull",
+                      "text": {
+                        "content": "Long skull",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Pakicetus (Land mammal)",
+                  "text": {
+                    "content": "Pakicetus (Land mammal)",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "50 Million Years Ago",
+              "text": {
+                "content": "50 Million Years Ago",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "has_children": false,
+                        "numbered_list_item": {
+                          "color": "default",
+                          "rich_text": [
+                            {
+                              "annotations": {
+                                "bold": false,
+                                "code": false,
+                                "color": "default",
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                              },
+                              "href": null,
+                              "plain_text": "Vestigial legs",
+                              "text": {
+                                "content": "Vestigial legs",
+                                "link": null,
+                              },
+                              "type": "text",
+                            },
+                          ],
+                        },
+                        "object": "block",
+                        "type": "numbered_list_item",
+                      },
+                    ],
+                    "has_children": true,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Reduced hind limbs",
+                          "text": {
+                            "content": "Reduced hind limbs",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Fully aquatic",
+                      "text": {
+                        "content": "Fully aquatic",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Basilosaurus",
+                  "text": {
+                    "content": "Basilosaurus",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "40 Million Years Ago",
+              "text": {
+                "content": "40 Million Years Ago",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Communication",
+          "text": {
+            "content": "Whale Communication",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Low frequency moans",
+                          "text": {
+                            "content": "Low frequency moans",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "High pitched squeaks",
+                          "text": {
+                            "content": "High pitched squeaks",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Individual sounds",
+                      "text": {
+                        "content": "Individual sounds",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Phrases",
+                  "text": {
+                    "content": "Phrases",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+          {
+            "has_children": false,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Themes",
+                  "text": {
+                    "content": "Themes",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Song Structure",
+              "text": {
+                "content": "Song Structure",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "has_children": false,
+                        "numbered_list_item": {
+                          "color": "default",
+                          "rich_text": [
+                            {
+                              "annotations": {
+                                "bold": false,
+                                "code": false,
+                                "color": "default",
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                              },
+                              "href": null,
+                              "plain_text": "Directional beams",
+                              "text": {
+                                "content": "Directional beams",
+                                "link": null,
+                              },
+                              "type": "text",
+                            },
+                          ],
+                        },
+                        "object": "block",
+                        "type": "numbered_list_item",
+                      },
+                    ],
+                    "has_children": true,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Sound focusing",
+                          "text": {
+                            "content": "Sound focusing",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Melon organ",
+                      "text": {
+                        "content": "Melon organ",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Click production",
+                  "text": {
+                    "content": "Click production",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Echolocation",
+              "text": {
+                "content": "Echolocation",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Conservation Status",
+          "text": {
+            "content": "Whale Conservation Status",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Critically Endangered",
+              "text": {
+                "content": "Critically Endangered",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "North Atlantic Right Whale",
+                  "text": {
+                    "content": "North Atlantic Right Whale",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Population: ~340 individuals",
+                      "text": {
+                        "content": "Population: ~340 individuals",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Ship strikes",
+                          "text": {
+                            "content": "Ship strikes",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Fishing gear entanglement",
+                          "text": {
+                            "content": "Fishing gear entanglement",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Endangered",
+              "text": {
+                "content": "Endangered",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Fin Whale",
+                  "text": {
+                    "content": "Fin Whale",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Recovery efforts",
+                      "text": {
+                        "content": "Recovery efforts",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Hunting ban",
+                          "text": {
+                            "content": "Hunting ban",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "children": [
+                      {
+                        "bulleted_list_item": {
+                          "color": "default",
+                          "rich_text": [
+                            {
+                              "annotations": {
+                                "bold": false,
+                                "code": false,
+                                "color": "default",
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                              },
+                              "href": null,
+                              "plain_text": "International protection",
+                              "text": {
+                                "content": "International protection",
+                                "link": null,
+                              },
+                              "type": "text",
+                            },
+                          ],
+                        },
+                        "has_children": false,
+                        "object": "block",
+                        "type": "bulleted_list_item",
+                      },
+                    ],
+                    "has_children": true,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Toothed Whales",
+          "text": {
+            "content": "Toothed Whales",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whales with teeth for catching prey",
+          "text": {
+            "content": "Whales with teeth for catching prey",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Sperm Whale",
+          "text": {
+            "content": "Sperm Whale",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Deep diving abilities",
+              "text": {
+                "content": "Deep diving abilities",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Depths up to 7,000 feet",
+                  "text": {
+                    "content": "Depths up to 7,000 feet",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Hunting giant squid",
+                      "text": {
+                        "content": "Hunting giant squid",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Battles with colossal squid",
+                          "text": {
+                            "content": "Battles with colossal squid",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Orca (Killer Whale)",
+          "text": {
+            "content": "Orca (Killer Whale)",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Pod structure",
+              "text": {
+                "content": "Pod structure",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Matriarchal society",
+                  "text": {
+                    "content": "Matriarchal society",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Eldest female leads",
+                      "text": {
+                        "content": "Eldest female leads",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Knowledge of hunting grounds",
+                          "text": {
+                            "content": "Knowledge of hunting grounds",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Anatomy",
+          "text": {
+            "content": "Whale Anatomy",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Specialized body parts for marine life",
+          "text": {
+            "content": "Specialized body parts for marine life",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Blubber layer",
+          "text": {
+            "content": "Blubber layer",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Insulation properties",
+              "text": {
+                "content": "Insulation properties",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Temperature regulation",
+                  "text": {
+                    "content": "Temperature regulation",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Cold water adaptation",
+                      "text": {
+                        "content": "Cold water adaptation",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Arctic survival",
+                          "text": {
+                            "content": "Arctic survival",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Feeding Strategies",
+          "text": {
+            "content": "Whale Feeding Strategies",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Different methods of obtaining food",
+          "text": {
+            "content": "Different methods of obtaining food",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Filter Feeding",
+          "text": {
+            "content": "Filter Feeding",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Trap small organisms",
+                          "text": {
+                            "content": "Trap small organisms",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Hair-like fibers",
+                      "text": {
+                        "content": "Hair-like fibers",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Keratin structure",
+                  "text": {
+                    "content": "Keratin structure",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Baleen plates",
+              "text": {
+                "content": "Baleen plates",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Active Hunting",
+          "text": {
+            "content": "Active Hunting",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Precise strike capability",
+                          "text": {
+                            "content": "Precise strike capability",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Prey detection",
+                      "text": {
+                        "content": "Prey detection",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Sound wave navigation",
+                  "text": {
+                    "content": "Sound wave navigation",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Echolocation targeting",
+              "text": {
+                "content": "Echolocation targeting",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "has_children": false,
+    "heading_3": {
+      "color": "default",
+      "is_toggleable": false,
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Habitats",
+          "text": {
+            "content": "Whale Habitats",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "object": "block",
+    "type": "heading_3",
+  },
+  {
+    "has_children": false,
+    "object": "block",
+    "paragraph": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Environments where whales live",
+          "text": {
+            "content": "Environments where whales live",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "type": "paragraph",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Open Ocean",
+          "text": {
+            "content": "Open Ocean",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Upwelling areas",
+                          "text": {
+                            "content": "Upwelling areas",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Nutrient distribution",
+                      "text": {
+                        "content": "Nutrient distribution",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Deep water column",
+                  "text": {
+                    "content": "Deep water column",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Pelagic zone",
+              "text": {
+                "content": "Pelagic zone",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Behavior Patterns Breaching Jumping out of water Tail Slapping Hitting water surface with tail",
+          "text": {
+            "content": "Whale Behavior Patterns Breaching Jumping out of water Tail Slapping Hitting water surface with tail",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "has_children": false,
+        "heading_3": {
+          "color": "default",
+          "is_toggleable": false,
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Breaching",
+              "text": {
+                "content": "Breaching",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "heading_3",
+      },
+      {
+        "has_children": false,
+        "object": "block",
+        "paragraph": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Jumping out of water",
+              "text": {
+                "content": "Jumping out of water",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "type": "paragraph",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Communication purpose",
+              "text": {
+                "content": "Communication purpose",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Long-distance signaling",
+                  "text": {
+                    "content": "Long-distance signaling",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Sound travels underwater",
+                      "text": {
+                        "content": "Sound travels underwater",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Miles of transmission range",
+                          "text": {
+                            "content": "Miles of transmission range",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+      {
+        "has_children": false,
+        "heading_3": {
+          "color": "default",
+          "is_toggleable": false,
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Tail Slapping",
+              "text": {
+                "content": "Tail Slapping",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "heading_3",
+      },
+      {
+        "has_children": false,
+        "object": "block",
+        "paragraph": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Hitting water surface with tail",
+              "text": {
+                "content": "Hitting water surface with tail",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "type": "paragraph",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Warning behavior",
+              "text": {
+                "content": "Warning behavior",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Territorial display",
+                  "text": {
+                    "content": "Territorial display",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Protecting young",
+                      "text": {
+                        "content": "Protecting young",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Mother-calf bonding",
+                          "text": {
+                            "content": "Mother-calf bonding",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Life Cycle Stages Gestation Pregnancy period varies by species Nursing Milk feeding period",
+          "text": {
+            "content": "Whale Life Cycle Stages Gestation Pregnancy period varies by species Nursing Milk feeding period",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "has_children": false,
+        "heading_3": {
+          "color": "default",
+          "is_toggleable": false,
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Gestation",
+              "text": {
+                "content": "Gestation",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "heading_3",
+      },
+      {
+        "has_children": false,
+        "object": "block",
+        "paragraph": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Pregnancy period varies by species",
+              "text": {
+                "content": "Pregnancy period varies by species",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "type": "paragraph",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Blue whale: 12 months",
+              "text": {
+                "content": "Blue whale: 12 months",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Single calf birth",
+                  "text": {
+                    "content": "Single calf birth",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Immediate swimming ability",
+                      "text": {
+                        "content": "Immediate swimming ability",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Surface breathing instinct",
+                          "text": {
+                            "content": "Surface breathing instinct",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+      {
+        "has_children": false,
+        "heading_3": {
+          "color": "default",
+          "is_toggleable": false,
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Nursing",
+              "text": {
+                "content": "Nursing",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "heading_3",
+      },
+      {
+        "has_children": false,
+        "object": "block",
+        "paragraph": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Milk feeding period",
+              "text": {
+                "content": "Milk feeding period",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "type": "paragraph",
+      },
+      {
+        "bulleted_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "High fat content milk",
+              "text": {
+                "content": "High fat content milk",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "children": [
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Rapid weight gain",
+                  "text": {
+                    "content": "Rapid weight gain",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Daily weight increase",
+                      "text": {
+                        "content": "Daily weight increase",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Hundreds of pounds per day",
+                          "text": {
+                            "content": "Hundreds of pounds per day",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "object": "block",
+        "type": "bulleted_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+  {
+    "bulleted_list_item": {
+      "color": "default",
+      "rich_text": [
+        {
+          "annotations": {
+            "bold": false,
+            "code": false,
+            "color": "default",
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+          },
+          "href": null,
+          "plain_text": "Whale Research Methods",
+          "text": {
+            "content": "Whale Research Methods",
+            "link": null,
+          },
+          "type": "text",
+        },
+      ],
+    },
+    "children": [
+      {
+        "children": [
+          {
+            "has_children": false,
+            "heading_3": {
+              "color": "default",
+              "is_toggleable": false,
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Tracking Technology",
+                  "text": {
+                    "content": "Tracking Technology",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "heading_3",
+          },
+          {
+            "has_children": false,
+            "object": "block",
+            "paragraph": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "GPS and depth sensors",
+                  "text": {
+                    "content": "GPS and depth sensors",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "type": "paragraph",
+          },
+          {
+            "bulleted_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Migration route mapping",
+                  "text": {
+                    "content": "Migration route mapping",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "children": [
+              {
+                "children": [
+                  {
+                    "bulleted_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Feeding area identification",
+                          "text": {
+                            "content": "Feeding area identification",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "has_children": false,
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                  },
+                ],
+                "has_children": true,
+                "numbered_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Data collection points",
+                      "text": {
+                        "content": "Data collection points",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "object": "block",
+                "type": "numbered_list_item",
+              },
+            ],
+            "has_children": true,
+            "object": "block",
+            "type": "bulleted_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Satellite Tagging Tracking Technology GPS and depth sensors",
+              "text": {
+                "content": "Satellite Tagging Tracking Technology GPS and depth sensors",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+      {
+        "children": [
+          {
+            "has_children": false,
+            "heading_3": {
+              "color": "default",
+              "is_toggleable": false,
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Hydrophone Arrays",
+                  "text": {
+                    "content": "Hydrophone Arrays",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "heading_3",
+          },
+          {
+            "has_children": false,
+            "object": "block",
+            "paragraph": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Underwater microphone networks",
+                  "text": {
+                    "content": "Underwater microphone networks",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "type": "paragraph",
+          },
+          {
+            "children": [
+              {
+                "bulleted_list_item": {
+                  "color": "default",
+                  "rich_text": [
+                    {
+                      "annotations": {
+                        "bold": false,
+                        "code": false,
+                        "color": "default",
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                      },
+                      "href": null,
+                      "plain_text": "Species identification",
+                      "text": {
+                        "content": "Species identification",
+                        "link": null,
+                      },
+                      "type": "text",
+                    },
+                  ],
+                },
+                "children": [
+                  {
+                    "has_children": false,
+                    "numbered_list_item": {
+                      "color": "default",
+                      "rich_text": [
+                        {
+                          "annotations": {
+                            "bold": false,
+                            "code": false,
+                            "color": "default",
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                          },
+                          "href": null,
+                          "plain_text": "Individual whale recognition",
+                          "text": {
+                            "content": "Individual whale recognition",
+                            "link": null,
+                          },
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "object": "block",
+                    "type": "numbered_list_item",
+                  },
+                ],
+                "has_children": true,
+                "object": "block",
+                "type": "bulleted_list_item",
+              },
+            ],
+            "has_children": true,
+            "numbered_list_item": {
+              "color": "default",
+              "rich_text": [
+                {
+                  "annotations": {
+                    "bold": false,
+                    "code": false,
+                    "color": "default",
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                  },
+                  "href": null,
+                  "plain_text": "Sound pattern analysis",
+                  "text": {
+                    "content": "Sound pattern analysis",
+                    "link": null,
+                  },
+                  "type": "text",
+                },
+              ],
+            },
+            "object": "block",
+            "type": "numbered_list_item",
+          },
+        ],
+        "has_children": true,
+        "numbered_list_item": {
+          "color": "default",
+          "rich_text": [
+            {
+              "annotations": {
+                "bold": false,
+                "code": false,
+                "color": "default",
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+              },
+              "href": null,
+              "plain_text": "Acoustic Monitoring Hydrophone Arrays Underwater microphone networks",
+              "text": {
+                "content": "Acoustic Monitoring Hydrophone Arrays Underwater microphone networks",
+                "link": null,
+              },
+              "type": "text",
+            },
+          ],
+        },
+        "object": "block",
+        "type": "numbered_list_item",
+      },
+    ],
+    "has_children": true,
+    "object": "block",
+    "type": "bulleted_list_item",
+  },
+]
+`;
+
+exports[`HTML ↔ Notion Blocks Round-Trip Tests Notion Blocks → HTML conversion converts whale-encyclopedia notion blocks to HTML: whale-encyclopedia-notion-to-html 1`] = `"<article><li>Baleen Whales<ul><li>Blue Whale<ul><li>Size: Up to 100 feet<ul><li>Weight: Up to 200 tons<ul><li>Heart alone weighs 400 pounds</li><li>Tongue weighs 3 tons</li></ul></li><li>Length comparison to buses</li></ul></li><li>Diet: Krill exclusively</li></ul></li><li>Humpback Whale<ul><li>Migration patterns<ul><li>Arctic feeding grounds<ul><li>Alaska waters<ul><li>Summer feeding season</li></ul></li></ul></li><li>Tropical breeding grounds</li></ul></li></ul></li></ul></li><li>Whale Evolution Timeline<ol><li>50 Million Years Ago<ol><li>Pakicetus (Land mammal)<ol><li>Four legs<ol><li>Terrestrial habitat</li><li>Near water sources</li></ol></li><li>Long skull</li></ol></li></ol></li><li>40 Million Years Ago<ol><li>Basilosaurus<ol><li>Fully aquatic<ol><li>Reduced hind limbs<ol><li>Vestigial legs</li></ol></li></ol></li></ol></li></ol></li></ol></li><li>Whale Communication<ol><li>Song Structure<ol><li>Phrases<ol><li>Individual sounds<ol><li>Low frequency moans</li><li>High pitched squeaks</li></ol></li></ol></li><li>Themes</li></ol></li><li>Echolocation<ol><li>Click production<ol><li>Melon organ<ol><li>Sound focusing<ol><li>Directional beams</li></ol></li></ol></li></ol></li></ol></li></ol></li><li>Whale Conservation Status<ul><li>Critically Endangered<ul><li>North Atlantic Right Whale<ul><li>Population: ~340 individuals<ul><li>Ship strikes</li><li>Fishing gear entanglement</li></ul></li></ul></li></ul></li><li>Endangered<ul><li>Fin Whale<ul><li>Recovery efforts<ul><li>Hunting ban<ul><li>International protection</li></ul></li></ul></li></ul></li></ul></li></ul></li><h3>Toothed Whales</h3><p>Whales with teeth for catching prey</p><li>Sperm Whale<ul><li>Deep diving abilities<ul><li>Depths up to 7,000 feet<ul><li>Hunting giant squid<ul><li>Battles with colossal squid</li></ul></li></ul></li></ul></li></ul></li><li>Orca (Killer Whale)<ul><li>Pod structure<ul><li>Matriarchal society<ul><li>Eldest female leads<ul><li>Knowledge of hunting grounds</li></ul></li></ul></li></ul></li></ul></li><h3>Whale Anatomy</h3><p>Specialized body parts for marine life</p><li>Blubber layer<ul><li>Insulation properties<ul><li>Temperature regulation<ul><li>Cold water adaptation<ul><li>Arctic survival</li></ul></li></ul></li></ul></li></ul></li><h3>Whale Feeding Strategies</h3><p>Different methods of obtaining food</p><li>Filter Feeding<ol><li>Baleen plates<ol><li>Keratin structure<ol><li>Hair-like fibers<ol><li>Trap small organisms</li></ol></li></ol></li></ol></li></ol></li><li>Active Hunting<ol><li>Echolocation targeting<ol><li>Sound wave navigation<ol><li>Prey detection<ol><li>Precise strike capability</li></ol></li></ol></li></ol></li></ol></li><h3>Whale Habitats</h3><p>Environments where whales live</p><li>Open Ocean<ol><li>Pelagic zone<ol><li>Deep water column<ol><li>Nutrient distribution<ol><li>Upwelling areas</li></ol></li></ol></li></ol></li></ol></li><li>Whale Behavior Patterns Breaching Jumping out of water Tail Slapping Hitting water surface with tail<h3>Breaching</h3><p>Jumping out of water</p><ul><li>Communication purpose<ul><li>Long-distance signaling<ul><li>Sound travels underwater<ul><li>Miles of transmission range</li></ul></li></ul></li></ul></li></ul><h3>Tail Slapping</h3><p>Hitting water surface with tail</p><ul><li>Warning behavior<ul><li>Territorial display<ul><li>Protecting young<ul><li>Mother-calf bonding</li></ul></li></ul></li></ul></li></ul></li><li>Whale Life Cycle Stages Gestation Pregnancy period varies by species Nursing Milk feeding period<h3>Gestation</h3><p>Pregnancy period varies by species</p><ul><li>Blue whale: 12 months<ul><li>Single calf birth<ul><li>Immediate swimming ability<ul><li>Surface breathing instinct</li></ul></li></ul></li></ul></li></ul><h3>Nursing</h3><p>Milk feeding period</p><ul><li>High fat content milk<ul><li>Rapid weight gain<ul><li>Daily weight increase<ul><li>Hundreds of pounds per day</li></ul></li></ul></li></ul></li></ul></li><li>Whale Research Methods<ol><li>Satellite Tagging Tracking Technology GPS and depth sensors<h3>Tracking Technology</h3><p>GPS and depth sensors</p><ul><li>Migration route mapping<ol><li>Data collection points<ul><li>Feeding area identification</li></ul></li></ol></li></ul></li><li>Acoustic Monitoring Hydrophone Arrays Underwater microphone networks<h3>Hydrophone Arrays</h3><p>Underwater microphone networks</p><ol><li>Sound pattern analysis<ul><li>Species identification<ol><li>Individual whale recognition</li></ol></li></ul></li></ol></li></ol></li></article>"`;

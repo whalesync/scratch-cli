@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount, Service } from '@prisma/client';
+import { SnapshotColumnContexts } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
@@ -219,6 +220,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   async downloadTableRecords(
     tableSpec: YouTubeTableSpec,
+    columnContexts: SnapshotColumnContexts,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     const channelId = tableSpec.id.remoteId[0];
@@ -324,7 +326,11 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     );
   }
 
-  async updateRecords(_tableSpec: YouTubeTableSpec, records: SnapshotRecordSanitizedForUpdate[]): Promise<void> {
+  async updateRecords(
+    _tableSpec: YouTubeTableSpec,
+    columnContexts: SnapshotColumnContexts,
+    records: SnapshotRecordSanitizedForUpdate[],
+  ): Promise<void> {
     // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags
     for (const record of records) {
       const videoId = record.id.remoteId;
