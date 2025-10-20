@@ -138,6 +138,8 @@ model Snapshot {
 
   tableContexts Json[] // SnapshotTableContext[]
 
+  columnContexts Json @default("{}") // SnapshotColumnContexts (Record<string, SnapshotColumnSettings>)
+
   activeRecordFilter    Json? // {[tableId: string]: string[]}
   activeRecordSqlFilter Json? // {[tableId: string]: string}
 

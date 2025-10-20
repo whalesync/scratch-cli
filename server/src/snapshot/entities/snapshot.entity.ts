@@ -1,6 +1,6 @@
 import { SnapshotCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { ActiveRecordSqlFilter, SnapshotTableContext } from '../types';
+import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotTableContext } from '../types';
 
 export class Snapshot {
   id: string;
@@ -13,7 +13,7 @@ export class Snapshot {
   tables: AnyTableSpec[];
   tableContexts: SnapshotTableContext[];
   activeRecordSqlFilter?: Record<string, string>;
-
+  columnContexts: SnapshotColumnContexts;
   constructor(snapshot: SnapshotCluster.Snapshot) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? null;
@@ -24,6 +24,7 @@ export class Snapshot {
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
     this.connectorService = snapshot.service;
     this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
+    this.columnContexts = snapshot.columnContexts as SnapshotColumnContexts;
     this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
   }
 }

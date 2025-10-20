@@ -59,6 +59,11 @@ export type BaseColumnSpec = {
   readonly?: boolean;
 
   metadata?: ColumnMetadata;
+  /**
+   * Types of data converters that are supported for this column.
+   * @example ["html", "markdown"]
+   */
+  dataConverterTypes?: string[];
 };
 
 /**

@@ -5,6 +5,7 @@ import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useUpsertView } from '@/hooks/use-view';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
+import { Group, Radio } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
 import { Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -29,7 +30,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, currentView, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { snapshot, currentView, currentViewId, viewDataAsAgent, updateColumnContexts } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: props.tableId ?? '',
@@ -78,11 +79,18 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   });
   const hasColumnSuggestions = recordsWithSuggestions.length > 0;
 
+  const hasDataConverterTypes = props.columnSpec?.dataConverterTypes && props.columnSpec.dataConverterTypes.length > 0;
+
   // Get current column configuration
   const tableConfig = currentView?.config[props.tableId || ''];
   const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === columnId);
   const isColumnHidden = columnConfig?.hidden === true;
   const isColumnProtected = columnConfig?.protected === true;
+
+  // Get current data converter setting from snapshot columnContexts
+  const currentDataConverter = props.tableId
+    ? (snapshot?.columnContexts?.[props.tableId]?.[columnId]?.dataConverter ?? '')
+    : '';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -186,6 +194,31 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleDataConverterChange = async (value: string) => {
+    if (!snapshot || !props.tableId) {
+      return;
+    }
+
+    try {
+      await updateColumnContexts(props.tableId, {
+        [columnId]: {
+          dataConverter: value,
+        },
+      });
+
+      ScratchpadNotifications.success({
+        title: 'Data Converter Updated',
+        message: `Column "${columnName}" converter set to ${value || 'Default'}. Please download your records again to see the changes.`,
+      });
+    } catch (error) {
+      console.error('Error updating data converter:', error);
+      ScratchpadNotifications.error({
+        title: 'Error updating data converter',
+        message: error instanceof Error ? error.message : 'Failed to update data converter',
+      });
     }
   };
 
@@ -532,6 +565,26 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                 </>
               )}
 
+              {hasDataConverterTypes && (
+                <>
+                  <div style={{ padding: '4px 12px' }}>Data Converter Types</div>
+                  <Radio.Group
+                    style={{ padding: '4px 12px' }}
+                    name="dataConverterType"
+                    description="Choose which format you want to convert the column to"
+                    withAsterisk
+                    value={currentDataConverter}
+                    onChange={handleDataConverterChange}
+                  >
+                    <Group mt="xs">
+                      <Radio key={'default'} value={''} label={'Default'} />
+                      {props.columnSpec?.dataConverterTypes?.map((type) => (
+                        <Radio key={type} value={type} label={type} />
+                      ))}
+                    </Group>
+                  </Radio.Group>
+                </>
+              )}
               {/* Accept/Reject Column Actions */}
               {hasColumnSuggestions && (
                 <>

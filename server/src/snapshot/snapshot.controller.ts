@@ -38,6 +38,7 @@ import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
+import { UpdateColumnContextsDto } from './dto/update-column-contexts.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
@@ -238,6 +239,18 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
     return await this.service.acceptAllSuggestions(snapshotId, tableId, req.user.id, viewId);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Patch(':id/tables/:tableId/column-contexts')
+  @HttpCode(204)
+  async updateColumnContexts(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() updateColumnContextsDto: UpdateColumnContextsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.updateColumnContexts(snapshotId, tableId, updateColumnContextsDto.columnContexts, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

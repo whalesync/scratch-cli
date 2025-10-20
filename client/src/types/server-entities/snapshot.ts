@@ -15,6 +15,7 @@ export interface ColumnSpec {
   readonly?: boolean;
   pgType: PostgresColumnType;
   metadata?: ColumnMetadata;
+  dataConverterTypes?: string[];
 }
 
 export enum PostgresColumnType {
@@ -48,6 +49,14 @@ export type SnapshotTableContext = {
   readOnlyColumns: string[];
 };
 
+export type SnapshotColumnSettings = {
+  dataConverter: string | null;
+};
+
+export type SnapshotColumnContexts = {
+  [tableId: string]: Record<string, SnapshotColumnSettings>;
+};
+
 export interface Snapshot {
   id: string;
   name: string | null;
@@ -55,6 +64,7 @@ export interface Snapshot {
   updatedAt: string;
   tables: TableSpec[];
   tableContexts: SnapshotTableContext[];
+  columnContexts: SnapshotColumnContexts;
   activeRecordSqlFilter?: Record<string, string>;
 
   userId: string;
@@ -71,6 +81,10 @@ export interface CreateSnapshotDto {
 
 export interface UpdateSnapshotDto {
   name?: string;
+}
+
+export interface UpdateColumnContextsDto {
+  columnContexts: Record<string, SnapshotColumnSettings>;
 }
 
 export interface AcceptCellValueItem {

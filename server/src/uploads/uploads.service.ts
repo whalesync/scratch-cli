@@ -839,6 +839,7 @@ export class UploadsService {
           name: snapshotName,
           service: Service.CSV, // Set service to CSV
           tableSpecs,
+          columnContexts: [],
           tableContexts: [
             {
               id: { wsId: tableId, remoteId: [uploadId] },

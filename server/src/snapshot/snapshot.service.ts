@@ -30,7 +30,7 @@ import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './ent
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { ActiveRecordSqlFilter, SnapshotTableContext } from './types';
+import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
@@ -87,6 +87,7 @@ export class SnapshotService {
         service: connectorAccount.service,
         tableSpecs, // Cast to any for Prisma JSON storage
         tableContexts,
+        columnContexts: [],
       },
       include: SnapshotCluster._validator.include,
     });
@@ -702,6 +703,31 @@ export class SnapshotService {
       recordsUpdated: recordsWithSuggestions.length,
       totalChangesAccepted: allSuggestions.length,
     };
+  }
+
+  async updateColumnContexts(
+    snapshotId: SnapshotId,
+    tableId: string,
+    columnContexts: Record<string, SnapshotColumnSettings>,
+    userId: string,
+  ): Promise<void> {
+    // Fetch snapshot once for both permission check AND getting existing columnContexts
+    const currentSnapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+
+    const existingContexts = (currentSnapshot.columnContexts as SnapshotColumnContexts) ?? {};
+
+    await this.db.client.snapshot.update({
+      where: { id: snapshotId },
+      data: {
+        columnContexts: {
+          ...existingContexts,
+          [tableId]: {
+            ...(existingContexts[tableId] ?? {}),
+            ...columnContexts,
+          },
+        },
+      },
+    });
   }
 
   private extractSuggestions(records: SnapshotRecord[]) {

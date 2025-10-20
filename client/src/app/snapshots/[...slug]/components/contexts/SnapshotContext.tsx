@@ -5,7 +5,7 @@ import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { Snapshot, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
+import { Snapshot, SnapshotColumnSettings, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useSWRConfig } from 'swr';
@@ -27,6 +27,7 @@ interface SnapshotContextValue {
   // filteredRecordsCount: number;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
   updateSnapshot: (updateDto: UpdateSnapshotDto) => Promise<void>;
+  updateColumnContexts: (tableId: string, columnContexts: Record<string, SnapshotColumnSettings>) => Promise<void>;
   viewDataAsAgent: boolean;
   setViewDataAsAgent: (viewDataAsAgent: boolean) => void;
 }
@@ -137,6 +138,14 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     },
     [snapshot, mutate],
   );
+  const updateColumnContexts = useCallback(
+    async (tableId: string, columnContexts: Record<string, SnapshotColumnSettings>): Promise<void> => {
+      if (!snapshot) return;
+      await snapshotApi.updateColumnContexts(snapshot.id, tableId, { columnContexts });
+      mutate(SWR_KEYS.snapshot.detail(snapshot.id));
+    },
+    [snapshot, mutate],
+  );
 
   const value: SnapshotContextValue = {
     snapshot,
@@ -148,6 +157,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     refreshViews,
     publish,
     updateSnapshot,
+    updateColumnContexts,
     setCurrentViewId,
     createView,
     selectView,
