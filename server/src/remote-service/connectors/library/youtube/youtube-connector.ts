@@ -6,6 +6,7 @@ import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
 import {
+  ConnectorErrorDetails,
   ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
@@ -25,6 +26,10 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   ) {
     super();
     this.apiClient = new YoutubeApiClient(accessToken);
+  }
+
+  displayName(): string {
+    return 'YouTube';
   }
 
   async testConnection(): Promise<void> {
@@ -422,5 +427,14 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
       partialFields: newFields,
     };
     return sanitizedRecord;
+  }
+
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    // TODO - parse the error more gracefully and return more specific error details.
+
+    return {
+      userFriendlyMessage: 'An error occurred while connecting to YouTube',
+      description: error instanceof Error ? error.message : String(error),
+    };
   }
 }

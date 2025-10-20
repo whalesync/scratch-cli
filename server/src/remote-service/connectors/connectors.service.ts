@@ -5,6 +5,7 @@ import { OAuthService } from '../../oauth/oauth.service';
 import { UploadsDbService } from '../../uploads/uploads-db.service';
 import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
 import { Connector } from './connector';
+import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
@@ -29,15 +30,15 @@ export class ConnectorsService {
     switch (service) {
       case Service.AIRTABLE:
         if (!connectorAccount) {
-          throw new Error('Connector account is required for Airtable');
+          throw new ConnectorInstantiationError('Connector account is required for Airtable', service);
         }
         if (!decryptedCredentials?.apiKey) {
-          throw new Error('API key is required for Airtable');
+          throw new ConnectorInstantiationError('API key is required for Airtable', service);
         }
         return new AirtableConnector(decryptedCredentials.apiKey);
       case Service.NOTION:
         if (!connectorAccount) {
-          throw new Error('Connector account is required for Notion');
+          throw new ConnectorInstantiationError('Connector account is required for Notion', service);
         }
         if (connectorAccount?.authType === AuthType.OAUTH) {
           // For OAuth accounts, get the valid access token
@@ -46,7 +47,7 @@ export class ConnectorsService {
         } else {
           // For API key accounts, use the apiKey field
           if (!decryptedCredentials?.apiKey) {
-            throw new Error('API key is required for Notion');
+            throw new ConnectorInstantiationError('API key is required for Notion', service);
           }
           return new NotionConnector(decryptedCredentials.apiKey);
         }
@@ -59,7 +60,7 @@ export class ConnectorsService {
         return new CsvConnector(this.db, this.uploadsDbService);
       case Service.YOUTUBE:
         if (!connectorAccount) {
-          throw new Error('Connector account is required for YouTube');
+          throw new ConnectorInstantiationError('Connector account is required for YouTube', service);
         }
         if (connectorAccount.authType === AuthType.OAUTH) {
           // For OAuth accounts, get the valid access token and OAuth credentials
@@ -70,7 +71,7 @@ export class ConnectorsService {
           throw new Error('YouTube only supports OAuth authentication');
         }
       default:
-        throw new Error(`Unsupported service: ${service}`);
+        throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }
   }
 }

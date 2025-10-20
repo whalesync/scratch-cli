@@ -2,6 +2,7 @@ import { ConnectorAccount, Service } from '@prisma/client';
 import { JsonSafeObject } from 'src/utils/objects';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
+  ConnectorErrorDetails,
   ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
@@ -14,6 +15,12 @@ import {
  */
 export abstract class Connector<T extends Service, TConnectorProgress extends JsonSafeObject = JsonSafeObject> {
   abstract readonly service: T;
+
+  /**
+   * Get the display name for for the data service the connector operates on
+   * @returns The display name for the connector.
+   */
+  abstract displayName(): string;
 
   /**
    * Test the current state of the connection to the Datasource.
@@ -123,4 +130,11 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @throws Error if there is a problem deleting the records.
    */
   abstract deleteRecords(tableSpec: TableSpecs[T], recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
+
+  /**
+   * Evaluate the error object in the context of the connector and return some standardised error details that can be return to a user or logged.
+   * @param error - The error to evaluate.
+   * @returns The connector error details.
+   */
+  abstract extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails;
 }

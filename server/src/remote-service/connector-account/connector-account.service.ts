@@ -1,12 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AuthType, ConnectorAccount } from '@prisma/client';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
 import { EncryptedData, getEncryptionService } from '../../utils/encryption';
+import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';
+import { exceptionForConnectorError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
@@ -184,12 +186,24 @@ export class ConnectorAccountService {
 
   async listTables(id: string, userId: string): Promise<TablePreview[]> {
     const account = await this.findOne(id, userId);
-    const connector = await this.connectorsService.getConnector({
-      service: account.service,
-      connectorAccount: account,
-      decryptedCredentials: account,
-    });
-    return connector.listTables();
+    let connector: Connector<Service, any>;
+    try {
+      connector = await this.connectorsService.getConnector({
+        service: account.service,
+        connectorAccount: account,
+        decryptedCredentials: account,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    try {
+      return connector.listTables();
+    } catch (error) {
+      throw exceptionForConnectorError(error, connector);
+    }
   }
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {

@@ -130,3 +130,9 @@ export type DeleteRecordInput = {
   wsId: SnapshotRecordId;
   id: string;
 };
+
+export type ConnectorErrorDetails = {
+  userFriendlyMessage: string;
+  description?: string;
+  additionalContext?: Record<string, unknown>;
+};

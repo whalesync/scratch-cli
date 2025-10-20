@@ -8,6 +8,7 @@ import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
+import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { WSLogger } from '../../../logger';
 
 export type DownloadRecordsPublicProgress = {
@@ -143,7 +144,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           snapshotId: snapshot.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        throw error;
+        throw exceptionForConnectorError(error, connector);
       }
     }
   }

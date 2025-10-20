@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ConnectorInstantiationErrorExceptionFilter } from './exception-filters/connector.exception-filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { WSLogger, WSLoggerShim } from './logger';
 
@@ -38,6 +39,9 @@ async function bootstrap(): Promise<void> {
 
   // Apply global logging interceptor
   app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // Apply global exception filter for ConnectorCreationError
+  app.useGlobalFilters(new ConnectorInstantiationErrorExceptionFilter());
 
   app.useLogger(new WSLoggerShim());
   const port = process.env.PORT ?? 3010;

@@ -12,7 +12,8 @@ import {
 } from '../../../../custom-connector-builder/function-executor';
 import { DbService } from '../../../../db/db.service';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+
+import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { CustomTableSpec } from '../custom-spec-registry';
 
 /**
@@ -35,6 +36,10 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
     this.userId = userId;
     this.db = db;
     this.account = account;
+  }
+
+  displayName(): string {
+    return 'Custom API';
   }
 
   public async testConnection(): Promise<void> {
@@ -510,4 +515,11 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
   //   }
   //   return airtableFields;
   // }
+
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    return {
+      userFriendlyMessage: 'An error occurred while connecting to the custom API',
+      description: error instanceof Error ? error.message : String(error),
+    };
+  }
 }

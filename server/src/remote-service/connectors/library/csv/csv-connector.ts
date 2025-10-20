@@ -5,7 +5,7 @@ import { createCsvFileRecordId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, TablePreview } from '../../types';
+import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { CsvTableSpec } from '../custom-spec-registry';
 import { CsvSchemaParser } from './csv-schema-parser';
 
@@ -17,6 +17,10 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     private readonly uploadsDbService: UploadsDbService,
   ) {
     super();
+  }
+
+  displayName(): string {
+    return 'CSV';
   }
 
   public async testConnection(): Promise<void> {
@@ -229,5 +233,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     // Delete records by remoteId
     const remoteIds = recordIds.map((r) => r.remoteId);
     await this.uploadsDbService.knex(tableName).withSchema(schemaName).whereIn('remoteId', remoteIds).delete();
+  }
+
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    return {
+      userFriendlyMessage: 'An error occurred while interacting with CSV file',
+      description: error instanceof Error ? error.message : String(error),
+    };
   }
 }

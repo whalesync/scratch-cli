@@ -1,12 +1,21 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
-import { Client, DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
+import {
+  APIErrorCode,
+  APIResponseError,
+  Client,
+  DatabaseObjectResponse,
+  PageObjectResponse,
+  RequestTimeoutError,
+} from '@notionhq/client';
 import { BlockObjectRequest, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
+
+import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForWsId } from '../../ids';
-import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { NotionSchemaParser } from './notion-schema-parser';
 
@@ -34,6 +43,10 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
         parseChildPages: false,
       },
     });
+  }
+
+  displayName(): string {
+    return 'Notion';
   }
 
   async testConnection(): Promise<void> {
@@ -517,5 +530,68 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
 
     return blocks;
+  }
+  /**
+   * Evalutes the specific the error from the Notion client and return a ConnectorErrorDetails object.
+   * @param error - The error to evaluate.
+   * @returns A common object describing the error for the user.
+   */
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    if (RequestTimeoutError.isRequestTimeoutError(error)) {
+      return {
+        userFriendlyMessage: ErrorMessageTemplates.API_TIMEOUT('Notion'),
+        description: error instanceof Error ? error.message : String(error),
+      };
+    }
+
+    if (APIResponseError.isAPIResponseError(error)) {
+      const notionError = error;
+
+      if (notionError.code === APIErrorCode.Unauthorized) {
+        return {
+          userFriendlyMessage: 'The credentials Scratchpaper.ai uses to communicate with Notion are no longer valid.',
+          description: notionError.message,
+        };
+      }
+
+      if (notionError.code === APIErrorCode.RateLimited) {
+        return {
+          userFriendlyMessage: ErrorMessageTemplates.API_QUOTA_EXCEEDED('Notion'),
+          description: notionError.message,
+        };
+      }
+
+      if (notionError.code === APIErrorCode.ObjectNotFound) {
+        return {
+          userFriendlyMessage: 'The Notion object you are trying to access does not exist.',
+          description: notionError.message,
+        };
+      }
+
+      if (notionError.code === APIErrorCode.InvalidRequest) {
+        return {
+          userFriendlyMessage: 'The request you are trying to make is invalid.',
+          description: notionError.message,
+        };
+      }
+
+      if (notionError.code === APIErrorCode.InternalServerError) {
+        return {
+          userFriendlyMessage: 'An internal server error occurred while connecting to Notion.',
+          description: notionError.message,
+        };
+      }
+
+      if (notionError.code === APIErrorCode.ServiceUnavailable) {
+        return {
+          userFriendlyMessage: 'The Notion service is unavailable. Please try again later.',
+          description: notionError.message,
+        };
+      }
+    }
+    return {
+      userFriendlyMessage: 'An unexpected error occurred while connecting to Notion',
+      description: error instanceof Error ? error.message : String(error),
+    };
   }
 }

@@ -1,7 +1,9 @@
 import { Service } from '@prisma/client';
+import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
-import { ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
+import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { AirtableTableSpec } from '../custom-spec-registry';
 import { AirtableApiClient } from './airtable-api-client';
 import { AirtableSchemaParser } from './airtable-schema-parser';
@@ -16,6 +18,9 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   constructor(apiKey: string) {
     super();
     this.client = new AirtableApiClient(apiKey);
+  }
+  displayName(): string {
+    return 'Airtable';
   }
 
   public async testConnection(): Promise<void> {
@@ -147,5 +152,24 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       }
     }
     return airtableFields;
+  }
+
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    if (isAxiosError(error)) {
+      const commonError = extractCommonDetailsFromAxiosError(this, error);
+      if (commonError) return commonError;
+
+      return {
+        userFriendlyMessage: extractErrorMessageFromAxiosError(this, error),
+        description: error.message,
+        additionalContext: {
+          status: error.response?.status,
+        },
+      };
+    }
+    return {
+      userFriendlyMessage: 'An error occurred while connecting to Airtable',
+      description: error instanceof Error ? error.message : String(error),
+    };
   }
 }

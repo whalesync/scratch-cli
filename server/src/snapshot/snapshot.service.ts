@@ -10,6 +10,7 @@ import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
+import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { createSnapshotId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
@@ -65,16 +66,21 @@ export class SnapshotService {
       connectorAccount,
       decryptedCredentials: connectorAccount,
     });
+
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
-    for (const tableId of tableIds) {
-      tableSpecs.push(await connector.fetchTableSpec(tableId));
-      tableContexts.push({
-        id: tableId,
-        activeViewId: null,
-        ignoredColumns: [],
-        readOnlyColumns: [],
-      });
+    try {
+      for (const tableId of tableIds) {
+        tableSpecs.push(await connector.fetchTableSpec(tableId));
+        tableContexts.push({
+          id: tableId,
+          activeViewId: null,
+          ignoredColumns: [],
+          readOnlyColumns: [],
+        });
+      }
+    } catch (error) {
+      throw exceptionForConnectorError(error, connector);
     }
 
     // Create the entity in the DB.
@@ -901,24 +907,28 @@ export class SnapshotService {
         snapshotId: snapshot.id,
       });
 
-      await connector.downloadTableRecords(
-        tableSpec,
-        async (params) => {
-          const { records } = params;
-          await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
-          totalCount += records.length;
-          tables.push({
-            id: tableSpec.id.wsId,
-            name: tableSpec.name,
-            records: records.length,
-          });
-        },
-        {
-          publicProgress: {},
-          jobProgress: {},
-          connectorProgress: {},
-        },
-      );
+      try {
+        await connector.downloadTableRecords(
+          tableSpec,
+          async (params) => {
+            const { records } = params;
+            await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
+            totalCount += records.length;
+            tables.push({
+              id: tableSpec.id.wsId,
+              name: tableSpec.name,
+              records: records.length,
+            });
+          },
+          {
+            publicProgress: {},
+            jobProgress: {},
+            connectorProgress: {},
+          },
+        );
+      } catch (error) {
+        throw exceptionForConnectorError(error, connector);
+      }
     }
 
     WSLogger.debug({
@@ -1027,19 +1037,23 @@ export class SnapshotService {
     });
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
 
-    // First create everything.
-    for (const tableSpec of tableSpecs) {
-      await this.publishCreatesToTable(snapshot, connector, tableSpec);
-    }
+    try {
+      // First create everything.
+      for (const tableSpec of tableSpecs) {
+        await this.publishCreatesToTable(snapshot, connector, tableSpec);
+      }
 
-    // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
-    for (const tableSpec of tableSpecs) {
-      await this.publishUpdatesToTable(snapshot, connector, tableSpec);
-    }
+      // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
+      for (const tableSpec of tableSpecs) {
+        await this.publishUpdatesToTable(snapshot, connector, tableSpec);
+      }
 
-    // Finally the deletes since hopefully nothing references them any more.
-    for (const tableSpec of tableSpecs) {
-      await this.publishDeletesToTable(snapshot, connector, tableSpec);
+      // Finally the deletes since hopefully nothing references them any more.
+      for (const tableSpec of tableSpecs) {
+        await this.publishDeletesToTable(snapshot, connector, tableSpec);
+      }
+    } catch (error) {
+      throw exceptionForConnectorError(error, connector);
     }
 
     WSLogger.debug({
