@@ -2,7 +2,9 @@
 
 Data Studio Front-end for Scratchpaper.
 
-## Install Yarn
+## Set up
+
+### Install Yarn
 
 If Yarn is not installed on your system, you can install it using Homebrew:
 
@@ -10,12 +12,29 @@ If Yarn is not installed on your system, you can install it using Homebrew:
 brew install yarn
 ```
 
+### Setup Environment Variables
+
+Create a `.env.local` file in the root directory by copying `sample.env.local`.
+
+Tweak the following values as necessary:
+
+```
+# The URL to the backend server
+NEXT_PUBLIC_API_URL=http://localhost:3010
+
+# The URL to the Pydantic agent server
+NEXT_PUBLIC_AI_AGENT_API_URL=http://localhost:8000
+
+# The Websocket URL to the Pydantic agent server
+NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=ws://localhost:8000
+```
+
 ## Available Yarn Commands
 
 ### Install initial dependencies.
 
 ```bash
-brew yarn install
+yarn install
 ```
 
 ### Run interactively
@@ -34,23 +53,6 @@ yarn run build
 
 ```bash
 yarn run start
-```
-
-## Environment Variables
-
-Create a `.env.local` file in the root directory by copying `sample.env.local`.
-
-Tweak the following values as necessary:
-
-```
-# The URL to the backend server
-NEXT_PUBLIC_API_URL=http://localhost:3000
-
-# The URL to the Pydantic agent server
-NEXT_PUBLIC_AI_AGENT_API_URL=http://localhost:8000
-
-# The Websocket URL to the Pydantic agent server
-NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=ws://localhost:8000
 ```
 
 ## Hosting

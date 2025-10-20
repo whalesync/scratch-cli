@@ -30,44 +30,11 @@ To get your environment set up, from this directory, run:
 
 ```console
 # Install and activate the right version of Node
-$ nvm install
-$ nvm use
+nvm install
+nvm use
 
 # Install all of the dependencies:
-$ yarn install
-```
-
-### Set up the database
-
-[SEE CURRENT DB ENTITY DIAGRAM](prisma/ERD.md)
-
-Our docker image has a postgres DB, redis, and MongoDB in it. You'll have to start it after every reboot:
-
-```console
-$ docker compose -f localdev/docker-compose.yml up -d
-```
-
-First time only, you'll need to create a postgres database. For this you'll need to install the postgres tools:
-
-```console
-$ brew install libpq
-$ brew link --force libpq
-```
-
-Then you'll need an `.env` and conveniently you can just use the sample one: `cp .env.example .env`
-
-Then you can create a database called 'scratchpad':
-
-```console
-$ createdb -h localhost -p 5432 -U postgres scratchpad
-```
-
-For the password, use `postgres`.
-
-To update the database's schema to match the code's current state:
-
-```console
-$ yarn run prisma migrate
+yarn install
 ```
 
 ### Environment Variables
@@ -85,6 +52,39 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scratchpad?schema=pu
 ```
 
 Some values will require reaching out to other team members or checking values in 1Password.
+
+### Set up the database
+
+[SEE CURRENT DB ENTITY DIAGRAM](prisma/ERD.md)
+
+Our docker image has a postgres DB, redis, and MongoDB in it. You'll have to start it after every reboot:
+
+```console
+docker compose -f localdev/docker-compose.yml up -d
+```
+
+First time only, you'll need to create a postgres database. For this you'll need to install the postgres tools:
+
+```console
+brew install libpq
+brew link --force libpq
+```
+
+Then you'll need an `.env` and conveniently you can just use the sample one: `cp .env.example .env`
+
+Then you can create a database called 'scratchpad':
+
+```console
+createdb -h localhost -p 5432 -U postgres scratchpad
+```
+
+For the password, use `postgres`.
+
+To update the database's schema to match the code's current state:
+
+```console
+yarn run migrate
+```
 
 ### Create an OpenRouter account
 
