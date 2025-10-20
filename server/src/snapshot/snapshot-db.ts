@@ -120,6 +120,9 @@ export class SnapshotDb {
               case PostgresColumnType.JSONB:
                 t.jsonb(col.id.wsId);
                 break;
+              case PostgresColumnType.TIMESTAMP:
+                t.timestamp(col.id.wsId, { useTz: false });
+                break;
 
               default:
                 assertUnreachable(col.pgType);

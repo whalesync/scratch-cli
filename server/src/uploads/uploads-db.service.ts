@@ -136,6 +136,9 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
           case PostgresColumnType.JSONB:
             t.jsonb(col.name);
             break;
+          case PostgresColumnType.TIMESTAMP:
+            t.timestamp(col.name, { useTz: false });
+            break;
           default:
             assertUnreachable(col.pgType);
         }

@@ -145,7 +145,11 @@ export class AirtableSchemaParser {
         return PostgresColumnType.BOOLEAN;
 
       // DATE types
-      // TODO: Handle DATE types.
+      case AirtableDataType.DATE:
+      case AirtableDataType.DATE_TIME:
+      case AirtableDataType.CREATED_TIME:
+      case AirtableDataType.LAST_MODIFIED_TIME:
+        return PostgresColumnType.TIMESTAMP;
 
       // TEXT types
       case AirtableDataType.SINGLE_LINE_TEXT:
@@ -162,10 +166,6 @@ export class AirtableSchemaParser {
       case AirtableDataType.BUTTON:
       case AirtableDataType.AI_TEXT:
       case AirtableDataType.EXTERNAL_SYNC_SOURCE:
-      case AirtableDataType.DATE:
-      case AirtableDataType.DATE_TIME:
-      case AirtableDataType.CREATED_TIME:
-      case AirtableDataType.LAST_MODIFIED_TIME:
       case AirtableDataType.UNKNOWN:
       default:
         return PostgresColumnType.TEXT;

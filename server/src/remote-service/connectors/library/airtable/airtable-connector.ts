@@ -1,5 +1,6 @@
 import { Service } from '@prisma/client';
 import { isAxiosError } from 'axios';
+import _ from 'lodash';
 import { SnapshotColumnContexts } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
@@ -79,7 +80,12 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       for (const column of tableSpec.columns) {
         const val = column.id.remoteId[0];
         if (val !== undefined) {
-          record.fields[column.id.wsId] = r.fields[val];
+          if (column.pgType === PostgresColumnType.TIMESTAMP) {
+            // dates should be sent to Airtable in ISO 8601 format in UTC
+            record.fields[column.id.wsId] = r.fields[val] ? new Date(r.fields[val] as string) : null;
+          } else {
+            record.fields[column.id.wsId] = r.fields[val];
+          }
         }
       }
       return record;
@@ -149,6 +155,10 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       if (val !== undefined) {
         if (column.pgType === PostgresColumnType.NUMERIC) {
           airtableFields[column.id.remoteId[0]] = parseFloat(val as string);
+        } else if (column.pgType === PostgresColumnType.TIMESTAMP) {
+          // Airtable expects dates to be in ISO 8601 format in UTC
+          airtableFields[column.id.remoteId[0]] =
+            val instanceof Date ? val.toISOString() : _.isString(val) ? val : undefined;
         } else {
           airtableFields[column.id.remoteId[0]] = val;
         }

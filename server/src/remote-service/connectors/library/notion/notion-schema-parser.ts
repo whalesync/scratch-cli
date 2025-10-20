@@ -87,6 +87,10 @@ export class NotionSchemaParser {
     switch (property.type) {
       case 'number':
         return PostgresColumnType.NUMERIC;
+      case 'date':
+      case 'created_time':
+      case 'last_edited_time':
+        return PostgresColumnType.TIMESTAMP;
       case 'checkbox':
         return PostgresColumnType.BOOLEAN;
       case 'multi_select':
@@ -116,9 +120,6 @@ export class NotionSchemaParser {
       case 'phone_number':
       case 'created_by':
       case 'last_edited_by':
-      case 'date':
-      case 'created_time':
-      case 'last_edited_time':
       default:
         return PostgresColumnType.TEXT;
     }

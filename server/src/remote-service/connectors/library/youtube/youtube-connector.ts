@@ -208,7 +208,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           id: { wsId: 'publishedAt', remoteId: ['publishedAt'] },
           name: 'Published At',
           readonly: true,
-          pgType: PostgresColumnType.TEXT,
+          pgType: PostgresColumnType.TIMESTAMP,
           youtubeField: 'snippet.publishedAt',
           metadata: {
             dateFormat: 'datetime',
@@ -385,7 +385,8 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         title: youtubeRecord.snippet?.title || '',
         description: youtubeRecord.snippet?.description || '',
         url: this.getWatchVideoUrl(videoId),
-        publishedAt: youtubeRecord.snippet?.publishedAt || '',
+        // dates should be coming in as ISO 8601 format in UTC
+        publishedAt: youtubeRecord.snippet?.publishedAt ? new Date(youtubeRecord.snippet.publishedAt) : null,
         transcript: '', // Empty transcript - will be fetched via downloadRecordDeep
         visibility: youtubeRecord.status?.privacyStatus || '',
         categoryId: youtubeRecord.snippet?.categoryId || '',

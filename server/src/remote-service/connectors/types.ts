@@ -41,6 +41,7 @@ export enum PostgresColumnType {
   BOOLEAN = 'boolean',
   BOOLEAN_ARRAY = 'boolean[]',
   JSONB = 'jsonb',
+  TIMESTAMP = 'timestamp',
 }
 
 export type ColumnMetadata = {

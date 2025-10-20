@@ -15,6 +15,10 @@ export class CsvSchemaParser {
       return { textFormat: 'markdown' };
     }
 
+    if (colInfo.type === 'timestamp' || colInfo.type === 'datetime' || colInfo.type === 'date') {
+      return { dateFormat: 'datetime' };
+    }
+
     return undefined;
   }
 
@@ -29,6 +33,9 @@ export class CsvSchemaParser {
       return PostgresColumnType.NUMERIC;
     } else if (colInfo.type === 'boolean') {
       return PostgresColumnType.BOOLEAN;
+    }
+    if (colInfo.type === 'timestamp' || colInfo.type === 'datetime' || colInfo.type === 'date') {
+      return PostgresColumnType.TIMESTAMP;
     }
     return PostgresColumnType.TEXT;
   }

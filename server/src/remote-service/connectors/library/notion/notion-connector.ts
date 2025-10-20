@@ -209,7 +209,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   private extractPropertyValue(
     property: PageObjectResponse['properties'][string],
-  ): string | number | boolean | null | string[] {
+  ): string | number | boolean | Date | null | string[] {
     switch (property.type) {
       case 'title':
         return property.title.map((t) => t.plain_text).join('');
@@ -224,7 +224,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       case 'status':
         return property.status?.name ?? null;
       case 'date':
-        return property.date?.start ?? null;
+        // dates from Notion are in ISO 8601 format in UTC
+        return property.date?.start ? new Date(property.date.start) : null;
       case 'people':
         return property.people.map((p) => p.id).join(', ');
       case 'files':
@@ -246,7 +247,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
           case 'boolean':
             return property.formula.boolean;
           case 'date':
-            return property.formula.date?.start ?? null;
+            // dates from Notion are in ISO 8601 format in UTC
+            return property.formula.date?.start ? new Date(property.formula.date.start) : null;
           default:
             return null;
         }
@@ -290,7 +292,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       case 'status':
         return { status: { name: String(value) } };
       case 'date':
-        return { date: { start: String(value) } }; // Assuming ISO 8601 string
+        // Notion expects dates to be in ISO 8601 format in UTC
+        return { date: { start: value instanceof Date ? value.toISOString() : String(value) } };
       case 'checkbox':
         return { checkbox: Boolean(value) };
       case 'url':
