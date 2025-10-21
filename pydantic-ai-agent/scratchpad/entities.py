@@ -67,6 +67,7 @@ class ScratchpadSnapshot:
     connectorAccountId: str
     tables: List[TableSpec]
     tableContexts: List[TableContext]
+    columnContexts: Any
     activeRecordSqlFilter: Optional[Dict[str, str]] = None
 
 
