@@ -29,7 +29,7 @@ The `OPENROUTER_API_KEY` will be used as a fallback for admin users that don't h
 
 If you are doing a lot of iteration on the Agent, it is recommended you use the shared key as it has a higher token credit limit.
 
-For the `LOGFIRE_TOKEN` ask Ivan or Chris for this value
+For the `LOGFIRE_TOKEN`, get your own token from https://logfire.sh
 
 Set the `LOGFIRE_ENVIRONMENT` to include your name so your log events are isolated from other devs
 
@@ -39,43 +39,11 @@ Set the `LOGFIRE_ENVIRONMENT` to include your name so your log events are isolat
 python main.py
 ```
 
-5. Setup **Black** as your formatter
+5. Check **Black** is working as your formatter
 
-   Scratchpaper uses Black for our Python code formatter and it is install with the pip command above
+   Scratchpaper uses Black for our Python code formatter and it is install with the pip command above. It is configured in `.vscode/settings.json`
 
-   Configure VS Code to use Black as the Python formatter:
-
-   **Option A: Workspace Settings (Recommended)**
-   Create `.vscode/settings.json` in your project root:
-
-   ```json
-   {
-     "python.formatting.provider": "black",
-     "python.formatting.blackArgs": ["--line-length=88"],
-     "editor.formatOnSave": true,
-     "editor.formatOnPaste": true
-   }
-   ```
-
-   **Option B: User Settings**
-   Open VS Code settings (Cmd/Ctrl + ,) and add:
-
-   - Set "Python › Formatting: Provider" to "black"
-   - Set "Editor: Format On Save" to true
-   - Set "Editor: Format On Paste" to true
-
-   **Manual formatting:**
-
-   ```bash
-   # Format all Python files
-   black .
-
-   # Format a specific file
-   black filename.py
-
-   # Check formatting without making changes
-   black --check .
-   ```
+   Ensure it is working properly in your editor since these things are easily broken.
 
 ## Deactivating VENV
 
