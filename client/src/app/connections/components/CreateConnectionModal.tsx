@@ -21,6 +21,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
+  const [showOAuthCustom, setShowOAuthCustom] = useState(false);
   const { isAdmin } = useScratchPadUser();
 
   const { createConnectorAccount } = useConnectorAccounts();
@@ -163,7 +164,18 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
         {newService && getSupportedAuthMethods(newService).length > 1 && (
           <Radio.Group
-            label="Authentication Method"
+            label={
+              <span
+                onClick={(e: React.MouseEvent) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setShowOAuthCustom(!showOAuthCustom);
+                  }
+                }}
+              >
+                Authentication Method
+              </span>
+            }
             value={authMethod}
             onChange={(value) => setAuthMethod(value as AuthMethod)}
           >
@@ -172,7 +184,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
                 <Radio value="oauth" label={getOauthLabel(newService)} />
               )}
               {getSupportedAuthMethods(newService).includes('api_key') && <Radio value="api_key" label="API Key" />}
-              {newService === Service.YOUTUBE && (
+              {newService === Service.YOUTUBE && showOAuthCustom && (
                 <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
               )}
             </Group>

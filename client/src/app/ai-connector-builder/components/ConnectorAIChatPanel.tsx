@@ -3,7 +3,6 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import ModelPicker from '@/app/components/ModelPicker';
-import CapabilitiesPicker from '@/app/snapshots/[...slug]/components/AIChatPanel/CapabilitiesPicker';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';
@@ -78,6 +77,7 @@ export default function ConnectorAIChatPanel({
   const { user } = useScratchPadUser();
   const { styleGuides } = useStyleGuides();
   const [selectedStyleGuideIds, setSelectedStyleGuideIds] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
@@ -498,13 +498,13 @@ export default function ConnectorAIChatPanel({
         />
 
         {/* Capabilities Selection */}
-        {availableCapabilities.length > 0 && (
+        {/* {availableCapabilities.length > 0 && (
           <CapabilitiesPicker
             availableCapabilities={availableCapabilities}
             selectedCapabilities={selectedCapabilities}
             onCapabilitiesChange={setSelectedCapabilities}
           />
-        )}
+        )} */}
 
         {/* Input Area */}
         <Textarea

@@ -1,6 +1,7 @@
 'use client';
 
 import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
+import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
 import { SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
@@ -42,7 +43,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TextRegularXs, TextTitleSm } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
-import CapabilitiesPicker from './CapabilitiesPicker';
+import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
+import CapabilitiesButton from './CapabilitiesButton';
+import CapabilitiesModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
 import { ResourceSelector } from './ResourceSelector';
@@ -76,7 +79,7 @@ const availableCapabilities = [
 ];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { snapshot, currentView } = useSnapshotContext();
+  const { snapshot, currentView, publish } = useSnapshotContext();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { activeOpenRouterCredentials } = useAgentCredentials();
 
@@ -86,6 +89,8 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [resetInputFocus, setResetInputFocus] = useState(false);
   const [showDeleteSessionButton, setShowDeleteSessionButton] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
+  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const {
@@ -113,6 +118,30 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
   const { styleGuides } = useStyleGuides();
+
+  // Commands for the AdvancedAgentInput
+  const commands: Command[] = [
+    {
+      id: 'cmd1',
+      display: 'tools',
+      description: 'Open tools modal',
+      execute: () => setShowToolsModal(true),
+    },
+    {
+      id: 'cmd2',
+      display: 'publish',
+      description: 'Publish data to remote service',
+      execute: () => handlePublish(),
+    },
+    {
+      id: 'cmd3',
+      display: '/',
+      description: 'Revert last action',
+      execute: () => {
+        alert('TODO: Revert last action');
+      },
+    },
+  ];
 
   // const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
@@ -314,6 +343,21 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     }
   };
 
+  const handlePublish = () => {
+    if (!snapshot) return;
+    setShowPublishConfirmation(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!snapshot) return;
+    try {
+      setShowPublishConfirmation(false);
+      await publish?.();
+    } catch (e) {
+      console.debug(e);
+    }
+  };
+
   const handleTextInputFocus = async () => {
     if (!activeSessionId) {
       // no active session, so we need to create a new one
@@ -502,6 +546,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           onSendMessage={sendMessage}
           disabled={agentTaskRunning || !aiAgentEnabled}
           onFocus={handleTextInputFocus}
+          commands={commands}
         />
 
         {/* Model and Submit Row */}
@@ -531,15 +576,10 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           </Button>
           {/* Capabilities Selection */}
           {/* {availableCapabilities.length > 0 && ( */}
-          <CapabilitiesPicker
-            availableCapabilities={availableCapabilities}
+          <CapabilitiesButton
             selectedCapabilities={selectedCapabilities}
-            onCapabilitiesChange={(caps) => {
-              setSelectedCapabilities(caps);
-              const STORAGE_KEY = 'ai-chat-selected-capabilities';
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
-              trackChangeAgentCapabilities(caps, snapshot);
-            }}
+            availableCapabilitiesCount={availableCapabilities.length}
+            onClick={() => setShowToolsModal(true)}
           />
 
           <Group gap="2px" ml="auto">
@@ -586,6 +626,31 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           }}
         />
       </Modal>
+
+      {/* Tools Modal */}
+      <CapabilitiesModal
+        opened={showToolsModal}
+        onClose={() => setShowToolsModal(false)}
+        availableCapabilities={availableCapabilities}
+        selectedCapabilities={selectedCapabilities}
+        onCapabilitiesChange={(caps) => {
+          setSelectedCapabilities(caps);
+          const STORAGE_KEY = 'ai-chat-selected-capabilities';
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
+          trackChangeAgentCapabilities(caps, snapshot);
+          setShowToolsModal(false);
+        }}
+      />
+
+      {/* Publish Confirmation Modal */}
+      <PublishConfirmationModal
+        isOpen={showPublishConfirmation}
+        onClose={() => setShowPublishConfirmation(false)}
+        onConfirm={handleConfirmPublish}
+        snapshotId={snapshot?.id ?? ''}
+        serviceName={snapshot?.connectorService}
+        isPublishing={false}
+      />
     </SideBarContent>
   );
 }

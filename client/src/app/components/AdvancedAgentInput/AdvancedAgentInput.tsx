@@ -1,13 +1,13 @@
 'use client';
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { mentionsApi } from '@/lib/api/mentions';
+import { mentionsApi, RecordMention, ResourceMention } from '@/lib/api/mentions';
 import { Snapshot } from '@/types/server-entities/snapshot';
-import { Button, Group, Text } from '@mantine/core';
 import { FC, useRef, useState } from 'react';
 import { Mention, MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
 import { Command, CommandSuggestion } from './CommandSuggestions';
+import { SuggestionItem } from './SuggestionItem';
 
 interface AdvancedAgentInputProps {
   snapshotId: string;
@@ -17,96 +17,41 @@ interface AdvancedAgentInputProps {
   onSendMessage?: () => void;
   disabled?: boolean;
   onFocus?: () => void;
+  commands?: Command[];
 }
 
 const revert = () => {
   alert('TODO: Revert last action'); // TODO: Implement actual revert logic here
 };
 
-const COMMANDS: Command[] = [
-  { id: 'cmd1', display: 'console', description: 'Some random action', execute: () => console.log(123) },
-  { id: 'cmd2', display: '//', description: 'Revert last action', execute: revert },
-];
-
 // Custom render functions for suggestions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderCommandSuggestion = (suggestion: any) => {
-  const command = COMMANDS.find((c) => c.id === suggestion.id);
-  return <CommandSuggestion suggestion={suggestion} command={command} />;
+const renderCommandSuggestion = (suggestion: any, commands: Command[]) => {
+  const command = commands.find((c) => c.id === suggestion.id);
+  return <CommandSuggestion command={command!} />;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderResourceSuggestion = (suggestion: any) => {
+const renderResourceSuggestion = (suggestion: unknown) => {
   return (
-    <Group justify="space-between" align="center" p="xs">
-      <Group gap="xs">
-        <Text size="sm" color="gray.9" fw={600}>
-          {suggestion.title}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {suggestion.preview}
-        </Text>
-      </Group>
-    </Group>
+    <SuggestionItem
+      title={(suggestion as ResourceMention).title}
+      description={(suggestion as ResourceMention).preview}
+    />
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderRecordSuggestion = (suggestion: any) => {
-  const handleViewRecord = () => {
-    console.debug('View record:', suggestion.display);
-    // Add your logic here to view the record
-  };
-
-  return (
-    <Group justify="space-between" align="center" p="xs">
-      <Text size="sm" fw={600}>
-        {suggestion.display}
-      </Text>
-      <Button
-        size="xs"
-        variant="light"
-        onClick={(e: React.MouseEvent) => {
-          e.stopPropagation();
-          handleViewRecord();
-        }}
-      >
-        View
-      </Button>
-    </Group>
-  );
+const renderRecordSuggestion = (suggestion: unknown) => {
+  return <SuggestionItem title={(suggestion as RecordMention).title} description={''} />;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderTableSuggestion = (suggestion: any) => {
-  return (
-    <Group justify="space-between" align="center" p="xs">
-      <Group gap="xs">
-        <Text size="sm" fw={600} c="green">
-          {suggestion.display}
-        </Text>
-        <Text size="xs" c="dimmed">
-          Table
-        </Text>
-      </Group>
-    </Group>
-  );
+  return <SuggestionItem title={suggestion.display} description={'Table'} />;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderFieldSuggestion = (suggestion: any) => {
-  return (
-    <Group justify="space-between" align="center" p="xs">
-      <Group gap="xs">
-        <Text size="sm" fw={600} c="purple">
-          {suggestion.display}
-        </Text>
-        <Text size="xs" c="dimmed">
-          Field
-        </Text>
-      </Group>
-    </Group>
-  );
+  return <SuggestionItem title={suggestion.display} description={'Field'} />;
 };
 
 export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
@@ -117,13 +62,14 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   onSendMessage,
   disabled = false,
   onFocus,
+  commands = [],
 }) => {
   const [value, setValueState] = useState('');
   const previousValueRef = useRef('');
   const { handleUndo, handleRedo, setValue, setPreviousValue } = useUndoRedo(value, setValueState, previousValueRef);
 
   const executeCommand = (commandId: string) => {
-    const command = COMMANDS.find((c) => c.id === commandId);
+    const command = commands.find((c) => c.id === commandId);
     if (command) {
       command.execute();
     }
@@ -219,14 +165,14 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       }}
       onFocus={onFocus}
       disabled={disabled}
-      placeholder="Type @ for records, # for resources, / for commands, $ for tables and fields..."
+      placeholder={`Type your message ...`}
       // className="mentions"
       style={{ height: 100 }}
       classNames={classNames}
       spellCheck={false}
     >
       <Mention
-        trigger="@"
+        trigger="#"
         style={{
           backgroundColor: 'rgba(224, 247, 255, 0.7)',
           // color: '#0077b6',
@@ -257,7 +203,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         appendSpaceOnAdd
       />
       <Mention
-        trigger="#"
+        trigger="@"
         style={{
           backgroundColor: 'rgba(68, 68, 68, 0.7)',
           color: '#0077b6',
@@ -292,11 +238,11 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       />
       <Mention
         trigger="/"
-        data={COMMANDS}
+        data={commands}
         markup="/[__display__](__id__)"
         displayTransform={() => ``}
         appendSpaceOnAdd
-        renderSuggestion={renderCommandSuggestion}
+        renderSuggestion={(suggestion) => renderCommandSuggestion(suggestion, commands)}
         onAdd={(id, display) => {
           executeCommand(String(id));
           return display;

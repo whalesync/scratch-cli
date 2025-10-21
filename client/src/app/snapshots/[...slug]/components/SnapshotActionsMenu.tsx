@@ -17,7 +17,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
-import { Bot, Download, Upload } from 'lucide-react';
+import { ArrowUp, Bot, Command, Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import React, { useRef, useState } from 'react';
@@ -294,6 +294,21 @@ export const SnapshotActionsMenu = () => {
           <Menu.Item
             onClick={handlePublish}
             leftSection={<UploadIcon />}
+            rightSection={
+              <Group gap="xs" align="center">
+                <Text size="xs" c="dimmed">
+                  /publish
+                </Text>
+                ,
+                <Group gap={2} align="center">
+                  <StyledLucideIcon Icon={Command} size={12} c="dimmed" />
+                  <StyledLucideIcon Icon={ArrowUp} size={12} c="dimmed" strokeWidth={5} />
+                  <Text size="xs" c="dimmed">
+                    P
+                  </Text>
+                </Group>
+              </Group>
+            }
             // disabled={snapshot?.connectorService === null}
           >
             {getPushOperationName(connectorAccount?.service)}

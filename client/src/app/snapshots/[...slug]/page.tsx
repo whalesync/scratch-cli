@@ -74,6 +74,20 @@ function SnapshotPageContent() {
     }
   }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTable, setSelectedTableContext]);
 
+  // Temp place untill we have a better handling of hotkeys, commands,
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'p') {
+        event.preventDefault();
+        event.stopPropagation();
+        alert('Hot key not implemented yet, use the publish button instead');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Only show loader on initial load, not during revalidation
   if (isLoading && !snapshot) {
     return <LoaderWithMessage message="Loading snapshot..." />;
