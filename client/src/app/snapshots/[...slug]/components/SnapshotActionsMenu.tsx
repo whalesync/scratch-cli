@@ -3,6 +3,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
@@ -16,7 +17,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
-import { Download, Upload } from 'lucide-react';
+import { Bot, Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import React, { useRef, useState } from 'react';
@@ -38,6 +39,7 @@ export const SnapshotActionsMenu = () => {
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
+  const { isAdmin } = useScratchPadUser();
   const modalStack = useModalsStack(Object.values(Modals));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotWithouotJobResult | null>(null);
@@ -187,6 +189,11 @@ export const SnapshotActionsMenu = () => {
     }
   };
 
+  const handleOpenAdvancedInput = () => {
+    if (!snapshot) return;
+    router.push(`/agent-input/${snapshot.id}`);
+  };
+
   const menuItemsDisabled = isLoading || saving;
 
   const hasActiveRecordSqlFilter = (tableId: string) => {
@@ -266,6 +273,12 @@ export const SnapshotActionsMenu = () => {
           >
             Rename
           </Menu.Item>
+
+          {isAdmin && (
+            <Menu.Item disabled={menuItemsDisabled} onClick={handleOpenAdvancedInput} leftSection={<Bot size={16} />}>
+              Advanced Agent Input
+            </Menu.Item>
+          )}
 
           <Menu.Divider />
           <Menu.Label>Sync with source</Menu.Label>

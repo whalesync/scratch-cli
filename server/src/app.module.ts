@@ -16,6 +16,7 @@ import { CustomConnectorModule } from './custom-connector/custom-connector.modul
 import { DbModule } from './db/db.module';
 import { ExperimentsModule } from './experiments/experiments.module';
 import { JobModule } from './job/job.module';
+import { MentionsModule } from './mentions/mentions.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
@@ -60,6 +61,7 @@ import { WorkerModule } from './worker/workers.module';
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,
+    MentionsModule,
     WorkerEnqueuerModule,
     ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
     ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),

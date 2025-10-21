@@ -1,0 +1,52 @@
+.mentions__input {
+  border: none;
+  padding: 10px;
+  background-color: light-dark(#ffffff, #292929) !important;
+  outline: none !important;
+}
+
+.mentions__input:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.mentions__highlighter {
+  padding: 10px;
+  z-index: 1;
+  position: relative;
+  pointer-events: none;
+}
+
+.mentions__mention {
+  position: relative;
+  z-index: 2;
+  background-color: rgba(224, 247, 255, 0.5) !important;
+}
+
+/* SUGGESTIONS */
+.mentions__suggestions__list {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.mentions__suggestions__item {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin: 2px 6px;
+}
+
+.mentions__suggestions__item--focused {
+  background-color: #e3f2fd;
+}
+
+.mentions__suggestions__item:hover {
+  background-color: #f5f5f5;
+}

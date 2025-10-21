@@ -1,5 +1,6 @@
 'use client';
 
+import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
 import { SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
@@ -25,7 +26,7 @@ import { Capability } from '@/types/server-entities/chat-session';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Textarea, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Tooltip } from '@mantine/core';
 import _ from 'lodash';
 import {
   ChevronDownIcon,
@@ -313,13 +314,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     }
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
-    }
-  };
-
   const handleTextInputFocus = async () => {
     if (!activeSessionId) {
       // no active session, so we need to create a new one
@@ -500,27 +494,14 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           <ContextBadges activeTable={activeTable} currentView={currentView} />
         </Stack>
         {/* User Input for Chat */}
-        <Textarea
-          ref={textInputRef}
-          placeholder="Type your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyUp={handleKeyPress}
+        <AdvancedAgentInput
+          snapshotId={snapshot?.id || ''}
+          tableId={activeTable?.id.wsId || ''}
+          snapshot={snapshot}
+          onMessageChange={setMessage}
+          onSendMessage={sendMessage}
           disabled={agentTaskRunning || !aiAgentEnabled}
-          onFocus={() => {
-            handleTextInputFocus();
-          }}
-          size="xs"
-          styles={{
-            input: {
-              padding: '0px',
-              border: 'none',
-              borderRadius: '0px',
-            },
-          }}
-          minRows={5}
-          rows={5}
-          autosize={true}
+          onFocus={handleTextInputFocus}
         />
 
         {/* Model and Submit Row */}
