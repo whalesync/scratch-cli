@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ConnectorAccount" ALTER COLUMN "authType" SET DEFAULT 'USER_PROVIDED_PARAMS';
