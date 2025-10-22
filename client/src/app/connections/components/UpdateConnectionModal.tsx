@@ -23,7 +23,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   useEffect(() => {
     if (connectorAccount) {
       setUpdatedName(connectorAccount.displayName);
-      setUpdatedApiKey(connectorAccount.apiKey);
+      setUpdatedApiKey('');
       setUpdatedModifier(connectorAccount.modifier);
     }
   }, [connectorAccount]);
@@ -34,7 +34,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
     try {
       await updateConnectorAccount(connectorAccount.id, {
         displayName: updatedName,
-        apiKey: connectorAccount.service === Service.CSV ? '' : updatedApiKey,
+        userProvidedParams: connectorAccount.service === Service.CSV ? { apiKey: '' } : { apiKey: updatedApiKey },
         modifier: updatedModifier || undefined,
       });
       props.onClose?.();
@@ -50,7 +50,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
         <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
-        {connectorAccount?.authType === AuthType.API_KEY && connectorAccount?.service !== Service.CSV && (
+        {connectorAccount?.authType === AuthType.USER_PROVIDED_PARAMS && connectorAccount?.service !== Service.CSV && (
           <TextInput label="API Key" value={updatedApiKey} onChange={(e) => setUpdatedApiKey(e.currentTarget.value)} />
         )}
         {connectorAccount?.service === Service.CUSTOM && customConnectors && (

@@ -6,10 +6,9 @@ export class UpdateConnectorAccountDto {
   @IsOptional()
   readonly displayName?: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsObject()
   @IsOptional()
-  readonly apiKey?: string;
+  readonly userProvidedParams?: Record<string, string>;
 
   @IsString()
   @IsOptional()

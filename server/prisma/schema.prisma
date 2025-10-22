@@ -93,7 +93,7 @@ model ConnectorAccount {
   userId                    String
   service                   Service
   displayName               String
-  authType                  AuthType               @default(API_KEY)
+  authType                  AuthType               @default(USER_PROVIDED_PARAMS)
   encryptedCredentials      Json                   @default("{}") // Encrypted JSON containing apiKey, oauth tokens, etc.
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
@@ -112,8 +112,9 @@ enum Service {
 }
 
 enum AuthType {
-  API_KEY
+  API_KEY // Deprecated
   OAUTH
+  USER_PROVIDED_PARAMS
 }
 
 enum ConnectorHealthStatus {

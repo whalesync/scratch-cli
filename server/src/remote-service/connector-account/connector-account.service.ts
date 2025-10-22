@@ -58,7 +58,7 @@ export class ConnectorAccountService {
 
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
     const credentials: DecryptedCredentials = {
-      apiKey: createDto.apiKey,
+      ...createDto.userProvidedParams,
     };
 
     const encryptedCredentials = await this.encryptCredentials(credentials as unknown as DecryptedCredentials);
@@ -69,7 +69,7 @@ export class ConnectorAccountService {
         userId,
         service: createDto.service,
         displayName: createDto.displayName ?? `${_.startCase(createDto.service.toLowerCase())}`,
-        authType: createDto.authType || AuthType.API_KEY,
+        authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
         modifier: createDto.modifier,
       },
@@ -79,7 +79,7 @@ export class ConnectorAccountService {
 
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
       service: createDto.service,
-      authType: createDto.authType || AuthType.API_KEY,
+      authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
       healthStatus: testResult.health,
     });
 
@@ -130,9 +130,10 @@ export class ConnectorAccountService {
       currentAccount.encryptedCredentials as unknown as EncryptedData,
     );
 
-    // Update credentials if apiKey is provided
-    if (updateDto.apiKey) {
-      decryptedCredentials.apiKey = updateDto.apiKey;
+    // Update credentials if provided
+    const updatedProvidedParams = Object.keys(updateDto.userProvidedParams ?? {});
+    for (const param of updatedProvidedParams) {
+      decryptedCredentials[param] = updateDto.userProvidedParams?.[param];
     }
 
     const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);

@@ -10,7 +10,7 @@ import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from
 import Image from 'next/image';
 import { useState } from 'react';
 
-type AuthMethod = 'api_key' | 'oauth' | 'oauth_custom';
+type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
 export const CreateConnectionModal = (props: ModalProps) => {
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
@@ -30,22 +30,21 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const getDefaultAuthMethod = (service: Service): AuthMethod => {
     // Services that support OAuth
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
-    // Services that support API keys
-    const apiKeySupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
 
+    // Services that use generic parameters
+    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
     if (oauthSupportedServices.includes(service)) {
       return 'oauth';
-    } else if (apiKeySupportedServices.includes(service)) {
-      return 'api_key';
+    } else if (genericParametersSupportedServices.includes(service)) {
+      return 'user_provided_params';
     } else {
-      return 'api_key'; // Default fallback
+      return 'oauth'; // Default fallback
     }
   };
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
-    const apiKeySupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
-
+    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
       methods.push('oauth');
@@ -54,8 +53,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
         methods.push('oauth_custom');
       }
     }
-    if (apiKeySupportedServices.includes(service)) {
-      methods.push('api_key');
+    if (userProvidedParamsSupportedServices.includes(service)) {
+      methods.push('user_provided_params');
     }
     return methods;
   };
@@ -90,7 +89,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
       alert('Service is required.');
       return;
     }
-    if (authMethod === 'api_key' && newService !== Service.CSV && !newApiKey) {
+    if (authMethod === 'user_provided_params' && newService !== Service.CSV && !newApiKey) {
       alert('API key is required for this service.');
       return;
     }
@@ -103,7 +102,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
     await createConnectorAccount({
       service: newService,
-      apiKey: newService === Service.CSV ? '' : newApiKey,
+      userProvidedParams: newService === Service.CSV ? { apiKey: newApiKey } : { apiKey: newApiKey },
       modifier: newModifier || undefined,
       displayName: newDisplayName || undefined,
     });
@@ -183,7 +182,9 @@ export const CreateConnectionModal = (props: ModalProps) => {
               {getSupportedAuthMethods(newService).includes('oauth') && (
                 <Radio value="oauth" label={getOauthLabel(newService)} />
               )}
-              {getSupportedAuthMethods(newService).includes('api_key') && <Radio value="api_key" label="API Key" />}
+              {getSupportedAuthMethods(newService).includes('user_provided_params') && (
+                <Radio value="user_provided_params" label="API Key" />
+              )}
               {newService === Service.YOUTUBE && showOAuthCustom && (
                 <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
               )}
@@ -223,8 +224,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
         {newService &&
           newService !== Service.CSV &&
-          getSupportedAuthMethods(newService).includes('api_key') &&
-          authMethod === 'api_key' && (
+          getSupportedAuthMethods(newService).includes('user_provided_params') &&
+          authMethod === 'user_provided_params' && (
             <TextInput
               label="API Key"
               placeholder="Enter API Key"

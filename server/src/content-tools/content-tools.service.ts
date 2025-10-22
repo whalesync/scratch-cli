@@ -36,7 +36,9 @@ export class ContentToolsService {
       csvConnectorAccount = await this.connectorAccountService.create(
         {
           service: Service.CSV,
-          apiKey: '',
+          userProvidedParams: {
+            apiKey: '',
+          },
         },
         userId,
       );
