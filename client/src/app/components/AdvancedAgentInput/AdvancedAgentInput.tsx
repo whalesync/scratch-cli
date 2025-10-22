@@ -1,13 +1,14 @@
 'use client';
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { mentionsApi, RecordMention, ResourceMention } from '@/lib/api/mentions';
+import { mentionsApi, RecordMentionEntity, ResourceMentionEntity } from '@/lib/api/mentions';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { FC, useRef, useState } from 'react';
-import { Mention, MentionsInput } from 'react-mentions';
+import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
 import { Command, CommandSuggestion } from './CommandSuggestions';
 import { SuggestionItem } from './SuggestionItem';
+import { TypesafeMention } from './TypesafeMention';
 
 interface AdvancedAgentInputProps {
   snapshotId: string;
@@ -34,14 +35,14 @@ const renderCommandSuggestion = (suggestion: any, commands: Command[]) => {
 const renderResourceSuggestion = (suggestion: unknown) => {
   return (
     <SuggestionItem
-      title={(suggestion as ResourceMention).title}
-      description={(suggestion as ResourceMention).preview}
+      title={(suggestion as ResourceMentionEntity).title}
+      description={(suggestion as ResourceMentionEntity).preview}
     />
   );
 };
 
 const renderRecordSuggestion = (suggestion: unknown) => {
-  return <SuggestionItem title={(suggestion as RecordMention).title} description={''} />;
+  return <SuggestionItem title={(suggestion as RecordMentionEntity).title} description={''} />;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,6 +162,9 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         if (e.key === 'Enter' && !e.shiftKey && onSendMessage) {
           e.preventDefault();
           onSendMessage();
+          // Clear the input after sending
+          setValue('');
+          setPreviousValue('');
         }
       }}
       onFocus={onFocus}
@@ -171,55 +175,23 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       classNames={classNames}
       spellCheck={false}
     >
-      <Mention
-        trigger="#"
-        style={{
-          backgroundColor: 'rgba(224, 247, 255, 0.7)',
-          // color: '#0077b6',
-          borderRadius: '4px',
-          padding: '0 2px',
-        }}
-        data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
-          try {
-            const response = await mentionsApi.search({
-              text: query,
-              snapshotId: snapshotId,
-              tableId: tableId,
-            });
-            const items = response.records.map((r) => ({
-              id: r.id,
-              display: r.title,
-              title: r.title,
-            }));
-            callback(items);
-          } catch (error) {
-            console.error('Error fetching record mentions:', error);
-            callback([]);
-          }
-        }}
-        renderSuggestion={renderRecordSuggestion}
+      <TypesafeMention
+        trigger="@"
         markup="@[__display__](__id__)"
         displayTransform={(id, display) => ` @${display} `}
-        appendSpaceOnAdd
-      />
-      <Mention
-        trigger="@"
         style={{
-          backgroundColor: 'rgba(68, 68, 68, 0.7)',
-          color: '#0077b6',
-          borderRadius: '4px',
-          // padding: '0 2px',
+          backgroundColor: 'rgba(16, 20, 21, 0.7)',
         }}
         data={async (
           query: string,
           callback: (results: { id: string; display: string; title: string; preview: string }[]) => void,
         ) => {
           try {
-            const response = await mentionsApi.search({
+            const resources = await mentionsApi.searchResources({
               text: query,
               snapshotId: snapshotId,
             });
-            const items = response.resources.map((r) => ({
+            const items = resources.map((r) => ({
               id: r.id,
               display: r.title,
               title: r.title,
@@ -232,40 +204,64 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           }
         }}
         renderSuggestion={renderResourceSuggestion}
-        markup="#[__display__](__id__)"
-        displayTransform={(id, display) => ` #${display} `}
         appendSpaceOnAdd
       />
-      <Mention
-        trigger="/"
-        data={commands}
-        markup="/[__display__](__id__)"
-        displayTransform={() => ``}
+
+      <TypesafeMention
+        trigger="#"
+        markup="#[__display__](__id__)"
+        displayTransform={(id, display) => ` #${display} `}
+        style={{
+          backgroundColor: 'rgba(68, 68, 68, 0.7)',
+          color: '#0077b6',
+        }}
+        data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
+          try {
+            const records = await mentionsApi.searchRecords({
+              text: query,
+              snapshotId: snapshotId,
+              tableId: tableId,
+            });
+            const items = records.map((r) => ({
+              id: r.id,
+              display: r.title,
+              title: r.title,
+            }));
+            callback(items);
+          } catch (error) {
+            console.error('Error fetching record mentions:', error);
+            callback([]);
+          }
+        }}
+        renderSuggestion={renderRecordSuggestion}
         appendSpaceOnAdd
+      />
+
+      <TypesafeMention
+        trigger="/"
+        markup="/[__display__](__id__)"
+        data={commands}
+        displayTransform={() => ``}
         renderSuggestion={(suggestion) => renderCommandSuggestion(suggestion, commands)}
         onAdd={(id, display) => {
           executeCommand(String(id));
           return display;
         }}
+        appendSpaceOnAdd
       />
-      <Mention
+      <TypesafeMention
         trigger="$"
+        markup="$[__display__](__id__)"
+        displayTransform={(id, display) => ` $${display} `}
         style={{
           backgroundColor: 'rgba(34, 99, 94, 0.7)',
           color: '#00bb00',
-          borderRadius: '4px',
         }}
         data={(query, callback) => {
           if (!snapshot?.tables) {
             callback([]);
             return;
           }
-
-          console.debug('Schema query:', query);
-          console.debug(
-            'Available tables:',
-            snapshot.tables.map((t) => t.name),
-          );
 
           // Get all tables
           const allTables = snapshot.tables.map((table) => ({
@@ -291,25 +287,17 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
 
           // Combine tables and fields
           const allItems = [...allTables, ...allFields];
-
-          console.debug('All schema items:', allItems);
-
           // Filter by query
           const filteredItems = allItems.filter((item) => item.display.toLowerCase().includes(query.toLowerCase()));
-
-          console.debug('Filtered schema items for query:', query, filteredItems);
           callback(filteredItems);
         }}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        renderSuggestion={(suggestion: any) => {
+        renderSuggestion={(suggestion: { id: string; display: string; type: string }) => {
           if (suggestion.type === 'table') {
             return renderTableSuggestion(suggestion);
           } else {
             return renderFieldSuggestion(suggestion);
           }
         }}
-        markup="$[__display__](__id__)"
-        displayTransform={(id, display) => ` $${display} `}
         appendSpaceOnAdd
       />
     </MentionsInput>

@@ -318,3 +318,11 @@ class ScratchpadApi:
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
         data = _handle_response(response, "Failed to list agent sessions by snapshot")
         return data
+
+    @staticmethod
+    def get_upload_content(user_id: str, upload_id: str) -> Dict[str, Any]:
+        """Get upload content by upload ID"""
+        url = f"{API_CONFIG.get_api_url()}/uploads/md/{upload_id}/data"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
+        data = _handle_response(response, "Failed to get upload content")
+        return data

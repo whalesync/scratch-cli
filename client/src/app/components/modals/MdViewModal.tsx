@@ -1,7 +1,7 @@
 'use client';
 
 import { MdDataResponse, uploadsApi } from '@/lib/api/uploads';
-import { Badge, Box, Center, Code, Group, Loader, Modal, ScrollArea, Stack, Table, Text } from '@mantine/core';
+import { Badge, Box, Button, Center, Code, Group, Loader, Modal, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { FC, useEffect, useState } from 'react';
 
 interface MdViewModalProps {
@@ -15,11 +15,13 @@ export const MdViewModal: FC<MdViewModalProps> = ({ opened, onClose, uploadId, u
   const [data, setData] = useState<MdDataResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFullContent, setShowFullContent] = useState(false);
 
   useEffect(() => {
     if (opened && uploadId) {
       setIsLoading(true);
       setError(null);
+      setShowFullContent(false);
       uploadsApi
         .getMdData(uploadId)
         .then((result) => {
@@ -69,13 +71,13 @@ export const MdViewModal: FC<MdViewModalProps> = ({ opened, onClose, uploadId, u
   if (!data && !isLoading && !error) return null;
 
   const frontMatterKeys = data?.data ? Object.keys(data.data) : [];
-  const contentPreview = data?.PAGE_CONTENT?.slice(0, 500) || '';
-  const isTruncated = (data?.PAGE_CONTENT?.length || 0) > 500;
+  const contentToShow = showFullContent ? data?.PAGE_CONTENT || '' : data?.PAGE_CONTENT?.slice(0, 2000) || '';
+  const isTruncated = !showFullContent && (data?.PAGE_CONTENT?.length || 0) > 2000;
   const contentLines = data?.PAGE_CONTENT?.split('\n').length || 0;
   const contentChars = data?.PAGE_CONTENT?.length || 0;
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Preview: ${uploadName || 'Markdown Upload'}`} size="xl" centered>
+    <Modal opened={opened} onClose={onClose} title={`Preview: ${uploadName || 'Markdown Upload'}`} size="90%" centered>
       <Stack gap="md">
         {isLoading && (
           <Center h={200}>
@@ -91,6 +93,24 @@ export const MdViewModal: FC<MdViewModalProps> = ({ opened, onClose, uploadId, u
 
         {data && !isLoading && (
           <>
+            {/* Upload Metadata */}
+            <Box>
+              <Text size="sm" fw={600} mb="xs">
+                Upload Information
+              </Text>
+              <Group gap="md">
+                <Text size="xs" c="dimmed">
+                  <strong>ID:</strong> {data.id}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  <strong>Created:</strong> {new Date(data.createdAt).toLocaleString()}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  <strong>Updated:</strong> {new Date(data.updatedAt).toLocaleString()}
+                </Text>
+              </Group>
+            </Box>
+
             {/* Front Matter Section */}
             {frontMatterKeys.length > 0 && (
               <Box>
@@ -152,19 +172,31 @@ export const MdViewModal: FC<MdViewModalProps> = ({ opened, onClose, uploadId, u
                 <Text size="sm" fw={600}>
                   Content
                 </Text>
-                <Text size="xs" c="dimmed">
-                  {contentLines} {contentLines === 1 ? 'line' : 'lines'}, {contentChars} characters
-                </Text>
+                <Group gap="xs">
+                  <Text size="xs" c="dimmed">
+                    {contentLines} {contentLines === 1 ? 'line' : 'lines'}, {contentChars} characters
+                  </Text>
+                  {!showFullContent && (data?.PAGE_CONTENT?.length || 0) > 2000 && (
+                    <Button size="xs" variant="light" onClick={() => setShowFullContent(true)}>
+                      Show Full Content
+                    </Button>
+                  )}
+                  {showFullContent && (
+                    <Button size="xs" variant="light" onClick={() => setShowFullContent(false)}>
+                      Show Preview
+                    </Button>
+                  )}
+                </Group>
               </Group>
-              <ScrollArea h={300}>
-                <Code block style={{ fontSize: '12px' }}>
-                  {contentPreview}
+              <ScrollArea h={500}>
+                <Box style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '12px', lineHeight: 1.4 }}>
+                  {contentToShow}
                   {isTruncated && '\n\n... (truncated)'}
-                </Code>
+                </Box>
               </ScrollArea>
               {isTruncated && (
                 <Text size="xs" c="dimmed" mt="xs">
-                  Preview truncated. Full content available in the upload.
+                 {' Preview truncated. Click "Show Full Content" to see the complete content.'}
                 </Text>
               )}
             </Box>

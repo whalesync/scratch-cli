@@ -1679,6 +1679,58 @@ export class SnapshotService {
       parser.end();
     });
   }
+
+  async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, userId: string): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const table = tableSpecs.find((t) => t.id.wsId === tableId);
+
+    if (!table) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    // Verify the column exists in the table
+    const column = table.columns.find((c) => c.id.wsId === columnId);
+    if (!column) {
+      throw new NotFoundException('Column not found in table');
+    }
+
+    // Update the table spec with the new title column
+    const updatedTableSpecs = tableSpecs.map((t) => {
+      if (t.id.wsId === tableId) {
+        return {
+          ...t,
+          titleColumnRemoteId: [columnId],
+        };
+      }
+      return t;
+    });
+
+    // Update the snapshot with the new table specs
+    await this.db.client.snapshot.update({
+      where: { id: snapshotId },
+      data: {
+        tableSpecs: updatedTableSpecs,
+      },
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Set title column for table ${table.name} to ${column.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId,
+        columnId,
+        columnName: column.name,
+      },
+    });
+  }
 }
 
 function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: AnyTableSpec): SnapshotRecord {

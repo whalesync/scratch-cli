@@ -3,11 +3,12 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useUpsertView } from '@/hooks/use-view';
+import { snapshotApi } from '@/lib/api/snapshot';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
-import { Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square } from 'lucide-react';
+import { Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -394,6 +395,37 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     }
   };
 
+  const handleSetTitleColumn = async () => {
+    try {
+      setIsProcessing(true);
+      setIsMenuOpen(false);
+
+      if (!snapshot || !props.tableId) {
+        ScratchpadNotifications.error({
+          title: 'Error',
+          message: 'Missing snapshot or table information',
+        });
+        return;
+      }
+
+      // Call the API to set the title column
+      await snapshotApi.setTitleColumn(snapshot.id, props.tableId, columnId);
+
+      ScratchpadNotifications.success({
+        title: 'Title Column Set',
+        message: `Column "${columnName}" is now the title column for this table`,
+      });
+    } catch (error) {
+      console.error('Error setting title column:', error);
+      ScratchpadNotifications.error({
+        title: 'Error setting title column',
+        message: error instanceof Error ? error.message : 'Failed to set title column',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const onSortChanged = () => {
     props.setSort('asc');
   };
@@ -719,6 +751,34 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                   <StyledLucideIcon Icon={Lock} size={14} c="#888" />
                 )}
                 {isColumnProtected ? 'Unprotect Column' : 'Protect Column'}
+              </button>
+              <button
+                onClick={handleSetTitleColumn}
+                disabled={isProcessing}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: 'none',
+                  border: 'none',
+                  color: isProcessing ? '#666' : '#ffffff',
+                  textAlign: 'left',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <StyledLucideIcon Icon={Star} size={14} c="#ffd700" />
+                Set as Title Column
               </button>
             </div>
           )}

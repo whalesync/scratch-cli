@@ -80,6 +80,18 @@ export const snapshotApi = {
     await checkForApiError(res, 'Failed to update column contexts');
   },
 
+  setTitleColumn: async (id: string, tableId: string, columnId: string): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/tables/${tableId}/title-column`, {
+      method: 'PATCH',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ columnId }),
+    });
+    await checkForApiError(res, 'Failed to set title column');
+  },
+
   async downloadWithoutJob(id: string): Promise<DownloadSnapshotWithouotJobResult> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/download-without-job`, {
       method: 'POST',

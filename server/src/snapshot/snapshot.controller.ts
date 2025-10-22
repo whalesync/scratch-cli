@@ -37,6 +37,7 @@ import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
 import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
+import { SetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateColumnContextsDto } from './dto/update-column-contexts.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
@@ -251,6 +252,18 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.updateColumnContexts(snapshotId, tableId, updateColumnContextsDto.columnContexts, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Patch(':id/tables/:tableId/title-column')
+  @HttpCode(204)
+  async setTitleColumn(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() setTitleColumnDto: SetTitleColumnDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.setTitleColumn(snapshotId, tableId, setTitleColumnDto.columnId, req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

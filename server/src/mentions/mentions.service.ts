@@ -1,12 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
+import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
+import { SnapshotId } from 'src/types/ids';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
+import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
-type SearchInput = { text: string; snapshotId: string; userId: string; tableId?: string };
+type SearchInput = { text: string; snapshotId: SnapshotId; userId: string; tableId?: string };
 
 @Injectable()
 export class MentionsService {
@@ -32,7 +34,13 @@ export class MentionsService {
     return { resources, records };
   }
 
-  private async searchResources({ userId, queryText }: { userId: string; queryText: string }) {
+  async searchResources({
+    userId,
+    queryText,
+  }: {
+    userId: string;
+    queryText: string;
+  }): Promise<ResourceMentionEntity[]> {
     const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
 
     // First, search the Uploads table by name using Prisma
@@ -79,7 +87,7 @@ export class MentionsService {
         const preview = contentPreview.length === 20 ? `${contentPreview}...` : contentPreview;
 
         return {
-          id: r.id,
+          id: upload.id, // Use Upload.id instead of typeId
           title: upload.name,
           preview: preview,
         };
@@ -87,40 +95,58 @@ export class MentionsService {
       .filter((r) => r !== null);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  private async searchRecords({
+  async searchRecords({
     snapshotId,
     userId,
     queryText,
     tableId,
   }: {
-    snapshotId: string;
+    snapshotId: SnapshotId;
     userId: string;
     queryText: string;
     tableId?: string;
-  }) {
-    // const snapshot = await this.snapshotService.findOne(snapshotId, userId);
-    // if (!snapshot) return [];
-    // const tables = (snapshot.tableSpecs as AnyTableSpec[]) || [];
-    // const targetTables = tableId ? tables.filter((t) => t.id.wsId === tableId) : tables;
-    // const results: { id: string; title: string; tableId: string }[] = [];
-    // for (const table of targetTables) {
-    //   const titleColWsId = table.titleColumnRemoteId?.[0];
-    //   if (!titleColWsId) continue;
-    //   const rows = await this.snapshotDbService.snapshotDb
-    //     .knex(`${snapshotId}.${table.id.wsId}`)
-    //     .select({ id: 'wsId' })
-    //     .select(titleColWsId)
-    //     .whereILike(titleColWsId, `${queryText}%`)
-    //     .limit(10);
-    //   for (const row of rows as any[]) {
-    //     const title = row[titleColWsId];
-    //     if (title && typeof title === 'string') {
-    //       results.push({ id: row.id, title, tableId: table.id.wsId });
-    //     }
-    //   }
-    // }
-    // return results;
-    return [];
+  }): Promise<RecordMentionEntity[]> {
+    if (!tableId) {
+      return [];
+    }
+
+    const snapshot = await this.snapshotService.findOne(snapshotId, userId);
+    if (!snapshot) return [];
+
+    // Find the table by tableId using tableSpecs
+    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const table = tableSpecs.find((t) => t.id.wsId === tableId);
+    if (!table) return [];
+
+    // Check if table has a title column
+    const titleColWsId = table.titleColumnRemoteId?.[0];
+    if (!titleColWsId) return [];
+
+    try {
+      // Search records in the table using the title column
+      const rows = await this.snapshotDbService.snapshotDb
+        .knex(`${snapshotId}.${table.id.wsId}`)
+        .select({ id: 'wsId' })
+        .select(titleColWsId)
+        .whereILike(titleColWsId, `${queryText}%`)
+        .limit(10);
+
+      const results: RecordMentionEntity[] = [];
+      for (const row of rows as { id: string; [key: string]: unknown }[]) {
+        const title = row[titleColWsId] as string;
+        if (title && typeof title === 'string') {
+          results.push({
+            id: row.id,
+            title,
+            tableId: table.id.wsId,
+          });
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error searching records:', error);
+      return [];
+    }
   }
 }

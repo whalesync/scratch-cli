@@ -18,6 +18,10 @@
   pointer-events: none;
 }
 
+.mentions__highlighter strong {
+  border-radius: 6px;
+}
+
 .mentions__mention {
   position: relative;
   z-index: 2;

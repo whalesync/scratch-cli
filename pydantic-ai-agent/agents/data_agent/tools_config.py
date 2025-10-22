@@ -19,6 +19,7 @@ from agents.data_agent.tools.create_records_tool import create_create_records_to
 from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
 from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
 from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
+from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
 
 
 class GetRecordsInput(BaseModel):
@@ -71,3 +72,4 @@ def configure_tools(
 
     # Common tools / utilities
     define_url_content_load_tool(agent)
+    define_upload_content_tool(agent)

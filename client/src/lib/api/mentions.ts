@@ -7,26 +7,26 @@ export interface MentionsSearchRequest {
   tableId?: string;
 }
 
-export interface ResourceMention {
+export interface ResourceMentionEntity {
   id: string;
   title: string;
   preview: string;
 }
 
-export interface RecordMention {
+export interface RecordMentionEntity {
   id: string;
   title: string;
   tableId: string;
 }
 
 export interface MentionsSearchResponse {
-  resources: ResourceMention[];
-  records: RecordMention[];
+  resources: ResourceMentionEntity[];
+  records: RecordMentionEntity[];
 }
 
 export const mentionsApi = {
-  search: async (request: MentionsSearchRequest): Promise<MentionsSearchResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/mentions/search`, {
+  searchResources: async (request: MentionsSearchRequest): Promise<ResourceMentionEntity[]> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/mentions/search/resources`, {
       method: "POST",
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -34,7 +34,20 @@ export const mentionsApi = {
       },
       body: JSON.stringify(request),
     });
-    await checkForApiError(res, "Failed to search mentions");
+    await checkForApiError(res, "Failed to search resource mentions");
+    return res.json();
+  },
+
+  searchRecords: async (request: MentionsSearchRequest): Promise<RecordMentionEntity[]> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/mentions/search/records`, {
+      method: "POST",
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+    await checkForApiError(res, "Failed to search record mentions");
     return res.json();
   },
 };
