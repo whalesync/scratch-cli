@@ -13,6 +13,7 @@ import {
 } from '@/types/server-entities/snapshot';
 import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
+import { DateTimePicker } from '@mantine/dates';
 import { CircleArrowRightIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
@@ -119,6 +120,62 @@ export const DisplayField = (props: DisplayFieldProps) => {
           <Text className={styles.recordValueDisplay}>{currentValueString}</Text>
         ) : (
           numberInputField
+        )}
+      </FieldRow>
+    );
+  }
+
+  if (column.pgType === PostgresColumnType.TIMESTAMP) {
+    // this needs to be handled differently
+    const currentValue = record.fields[columnId] ? new Date(record.fields[columnId] as Date | string) : null;
+    const currentValueString = currentValue ? currentValue.toLocaleString() : '';
+    const suggestedValue = record.__suggested_values?.[columnId]
+      ? new Date(record.__suggested_values?.[columnId] as string)
+      : null;
+    const suggestedValueString = suggestedValue ? suggestedValue.toLocaleString() : '';
+
+    const dateInputField = (
+      <DateTimePicker
+        key={columnId}
+        value={currentValue}
+        onChange={(value) => updateField(columnId, value ?? '')}
+        readOnly={column.readonly || hasSuggestion}
+        styles={{
+          input: {
+            borderColor: 'transparent',
+            fontSize: '1rem',
+            padding: basicFieldPadding,
+          },
+        }}
+      />
+    );
+    return (
+      <FieldRow
+        fieldName={column.name}
+        showLabel={mode === 'multiple'}
+        hasEditedValue={hasEditedValue}
+        isProtected={isProtected}
+        isHidden={isHidden}
+        isReadOnly={column.readonly}
+        align={align}
+        onLabelClick={onFieldLabelClick}
+      >
+        {hasSuggestion ? (
+          <Stack h="auto" gap="xs" w="100%">
+            <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
+              <DiffViewer
+                originalValue={currentValueString}
+                suggestedValue={suggestedValueString}
+                p={mode === 'multiple' ? '0' : '3rem'}
+                splitMinRows={1}
+              />
+            </ScrollArea>
+            {mode === 'multiple' && suggestionButtons}
+          </Stack>
+        ) : mode === 'multiple' ? (
+          <Text className={styles.recordValueDisplay}>{currentValueString}</Text>
+        ) : (
+          dateInputField
         )}
       </FieldRow>
     );

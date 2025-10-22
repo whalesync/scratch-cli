@@ -19,7 +19,6 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isDescending: boolean, //Don't use this to reverse the logic of the comparison
   ) => {
-
     // if a record has suggested values, use them for sorting otherwise use the base value provided
     const suggestedValueA = nodeA.data?.__suggested_values?.[columnSpec.id.wsId] as string | undefined;
     const suggestedValueB = nodeB.data?.__suggested_values?.[columnSpec.id.wsId] as string | undefined;
@@ -27,8 +26,8 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
 
     // Force conversion to string for all values, preserving null and undefined values
     // We can convert back to the original type for special comparisons after checking for undefined/null
-    const valueToCompareA = _.toString(suggestedValueA) || _.toString(valueA);
-    const valueToCompareB = _.toString(suggestedValueB) || _.toString(valueB);
+    const valueToCompareA = (suggestedValueA ? _.toString(suggestedValueA): suggestedValueA) || (valueA ? _.toString(valueA): valueA);
+    const valueToCompareB = (suggestedValueB ? _.toString(suggestedValueB): suggestedValueB) || (valueB ? _.toString(valueB): valueB);
 
     if (valueToCompareA === valueToCompareB) {
       // suggested values are lower priority than the base value, so use that to break ties
@@ -53,6 +52,12 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
     }
     if (valueToCompareB === undefined) {
       return 1;
+    }
+
+    if(columnSpec.pgType === PostgresColumnType.TIMESTAMP){
+      const dateValueA = new Date(valueToCompareA);
+      const dateValueB = new Date(valueToCompareB);
+      return dateValueA.getTime() - dateValueB.getTime();
     }
    
     if(columnSpec.pgType === PostgresColumnType.NUMERIC){

@@ -6,7 +6,7 @@ import {
   getOtherColumnSpecs,
   identifyRecordTitleColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
-import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
@@ -545,6 +545,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       return baseStyles;
     };
     const valueGetter: ValueGetterFunc<SnapshotRecord, unknown> = (params) => {
+      if (column.pgType === PostgresColumnType.TIMESTAMP && params.data?.fields?.[column.id.wsId]) {
+        // SnapshotRecords get dates as ISO strings, so we need to convert them to dates to handle them natively in the grid
+        return new Date(params.data?.fields?.[column.id.wsId] as string | Date).toLocaleDateString();
+      }
       return params.data?.fields?.[column.id.wsId];
     };
     const colDef: ColDef = {
@@ -570,6 +574,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         showDataTypeInHeader: showDataTypeInHeader,
       },
       comparator: getComparatorFunctionForColumnSpec(column),
+      cellDataType:
+        column.pgType === PostgresColumnType.TIMESTAMP
+          ? column.metadata?.dateFormat === 'date'
+            ? 'date'
+            : 'datetime'
+          : undefined, // explicitly set the data type for the cell
     };
     return colDef;
   });

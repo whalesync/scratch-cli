@@ -4,6 +4,7 @@ import { trackPageView } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box } from '@mantine/core';
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 import Head from 'next/head';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';

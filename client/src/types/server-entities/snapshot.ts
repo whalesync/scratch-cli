@@ -26,6 +26,7 @@ export enum PostgresColumnType {
   TEXT_ARRAY = "text[]",
   NUMERIC_ARRAY = "numeric[]",
   BOOLEAN_ARRAY = "boolean[]",
+  TIMESTAMP = "timestamp",
 }
 
 export interface TableSpec {
