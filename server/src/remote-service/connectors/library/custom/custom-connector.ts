@@ -284,6 +284,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   async createRecords(
     tableSpec: CustomTableSpec,
+    columnContexts: SnapshotColumnContexts,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // Get the custom connector configuration using the modifier field

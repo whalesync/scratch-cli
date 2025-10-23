@@ -318,6 +318,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async createRecords(
     tableSpec: NotionTableSpec,
+    columnContexts: SnapshotColumnContexts,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const results: { wsId: string; remoteId: string }[] = [];

@@ -10,6 +10,7 @@ import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { WordPressConnector } from './library/wordpress/wordpress-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
 
 @Injectable()
@@ -36,6 +37,24 @@ export class ConnectorsService {
           throw new ConnectorInstantiationError('API key is required for Airtable', service);
         }
         return new AirtableConnector(decryptedCredentials.apiKey);
+      case Service.WORDPRESS:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for WordPress', service);
+        }
+        if (!decryptedCredentials?.username) {
+          throw new ConnectorInstantiationError('Username is required for WordPress', service);
+        }
+        if (!decryptedCredentials?.password) {
+          throw new ConnectorInstantiationError('Password is required for WordPress', service);
+        }
+        if (!decryptedCredentials?.endpoint) {
+          throw new ConnectorInstantiationError('Endpoint is required for WordPress', service);
+        }
+        return new WordPressConnector(
+          decryptedCredentials.username,
+          decryptedCredentials.password,
+          decryptedCredentials.endpoint,
+        );
       case Service.NOTION:
         if (!connectorAccount) {
           throw new ConnectorInstantiationError('Connector account is required for Notion', service);

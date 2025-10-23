@@ -15,6 +15,10 @@ type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 export const CreateConnectionModal = (props: ModalProps) => {
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
+  const [endpoint, setEndpoint] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
   const [newService, setNewService] = useState<Service | null>(null);
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
@@ -32,7 +36,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
 
     // Services that use generic parameters
-    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
+    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
     if (oauthSupportedServices.includes(service)) {
       return 'oauth';
     } else if (genericParametersSupportedServices.includes(service)) {
@@ -44,7 +48,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
-    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM];
+    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
       methods.push('oauth');
@@ -89,11 +93,25 @@ export const CreateConnectionModal = (props: ModalProps) => {
       alert('Service is required.');
       return;
     }
-    if (authMethod === 'user_provided_params' && newService !== Service.CSV && !newApiKey) {
+    if (
+      authMethod === 'user_provided_params' &&
+      newService !== Service.CSV &&
+      newService !== Service.WORDPRESS &&
+      !newApiKey
+    ) {
       alert('API key is required for this service.');
       return;
     }
-
+    if (
+      authMethod === 'user_provided_params' &&
+      newService === Service.WORDPRESS &&
+      !username &&
+      !password &&
+      !endpoint
+    ) {
+      alert('Username, password, and endpoint are required for this service.');
+      return;
+    }
     // For OAuth, the connection will be created in the callback page
     if (authMethod === 'oauth' || authMethod === 'oauth_custom') {
       await handleOAuthInitiate();
@@ -102,11 +120,19 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
     await createConnectorAccount({
       service: newService,
-      userProvidedParams: newService === Service.CSV ? { apiKey: newApiKey } : { apiKey: newApiKey },
+      userProvidedParams:
+        newService === Service.CSV
+          ? { apiKey: newApiKey }
+          : newService === Service.WORDPRESS
+            ? { username, password, endpoint }
+            : { apiKey: newApiKey },
       modifier: newModifier || undefined,
       displayName: newDisplayName || undefined,
     });
     setNewApiKey('');
+    setUsername('');
+    setPassword('');
+    setEndpoint('');
     setNewService(null);
     setNewModifier(null);
     setNewDisplayName(null);
@@ -216,6 +242,29 @@ export const CreateConnectionModal = (props: ModalProps) => {
             />
           </>
         )}
+        {authMethod === 'user_provided_params' && newService === Service.WORDPRESS && (
+          <>
+            <TextInput
+              label="User email"
+              placeholder="Enter your user email here"
+              value={username}
+              onChange={(e) => setUsername(e.currentTarget.value)}
+            />
+            <TextInput
+              label="Application password"
+              placeholder="Enter your application password here"
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
+              type="password"
+            />
+            <TextInput
+              label="WordPress URL"
+              placeholder="Enter the address of your WordPress site here"
+              value={endpoint}
+              onChange={(e) => setEndpoint(e.currentTarget.value)}
+            />
+          </>
+        )}
         {newService === Service.CSV && (
           <Alert color="blue" title="CSV Connection">
             CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
@@ -224,6 +273,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
         {newService &&
           newService !== Service.CSV &&
+          newService !== Service.WORDPRESS &&
           getSupportedAuthMethods(newService).includes('user_provided_params') &&
           authMethod === 'user_provided_params' && (
             <TextInput

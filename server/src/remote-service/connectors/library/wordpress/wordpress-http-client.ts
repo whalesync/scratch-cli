@@ -1,0 +1,217 @@
+import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
+import { WORDPRESS_ORG_V2_PATH } from './wordpress-constants';
+import {
+  WordPressEndpointOptionsResponse,
+  WordPressGetDiscoveryApiResponse,
+  WordPressGetTypesApiResponse,
+  WordPressRecord,
+} from './wordpress-types';
+
+/**
+ * Client for making HTTP requests to WordPress REST API.
+ */
+export class WordPressHttpClient {
+  private readonly authHeaders: RawAxiosRequestHeaders;
+
+  constructor(
+    private readonly endpoint: string,
+    private readonly username: string,
+    private readonly password: string,
+  ) {
+    const usernamePassword = `${username}:${password}`;
+    const base64Credentials = Buffer.from(usernamePassword).toString('base64');
+    this.authHeaders = {
+      Authorization: `Basic ${base64Credentials}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private generateUrl(
+    endpoint: string,
+    remoteCollectionId: string,
+    remoteRecordId: string | null,
+    searchParams: { name: string; value: string }[],
+  ): string {
+    let addToPath = `${WORDPRESS_ORG_V2_PATH}${remoteCollectionId}`;
+    if (remoteRecordId !== null && remoteRecordId !== 'unknown') {
+      addToPath = addToPath.concat(`/${remoteRecordId}`);
+    }
+    const endpointUrl = new URL(endpoint);
+    const restRoute = endpointUrl.searchParams.get('rest_route');
+    if (restRoute === null) {
+      endpointUrl.pathname = `${endpointUrl.pathname}${addToPath}`;
+    } else {
+      endpointUrl.searchParams.delete('rest_route');
+      endpointUrl.searchParams.append('rest_route', `/${addToPath}`);
+    }
+    for (const param of searchParams) {
+      const found = endpointUrl.searchParams.get(param.name);
+      if (found !== null) {
+        endpointUrl.searchParams.delete(param.name);
+      }
+      endpointUrl.searchParams.append(param.name, param.value);
+    }
+    return endpointUrl.toString();
+  }
+
+  async testEndpoint(endpoint: string = this.endpoint): Promise<void> {
+    const url = this.generateUrl(endpoint, 'posts', null, [
+      { name: 'per_page', value: '5' },
+      { name: 'context', value: 'edit' },
+    ]);
+    let wordpressPollResponse: AxiosResponse<WordPressRecord[]>;
+    try {
+      wordpressPollResponse = await axios.get<WordPressRecord[]>(url, { headers: this.authHeaders });
+    } catch (error) {
+      throw new Error('Failed to test connection: ' + (error instanceof Error ? error.message : String(error)));
+    }
+    if (wordpressPollResponse.data === undefined || typeof wordpressPollResponse.data === 'string') {
+      throw new Error('Failed to test connection: Invalid response format');
+    }
+  }
+
+  /**
+   * Discover the WordPress site and get basic info
+   * https://developer.wordpress.org/rest-api/using-the-rest-api/discovery/
+   */
+  async getDiscoveryInfo(): Promise<WordPressGetDiscoveryApiResponse> {
+    const response = await axios.get<WordPressGetDiscoveryApiResponse>(this.endpoint, {
+      headers: this.authHeaders,
+    });
+    return response.data;
+  }
+
+  /**
+   * Poll records from a WordPress table
+   */
+  async pollRecords(tableId: string, offset: number, pageSize: number): Promise<WordPressRecord[]> {
+    const searchParams: { name: string; value: string }[] = [];
+    searchParams.push({ name: 'per_page', value: String(pageSize) });
+    if (offset > 0) {
+      searchParams.push({ name: 'offset', value: String(offset) });
+    }
+    searchParams.push({ name: 'status', value: 'any' }); // This is to ensure that we get all posts, including draft and trashed ones
+    const url = this.generateUrl(this.endpoint, tableId, null, searchParams);
+    const response = await axios.get<WordPressRecord[]>(url, { headers: this.authHeaders });
+    return response.data;
+  }
+
+  /**
+   * Get available post types from WordPress
+   * https://developer.wordpress.org/rest-api/reference/post-types/
+   */
+  async getTypes(): Promise<WordPressGetTypesApiResponse> {
+    const url = this.generateUrl(this.endpoint, 'types', null, []);
+    const response = await axios.get<WordPressGetTypesApiResponse>(url, { headers: this.authHeaders });
+    return response.data;
+  }
+
+  /**
+   * Get endpoint schema via OPTIONS request
+   */
+  async getEndpointOptions(tableId: string): Promise<WordPressEndpointOptionsResponse> {
+    const url = this.generateUrl(this.endpoint, tableId, null, []);
+    const response = await axios.request<WordPressEndpointOptionsResponse>({
+      method: 'OPTIONS',
+      url,
+      headers: this.authHeaders,
+    });
+    return response.data;
+  }
+
+  /**
+   * Create a new record in WordPress
+   */
+  async createRecord(tableId: string, record: WordPressRecord): Promise<WordPressRecord> {
+    const url = this.generateUrl(this.endpoint, tableId, null, []);
+    const response = await axios.post<WordPressRecord>(url, record, { headers: this.authHeaders });
+    return response.data;
+  }
+
+  /**
+   * Update an existing record in WordPress
+   */
+  async updateRecord(tableId: string, recordId: string, record: WordPressRecord): Promise<WordPressRecord> {
+    const url = this.generateUrl(this.endpoint, tableId, recordId, []);
+    const response = await axios.patch<WordPressRecord>(url, record, { headers: this.authHeaders });
+    return response.data;
+  }
+
+  /**
+   * Delete a record from WordPress
+   */
+  async deleteRecord(tableId: string, recordId: string): Promise<void> {
+    const url = this.generateUrl(this.endpoint, tableId, recordId, [{ name: 'force', value: 'true' }]);
+    await axios.delete(url, { headers: this.authHeaders });
+  }
+
+  /**
+   * Validate and discover the correct endpoint URL for a WordPress site
+   */
+  async discoverAndValidateEndpoint(): Promise<string> {
+    let endpoint: string;
+    try {
+      const url = new URL(this.endpoint);
+      endpoint = this.endpoint;
+
+      // Option 1: If a specific path or query param is provided, test as-is
+      if (url.pathname !== '/' || url.searchParams.toString() !== '') {
+        try {
+          await this.testEndpoint(endpoint);
+          return endpoint;
+        } catch {
+          // Continue to try other options
+        }
+      }
+
+      // Option 2: Try endpoint discovery from Link header
+      try {
+        const headResponse = await axios.head(`https://${url.hostname}`, {
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${this.username}:${this.password}`).toString('base64')}`,
+          },
+        });
+        const link = headResponse?.headers?.link as string | undefined;
+        if (link && typeof link === 'string') {
+          const linkParts = link.split('>;').flatMap((s) => s.split('<'));
+          const discoveredEndpoint = linkParts.find((d) => d.includes(url.hostname));
+          if (discoveredEndpoint) {
+            try {
+              await this.testEndpoint(discoveredEndpoint);
+              return discoveredEndpoint;
+            } catch {
+              // Continue to try other options
+            }
+          }
+        }
+      } catch {
+        // Continue to try other options
+      }
+
+      // Option 3: Try common WordPress REST API paths
+      const variations = ['/wp-json/', '/index.php?rest_route=/'];
+      for (const variation of variations) {
+        endpoint = `https://${url.hostname}${variation}`;
+        const client = new WordPressHttpClient(endpoint, this.username, this.password);
+        try {
+          await client.testEndpoint(endpoint);
+          return endpoint;
+        } catch {
+          // Continue to next variation
+        }
+      }
+
+      throw new Error(
+        `Could not find a valid WordPress REST API endpoint. Please verify your WordPress URL and credentials.`,
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Invalid URL')) {
+        throw new Error(
+          'The WordPress URL you entered is not valid. Please provide the full address of your WordPress site including "https://"',
+        );
+      }
+      throw error;
+    }
+  }
+}

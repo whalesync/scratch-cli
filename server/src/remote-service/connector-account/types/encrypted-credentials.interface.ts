@@ -1,5 +1,10 @@
 export interface EncryptedCredentials {
   apiKey?: string;
+  // WordPress specific
+  username?: string;
+  password?: string;
+  endpoint?: string;
+
   oauthAccessToken?: string;
   oauthRefreshToken?: string;
   oauthExpiresAt?: string; // ISO string
@@ -11,6 +16,11 @@ export interface EncryptedCredentials {
 
 export interface DecryptedCredentials {
   apiKey?: string;
+  // WordPress specific
+  username?: string;
+  password?: string;
+  endpoint?: string;
+
   oauthAccessToken?: string;
   oauthRefreshToken?: string;
   oauthExpiresAt?: Date;

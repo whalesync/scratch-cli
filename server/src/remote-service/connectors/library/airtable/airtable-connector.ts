@@ -98,6 +98,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   async createRecords(
     tableSpec: AirtableTableSpec,
+    columnContexts: SnapshotColumnContexts,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const [baseId, tableId] = tableSpec.id.remoteId;

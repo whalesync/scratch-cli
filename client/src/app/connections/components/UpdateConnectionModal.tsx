@@ -13,6 +13,9 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   const { connectorAccount, ...modalProps } = props;
   const [updatedName, setUpdatedName] = useState('');
   const [updatedApiKey, setUpdatedApiKey] = useState('');
+  const [updatedUsername, setUpdatedUsername] = useState('');
+  const [updatedPassword, setUpdatedPassword] = useState('');
+  const [updatedEndpoint, setUpdatedEndpoint] = useState('');
   const [updatedModifier, setUpdatedModifier] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +26,6 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   useEffect(() => {
     if (connectorAccount) {
       setUpdatedName(connectorAccount.displayName);
-      setUpdatedApiKey('');
       setUpdatedModifier(connectorAccount.modifier);
     }
   }, [connectorAccount]);
@@ -34,7 +36,12 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
     try {
       await updateConnectorAccount(connectorAccount.id, {
         displayName: updatedName,
-        userProvidedParams: connectorAccount.service === Service.CSV ? { apiKey: '' } : { apiKey: updatedApiKey },
+        userProvidedParams:
+          connectorAccount.service === Service.CSV
+            ? { apiKey: '' }
+            : connectorAccount.service === Service.WORDPRESS
+              ? { username: updatedUsername, password: updatedPassword, endpoint: updatedEndpoint }
+              : { apiKey: updatedApiKey },
         modifier: updatedModifier || undefined,
       });
       props.onClose?.();
@@ -50,9 +57,35 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
         <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
-        {connectorAccount?.authType === AuthType.USER_PROVIDED_PARAMS && connectorAccount?.service !== Service.CSV && (
-          <TextInput label="API Key" value={updatedApiKey} onChange={(e) => setUpdatedApiKey(e.currentTarget.value)} />
-        )}
+        {connectorAccount?.authType === AuthType.USER_PROVIDED_PARAMS &&
+          connectorAccount?.service !== Service.CSV &&
+          connectorAccount?.service !== Service.WORDPRESS && (
+            <TextInput
+              label="API Key"
+              value={updatedApiKey}
+              onChange={(e) => setUpdatedApiKey(e.currentTarget.value)}
+            />
+          )}
+        {connectorAccount?.authType === AuthType.USER_PROVIDED_PARAMS &&
+          connectorAccount?.service === Service.WORDPRESS && (
+            <>
+              <TextInput
+                label="Username"
+                value={updatedUsername}
+                onChange={(e) => setUpdatedUsername(e.currentTarget.value)}
+              />
+              <TextInput
+                label="Password"
+                value={updatedPassword}
+                onChange={(e) => setUpdatedPassword(e.currentTarget.value)}
+              />
+              <TextInput
+                label="Endpoint"
+                value={updatedEndpoint}
+                onChange={(e) => setUpdatedEndpoint(e.currentTarget.value)}
+              />
+            </>
+          )}
         {connectorAccount?.service === Service.CUSTOM && customConnectors && (
           <Select
             label="Custom Connector"

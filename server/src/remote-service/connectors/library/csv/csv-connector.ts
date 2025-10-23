@@ -134,6 +134,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   async createRecords(
     tableSpec: CsvTableSpec,
+    columnContexts: SnapshotColumnContexts,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // For CSV, the uploadId is stored in remoteId array

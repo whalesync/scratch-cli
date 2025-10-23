@@ -317,6 +317,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   createRecords(
     _tableSpec: YouTubeTableSpec,
+    _columnContexts: SnapshotColumnContexts,
     _records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // YouTube doesn't support creating videos through the API

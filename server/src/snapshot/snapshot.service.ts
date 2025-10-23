@@ -1079,7 +1079,11 @@ export class SnapshotService {
           .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
           .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
 
-        const returnedRecords = await connector.createRecords(tableSpec, sanitizedRecords);
+        const returnedRecords = await connector.createRecords(
+          tableSpec,
+          snapshot.columnContexts as SnapshotColumnContexts,
+          sanitizedRecords,
+        );
         // Save the created IDs.
         await this.snapshotDbService.snapshotDb.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
       },

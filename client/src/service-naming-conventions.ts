@@ -1,150 +1,161 @@
-import {Service} from '@/types/server-entities/connector-accounts';
+import { Service } from '@/types/server-entities/connector-accounts';
 type ServiceNamingConvention = {
   service: string;
   table: string;
   record: string;
-  base: string | null
+  base: string | null;
   tables: string;
   records: string;
-  bases: string | null
-  logo?: string
-  oauthLabel?: string
-  oauthPrivateLabel?: string
-  pushOperationName: string
-  pullOperationName: string
+  bases: string | null;
+  logo?: string;
+  oauthLabel?: string;
+  oauthPrivateLabel?: string;
+  pushOperationName: string;
+  pullOperationName: string;
 };
 
-
 export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> = {
-  [Service.NOTION]: {
-    service: "Notion",
-    table: "database",
-    record: "page",
+  [Service.WORDPRESS]: {
+    service: 'WordPress',
+    table: 'post',
+    record: 'post',
     base: null,
-    tables: "databases",
-    records: "pages",
+    tables: 'posts',
+    records: 'posts',
     bases: null,
-    logo: "notion.svg",
-    oauthLabel: "OAuth",
-    pushOperationName: "Publish",
-    pullOperationName: "Download",
+    logo: 'wordpress.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
+  [Service.NOTION]: {
+    service: 'Notion',
+    table: 'database',
+    record: 'page',
+    base: null,
+    tables: 'databases',
+    records: 'pages',
+    bases: null,
+    logo: 'notion.svg',
+    oauthLabel: 'OAuth',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
   },
   [Service.AIRTABLE]: {
-    service: "Airtable",
-    table: "table",
-    record: "record",
-    base: "base",
-    tables: "tables",
-    records: "records",
-    bases: "bases",
-    logo: "airtable.svg",
-    pushOperationName: "Publish",
-    pullOperationName: "Download",
+    service: 'Airtable',
+    table: 'table',
+    record: 'record',
+    base: 'base',
+    tables: 'tables',
+    records: 'records',
+    bases: 'bases',
+    logo: 'airtable.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
   },
   [Service.YOUTUBE]: {
-    service: "YouTube",
-    table: "channel",
-    record: "video",
+    service: 'YouTube',
+    table: 'channel',
+    record: 'video',
     base: null,
-    tables: "channels",
-    records: "videos",
+    tables: 'channels',
+    records: 'videos',
     bases: null,
-    logo: "youtube-color-svgrepo-com.svg",
-    oauthLabel: "OAuth (100 api credits/day)",
-    oauthPrivateLabel: "Private OAuth (10,000 api credits/day)",
-    pushOperationName: "Publish",
-    pullOperationName: "Download",
+    logo: 'youtube-color-svgrepo-com.svg',
+    oauthLabel: 'OAuth (100 api credits/day)',
+    oauthPrivateLabel: 'Private OAuth (10,000 api credits/day)',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
   },
   [Service.CUSTOM]: {
-    service: "Custom",
-    table: "table",
-    record: "record",
+    service: 'Custom',
+    table: 'table',
+    record: 'record',
     base: null,
-    tables: "tables",
-    records: "records",
+    tables: 'tables',
+    records: 'records',
     bases: null,
-    logo: "gear-svgrepo-com.svg",
-    pushOperationName: "Publish",
-    pullOperationName: "Download",
+    logo: 'gear-svgrepo-com.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
   },
   [Service.CSV]: {
-    service: "CSV",
-    table: "file",
-    record: "row",
+    service: 'CSV',
+    table: 'file',
+    record: 'row',
     base: null,
-    tables: "files",
-    records: "rows",
+    tables: 'files',
+    records: 'rows',
     bases: null,
-    logo: "csv-svgrepo-com.svg",
-    pushOperationName: "Publish",
-    pullOperationName: "Download",
+    logo: 'csv-svgrepo-com.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
   },
 };
 
 export const serviceName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.service ?? (serviceCode.charAt(0).toUpperCase() + serviceCode.slice(1));
-}
+  return ServiceNamingConventions[serviceCode]?.service ?? serviceCode.charAt(0).toUpperCase() + serviceCode.slice(1);
+};
 
-export const tableName  = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.table ?? 'table';
-}
+export const tableName = (serviceCode: Service): string => {
+  return ServiceNamingConventions[serviceCode]?.table ?? 'table';
+};
 
 export const recordName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.record ?? 'record';
-}
+  return ServiceNamingConventions[serviceCode]?.record ?? 'record';
+};
 
 export const baseName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.base ?? 'base';
-}
+  return ServiceNamingConventions[serviceCode]?.base ?? 'base';
+};
 
 export const tablesName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.tables ?? 'tables';
-}
+  return ServiceNamingConventions[serviceCode]?.tables ?? 'tables';
+};
 
 export const recordsName = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.records ?? 'records';
-}
+  return ServiceNamingConventions[serviceCode]?.records ?? 'records';
+};
 
-    export const basesName = (serviceCode: Service): string => {
-        return ServiceNamingConventions[serviceCode]?.bases ?? 'bases';
-    }
+export const basesName = (serviceCode: Service): string => {
+  return ServiceNamingConventions[serviceCode]?.bases ?? 'bases';
+};
 
 export const getLogo = (serviceCode: Service | null | undefined): string => {
-    if(!serviceCode) {
-      return '/connector-icons/csv.svg';
-    }
-    const logo = ServiceNamingConventions[serviceCode ?? Service.CUSTOM]?.logo;
-    if (logo) {
-        return `/connector-icons/${logo}`;
-    }
+  if (!serviceCode) {
     return '/connector-icons/csv.svg';
-}
+  }
+  const logo = ServiceNamingConventions[serviceCode ?? Service.CUSTOM]?.logo;
+  if (logo) {
+    return `/connector-icons/${logo}`;
+  }
+  return '/connector-icons/csv.svg';
+};
 
 export const getOauthLabel = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.oauthLabel ?? 'OAuth';
-}
+  return ServiceNamingConventions[serviceCode]?.oauthLabel ?? 'OAuth';
+};
 
 export const getOauthPrivateLabel = (serviceCode: Service): string => {
-    return ServiceNamingConventions[serviceCode]?.oauthPrivateLabel ?? 'Private OAuth';
-}
+  return ServiceNamingConventions[serviceCode]?.oauthPrivateLabel ?? 'Private OAuth';
+};
 
 export const getServiceName = (serviceCode: Service | null | undefined): string => {
   if (!serviceCode) {
-      return 'CSV';
+    return 'CSV';
   }
   return ServiceNamingConventions[serviceCode]?.service ?? 'Unknown';
-}
+};
 
 export const getPullOperationName = (serviceCode: Service | null | undefined): string => {
   if (!serviceCode) {
-      return 'Reload';
+    return 'Reload';
   }
   return ServiceNamingConventions[serviceCode]?.pullOperationName ?? 'Download';
-}
+};
 
 export const getPushOperationName = (serviceCode: Service | null | undefined): string => {
   if (!serviceCode) {
-      return 'Save';
+    return 'Save';
   }
   return ServiceNamingConventions[serviceCode]?.pushOperationName ?? 'Publish';
-}
+};
