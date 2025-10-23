@@ -613,7 +613,7 @@ export class SnapshotDb {
     tableId: string,
     operation: 'create' | 'update' | 'delete',
     batchSize: number,
-    callback: (records: SnapshotRecord[]) => Promise<void>,
+    callback: (records: SnapshotRecord[], trx: Knex.Transaction) => Promise<void>,
     markAsClean: boolean,
   ) {
     // Process all dirty records in a single transaction to avoid pagination issues
@@ -659,6 +659,7 @@ export class SnapshotDb {
                 __metadata,
               }),
             ),
+            trx,
           );
         }
 
@@ -676,16 +677,19 @@ export class SnapshotDb {
     });
   }
 
-  async updateRemoteIds(snapshotId: SnapshotId, table: AnyTableSpec, records: { wsId: string; remoteId: string }[]) {
-    await this.knex.transaction(async (trx) => {
-      for (const record of records) {
-        await trx(table.id.wsId).withSchema(snapshotId).where('wsId', record.wsId).update({ id: record.remoteId });
-      }
-    });
+  async updateRemoteIds(
+    snapshotId: SnapshotId,
+    table: AnyTableSpec,
+    records: { wsId: string; remoteId: string }[],
+    trx: Knex.Transaction,
+  ) {
+    for (const record of records) {
+      await trx(table.id.wsId).withSchema(snapshotId).where('wsId', record.wsId).update({ id: record.remoteId });
+    }
   }
 
-  async deleteRecords(snapshotId: SnapshotId, table: AnyTableSpec, wsIds: string[]) {
-    await this.knex(table.id.wsId).withSchema(snapshotId).whereIn('wsId', wsIds).delete();
+  async deleteRecords(snapshotId: SnapshotId, table: AnyTableSpec, wsIds: string[], trx: Knex.Transaction) {
+    await trx(table.id.wsId).withSchema(snapshotId).whereIn('wsId', wsIds).delete();
   }
 
   /**

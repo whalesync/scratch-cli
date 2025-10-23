@@ -1083,7 +1083,7 @@ export class SnapshotService {
       tableSpec.id.wsId,
       'create',
       connector.getBatchSize('create'),
-      async (records) => {
+      async (records, trx) => {
         const sanitizedRecords = records
           .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
           .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
@@ -1094,7 +1094,12 @@ export class SnapshotService {
           sanitizedRecords,
         );
         // Save the created IDs.
-        await this.snapshotDbService.snapshotDb.updateRemoteIds(snapshot.id as SnapshotId, tableSpec, returnedRecords);
+        await this.snapshotDbService.snapshotDb.updateRemoteIds(
+          snapshot.id as SnapshotId,
+          tableSpec,
+          returnedRecords,
+          trx,
+        );
       },
       true,
     );
@@ -1134,7 +1139,7 @@ export class SnapshotService {
       tableSpec.id.wsId,
       'delete',
       connector.getBatchSize('delete'),
-      async (records) => {
+      async (records, trx) => {
         const recordIds = records
           .filter((r) => !!r.id.remoteId)
           .map((r) => ({ wsId: r.id.wsId, remoteId: r.id.remoteId! }));
@@ -1146,6 +1151,7 @@ export class SnapshotService {
           snapshot.id as SnapshotId,
           tableSpec,
           records.map((r) => r.id.wsId),
+          trx,
         );
       },
       true,
