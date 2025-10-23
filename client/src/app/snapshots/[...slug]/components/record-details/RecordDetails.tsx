@@ -2,9 +2,10 @@ import { TextRegularXs } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Group, Loader, Stack } from '@mantine/core';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { useTableContext } from '../contexts/table-context';
+import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {
@@ -32,6 +33,9 @@ export const RecordDetails = ({
   const [savingSuggestions, setSavingSuggestions] = useState(false);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
+  const orderedColumns = useMemo(() => {
+    return getGridOrderedColumnSpecs(table);
+  }, [table]);
 
   const updateField = useCallback(
     async (field: string, value: string) => {
@@ -144,7 +148,7 @@ export const RecordDetails = ({
     // just show the current active column
     content = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
   } else if (currentRecord) {
-    const fieldsToShow = Object.keys(currentRecord.fields);
+    const fieldsToShow = orderedColumns.map((column) => column.id.wsId);
     content = (
       <Stack p="3rem" gap="sm">
         {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}

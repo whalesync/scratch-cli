@@ -6,6 +6,7 @@ import { useHotkeys } from '@mantine/hooks';
 import { XIcon } from '@phosphor-icons/react';
 import { ChevronLeftIcon, ChevronRightIcon, Rows4Icon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
+import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 
 interface RecordDetailsHeaderProps {
   table: TableSpec;
@@ -26,37 +27,42 @@ export const RecordDetailsHeader = ({
   v2 = false,
   onClose,
 }: RecordDetailsHeaderProps) => {
+  // Order the columns like they appear in the grid view
+  const orderedColumns = useMemo(() => {
+    return getGridOrderedColumnSpecs(table);
+  }, [table]);
+
   const { currentColumn, previousColumn, nextColumn } = useMemo(() => {
     if (columnId === undefined) {
       // if we are on the "all attributes" page, next is the first column and previous is the last column
       return {
         currentColumn: undefined,
-        previousColumn: table.columns[table.columns.length - 1],
-        nextColumn: table.columns[0],
+        previousColumn: orderedColumns[orderedColumns.length - 1],
+        nextColumn: orderedColumns[0],
       };
     }
 
-    const currentColumnIndex = table.columns.findIndex((column) => column.id.wsId === columnId);
+    const currentColumnIndex = orderedColumns.findIndex((column) => column.id.wsId === columnId);
     let nextColumnIndex = -1;
     let previousColumnIndex = -1;
 
     // There is a fake page for "all attributes" that we need to cycle through and handle as a special case
     if (currentColumnIndex === 0) {
-      nextColumnIndex = currentColumnIndex + 1 < table.columns.length ? currentColumnIndex + 1 : -1;
+      nextColumnIndex = currentColumnIndex + 1 < orderedColumns.length ? currentColumnIndex + 1 : -1;
       previousColumnIndex = -1;
-    } else if (currentColumnIndex === table.columns.length - 1) {
+    } else if (currentColumnIndex === orderedColumns.length - 1) {
       nextColumnIndex = -1;
-      previousColumnIndex = currentColumnIndex - 1 >= 0 ? currentColumnIndex - 1 : table.columns.length - 1;
+      previousColumnIndex = currentColumnIndex - 1 >= 0 ? currentColumnIndex - 1 : orderedColumns.length - 1;
     } else {
-      nextColumnIndex = currentColumnIndex + 1 < table.columns.length ? currentColumnIndex + 1 : 0;
-      previousColumnIndex = currentColumnIndex - 1 >= 0 ? currentColumnIndex - 1 : table.columns.length - 1;
+      nextColumnIndex = currentColumnIndex + 1 < orderedColumns.length ? currentColumnIndex + 1 : 0;
+      previousColumnIndex = currentColumnIndex - 1 >= 0 ? currentColumnIndex - 1 : orderedColumns.length - 1;
     }
     return {
-      currentColumn: table.columns[currentColumnIndex],
-      previousColumn: previousColumnIndex !== -1 ? table.columns[previousColumnIndex] : undefined,
-      nextColumn: nextColumnIndex !== -1 ? table.columns[nextColumnIndex] : undefined,
+      currentColumn: orderedColumns[currentColumnIndex],
+      previousColumn: previousColumnIndex !== -1 ? orderedColumns[previousColumnIndex] : undefined,
+      nextColumn: nextColumnIndex !== -1 ? orderedColumns[nextColumnIndex] : undefined,
     };
-  }, [table, columnId]);
+  }, [orderedColumns, columnId]);
 
   const goToPreviousColumn = useCallback(() => {
     onSwitchColumn(previousColumn?.id.wsId);

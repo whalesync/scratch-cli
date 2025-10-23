@@ -93,6 +93,12 @@ export function getOtherColumnSpecs(table: TableSpec): ColumnSpec[]{
   return otherColumnSpecs;
 }
 
+export function getGridOrderedColumnSpecs(table: TableSpec): ColumnSpec[] {
+  const headerColumnSpecs = getHeaderColumnSpec(table);
+  const otherColumnSpecs = getOtherColumnSpecs(table);
+  return headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
+}
+
 export function getDotColumn(gridApi: GridApi) {
   return gridApi.getColumns()?.find((col) => {
     // dot column has no header name and field is empty
