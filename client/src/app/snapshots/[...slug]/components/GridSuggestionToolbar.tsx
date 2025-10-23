@@ -16,11 +16,12 @@ type GridSuggestionToolbarProps = {
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
   const { table, ...boxProps } = props;
   const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
-  const { totalSuggestions, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } = useSnapshotTableRecords({
-    snapshotId: snapshot?.id ?? '',
-    tableId: table.id.wsId,
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
-  });
+  const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
+    useSnapshotTableRecords({
+      snapshotId: snapshot?.id ?? '',
+      tableId: table.id.wsId,
+      viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
+    });
   const [saving, setSaving] = useState(false);
 
   const handleAcceptAllSuggestions = async () => {
@@ -77,7 +78,10 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
           </>
         ) : (
           <TextRegularXs style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
-            {`//`} {totalSuggestions} {pluralize('change', totalSuggestions)} pending
+            {`//`} {totalSuggestions} {pluralize('change', totalSuggestions)} pending{' '}
+            {totalSuggestedDeletes > 0
+              ? `(${totalSuggestedDeletes} ${pluralize('record', totalSuggestedDeletes)} to deleted)`
+              : ''}
           </TextRegularXs>
         )}
         <Group ml="auto">

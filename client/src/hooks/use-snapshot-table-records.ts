@@ -6,6 +6,7 @@ import { trackAcceptChanges, trackRejectChanges } from "@/lib/posthog";
 import {
   AcceptAllSuggestionsResult,
   RejectAllSuggestionsResult,
+  SNAPSHOT_RECORD_DELETED_FIELD,
   SnapshotRecord
 } from "@/types/server-entities/snapshot";
 import { hashStringList } from "@/utils/helpers";
@@ -31,6 +32,7 @@ export interface UseSnapshotRecordsReturn {
     filteredCount: number;
     recordsWithSuggestions: number;
     totalSuggestions: number;
+    totalSuggestedDeletes: number;
     acceptAllSuggestions: () => Promise<AcceptAllSuggestionsResult>;
     rejectAllSuggestions: () => Promise<RejectAllSuggestionsResult>;
     createNewRecord: () => Promise<void>;
@@ -187,22 +189,27 @@ export interface UseSnapshotRecordsReturn {
       [snapshotId, tableId, mutate, swrKey, snapshot]
     );
   
-    const { recordsWithSuggestions, totalSuggestions } = useMemo(() => {
+    const { recordsWithSuggestions, totalSuggestions, totalSuggestedDeletes } = useMemo(() => {
       let recordsWithSuggestions = 0;
       let totalSuggestions = 0;
+      let totalSuggestedDeletes = 0;
       if(data?.records) {
         for(const record of data.records) {
-            const columnsWithSuggestions = Object.keys(record.__suggested_values ?? {}).filter((key) => !key.startsWith('__') && key !== 'id');
+            const columnsWithSuggestions = Object.keys(record.__suggested_values ?? {}).filter((key) => key === SNAPSHOT_RECORD_DELETED_FIELD || (!key.startsWith('__') && key !== 'id'));
           if(columnsWithSuggestions.length > 0) {
             recordsWithSuggestions++;
             totalSuggestions += columnsWithSuggestions.length;
           }
+          if(record.__suggested_values?.[SNAPSHOT_RECORD_DELETED_FIELD]) {
+            totalSuggestedDeletes++;
+          }
         }
       }
-  
+      
       return {
         recordsWithSuggestions,
         totalSuggestions,
+        totalSuggestedDeletes,
       };
       
     }, [data]);
@@ -210,7 +217,7 @@ export interface UseSnapshotRecordsReturn {
   
     const acceptAllSuggestions = useCallback(async () => {
       if (!tableId || !snapshotId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
-      const result = await snapshotApi.acceptAllSuggestions(snapshotId, tableId, viewId);
+    const result = await snapshotApi.acceptAllSuggestions(snapshotId, tableId, viewId);
       return result;
     }, [tableId, snapshotId, viewId]);
   
@@ -311,6 +318,7 @@ export interface UseSnapshotRecordsReturn {
       filteredCount: data?.filteredCount || 0,
       recordsWithSuggestions,
       totalSuggestions,
+      totalSuggestedDeletes,
       acceptAllSuggestions,
       rejectAllSuggestions,
       createNewRecord,

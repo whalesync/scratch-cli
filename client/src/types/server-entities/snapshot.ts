@@ -2,7 +2,6 @@ import _ from "lodash";
 import { Service } from "./connector-accounts";
 import { EntityId } from "./table-list";
 
-
 export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
   dateFormat?: 'date' | 'datetime' | 'time';
@@ -108,6 +107,8 @@ export type SnapshotRecord = {
   __suggested_values?: Record<string, unknown>;
   __dirty: boolean;
 };
+
+export const SNAPSHOT_RECORD_DELETED_FIELD = '__deleted';
 
 export type EditedFieldsMetadata = {
   /** Timestamp when the record was created locally. */

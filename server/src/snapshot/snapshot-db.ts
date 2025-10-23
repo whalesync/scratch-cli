@@ -26,6 +26,9 @@ export const METADATA_COLUMN = '__metadata';
 
 export const DIRTY_COLUMN = '__dirty';
 
+// A special field that is used to mark a record as deleted in the EDITED_FIELDS_COLUMN and SUGGESTED_FIELDS_COLUMN
+export const DELETED_FIELD = '__deleted';
+
 const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
 
 export type EditedFieldsMetadata = {
@@ -482,6 +485,11 @@ export class SnapshotDb {
 
         // For each column, copy the suggested value to the actual column with proper casting
         for (const columnId of columnIds) {
+          if (columnId === DELETED_FIELD) {
+            // ignore the deleted field, it is handled separately
+            continue;
+          }
+
           const columnType = columnTypes.get(columnId);
           if (!columnType) {
             WSLogger.warn({
@@ -538,6 +546,10 @@ export class SnapshotDb {
           },
           {} as Record<string, string>,
         );
+
+        if (columnIds.includes(DELETED_FIELD)) {
+          editedFields[DELETED_FIELD] = now;
+        }
 
         updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
           EDITED_FIELDS_COLUMN,

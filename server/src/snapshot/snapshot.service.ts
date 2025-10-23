@@ -29,6 +29,7 @@ import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
+import { DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
@@ -599,6 +600,9 @@ export class SnapshotService {
     // Validate that all columns exist in the table spec
     const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
     for (const item of items) {
+      if (item.columnId === DELETED_FIELD) {
+        continue;
+      }
       const columnSpec = columnMap.get(item.columnId);
       if (!columnSpec) {
         throw new NotFoundException(`Column '${item.columnId}' not found in table`);
@@ -637,6 +641,10 @@ export class SnapshotService {
     // Validate that all columns exist in the table spec
     const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
     for (const item of items) {
+      if (item.columnId === DELETED_FIELD) {
+        // ignore the deleted field, it is handled as a special case
+        continue;
+      }
       const columnSpec = columnMap.get(item.columnId);
       if (!columnSpec) {
         throw new NotFoundException(`Column '${item.columnId}' not found in table`);
@@ -741,13 +749,14 @@ export class SnapshotService {
     const recordsWithSuggestions = records.filter(
       (r) =>
         !r.__edited_fields.__deleted &&
-        Object.keys(r.__suggested_values).filter((k) => !k.startsWith('__') && k !== 'id').length > 0,
+        Object.keys(r.__suggested_values).filter((k) => k === DELETED_FIELD || (!k.startsWith('__') && k !== 'id'))
+          .length > 0,
     );
 
     const allSuggestions = _.flatten(
       recordsWithSuggestions.map((r) => {
         return Object.keys(r.__suggested_values)
-          .filter((k) => !k.startsWith('__') && k !== 'id') // no special fields
+          .filter((k) => k === DELETED_FIELD || (!k.startsWith('__') && k !== 'id')) // no special fields
           .map((k) => {
             return { wsId: r.id.wsId, columnId: k };
           });

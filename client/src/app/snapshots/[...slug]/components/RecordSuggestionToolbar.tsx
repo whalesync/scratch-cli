@@ -4,7 +4,7 @@ import { TextRegularXs } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useMemo, useState } from 'react';
@@ -102,12 +102,20 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
     return null;
   }
 
+  const suggestionContainsDelete = suggestions.some(
+    (suggestion) => suggestion.columnId === SNAPSHOT_RECORD_DELETED_FIELD,
+  );
+
   let suggestionLabel = <></>;
   if (saving) {
     suggestionLabel = (
       <>
         <Loader size="xs" /> <TextRegularXs>Saving...</TextRegularXs>
       </>
+    );
+  } else if (suggestionContainsDelete) {
+    suggestionLabel = (
+      <TextRegularXs style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>{`//`} Pending delete</TextRegularXs>
     );
   } else if (suggestions.length === 1 && columnId) {
     suggestionLabel = (
