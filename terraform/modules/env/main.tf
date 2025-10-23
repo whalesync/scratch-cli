@@ -1,9 +1,4 @@
 locals {
-  ready_to_deploy_iam      = var.bootstrap_deploy_stage >= 1
-  ready_to_deploy_network  = var.bootstrap_deploy_stage >= 2
-  ready_to_deploy_dbs      = var.bootstrap_deploy_stage >= 3
-  ready_to_deploy_services = var.bootstrap_deploy_stage >= 4
-
   artifact_registry_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project_id}/${var.env_name}-registry"
 
   # APIs
@@ -149,6 +144,14 @@ locals {
 
   # CloudProxy
   proxy_instance_name = "cloudsql-proxy"
+
+  # Redis
+  redis_name = "${var.env_name}-redis"
+
+  # CloudSQL
+  db_name     = "${var.env_name}-postgres"
+  db_hostname = module.db_primary.host_ip_address
+
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -166,7 +169,6 @@ resource "google_project_service" "services" {
 ## ---------------------------------------------------------------------------------------------------------------------
 
 resource "google_artifact_registry_repository" "default" {
-  count                  = local.ready_to_deploy_services ? 1 : 0
   repository_id          = "${var.env_name}-registry"
   description            = "Scratchpaper ${var.env_name} registry"
   format                 = "DOCKER"
@@ -175,6 +177,7 @@ resource "google_artifact_registry_repository" "default" {
   docker_config {
     immutable_tags = false
   }
+  depends_on = [google_project_service.services]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -183,13 +186,13 @@ resource "google_artifact_registry_repository" "default" {
 
 resource "google_project_iam_member" "roles" {
   for_each = {
-    for pair in
-    (local.ready_to_deploy_iam ? local.principal_role_pairs : []) :
+    for pair in local.principal_role_pairs :
     "${pair.principal}:${pair.role}" => pair
   }
-  project = var.gcp_project_id
-  role    = each.value.role
-  member  = each.value.principal
+  project    = var.gcp_project_id
+  role       = each.value.role
+  member     = each.value.principal
+  depends_on = [google_project_service.services]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -198,10 +201,9 @@ resource "google_project_iam_member" "roles" {
 
 module "iam-sa" {
   source           = "../../modules/iam_service_accounts"
-  count            = local.ready_to_deploy_iam ? 1 : 0
   gcp_project_id   = var.gcp_project_id
   service_accounts = local.service_accounts
-  depends_on       = [module.gl_oidc]
+  depends_on       = [google_project_service.services, module.gl_oidc]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -209,16 +211,15 @@ module "iam-sa" {
 ## ---------------------------------------------------------------------------------------------------------------------
 module "gl_oidc" {
   source               = "../../modules/gitlab_oidc"
-  count                = local.ready_to_deploy_iam ? 1 : 0
   service_account_name = local.gitlab_service_account_name
   gcp_project_id       = var.gcp_project_id
   gitlab_namespace     = "whalesync"
   gitlab_project_name  = "spinner"
-  depends_on           = [google_project_iam_custom_role.gitlab_tf_service_account_role]
   iam_roles = concat(
     local.terraform_roles,
     ["roles/run.serviceAgent"]
   )
+  depends_on = [google_project_service.services, google_project_iam_custom_role.gitlab_tf_service_account_role]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -227,10 +228,122 @@ module "gl_oidc" {
 
 module "vpc" {
   source                         = "../../modules/vpc"
-  count                          = local.ready_to_deploy_network ? 1 : 0
   gcp_project_id                 = var.gcp_project_id
   network_name                   = local.vpc_network_name
   enable_private_service_connect = true
   custom_subnetworks             = local.custom_subnetworks
   flow_sampling                  = 1.0
+  depends_on                     = [google_project_service.services]
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Cloud NAT
+## ---------------------------------------------------------------------------------------------------------------------
+
+module "cloudnat" {
+  source = "../../modules/cloudnat"
+
+  gcp_project_id   = var.gcp_project_id
+  vpc_network_name = module.vpc.network_name
+  gcp_region       = var.gcp_region
+  depends_on       = [module.vpc]
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## SQL PROXY VM
+## ---------------------------------------------------------------------------------------------------------------------
+module "gce_instance" {
+  source = "../../modules/gce"
+
+  instance_name         = local.proxy_instance_name
+  machine_type          = "n2-standard-2"
+  image                 = "ubuntu-os-cloud/ubuntu-2204-lts"
+  zone                  = var.gcp_zone
+  network               = module.vpc.network
+  subnetwork            = module.vpc.subnets_id[0]
+  enable_iap            = true
+  service_account_email = module.iam-sa.service_accounts["cloudsql-proxy-service-account"].email
+  gcp_project_id        = var.gcp_project_id
+  give_external_ip      = true
+
+  metadata_startup_script = <<-EOT
+    #!/bin/bash
+    # Just make sure the instance is up to date for now
+    apt update -y && apt upgrade -y
+  EOT
+
+  depends_on = [module.vpc, module.iam-sa]
+}
+
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Redis Cache
+## ---------------------------------------------------------------------------------------------------------------------
+module "redis" {
+  source = "../../modules/redis"
+
+  name               = local.redis_name
+  memory_size_gb     = var.redis_memory_size_gb
+  enable_ha          = var.redis_enable_ha
+  private_network_id = module.vpc.network
+  primary_zone       = var.gcp_zone
+  region             = var.gcp_region
+  depends_on         = [module.vpc]
+
+  labels = {
+    # Used to help the connect_to_gcp_* scripts to find the right instance automatically
+    "primary" = "true"
+  }
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Cloud SQL Databases
+## ---------------------------------------------------------------------------------------------------------------------
+
+module "db_primary" {
+  source = "../../modules/cloudsql"
+
+  region             = var.gcp_region
+  primary_zone       = var.gcp_zone
+  name               = local.db_name
+  database_version   = var.db_version
+  tier               = var.db_tier
+  disk_size          = var.db_disk_size
+  private_network_id = module.vpc.network
+  password           = random_password.DB_PASS.result
+
+  maintenance_day   = var.db_maintenance_day
+  maintenance_hour  = var.db_maintenance_hour
+  backup_enabled    = true
+  backup_start_time = var.db_backup_start_time
+  backup_location   = var.gcp_region
+
+  labels = {
+    # Used to help the connect_to_gcp_* scripts to find the right instance automatically
+    "primary" = "true"
+  }
+
+  depends_on = [
+    module.vpc,
+  ]
+}
+
+# TODO: Switch to using ephemeral once google_sql_database_instance supports write-only root_password
+resource "random_password" "DB_PASS" {
+  length = 24
+}
+
+resource "google_secret_manager_secret" "DB_PASS" {
+  secret_id = "DB_PASS"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "DB_PASS" {
+  secret         = google_secret_manager_secret.DB_PASS.id
+  secret_data_wo = random_password.DB_PASS.result
+
+  # NOTE: This must be incremented to write a new version of the secret
+  secret_data_wo_version = 1
 }

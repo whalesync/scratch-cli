@@ -8,11 +8,14 @@ Terraform modules for Scratchpaper's GCP environments
 terraform
 ├── README.md
 ├── envs
-│   ├── staging
 │   ├── test
+│   ├── staging
 │   └── production
 └── modules
-    └── env
+    ├── env
+    ├── gitlab_oidc
+    ├── iam_service_accounts
+    └── vpc
 ```
 
 - **envs:**
@@ -26,6 +29,9 @@ terraform
   Each subdirectory represents a reusable GCP module written in Terraform, which can be used across multiple environments.
 
   - `env`: Wrapper module for defining a full environment.
+  - `iam_service_accounts`: Module for managing Identity and Access Management (IAM) service accounts.
+  - `gitlab_oidc`: Module for managing OIDC auth for Gitlab CI.
+  - `vpc`: Module for setting up the Virtual Private Cloud (VPC) network.
 
 ## Configure for local development
 

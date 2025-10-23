@@ -1,13 +1,18 @@
 module "test" {
   source = "../../modules/env"
 
-  env_name               = "test"
-  gcp_project_id         = "spv1-test"
-  gcp_project_number     = 211553068097
-  gcp_region             = "us-central1"
-  gcp_zone               = "us-central1-c"
-  as_gitlab              = var.as_gitlab
-  bootstrap_deploy_stage = 2
+  env_name           = "test"
+  gcp_project_id     = "spv1-test"
+  gcp_project_number = 211553068097
+  gcp_region         = "us-central1"
+  gcp_zone           = "us-central1-c"
+  as_gitlab          = var.as_gitlab
+
+  # Cloud IDS.
+  enable_intrusion_detection = false
+
+  db_disk_size         = 10
+  db_high_availability = false
 }
 
 variable "as_gitlab" {

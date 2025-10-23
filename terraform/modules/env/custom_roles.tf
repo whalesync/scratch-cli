@@ -9,7 +9,6 @@
 ## ---------------------------------------------------------------------------------------------------------------------
 
 resource "google_project_iam_custom_role" "compute_engine_service_account_role" {
-  count       = local.ready_to_deploy_iam ? 1 : 0
   role_id     = "computeEngineServiceAccountCustomRole"
   title       = "CE Custom Default Service Account Role"
   description = "Custom Role for the Compute Engine default service account"
@@ -22,17 +21,17 @@ resource "google_project_iam_custom_role" "compute_engine_service_account_role" 
     "cloudkms.locations.list",
     "resourcemanager.projects.get",
   ]
+  depends_on = [google_project_service.services]
 }
 
 resource "google_project_iam_member" "compute_engine_service_assign_role" {
-  count   = local.ready_to_deploy_iam ? 1 : 0
-  project = var.gcp_project_id
-  role    = "projects/${var.gcp_project_id}/roles/${google_project_iam_custom_role.compute_engine_service_account_role[0].role_id}"
-  member  = "serviceAccount:${var.gcp_project_number}-compute@developer.gserviceaccount.com"
+  project    = var.gcp_project_id
+  role       = "projects/${var.gcp_project_id}/roles/${google_project_iam_custom_role.compute_engine_service_account_role.role_id}"
+  member     = "serviceAccount:${var.gcp_project_number}-compute@developer.gserviceaccount.com"
+  depends_on = [google_project_service.services]
 }
 
 resource "google_project_iam_custom_role" "cloud_run_service_account_role" {
-  count       = local.ready_to_deploy_iam ? 1 : 0
   role_id     = "cloudRunServiceAccountCustomRole"
   title       = "CR Custom Default Service Account Role"
   description = "Custom Role for the Cloud Run default service account"
@@ -524,19 +523,18 @@ resource "google_project_iam_custom_role" "cloud_run_service_account_role" {
     "storage.objects.setRetention",
     "storage.objects.update",
   ]
+  depends_on = [google_project_service.services]
 }
 
 resource "google_project_iam_member" "cloud_run_service_assign_role" {
-  count      = local.ready_to_deploy_iam ? 1 : 0
   project    = var.gcp_project_id
-  role       = "projects/${var.gcp_project_id}/roles/${google_project_iam_custom_role.cloud_run_service_account_role[0].role_id}"
+  role       = "projects/${var.gcp_project_id}/roles/${google_project_iam_custom_role.cloud_run_service_account_role.role_id}"
   member     = "serviceAccount:cloudrun-service-account@${var.gcp_project_id}.iam.gserviceaccount.com"
   depends_on = [module.iam-sa]
 }
 
 # Additional permissions for the GitLab service account that don't fit into one of GCP's pre-defined roles
 resource "google_project_iam_custom_role" "gitlab_tf_service_account_role" {
-  count       = local.ready_to_deploy_iam ? 1 : 0
   role_id     = local.gitlab_custom_role_name
   title       = "GitLab Terraform Custom Service Account Role"
   description = "Custom role for the GitLab service account to run terraform"
@@ -637,4 +635,5 @@ resource "google_project_iam_custom_role" "gitlab_tf_service_account_role" {
     "run.services.deleteTagBinding",
     "run.services.setIamPolicy",
   ]
+  depends_on = [google_project_service.services]
 }
