@@ -23,6 +23,7 @@ import pluralize from 'pluralize';
 import React, { useRef, useState } from 'react';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
+import { useTableContext } from './contexts/table-context';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
 enum Modals {
@@ -37,7 +38,8 @@ enum Modals {
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
-  const { connectorAccount } = useConnectorAccount(snapshot?.connectorAccountId ?? undefined);
+  const { activeTable } = useTableContext();
+  const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
   const { isAdmin } = useScratchPadUser();
   const modalStack = useModalsStack(Object.values(Modals));
@@ -401,7 +403,7 @@ export const SnapshotActionsMenu = () => {
           onClose={() => setShowPublishConfirmation(false)}
           onConfirm={handleConfirmPublish}
           snapshotId={snapshot?.id ?? ''}
-          serviceName={serviceName(snapshot.connectorService)}
+          serviceName={activeTable?.connectorService ? serviceName(activeTable.connectorService) : undefined}
           isPublishing={saving}
         />
       )}

@@ -14,6 +14,7 @@ export enum IdPrefixes {
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
   SNAPSHOT = 'sna_',
+  SNAPSHOT_TABLE = 'snt_',
   SNAPSHOT_RECORD = 'sre_',
   CUSTOM_CONNECTOR = 'cuc_',
   SNAPSHOT_TABLE_VIEW = 'stv_',
@@ -102,6 +103,17 @@ export function isSnapshotId(id: unknown): id is SnapshotId {
 
 export function createSnapshotId(): SnapshotId {
   return createId(IdPrefixes.SNAPSHOT) as SnapshotId;
+}
+
+// ------- SnapshotTable -------
+export type SnapshotTableId = PrefixedId<IdPrefixes.SNAPSHOT_TABLE>;
+
+export function isSnapshotTableId(id: unknown): id is SnapshotTableId {
+  return isId(id, IdPrefixes.SNAPSHOT_TABLE);
+}
+
+export function createSnapshotTableId(): SnapshotTableId {
+  return createId(IdPrefixes.SNAPSHOT_TABLE) as SnapshotTableId;
 }
 
 // ------- SnapshotRecord -------

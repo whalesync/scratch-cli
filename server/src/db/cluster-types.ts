@@ -13,6 +13,21 @@ export namespace SnapshotCluster {
   export type Snapshot = Prisma.SnapshotGetPayload<typeof _validator>;
 
   export const _validator = Prisma.validator<Prisma.SnapshotDefaultArgs>()({
+    include: {
+      connectorAccount: true,
+      snapshotTables: {
+        include: {
+          connectorAccount: true,
+        },
+      },
+    },
+  });
+}
+
+export namespace SnapshotTableCluster {
+  export type SnapshotTable = Prisma.SnapshotTableGetPayload<typeof _validator>;
+
+  export const _validator = Prisma.validator<Prisma.SnapshotTableDefaultArgs>()({
     include: { connectorAccount: true },
   });
 }

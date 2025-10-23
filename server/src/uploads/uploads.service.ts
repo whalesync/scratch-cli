@@ -13,7 +13,13 @@ import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-s
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotTableContext } from 'src/snapshot/types';
-import { createCsvFileRecordId, createSnapshotId, createUploadId, SnapshotId } from 'src/types/ids';
+import {
+  createCsvFileRecordId,
+  createSnapshotId,
+  createSnapshotTableId,
+  createUploadId,
+  SnapshotId,
+} from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { Readable, Transform } from 'stream';
 import { DbService } from '../db/db.service';
@@ -848,6 +854,22 @@ export class UploadsService {
               readOnlyColumns: [],
             },
           ] satisfies SnapshotTableContext[],
+          snapshotTables: {
+            create: [
+              {
+                id: createSnapshotTableId(),
+                connectorAccountId: null,
+                tableSpec: tableSpecs[0] as any,
+                tableContext: {
+                  id: { wsId: tableId, remoteId: [uploadId] },
+                  activeViewId: null,
+                  ignoredColumns: [],
+                  readOnlyColumns: [],
+                } as any,
+                columnContexts: {},
+              },
+            ],
+          },
         },
       });
 

@@ -1,7 +1,7 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { RecordOperation } from '@/types/server-entities/records';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../../hooks/use-snapshot-params';
@@ -21,8 +21,8 @@ export interface PendingUpdate {
 // type DisplayMode = 'spreadsheet' | 'record' | 'new-spreadsheet';
 
 interface TableContextValue {
-  activeTable: TableSpec | undefined;
-  setActiveTable: (table: TableSpec | undefined) => void;
+  activeTable: SnapshotTable | undefined;
+  setActiveTable: (table: SnapshotTable | undefined) => void;
   // displayMode: DisplayMode;
   // switchToRecordView: (recordId: string, columnId?: string) => Promise<void>;
   // switchToSpreadsheetView: () => Promise<void>;
@@ -48,7 +48,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   const { snapshotId, recordId: recordIdParam, columnId: columnIdParam } = useSnapshotParams();
   const { viewDataAsAgent, currentViewId } = useSnapshotContext();
   /** State */
-  const [activeTable, setActiveTable] = useState<TableSpec | undefined>(undefined);
+  const [activeTable, setActiveTable] = useState<SnapshotTable | undefined>(undefined);
   // const [displayMode, setDisplayMode] = useState<DisplayMode>(recordIdParam ? 'record' : 'spreadsheet');
   const [activeRecord, setActiveRecord] = useState<ActiveRecord | null>(
     recordIdParam
@@ -63,7 +63,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
 
   const { bulkUpdateRecords } = useSnapshotTableRecords({
     snapshotId: snapshotId,
-    tableId: activeTable?.id.wsId ?? '',
+    tableId: activeTable?.tableSpec.id.wsId ?? '',
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
@@ -97,7 +97,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
       return;
     }
 
-    console.debug('savePendingUpdates for table', activeTable?.id.wsId, pendingChanges);
+    console.debug('savePendingUpdates for table', activeTable?.tableSpec.id.wsId, pendingChanges);
 
     // TODO: collapse updates to the same record into a single operation
     const ops: RecordOperation[] = pendingChanges.map((update) => ({
@@ -120,7 +120,7 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     } finally {
       setSavingPendingChanges(false);
     }
-  }, [pendingChanges, bulkUpdateRecords, activeTable?.id.wsId]);
+  }, [pendingChanges, bulkUpdateRecords, activeTable?.tableSpec.id.wsId]);
 
   useEffect(() => {
     const interval = setInterval(() => {

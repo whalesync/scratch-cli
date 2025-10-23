@@ -11,7 +11,7 @@ import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
-import { createSnapshotId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
@@ -85,9 +85,24 @@ export class SnapshotService {
     }
 
     // Create the entity in the DB.
+    const snapshotId = createSnapshotId();
+
+    WSLogger.info({
+      source: 'SnapshotService.create',
+      message: 'Creating snapshot with tables',
+      tableCount: tableSpecs.length,
+    });
+
+    const snapshotTables = tableSpecs.map((tableSpec, index) => ({
+      id: createSnapshotTableId(),
+      connectorAccountId,
+      tableSpec: tableSpec,
+      tableContext: tableContexts[index],
+      columnContexts: {},
+    }));
     const newSnapshot = await this.db.client.snapshot.create({
       data: {
-        id: createSnapshotId(),
+        id: snapshotId,
         userId,
         connectorAccountId,
         name: createSnapshotDto.name,
@@ -95,8 +110,18 @@ export class SnapshotService {
         tableSpecs, // Cast to any for Prisma JSON storage
         tableContexts,
         columnContexts: [],
+        snapshotTables: {
+          create: snapshotTables,
+        },
       },
       include: SnapshotCluster._validator.include,
+    });
+
+    WSLogger.info({
+      source: 'SnapshotService.create',
+      message: 'Snapshot created',
+      snapshotId: newSnapshot.id,
+      snapshotTablesCount: newSnapshot.snapshotTables?.length || 0,
     });
 
     // Make a new schema and create tables to store its data.
@@ -1438,6 +1463,22 @@ export class SnapshotService {
               readOnlyColumns: [],
             },
           ] satisfies SnapshotTableContext[],
+          snapshotTables: {
+            create: [
+              {
+                id: createSnapshotTableId(),
+                connectorAccountId: null,
+                tableSpec: tableSpecs[0],
+                tableContext: {
+                  id: { wsId: tableId, remoteId: ['-'] },
+                  activeViewId: null,
+                  ignoredColumns: [],
+                  readOnlyColumns: [],
+                },
+                columnContexts: {},
+              },
+            ],
+          },
         },
       });
 

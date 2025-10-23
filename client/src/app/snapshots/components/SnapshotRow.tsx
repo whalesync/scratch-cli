@@ -4,16 +4,14 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useSnapshots } from '@/hooks/use-snapshot';
-import { getServiceName, tableName, tablesName } from '@/service-naming-conventions';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate, timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Download, Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import pluralize from 'pluralize';
 import { useState } from 'react';
-import { ConnectorIcon } from '../../components/ConnectorIcon';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
@@ -98,20 +96,9 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
           <TextTitleSm>{snapshot.name}</TextTitleSm>
         </Table.Td>
         <Table.Td>
-          <Group gap="sm" wrap="nowrap">
-            <ConnectorIcon size={20} connector={snapshot.connectorService || null} />
-            <Text fz="sm">{getServiceName(snapshot.connectorService as Service)}</Text>
-          </Group>
-        </Table.Td>
-        <Table.Td>
-          <Stack gap="xs">
-            <Text fz="sm" c="dimmed">
-              {snapshot.tables.length}{' '}
-              {snapshot.tables.length === 1
-                ? tableName(snapshot.connectorService as Service)
-                : tablesName(snapshot.connectorService as Service)}
-            </Text>
-          </Stack>
+          <Text fz="sm" c="dimmed">
+            {snapshot.tables.length} {pluralize('table', snapshot.tables.length)}
+          </Text>
         </Table.Td>
         <Table.Td>
           <Group gap="xs">

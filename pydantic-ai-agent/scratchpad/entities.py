@@ -34,6 +34,11 @@ class TableContext:
     readOnlyColumns: List[str]
 
 
+@dataclass
+class SnapshotColumnSettings:
+    dataConverter: Optional[str] = None
+
+
 # Type aliases for metadata fields
 SuggestedFields = Dict[str, str]
 EditedFieldsMetadata = Dict[
@@ -57,6 +62,21 @@ class SnapshotRecord:
 
 
 @dataclass
+class SnapshotTable:
+    id: str
+    createdAt: str
+    updatedAt: str
+    snapshotId: str
+    connectorAccountId: Optional[str]
+    connectorDisplayName: Optional[str]
+    connectorService: Optional[str]
+    tableSpec: TableSpec
+    tableContext: Optional[TableContext]
+    columnContexts: Dict[str, SnapshotColumnSettings]
+    activeRecordSqlFilter: Optional[str] = None
+
+
+@dataclass
 class ScratchpadSnapshot:
     id: str
     name: Optional[str]
@@ -69,6 +89,7 @@ class ScratchpadSnapshot:
     tableContexts: List[TableContext]
     columnContexts: Any
     activeRecordSqlFilter: Optional[Dict[str, str]] = None
+    snapshotTables: Optional[List[SnapshotTable]] = None
 
 
 @dataclass

@@ -1,5 +1,6 @@
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { useTableContext } from '@/app/snapshots/[...slug]/components/contexts/table-context';
 import {
   ACCEPT_REJECT_GROUP_NAME,
   FILTERING_GROUP_NAME,
@@ -54,6 +55,7 @@ export const useContextMenuItems = (
 ) => {
   const { readFocus, writeFocus, addReadFocus, addWriteFocus, removeReadFocus, removeWriteFocus } =
     useAgentChatContext();
+  const { activeTable } = useTableContext();
 
   const clipboard = useClipboard({ timeout: 500 });
 
@@ -441,7 +443,7 @@ export const useContextMenuItems = (
     });
 
     // Deep fetch menu item for YouTube services
-    if (snapshot.connectorService === Service.YOUTUBE && selectedRowCount > 0) {
+    if (activeTable?.connectorService === Service.YOUTUBE && selectedRowCount > 0) {
       items.push({
         label: selectedRowCount === 1 ? 'Deep fetch record' : `Deep fetch ${selectedRowCount} records`,
         disabled: false,
@@ -545,7 +547,7 @@ export const useContextMenuItems = (
     addWriteFocus,
     removeWriteFocus,
     snapshot.id,
-    snapshot.connectorService,
+    activeTable,
     refreshRecords,
     handleAcceptRecords,
     handleRejectRecords,

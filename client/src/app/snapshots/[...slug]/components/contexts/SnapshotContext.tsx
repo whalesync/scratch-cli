@@ -133,7 +133,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     async (updateDto: UpdateSnapshotDto): Promise<void> => {
       if (!snapshot) return;
       await snapshotApi.update(snapshot.id, updateDto);
-      mutate(SWR_KEYS.snapshot.list(snapshot?.connectorAccountId ?? 'all'));
+      mutate(SWR_KEYS.snapshot.list('all'));
       mutate(SWR_KEYS.snapshot.detail(snapshot.id));
     },
     [snapshot, mutate],

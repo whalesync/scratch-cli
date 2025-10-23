@@ -47,11 +47,10 @@ export const SnapshotsList = () => {
           <Table highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Td w="35%">Name</Table.Td>
-                <Table.Td w="20%">Connector</Table.Td>
-                <Table.Td w="15%">Objects</Table.Td>
-                <Table.Td w="20%">Created</Table.Td>
-                <Table.Td w="10%" align="right">
+                <Table.Td w="40%">Name</Table.Td>
+                <Table.Td w="20%">Tables</Table.Td>
+                <Table.Td w="25%">Created</Table.Td>
+                <Table.Td w="15%" align="right">
                   Actions
                 </Table.Td>
               </Table.Tr>

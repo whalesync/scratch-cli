@@ -10,7 +10,6 @@ import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
 import { PrimaryButton } from '@/app/components/base/buttons';
 import { TextTitleXs } from '@/app/components/base/text';
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import JsonTreeViewer from '@/app/components/JsonTreeViewer';
@@ -21,10 +20,9 @@ import { NavbarToggleButton } from '@/app/components/NavbarToggleButton';
 import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
-import { tablesName } from '@/service-naming-conventions';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { RouteUrls } from '@/utils/route-urls';
+import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import '@glideapps/glide-data-grid/dist/index.css';
 import { useEffect, useState } from 'react';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
@@ -61,14 +59,15 @@ function SnapshotPageContent() {
 
   useEffect(() => {
     if (!activeTable) {
+      const snapshotTables = getSnapshotTables(snapshot);
       if (tableId) {
-        const table = snapshot?.tables.find((t) => t.id.wsId === tableId);
+        const table = snapshotTables.find((t) => t.tableSpec.id.wsId === tableId);
         if (table) {
           setActiveTable(table);
           setSelectedTableContext(snapshot?.tableContexts.find((t) => t.id.wsId === tableId) ?? null);
         }
       } else {
-        setActiveTable(snapshot?.tables[0] ?? undefined);
+        setActiveTable(snapshotTables[0] ?? undefined);
         setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
       }
     }
@@ -110,8 +109,8 @@ function SnapshotPageContent() {
   if (snapshot.tables.length === 0) {
     return (
       <ErrorInfo
-        title={`No ${tablesName(snapshot.connectorService as Service)} found in ${snapshot.name}`}
-        error={`There are no ${tablesName(snapshot.connectorService as Service)} in this scratchpaper. You will need to abandon the scratchpaper and recreate it.`}
+        title={`No tables found in ${snapshot.name}`}
+        error={`There are no tables in this scratchpaper. You will need to abandon the scratchpaper and recreate it.`}
         action={
           <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
             Return to scratchpapers
@@ -124,7 +123,11 @@ function SnapshotPageContent() {
   const debugModals = (
     <>
       {activeTable && (
-        <Modal {...modalStack.register('tableSpecDebug')} title={`TableSpec for ${activeTable?.name}`} size="lg">
+        <Modal
+          {...modalStack.register('tableSpecDebug')}
+          title={`TableSpec for ${activeTable?.tableSpec.name}`}
+          size="lg"
+        >
           <ScrollArea h={500}>
             <JsonTreeViewer jsonData={activeTable} expandAll={true} />
           </ScrollArea>
@@ -133,7 +136,7 @@ function SnapshotPageContent() {
       {activeTable && (
         <Modal
           {...modalStack.register('tableContextDebug')}
-          title={`Table Context settings for ${activeTable?.name}`}
+          title={`Table Context settings for ${activeTable?.tableSpec.name}`}
           size="lg"
         >
           <ScrollArea h={500}>
@@ -149,7 +152,6 @@ function SnapshotPageContent() {
       <Group>
         <NavbarToggleButton />
         <Group gap="xs">
-          <ConnectorIcon connector={snapshot.connectorService} size={24} />
           <TextTitleXs>{snapshot.name}</TextTitleXs>
         </Group>
         {/* <Group gap="2px">
@@ -202,8 +204,8 @@ function SnapshotPageContent() {
   let content = null;
   let contentFooter = null;
   if (snapshot && activeTable) {
-    content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
-    contentFooter = <RecordDataToolbar table={activeTable} />;
+    content = <SnapshotGrid snapshot={snapshot} table={activeTable.tableSpec} />;
+    contentFooter = <RecordDataToolbar table={activeTable.tableSpec} />;
   }
 
   return (

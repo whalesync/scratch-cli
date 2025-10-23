@@ -150,6 +150,6 @@ function snapshotProperties(snapshot: Snapshot | undefined | null): Record<strin
   return {
     snapshotId: snapshot.id,
     snapshotName: snapshot.name,
-    connector: snapshot.connectorService,
+    connector: snapshot.snapshotTables?.[0]?.connectorService,
   };
 }

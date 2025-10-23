@@ -24,7 +24,7 @@ import {
 } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Capability } from '@/types/server-entities/chat-session';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Tooltip } from '@mantine/core';
@@ -52,7 +52,7 @@ import { ResourceSelector } from './ResourceSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 
 interface AIChatPanelProps {
-  activeTable: TableSpec | null;
+  activeTable: SnapshotTable | null;
 }
 const availableCapabilities = [
   {
@@ -321,7 +321,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       }
 
       if (activeTable) {
-        messageData.active_table_id = activeTable.id.wsId;
+        messageData.active_table_id = activeTable.tableSpec.id.wsId;
       }
 
       if (dataScope) {
@@ -535,12 +535,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             snapshot={snapshot}
             resetInputFocus={() => textInputRef.current?.focus()}
           />
-          <ContextBadges activeTable={activeTable} currentView={currentView} />
+          <ContextBadges activeTable={activeTable?.tableSpec ?? null} currentView={currentView} />
         </Stack>
         {/* User Input for Chat */}
         <AdvancedAgentInput
           snapshotId={snapshot?.id || ''}
-          tableId={activeTable?.id.wsId || ''}
+          tableId={activeTable?.tableSpec.id.wsId || ''}
           snapshot={snapshot}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}
@@ -648,7 +648,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         onClose={() => setShowPublishConfirmation(false)}
         onConfirm={handleConfirmPublish}
         snapshotId={snapshot?.id ?? ''}
-        serviceName={snapshot?.connectorService}
+        serviceName={activeTable?.connectorService ?? undefined}
         isPublishing={false}
       />
     </SideBarContent>

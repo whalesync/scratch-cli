@@ -30,6 +30,24 @@ export type SnapshotTableContext = {
   readOnlyColumns: string[];
 };
 
+export type SnapshotColumnSettings = {
+  dataConverter: string | null;
+};
+
+export interface SnapshotTable {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  snapshotId: string;
+  connectorAccountId: string | null;
+  connectorDisplayName: string | null;
+  connectorService: string | null;
+  tableSpec: TableSpec;
+  tableContext: SnapshotTableContext | null;
+  columnContexts: Record<string, SnapshotColumnSettings>;
+  activeRecordSqlFilter: string | null;
+}
+
 export interface Snapshot {
   id: string;
   name: string | null;
@@ -38,6 +56,7 @@ export interface Snapshot {
   connectorAccountId: string;
   tables: TableSpec[];
   tableContexts: SnapshotTableContext[];
+  snapshotTables?: SnapshotTable[];
 }
 
 export interface CreateSnapshotDto {

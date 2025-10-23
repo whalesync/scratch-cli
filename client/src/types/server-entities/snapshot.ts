@@ -57,6 +57,20 @@ export type SnapshotColumnContexts = {
   [tableId: string]: Record<string, SnapshotColumnSettings>;
 };
 
+export interface SnapshotTable {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  snapshotId: string;
+  connectorAccountId: string | null;
+  connectorDisplayName: string | null;
+  connectorService: Service | null;
+  tableSpec: TableSpec;
+  tableContext: SnapshotTableContext | null;
+  columnContexts: Record<string, SnapshotColumnSettings>;
+  activeRecordSqlFilter: string | null;
+}
+
 export interface Snapshot {
   id: string;
   name: string | null;
@@ -66,11 +80,16 @@ export interface Snapshot {
   tableContexts: SnapshotTableContext[];
   columnContexts: SnapshotColumnContexts;
   activeRecordSqlFilter?: Record<string, string>;
+  snapshotTables?: SnapshotTable[];
 
   userId: string;
-  connectorAccountId: string | null;
-  connectorDisplayName: string | null;
-  connectorService: Service;
+
+  /** @deprecated Use snapshotTables[].connectorAccountId instead - kept for backward compatibility during migration */
+  connectorAccountId?: string | null;
+  /** @deprecated Use snapshotTables[].connectorDisplayName instead - kept for backward compatibility during migration */
+  connectorDisplayName?: string | null;
+  /** @deprecated Use snapshotTables[].connectorService instead - kept for backward compatibility during migration */
+  connectorService?: Service;
 }
 
 export interface CreateSnapshotDto {
