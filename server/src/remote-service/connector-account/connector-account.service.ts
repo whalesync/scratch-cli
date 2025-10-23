@@ -57,9 +57,12 @@ export class ConnectorAccountService {
   }
 
   async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
-    const credentials: DecryptedCredentials = {
-      ...createDto.userProvidedParams,
-    };
+    const { credentials: parsedCredentials, extras } = await this.parseUserProvidedParams(
+      createDto.userProvidedParams || {},
+      createDto.service,
+    );
+
+    const credentials: DecryptedCredentials = parsedCredentials;
 
     const encryptedCredentials = await this.encryptCredentials(credentials as unknown as DecryptedCredentials);
 
@@ -72,6 +75,7 @@ export class ConnectorAccountService {
         authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
         modifier: createDto.modifier,
+        extras,
       },
     });
 
@@ -204,6 +208,26 @@ export class ConnectorAccountService {
       return connector.listTables();
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
+    }
+  }
+
+  async parseUserProvidedParams(
+    userProvidedParams: Record<string, string>,
+    service: Service,
+  ): Promise<{ credentials: Record<string, string>; extras: Record<string, string> }> {
+    const authParser = this.connectorsService.getAuthParser({
+      service,
+    });
+    if (!authParser) {
+      return { credentials: userProvidedParams, extras: {} };
+    }
+    try {
+      const result = await authParser.parseUserProvidedParams({ userProvidedParams });
+      return { ...result };
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Failed to parse user provided parameters', {
+        cause: error as Error,
+      });
     }
   }
 

@@ -4,12 +4,13 @@ import { DbService } from '../../db/db.service';
 import { OAuthService } from '../../oauth/oauth.service';
 import { UploadsDbService } from '../../uploads/uploads-db.service';
 import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
-import { Connector } from './connector';
+import { AuthParser, Connector } from './connector';
 import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
 import { WordPressConnector } from './library/wordpress/wordpress-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
 
@@ -20,6 +21,17 @@ export class ConnectorsService {
     private readonly oauthService: OAuthService,
     private readonly uploadsDbService: UploadsDbService,
   ) {}
+
+  getAuthParser(params: { service: Service }): AuthParser<Service> | undefined {
+    const { service } = params;
+
+    switch (service) {
+      case Service.WORDPRESS:
+        return new WordPressAuthParser();
+      default:
+        return undefined;
+    }
+  }
 
   async getConnector(params: {
     service: Service;

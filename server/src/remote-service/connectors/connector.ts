@@ -12,6 +12,24 @@ import {
 } from './types';
 
 /**
+ * Defines a utility that parses the user provided parameters for a given service into a set of credentials and extras.
+ * This is usefule for services that need pre parsing of the user provided parameters for a better user experience.
+ * For example: WordPress requires an endpoint and users most of the time will not have the exact one we need so we do a couple transformations to get the correct one.
+ */
+export abstract class AuthParser<T extends Service> {
+  abstract readonly service: T;
+
+  /**
+   * Parse the authentication credentials (apiKey, username, password, endpoint, etc.) for the service.
+   * @param userProvidedParams The user provided parameters to parse.
+   * @returns The parsed user provided parameters into a set of credentials and extras.
+   */
+  abstract parseUserProvidedParams(params: {
+    userProvidedParams: Record<string, string | undefined>;
+  }): Promise<{ credentials: Record<string, string>; extras: Record<string, string> }>;
+}
+
+/**
  * Defines a utility that abstracts the interaction with a data source.
  */
 export abstract class Connector<T extends Service, TConnectorProgress extends JsonSafeObject = JsonSafeObject> {
