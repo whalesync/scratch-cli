@@ -14,8 +14,15 @@ interface SnapshotEventContextValue {
     tables: string[];
   };
   sendPing: () => void;
-  messageLog: string[];
+  messageLog: MessageLogItem[];
 }
+
+export type MessageLogItem = {
+  message: string;
+  timestamp: Date;
+};
+
+const MESSAGE_LOG_MAX_LENGTH = 30;
 
 interface SnapshotEventProviderProps {
   children: ReactNode;
@@ -41,10 +48,12 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
     snapshot: false,
     tables: [],
   });
-  const [messageLog, setMessageLog] = useState<string[]>([]);
+  const [messageLog, setMessageLog] = useState<MessageLogItem[]>([]);
 
   const addToMessageLog = (message: string) => {
-    setMessageLog((prev: string[]) => [message, ...prev].slice(0, 30));
+    setMessageLog((prev: MessageLogItem[]) =>
+      [{ message, timestamp: new Date() }, ...prev].slice(0, MESSAGE_LOG_MAX_LENGTH),
+    );
   };
 
   // Handle snapshot events (snapshot-updated, filter-changed)
@@ -53,7 +62,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
       console.debug('Snapshot event received:', event);
 
       if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
-        console.debug('Invalidating snapshot detail cache');
+        addToMessageLog('Mutate snapshot SWR keys');
         // Invalidate snapshot detail cache
         globalMutate(SWR_KEYS.snapshot.detail(snapshotId));
         globalMutate(SWR_KEYS.snapshot.list('all'));
@@ -74,6 +83,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
       console.debug('Record event received:', event);
 
       if (event.type === 'record-changes' && event.data.tableId) {
+        addToMessageLog('Mutate record SWR keys');
         globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {
           revalidate: true,
         });

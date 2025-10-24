@@ -6,16 +6,18 @@ import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { KeyboardShortcutHelpModal } from '@/app/components/KeyboardShortcutHelpModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
-import { HelpCircleIcon } from 'lucide-react';
+import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
+import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
 interface RecordDataToolbarProps {
   table: TableSpec;
@@ -24,8 +26,12 @@ interface RecordDataToolbarProps {
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
   const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
+  const { isDevToolsEnabled } = useDevTools();
   const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
-
+  const [
+    snapshotEventDebugDialogOpen,
+    { toggle: toggleSnapshotEventDebugDialog, close: closeSnapshotEventDebugDialog },
+  ] = useDisclosure(false);
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'h') {
@@ -114,6 +120,14 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
               )}
             </>
           )}
+          {isDevToolsEnabled && (
+            <ToolIconButton
+              icon={BugIcon}
+              onClick={toggleSnapshotEventDebugDialog}
+              size="md"
+              tooltip="Dev Tool: Toggle snapshot event log"
+            />
+          )}
           <ToolIconButton icon={HelpCircleIcon} onClick={openHelpOverlay} size="md" />
         </Group>
       </Group>
@@ -148,6 +162,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
           </Group>
         </Box>
       </Modal>
+      <SnapshotEventDebugDialog opened={snapshotEventDebugDialogOpen} onClose={closeSnapshotEventDebugDialog} />
       <KeyboardShortcutHelpModal opened={helpOverlayOpen} onClose={closeHelpOverlay} />
     </>
   );
