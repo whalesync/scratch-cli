@@ -172,6 +172,38 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Get('admin/old-style-snapshots')
+  async listOldStyleSnapshots(@Req() req: RequestWithUser): Promise<
+    Array<{
+      id: string;
+      name: string | null;
+      service: string;
+      userId: string;
+      createdAt: Date;
+      updatedAt: Date;
+      tableSpecsCount: number;
+      snapshotTablesCount: number;
+    }>
+  > {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can list old-style snapshots');
+    }
+    return this.service.listOldStyleSnapshots();
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post('admin/fix-snapshot/:id')
+  async fixSnapshot(
+    @Param('id') id: SnapshotId,
+    @Req() req: RequestWithUser,
+  ): Promise<{ success: boolean; tablesCreated: number }> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can fix snapshots');
+    }
+    return this.service.migrateSnapshot(id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Get(':id/tables/:tableId/records')
   async listRecords(
     @Param('id') snapshotId: SnapshotId,

@@ -2058,6 +2058,143 @@ export class SnapshotService {
     });
   }
 
+  async listOldStyleSnapshots(): Promise<
+    Array<{
+      id: string;
+      name: string | null;
+      service: string;
+      userId: string;
+      createdAt: Date;
+      updatedAt: Date;
+      tableSpecsCount: number;
+      snapshotTablesCount: number;
+    }>
+  > {
+    WSLogger.info({
+      source: 'SnapshotService.listOldStyleSnapshots',
+      message: 'Listing all old-style snapshots',
+    });
+
+    // Find all snapshots with tableSpecs but no SnapshotTable records
+    const snapshots = await this.db.client.snapshot.findMany({
+      where: {
+        snapshotTables: {
+          none: {}, // No related SnapshotTable records
+        },
+        NOT: {
+          tableSpecs: {
+            equals: [], // Exclude snapshots with empty tableSpecs array
+          },
+        },
+      },
+      include: {
+        snapshotTables: true,
+      },
+    });
+
+    const oldStyleSnapshots = snapshots.map((snapshot) => {
+      const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
+      return {
+        id: snapshot.id,
+        name: snapshot.name,
+        service: snapshot.service,
+        userId: snapshot.userId,
+        createdAt: snapshot.createdAt,
+        updatedAt: snapshot.updatedAt,
+        tableSpecsCount: tableSpecs.length,
+        snapshotTablesCount: snapshot.snapshotTables.length,
+      };
+    });
+
+    WSLogger.info({
+      source: 'SnapshotService.listOldStyleSnapshots',
+      message: 'Found old-style snapshots',
+      count: oldStyleSnapshots.length,
+    });
+
+    return oldStyleSnapshots;
+  }
+
+  async migrateSnapshot(snapshotId: SnapshotId): Promise<{ success: boolean; tablesCreated: number }> {
+    WSLogger.info({
+      source: 'SnapshotService.migrateSnapshot',
+      message: 'Starting snapshot migration',
+      snapshotId,
+    });
+
+    const snapshot = await this.db.client.snapshot.findUnique({
+      where: { id: snapshotId },
+      include: {
+        snapshotTables: true,
+      },
+    });
+
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // Check if already migrated
+    if (snapshot.snapshotTables.length > 0) {
+      WSLogger.info({
+        source: 'SnapshotService.migrateSnapshot',
+        message: 'Snapshot already has SnapshotTable records',
+        snapshotId,
+      });
+      return { success: false, tablesCreated: 0 };
+    }
+
+    // Check if snapshot has old-style data
+    const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
+    if (!tableSpecs || tableSpecs.length === 0) {
+      WSLogger.info({
+        source: 'SnapshotService.migrateSnapshot',
+        message: 'Snapshot has no tableSpecs to migrate',
+        snapshotId,
+      });
+      return { success: false, tablesCreated: 0 };
+    }
+
+    const tableContexts = (snapshot.tableContexts as unknown as SnapshotTableContext[]) || [];
+    const columnContexts = (snapshot.columnContexts as unknown as SnapshotColumnContexts) || {};
+    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as unknown as ActiveRecordSqlFilter) || {};
+
+    // Create SnapshotTable records
+    const snapshotTablesToCreate = tableSpecs.map((tableSpec, index) => {
+      const tableId = tableSpec.id.wsId;
+      const tableContext = tableContexts[index] || null;
+      const tableColumnContexts = columnContexts[tableId] || {};
+      const tableSqlFilter = activeRecordSqlFilter[tableId] || null;
+
+      return {
+        id: createSnapshotTableId(),
+        snapshotId: snapshot.id,
+        connectorAccountId: snapshot.connectorAccountId,
+        connectorService: snapshot.service as Service,
+        tableSpec: tableSpec as unknown as Record<string, unknown>,
+        tableContext: tableContext as unknown as Record<string, unknown>,
+        columnContexts: tableColumnContexts as unknown as Record<string, unknown>,
+        activeRecordSqlFilter: tableSqlFilter,
+        hidden: false,
+      };
+    });
+
+    // Create all SnapshotTable records for this snapshot
+    await this.db.client.snapshotTable.createMany({
+      // temp fix
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      data: snapshotTablesToCreate as any,
+    });
+
+    WSLogger.info({
+      source: 'SnapshotService.migrateSnapshot',
+      message: 'Successfully migrated snapshot',
+      snapshotId,
+      tablesCreated: snapshotTablesToCreate.length,
+    });
+
+    return { success: true, tablesCreated: snapshotTablesToCreate.length };
+  }
+
   async migrateUserSnapshots(userId: string): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
     WSLogger.info({
       source: 'SnapshotService.migrateUserSnapshots',
