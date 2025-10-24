@@ -1,0 +1,33 @@
+/* Light theme scope */
+.lightTheme {
+  --mantine-color-body: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  --mantine-color-text: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  color-scheme: light;
+}
+
+/* Dark theme scope */
+.darkTheme {
+  --mantine-color-body: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  --mantine-color-text: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  color-scheme: dark;
+}
+
+/* Force light colors */
+.lightTheme {
+  --mantine-color-body: #fff;
+  --mantine-color-text: #000;
+  --mantine-color-default: #fff;
+  --mantine-color-default-hover: #f8f9fa;
+  --mantine-color-default-color: #000;
+  --mantine-color-default-border: #dee2e6;
+}
+
+/* Force dark colors */
+.darkTheme {
+  --mantine-color-body: #1a1b1e;
+  --mantine-color-text: #c1c2c5;
+  --mantine-color-default: #25262b;
+  --mantine-color-default-hover: #2c2e33;
+  --mantine-color-default-color: #c1c2c5;
+  --mantine-color-default-border: #373a40;
+}

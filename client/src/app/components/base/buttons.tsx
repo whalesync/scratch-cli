@@ -6,7 +6,7 @@ export const InlineButton = Button.withProps({
   w: 'min-content',
   size: 'compact-sm',
   variant: 'subtle',
-  c: 'gray.10',
+  c: 'gray.9',
 });
 
 /**
