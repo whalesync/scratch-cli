@@ -27,6 +27,7 @@ export function normalizeSnapshot(snapshot: Snapshot | undefined | null): Snapsh
       tableContext: snapshot.tableContexts[index] || null,
       columnContexts: snapshot.columnContexts?.[tableSpec.id.wsId] || {},
       activeRecordSqlFilter: snapshot.activeRecordSqlFilter?.[tableSpec.id.wsId] || null,
+      hidden: false, // Default to not hidden for backward compatibility
     }));
 
     return {
@@ -39,9 +40,16 @@ export function normalizeSnapshot(snapshot: Snapshot | undefined | null): Snapsh
 }
 
 /**
- * Get snapshotTables from a snapshot, creating virtual ones if needed for backward compatibility.
+ * Get visible snapshotTables from a snapshot, creating virtual ones if needed for backward compatibility.
+ * By default, hidden tables are filtered out.
  */
-export function getSnapshotTables(snapshot: Snapshot | undefined | null): SnapshotTable[] {
+export function getSnapshotTables(snapshot: Snapshot | undefined | null, includeHidden = false): SnapshotTable[] {
   const normalized = normalizeSnapshot(snapshot);
-  return normalized?.snapshotTables || [];
+  const allTables = normalized?.snapshotTables || [];
+
+  if (includeHidden) {
+    return allTables;
+  }
+
+  return allTables.filter(table => !table.hidden);
 }

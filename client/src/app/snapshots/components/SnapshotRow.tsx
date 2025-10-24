@@ -1,16 +1,17 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { TextTitleSm } from '@/app/components/base/text';
+import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useSnapshots } from '@/hooks/use-snapshot';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate, timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Download, Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import pluralize from 'pluralize';
 import { useState } from 'react';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
@@ -21,6 +22,17 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const [snapshotName, setSnapshotName] = useState(snapshot.name ?? undefined);
   const [downloading, setDownloading] = useState<string | null>(null);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
+
+  // Group tables by service and count them
+  const serviceTableCounts = (snapshot.snapshotTables || []).reduce(
+    (acc, table) => {
+      if (table.connectorService) {
+        acc[table.connectorService] = (acc[table.connectorService] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<Service, number>
+  );
 
   const handleAbandon = async () => {
     if (!snapshot) return;
@@ -96,9 +108,16 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
           <TextTitleSm>{snapshot.name}</TextTitleSm>
         </Table.Td>
         <Table.Td>
-          <Text fz="sm" c="dimmed">
-            {snapshot.tables.length} {pluralize('table', snapshot.tables.length)}
-          </Text>
+          <Group gap="md" wrap="nowrap">
+            {Object.entries(serviceTableCounts).map(([service, count]) => (
+              <Group key={service} gap={4} wrap="nowrap">
+                <ConnectorIcon connector={service as Service} size={24} />
+                <Text fz="sm" c="dimmed">
+                  × {count}
+                </Text>
+              </Group>
+            ))}
+          </Group>
         </Table.Td>
         <Table.Td>
           <Group gap="xs">

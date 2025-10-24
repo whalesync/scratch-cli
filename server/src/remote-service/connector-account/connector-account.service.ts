@@ -189,14 +189,22 @@ export class ConnectorAccountService {
     });
   }
 
-  async listTables(id: string, userId: string): Promise<TablePreview[]> {
-    const account = await this.findOne(id, userId);
+  async listTables(service: Service, connectorAccountId: string | null, userId: string): Promise<TablePreview[]> {
+    // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (e.g., CSV)
+    // When connectorAccountId is provided, load the account and pass it to the connector
+    let account: (ConnectorAccount & DecryptedCredentials) | null = null;
+
+    if (connectorAccountId !== null) {
+      account = await this.findOne(connectorAccountId, userId);
+    }
+
     let connector: Connector<Service, any>;
     try {
       connector = await this.connectorsService.getConnector({
-        service: account.service,
+        service,
         connectorAccount: account,
         decryptedCredentials: account,
+        userId,
       });
     } catch (error) {
       throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {

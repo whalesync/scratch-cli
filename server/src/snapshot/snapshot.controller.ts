@@ -31,9 +31,11 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
+import { AddTableToSnapshotDto } from './dto/add-table-to-snapshot.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
+import { DownloadRecordsDto } from './dto/download-records.dto';
 import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
@@ -95,6 +97,37 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/add-table')
+  async addTable(
+    @Param('id') id: SnapshotId,
+    @Body() addTableDto: AddTableToSnapshotDto,
+    @Req() req: RequestWithUser,
+  ): Promise<Snapshot> {
+    return new Snapshot(await this.service.addTableToSnapshot(id, addTableDto, req.user.id));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Patch(':snapshotId/tables/:tableId/hide')
+  async hideTable(
+    @Param('snapshotId') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body('hidden') hidden: boolean,
+    @Req() req: RequestWithUser,
+  ): Promise<Snapshot> {
+    return new Snapshot(await this.service.setTableHidden(snapshotId, tableId, hidden, req.user.id));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Delete(':snapshotId/tables/:tableId')
+  async deleteTable(
+    @Param('snapshotId') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Snapshot> {
+    return new Snapshot(await this.service.deleteTable(snapshotId, tableId, req.user.id));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/publish')
   async publish(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     return this.service.publish(id, req.user.id);
@@ -117,8 +150,12 @@ export class SnapshotController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/download')
-  async download(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<DownloadSnapshotResult> {
-    return this.service.download(id, req.user.id);
+  async download(
+    @Param('id') id: SnapshotId,
+    @Body() downloadDto: DownloadRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<DownloadSnapshotResult> {
+    return this.service.download(id, req.user.id, downloadDto.snapshotTableIds);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -126,6 +163,12 @@ export class SnapshotController {
   @HttpCode(204)
   async remove(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
     await this.service.delete(id, req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post('fix-user')
+  async fixUser(@Req() req: RequestWithUser): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
+    return this.service.migrateUserSnapshots(req.user.id);
   }
 
   @UseGuards(ScratchpadAuthGuard)

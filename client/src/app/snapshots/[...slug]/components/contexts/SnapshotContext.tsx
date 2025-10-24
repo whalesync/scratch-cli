@@ -18,6 +18,7 @@ interface SnapshotContextValue {
   isLoading: boolean;
   error: Error | undefined;
   refreshViews: (() => Promise<ColumnView[] | undefined>) | undefined;
+  refreshSnapshot: (() => Promise<void>) | undefined;
   publish: (() => Promise<void>) | undefined;
   setCurrentViewId: (viewId: string | null) => void;
   createView: (config: ViewConfig, name?: string) => Promise<string>;
@@ -40,7 +41,7 @@ interface SnapshotProviderProps {
 }
 
 export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps) => {
-  const { snapshot, isLoading: snapshotLoading, error: snapshotError, publish } = useSnapshot(snapshotId);
+  const { snapshot, isLoading: snapshotLoading, error: snapshotError, publish, refreshSnapshot } = useSnapshot(snapshotId);
   const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
   const { upsertView } = useUpsertView();
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
@@ -155,6 +156,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     isLoading: snapshotLoading || viewsLoading,
     error: snapshotError || viewsError,
     refreshViews,
+    refreshSnapshot,
     publish,
     updateSnapshot,
     updateColumnContexts,

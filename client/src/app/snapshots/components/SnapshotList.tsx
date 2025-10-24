@@ -42,7 +42,7 @@ export const SnapshotsList = () => {
       }}
     >
       <MainContent>
-        <MainContent.BasicHeader title="Scratchpapers" />
+        <MainContent.BasicHeader title="Workbooks" />
         <MainContent.Body p="0">
           <Table highlightOnHover>
             <Table.Thead>

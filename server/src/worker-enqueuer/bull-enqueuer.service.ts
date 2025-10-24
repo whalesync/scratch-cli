@@ -48,11 +48,13 @@ export class BullEnqueuerService implements OnModuleDestroy {
     return await this.queue.add(data.type, data);
   }
 
-  async enqueueDownloadRecordsJob(snapshotId: string, userId: string): Promise<Job> {
+  async enqueueDownloadRecordsJob(snapshotId: string, userId: string, snapshotTableIds?: string[]): Promise<Job> {
+    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
     const id = `download-records-${userId}-${snapshotId}-${createPlainId()}`;
     const data: DownloadRecordsJobDefinition['data'] = {
       snapshotId,
       userId,
+      snapshotTableIds,
       type: 'download-records',
     };
     return await this.enqueueJobWithId(data, id);

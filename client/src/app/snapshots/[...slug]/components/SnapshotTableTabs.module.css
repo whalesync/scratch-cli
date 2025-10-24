@@ -1,0 +1,39 @@
+.tabsRoot {
+  flex: 1;
+}
+
+.tabsList {
+  flex-wrap: nowrap;
+  border-bottom: none;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-bottom: none;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  background-color: transparent;
+
+  color: var(--mantine-color-gray-7);
+  margin-bottom: -1px;
+}
+
+.tab[data-active] {
+  background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-9));
+  border-color: var(--mantine-color-gray-3);
+  border-bottom-color: white;
+  color: var(--mantine-color-gray-9);
+  z-index: 1;
+}
+
+.tab:hover:not([data-active]) {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
+}
+
+.addButton {
+  align-self: center;
+  margin-left: var(--mantine-spacing-xs);
+}

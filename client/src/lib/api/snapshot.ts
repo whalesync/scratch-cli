@@ -1,6 +1,7 @@
 import { PublishSummary } from '@/types/server-entities/publish-summary';
-import {
+import type {
   AcceptAllSuggestionsResult,
+  AddTableToSnapshotDto,
   CreateSnapshotDto,
   DownloadSnapshotResult,
   DownloadSnapshotWithouotJobResult,
@@ -68,6 +69,44 @@ export const snapshotApi = {
     return res.json();
   },
 
+  addTable: async (id: string, dto: AddTableToSnapshotDto): Promise<Snapshot> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/add-table`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dto),
+    });
+    await checkForApiError(res, 'Failed to add table to snapshot');
+    return res.json();
+  },
+
+  hideTable: async (snapshotId: string, tableId: string, hidden: boolean): Promise<Snapshot> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/hide`, {
+      method: 'PATCH',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ hidden }),
+    });
+    await checkForApiError(res, 'Failed to hide/unhide table');
+    return res.json();
+  },
+
+  deleteTable: async (snapshotId: string, tableId: string): Promise<Snapshot> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}`, {
+      method: 'DELETE',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+    await checkForApiError(res, 'Failed to delete table');
+    return res.json();
+  },
+
   updateColumnContexts: async (id: string, tableId: string, dto: UpdateColumnContextsDto): Promise<void> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/tables/${tableId}/column-contexts`, {
       method: 'PATCH',
@@ -103,12 +142,14 @@ export const snapshotApi = {
     return res.json();
   },
 
-  async download(id: string): Promise<DownloadSnapshotResult> {
+  async download(id: string, snapshotTableIds?: string[]): Promise<DownloadSnapshotResult> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/download`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ snapshotTableIds }),
     });
     await checkForApiError(res, 'Failed to start download');
     return res.json();

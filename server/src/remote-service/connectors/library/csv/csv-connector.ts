@@ -16,6 +16,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
   constructor(
     private readonly db: DbService,
     private readonly uploadsDbService: UploadsDbService,
+    private readonly userId?: string,
   ) {
     super();
   }
@@ -28,11 +29,30 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     // CSV connector doesn't need to test connection since it uses PostgreSQL
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async listTables(): Promise<TablePreview[]> {
-    // CSV uploads don't support listing tables - each snapshot is tied to a specific upload
-    // This method shouldn't be called for CSV snapshots
-    throw new Error('CSV connector does not support listing tables');
+    if (!this.userId) {
+      throw new Error('User ID is required to list CSV uploads');
+    }
+
+    // Get all CSV uploads for the user
+    const uploads = await this.db.client.upload.findMany({
+      where: {
+        userId: this.userId,
+        type: 'CSV',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Convert uploads to TablePreview format
+    return uploads.map((upload) => ({
+      id: {
+        wsId: upload.typeId, // Use typeId as it's the actual PostgreSQL table name
+        remoteId: [upload.id],
+      },
+      displayName: upload.name,
+    }));
   }
 
   async fetchTableSpec(id: EntityId): Promise<CsvTableSpec> {
@@ -80,7 +100,10 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     });
 
     return {
-      id,
+      id: {
+        wsId: upload.typeId, // Use typeId as the table identifier for consistency
+        remoteId: id.remoteId,
+      },
       name: upload.name,
       columns,
     };

@@ -163,6 +163,10 @@ model SnapshotTable {
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
   connectorAccountId String?
 
+  // Service type for this table (e.g., CSV, AIRTABLE, NOTION)
+  // Required field - stored denormalized for performance and to support CSV (which has no connector account)
+  connectorService Service
+
   // Single TableSpec object (not array)
   tableSpec Json // TableSpec
 
@@ -174,6 +178,9 @@ model SnapshotTable {
 
   // SQL WHERE clause filter for this table
   activeRecordSqlFilter String?
+
+  // Whether this table is hidden from the UI
+  hidden Boolean @default(false)
 
   @@index([snapshotId])
   @@index([connectorAccountId])

@@ -173,6 +173,65 @@ export class SnapshotDb {
     }
   }
 
+  /**
+   * Add a single table to an existing snapshot's schema.
+   * This is used when adding a new table to an existing snapshot.
+   */
+  async addTableToSnapshot(snapshotId: SnapshotId, table: AnyTableSpec) {
+    // Ensure the schema exists (it should, but just in case)
+    await this.knex.raw(`CREATE SCHEMA IF NOT EXISTS "${snapshotId}"`);
+
+    // Check if table already exists
+    const tableExists = await this.knex.schema.withSchema(snapshotId).hasTable(table.id.wsId);
+    if (tableExists) {
+      throw new Error(`Table ${table.id.wsId} already exists in snapshot ${snapshotId}`);
+    }
+
+    // Create the table
+    await this.knex.schema.withSchema(snapshotId).createTable(table.id.wsId, (t) => {
+      t.text('wsId').primary();
+      t.text('id').nullable().unique();
+      for (const col of table.columns) {
+        if (col.id.wsId === 'id') {
+          continue;
+        }
+        switch (col.pgType) {
+          case PostgresColumnType.TEXT:
+            t.text(col.id.wsId);
+            break;
+          case PostgresColumnType.TEXT_ARRAY:
+            t.specificType(col.id.wsId, 'text[]');
+            break;
+          case PostgresColumnType.NUMERIC:
+            t.specificType(col.id.wsId, 'numeric');
+            break;
+          case PostgresColumnType.NUMERIC_ARRAY:
+            t.specificType(col.id.wsId, 'numeric[]');
+            break;
+          case PostgresColumnType.BOOLEAN:
+            t.boolean(col.id.wsId);
+            break;
+          case PostgresColumnType.BOOLEAN_ARRAY:
+            t.specificType(col.id.wsId, 'boolean[]');
+            break;
+          case PostgresColumnType.JSONB:
+            t.jsonb(col.id.wsId);
+            break;
+          case PostgresColumnType.TIMESTAMP:
+            t.timestamp(col.id.wsId, { useTz: false });
+            break;
+
+          default:
+            assertUnreachable(col.pgType);
+        }
+      }
+      t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
+      t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
+      t.jsonb(METADATA_COLUMN).defaultTo('{}');
+      t.boolean(DIRTY_COLUMN).defaultTo(false);
+    });
+  }
+
   async upsertRecords(snapshotId: SnapshotId, table: AnyTableSpec, records: ConnectorRecord[]) {
     WSLogger.debug({
       source: 'SnapshotDbService.upsertRecords',

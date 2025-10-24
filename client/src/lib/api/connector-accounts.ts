@@ -89,16 +89,17 @@ export const connectorAccountsApi = {
     }
   },
 
-  // POST to list tables for a connection
-  listTables: async (id: string): Promise<TableList> => {
+  // POST to list tables for a connection or service
+  listTables: async (service: string, connectorAccountId: string | null): Promise<TableList> => {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/connector-accounts/${id}/tables`,
+      `${API_CONFIG.getApiUrl()}/connector-accounts/tables`,
       {
         method: "POST",
         headers: {
           ...API_CONFIG.getAuthHeaders(),
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ service, connectorAccountId }),
       }
     );
     await checkForApiError(res, "Failed to list tables");

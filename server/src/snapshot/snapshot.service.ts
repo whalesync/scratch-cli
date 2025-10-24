@@ -21,6 +21,7 @@ import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
 import { ExistingSnapshotRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { AddTableToSnapshotDto } from './dto/add-table-to-snapshot.dto';
 import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
@@ -96,6 +97,7 @@ export class SnapshotService {
     const snapshotTables = tableSpecs.map((tableSpec, index) => ({
       id: createSnapshotTableId(),
       connectorAccountId,
+      connectorService: connectorAccount.service,
       tableSpec: tableSpec,
       tableContext: tableContexts[index],
       columnContexts: {},
@@ -165,6 +167,269 @@ export class SnapshotService {
     });
 
     return newSnapshot;
+  }
+
+  /**
+   * Add a new table to an existing snapshot.
+   * The table can be from a different connector/service than the original snapshot.
+   */
+  async addTableToSnapshot(
+    snapshotId: SnapshotId,
+    addTableDto: AddTableToSnapshotDto,
+    userId: string,
+  ): Promise<SnapshotCluster.Snapshot> {
+    const { service, connectorAccountId, tableId } = addTableDto;
+
+    // 1. Verify snapshot exists and user has permission
+    const snapshot = await this.findOne(snapshotId, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // 2. Get connector account if provided (for services that need it)
+    let connectorAccount: ConnectorAccount | null = null;
+    if (connectorAccountId) {
+      connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, userId);
+      if (!connectorAccount) {
+        throw new NotFoundException('Connector account not found');
+      }
+      if (connectorAccount.service !== service) {
+        throw new BadRequestException('Connector account service does not match requested service');
+      }
+    }
+
+    // 3. Get connector and fetch table spec
+    const connector = await this.connectorService.getConnector({
+      service,
+      connectorAccount: connectorAccount ?? null,
+      decryptedCredentials: (connectorAccount as unknown as DecryptedCredentials) ?? null,
+    });
+
+    let tableSpec: AnyTableSpec;
+    try {
+      tableSpec = await connector.fetchTableSpec(tableId);
+    } catch (error) {
+      throw exceptionForConnectorError(error, connector);
+    }
+
+    const tableContext: SnapshotTableContext = {
+      id: tableId,
+      activeViewId: null,
+      ignoredColumns: [],
+      readOnlyColumns: [],
+    };
+
+    // 4. Create the snapshotTableId first so we can pass it to the download job
+    const snapshotTableId = createSnapshotTableId();
+
+    // 5. Update snapshot record - add to legacy arrays for backward compatibility
+    const updatedSnapshot = await this.db.client.snapshot.update({
+      where: { id: snapshotId },
+      data: {
+        tableSpecs: {
+          push: tableSpec,
+        },
+        tableContexts: {
+          push: tableContext,
+        },
+        // Also create the new SnapshotTable record
+        snapshotTables: {
+          create: {
+            id: snapshotTableId,
+            connectorAccountId: connectorAccountId ?? null,
+            connectorService: service,
+            tableSpec: tableSpec,
+            tableContext: tableContext,
+            columnContexts: {},
+          },
+        },
+      },
+      include: SnapshotCluster._validator.include,
+    });
+
+    // 6. Create database table in snapshot's schema
+    await this.snapshotDbService.snapshotDb.addTableToSnapshot(snapshotId, tableSpec);
+
+    // 7. Start downloading records in background for this specific table only
+    try {
+      if (this.configService.getUseJobs()) {
+        await this.bullEnqueuerService.enqueueDownloadRecordsJob(snapshotId, userId, [snapshotTableId]);
+      }
+      WSLogger.info({
+        source: 'SnapshotService.addTableToSnapshot',
+        message: 'Started downloading records for newly added table',
+        snapshotId,
+        snapshotTableId,
+        tableId: tableSpec.id.wsId,
+      });
+    } catch (error) {
+      WSLogger.error({
+        source: 'SnapshotService.addTableToSnapshot',
+        message: 'Failed to start download job for newly added table',
+        error,
+        snapshotId,
+        snapshotTableId,
+        tableId: tableSpec.id.wsId,
+      });
+      // Don't fail the addTable operation if download fails - table was still added successfully
+    }
+
+    WSLogger.info({
+      source: 'SnapshotService.addTableToSnapshot',
+      message: 'Added table to snapshot',
+      snapshotId,
+      tableId: tableSpec.id.wsId,
+      service,
+    });
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `Added table ${tableSpec.name} to snapshot ${snapshot.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId: tableSpec.id.wsId,
+        tableName: tableSpec.name,
+        service,
+      },
+    });
+
+    return updatedSnapshot;
+  }
+
+  async setTableHidden(
+    snapshotId: SnapshotId,
+    tableId: string,
+    hidden: boolean,
+    userId: string,
+  ): Promise<SnapshotCluster.Snapshot> {
+    // 1. Verify snapshot exists and user has permission
+    const snapshot = await this.findOne(snapshotId, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // 2. Update the SnapshotTable record
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        snapshotId,
+        id: tableId,
+      },
+      data: {
+        hidden,
+      },
+    });
+
+    // 3. Fetch and return updated snapshot
+    const updatedSnapshot = await this.db.client.snapshot.findUnique({
+      where: { id: snapshotId },
+      include: SnapshotCluster._validator.include,
+    });
+
+    if (!updatedSnapshot) {
+      throw new NotFoundException('Snapshot not found after update');
+    }
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'update',
+      message: `${hidden ? 'Hidden' : 'Unhidden'} table in snapshot ${snapshot.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId,
+        hidden,
+      },
+    });
+
+    return updatedSnapshot;
+  }
+
+  async deleteTable(snapshotId: SnapshotId, tableId: string, userId: string): Promise<SnapshotCluster.Snapshot> {
+    // 1. Verify snapshot exists and user has permission
+    const snapshot = await this.findOne(snapshotId, userId);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    // 2. Get the table to delete
+    const snapshotTable = await this.db.client.snapshotTable.findFirst({
+      where: {
+        snapshotId,
+        id: tableId,
+      },
+    });
+
+    if (!snapshotTable) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const tableSpec = snapshotTable.tableSpec as unknown as AnyTableSpec;
+    const tableName = tableSpec.name;
+
+    // 3. Delete the database table from snapshot's schema
+    try {
+      await this.snapshotDbService.snapshotDb.knex.schema.withSchema(snapshotId).dropTableIfExists(tableSpec.id.wsId);
+    } catch (error) {
+      WSLogger.error({
+        source: 'SnapshotService.deleteTable',
+        message: 'Failed to drop table from database',
+        error,
+        snapshotId,
+        tableId: tableSpec.id.wsId,
+      });
+      // Continue with deletion even if DB table drop fails
+    }
+
+    // 4. Delete the SnapshotTable record
+    await this.db.client.snapshotTable.delete({
+      where: {
+        id: tableId,
+      },
+    });
+
+    // 5. Remove from legacy arrays (for backward compatibility)
+    const tableIndex = (snapshot.tableSpecs as unknown as AnyTableSpec[]).findIndex(
+      (ts) => ts.id.wsId === tableSpec.id.wsId,
+    );
+
+    if (tableIndex !== -1) {
+      const updatedTableSpecs = [...(snapshot.tableSpecs as unknown as AnyTableSpec[])];
+      const updatedTableContexts = [...(snapshot.tableContexts as unknown as SnapshotTableContext[])];
+
+      updatedTableSpecs.splice(tableIndex, 1);
+      updatedTableContexts.splice(tableIndex, 1);
+
+      await this.db.client.snapshot.update({
+        where: { id: snapshotId },
+        data: {
+          tableSpecs: updatedTableSpecs as any[],
+          tableContexts: updatedTableContexts as any[],
+        },
+      });
+    }
+
+    // 6. Fetch and return updated snapshot
+    const updatedSnapshot = await this.db.client.snapshot.findUnique({
+      where: { id: snapshotId },
+      include: SnapshotCluster._validator.include,
+    });
+
+    if (!updatedSnapshot) {
+      throw new NotFoundException('Snapshot not found after deletion');
+    }
+
+    await this.auditLogService.logEvent({
+      userId,
+      eventType: 'delete',
+      message: `Deleted table ${tableName} from snapshot ${snapshot.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId,
+        tableName,
+      },
+    });
+
+    return updatedSnapshot;
   }
 
   async delete(id: SnapshotId, userId: string): Promise<void> {
@@ -900,7 +1165,7 @@ export class SnapshotService {
     return this.downloadSnapshotInBackground(snapshot);
   }
 
-  async download(id: SnapshotId, userId: string): Promise<DownloadSnapshotResult> {
+  async download(id: SnapshotId, userId: string, snapshotTableIds?: string[]): Promise<DownloadSnapshotResult> {
     if (!this.configService.getUseJobs()) {
       // Fall back to synchronous download when jobs are not available
       await this.downloadWithoutJob(id, userId);
@@ -908,7 +1173,7 @@ export class SnapshotService {
         jobId: 'sync-download', // Use a placeholder ID for synchronous downloads
       };
     }
-    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, userId);
+    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, userId, snapshotTableIds);
     return {
       jobId: job.id as string,
     };
@@ -1468,6 +1733,7 @@ export class SnapshotService {
               {
                 id: createSnapshotTableId(),
                 connectorAccountId: null,
+                connectorService: Service.CSV,
                 tableSpec: tableSpecs[0],
                 tableContext: {
                   id: { wsId: tableId, remoteId: ['-'] },
@@ -1790,6 +2056,99 @@ export class SnapshotService {
         columnName: column.name,
       },
     });
+  }
+
+  async migrateUserSnapshots(userId: string): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
+    WSLogger.info({
+      source: 'SnapshotService.migrateUserSnapshots',
+      message: 'Starting snapshot migration for user',
+      userId,
+    });
+
+    // Find all snapshots for this user that have old-style data (tableSpecs array) but no SnapshotTable records
+    const snapshots = await this.db.client.snapshot.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        snapshotTables: true,
+        connectorAccount: true,
+      },
+    });
+
+    let migratedSnapshots = 0;
+    let tablesCreated = 0;
+
+    for (const snapshot of snapshots) {
+      // Skip if snapshot already has SnapshotTable records
+      if (snapshot.snapshotTables.length > 0) {
+        continue;
+      }
+
+      // Skip if snapshot has no old-style data
+      const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
+      if (!tableSpecs || tableSpecs.length === 0) {
+        continue;
+      }
+
+      WSLogger.info({
+        source: 'SnapshotService.migrateUserSnapshots',
+        message: 'Migrating snapshot',
+        snapshotId: snapshot.id,
+        tableCount: tableSpecs.length,
+      });
+
+      const tableContexts = (snapshot.tableContexts as unknown as SnapshotTableContext[]) || [];
+      const columnContexts = (snapshot.columnContexts as unknown as SnapshotColumnContexts) || {};
+      const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as unknown as ActiveRecordSqlFilter) || {};
+
+      // Create SnapshotTable records
+      const snapshotTablesToCreate = tableSpecs.map((tableSpec, index) => {
+        const tableId = tableSpec.id.wsId;
+        const tableContext = tableContexts[index] || null;
+        const tableColumnContexts = columnContexts[tableId] || {};
+        const tableSqlFilter = activeRecordSqlFilter[tableId] || null;
+
+        return {
+          id: createSnapshotTableId(),
+          snapshotId: snapshot.id,
+          connectorAccountId: snapshot.connectorAccountId,
+          connectorService: snapshot.service as Service,
+          tableSpec: tableSpec as unknown as Record<string, unknown>,
+          tableContext: tableContext as unknown as Record<string, unknown>,
+          columnContexts: tableColumnContexts as unknown as Record<string, unknown>,
+          activeRecordSqlFilter: tableSqlFilter,
+          hidden: false,
+        };
+      });
+
+      // Create all SnapshotTable records for this snapshot
+      await this.db.client.snapshotTable.createMany({
+        // temp fix
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        data: snapshotTablesToCreate as any,
+      });
+
+      migratedSnapshots++;
+      tablesCreated += snapshotTablesToCreate.length;
+
+      WSLogger.info({
+        source: 'SnapshotService.migrateUserSnapshots',
+        message: 'Successfully migrated snapshot',
+        snapshotId: snapshot.id,
+        tablesCreated: snapshotTablesToCreate.length,
+      });
+    }
+
+    WSLogger.info({
+      source: 'SnapshotService.migrateUserSnapshots',
+      message: 'Completed snapshot migration for user',
+      userId,
+      migratedSnapshots,
+      tablesCreated,
+    });
+
+    return { migratedSnapshots, tablesCreated };
   }
 }
 

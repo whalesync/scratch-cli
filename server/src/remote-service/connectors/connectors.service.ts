@@ -37,8 +37,9 @@ export class ConnectorsService {
     service: Service;
     connectorAccount: ConnectorAccount | null;
     decryptedCredentials: DecryptedCredentials | null;
+    userId?: string;
   }): Promise<Connector<Service, any>> {
-    const { service, connectorAccount, decryptedCredentials } = params;
+    const { service, connectorAccount, decryptedCredentials, userId } = params;
 
     switch (service) {
       case Service.AIRTABLE:
@@ -88,7 +89,7 @@ export class ConnectorsService {
         }
         return new CustomConnector(connectorAccount.userId, this.db, decryptedCredentials.apiKey, connectorAccount);
       case Service.CSV:
-        return new CsvConnector(this.db, this.uploadsDbService);
+        return new CsvConnector(this.db, this.uploadsDbService, connectorAccount?.userId ?? userId);
       case Service.YOUTUBE:
         if (!connectorAccount) {
           throw new ConnectorInstantiationError('Connector account is required for YouTube', service);

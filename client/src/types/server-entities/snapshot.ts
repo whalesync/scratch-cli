@@ -69,6 +69,7 @@ export interface SnapshotTable {
   tableContext: SnapshotTableContext | null;
   columnContexts: Record<string, SnapshotColumnSettings>;
   activeRecordSqlFilter: string | null;
+  hidden: boolean;
 }
 
 export interface Snapshot {
@@ -96,6 +97,12 @@ export interface CreateSnapshotDto {
   connectorAccountId: string;
   name: string;
   tableIds: EntityId[];
+}
+
+export interface AddTableToSnapshotDto {
+  service: Service;
+  connectorAccountId?: string;
+  tableId: EntityId;
 }
 
 export interface UpdateSnapshotDto {

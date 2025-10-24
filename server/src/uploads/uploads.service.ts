@@ -859,6 +859,7 @@ export class UploadsService {
               {
                 id: createSnapshotTableId(),
                 connectorAccountId: null,
+                connectorService: Service.CSV,
                 tableSpec: tableSpecs[0] as any,
                 tableContext: {
                   id: { wsId: tableId, remoteId: [uploadId] },

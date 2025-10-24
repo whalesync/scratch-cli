@@ -1,6 +1,7 @@
 import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { TableSelection, TableSelectionComponent } from '@/app/components/TableSelectionComponent';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -52,6 +53,10 @@ export const SnapshotActionsMenu = () => {
   const [downloadingCsv, setDownloadingCsv] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [tableSelection, setTableSelection] = useState<TableSelection>({
+    mode: 'current',
+    tableIds: activeTable ? [activeTable.id] : [],
+  });
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -75,8 +80,9 @@ export const SnapshotActionsMenu = () => {
   const handleDownload = async () => {
     if (!snapshot) return;
     try {
-      const result = await snapshotApi.download(snapshot.id);
+      const result = await snapshotApi.download(snapshot.id, tableSelection.tableIds);
       setDownloadInProgress(result);
+      modalStack.close(Modals.CONFIRM_DOWNLOAD);
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
@@ -215,25 +221,34 @@ export const SnapshotActionsMenu = () => {
           </Group>
         </Stack>
       </Modal>
-      <Modal {...modalStack.register(Modals.CONFIRM_DOWNLOAD)} title="Downloading records" centered size="lg">
-        <Stack>
+      <Modal {...modalStack.register(Modals.CONFIRM_DOWNLOAD)} title="Download records" centered size="lg">
+        <Stack gap="md">
           <Text>
-            Are you sure you want to download records for this scratchpaper? Any unpublished changes and suggestions
-            will be lost.
+            Download records from the remote source. Any unpublished changes and suggestions will be lost.
           </Text>
+
+          {snapshot && activeTable && (
+            <TableSelectionComponent
+              tables={snapshot.snapshotTables || []}
+              currentTableId={activeTable.id}
+              onChange={setTableSelection}
+              initialSelection={tableSelection}
+            />
+          )}
+
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DOWNLOAD)}>Cancel</SecondaryButton>
             <PrimaryButton
               onClick={() => {
-                modalStack.close(Modals.CONFIRM_DOWNLOAD);
                 if (process.env.NEXT_PUBLIC_USE_JOBS === 'true') {
                   handleDownload();
                 } else {
                   handleDownloadWithoutJob();
                 }
               }}
+              disabled={tableSelection.tableIds.length === 0}
             >
-              Continue
+              Download
             </PrimaryButton>
           </Group>
         </Stack>

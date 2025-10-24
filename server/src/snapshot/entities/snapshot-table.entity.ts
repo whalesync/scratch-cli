@@ -14,6 +14,7 @@ export class SnapshotTable {
   tableContext: SnapshotTableContext | null;
   columnContexts: Record<string, SnapshotColumnSettings>;
   activeRecordSqlFilter: string | null;
+  hidden: boolean;
 
   constructor(snapshotTable: SnapshotTableCluster.SnapshotTable) {
     this.id = snapshotTable.id;
@@ -22,10 +23,11 @@ export class SnapshotTable {
     this.snapshotId = snapshotTable.snapshotId;
     this.connectorAccountId = snapshotTable.connectorAccountId;
     this.connectorDisplayName = snapshotTable.connectorAccount?.displayName ?? null;
-    this.connectorService = snapshotTable.connectorAccount?.service ?? null;
+    this.connectorService = snapshotTable.connectorService; // Now stored directly on SnapshotTable
     this.tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     this.tableContext = snapshotTable.tableContext as SnapshotTableContext | null;
     this.columnContexts = (snapshotTable.columnContexts as Record<string, SnapshotColumnSettings>) ?? {};
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
+    this.hidden = snapshotTable.hidden;
   }
 }

@@ -84,6 +84,7 @@ class ScratchpadSnapshot:
     connectorService: Optional[str]
     createdAt: str
     updatedAt: str
+    userId: str
     connectorAccountId: str
     tables: List[TableSpec]
     tableContexts: List[TableContext]

@@ -61,14 +61,14 @@ export const CreateSnapshotModal = ({
     setIsLoadingTables(true);
     setError(null);
     try {
-      const data = await connectorAccountsApi.listTables(connectorAccount.id);
+      const data = await connectorAccountsApi.listTables(connectorAccount.service, connectorAccount.id);
       setTables(data.tables);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
       setIsLoadingTables(false);
     }
-  }, [connectorAccount.id]);
+  }, [connectorAccount.id, connectorAccount.service]);
 
   useEffect(() => {
     if (props.opened) {

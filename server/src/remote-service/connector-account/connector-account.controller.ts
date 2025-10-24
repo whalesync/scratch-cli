@@ -3,6 +3,7 @@ import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import { RequestWithUser } from '../../auth/types';
 import { ConnectorAccountService } from './connector-account.service';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
+import { ListTablesDto } from './dto/list-tables.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { ConnectorAccount } from './entities/connector-account.entity';
 import { TableList } from './entities/table-list.entity';
@@ -31,9 +32,9 @@ export class ConnectorAccountController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/tables')
-  async listTables(@Param('id') id: string, @Req() req: RequestWithUser): Promise<TableList> {
-    const tables = await this.service.listTables(id, req.user.id);
+  @Post('tables')
+  async listTables(@Body() dto: ListTablesDto, @Req() req: RequestWithUser): Promise<TableList> {
+    const tables = await this.service.listTables(dto.service, dto.connectorAccountId ?? null, req.user.id);
     return { tables };
   }
 
