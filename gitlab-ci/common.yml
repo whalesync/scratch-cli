@@ -3,3 +3,38 @@ variables:
   NODE_VERSION: "22"
   # Python version for pydantic-ai-agent
   PYTHON_VERSION: "3.12"
+  # For GCP.
+  GCP_REGION: "us-central1"
+
+.docker_builder_image:
+  image:
+    name: unawareguitar/aws-dind:latest
+    pull_policy: always
+
+# Any step can fetch GCP creds by extending from this rule.
+# It will automatically fetch creds via OIDC and make them available as Application Default Credentials (ADC).
+# Just add: extends: .google-oidc:auth
+# NOTE! This breaks if you add a before_step to the step, since that clobbers the added work the rule adds.
+include:
+  - remote: "https://gitlab.com/gitlab-com/gl-security/security-operations/infrastructure-security-public/oidc-modules/-/raw/3.2.0/templates/gcp_auth.yaml"
+
+.setup_docker_gcp_auth:
+  script:
+    - gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${GCP_REGION}-docker.pkg.dev
+
+# Extend this rule to include OIDC auth and all required settings for the test project
+.gcp_test_env:
+  extends: .google-oidc:auth
+  variables:
+    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/test"
+    AUDIENCE: "https://gitlab.com"
+  before_script:
+    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
+    - export GCLOUD_PROJECT="spv1-test"
+    - export GCP_PROJECT_NUMBER="211553068097"
+    - export GCP_REGISTRY="test-registry"
+    - export SERVICE_ACCOUNT="gitlab-service-account@spv1-test.iam.gserviceaccount.com"
+    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
+    - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
+    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/test"
+    - !reference [.google-oidc:auth, before_script]
