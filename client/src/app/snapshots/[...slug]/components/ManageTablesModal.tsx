@@ -5,7 +5,7 @@ import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ManageTablesModalProps {
   isOpen: boolean;
@@ -20,6 +20,13 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables 
     tables.reduce((acc, table) => ({ ...acc, [table.id]: table.hidden }), {})
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Update hiddenStates when tables prop changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setHiddenStates(tables.reduce((acc, table) => ({ ...acc, [table.id]: table.hidden }), {}));
+    }
+  }, [tables, isOpen]);
 
   const handleToggle = (tableId: string) => {
     setHiddenStates((prev) => ({
