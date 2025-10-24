@@ -1,56 +1,34 @@
 'use client';
 
-import { ActionIcon, createTheme, MantineColorsTuple, virtualColor } from '@mantine/core';
-import { Inter } from 'next/font/google';
+import { ActionIcon, Button, createTheme, Title, virtualColor } from '@mantine/core';
+import { Funnel_Display, Inter } from 'next/font/google';
+import cornerBordersClasses from './corner-borders.module.css';
+import { CUSTOM_BLUE, CUSTOM_GRAY, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
 import classes from './theme.module.css';
 import { variantColorResolver } from './variantColorResolver';
 
 const inter = Inter({ subsets: ['latin'] });
-
-const penBlue: MantineColorsTuple = [
-  "#e8f3ff",
-  "#d1e2fe",
-  "#a0c1fa",
-  "#6c9ff7",
-  "#4383f5",
-  "#2c70f5",
-  "#1f67f6",
-  "#1257db",
-  "#0551cf",
-  "#0042ae",
-];
-
-const terminalGreen: MantineColorsTuple = [
-  '#f5ffe2',
-  '#ecfdce',
-  '#d9f9a0',
-  '#c5f56d',
-  '#b4f243',
-  '#a9f027',
-  '#a3ef15',
-  '#8dd402',
-  '#7cbd00',
-  '#68a300',
-];
+const funnelDisplay = Funnel_Display({ subsets: ['latin'] });
+// TODO: Use Berkley Mono for monospace fonts.
 
 export const SCRATCHPAD_MANTINE_THEME = createTheme({
   fontFamily: inter.style.fontFamily,
 
   cursorType: 'pointer',
   colors: {
-    penBlue: penBlue,
-    terminalGreen: terminalGreen,
+    gray: CUSTOM_GRAY,
+    red: CUSTOM_RED,
+    green: CUSTOM_GREEN,
+    blue: CUSTOM_BLUE,
+
     // NOTE: this does not work yet, waiting to hear from Mantine team
     suggestion: virtualColor({
       name: 'suggestion',
-      light: 'penBlue',
-      dark: 'terminalGreen',
+      light: 'blue',
+      dark: 'green',
     }),
-    primary: virtualColor({
-      name: 'primary',
-      light: 'penBlue',
-      dark: 'terminalGreen',
-    }),
+    primary: CUSTOM_GREEN,
+
     secondary: virtualColor({
       name: 'secondary',
       light: 'gray',
@@ -60,13 +38,23 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   primaryColor: 'primary',
 
-
   variantColorResolver: variantColorResolver,
-  
+
   fontSizes: {
-    xs: '13px',
-    sm: '14px',
-    md: '16px',
+    xs: '12px',
+    sm: '13px',
+    md: '14px',
+  },
+
+  headings: {
+    fontFamily: funnelDisplay.style.fontFamily,
+    fontWeight: '450',
+    sizes: {
+      h1: { fontSize: '24px', lineHeight: '160%' },
+      h2: { fontSize: '16px', lineHeight: '170%' },
+      h3: { fontSize: '15px', lineHeight: '150%' },
+      h4: { fontSize: '14px', lineHeight: '160%' },
+    },
   },
 
   // TODO: In design we dont have variables for spacing,
@@ -89,10 +77,21 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
   },
 
   defaultRadius: '0px',
-  
+
   components: {
     ActionIcon: ActionIcon.extend({
       classNames: classes,
+    }),
+
+    Button: Button.extend({
+      classNames: { root: cornerBordersClasses.cornerBorders },
+    }),
+
+    Title: Title.extend({
+      defaultProps: {
+        ff: funnelDisplay.style.fontFamily,
+        fw: 450,
+      },
     }),
   },
 });
