@@ -91,3 +91,7 @@ The Scratchpad Agent server is hosted on Render.
 [Manage Render Project](https://dashboard.render.com/web/srv-d347qore5dus73epu9r0)
 
 - Owned by team@whalesync.com (Credentials in 1password)
+
+[Logfire Account](https://logfire-us.pydantic.dev/whalesync-team/-/projects)
+
+- Use the team@whalesync.com GitHub login to access the account (Credentials in 1password)
