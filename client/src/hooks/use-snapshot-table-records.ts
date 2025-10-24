@@ -6,6 +6,7 @@ import { trackAcceptChanges, trackRejectChanges } from "@/lib/posthog";
 import {
   AcceptAllSuggestionsResult,
   RejectAllSuggestionsResult,
+  SNAPSHOT_RECORD_CREATED_FIELD,
   SNAPSHOT_RECORD_DELETED_FIELD,
   SnapshotRecord
 } from "@/types/server-entities/snapshot";
@@ -33,6 +34,7 @@ export interface UseSnapshotRecordsReturn {
     recordsWithSuggestions: number;
     totalSuggestions: number;
     totalSuggestedDeletes: number;
+    totalSuggestedCreates: number;
     acceptAllSuggestions: () => Promise<AcceptAllSuggestionsResult>;
     rejectAllSuggestions: () => Promise<RejectAllSuggestionsResult>;
     createNewRecord: () => Promise<void>;
@@ -189,19 +191,23 @@ export interface UseSnapshotRecordsReturn {
       [snapshotId, tableId, mutate, swrKey, snapshot]
     );
   
-    const { recordsWithSuggestions, totalSuggestions, totalSuggestedDeletes } = useMemo(() => {
+    const { recordsWithSuggestions, totalSuggestions, totalSuggestedDeletes, totalSuggestedCreates } = useMemo(() => {
       let recordsWithSuggestions = 0;
       let totalSuggestions = 0;
       let totalSuggestedDeletes = 0;
+      let totalSuggestedCreates = 0;
       if(data?.records) {
         for(const record of data.records) {
-            const columnsWithSuggestions = Object.keys(record.__suggested_values ?? {}).filter((key) => key === SNAPSHOT_RECORD_DELETED_FIELD || (!key.startsWith('__') && key !== 'id'));
+            const columnsWithSuggestions = Object.keys(record.__suggested_values ?? {}).filter((key) => key === SNAPSHOT_RECORD_DELETED_FIELD || key === SNAPSHOT_RECORD_CREATED_FIELD || (!key.startsWith('__') && key !== 'id'));
           if(columnsWithSuggestions.length > 0) {
             recordsWithSuggestions++;
             totalSuggestions += columnsWithSuggestions.length;
           }
           if(record.__suggested_values?.[SNAPSHOT_RECORD_DELETED_FIELD]) {
             totalSuggestedDeletes++;
+          }
+          if(record.__suggested_values?.[SNAPSHOT_RECORD_CREATED_FIELD]) {
+            totalSuggestedCreates++;
           }
         }
       }
@@ -210,6 +216,7 @@ export interface UseSnapshotRecordsReturn {
         recordsWithSuggestions,
         totalSuggestions,
         totalSuggestedDeletes,
+        totalSuggestedCreates,
       };
       
     }, [data]);
@@ -319,6 +326,7 @@ export interface UseSnapshotRecordsReturn {
       recordsWithSuggestions,
       totalSuggestions,
       totalSuggestedDeletes,
+      totalSuggestedCreates,
       acceptAllSuggestions,
       rejectAllSuggestions,
       createNewRecord,

@@ -18,10 +18,10 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [endpoint, setEndpoint] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
   const [newService, setNewService] = useState<Service | null>(null);
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
+
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
@@ -61,6 +61,17 @@ export const CreateConnectionModal = (props: ModalProps) => {
       methods.push('user_provided_params');
     }
     return methods;
+  };
+
+  const handleClearForm = () => {
+    setNewApiKey('');
+    setUsername('');
+    setPassword('');
+    setEndpoint('');
+    setNewService(null);
+    setNewModifier(null);
+    setNewDisplayName(null);
+    setAuthMethod('oauth'); // Reset to default
   };
 
   const handleOAuthInitiate = async () => {
@@ -129,17 +140,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
       modifier: newModifier || undefined,
       displayName: newDisplayName || undefined,
     });
-    setNewApiKey('');
-    setUsername('');
-    setPassword('');
-    setEndpoint('');
-    setNewService(null);
-    setNewModifier(null);
-    setNewDisplayName(null);
-    setAuthMethod('oauth'); // Reset to default
-    // if (newAccount && newAccount.id) {
-    //   await handleTest(newAccount.id);
-    // }
+    handleClearForm();
     props.onClose?.();
   };
 
@@ -147,7 +148,16 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const availableServices = isAdmin ? [...LIVE_SERVICES, ...INTERNAL_SERVICES] : LIVE_SERVICES;
 
   return (
-    <Modal title="Create Connection" size="lg" centered {...props}>
+    <Modal
+      title="Create Connection"
+      size="lg"
+      centered
+      {...props}
+      onExitTransitionEnd={() => {
+        // clear the form when the modal is closed
+        handleClearForm();
+      }}
+    >
       <Stack>
         <Select
           label="Service"

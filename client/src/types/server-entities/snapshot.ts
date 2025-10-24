@@ -135,6 +135,7 @@ export type SnapshotRecord = {
 };
 
 export const SNAPSHOT_RECORD_DELETED_FIELD = '__deleted';
+export const SNAPSHOT_RECORD_CREATED_FIELD = '__created';
 
 export type EditedFieldsMetadata = {
   /** Timestamp when the record was created locally. */

@@ -7,7 +7,7 @@ export enum Service {
   WORDPRESS = 'WORDPRESS',
 }
 export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE, Service.WORDPRESS];
-export const INTERNAL_SERVICES = [Service.AIRTABLE, Service.CUSTOM, Service.CSV, Service.WORDPRESS];
+export const INTERNAL_SERVICES = [Service.AIRTABLE, Service.CUSTOM, Service.CSV];
 
 export enum ConnectorHealthStatus {
   OK = 'OK',

@@ -219,7 +219,11 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
                           onClick={() => handleTableToggle(table.id)}
                         >
                           <Table.Td style={{ width: 40 }}>
-                            <Checkbox checked={isSelected} onChange={() => handleTableToggle(table.id)} />
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => handleTableToggle(table.id)}
+                              onClick={() => handleTableToggle(table.id)}
+                            />
                           </Table.Td>
                           <Table.Td>
                             <Text size="sm" fw={500}>

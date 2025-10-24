@@ -28,6 +28,7 @@ export const DIRTY_COLUMN = '__dirty';
 
 // A special field that is used to mark a record as deleted in the EDITED_FIELDS_COLUMN and SUGGESTED_FIELDS_COLUMN
 export const DELETED_FIELD = '__deleted';
+export const CREATED_FIELD = '__created';
 
 const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
 
@@ -544,7 +545,7 @@ export class SnapshotDb {
 
         // For each column, copy the suggested value to the actual column with proper casting
         for (const columnId of columnIds) {
-          if (columnId === DELETED_FIELD) {
+          if (columnId === DELETED_FIELD || columnId === CREATED_FIELD) {
             // ignore the deleted field, it is handled separately
             continue;
           }
@@ -608,6 +609,9 @@ export class SnapshotDb {
 
         if (columnIds.includes(DELETED_FIELD)) {
           editedFields[DELETED_FIELD] = now;
+        }
+        if (columnIds.includes(CREATED_FIELD)) {
+          editedFields[CREATED_FIELD] = now;
         }
 
         updatePayload[EDITED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
