@@ -1,6 +1,6 @@
 import { Subscription, TokenType, UserRole } from '@prisma/client';
 import { UserCluster } from 'src/db/cluster-types';
-import { UserExperimentFlagValues } from 'src/experiments/experiments.service';
+import { UserFlagValues } from 'src/experiments/experiments.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlan, getPlanTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
 
@@ -27,9 +27,9 @@ export class User {
 
   subscription?: SubscriptionInfo;
 
-  experimentalFlags?: UserExperimentFlagValues;
+  experimentalFlags?: UserFlagValues;
 
-  constructor(user: UserCluster.User, agentJwt: string, experiments?: UserExperimentFlagValues) {
+  constructor(user: UserCluster.User, agentJwt: string, experiments?: UserFlagValues) {
     this.id = user.id;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;

@@ -38,6 +38,7 @@ enum Modals {
 
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
+  const { user } = useScratchPadUser();
   const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
   const { activeTable } = useTableContext();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
@@ -223,9 +224,7 @@ export const SnapshotActionsMenu = () => {
       </Modal>
       <Modal {...modalStack.register(Modals.CONFIRM_DOWNLOAD)} title="Download records" centered size="lg">
         <Stack gap="md">
-          <Text>
-            Download records from the remote source. Any unpublished changes and suggestions will be lost.
-          </Text>
+          <Text>Download records from the remote source. Any unpublished changes and suggestions will be lost.</Text>
 
           {snapshot && activeTable && (
             <TableSelectionComponent
@@ -240,7 +239,7 @@ export const SnapshotActionsMenu = () => {
             <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DOWNLOAD)}>Cancel</SecondaryButton>
             <PrimaryButton
               onClick={() => {
-                if (process.env.NEXT_PUBLIC_USE_JOBS === 'true') {
+                if (user?.experimentalFlags?.USE_JOBS ?? false) {
                   handleDownload();
                 } else {
                   handleDownloadWithoutJob();

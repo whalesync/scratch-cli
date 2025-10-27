@@ -24,6 +24,7 @@ export interface SubscriptionInfo {
 export interface UserExperimentFlags {
   DEV_TOOLBOX: boolean;
   REQUIRE_SUBSCRIPTION: boolean;
+  USE_JOBS: boolean;
 }
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {

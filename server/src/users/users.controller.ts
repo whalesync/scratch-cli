@@ -17,7 +17,7 @@ export class UsersController {
 
   @UseGuards(ScratchpadAuthGuard)
   @Get('current')
-  currentUser(@Req() req: RequestWithUser): User {
+  async currentUser(@Req() req: RequestWithUser): Promise<User> {
     if (!req.user) {
       throw new UnauthorizedException();
     }
@@ -28,9 +28,9 @@ export class UsersController {
       role: req.user.role,
     });
 
-    const experiments = this.experimentsService.resolveFlagsForUser(req.user);
+    const flagValues = await this.experimentsService.resolveClientFeatureFlagsForUser(req.user);
 
-    return new User(req.user, agentJwt, experiments);
+    return new User(req.user, agentJwt, flagValues);
   }
 
   @UseGuards(ScratchpadAuthGuard)

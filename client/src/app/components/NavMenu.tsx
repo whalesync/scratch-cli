@@ -36,69 +36,6 @@ type MenuItem = {
   iconType: 'lucide';
 };
 
-const upperLinks: MenuItem[] = [
-  {
-    href: RouteUrls.snapshotsPageUrl,
-    label: 'Workbooks',
-    icon: NotebookPen,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: false,
-  },
-  {
-    href: RouteUrls.connectionsPageUrl,
-    label: 'Connections',
-    icon: Unplug,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: false,
-  },
-  {
-    href: RouteUrls.uploadsPageUrl,
-    label: 'Uploads',
-    icon: Upload,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: false,
-  },
-  {
-    href: RouteUrls.resourcesPageUrl,
-    label: 'Resources',
-    icon: BookOpen,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: false,
-  },
-  ...(process.env.NEXT_PUBLIC_USE_JOBS === 'true'
-    ? [
-        {
-          href: RouteUrls.jobsPageUrl,
-          label: 'Jobs',
-          icon: Pickaxe,
-          iconType: 'lucide' as const,
-          enabled: true,
-          requiresAdmin: false,
-        },
-      ]
-    : []),
-  {
-    href: RouteUrls.csvFilesPageUrl,
-    label: 'CSV Files',
-    icon: FileSpreadsheet,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: true,
-  },
-  {
-    href: RouteUrls.apiImportDemoPageUrl,
-    label: 'AI Connector Builder',
-    icon: Bot,
-    iconType: 'lucide',
-    enabled: true,
-    requiresAdmin: true,
-  },
-];
-
 const lowerLinks: MenuItem[] = [
   {
     href: RouteUrls.settingsPageUrl,
@@ -110,10 +47,77 @@ const lowerLinks: MenuItem[] = [
   },
 ];
 
+const upperLinks = (isUseJobsEnabled: boolean): MenuItem[] => {
+  return [
+    {
+      href: RouteUrls.snapshotsPageUrl,
+      label: 'Workbooks',
+      icon: NotebookPen,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: false,
+    },
+    {
+      href: RouteUrls.connectionsPageUrl,
+      label: 'Connections',
+      icon: Unplug,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: false,
+    },
+    {
+      href: RouteUrls.uploadsPageUrl,
+      label: 'Uploads',
+      icon: Upload,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: false,
+    },
+    {
+      href: RouteUrls.resourcesPageUrl,
+      label: 'Resources',
+      icon: BookOpen,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: false,
+    },
+    ...(isUseJobsEnabled
+      ? [
+          {
+            href: RouteUrls.jobsPageUrl,
+            label: 'Jobs',
+            icon: Pickaxe,
+            iconType: 'lucide' as const,
+            enabled: true,
+            requiresAdmin: false,
+          },
+        ]
+      : []),
+    {
+      href: RouteUrls.csvFilesPageUrl,
+      label: 'CSV Files',
+      icon: FileSpreadsheet,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: true,
+    },
+    {
+      href: RouteUrls.apiImportDemoPageUrl,
+      label: 'AI Connector Builder',
+      icon: Bot,
+      iconType: 'lucide',
+      enabled: true,
+      requiresAdmin: true,
+    },
+  ];
+};
+
 export function NavMenu() {
   const pathname = usePathname();
-  const { isAdmin } = useScratchPadUser();
+  const { isAdmin, user } = useScratchPadUser();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
+
+  const isUseJobsEnabled = user?.experimentalFlags?.USE_JOBS ?? false;
 
   const createMenuItem = (link: MenuItem, isActive: boolean) => {
     return (
@@ -153,7 +157,7 @@ export function NavMenu() {
       </Tooltip>
 
       <Stack gap="md">
-        {upperLinks
+        {upperLinks(isUseJobsEnabled)
           .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
           .map((link) => {
             const isActive = pathname.startsWith(link.href);

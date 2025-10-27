@@ -1,4 +1,8 @@
-export class ClientFlag {
+/**
+ * A class for managing flags that are stored in local storage.
+ * Generally used for development purposes only.
+ */
+export class LocalStorageFlag {
     private value: boolean;
   
     constructor(
@@ -32,6 +36,6 @@ export class ClientFlag {
   
   /** Flags that are stashed in local storage. Use `UserExperimentFlags` for anything used in production */
   export const FLAGS = {
-    SKIP_PAYWALL_FOR_LOCALHOST: new ClientFlag('Skip paywall on localhost', 'skip_paywall_locally', true),
+    SKIP_PAYWALL_FOR_LOCALHOST: new LocalStorageFlag('Skip paywall on localhost', 'skip_paywall_locally', true),
   };
   

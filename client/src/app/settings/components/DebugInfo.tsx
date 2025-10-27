@@ -1,6 +1,6 @@
 import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ClientFlag, FLAGS } from '@/utils/flags-dev';
+import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
 import { ActionIcon, Badge, Card, Checkbox, CopyButton, Grid, Group, PasswordInput, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
@@ -98,7 +98,7 @@ export const DevToolsPanel = () => {
   );
 };
 
-const FlagCheckboxOption = (props: { flag: ClientFlag }): JSX.Element => {
+const FlagCheckboxOption = (props: { flag: LocalStorageFlag }): JSX.Element => {
   const [checked, setChecked] = useState(props.flag.getLocalStorageValue());
   return (
     <Checkbox
