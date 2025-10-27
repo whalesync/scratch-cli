@@ -2,7 +2,7 @@
 
 import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotTableContext } from '@/types/server-entities/snapshot';
-import { ActionIcon, Button, Group, Menu, Modal, ScrollArea, Tabs, Text, useModalsStack } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Menu, Modal, ScrollArea, Tabs, Text, useModalsStack } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { EyeOff, PanelRightIcon, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -177,7 +177,7 @@ function SnapshotPageContent() {
               }
             }
           }}
-          variant="default"
+          variant="pills"
           classNames={{
             root: tabStyles.tabsRoot,
             list: tabStyles.tabsList,
@@ -197,6 +197,7 @@ function SnapshotPageContent() {
                   <Group gap="xs" wrap="nowrap">
                     <ConnectorIcon connector={table.connectorService} size={20} />
                     <Text>{table.tableSpec.name}</Text>
+                    <Box w={10}>{/** spacer to make the tab wider to add space for the hover menu */}</Box>
                   </Group>
                 </Tabs.Tab>
                 {hoveredTab === table.id && (
@@ -211,7 +212,7 @@ function SnapshotPageContent() {
                         }}
                         style={{
                           position: 'absolute',
-                          right: 4,
+                          right: 5,
                           top: '50%',
                           transform: 'translateY(-50%)',
                           zIndex: 10,
@@ -303,7 +304,7 @@ function SnapshotPageContent() {
   return (
     <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} rightPanel={aiChatPanel}>
       <MainContent>
-        <MainContent.Header>{header}</MainContent.Header>
+        <MainContent.Header pb="0">{header}</MainContent.Header>
         <MainContent.Body p="0">
           {content}
           {debugModals}
