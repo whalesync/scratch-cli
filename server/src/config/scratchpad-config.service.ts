@@ -104,6 +104,10 @@ export class ScratchpadConfigService {
     return this.getOptionalEnvVariable('POSTHOG_HOST');
   }
 
+  getPosthogFeatureFlagApiKey(): string | undefined {
+    return this.getOptionalEnvVariable('POSTHOG_FEATURE_FLAG_API_KEY');
+  }
+
   getStripeApiKey(): string {
     return this.getEnvVariable('STRIPE_API_KEY');
   }

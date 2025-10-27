@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Client, EvaluationContext, InMemoryProvider, OpenFeature } from '@openfeature/server-sdk';
 import { User, UserRole } from '@prisma/client';
+import { PostHogProvider } from '@tapico/node-openfeature-posthog';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { AllFeatureFlags, ClientUserFlags, SystemFeatureFlag, UserFlag } from './flags';
 import { ExperimentFlagVariantValue, FlagDataType } from './types';
@@ -34,9 +35,25 @@ const IN_MEMORY_FLAGS = {
 export class ExperimentsService {
   private client: Client;
   constructor(private readonly config: ScratchpadConfigService) {
-    // TODO: replace this with Posthog or LaunchDarkly
-    OpenFeature.setProvider(new InMemoryProvider(IN_MEMORY_FLAGS));
-    this.client = OpenFeature.getClient();
+    if (config.getPostHogApiKey() && config.getPosthogFeatureFlagApiKey()) {
+      OpenFeature.setProvider(
+        new PostHogProvider({
+          posthogConfiguration: {
+            apiKey: config.getPostHogApiKey() ?? '',
+            personalApiKey: config.getPosthogFeatureFlagApiKey() ?? '',
+            evaluateLocally: true, // load flags and evaluate them locally instead of via the decide-remote call
+            debugMode: false,
+            clientOptions: {
+              featureFlagsPollingInterval: 60000,
+            },
+          },
+        }),
+      );
+      this.client = OpenFeature.getClient('posthog', '1.0.0');
+    } else {
+      OpenFeature.setProvider(new InMemoryProvider(IN_MEMORY_FLAGS));
+      this.client = OpenFeature.getClient();
+    }
   }
 
   /**
