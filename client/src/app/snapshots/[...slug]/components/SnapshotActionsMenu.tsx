@@ -3,6 +3,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { TableSelection, TableSelectionComponent } from '@/app/components/TableSelectionComponent';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { snapshotApi } from '@/lib/api/snapshot';
@@ -18,10 +19,10 @@ import {
   TrashIcon,
   UploadIcon,
 } from '@phosphor-icons/react';
-import { ArrowUp, Bot, Command, Download, Upload } from 'lucide-react';
+import { ArrowUp, Bot, Command, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { useTableContext } from './contexts/table-context';
@@ -43,7 +44,7 @@ export const SnapshotActionsMenu = () => {
   const { activeTable } = useTableContext();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
-  const { isAdmin } = useScratchPadUser();
+  const { isDevToolsEnabled } = useDevTools();
   const modalStack = useModalsStack(Object.values(Modals));
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [downloadResult, setDownloadResult] = useState<DownloadSnapshotWithouotJobResult | null>(null);
@@ -211,9 +212,16 @@ export const SnapshotActionsMenu = () => {
 
   return (
     <>
-      <Modal {...modalStack.register(Modals.CONFIRM_DELETE)} title="Abandon scratchpaper" centered size="lg">
+      <Modal
+        {...modalStack.register(Modals.CONFIRM_DELETE)}
+        title={`Abandon ${activeTable?.tableSpec.name}`}
+        centered
+        size="lg"
+      >
         <Stack>
-          <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
+          <Text>
+            Are you sure you want to abandon the {activeTable?.tableSpec.name} table? All scratch data will be deleted.
+          </Text>
           <Group justify="flex-end">
             <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DELETE)}>Cancel</SecondaryButton>
             <PrimaryButton onClick={handleAbandon} loading={saving}>
@@ -290,7 +298,7 @@ export const SnapshotActionsMenu = () => {
             Rename
           </Menu.Item>
 
-          {isAdmin && (
+          {isDevToolsEnabled && (
             <Menu.Item disabled={menuItemsDisabled} onClick={handleOpenAdvancedInput} leftSection={<Bot size={16} />}>
               Advanced Agent Input
             </Menu.Item>
@@ -330,76 +338,90 @@ export const SnapshotActionsMenu = () => {
             {getPushOperationName(connectorAccount?.service)}
           </Menu.Item>
 
-          <Menu.Divider />
-          <Menu.Label>CSV</Menu.Label>
-          {snapshot?.tables && snapshot.tables.length > 0 && (
+          {snapshot && activeTable && (
             <>
-              {snapshot.tables.map((table) => (
-                <React.Fragment key={table.id.wsId}>
-                  <Menu.Item
-                    disabled={menuItemsDisabled || downloadingCsv === table.id.wsId}
-                    onClick={() => {
-                      handleDownloadCsv(snapshot, table.id.wsId, table.name, setDownloadingCsv, false);
-                    }}
-                    leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
-                  >
-                    Export All as CSV
-                  </Menu.Item>
+              <Menu.Divider />
+              <Menu.Label>CSV</Menu.Label>
 
-                  <Menu.Item
-                    disabled={
-                      menuItemsDisabled || downloadingCsv === table.id.wsId || !hasActiveRecordSqlFilter(table.id.wsId)
-                    }
-                    onClick={() => {
-                      handleDownloadCsv(snapshot, table.id.wsId, table.name + ' (filtered)', setDownloadingCsv, true);
-                    }}
-                    leftSection={downloadingCsv === table.id.wsId ? <Loader size="xs" /> : <Download size={16} />}
-                  >
-                    Export Filtered as CSV
-                  </Menu.Item>
+              <Menu.Item
+                disabled={menuItemsDisabled || downloadingCsv === activeTable.tableSpec.id.wsId}
+                onClick={() => {
+                  handleDownloadCsv(
+                    snapshot,
+                    activeTable.tableSpec.id.wsId,
+                    activeTable.tableSpec.name,
+                    setDownloadingCsv,
+                    false,
+                  );
+                }}
+                leftSection={
+                  downloadingCsv === activeTable.tableSpec.id.wsId ? <Loader size="xs" /> : <FileDownIcon size={16} />
+                }
+              >
+                Export all {activeTable.tableSpec.name} as CSV
+              </Menu.Item>
 
-                  <Menu.Item
-                    disabled={menuItemsDisabled || uploadingFile === table.id.wsId}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.debug('Menu.Item clicked for table:', table.id.wsId);
-                      const input = fileInputRefs.current[table.id.wsId];
-                      if (input) {
-                        console.debug('Triggering file input click');
-                        input.click();
-                      } else {
-                        console.debug('File input ref not found for table:', table.id.wsId);
-                      }
-                    }}
-                    leftSection={uploadingFile === table.id.wsId ? <Loader size="xs" /> : <Upload size={16} />}
-                    closeMenuOnClick={false}
-                  >
-                    Import Suggestions
-                  </Menu.Item>
-                  <input
-                    key={`file-input-${table.id.wsId}`}
-                    type="file"
-                    ref={(el) => {
-                      fileInputRefs.current[table.id.wsId] = el;
-                    }}
-                    accept=".csv"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      console.debug('File input onChange triggered', { files: e.target.files?.length });
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        console.debug('File selected:', file.name);
-                        handleImportSuggestions(file, table.id.wsId);
-                        e.target.value = ''; // Reset input
-                      }
-                    }}
-                  />
-                </React.Fragment>
-              ))}
+              <Menu.Item
+                disabled={
+                  menuItemsDisabled ||
+                  downloadingCsv === activeTable.tableSpec.id.wsId ||
+                  !hasActiveRecordSqlFilter(activeTable.tableSpec.id.wsId)
+                }
+                onClick={() => {
+                  handleDownloadCsv(
+                    snapshot,
+                    activeTable.tableSpec.id.wsId,
+                    activeTable.tableSpec.name + ' (filtered)',
+                    setDownloadingCsv,
+                    true,
+                  );
+                }}
+                leftSection={
+                  downloadingCsv === activeTable.tableSpec.id.wsId ? <Loader size="xs" /> : <FileDownIcon size={16} />
+                }
+              >
+                Export filtered {activeTable.tableSpec.name} as CSV
+              </Menu.Item>
+              <Menu.Item
+                disabled={menuItemsDisabled || uploadingFile === activeTable?.id}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.debug('Menu.Item clicked for table:', activeTable?.id);
+                  const input = fileInputRefs.current[activeTable?.id];
+                  if (input) {
+                    console.debug('Triggering file input click');
+                    input.click();
+                  } else {
+                    console.debug('File input ref not found for table:', activeTable?.id);
+                  }
+                }}
+                leftSection={uploadingFile === activeTable?.id ? <Loader size="xs" /> : <FileUpIcon size={16} />}
+                closeMenuOnClick={false}
+              >
+                Import Suggestions
+              </Menu.Item>
+              <input
+                key={`file-input-${activeTable?.id}`}
+                type="file"
+                ref={(el) => {
+                  fileInputRefs.current[activeTable?.id] = el;
+                }}
+                accept=".csv"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  console.debug('File input onChange triggered', { files: e.target.files?.length });
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    console.debug('File selected:', file.name);
+                    handleImportSuggestions(file, activeTable?.id);
+                    e.target.value = ''; // Reset input
+                  }
+                }}
+              />
+
+              <Menu.Divider />
             </>
           )}
-          <Menu.Divider />
-
           <Menu.Item
             color="red"
             disabled={menuItemsDisabled}
