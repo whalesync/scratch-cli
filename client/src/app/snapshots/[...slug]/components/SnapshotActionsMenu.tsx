@@ -413,7 +413,7 @@ export const SnapshotActionsMenu = () => {
                   const file = e.target.files?.[0];
                   if (file) {
                     console.debug('File selected:', file.name);
-                    handleImportSuggestions(file, activeTable?.id);
+                    handleImportSuggestions(file, activeTable?.tableSpec.id.wsId);
                     e.target.value = ''; // Reset input
                   }
                 }}
