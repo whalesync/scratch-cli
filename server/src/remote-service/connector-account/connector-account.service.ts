@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException, NotFoundException } from '@ne
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
+import { WSLogger } from 'src/logger';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
@@ -241,12 +242,13 @@ export class ConnectorAccountService {
 
   async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {
     const account = await this.findOne(id, userId);
-    const connector = await this.connectorsService.getConnector({
-      service: account.service,
-      connectorAccount: account,
-      decryptedCredentials: account,
-    });
     try {
+      const connector = await this.connectorsService.getConnector({
+        service: account.service,
+        connectorAccount: account,
+        decryptedCredentials: account,
+      });
+
       await connector.testConnection();
 
       await this.db.client.connectorAccount.update({
@@ -259,18 +261,24 @@ export class ConnectorAccountService {
 
       return { health: 'ok' };
     } catch (error: unknown) {
+      WSLogger.debug({
+        source: 'ConnectorAccountService',
+        message: 'Error testing connection',
+        error,
+        userId,
+        connectorAccountId: id,
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await this.db.client.connectorAccount.update({
         where: { id },
         data: {
           healthStatus: 'FAILED',
           healthStatusLastCheckedAt: new Date(),
+          healthStatusMessage: errorMessage,
         },
       });
 
-      if (error instanceof Error) {
-        return { health: 'error', error: error.message };
-      }
-      return { health: 'error', error: 'Unknown error' };
+      return { health: 'error', error: errorMessage };
     }
   }
 }

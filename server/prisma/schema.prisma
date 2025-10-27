@@ -97,6 +97,7 @@ model ConnectorAccount {
   encryptedCredentials      Json                   @default("{}") // Encrypted JSON containing apiKey, oauth tokens, etc.
   healthStatus              ConnectorHealthStatus?
   healthStatusLastCheckedAt DateTime?
+  healthStatusMessage       String? // Message if health status is not OK
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
   snapshots                 Snapshot[]

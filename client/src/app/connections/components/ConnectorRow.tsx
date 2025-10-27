@@ -8,7 +8,7 @@ import { useSnapshots } from '@/hooks/use-snapshot';
 import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { formatDate } from '@/utils/helpers';
-import { Group, Loader, Table, Text } from '@mantine/core';
+import { Group, Loader, Table, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { CheckCircle, Edit3, HelpCircle, Plus, RefreshCcwIcon, Trash2, XCircle } from 'lucide-react';
 import { CreateSnapshotModal } from './CreateSnapshotModal';
@@ -30,6 +30,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
     let text = '';
     let color = 'gray';
     let icon = <></>;
+    let tooltip = '';
     if (!c.healthStatus || !c.healthStatusLastCheckedAt) {
       text = 'Connection status unknown';
       color = 'gray';
@@ -46,13 +47,16 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
       text = `Connection problem`;
       color = 'red';
       icon = <StyledLucideIcon Icon={XCircle} size="md" />;
+      tooltip = c.healthStatusMessage ?? '';
     }
 
     return (
-      <Group c={color} gap="xs">
-        {icon}
-        <TextRegularXs>{text}</TextRegularXs>
-      </Group>
+      <Tooltip label={tooltip} disabled={!tooltip}>
+        <Group c={color} gap="xs">
+          {icon}
+          <TextRegularXs>{text}</TextRegularXs>
+        </Group>
+      </Tooltip>
     );
   };
 

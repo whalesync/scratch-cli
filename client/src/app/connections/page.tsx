@@ -25,18 +25,7 @@ export default function ConnectorAccountsPage() {
 
   const handleTest = async (id: string) => {
     setTestingId(id);
-    const r = await testConnection(id);
-    if (r.health === 'error') {
-      ScratchpadNotifications.error({
-        title: 'Connection Test Failed',
-        message: r.error,
-      });
-    } else {
-      ScratchpadNotifications.success({
-        title: 'Connection Test Succeeded',
-        message: 'Successfully connected to the service.',
-      });
-    }
+    await testConnection(id);
     setTestingId(null);
   };
 

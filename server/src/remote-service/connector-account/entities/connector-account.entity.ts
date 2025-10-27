@@ -13,6 +13,7 @@ export class ConnectorAccount implements PrismaConnectorAccount {
   encryptedCredentials: any; // Encrypted JSON
   healthStatus: ConnectorHealthStatus | null;
   healthStatusLastCheckedAt: Date | null;
+  healthStatusMessage: string | null;
   modifier: string | null;
   extras: JsonValue | null;
 }
