@@ -8,8 +8,8 @@ import { EyeOff, PanelRightIcon, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
-import { PrimaryButton } from '@/app/components/base/buttons';
-import { TextTitleXs } from '@/app/components/base/text';
+import { ButtonPrimaryLight } from '@/app/components/base/buttons';
+import { TextTitle4 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
@@ -17,7 +17,6 @@ import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { NavbarToggleButton } from '@/app/components/NavbarToggleButton';
 import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
@@ -106,9 +105,9 @@ function SnapshotPageContent() {
         title="Scratchpaper not found."
         error="We were unable to find the scratchpaper you are looking for."
         action={
-          <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+          <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
             Return to scratchpapers
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         }
       />
     );
@@ -120,9 +119,9 @@ function SnapshotPageContent() {
         title={`No tables found in ${snapshot.name}`}
         error={`There are no tables in this scratchpaper. You will need to abandon the scratchpaper and recreate it.`}
         action={
-          <PrimaryButton leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+          <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
             Return to scratchpapers
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         }
       />
     );
@@ -162,8 +161,7 @@ function SnapshotPageContent() {
   const header = (
     <Group align="center" h="100%" wrap="nowrap" gap="md" style={{ width: '100%' }}>
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
-        <NavbarToggleButton />
-        <TextTitleXs>{snapshot.name}</TextTitleXs>
+        <TextTitle4>{snapshot.name}</TextTitle4>
       </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -304,7 +302,7 @@ function SnapshotPageContent() {
   return (
     <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} rightPanel={aiChatPanel}>
       <MainContent>
-        <MainContent.Header pb="0">{header}</MainContent.Header>
+        <MainContent.Header>{header}</MainContent.Header>
         <MainContent.Body p="0">
           {content}
           {debugModals}

@@ -13,13 +13,14 @@ import {
   Stack,
   Text,
   TextProps,
+  TitleProps,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { ArrowsClockwiseIcon, ArrowUpRightIcon, InfoIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
-import { PrimaryButton } from '../base/buttons';
-import { TextRegularSm, TextTitleLg } from '../base/text';
+import { ButtonPrimaryLight } from '../base/buttons';
+import { TextRegularSm, TextTitle2 } from '../base/text';
 import styles from './Info.module.css';
 
 /*
@@ -63,11 +64,11 @@ const LoaderWidget = (): JSX.Element => {
   return <Loader size="lg" mb="sm" color="primary" />;
 };
 
-const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
+const Title = ({ children, ...props }: PropsWithChildren<TitleProps>): JSX.Element => {
   return (
-    <TextTitleLg mb="2px" {...props}>
+    <TextTitle2 mb="2px" {...props}>
       {children}
-    </TextTitleLg>
+    </TextTitle2>
   );
 };
 
@@ -161,9 +162,9 @@ export const ErrorInfo = ({
       {!!error && <Info.DetailsDisclosure>{`${error}`}</Info.DetailsDisclosure>}
       <Info.Actions>
         {retry && (
-          <PrimaryButton leftSection={<ArrowsClockwiseIcon />} onClick={retry}>
+          <ButtonPrimaryLight leftSection={<ArrowsClockwiseIcon />} onClick={retry}>
             Reload
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         )}
         {action}
       </Info.Actions>

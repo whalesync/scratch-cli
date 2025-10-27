@@ -1,6 +1,6 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { tableName, tablesName } from '@/service-naming-conventions';
@@ -199,21 +199,26 @@ export const CreateSnapshotModal = ({
         {/* Add Channel button for YouTube connections */}
         {connectorAccount.service === 'YOUTUBE' && (
           <Group justify="flex-start" mt="sm">
-            <SecondaryButton variant="outline" size="sm" onClick={openAddChannelModal} disabled={isLoadingTables}>
+            <ButtonSecondaryOutline
+              variant="outline"
+              size="sm"
+              onClick={openAddChannelModal}
+              disabled={isLoadingTables}
+            >
               Add Channel
-            </SecondaryButton>
+            </ButtonSecondaryOutline>
           </Group>
         )}
 
         <Group justify="flex-end">
-          <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
-          <PrimaryButton
+          <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+          <ButtonPrimaryLight
             loading={isSaving}
             onClick={handleCreateSnapshot}
             disabled={!selectedTable || snapshotName.length === 0 || !!error}
           >
             Create scratchpaper
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
 
@@ -237,10 +242,10 @@ export const CreateSnapshotModal = ({
             You can find the channel ID in the YouTube channel URL or channel settings.
           </Text>
           <Group justify="flex-end">
-            <SecondaryButton onClick={closeAddChannelModal}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleAddChannel} loading={isAddingChannel} disabled={!channelId.trim()}>
+            <ButtonSecondaryOutline onClick={closeAddChannelModal}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleAddChannel} loading={isAddingChannel} disabled={!channelId.trim()}>
               Add Channel
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>

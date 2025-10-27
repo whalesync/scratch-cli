@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useCsvFiles } from '@/hooks/use-csv-file';
 import { CsvFile } from '@/types/server-entities/csv-file';
 import { Alert, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
@@ -87,10 +87,10 @@ export const EditCsvFileModal = (props: EditCsvFileModalProps) => {
           }}
         />
         <Group justify="flex-end">
-          <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={handleSave} loading={isSaving}>
+          <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleSave} loading={isSaving}>
             Save
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

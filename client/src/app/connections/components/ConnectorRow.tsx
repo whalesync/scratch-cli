@@ -1,6 +1,6 @@
 'use client';
 
-import { TextRegularXs, TextTitleSm } from '@/app/components/base/text';
+import { TextRegularXs, TextTitle3 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -67,7 +67,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>
           <Group gap="sm">
             <ConnectorIcon size={24} connector={connectorAccount.service} />
-            <TextTitleSm>{connectorAccount.displayName || serviceName(connectorAccount.service)}</TextTitleSm>
+            <TextTitle3>{connectorAccount.displayName || serviceName(connectorAccount.service)}</TextTitle3>
           </Group>
         </Table.Td>
         <Table.Td>

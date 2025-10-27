@@ -1,46 +1,60 @@
 import { Button } from '@mantine/core';
 import { Cpu } from 'lucide-react';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
+import customBordersClasses from '../theme/custom-borders.module.css';
 
-export const InlineButton = Button.withProps({
+export const ButtonPrimarySolid = Button.withProps({
+  variant: 'filled',
+  size: 'sm',
+  color: 'primary.7', // fill
+  c: 'background', // text
+  styles: { root: { border: 'primary.9', backgroundColor: 'primary.7' } },
+});
+
+export const ButtonPrimaryLight = Button.withProps({
+  variant: 'light',
+  size: 'sm',
+  color: 'primary.8', // fill
+  c: 'primary.8', // text
+  classNames: { root: customBordersClasses.cornerBorders },
+});
+
+export const ButtonSecondarySolid = Button.withProps({
+  variant: 'filled',
+  size: 'sm',
+  color: 'foreground.9', // fill
+  c: 'background', // text
+});
+
+export const ButtonSecondaryOutline = Button.withProps({
+  variant: 'outline',
+  size: 'sm',
+  color: 'foreground.9',
+  c: 'foreground.9', // text
+  classNames: { root: customBordersClasses.cornerBorders },
+});
+
+export const ButtonSecondaryGhost = Button.withProps({
+  variant: 'subtle',
+  size: 'sm',
+  color: 'foreground.9',
+  c: 'foreground.9',
+});
+
+export const ButtonSecondaryInline = Button.withProps({
   w: 'min-content',
   size: 'compact-sm',
   variant: 'subtle',
-  c: 'gray.9',
+  color: 'foreground.9',
+  c: 'foreground.9',
 });
 
-/**
- * Button with default styles for primary actions like saving, continuing, or submitting.
- */
-export const PrimaryButton = Button.withProps({
-  variant: 'outline',
-  size: 'xs',
-  color: 'primary', // border
-  c: 'primary', // text
-});
-
-/**
- * Button with default styles for secondary actions like canceling or triggering optional tools
- */
-export const SecondaryButton = Button.withProps({
-  variant: 'outline',
-  size: 'xs',
-  color: 'secondary',
-  c: 'secondary',
-});
-
-export const AcceptSuggestionButton = Button.withProps({
-  size: 'xs',
-  variant: 'outline',
-  color: 'primary', // border
-  c: 'primary', // text
-});
-
-export const RejectSuggestionButton = Button.withProps({
-  size: 'xs',
-  variant: 'outline',
-  color: 'secondary',
-  c: 'secondary',
+export const ButtonDangerLight = Button.withProps({
+  variant: 'light',
+  size: 'sm',
+  color: 'red.9',
+  c: 'red.9',
+  classNames: { root: customBordersClasses.cornerBorders },
 });
 
 export const DevToolButton = Button.withProps({
@@ -48,8 +62,26 @@ export const DevToolButton = Button.withProps({
   c: 'purple',
   color: 'purple',
   leftSection: <StyledLucideIcon Icon={Cpu} />,
+  classNames: { root: customBordersClasses.cornerBorders },
 });
 
+/** @deprecated */
+export const AcceptSuggestionButton = Button.withProps({
+  size: 'xs',
+  variant: 'outline',
+  color: 'primary', // border
+  c: 'primary', // text
+});
+
+/** @deprecated */
+export const RejectSuggestionButton = Button.withProps({
+  size: 'xs',
+  variant: 'outline',
+  color: 'secondary',
+  c: 'secondary',
+});
+
+/** @deprecated */
 export const ContentFooterButton = Button.withProps({
   variant: 'subtle',
   size: 'xs',

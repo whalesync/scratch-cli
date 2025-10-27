@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { ActionIcon, Code, Group, Modal, ScrollArea, Stack, Text } from '@mantine/core';
@@ -57,8 +57,8 @@ export const RecordJsonModal = ({ isOpen, onClose, record }: RecordJsonModalProp
         </ScrollArea>
 
         <Group justify="flex-end">
-          <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-          <PrimaryButton onClick={handleCopyJson}>{clipboard.copied ? 'Copied!' : 'Copy JSON'}</PrimaryButton>
+          <ButtonSecondaryOutline onClick={onClose}>Close</ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleCopyJson}>{clipboard.copied ? 'Copied!' : 'Copy JSON'}</ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

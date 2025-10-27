@@ -1,6 +1,6 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { uploadsApi } from '@/lib/api/uploads';
 import { Alert, Center, Group, Loader, Modal, ModalProps, Radio, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
@@ -83,10 +83,10 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
             </Radio.Group>
 
             <Group justify="flex-end" mt="md">
-              <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={handleConfirm} disabled={!selectedColumn}>
+              <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleConfirm} disabled={!selectedColumn}>
                 Create Scratchpaper
-              </PrimaryButton>
+              </ButtonPrimaryLight>
             </Group>
           </>
         )}

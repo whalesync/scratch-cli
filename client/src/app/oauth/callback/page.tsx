@@ -1,6 +1,6 @@
 'use client';
 
-import { SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { oauthApi } from '@/lib/api/oauth';
 import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
@@ -170,7 +170,9 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text>
             <Group gap="sm" mt="md">
-              <SecondaryButton onClick={() => router.push('/connections')}>Back to Connections</SecondaryButton>
+              <ButtonSecondaryOutline onClick={() => router.push('/connections')}>
+                Back to Connections
+              </ButtonSecondaryOutline>
               {/* <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton> */}
             </Group>
           </>

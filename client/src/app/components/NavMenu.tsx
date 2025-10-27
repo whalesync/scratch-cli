@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
+import customBorderStyles from './theme/custom-borders.module.css';
 
 type MenuItem = {
   href: string;
@@ -123,14 +124,14 @@ export function NavMenu() {
     return (
       <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
         <UnstyledButton
-          h={36}
-          w={36}
+          h={28}
+          w={28}
           component={Link}
           href={link.href}
           data-active={isActive || undefined}
-          className={styles.navButton}
+          className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}
         >
-          <StyledLucideIcon Icon={link.icon} size={20} />
+          <StyledLucideIcon Icon={link.icon} size={16} />
         </UnstyledButton>
       </Tooltip>
     );
@@ -139,21 +140,20 @@ export function NavMenu() {
   return (
     <Stack gap={0} h="100%" align="center">
       <Tooltip label={`${PROJECT_NAME} by Whalesync`}>
-        <Center h={40} w={40}>
-          <Link href={RouteUrls.homePageUrl}>
-            <Image
-              src="/logo-color.svg"
-              alt={`${PROJECT_NAME}`}
-              w={40}
-              h={40}
-              styles={{
-                root: {
-                  fill: 'var(--mantine-color-primary-5)',
-                },
-              }}
-            />
-          </Link>
-        </Center>
+        <Link href={RouteUrls.homePageUrl}>
+          <Image
+            src="/logo-color.svg"
+            alt={`${PROJECT_NAME}`}
+            w={28}
+            h={28}
+            my="md"
+            styles={{
+              root: {
+                fill: 'var(--mantine-color-primary-5)',
+              },
+            }}
+          />
+        </Link>
       </Tooltip>
 
       <Stack gap="md">

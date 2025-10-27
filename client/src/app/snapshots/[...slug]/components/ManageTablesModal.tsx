@@ -1,6 +1,6 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotTable } from '@/types/server-entities/snapshot';
@@ -17,7 +17,7 @@ interface ManageTablesModalProps {
 
 export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables }: ManageTablesModalProps) => {
   const [hiddenStates, setHiddenStates] = useState<Record<string, boolean>>(
-    tables.reduce((acc, table) => ({ ...acc, [table.id]: table.hidden }), {})
+    tables.reduce((acc, table) => ({ ...acc, [table.id]: table.hidden }), {}),
   );
   const [isSaving, setIsSaving] = useState(false);
 
@@ -91,10 +91,10 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables 
         </Stack>
 
         <Group justify="flex-end" mt="md">
-          <SecondaryButton onClick={handleClose}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={handleSave} loading={isSaving}>
+          <ButtonSecondaryOutline onClick={handleClose}>Cancel</ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleSave} loading={isSaving}>
             Save Changes
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

@@ -1,5 +1,5 @@
 'use client';
-import { SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { Info } from '@/app/components/InfoPanel';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -57,9 +57,9 @@ const ProductCheckoutRedirect = (): JSX.Element => {
         <Info.Title>Unable to load Stripe billing portal.</Info.Title>
         <Info.StatusPageDescription />
         <Info.Actions>
-          <SecondaryButton href={RouteUrls.homePageUrl} leftSection={<ArrowsClockwiseIcon />} component="a">
+          <ButtonSecondaryOutline href={RouteUrls.homePageUrl} leftSection={<ArrowsClockwiseIcon />} component="a">
             Return to Snapshots
-          </SecondaryButton>
+          </ButtonSecondaryOutline>
         </Info.Actions>
       </Info>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { ContentFooterButton, PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '@/app/components/base/buttons';
 import { CsvPreviewModal } from '@/app/components/modals/CsvPreviewModal';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
@@ -115,7 +115,7 @@ export const CreateSnapshotPanel = () => {
             onChange={(e) => setContentName(e.target.value)}
           />
           <Group justify="flex-end">
-            <SecondaryButton
+            <ButtonSecondaryOutline
               onClick={() => {
                 setContentName('');
                 setSaveError(null);
@@ -123,10 +123,10 @@ export const CreateSnapshotPanel = () => {
               }}
             >
               Cancel
-            </SecondaryButton>
-            <PrimaryButton onClick={handleCreateContentSnapshot} loading={isSaving} disabled={!contentName}>
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleCreateContentSnapshot} loading={isSaving} disabled={!contentName}>
               Create
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>

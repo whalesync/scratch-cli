@@ -43,9 +43,11 @@ export const CUSTOM_GRAY: MantineColorsTuple = [
   '#AEAFB3',
   '#8B8C92',
   '#818288',
-  '#62646B',
-  // "#1C1F25"
+  // '#62646B',
+  "#1C1F25"
 ];
+
+export const CUSTOM_GRAY_REVERSED: MantineColorsTuple = CUSTOM_GRAY.toReversed() as [string, string, string, string, string, string, string, string, string, string];
 
 export const CUSTOM_BLUE: MantineColorsTuple = [
   '#e8f3ff',

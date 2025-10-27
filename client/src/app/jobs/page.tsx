@@ -83,7 +83,7 @@ export default function JobsPage() {
     return (
       <MainContent>
         <MainContent.BasicHeader title="Jobs" />
-        <MainContent.Body p="0">
+        <MainContent.Body>
           <Center h="100%">
             <Group>
               <Loader size="sm" />
@@ -99,7 +99,7 @@ export default function JobsPage() {
     return (
       <MainContent>
         <MainContent.BasicHeader title="Jobs" />
-        <MainContent.Body p="0">
+        <MainContent.Body>
           <Center h="100%">
             <Text c="red">Error loading jobs: {error.message}</Text>
           </Center>
@@ -111,7 +111,7 @@ export default function JobsPage() {
   return (
     <MainContent>
       <MainContent.BasicHeader title="Jobs" />
-      <MainContent.Body p="0">
+      <MainContent.Body>
         {jobs.length === 0 ? (
           <Center h="50vh">
             <Text c="dimmed">No jobs found</Text>

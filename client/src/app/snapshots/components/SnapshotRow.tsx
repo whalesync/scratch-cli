@@ -1,5 +1,5 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextTitleSm } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextTitle3 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -31,7 +31,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
       }
       return acc;
     },
-    {} as Record<Service, number>
+    {} as Record<Service, number>,
   );
 
   const handleAbandon = async () => {
@@ -81,10 +81,10 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         <Stack>
           <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleAbandon} loading={saving}>
+            <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleAbandon} loading={saving}>
               Delete
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>
@@ -92,10 +92,10 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('rename')}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleRename} loading={saving}>
+            <ButtonSecondaryOutline onClick={() => modalStack.close('rename')}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleRename} loading={saving}>
               Save
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>
@@ -105,7 +105,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>
-          <TextTitleSm>{snapshot.name}</TextTitleSm>
+          <TextTitle3>{snapshot.name}</TextTitle3>
         </Table.Td>
         <Table.Td>
           <Group gap="md" wrap="nowrap">

@@ -1,11 +1,11 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { RouteUrls } from '@/utils/route-urls';
 import { Modal, Stack } from '@mantine/core';
 import Link from 'next/link';
 import { JSX } from 'react';
-import { TextRegularSm, TextTitleLg } from './base/text';
+import { TextRegularSm, TextTitle2 } from './base/text';
 
 export const NoSubscriptionDetectedModal = (): JSX.Element => {
   const { signOut } = useScratchPadUser();
@@ -22,16 +22,16 @@ export const NoSubscriptionDetectedModal = (): JSX.Element => {
       title={null}
     >
       <Stack gap="xs" mb="md" align="center">
-        <TextTitleLg>Get started with Scratchpaper.ai</TextTitleLg>
+        <TextTitle2>Get started with Scratchpaper.ai</TextTitle2>
         <TextRegularSm ta="center">
           Sign up for your 7 day free trial and start editing your data with AI.
         </TextRegularSm>
       </Stack>
       <Stack gap="xs">
-        <SecondaryButton onClick={signOut}>Switch accounts</SecondaryButton>
-        <PrimaryButton component={Link} href={choosePlanUrl}>
+        <ButtonSecondaryOutline onClick={signOut}>Switch accounts</ButtonSecondaryOutline>
+        <ButtonPrimaryLight component={Link} href={choosePlanUrl}>
           Start Free Trial
-        </PrimaryButton>
+        </ButtonPrimaryLight>
       </Stack>
     </Modal>
   );

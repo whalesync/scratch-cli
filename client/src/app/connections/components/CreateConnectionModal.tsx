@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -307,10 +307,10 @@ export const CreateConnectionModal = (props: ModalProps) => {
           />
         )}
         <Group justify="flex-end">
-          <SecondaryButton onClick={props.onClose}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={handleCreate} loading={isOAuthLoading}>
+          <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading}>
             {authMethod === 'oauth' && newService ? 'Connect with ' + serviceName(newService) : 'Create'}
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

@@ -5,8 +5,8 @@ import { CsvFile } from '@/types/server-entities/csv-file';
 import { Center, Group, Loader, Modal, Stack, Table, Text, UnstyledButton, useModalsStack } from '@mantine/core';
 import { Edit3Icon, FileSpreadsheet, Plus, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
-import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
-import { TextRegularSm, TextTitleSm } from '../components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
+import { TextRegularSm, TextTitle3 } from '../components/base/text';
 import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -65,15 +65,15 @@ export default function CsvFilesPage() {
               <Stack>
                 <Text>Are you sure you want to delete this CSV file?</Text>
                 <Group justify="flex-end">
-                  <SecondaryButton
+                  <ButtonSecondaryOutline
                     onClick={() => {
                       modalStack.close('delete');
                       setSelectedCsvFile(null);
                     }}
                   >
                     Cancel
-                  </SecondaryButton>
-                  <PrimaryButton
+                  </ButtonSecondaryOutline>
+                  <ButtonPrimaryLight
                     onClick={() => {
                       if (!selectedCsvFile) return;
                       handleDeleteCsvFile(selectedCsvFile.id);
@@ -83,7 +83,7 @@ export default function CsvFilesPage() {
                     loading={isDeleting}
                   >
                     Delete
-                  </PrimaryButton>
+                  </ButtonPrimaryLight>
                 </Group>
               </Stack>
             </Modal>
@@ -111,7 +111,7 @@ export default function CsvFilesPage() {
                       >
                         <Group gap="sm">
                           <StyledLucideIcon Icon={FileSpreadsheet} size="md" />
-                          <TextTitleSm>{csvFile.name}</TextTitleSm>
+                          <TextTitle3>{csvFile.name}</TextTitle3>
                         </Group>
                       </UnstyledButton>
                     </Table.Td>

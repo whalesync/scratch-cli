@@ -1,9 +1,8 @@
 'use client';
 
-import { ActionIcon, Button, createTheme, Title, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, Title, virtualColor } from '@mantine/core';
 import { Funnel_Display, Inter } from 'next/font/google';
-import cornerBordersClasses from './corner-borders.module.css';
-import { CUSTOM_BLUE, CUSTOM_GRAY, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
+import { CUSTOM_BLUE,  CUSTOM_GRAY, CUSTOM_GRAY_REVERSED, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
 import classes from './theme.module.css';
 import { variantColorResolver } from './variantColorResolver';
 
@@ -16,10 +15,13 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   cursorType: 'pointer',
   colors: {
-    gray: CUSTOM_GRAY,
     red: CUSTOM_RED,
     green: CUSTOM_GREEN,
     blue: CUSTOM_BLUE,
+    gray: CUSTOM_GRAY,
+    grayReversed: CUSTOM_GRAY_REVERSED,
+
+    primary: CUSTOM_GREEN,
 
     // NOTE: this does not work yet, waiting to hear from Mantine team
     suggestion: virtualColor({
@@ -27,16 +29,22 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       light: 'blue',
       dark: 'green',
     }),
-    primary: CUSTOM_GREEN,
 
     secondary: virtualColor({
       name: 'secondary',
       light: 'gray',
       dark: 'gray',
     }),
+
+    foreground: virtualColor({
+      name: 'foreground',
+      light: 'gray',
+      dark: 'grayReversed',
+    }),
   },
 
   primaryColor: 'primary',
+  primaryShade: { light: 8, dark: 8 }, 
 
   variantColorResolver: variantColorResolver,
 
@@ -50,10 +58,10 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     fontFamily: funnelDisplay.style.fontFamily,
     fontWeight: '450',
     sizes: {
-      h1: { fontSize: '24px', lineHeight: '160%' },
-      h2: { fontSize: '16px', lineHeight: '170%' },
-      h3: { fontSize: '15px', lineHeight: '150%' },
-      h4: { fontSize: '14px', lineHeight: '160%' },
+      h1: { fontSize: '24px', lineHeight: '160%', fontWeight: '500' },
+      h2: { fontSize: '18px', lineHeight: '170%', fontWeight: '500' },
+      h3: { fontSize: '16px', lineHeight: '150%', fontWeight: '500' },
+      h4: { fontSize: '14px', lineHeight: '160%', fontWeight: '500' },
     },
   },
 
@@ -83,9 +91,19 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       classNames: classes,
     }),
 
-    Button: Button.extend({
-      classNames: { root: cornerBordersClasses.cornerBorders },
-    }),
+    // Button: Button.extend({
+    //   classNames: (theme, props) => {
+    //     switch (props.variant) {
+    //       case 'outline':
+    //       case 'light':
+    //         return { root: customBordersClasses.cornerBorders };
+    //       case 'filled':
+    //         return { root: customBordersClasses.plainBorder };
+    //       default:
+    //         return {};
+    //     }
+    //   }        
+    // }),
 
     Title: Title.extend({
       defaultProps: {

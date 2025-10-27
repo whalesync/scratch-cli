@@ -3,9 +3,10 @@
     - The rest of the border in a lighter shade of currentColor
 */
 .cornerBorders {
+  position: relative;
   border: none !important; /* Definitely nuke the default border, we replace it with our own */
   --corner-color: currentColor;
-  --other-color: color-mix(in srgb, currentColor 45%, transparent);
+  --other-color: color-mix(in srgb, currentColor 50%, transparent);
 
   &::after {
     content: '';
@@ -31,4 +32,10 @@
       linear-gradient(var(--other-color), var(--other-color)) 0 100% / 100% 1px no-repeat,
       linear-gradient(var(--other-color), var(--other-color)) 100% 0 / 1px 100% no-repeat;
   }
+}
+
+/** Plain border look for when the div's background is closer to the border color.
+*/
+.plainBorder {
+  border: 10px solid currentColor !important;
 }

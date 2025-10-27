@@ -1,15 +1,15 @@
 import { Box, Code, Divider, Group, Kbd, Modal, ModalProps, Stack, Text } from '@mantine/core';
-import { SecondaryButton } from './base/buttons';
-import { TextRegularSm, TextTitleSm } from './base/text';
+import { ButtonSecondaryOutline } from './base/buttons';
+import { TextRegularSm, TextTitle3 } from './base/text';
 
 export const KeyboardShortcutHelpModal = (props: ModalProps) => {
-  const title = <TextTitleSm>Reference</TextTitleSm>;
+  const title = <TextTitle3>Reference</TextTitle3>;
 
   const shortcutsContent = (
     <Stack gap="md">
       {/* Grid Navigation */}
       <Box>
-        <TextTitleSm mb="xs">Grid Navigation</TextTitleSm>
+        <TextTitle3 mb="xs">Grid Navigation</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
             <TextRegularSm>Open record details</TextRegularSm>
@@ -63,7 +63,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
 
       {/* General */}
       <Box>
-        <TextTitleSm>General</TextTitleSm>
+        <TextTitle3>General</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
             <TextRegularSm mb="xs">Open this help modal</TextRegularSm>
@@ -80,7 +80,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
 
       {/* AI Chat */}
       <Box>
-        <TextTitleSm mb="xs">Chat</TextTitleSm>
+        <TextTitle3 mb="xs">Chat</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
             <TextRegularSm>Send message</TextRegularSm>
@@ -125,7 +125,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
     <Modal title={title} size="lg" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
       {shortcutsContent}
       <Group justify="flex-end" mt="lg">
-        <SecondaryButton onClick={props.onClose}>Close</SecondaryButton>
+        <ButtonSecondaryOutline onClick={props.onClose}>Close</ButtonSecondaryOutline>
       </Group>
     </Modal>
   );

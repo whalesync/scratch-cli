@@ -1,7 +1,7 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextRegularSm, TextTitle3 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
@@ -191,10 +191,10 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
         {step === 'select-table' && (
           <>
             <Group justify="space-between" align="center">
-              <TextTitleSm>Select a Table</TextTitleSm>
-              <SecondaryButton size="xs" onClick={handleBack}>
+              <TextTitle3>Select a Table</TextTitle3>
+              <ButtonSecondaryOutline size="xs" onClick={handleBack}>
                 Back to Connectors
-              </SecondaryButton>
+              </ButtonSecondaryOutline>
             </Group>
 
             <TextRegularSm c="dimmed">
@@ -243,18 +243,18 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
             )}
 
             <Group justify="flex-end" mt="md">
-              <SecondaryButton onClick={handleClose}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={handleAddTables} disabled={selectedTableIds.length === 0} loading={isAdding}>
+              <ButtonSecondaryOutline onClick={handleClose}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleAddTables} disabled={selectedTableIds.length === 0} loading={isAdding}>
                 Add {selectedTableIds.length > 0 ? selectedTableIds.length : ''} Table
                 {selectedTableIds.length !== 1 ? 's' : ''}
-              </PrimaryButton>
+              </ButtonPrimaryLight>
             </Group>
           </>
         )}
 
         {step === 'select-connector' && (
           <Group justify="flex-end" mt="md">
-            <SecondaryButton onClick={handleClose}>Cancel</SecondaryButton>
+            <ButtonSecondaryOutline onClick={handleClose}>Cancel</ButtonSecondaryOutline>
           </Group>
         )}
       </Stack>

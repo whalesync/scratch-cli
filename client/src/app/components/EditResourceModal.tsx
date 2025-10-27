@@ -13,7 +13,7 @@ import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput }
 import { notifications } from '@mantine/notifications';
 import { CheckCircleIcon, DownloadSimpleIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
-import { PrimaryButton, SecondaryButton } from './base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
 import { ToolIconButton } from './ToolIconButton';
 
 interface EditResourceModalProps extends ModalProps {
@@ -218,12 +218,12 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
         />
 
         <Group justify="flex-end" gap="sm">
-          <SecondaryButton onClick={handleClose} disabled={isSaving}>
+          <ButtonSecondaryOutline onClick={handleClose} disabled={isSaving}>
             Cancel
-          </SecondaryButton>
-          <PrimaryButton loading={isSaving} disabled={!name.trim()} onClick={handleSubmit}>
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight loading={isSaving} disabled={!name.trim()} onClick={handleSubmit}>
             {isNewResource ? 'Create' : 'Save'}
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

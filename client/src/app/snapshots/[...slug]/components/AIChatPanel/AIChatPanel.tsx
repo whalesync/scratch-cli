@@ -2,7 +2,7 @@
 
 import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
 import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
-import { SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
@@ -40,7 +40,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TextRegularXs, TextTitleSm } from '../../../../components/base/text';
+import { TextRegularXs, TextTitle3 } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
@@ -414,9 +414,9 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               <StyledLucideIcon Icon={PanelRightIcon} size={14} />
             </ActionIcon>
 
-            <TextTitleSm>
+            <TextTitle3>
               {activeSession ? _.truncate(activeSession.name, { length: 30, omission: '...' }) : 'Chat'}
-            </TextTitleSm>
+            </TextTitle3>
             {activeSession && showDeleteSessionButton && (
               <ActionIcon
                 onClick={async () => {
@@ -520,9 +520,9 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                 <Text size="xs" c="dimmed">
                   You must configure your OpenRouter credentials to use the AI agent
                 </Text>
-                <SecondaryButton component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
+                <ButtonSecondaryOutline component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
                   Configure credentials
-                </SecondaryButton>
+                </ButtonSecondaryOutline>
               </Stack>
             )}
           </Center>

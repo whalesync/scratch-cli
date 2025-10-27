@@ -1,6 +1,6 @@
 'use client';
 
-import { ContentFooterButton, PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '@/app/components/base/buttons';
 import { TextRegularSm } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
@@ -221,7 +221,7 @@ export default function UploadsPage() {
       <PageLayout>
         <MainContent>
           <MainContent.BasicHeader title="Uploads 1" />
-          <MainContent.Body p="0">
+          <MainContent.Body>
             <Center h="100%">
               <Loader />
               <TextRegularSm>Loading uploads...</TextRegularSm>
@@ -237,7 +237,7 @@ export default function UploadsPage() {
       <PageLayout>
         <MainContent>
           <MainContent.BasicHeader title="Uploads" />
-          <MainContent.Body p="0">
+          <MainContent.Body>
             <ErrorInfo error={error} />
           </MainContent.Body>
         </MainContent>
@@ -251,7 +251,7 @@ export default function UploadsPage() {
     <PageLayout>
       <MainContent>
         <MainContent.BasicHeader title="Uploads" />
-        <MainContent.Body p="0">
+        <MainContent.Body>
           <input
             ref={fileInputRef}
             type="file"
@@ -308,10 +308,12 @@ export default function UploadsPage() {
             <Stack>
               <Text>Are you sure you want to delete this upload?</Text>
               <Group justify="flex-end">
-                <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-                <PrimaryButton onClick={handleDelete} loading={isDeleting}>
+                <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>
+                  Cancel
+                </ButtonSecondaryOutline>
+                <ButtonPrimaryLight onClick={handleDelete} loading={isDeleting}>
                   Delete
-                </PrimaryButton>
+                </ButtonPrimaryLight>
               </Group>
             </Stack>
           </Modal>

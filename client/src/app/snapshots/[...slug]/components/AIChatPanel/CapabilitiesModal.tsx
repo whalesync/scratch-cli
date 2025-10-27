@@ -1,7 +1,7 @@
 'use client';
 
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextTitleSm } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextTitle3 } from '@/app/components/base/text';
 import { Capability } from '@/types/server-entities/chat-session';
 import { Checkbox, Divider, Group, Modal, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
@@ -68,7 +68,7 @@ export default function CapabilitiesModal({
           {Object.entries(groupedCapabilities).map(([groupName, capabilities], groupIndex) => (
             <Stack key={groupName} gap="xs">
               {groupIndex > 0 && <Divider />}
-              <TextTitleSm c="primary">{groupName.charAt(0).toUpperCase() + groupName.slice(1)}</TextTitleSm>
+              <TextTitle3 c="primary">{groupName.charAt(0).toUpperCase() + groupName.slice(1)}</TextTitle3>
               <Stack gap="xs">
                 {capabilities.map((capability) => (
                   <Checkbox
@@ -84,8 +84,8 @@ export default function CapabilitiesModal({
           ))}
         </Stack>
         <Group justify="flex-end" gap="xs">
-          <SecondaryButton onClick={handleCancel}>Cancel</SecondaryButton>
-          <PrimaryButton onClick={handleSave}>Save</PrimaryButton>
+          <ButtonSecondaryOutline onClick={handleCancel}>Cancel</ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleSave}>Save</ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

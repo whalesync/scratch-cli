@@ -1,6 +1,6 @@
 'use client';
 
-import { TextTitleXs } from '@/app/components/base/text';
+import { TextTitle4 } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import SideBar from '@/app/components/layouts/SideBarContent';
@@ -10,10 +10,9 @@ import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Box, Button, Center, Divider, Group, SegmentedControl, Stack, Title } from '@mantine/core';
 import { DotsThreeIcon, FileTextIcon, FunnelSimpleIcon, PlusIcon, TableIcon } from '@phosphor-icons/react';
 import { JSX } from 'react';
-import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
 import { ConnectorIcon } from '../components/ConnectorIcon';
 import { ErrorInfo } from '../components/InfoPanel';
-import { NavbarToggleButton } from '../components/NavbarToggleButton';
 
 const LayoutTestPage = (): JSX.Element => {
   const { toggleRightPanel } = useLayoutManagerStore();
@@ -39,10 +38,9 @@ const LayoutTestPage = (): JSX.Element => {
         <MainContent.Header>
           <Group align="center" h="100%">
             <Group>
-              <NavbarToggleButton />
               <Group gap="xs">
                 <ConnectorIcon connector={Service.NOTION} size={24} />
-                <TextTitleXs>Blog</TextTitleXs>
+                <TextTitle4>Blog</TextTitle4>
               </Group>
               <SegmentedControl
                 size="xs"
@@ -84,8 +82,8 @@ const LayoutTestPage = (): JSX.Element => {
               <Button variant="outline" color="primary">
                 Test
               </Button>
-              <PrimaryButton>Primary</PrimaryButton>
-              <SecondaryButton>Secondary</SecondaryButton>
+              <ButtonPrimaryLight>Primary</ButtonPrimaryLight>
+              <ButtonSecondaryOutline>Secondary</ButtonSecondaryOutline>
             </Box>
             <ErrorInfo error="Hello" title="Error" />
           </Stack>

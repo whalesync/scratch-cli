@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { usePublishSummary } from '@/hooks/use-publish-summary';
 import { Anchor, Collapse, Group, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import pluralize from 'pluralize';
@@ -138,10 +138,10 @@ export const PublishConfirmationModal = ({
         </Collapse>
 
         <Group justify="flex-end">
-          <SecondaryButton onClick={handleClose} disabled={isPublishing}>
+          <ButtonSecondaryOutline onClick={handleClose} disabled={isPublishing}>
             Cancel
-          </SecondaryButton>
-          <PrimaryButton
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight
             onClick={async () => {
               onConfirm();
               handleClose();
@@ -149,7 +149,7 @@ export const PublishConfirmationModal = ({
             loading={isPublishing}
           >
             Publish Changes
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

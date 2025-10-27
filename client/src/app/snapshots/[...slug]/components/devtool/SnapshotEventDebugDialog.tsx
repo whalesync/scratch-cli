@@ -1,4 +1,4 @@
-import { TextTitleXs } from '@/app/components/base/text';
+import { TextTitle4 } from '@/app/components/base/text';
 import { timeAgo } from '@/utils/helpers';
 import { Dialog, DialogProps, ScrollArea, Stack, Text } from '@mantine/core';
 import { useSnapshotEventContext } from '../contexts/snapshot-event-context';
@@ -16,7 +16,7 @@ export const SnapshotEventDebugDialog = (props: DialogProps) => {
     >
       <ScrollArea h={500}>
         <Stack gap="xs">
-          <TextTitleXs>Snapshot Event Log</TextTitleXs>
+          <TextTitle4>Snapshot Event Log</TextTitle4>
           {messageLog.map((item, index) => (
             <Stack key={index} gap="2px" w="100%">
               <Text size="xs">{item.message}</Text>

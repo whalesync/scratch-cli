@@ -1,7 +1,7 @@
 'use client';
 
-import { AcceptSuggestionButton, RejectSuggestionButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextBookSm, TextRegularXs, TextTitleXs } from '@/app/components/base/text';
+import { AcceptSuggestionButton, ButtonSecondaryOutline, RejectSuggestionButton } from '@/app/components/base/buttons';
+import { TextBookSm, TextRegularXs, TextTitle4 } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
@@ -262,7 +262,7 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
       <Group gap="md" align="center" wrap="nowrap">
         {/* Column Views Section */}
         <Group gap="xs" align="center">
-          <TextTitleXs>Column Views</TextTitleXs>
+          <TextTitle4>Column Views</TextTitle4>
           <Select
             value={currentViewId || ''}
             onChange={(value) => setCurrentViewId?.(value || null)}
@@ -353,13 +353,13 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
 
         {/* Filtered Records Widget */}
         <Group gap="xs" align="center">
-          <SecondaryButton size="xs" onClick={() => setSqlFilterModalOpen(true)}>
+          <ButtonSecondaryOutline size="xs" onClick={() => setSqlFilterModalOpen(true)}>
             Set SQL Filter
-          </SecondaryButton>
+          </ButtonSecondaryOutline>
           {currentTableFilter && (
-            <SecondaryButton size="xs" onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}>
+            <ButtonSecondaryOutline size="xs" onClick={() => currentTableId && clearActiveRecordFilter(currentTableId)}>
               Clear Filter
-            </SecondaryButton>
+            </ButtonSecondaryOutline>
           )}
           {count !== undefined && filteredCount !== undefined && count > filteredCount ? (
             <>

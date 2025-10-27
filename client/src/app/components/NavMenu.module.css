@@ -2,15 +2,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: gray;
 
   &:hover {
     color: var(--mantine-color-primary-filled);
   }
 
   &[data-active] {
-    &,
-    &:hover {
-      color: var(--mantine-color-primary-filled);
-    }
+    color: var(--mantine-color-foreground-9);
   }
 }

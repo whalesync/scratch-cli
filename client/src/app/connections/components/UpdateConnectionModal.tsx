@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { AuthType, ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
@@ -100,12 +100,12 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
           />
         )}
         <Group justify="flex-end">
-          <SecondaryButton variant="default" onClick={props.onClose}>
+          <ButtonSecondaryOutline variant="default" onClick={props.onClose}>
             Cancel
-          </SecondaryButton>
-          <PrimaryButton loading={isSaving} onClick={handleUpdate}>
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight loading={isSaving} onClick={handleUpdate}>
             Save
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

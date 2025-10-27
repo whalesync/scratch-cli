@@ -1,16 +1,16 @@
-import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
+import { TextRegularSm, TextRegularXs } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
-import { ActionIcon, Badge, Card, Checkbox, CopyButton, Grid, Group, PasswordInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, CopyButton, Grid, Group, PasswordInput, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
+import { SettingsPanel } from './SettingsPanel';
 
 export const DevToolsPanel = () => {
   const { user, isAdmin } = useScratchPadUser();
 
   return (
-    <Card shadow="sm" padding="sm" radius="sm" withBorder style={{ borderColor: 'var(--mantine-color-purple-5)' }}>
-      <TextTitleSm mb="xs">Dev Tools</TextTitleSm>
+    <SettingsPanel title="Dev Tools" subtitle="Developer tools and information.">
       <Group wrap="nowrap" gap="xs">
         <TextRegularSm miw={200}>User ID</TextRegularSm>
 
@@ -94,7 +94,7 @@ export const DevToolsPanel = () => {
             ))}
         </Grid>
       </Group>
-    </Card>
+    </SettingsPanel>
   );
 };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { Divider, Group, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import MainContent from '../components/layouts/MainContent';
 import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
@@ -15,20 +15,12 @@ const SettingsPage = () => {
     <MainContent>
       <MainContent.BasicHeader title="Settings" />
       <MainContent.Body>
-        <Group gap="md" align="flex-start" grow={isDevToolsEnabled ? true : false}>
-          <Stack gap="md" miw={800}>
-            <SubscriptionCard />
-            <Divider />
-            <AgentCredentials />
-            <Divider />
-            <AgentUsageInfoCard />
-          </Stack>
-          {isDevToolsEnabled && (
-            <Stack gap="md" maw={600} ml="auto">
-              <DevToolsPanel />
-            </Stack>
-          )}
-        </Group>
+        <Stack gap={0} miw={800}>
+          <SubscriptionCard />
+          <AgentCredentials />
+          <AgentUsageInfoCard />
+          {isDevToolsEnabled && <DevToolsPanel />}
+        </Stack>
       </MainContent.Body>
     </MainContent>
   );

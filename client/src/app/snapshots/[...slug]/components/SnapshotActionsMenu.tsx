@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { TableSelection, TableSelectionComponent } from '@/app/components/TableSelectionComponent';
@@ -223,10 +223,12 @@ export const SnapshotActionsMenu = () => {
             Are you sure you want to abandon the {activeTable?.tableSpec.name} table? All scratch data will be deleted.
           </Text>
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DELETE)}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleAbandon} loading={saving}>
+            <ButtonSecondaryOutline onClick={() => modalStack.close(Modals.CONFIRM_DELETE)}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleAbandon} loading={saving}>
               Delete
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>
@@ -244,8 +246,10 @@ export const SnapshotActionsMenu = () => {
           )}
 
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close(Modals.CONFIRM_DOWNLOAD)}>Cancel</SecondaryButton>
-            <PrimaryButton
+            <ButtonSecondaryOutline onClick={() => modalStack.close(Modals.CONFIRM_DOWNLOAD)}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight
               onClick={() => {
                 if (user?.experimentalFlags?.USE_JOBS ?? false) {
                   handleDownload();
@@ -256,7 +260,7 @@ export const SnapshotActionsMenu = () => {
               disabled={tableSelection.tableIds.length === 0}
             >
               Download
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>
@@ -276,10 +280,10 @@ export const SnapshotActionsMenu = () => {
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close(Modals.RENAME)}>Cancel</SecondaryButton>
-            <PrimaryButton onClick={handleRename} loading={saving}>
+            <ButtonSecondaryOutline onClick={() => modalStack.close(Modals.RENAME)}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleRename} loading={saving}>
               Save
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>

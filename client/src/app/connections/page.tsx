@@ -5,7 +5,7 @@ import { Center, Group, Loader, Modal, Stack, Table, Text, useModalsStack } from
 import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
-import { ContentFooterButton, PrimaryButton, SecondaryButton } from '../components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
 import { TextRegularSm } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -52,7 +52,7 @@ export default function ConnectorAccountsPage() {
     return (
       <MainContent>
         <MainContent.BasicHeader title="Connections" />
-        <MainContent.Body p="0">
+        <MainContent.Body>
           <Center h="100%">
             <Loader />
             <TextRegularSm>Loading connections...</TextRegularSm>
@@ -66,7 +66,7 @@ export default function ConnectorAccountsPage() {
     return (
       <MainContent>
         <MainContent.BasicHeader title="Connections" />
-        <MainContent.Body p="0">
+        <MainContent.Body>
           <ErrorInfo error={error} />
         </MainContent.Body>
       </MainContent>
@@ -78,17 +78,17 @@ export default function ConnectorAccountsPage() {
   return (
     <MainContent>
       <MainContent.BasicHeader title="Connections" />
-      <MainContent.Body p="0">
+      <MainContent.Body>
         <CreateConnectionModal {...modalStack.register('create')} />
         <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
         <Modal {...modalStack.register('confirm-delete')} title="Delete Connection" centered size="lg">
           <Stack>
             <Text>Are you sure you want to delete this connection and associated scratchpapers?</Text>
             <Group justify="flex-end">
-              <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={handleDelete} loading={isDeleting}>
+              <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleDelete} loading={isDeleting}>
                 Delete
-              </PrimaryButton>
+              </ButtonPrimaryLight>
             </Group>
           </Stack>
         </Modal>

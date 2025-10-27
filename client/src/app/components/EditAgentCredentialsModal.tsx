@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { TextRegularSm } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { PROJECT_NAME } from '@/constants';
@@ -114,12 +114,12 @@ export const EditAgentCredentialsModal = ({
           onChange={(event) => setFormData({ default: event.target.checked })}
         />
         <Group justify="flex-end">
-          <SecondaryButton variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>
+          <ButtonSecondaryOutline variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>
             Cancel
-          </SecondaryButton>
-          <PrimaryButton onClick={handleSubmit} disabled={saving}>
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight onClick={handleSubmit} disabled={saving}>
             {credentials ? 'Save' : 'Create'}
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

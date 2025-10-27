@@ -1,14 +1,14 @@
 'use client';
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitleSm } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextRegularSm } from '@/app/components/base/text';
 import { PROJECT_NAME } from '@/constants';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { RouteUrls } from '@/utils/route-urls';
-import { Box, Group } from '@mantine/core';
 import { CreditCardIcon } from 'lucide-react';
 import pluralize from 'pluralize';
+import { SettingsPanel } from './SettingsPanel';
 
 export const SubscriptionCard = () => {
   const { user } = useScratchPadUser();
@@ -27,7 +27,7 @@ export const SubscriptionCard = () => {
         <TextRegularSm>
           {planDisplayName} - {daysRemaining} {pluralize('day', daysRemaining)} remaining {isTrial ? ' in trial' : ''}
         </TextRegularSm>
-        <SecondaryButton
+        <ButtonSecondaryOutline
           size="xs"
           component="a"
           target="_blank"
@@ -35,7 +35,7 @@ export const SubscriptionCard = () => {
           href={RouteUrls.manageSubscriptionPage}
         >
           Manage Subscription
-        </SecondaryButton>
+        </ButtonSecondaryOutline>
       </>
     );
   } else if (status === 'expired' || status === 'payment_failed') {
@@ -44,7 +44,7 @@ export const SubscriptionCard = () => {
         <TextRegularSm>
           {planDisplayName} - {status}
         </TextRegularSm>
-        <PrimaryButton
+        <ButtonPrimaryLight
           size="xs"
           component="a"
           target="_blank"
@@ -52,14 +52,14 @@ export const SubscriptionCard = () => {
           href={RouteUrls.manageSubscriptionPage}
         >
           Manage subscription
-        </PrimaryButton>
+        </ButtonPrimaryLight>
       </>
     );
   } else {
     content = (
       <>
         <TextRegularSm>Sign up for a 7 day free trial to {PROJECT_NAME}</TextRegularSm>
-        <PrimaryButton
+        <ButtonPrimaryLight
           size="xs"
           component="a"
           target="_blank"
@@ -67,17 +67,14 @@ export const SubscriptionCard = () => {
           href={RouteUrls.productCheckoutPage(ScratchpadPlanType.STARTER_PLAN)}
         >
           Subscribe
-        </PrimaryButton>
+        </ButtonPrimaryLight>
       </>
     );
   }
 
   return (
-    <Box>
-      <TextTitleSm mb="xs">Subscription</TextTitleSm>
-      <Group gap="xs" justify="space-between">
-        {content}
-      </Group>
-    </Box>
+    <SettingsPanel title="Subscription" subtitle="Manage your subscription.">
+      {content}
+    </SettingsPanel>
   );
 };

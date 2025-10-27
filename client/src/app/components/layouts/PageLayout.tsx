@@ -21,7 +21,7 @@ export type PageLayoutProps = {
 
 export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayoutProps) => {
   const pathname = usePathname();
-  const { navbarOpened, rightPanelOpened } = useLayoutManagerStore();
+  const { rightPanelOpened } = useLayoutManagerStore();
 
   useEffect(() => {
     // Track page views in PostHog
@@ -31,7 +31,7 @@ export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayo
   // Set the visibility for each element
   // these data props control the visibility and positioning of the fixed elements
   const visibilityProps = {
-    'data-navbar-visible': navbarOpened,
+    'data-navbar-visible': true,
     'data-footer-visible': footer ? true : false,
     'data-right-panel-visible': rightPanel && rightPanelOpened ? true : false,
   };
@@ -44,7 +44,7 @@ export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayo
         </Head>
       )}
       <div className={classes.navBar} {...visibilityProps}>
-        {navbarOpened && <NavMenu />}
+        <NavMenu />
       </div>
       {footer && (
         <div className={classes.mainFooter} {...visibilityProps}>

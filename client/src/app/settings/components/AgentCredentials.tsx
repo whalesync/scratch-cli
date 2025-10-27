@@ -1,26 +1,14 @@
-import { PrimaryButton, SecondaryButton } from '@/app/components/base/buttons';
-import { TextRegularSm, TextRegularXs, TextTitleSm } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextRegularSm, TextRegularXs } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
-import {
-  Alert,
-  Badge,
-  Box,
-  Center,
-  Grid,
-  Group,
-  Loader,
-  Modal,
-  Progress,
-  Stack,
-  Text,
-  useModalsStack,
-} from '@mantine/core';
+import { Alert, Badge, Center, Grid, Group, Loader, Modal, Progress, Stack, Text, useModalsStack } from '@mantine/core';
 import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { SettingsPanel } from './SettingsPanel';
 
 export const AgentCredentials = () => {
   const { agentCredentials, isLoading, error, deleteCredentials, toggleDefaultCredential } = useAgentCredentials(true);
@@ -52,8 +40,8 @@ export const AgentCredentials = () => {
         <Stack gap="sm">
           <Text>Are you sure you want to delete these credentials?</Text>
           <Group justify="flex-end">
-            <SecondaryButton onClick={() => modalStack.close('confirm-delete')}>Cancel</SecondaryButton>
-            <PrimaryButton
+            <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight
               onClick={() => {
                 deleteCredentials(deleteId!);
                 modalStack.close('confirm-delete');
@@ -61,7 +49,7 @@ export const AgentCredentials = () => {
               }}
             >
               Delete
-            </PrimaryButton>
+            </ButtonPrimaryLight>
           </Group>
         </Stack>
       </Modal>
@@ -180,19 +168,22 @@ export const AgentCredentials = () => {
   return (
     <>
       {modals}
-      <Box>
-        <TextTitleSm mb="xs">Agent Credentials</TextTitleSm>
+      <SettingsPanel
+        title="Agent Credentials"
+        subtitle="Add your OpenRouterAPI keys here to enable the agent to use them."
+      >
         {error && (
           <Alert color="red" mb="sm">
             {error.toString()}
           </Alert>
         )}
-        <Stack gap="xs" mb="sm" mih={100}>
-          <TextRegularSm c="dimmed">Add your OpenRouterAPI keys here to enable the agent to use them.</TextRegularSm>
-          {list}
-        </Stack>
+        {list && sortedCredentials.length > 0 && (
+          <Stack gap="xs" mb="sm" mih={100}>
+            {list}
+          </Stack>
+        )}
         <Group justify="flex-end">
-          <PrimaryButton
+          <ButtonPrimaryLight
             size="xs"
             w="fit-content"
             onClick={() => {
@@ -202,9 +193,9 @@ export const AgentCredentials = () => {
             leftSection={<PlusIcon size={16} />}
           >
             New credential
-          </PrimaryButton>
+          </ButtonPrimaryLight>
         </Group>
-      </Box>
+      </SettingsPanel>
     </>
   );
 };
