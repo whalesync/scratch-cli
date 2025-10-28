@@ -127,7 +127,7 @@ export default function OAuthCallbackPage() {
   };
 
   const isValidOAuthService = (service: string): service is OAuthService => {
-    return ['NOTION', 'AIRTABLE', 'YOUTUBE'].includes(service);
+    return ['NOTION', 'AIRTABLE', 'YOUTUBE', 'WEBFLOW'].includes(service);
   };
 
   return (

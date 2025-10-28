@@ -7,6 +7,7 @@ import { createConnectorAccountId } from '../types/ids';
 import { EncryptedData, getEncryptionService } from '../utils/encryption';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
+import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
 export interface OAuthInitiateResponse {
@@ -26,11 +27,13 @@ export class OAuthService {
   constructor(
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
+    private readonly webflowProvider: WebflowOAuthProvider,
     private readonly youtubeProvider: YouTubeOAuthProvider,
     private readonly posthogService: PostHogService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
+    this.providers.set('WEBFLOW', this.webflowProvider);
     this.providers.set('YOUTUBE', this.youtubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
@@ -261,6 +264,8 @@ export class OAuthService {
    */
   private mapServiceStringToEnum(service: string): Service {
     switch (service.toLowerCase()) {
+      case 'webflow':
+        return Service.WEBFLOW;
       case 'notion':
         return Service.NOTION;
       case 'airtable':

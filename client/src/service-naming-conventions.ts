@@ -15,6 +15,18 @@ type ServiceNamingConvention = {
 };
 
 export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> = {
+  [Service.WEBFLOW]: {
+    service: 'Webflow',
+    table: 'collection',
+    record: 'item',
+    base: null,
+    tables: 'collections',
+    records: 'items',
+    bases: null,
+    logo: 'webflow.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
   [Service.WORDPRESS]: {
     service: 'WordPress',
     table: 'post',

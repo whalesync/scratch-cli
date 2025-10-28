@@ -112,6 +112,7 @@ enum Service {
   POSTGRES
   YOUTUBE
   WORDPRESS
+  WEBFLOW
 }
 
 enum AuthType {

@@ -10,6 +10,7 @@ import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
 import { WordPressConnector } from './library/wordpress/wordpress-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
@@ -101,6 +102,18 @@ export class ConnectorsService {
         } else {
           // YouTube doesn't support API key authentication, only OAuth
           throw new Error('YouTube only supports OAuth authentication');
+        }
+      case Service.WEBFLOW:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Webflow', service);
+        }
+        if (connectorAccount.authType === AuthType.OAUTH) {
+          // For OAuth accounts, get the valid access token
+          const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+          return new WebflowConnector(accessToken);
+        } else {
+          // Webflow only supports OAuth authentication
+          throw new Error('Webflow only supports OAuth authentication');
         }
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);

@@ -47,7 +47,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   };
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
-    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
+    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW];
     const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {

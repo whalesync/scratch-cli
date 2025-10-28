@@ -5,8 +5,9 @@ export enum Service {
   CSV = 'CSV',
   YOUTUBE = 'YOUTUBE',
   WORDPRESS = 'WORDPRESS',
+  WEBFLOW = 'WEBFLOW',
 }
-export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE, Service.WORDPRESS];
+export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE, Service.WORDPRESS, Service.WEBFLOW];
 export const INTERNAL_SERVICES = [Service.AIRTABLE, Service.CUSTOM, Service.CSV];
 
 export enum ConnectorHealthStatus {

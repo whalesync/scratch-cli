@@ -57,6 +57,7 @@ export type BaseColumnSpec = {
 
   pgType: PostgresColumnType;
   limitedToValues?: string[];
+  required?: boolean;
   readonly?: boolean;
 
   metadata?: ColumnMetadata;

@@ -3,6 +3,7 @@ import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/ai
 import { CsvColumnSpecExtras, CsvTableSpecExtras } from './csv/csv-spec-types';
 import { CustomColumnSpecExtras, CustomTableSpecExtras } from './custom/custom-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
+import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
 import { WordPressColumnSpecExtras, WordPressTableSpecExtras } from './wordpress/wordpress-spec-types';
 import { YouTubeColumnSpecExtras, YouTubeTableSpecExtras } from './youtube/youtube-spec-types';
 
@@ -26,6 +27,9 @@ export type YouTubeTableSpec = BaseTableSpec<YouTubeColumnSpec> & YouTubeTableSp
 export type WordPressColumnSpec = BaseColumnSpec & WordPressColumnSpecExtras;
 export type WordPressTableSpec = BaseTableSpec<WordPressColumnSpec> & WordPressTableSpecExtras;
 
+export type WebflowColumnSpec = BaseColumnSpec & WebflowColumnSpecExtras;
+export type WebflowTableSpec = BaseTableSpec<WebflowColumnSpec> & WebflowTableSpecExtras;
+
 export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSpec[] };
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
@@ -34,6 +38,7 @@ export interface TableSpecs {
   CSV: CsvTableSpec;
   YOUTUBE: YouTubeTableSpec;
   WORDPRESS: WordPressTableSpec;
+  WEBFLOW: WebflowTableSpec;
   POSTGRES: CsvTableSpec; // TODO - change to PostgresTableSpec once we implement the connector
 }
 
@@ -44,5 +49,6 @@ export interface ColumnSpecs {
   CSV: CsvColumnSpec;
   YOUTUBE: YouTubeColumnSpec;
   WORDPRESS: WordPressColumnSpec;
+  WEBFLOW: WebflowColumnSpec;
   POSTGRES: CsvColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
 }

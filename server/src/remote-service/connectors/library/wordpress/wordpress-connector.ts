@@ -19,7 +19,9 @@ import { WordPressDataType, WordPressDownloadProgress, WordPressRecord } from '.
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
   readonly service = Service.WORDPRESS;
   private client: WordPressHttpClient;
-  private readonly turndownService: TurndownService = new TurndownService();
+  private readonly turndownService: TurndownService = new TurndownService({
+    headingStyle: 'atx',
+  });
 
   constructor(username: string, password: string, endpoint: string) {
     super();

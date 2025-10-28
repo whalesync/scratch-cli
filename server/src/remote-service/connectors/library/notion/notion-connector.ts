@@ -35,7 +35,9 @@ const page_size = Number(process.env.NOTION_PAGE_SIZE ?? 100);
 export class NotionConnector extends Connector<typeof Service.NOTION, NotionDownloadProgress> {
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
-  private readonly turndownService: TurndownService = new TurndownService();
+  private readonly turndownService: TurndownService = new TurndownService({
+    headingStyle: 'atx',
+  });
 
   service = Service.NOTION;
 
