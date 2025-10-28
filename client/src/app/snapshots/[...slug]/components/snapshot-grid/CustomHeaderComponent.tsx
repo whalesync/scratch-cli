@@ -528,7 +528,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
             }}
             title="Column menu"
           >
-            <StyledLucideIcon Icon={MoreVertical} size={14} c="#ffffff" />
+            <StyledLucideIcon Icon={MoreVertical} size={14} />
           </button>
 
           {/* Dropdown menu */}
