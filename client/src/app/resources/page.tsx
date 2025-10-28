@@ -5,13 +5,14 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import { Alert, Badge, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
+import { Alert, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { BadgeBase } from '../components/base/badges';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextTitle3 } from '../components/base/text';
+import { TextMdHeavier, TextSmRegular } from '../components/base/text';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -122,26 +123,20 @@ export default function StyleGuidesPage() {
                   <Table.Td h="30px">
                     <Group gap="sm">
                       {resourceIcon(styleGuide)}
-                      <TextTitle3>{styleGuide.name}</TextTitle3>
-                      {styleGuide.autoInclude ? (
-                        <Badge size="xs" color="blue" variant="light">
-                          Auto Include
-                        </Badge>
-                      ) : null}
-                      {styleGuide.sourceUrl && (
-                        <Badge size="xs" color="gray.6" variant="light" leftSection={<LinkIcon size={12} />}>
-                          External
-                        </Badge>
-                      )}
+                      <TextMdHeavier>{styleGuide.name}</TextMdHeavier>
+                      {styleGuide.autoInclude ? <BadgeBase color="blue">Auto Include</BadgeBase> : null}
+                      {styleGuide.sourceUrl && <BadgeBase leftSection={<LinkIcon size={12} />}>External</BadgeBase>}
                       {styleGuide.tags.map((tag) => (
-                        <Badge size="xs" color="gray.6" variant="light" key={tag}>
-                          {tag}
-                        </Badge>
+                        <BadgeBase key={tag}>{tag}</BadgeBase>
                       ))}
                     </Group>
                   </Table.Td>
-                  <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
-                  <Table.Td align="right">{formatBytes(styleGuide.body.length)}</Table.Td>
+                  <Table.Td>
+                    <TextSmRegular>{formatDate(styleGuide.updatedAt)}</TextSmRegular>
+                  </Table.Td>
+                  <Table.Td align="right">
+                    <TextSmRegular>{formatBytes(styleGuide.body.length)}</TextSmRegular>
+                  </Table.Td>
                   <Table.Td>
                     <Group gap="xs" justify="flex-end">
                       {styleGuide.sourceUrl && (

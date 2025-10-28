@@ -1,7 +1,7 @@
 'use client';
 
 import { AcceptSuggestionButton, ButtonSecondaryOutline, RejectSuggestionButton } from '@/app/components/base/buttons';
-import { TextBookSm, TextRegularXs, TextTitle4 } from '@/app/components/base/text';
+import { TextSmBook, TextTitle4, TextXsRegular } from '@/app/components/base/text';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
@@ -364,9 +364,9 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
           {count !== undefined && filteredCount !== undefined && count > filteredCount ? (
             <>
               <DotSpacer mx={0} />
-              <TextBookSm>
+              <TextSmBook>
                 {`${count - filteredCount} ${pluralize('record', count - filteredCount)} filtered`}
-              </TextBookSm>
+              </TextSmBook>
             </>
           ) : null}
         </Group>
@@ -375,9 +375,9 @@ export const ViewData = ({ currentTableId, count, filteredCount }: ViewDataProps
             <Tooltip
               label={`${recordsWithSuggestions} ${pluralize('record', recordsWithSuggestions)} with pending suggestions found`}
             >
-              <TextRegularXs>
+              <TextXsRegular>
                 {totalSuggestions} {pluralize('suggestion', totalSuggestions)}
-              </TextRegularXs>
+              </TextXsRegular>
             </Tooltip>
             <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions}>
               Accept all

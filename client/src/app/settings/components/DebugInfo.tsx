@@ -1,4 +1,4 @@
-import { TextRegularSm, TextRegularXs } from '@/app/components/base/text';
+import { TextSmRegular, TextXsRegular } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
 import { ActionIcon, Badge, Checkbox, CopyButton, Grid, Group, PasswordInput, Tooltip } from '@mantine/core';
@@ -12,9 +12,9 @@ export const DevToolsPanel = () => {
   return (
     <SettingsPanel title="Dev Tools" subtitle="Developer tools and information.">
       <Group wrap="nowrap" gap="xs">
-        <TextRegularSm miw={200}>User ID</TextRegularSm>
+        <TextSmRegular miw={200}>User ID</TextSmRegular>
 
-        <TextRegularSm>{user?.id || 'No user ID found'}</TextRegularSm>
+        <TextSmRegular>{user?.id || 'No user ID found'}</TextSmRegular>
         <CopyButton value={user?.id || ''} timeout={2000}>
           {({ copied, copy }) => (
             <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
@@ -27,13 +27,13 @@ export const DevToolsPanel = () => {
         {isAdmin && <Badge size="xs">Admin</Badge>}
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <TextRegularSm miw={200}>Created</TextRegularSm>
-        <TextRegularSm>
+        <TextSmRegular miw={200}>Created</TextSmRegular>
+        <TextSmRegular>
           {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'No created at found'}
-        </TextRegularSm>
+        </TextSmRegular>
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <TextRegularSm miw={200}>Agent Token</TextRegularSm>
+        <TextSmRegular miw={200}>Agent Token</TextSmRegular>
         <PasswordInput
           variant="unstyled"
           value={user?.agentJwt}
@@ -53,7 +53,7 @@ export const DevToolsPanel = () => {
         </CopyButton>
       </Group>
       <Group wrap="nowrap" gap="xs">
-        <TextRegularSm miw={200}>UI Websocket Key</TextRegularSm>
+        <TextSmRegular miw={200}>UI Websocket Key</TextSmRegular>
         <PasswordInput
           variant="unstyled"
           value={user?.websocketToken}
@@ -73,10 +73,10 @@ export const DevToolsPanel = () => {
         </CopyButton>
       </Group>
       <Group wrap="nowrap" gap="xs" align="flex-start">
-        <TextRegularSm miw={200}>Flags</TextRegularSm>
+        <TextSmRegular miw={200}>Flags</TextSmRegular>
         <Grid w="100%">
           <Grid.Col span={6}>
-            <TextRegularXs>Skip paywall on localhost</TextRegularXs>
+            <TextXsRegular>Skip paywall on localhost</TextXsRegular>
           </Grid.Col>
           <Grid.Col span={6}>
             <FlagCheckboxOption flag={FLAGS.SKIP_PAYWALL_FOR_LOCALHOST} />
@@ -85,10 +85,10 @@ export const DevToolsPanel = () => {
             Object.entries(user.experimentalFlags).map(([flag, value]) => (
               <Fragment key={flag}>
                 <Grid.Col span={6}>
-                  <TextRegularXs>{flag}</TextRegularXs>
+                  <TextXsRegular>{flag}</TextXsRegular>
                 </Grid.Col>
                 <Grid.Col span={6}>
-                  <TextRegularXs>{value.toString()}</TextRegularXs>
+                  <TextXsRegular>{value.toString()}</TextXsRegular>
                 </Grid.Col>
               </Fragment>
             ))}

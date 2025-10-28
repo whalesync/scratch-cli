@@ -1,4 +1,4 @@
-import { TextRegularSm } from '@/app/components/base/text';
+import { TextSmRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
 import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
@@ -46,9 +46,9 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
   }, [summary, sortBy]);
   return (
     <Stack mt="md" gap="xs">
-      <TextRegularSm c="dimmed">
+      <TextSmRegular c="dimmed">
         Total usage for the current month: {summary?.totalTokens.toLocaleString()} tokens
-      </TextRegularSm>
+      </TextSmRegular>
       <Table.ScrollContainer minWidth={500} maxHeight={300} type="native">
         <Table>
           <Table.Thead>

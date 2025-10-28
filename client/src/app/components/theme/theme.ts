@@ -1,17 +1,18 @@
 'use client';
 
-import { ActionIcon, createTheme, Title, virtualColor } from '@mantine/core';
-import { Funnel_Display, Inter } from 'next/font/google';
+import { ActionIcon, createTheme, Text, Title, virtualColor } from '@mantine/core';
+import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
 import { CUSTOM_BLUE,  CUSTOM_GRAY, CUSTOM_GRAY_REVERSED, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
 import classes from './theme.module.css';
 import { variantColorResolver } from './variantColorResolver';
 
 const inter = Inter({ subsets: ['latin'] });
 const funnelDisplay = Funnel_Display({ subsets: ['latin'] });
-// TODO: Use Berkley Mono for monospace fonts.
+const geistMono = Geist_Mono({ subsets: ['latin'] });
 
 export const SCRATCHPAD_MANTINE_THEME = createTheme({
   fontFamily: inter.style.fontFamily,
+  fontFamilyMonospace: `${geistMono.style.fontFamily}, Courier, monospace`,
 
   cursorType: 'pointer',
   colors: {
@@ -91,25 +92,16 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       classNames: classes,
     }),
 
-    // Button: Button.extend({
-    //   classNames: (theme, props) => {
-    //     switch (props.variant) {
-    //       case 'outline':
-    //       case 'light':
-    //         return { root: customBordersClasses.cornerBorders };
-    //       case 'filled':
-    //         return { root: customBordersClasses.plainBorder };
-    //       default:
-    //         return {};
-    //     }
-    //   }        
-    // }),
-
     Title: Title.extend({
       defaultProps: {
         ff: funnelDisplay.style.fontFamily,
         fw: 450,
       },
+    }),
+
+    Text: Text.extend({
+      // Add support for variant='dimmed'
+      classNames: {root: classes.text},
     }),
   },
 });

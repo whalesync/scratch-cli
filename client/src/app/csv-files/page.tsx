@@ -6,7 +6,7 @@ import { Center, Group, Loader, Modal, Stack, Table, Text, UnstyledButton, useMo
 import { Edit3Icon, FileSpreadsheet, Plus, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextRegularSm, TextTitle3 } from '../components/base/text';
+import { TextSmRegular, TextTitle3 } from '../components/base/text';
 import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -55,7 +55,7 @@ export default function CsvFilesPage() {
           <Center>
             <Group gap="xs">
               <Loader size="sm" />
-              <TextRegularSm>Loading...</TextRegularSm>
+              <TextSmRegular>Loading...</TextSmRegular>
             </Group>
           </Center>
         ) : (

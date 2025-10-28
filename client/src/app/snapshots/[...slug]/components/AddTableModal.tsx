@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextRegularSm, TextTitle3 } from '@/app/components/base/text';
+import { TextSmRegular, TextTitle3 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
@@ -148,9 +148,9 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
       <Stack gap="md">
         {step === 'select-connector' && (
           <>
-            <TextRegularSm c="dimmed">
+            <TextSmRegular c="dimmed">
               Select a data source to add a table from. You can add tables from different sources to the same snapshot.
-            </TextRegularSm>
+            </TextSmRegular>
 
             {loadingAccounts ? (
               <Center py="xl">
@@ -197,10 +197,10 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
               </ButtonSecondaryOutline>
             </Group>
 
-            <TextRegularSm c="dimmed">
+            <TextSmRegular c="dimmed">
               Choose a table to add to your snapshot. The table&apos;s data will be downloaded and added to your
               snapshot.
-            </TextRegularSm>
+            </TextSmRegular>
 
             {loadingTables ? (
               <Center py="xl">

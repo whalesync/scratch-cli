@@ -1,7 +1,7 @@
 'use client';
 
 import { ContentFooterButton } from '@/app/components/base/buttons';
-import { TextBookSm, TextRegularXs } from '@/app/components/base/text';
+import { TextSmBook, TextXsRegular } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { KeyboardShortcutHelpModal } from '@/app/components/KeyboardShortcutHelpModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
@@ -114,9 +114,9 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
         <Group ml="auto" gap="xs" align="center">
           {count !== undefined && (
             <>
-              <TextBookSm>{`${filteredCount} ${pluralize('record', filteredCount)}`}</TextBookSm>
+              <TextSmBook>{`${filteredCount} ${pluralize('record', filteredCount)}`}</TextSmBook>
               {filteredCount !== undefined && count > filteredCount && (
-                <TextBookSm>({`${count - filteredCount} filtered`})</TextBookSm>
+                <TextSmBook>({`${count - filteredCount} filtered`})</TextSmBook>
               )}
             </>
           )}
@@ -134,10 +134,10 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
       {/* SQL Filter Modal */}
       <Modal opened={sqlFilterModalOpen} onClose={() => setSqlFilterModalOpen(false)} title="Set SQL Filter" size="md">
         <Box>
-          <TextRegularXs>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</TextRegularXs>
-          <TextRegularXs size="xs" c="dimmed" mb="md">
+          <TextXsRegular>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</TextXsRegular>
+          <TextXsRegular size="xs" c="dimmed" mb="md">
             Example: name = &apos;John&apos; AND age &gt; 25
-          </TextRegularXs>
+          </TextXsRegular>
           <Textarea
             label="SQL WHERE Clause"
             value={sqlFilterText}

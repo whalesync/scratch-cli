@@ -1,10 +1,8 @@
 import { Box, Code, Divider, Group, Kbd, Modal, ModalProps, Stack, Text } from '@mantine/core';
 import { ButtonSecondaryOutline } from './base/buttons';
-import { TextRegularSm, TextTitle3 } from './base/text';
+import { TextSmRegular, TextTitle3 } from './base/text';
 
 export const KeyboardShortcutHelpModal = (props: ModalProps) => {
-  const title = <TextTitle3>Reference</TextTitle3>;
-
   const shortcutsContent = (
     <Stack gap="md">
       {/* Grid Navigation */}
@@ -12,15 +10,15 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3 mb="xs">Grid Navigation</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextRegularSm>Open record details</TextRegularSm>
+            <TextSmRegular>Open record details</TextSmRegular>
             <Kbd>Enter</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Close record details</TextRegularSm>
+            <TextSmRegular>Close record details</TextSmRegular>
             <Kbd>Escape</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Copy cell value</TextRegularSm>
+            <TextSmRegular>Copy cell value</TextSmRegular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -28,7 +26,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Navigate between records</TextRegularSm>
+            <TextSmRegular>Navigate between records</TextSmRegular>
             <Group gap="xs">
               <Kbd>↑</Kbd>
               <Text size="xs" c="dimmed">
@@ -38,7 +36,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Navigate between columns</TextRegularSm>
+            <TextSmRegular>Navigate between columns</TextSmRegular>
             <Group gap="xs" wrap="nowrap">
               <Kbd>←</Kbd>
               <Text size="xs" c="dimmed">
@@ -49,7 +47,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
           </Group>
 
           <Group justify="space-between">
-            <TextRegularSm>Toggle max column width</TextRegularSm>
+            <TextSmRegular>Toggle max column width</TextSmRegular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -66,7 +64,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3>General</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextRegularSm mb="xs">Open this help modal</TextRegularSm>
+            <TextSmRegular mb="xs">Open this help modal</TextSmRegular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -83,11 +81,11 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3 mb="xs">Chat</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextRegularSm>Send message</TextRegularSm>
+            <TextSmRegular>Send message</TextSmRegular>
             <Kbd>Enter</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>New line in message</TextRegularSm>
+            <TextSmRegular>New line in message</TextSmRegular>
             <Group gap="xs">
               <Kbd>Shift</Kbd>
               <Text>+</Text>
@@ -95,7 +93,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Attach a resource to the session</TextRegularSm>
+            <TextSmRegular>Attach a resource to the session</TextSmRegular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -103,14 +101,14 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>New session</TextRegularSm>
+            <TextSmRegular>New session</TextSmRegular>
             <Group gap="xs">
               <Text>type </Text>
               <Code>/new</Code>
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextRegularSm>Clear local history</TextRegularSm>
+            <TextSmRegular>Clear local history</TextSmRegular>
             <Group gap="xs">
               <Text>type </Text>
               <Code>/clear</Code>
@@ -122,7 +120,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
   );
 
   return (
-    <Modal title={title} size="lg" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
+    <Modal title="Reference" size="lg" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
       {shortcutsContent}
       <Group justify="flex-end" mt="lg">
         <ButtonSecondaryOutline onClick={props.onClose}>Close</ButtonSecondaryOutline>

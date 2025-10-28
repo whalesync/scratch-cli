@@ -13,14 +13,13 @@ import {
   Stack,
   Text,
   TextProps,
-  TitleProps,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { ArrowsClockwiseIcon, ArrowUpRightIcon, InfoIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { ButtonPrimaryLight } from '../base/buttons';
-import { TextRegularSm, TextTitle2 } from '../base/text';
+import { TextMdHeavier, TextSmBook } from '../base/text';
 import styles from './Info.module.css';
 
 /*
@@ -64,16 +63,16 @@ const LoaderWidget = (): JSX.Element => {
   return <Loader size="lg" mb="sm" color="primary" />;
 };
 
-const Title = ({ children, ...props }: PropsWithChildren<TitleProps>): JSX.Element => {
+const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <TextTitle2 mb="2px" {...props}>
+    <TextMdHeavier mb="2px" {...props}>
       {children}
-    </TextTitle2>
+    </TextMdHeavier>
   );
 };
 
 const Description = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
-  return <TextRegularSm {...props}>{children}</TextRegularSm>;
+  return <TextSmBook {...props}>{children}</TextSmBook>;
 };
 
 const StatusPageDescription = (): JSX.Element => {

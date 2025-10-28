@@ -6,7 +6,7 @@ import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../hooks/use-connector-account';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextRegularSm } from '../components/base/text';
+import { TextSmRegular } from '../components/base/text';
 import { ErrorInfo } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -55,7 +55,7 @@ export default function ConnectorAccountsPage() {
         <MainContent.Body>
           <Center h="100%">
             <Loader />
-            <TextRegularSm>Loading connections...</TextRegularSm>
+            <TextSmRegular>Loading connections...</TextSmRegular>
           </Center>
         </MainContent.Body>
       </MainContent>
@@ -97,10 +97,10 @@ export default function ConnectorAccountsPage() {
           <Table.Thead>
             <Table.Tr>
               <Table.Td>Name</Table.Td>
-              <Table.Td>Scratchpapers</Table.Td>
-              <Table.Td>Health</Table.Td>
-              <Table.Td>Updated</Table.Td>
-              <Table.Td align="right">Actions</Table.Td>
+              <Table.Td>Status</Table.Td>
+              <Table.Td>Workbooks</Table.Td>
+              <Table.Td>Created</Table.Td>
+              <Table.Td> {/* Actions */} </Table.Td>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>

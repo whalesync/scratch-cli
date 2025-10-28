@@ -5,7 +5,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Modal, Stack } from '@mantine/core';
 import Link from 'next/link';
 import { JSX } from 'react';
-import { TextRegularSm, TextTitle2 } from './base/text';
+import { TextSmRegular, TextTitle2 } from './base/text';
 
 export const NoSubscriptionDetectedModal = (): JSX.Element => {
   const { signOut } = useScratchPadUser();
@@ -23,9 +23,9 @@ export const NoSubscriptionDetectedModal = (): JSX.Element => {
     >
       <Stack gap="xs" mb="md" align="center">
         <TextTitle2>Get started with Scratchpaper.ai</TextTitle2>
-        <TextRegularSm ta="center">
+        <TextSmRegular ta="center">
           Sign up for your 7 day free trial and start editing your data with AI.
-        </TextRegularSm>
+        </TextSmRegular>
       </Stack>
       <Stack gap="xs">
         <ButtonSecondaryOutline onClick={signOut}>Switch accounts</ButtonSecondaryOutline>

@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextRegularSm, TextRegularXs } from '@/app/components/base/text';
+import { TextSmRegular, TextXsRegular } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -81,7 +81,7 @@ export const AgentCredentials = () => {
     return (
       <Stack w="100%" gap="xs">
         <Progress color="primary" value={value} striped />
-        <TextRegularXs c="dimmed">{`${credential.usage.usage} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</TextRegularXs>
+        <TextXsRegular c="dimmed">{`${credential.usage.usage} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</TextXsRegular>
       </Stack>
     );
   };
@@ -99,7 +99,7 @@ export const AgentCredentials = () => {
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
             <Group gap="xs">
-              <TextRegularSm>{getServiceIcon(credential.service)}</TextRegularSm>
+              <TextSmRegular>{getServiceIcon(credential.service)}</TextSmRegular>
               {credential.default && (
                 <Badge color="primary" variant="light" size="xs">
                   Default
@@ -109,8 +109,8 @@ export const AgentCredentials = () => {
           </Grid.Col>
           <Grid.Col span={6}>
             <Stack gap="xs">
-              <TextRegularSm>{credential.label}</TextRegularSm>
-              <TextRegularXs c="dimmed">{credential.description}</TextRegularXs>
+              <TextSmRegular>{credential.label}</TextSmRegular>
+              <TextXsRegular c="dimmed">{credential.description}</TextXsRegular>
               {buildUsageElement(credential)}
             </Stack>
           </Grid.Col>

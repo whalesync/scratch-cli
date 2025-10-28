@@ -1,4 +1,4 @@
-import { TextRegularXs } from '@/app/components/base/text';
+import { TextXsRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { ChatSessionSummary } from '@/types/server-entities/chat-session';
@@ -25,14 +25,14 @@ export const SessionHistorySelector = ({
           <Group gap="2xs" justify="space-between" align="center">
             {activeSessionId === session.id ? (
               <>
-                <TextRegularXs>{session.name}</TextRegularXs>
+                <TextXsRegular>{session.name}</TextXsRegular>
                 <Text size="xs" c="dimmed">
                   active
                 </Text>
               </>
             ) : (
               <>
-                <TextRegularXs>{session.name}</TextRegularXs>
+                <TextXsRegular>{session.name}</TextXsRegular>
                 <Text size="xs" c="dimmed">
                   {timeAgo(session.created_at)}
                 </Text>
@@ -49,7 +49,7 @@ export const SessionHistorySelector = ({
     if (sessions.length === 0) {
       return (
         <Combobox.Option value="none" key="none" disabled>
-          <TextRegularXs>No sessions found</TextRegularXs>
+          <TextXsRegular>No sessions found</TextXsRegular>
         </Combobox.Option>
       );
     }

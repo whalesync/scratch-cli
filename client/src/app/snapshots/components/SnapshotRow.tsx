@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextTitle3 } from '@/app/components/base/text';
+import { TextMdHeavier, TextSmRegular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -40,15 +40,15 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
       setSaving(true);
       await deleteSnapshot(snapshot.id);
       ScratchpadNotifications.success({
-        title: 'Scratchpaper abandoned',
-        message: 'The scratchpaper and its data have been deleted.',
+        title: 'Workbook abandoned',
+        message: 'The workbook and its data have been deleted.',
       });
       modalStack.close('confirm-delete');
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
         title: 'Deletion failed',
-        message: 'There was an error deleting the scratchpaper.',
+        message: 'There was an error deleting the workbook.',
       });
     } finally {
       setSaving(false);
@@ -61,14 +61,14 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
       setSaving(true);
       await updateSnapshot(snapshot.id, { name: snapshotName });
       ScratchpadNotifications.success({
-        message: 'The scratchpaper has been renamed.',
+        message: 'The workbook has been renamed.',
       });
       modalStack.close('rename');
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
         title: 'Renaming failed',
-        message: 'There was an error renaming the scratchpaper.',
+        message: 'There was an error renaming the workbook.',
       });
     } finally {
       setSaving(false);
@@ -77,9 +77,9 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Abandon scratchpaper" centered size="lg">
+      <Modal {...modalStack.register('confirm-delete')} title="Abandon workbook" centered size="lg">
         <Stack>
-          <Text>Are you sure you want to abandon this scratchpaper? All data will be deleted.</Text>
+          <Text>Are you sure you want to abandon this workbook? All data will be deleted.</Text>
           <Group justify="flex-end">
             <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
             <ButtonPrimaryLight onClick={handleAbandon} loading={saving}>
@@ -88,7 +88,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
           </Group>
         </Stack>
       </Modal>
-      <Modal {...modalStack.register('rename')} title="Rename scratchpaper" centered size="lg">
+      <Modal {...modalStack.register('rename')} title="Rename workbook" centered size="lg">
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">
@@ -105,26 +105,22 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>
-          <TextTitle3>{snapshot.name}</TextTitle3>
+          <TextMdHeavier>{snapshot.name}</TextMdHeavier>
         </Table.Td>
         <Table.Td>
           <Group gap="md" wrap="nowrap">
             {Object.entries(serviceTableCounts).map(([service, count]) => (
               <Group key={service} gap={4} wrap="nowrap">
                 <ConnectorIcon connector={service as Service} size={24} />
-                <Text fz="sm" c="dimmed">
-                  × {count}
-                </Text>
+                <TextSmRegular variant="dimmed">× {count}</TextSmRegular>
               </Group>
             ))}
           </Group>
         </Table.Td>
         <Table.Td>
           <Group gap="xs">
-            <Text fz="sm">{formatDate(snapshot.createdAt)}</Text>
-            <Text fz="xs" c="dimmed">
-              ({timeAgo(snapshot.createdAt)})
-            </Text>
+            <TextSmRegular>{formatDate(snapshot.createdAt)}</TextSmRegular>
+            <TextSmRegular variant="dimmed">({timeAgo(snapshot.createdAt)})</TextSmRegular>
           </Group>
         </Table.Td>
         <Table.Td>
@@ -136,7 +132,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
                 modalStack.open('rename');
               }}
               icon={Edit3}
-              tooltip="Rename scratchpaper"
+              tooltip="Rename workbook"
             />
             <ToolIconButton
               size="md"
@@ -145,7 +141,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
                 modalStack.open('confirm-delete');
               }}
               icon={Trash2}
-              tooltip="Abandon scratchpaper"
+              tooltip="Abandon workbook"
             />
             <ToolIconButton
               size="sm"

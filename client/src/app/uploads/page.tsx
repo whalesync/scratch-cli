@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '@/app/components/base/buttons';
-import { TextRegularSm } from '@/app/components/base/text';
+import { TextMdHeavier, TextSmBook, TextSmRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
@@ -9,23 +9,12 @@ import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { useUploads } from '@/hooks/use-uploads';
 import { CsvPreviewResponse, MdPreviewResponse, Upload, uploadsApi } from '@/lib/api/uploads';
 import { formatDate, timeAgo } from '@/utils/helpers';
-import {
-  ActionIcon,
-  Badge,
-  Center,
-  Group,
-  Loader,
-  Modal,
-  Stack,
-  Table,
-  Text,
-  Tooltip,
-  useModalsStack,
-} from '@mantine/core';
+import { ActionIcon, Center, Group, Loader, Modal, Stack, Table, Text, Tooltip, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Download, Eye, FileText, Plus, Trash2, Upload as UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { BadgeBase } from '../components/base/badges';
 import { CsvPreviewModal } from '../components/modals/CsvPreviewModal';
 import { CsvViewModal } from '../components/modals/CsvViewModal';
 import { MdPreviewModal } from '../components/modals/MdPreviewModal';
@@ -224,7 +213,7 @@ export default function UploadsPage() {
           <MainContent.Body>
             <Center h="100%">
               <Loader />
-              <TextRegularSm>Loading uploads...</TextRegularSm>
+              <TextSmRegular>Loading uploads...</TextSmRegular>
             </Center>
           </MainContent.Body>
         </MainContent>
@@ -330,12 +319,10 @@ export default function UploadsPage() {
               <Stack align="center" gap="md">
                 <StyledLucideIcon Icon={FileText} size={48} />
                 <div style={{ textAlign: 'center' }}>
-                  <Text size="lg" fw={500}>
-                    No uploads yet
-                  </Text>
-                  <Text size="sm" c="dimmed" mt="xs">
+                  <TextMdHeavier>No uploads yet</TextMdHeavier>
+                  <TextSmBook variant="dimmed" mt="xs">
                     Drag and drop a CSV or Markdown file anywhere to get started
-                  </Text>
+                  </TextSmBook>
                 </div>
               </Stack>
             </Center>
@@ -356,25 +343,19 @@ export default function UploadsPage() {
                 {sortedUploads.map((upload) => (
                   <Table.Tr key={upload.id}>
                     <Table.Td>
-                      <Badge color={getTypeColor(upload.type)} variant="light">
-                        {upload.type}
-                      </Badge>
+                      <BadgeBase color={getTypeColor(upload.type)}>{upload.type}</BadgeBase>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500}>{upload.name}</Text>
+                      <TextMdHeavier>{upload.name}</TextMdHeavier>
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label={formatDate(upload.createdAt)}>
-                        <Text size="sm" c="dimmed">
-                          {timeAgo(upload.createdAt)}
-                        </Text>
+                        <TextSmRegular variant="dimmed">{timeAgo(upload.createdAt)}</TextSmRegular>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label={formatDate(upload.updatedAt)}>
-                        <Text size="sm" c="dimmed">
-                          {timeAgo(upload.updatedAt)}
-                        </Text>
+                        <TextSmRegular variant="dimmed">{timeAgo(upload.updatedAt)}</TextSmRegular>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td align="right">

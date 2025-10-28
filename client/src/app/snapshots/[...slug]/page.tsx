@@ -96,7 +96,7 @@ function SnapshotPageContent() {
 
   // Only show loader on initial load, not during revalidation
   if (isLoading && !snapshot) {
-    return <LoaderWithMessage message="Loading snapshot..." />;
+    return <LoaderWithMessage centered message="Loading snapshot..." />;
   }
 
   if (!snapshot) {

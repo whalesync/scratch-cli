@@ -1,6 +1,6 @@
 'use client';
 
-import { TextRegularXs } from '@/app/components/base/text';
+import { TextXsRegular } from '@/app/components/base/text';
 import { Button } from '@mantine/core';
 import { ChevronDownIcon } from 'lucide-react';
 
@@ -24,9 +24,9 @@ export default function CapabilitiesButton({
       rightSection={<ChevronDownIcon size={12} color="gray" />}
       styles={{ root: { border: 'none' } }}
     >
-      <TextRegularXs c="dimmed">
+      <TextXsRegular c="dimmed">
         {selectedCapabilities.length} / {availableCapabilitiesCount} Tools
-      </TextRegularXs>
+      </TextXsRegular>
     </Button>
   );
 }

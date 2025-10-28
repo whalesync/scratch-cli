@@ -1,4 +1,4 @@
-import { TextRegularXs } from '@/app/components/base/text';
+import { TextXsRegular } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
@@ -59,7 +59,7 @@ export function ResourceSelector({
         <Combobox.Option value={styleGuide.id} key={styleGuide.id}>
           <Group gap="4px">
             <StyledIcon Icon={FileIcon} size={14} />
-            <TextRegularXs>{styleGuide.name}</TextRegularXs>
+            <TextXsRegular>{styleGuide.name}</TextXsRegular>
           </Group>
         </Combobox.Option>
       ));
@@ -74,7 +74,7 @@ export function ResourceSelector({
       <Combobox.Option value="new" key="new">
         <Group gap="4px">
           <StyledIcon Icon={PlusIcon} size={14} />
-          <TextRegularXs>New resource...</TextRegularXs>
+          <TextXsRegular>New resource...</TextXsRegular>
         </Group>
       </Combobox.Option>,
     );
@@ -184,7 +184,7 @@ export const ResourcePill = ({
   return (
     <Group p="2px" gap="2xs" wrap="nowrap" className={styles.pill} onClick={onClick}>
       <StyledIcon Icon={FileIcon} size={14} />
-      <TextRegularXs>{resource.name}</TextRegularXs>
+      <TextXsRegular>{resource.name}</TextXsRegular>
       <CloseButton
         size="xs"
         onClick={(e) => {

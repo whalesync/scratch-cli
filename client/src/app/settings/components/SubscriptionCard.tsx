@@ -1,6 +1,6 @@
 'use client';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextRegularSm } from '@/app/components/base/text';
+import { TextSmRegular } from '@/app/components/base/text';
 import { PROJECT_NAME } from '@/constants';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -24,9 +24,9 @@ export const SubscriptionCard = () => {
   if (isSubscribed) {
     content = (
       <>
-        <TextRegularSm>
+        <TextSmRegular>
           {planDisplayName} - {daysRemaining} {pluralize('day', daysRemaining)} remaining {isTrial ? ' in trial' : ''}
-        </TextRegularSm>
+        </TextSmRegular>
         <ButtonSecondaryOutline
           size="xs"
           component="a"
@@ -41,9 +41,9 @@ export const SubscriptionCard = () => {
   } else if (status === 'expired' || status === 'payment_failed') {
     content = (
       <>
-        <TextRegularSm>
+        <TextSmRegular>
           {planDisplayName} - {status}
-        </TextRegularSm>
+        </TextSmRegular>
         <ButtonPrimaryLight
           size="xs"
           component="a"
@@ -58,7 +58,7 @@ export const SubscriptionCard = () => {
   } else {
     content = (
       <>
-        <TextRegularSm>Sign up for a 7 day free trial to {PROJECT_NAME}</TextRegularSm>
+        <TextSmRegular>Sign up for a 7 day free trial to {PROJECT_NAME}</TextSmRegular>
         <ButtonPrimaryLight
           size="xs"
           component="a"

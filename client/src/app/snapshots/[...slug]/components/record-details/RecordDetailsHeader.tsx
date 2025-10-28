@@ -1,4 +1,4 @@
-import { TextRegularXs } from '@/app/components/base/text';
+import { TextXsRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { TableSpec } from '@/types/server-entities/snapshot';
 import { ActionIcon, Group, StyleProp } from '@mantine/core';
@@ -89,9 +89,9 @@ export const RecordDetailsHeader = ({
       align="center"
       p="2px 4px"
     >
-      <TextRegularXs style={{ textTransform: 'uppercase', paddingLeft: '8px' }}>
+      <TextXsRegular style={{ textTransform: 'uppercase', paddingLeft: '8px' }}>
         {currentColumn?.name ?? 'all attributes'}
-      </TextRegularXs>
+      </TextXsRegular>
       <Group gap="xs" justify="flex-end">
         <Group gap="xs">
           <ActionIcon variant="transparent-hover" onClick={goToPreviousColumn} color="gray">
@@ -123,7 +123,7 @@ export const RecordDetailsHeader = ({
           <StyledLucideIcon Icon={ChevronLeftIcon} size={16} />
         </ActionIcon>
       </Group>
-      <TextRegularXs style={{ textTransform: 'uppercase' }}>{currentColumn?.name ?? 'all attributes'}</TextRegularXs>
+      <TextXsRegular style={{ textTransform: 'uppercase' }}>{currentColumn?.name ?? 'all attributes'}</TextXsRegular>
       <Group gap="xs" justify="flex-end">
         <ActionIcon variant="transparent-hover" onClick={() => onSwitchColumn(undefined)} color="gray">
           <StyledLucideIcon Icon={Rows4Icon} size={16} />

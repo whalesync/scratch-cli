@@ -16,10 +16,10 @@ import {
   FileSpreadsheet,
   LucideIcon,
   MoonIcon,
-  NotebookPen,
   Pickaxe,
   Settings,
   SunIcon,
+  Table2,
   Unplug,
   Upload,
 } from 'lucide-react';
@@ -53,7 +53,7 @@ const upperLinks = (isUseJobsEnabled: boolean): MenuItem[] => {
     {
       href: RouteUrls.snapshotsPageUrl,
       label: 'Workbooks',
-      icon: NotebookPen,
+      icon: Table2,
       iconType: 'lucide',
       enabled: true,
       requiresAdmin: false,

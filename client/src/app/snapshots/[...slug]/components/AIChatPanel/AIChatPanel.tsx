@@ -40,7 +40,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TextRegularXs, TextTitle3 } from '../../../../components/base/text';
+import { TextTitle3, TextXsRegular } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
@@ -570,9 +570,9 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             p="0px"
             rightSection={<ChevronDownIcon size={12} color="gray" />}
           >
-            <TextRegularXs component="span" c="dimmed">
+            <TextXsRegular component="span" c="dimmed">
               {activeModel}
-            </TextRegularXs>
+            </TextXsRegular>
           </Button>
           {/* Capabilities Selection */}
           {/* {availableCapabilities.length > 0 && ( */}
