@@ -15,19 +15,20 @@ export class PostHogService implements OnModuleDestroy {
   constructor(private readonly configService: ScratchpadConfigService) {
     const apiKey = configService.getPostHogApiKey();
     const host = configService.getPostHogHost();
-    if (apiKey && host) {
+
+    if (apiKey && host && configService.isPosthogAnaltyicsEnabled()) {
       this.postHog = new PostHog(apiKey, {
         host,
       });
 
       WSLogger.info({
         source: PostHogService.name,
-        message: 'PostHog is enabled',
+        message: 'PostHog Analytics are enabled',
       });
     } else {
       WSLogger.warn({
         source: PostHogService.name,
-        message: 'PostHog is not enabled',
+        message: 'PostHog Analytics are disabled',
       });
     }
   }

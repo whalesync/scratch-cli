@@ -96,6 +96,11 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('SCRATCHPAD_AGENT_JWT_EXPIRES_IN');
   }
 
+  isPosthogAnaltyicsEnabled(): boolean {
+    // default to true for deployed environments
+    return this.getOptionalFlagVariable('POSTHOG_ANALYTICS_ENABLED', this.getScratchpadEnvironment() !== 'development');
+  }
+
   getPostHogApiKey(): string | undefined {
     return this.getOptionalEnvVariable('POSTHOG_API_KEY');
   }
