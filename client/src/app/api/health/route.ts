@@ -1,14 +1,10 @@
-import { API_CONFIG } from "@/lib/api/config";
 import { NextResponse } from "next/server";
 
+/**
+ * A simple health check endpoint to ensure the server is running for use with monitoring services and load balancers.
+ * @returns A JSON response with the health check status
+ */
 export async function GET() {
-  // api server health check
-
-  const response = await fetch(API_CONFIG.getApiServerHealthUrl());
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const serverHealthData = await response.text();
 
   const healthCheck = {
     status: "healthy",
@@ -16,7 +12,6 @@ export async function GET() {
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development",
     version: process.env.npm_package_version || "1.0.0",
-    serverHealth: serverHealthData,
   };
 
   return NextResponse.json(healthCheck, { status: 200 });
