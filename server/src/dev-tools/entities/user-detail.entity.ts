@@ -1,3 +1,5 @@
+import { AuditLogEvent } from '@prisma/client';
+import { AuditLogEventEntity } from 'src/audit/entities/audit-log-event.entity';
 import { SnapshotCluster, UserCluster } from 'src/db/cluster-types';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -33,10 +35,17 @@ export class UserDetail {
   user: User;
   snapshots: SnapshotSummary[];
   connectors: ConnectorAccountSummary[];
+  auditLogs: AuditLogEventEntity[];
 
-  constructor(user: UserCluster.User, snapshots: SnapshotCluster.Snapshot[], connectors: ConnectorAccount[]) {
+  constructor(
+    user: UserCluster.User,
+    snapshots: SnapshotCluster.Snapshot[],
+    connectors: ConnectorAccount[],
+    auditLogs: AuditLogEvent[],
+  ) {
     this.user = new User(user);
     this.snapshots = snapshots.map((snapshot) => new SnapshotSummary(snapshot));
     this.connectors = connectors.map((connector) => new ConnectorAccountSummary(connector));
+    this.auditLogs = auditLogs.map((auditLog) => new AuditLogEventEntity(auditLog));
   }
 }

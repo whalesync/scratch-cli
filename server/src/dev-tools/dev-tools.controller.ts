@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
@@ -26,6 +27,7 @@ export class DevToolsController {
     private readonly usersService: UsersService,
     private readonly snapshotService: SnapshotService,
     private readonly connectorAccountService: ConnectorAccountService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   @UseGuards(ScratchpadAuthGuard)
@@ -54,7 +56,7 @@ export class DevToolsController {
 
     const snapshots = await this.snapshotService.findAllForUser(id);
     const connectorAccounts = await this.connectorAccountService.findAll(id);
-
-    return new UserDetail(user, snapshots, connectorAccounts);
+    const auditLogs = await this.auditLogService.findEventsForUser(id, 20, undefined);
+    return new UserDetail(user, snapshots, connectorAccounts, auditLogs);
   }
 }

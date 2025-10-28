@@ -27,4 +27,18 @@ export class AuditLogService {
       },
     });
   }
+
+  async findEventsForUser(userId: string, take: number, cursor: string | undefined): Promise<AuditLogEvent[]> {
+    return this.dbService.client.auditLogEvent.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take,
+      skip: cursor ? 1 : undefined,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+  }
 }
