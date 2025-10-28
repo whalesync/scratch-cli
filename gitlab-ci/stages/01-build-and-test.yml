@@ -155,3 +155,36 @@ build and test agent:
         - pydantic-ai-agent/**/*
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
+
+gcp push test agent image to artifact registry:
+  stage: build
+  needs:
+    - job: build and test agent
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - cd pydantic-ai-agent
+    # Environment-specific .env flags are set here.
+    # Service-type flags are set in terraform on launch.
+    - >
+      docker build
+      -t spinner-test/spinner-agent
+      -f Dockerfile .
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner-test/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner-test/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - pydantic-ai-agent/Dockerfile
+        - pydantic-ai-agent/requirements.txt
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
