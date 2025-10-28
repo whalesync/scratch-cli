@@ -119,7 +119,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       },
       name: 'Page Content',
       pgType: PostgresColumnType.TEXT,
-      dataConverterTypes: ['html', 'markdown'],
+      dataConverterTypes: ['html'],
       notionDataType: 'rich_text',
       metadata: {
         textFormat: 'rich_text',
@@ -176,9 +176,9 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
                   const blockHtml = convertNotionBlockObjectToHtmlv2(block);
                   htmlContent += blockHtml;
                 }
-                if (dataConverter === 'html' || !dataConverter) {
+                if (dataConverter === 'html') {
                   converted.fields[pageContentColumn.id.wsId] = htmlContent;
-                } else if (dataConverter === 'markdown') {
+                } else {
                   const markdownContent = String(this.turndownService.turndown(htmlContent));
                   converted.fields[pageContentColumn.id.wsId] = markdownContent;
                 }

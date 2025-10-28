@@ -199,9 +199,9 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
           if (value && typeof value === 'object' && 'rendered' in value) {
             const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
             const rendered = (value as { rendered: string }).rendered;
-            if (dataConverter === 'html' || !dataConverter) {
+            if (dataConverter === 'html') {
               record.fields[column.id.wsId] = rendered;
-            } else if (dataConverter === 'markdown') {
+            } else {
               const markdownContent = String(this.turndownService.turndown(rendered));
               record.fields[column.id.wsId] = markdownContent;
             }
@@ -235,9 +235,9 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       const remoteId = column.id.remoteId[0];
       if (column.wordpressDataType === WordPressDataType.RENDERED) {
         const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
-        if (dataConverter === 'html' || !dataConverter) {
+        if (dataConverter === 'html') {
           wpRecord[remoteId] = value;
-        } else if (dataConverter === 'markdown') {
+        } else {
           const converter = MarkdownIt({});
           const markdownContent = converter.render(String(value));
           wpRecord[remoteId] = markdownContent;

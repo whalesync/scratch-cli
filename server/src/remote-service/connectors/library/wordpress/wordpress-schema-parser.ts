@@ -140,7 +140,7 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
     case WordPressDataType.RENDERED:
       pgType = PostgresColumnType.TEXT;
       metadata = { textFormat: 'html' };
-      dataConverterTypes = ['html', 'markdown'];
+      dataConverterTypes = ['html'];
       break;
     case WordPressDataType.EMAIL:
       pgType = PostgresColumnType.TEXT;
