@@ -20,43 +20,43 @@ export interface Plan {
   stripePriceId: string;
 }
 
+// Configured in the Scratchpaper Test sandbox environment for developer testing
+export const TEST_SANDBOX_PLANS: Plan[] = [
+  {
+    productType: ScratchpadPlanType.STARTER_PLAN,
+    displayName: 'Starter Plan',
+    stripeProductId: 'prod_TJwkWAQpH8r9SN',
+    stripePriceId: 'price_1SNIqoBdRE0kMHNqXMro86f7',
+  },
+];
+
+// Configured in the Scratchpaper Staging sandbox environment for developer testing
+export const STAGING_SANDBOX_PLANS: Plan[] = [
+  {
+    productType: ScratchpadPlanType.STARTER_PLAN,
+    displayName: 'Starter Plan',
+    stripeProductId: 'prod_TJx9oObCoL9wzG',
+    stripePriceId: 'price_1SNJFZPd1pp0ErHMuu2YSlqr',
+  },
+];
+
 // Configured in the Stripe Production environment
 export const PRODUCTION_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,
     displayName: 'Starter Plan',
-    stripeProductId: 'prod_T1CHvH0R13leag',
-    stripePriceId: 'price_1S59tCB3kcxQq5fulhgRPJud',
-  },
-];
-
-// Configured in the Stripe Test Mode environment
-export const TEST_PLANS: Plan[] = [
-  {
-    productType: ScratchpadPlanType.STARTER_PLAN,
-    displayName: 'Starter Plan',
-    stripeProductId: 'prod_T1BiiybeaAM031',
-    stripePriceId: 'price_1S59L4B3kcxQq5fuyUONF3u8',
-  },
-];
-
-// Configured in the Scratchpaper Test sandbox environment for developer testing
-export const SANDBOX_PLANS: Plan[] = [
-  {
-    productType: ScratchpadPlanType.STARTER_PLAN,
-    displayName: 'Starter Plan',
-    stripeProductId: 'prod_SzjspoHsFMwO9u',
-    stripePriceId: 'price_1S3kOVBbfpTzkWN95qTmKHz3',
+    stripeProductId: 'prod_TJwgFco1IuBojy',
+    stripePriceId: 'price_1SNIn6BuGFTHqsGmgevqrcez',
   },
 ];
 
 export function getPlans(environment: ScratchpadEnvironment): Plan[] {
   if (environment === 'production') {
     return PRODUCTION_PLANS;
-  } else if (environment === 'test') {
-    return TEST_PLANS;
+  } else if (environment === 'staging') {
+    return STAGING_SANDBOX_PLANS;
   }
-  return SANDBOX_PLANS;
+  return TEST_SANDBOX_PLANS;
 }
 
 export function getPlan(productType: ScratchpadPlanType): Plan | undefined {

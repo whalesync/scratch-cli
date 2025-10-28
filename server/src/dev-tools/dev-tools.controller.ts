@@ -16,6 +16,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/users.service';
+import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
 
 /**
@@ -28,6 +29,7 @@ export class DevToolsController {
     private readonly snapshotService: SnapshotService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
+    private readonly devToolsService: DevToolsService,
   ) {}
 
   @UseGuards(ScratchpadAuthGuard)
@@ -58,5 +60,19 @@ export class DevToolsController {
     const connectorAccounts = await this.connectorAccountService.findAll(id);
     const auditLogs = await this.auditLogService.findEventsForUser(id, 20, undefined);
     return new UserDetail(user, snapshots, connectorAccounts, auditLogs);
+  }
+
+  /**
+   * Temporary endpoing to reset the stripe customer and subscription for a user for migrating from one stripe account to a new one
+   * See DEV-8698 in Linear
+   * Remove after migration is complete
+   */
+  @UseGuards(ScratchpadAuthGuard)
+  @Get('users/:id/reset-stripe')
+  async resetStripeForUser(@Param('id') id: string, @Req() req: RequestWithUser): Promise<string> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can reset stripe customer and subscription for a user');
+    }
+    return await this.devToolsService.resetStripeCustomerForUser(id);
   }
 }

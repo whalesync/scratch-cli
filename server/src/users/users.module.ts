@@ -12,11 +12,12 @@ import { PosthogModule } from 'src/posthog/posthog.module';
 import { SlackNotificationModule } from 'src/slack/slack-notification.module';
 import { AgentCredentialsController } from './agent-credentials.controller';
 import { AgentCredentialsService } from './agent-credentials.service';
+import { SubscriptionService } from './subscription.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService, AgentCredentialsService],
+  providers: [UsersService, AgentCredentialsService, SubscriptionService],
   imports: [
     DbModule,
     AgentJwtModule,
@@ -28,7 +29,7 @@ import { UsersService } from './users.service';
     SlackNotificationModule,
     AuditLogModule,
   ],
-  exports: [UsersService, AgentCredentialsService], //export this service to use in other modules
+  exports: [UsersService, AgentCredentialsService, SubscriptionService], //export this service to use in other modules
   controllers: [UsersController, AgentCredentialsController],
 })
 export class UserModule {}
