@@ -20,6 +20,12 @@ from agents.data_agent.tools.set_field_value_tool import define_set_field_value_
 from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
 from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
 from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
+from agents.data_agent.tools.fetch_additional_records_tool import (
+    define_fetch_additional_records_tool,
+)
+from agents.data_agent.tools.fetch_records_by_ids_tool import (
+    define_fetch_records_by_ids_tool,
+)
 
 
 class GetRecordsInput(BaseModel):
@@ -73,3 +79,5 @@ def configure_tools(
     # Common tools / utilities
     define_url_content_load_tool(agent)
     define_upload_content_tool(agent)
+    define_fetch_additional_records_tool(agent)
+    define_fetch_records_by_ids_tool(agent)

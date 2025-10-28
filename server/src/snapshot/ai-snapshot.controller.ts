@@ -35,4 +35,15 @@ export class AiSnapshotController {
       body.writeFocus,
     );
   }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/records/by-ids')
+  async getRecordsByIds(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() body: { recordIds: string[] },
+    @Req() req: RequestWithUser,
+  ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    return await this.service.getRecordsByIdsForAi(snapshotId, tableId, body.recordIds, req.user.id);
+  }
 }

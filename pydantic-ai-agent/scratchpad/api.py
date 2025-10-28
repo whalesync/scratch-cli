@@ -130,6 +130,25 @@ class ScratchpadApi:
         return build_snapshot_record(data)
 
     @staticmethod
+    def get_records_by_ids(
+        user_id: str, snapshot_id: str, table_id: str, record_ids: List[str]
+    ) -> List[SnapshotRecord]:
+        """Get multiple records by their IDs from a table in a snapshot"""
+        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/by-ids"
+        body = {"recordIds": record_ids}
+        response = requests.post(
+            url, headers=API_CONFIG.get_api_headers(user_id), json=body
+        )
+        data = _handle_response(response, "Failed to get records by IDs")
+
+        # Convert raw record dictionaries to SnapshotRecord objects
+        records = []
+        for record_dict in data.get("records", []):
+            records.append(build_snapshot_record(record_dict))
+
+        return records
+
+    @staticmethod
     def bulk_update_records(
         user_id: str,
         snapshot_id: str,

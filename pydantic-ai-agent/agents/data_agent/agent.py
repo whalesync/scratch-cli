@@ -18,6 +18,7 @@ from utils.helpers import mask_string
 from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 from scratchpad.entities import AgentCredential
+from server.user_prompt_utils import build_snapshot_context, build_focus_context
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -29,6 +30,7 @@ def create_agent(
     capabilities: Optional[List[str]] = None,
     style_guides: Dict[str, str] = {},
     data_scope: Optional[str] = None,
+    filtered_counts: Optional[Dict[str, int]] = None,
 ):
     """Create and return a configured agent"""
     logger.info(f"🔍 create_agent called with:")
@@ -59,12 +61,43 @@ def create_agent(
         #     builtin_tools.append(UrlContextTool())
         #     builtin_tools.append(WebSearchTool(search_context_size="high", max_uses=5))
 
-        # Create the agent
+        # Create dynamic instructions function that includes snapshot context
+        def get_dynamic_instructions(ctx: RunContext[ChatRunContext]) -> str:
+            """Generate instructions with snapshot context dynamically for each run"""
+            # Get base instructions
+            base_instructions = get_data_agent_instructions(
+                capabilities, style_guides, data_scope
+            )
+
+            # Build snapshot context from the run context
+            snapshot_context = ""
+            if ctx.deps.snapshot:
+                snapshot_context = build_snapshot_context(
+                    snapshot=ctx.deps.snapshot,
+                    preloaded_records=ctx.deps.preloaded_records,
+                    filtered_counts=filtered_counts,
+                    data_scope=ctx.deps.data_scope,
+                    active_table_id=ctx.deps.active_table_id,
+                    record_id=ctx.deps.record_id,
+                    column_id=ctx.deps.column_id,
+                )
+
+            # Build focus context
+            focus_context = build_focus_context(
+                ctx.deps.read_focus, ctx.deps.write_focus
+            )
+
+            # Combine all instructions
+            full_instructions = (
+                f"{base_instructions}\n\n{snapshot_context}\n\n{focus_context}"
+            )
+
+            return full_instructions
+
+        # Create the agent with dynamic instructions
         agent = Agent(
             name="ChatServerAgent",
-            instructions=get_data_agent_instructions(
-                capabilities, style_guides, data_scope
-            ),
+            instructions=get_dynamic_instructions,
             output_type=ResponseFromAgent,
             history_processors=[data_agent_history_processor],
             model=model,

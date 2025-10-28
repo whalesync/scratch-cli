@@ -642,6 +642,27 @@ export class SnapshotService {
     };
   }
 
+  async getRecordsByIdsForAi(
+    snapshotId: SnapshotId,
+    tableId: string,
+    recordIds: string[],
+    userId: string,
+  ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    if (!tableSpec) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    // Fetch the records by their IDs from the snapshot database
+    const records = await this.snapshotDbService.snapshotDb.getRecordsByIds(snapshotId, tableId, recordIds);
+
+    return {
+      records,
+      totalCount: records.length,
+    };
+  }
+
   async bulkUpdateRecords(
     snapshotId: SnapshotId,
     tableId: string,

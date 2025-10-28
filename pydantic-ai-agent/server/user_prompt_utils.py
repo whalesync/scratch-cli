@@ -30,18 +30,18 @@ def build_snapshot_context(
     if not snapshot:
         return ""
 
-    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA START --\n"
+    snapshot_context = f"\n\n-- CURRENT SNAPSHOT DATA PREVIEW START --\n"
     snapshot_context += f"Snapshot: {snapshot.name or snapshot.id}\n"
     # snapshot_context += f"Tables: {len(snapshot.tables)}\n\n"
 
     truncate_record_content = data_scope == "table"
 
     for table in snapshot.tables:
-        if active_table_id and table.id.wsId != active_table_id:
-            continue
+        # Determine if this is the active table
+        is_active_table = (not active_table_id) or (active_table_id == table.id.wsId)
 
         columns_to_exclude = []
-        if data_scope == "column":
+        if data_scope == "column" and is_active_table:
             # remove all but the column we are interested in
             columns_to_exclude = [
                 col.id.wsId for col in table.columns if col.id.wsId != column_id
@@ -61,9 +61,12 @@ def build_snapshot_context(
                 if column_config.hidden:
                     columns_to_exclude.append(column_id)
 
-        snapshot_context += f"TABLE: {table.name} (ID: {table.id.wsId})\n"
-
-        columns_context = []
+        # Mark active table in the output
+        table_marker = " [ACTIVE TABLE]" if is_active_table else ""
+        snapshot_context += (
+            f"\nTABLE: {table.name} (ID: {table.id.wsId}){table_marker}\n"
+        )
+        snapshot_context += "COLUMNS:\n"
 
         for col in table.columns:
             if columns_to_exclude and col.id.wsId in columns_to_exclude:
@@ -75,37 +78,44 @@ def build_snapshot_context(
                 if column_config and column_config.protected:
                     readonly = True
 
-            columns_context.append(f"{col.name}{f' (Read Only)' if readonly else ''}")
-        snapshot_context += f"Fields: {', '.join(columns_context)}\n"
+            readonly_marker = " (Read Only)" if readonly else ""
+            snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}{readonly_marker}\n"
 
         # Add records if available
         if preloaded_records and table.name in preloaded_records:
             records = preloaded_records[table.name]
 
             snapshot_context += f"NOTES:\n"
-            snapshot_context += f" - {len(records)} records are currently loaded\n"
 
-            if truncate_record_content:
-                snapshot_context += (
-                    f" - Large field values are truncated to 200 characters\n"
-                )
+            # Different messaging for active table vs non-active table (sample record)
+            if is_active_table:
+                snapshot_context += f" - {len(records)} records are currently loaded\n"
 
-            # Add filtered records information if available
-            if filtered_counts and table.name in filtered_counts:
-                filtered_count = filtered_counts[table.name]
-                if filtered_count > 0:
-                    snapshot_context += f" - {filtered_count} records are currently filtered out and not included in this list.\n"
+                if truncate_record_content:
+                    snapshot_context += (
+                        f" - Large field values are truncated to 200 characters\n"
+                    )
 
-            # Add max records information if necessary
-            if max_records_to_include and len(records) > max_records_to_include:
-                snapshot_context += f" - Only the first {max_records_to_include} records in included in this list.\n"
+                # Add filtered records information if available
+                if filtered_counts and table.name in filtered_counts:
+                    filtered_count = filtered_counts[table.name]
+                    if filtered_count > 0:
+                        snapshot_context += f" - {filtered_count} records are currently filtered out and not included in this list.\n"
+
+                # Add max records information if necessary
+                if max_records_to_include and len(records) > max_records_to_include:
+                    snapshot_context += f" - Only the first {max_records_to_include} records in included in this list.\n"
+            else:
+                # This is a sample record from a non-active table
+                snapshot_context += f" - This is a sample record from this table (not the active table)\n"
+                snapshot_context += f" - Only 1 sample record is shown to provide context about this table's structure and data\n"
 
             snapshot_context += "\n"
 
             # Format records using the shared function
             records_summary = format_records_for_prompt(
                 records,
-                limit=max_records_to_include,
+                limit=max_records_to_include if is_active_table else 1,
                 truncate_record_content=truncate_record_content,
                 columns_to_exclude=columns_to_exclude,
             )
@@ -115,7 +125,7 @@ def build_snapshot_context(
             snapshot_context += "Records: Not loaded\n"
         snapshot_context += "\n"
 
-    snapshot_context += f"\n-- CURRENT SNAPSHOT DATA END --\n"
+    snapshot_context += f"\n-- CURRENT SNAPSHOT DATA PREVIEW END --\n"
 
     logger.debug(f"Snapshot context: {snapshot_context}")
 

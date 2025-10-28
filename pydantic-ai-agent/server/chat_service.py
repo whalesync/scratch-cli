@@ -216,11 +216,17 @@ class ChatService:
 
             # Pre-load records for each table
             for table in snapshot.tables:
-                if active_table_id and active_table_id != table.id.wsId:
-                    continue
+                # Determine if this is the active table
+                is_active_table = (not active_table_id) or (
+                    active_table_id == table.id.wsId
+                )
 
-                if record_id and (data_scope == "record" or data_scope == "column"):
-                    # just preload the one record form the table
+                if (
+                    record_id
+                    and (data_scope == "record" or data_scope == "column")
+                    and is_active_table
+                ):
+                    # just preload the one record from the active table
                     try:
                         record = ScratchpadApi.get_record(
                             user.userId,
@@ -248,7 +254,8 @@ class ChatService:
                             f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
                         )
                         preloaded_records[table.name] = []
-                else:
+                elif is_active_table:
+                    # Load all records for the active table
                     try:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
@@ -273,7 +280,7 @@ class ChatService:
                             for record in records_result.records
                         ]
                         logger.info(
-                            f"📊 Pre-loaded {len(preloaded_records[table.name])} records for table '{table.name}'"
+                            f"📊 Pre-loaded {len(preloaded_records[table.name])} records for active table '{table.name}'"
                         )
                         if records_result.filteredRecordsCount > 0:
                             logger.info(
@@ -282,6 +289,37 @@ class ChatService:
                     except Exception as e:
                         logger.exception(
                             f"⚠️ Failed to pre-load records for table '{table.name}'"
+                        )
+                        preloaded_records[table.name] = []
+                else:
+                    # Load just 1 sample record for non-active tables
+                    try:
+                        records_result = ScratchpadApi.list_records_for_ai(
+                            user.userId,
+                            session.snapshot_id,
+                            table.id.wsId,
+                            view_id=view_id,
+                            take=1,  # Only fetch 1 sample record
+                        )
+                        preloaded_records[table.name] = [
+                            {
+                                "id": {
+                                    "wsId": record.id.wsId,
+                                    "remoteId": record.id.remoteId,
+                                },
+                                "fields": record.fields,
+                                "suggested_fields": record.suggested_fields,
+                                "edited_fields": record.edited_fields,
+                                "dirty": record.dirty,
+                            }
+                            for record in records_result.records
+                        ]
+                        logger.info(
+                            f"📊 Pre-loaded 1 sample record for non-active table '{table.name}'"
+                        )
+                    except Exception as e:
+                        logger.exception(
+                            f"⚠️ Failed to pre-load sample record for table '{table.name}'"
                         )
                         preloaded_records[table.name] = []
 
@@ -388,25 +426,9 @@ class ChatService:
                 {"run_id": agent_run_id},
             )
 
-            # Prepare records and filtered counts for the utility function
-            preloaded_records = chatRunContext.preloaded_records
-
-            snapshot_context = build_snapshot_context(
-                snapshot=snapshot,
-                preloaded_records=preloaded_records,
-                filtered_counts=filtered_counts,
-                data_scope=data_scope,
-                active_table_id=active_table_id,
-                record_id=record_id,
-                column_id=column_id,
-            )
-
-            # Add focus cells information to the prompt if they exist
-            focus_context = build_focus_context(read_focus, write_focus)
-
-            full_prompt = (
-                f"RESPOND TO: {user_message} {snapshot_context} {focus_context}"
-            )
+            # The snapshot context and focus context are now handled by dynamic instructions
+            # in the agent, so we just pass the user message directly
+            full_prompt = user_message
 
             if user_open_router_credentials and user_open_router_credentials.apiKey:
                 await progress_callback(
@@ -427,6 +449,7 @@ class ChatService:
                 capabilities=capabilities,
                 style_guides=style_guides,
                 data_scope=data_scope,
+                filtered_counts=filtered_counts,
             )
 
             # Store the chat context so it can be accessed by the cancel system
