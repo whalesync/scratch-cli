@@ -29,6 +29,12 @@ variable "as_gitlab" {
   description = "Use the GitLab service account to run Terraform"
 }
 
+variable "force_reload_services" {
+  type        = bool
+  default     = false
+  description = "When set to true, forces all google_cloud_run_v2_service resources to be reloaded by setting an env var to a randomly generated value."
+}
+
 variable "db_version" {
   type    = string
   default = "POSTGRES_15"
@@ -125,4 +131,34 @@ variable "enable_pagerduty_notifications" {
   type        = bool
   default     = false
   description = "Whether to enable the Pager Duty notification channel for alerts."
+}
+
+variable "client_service_min_instance_count" {
+  type        = number
+  default     = 1
+  description = "Minimum number of instances for the client service."
+}
+
+variable "client_service_max_instance_count" {
+  type        = number
+  default     = 1
+  description = "Maximum number of instances for the client service."
+}
+
+variable "client_service_cpu_limit" {
+  type        = string
+  default     = "1"
+  description = "CPU limit for the client service (e.g., '1', '2', '4')."
+}
+
+variable "client_service_memory_limit" {
+  type        = string
+  default     = "2Gi"
+  description = "Memory limit for the client service (e.g., '512Mi', '1Gi', '2Gi')."
+}
+
+variable "client_service_node_options" {
+  type        = string
+  default     = ""
+  description = "Node.js options for the client service (e.g., '--max-old-space-size=512')."
 }
