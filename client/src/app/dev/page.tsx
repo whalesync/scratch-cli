@@ -2,10 +2,12 @@
 
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { RouteUrls } from '@/utils/route-urls';
+import { BUILD_VERSION } from '@/version';
 import { Stack } from '@mantine/core';
 import { DatabaseIcon, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
+import { TextSmBook } from '../components/base/text';
 import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import MainContent from '../components/layouts/MainContent';
 
@@ -49,7 +51,11 @@ export default function DevListPage() {
           </DevToolButton>
         </Stack>
       </MainContent.Body>
-      <MainContent.Footer></MainContent.Footer>
+      <MainContent.Footer>
+        <TextSmBook c="dimmed" ta="center">
+          Build version: {BUILD_VERSION}
+        </TextSmBook>
+      </MainContent.Footer>
     </MainContent>
   );
 }

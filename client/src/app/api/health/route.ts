@@ -1,3 +1,4 @@
+import { BUILD_VERSION } from "@/version";
 import { NextResponse } from "next/server";
 
 /**
@@ -11,7 +12,8 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development",
-    version: process.env.npm_package_version || "1.0.0",
+    package_version: process.env.npm_package_version || "1.0.0",
+    build_version: BUILD_VERSION,
   };
 
   return NextResponse.json(healthCheck, { status: 200 });

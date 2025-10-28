@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { BUILD_VERSION } from 'src/version';
 
 @Controller()
 export class AdminController {
@@ -6,7 +7,7 @@ export class AdminController {
   getRoot() {
     return {
       server: 'Scratchpad API',
-      version: '1.0.0',
+      build_version: BUILD_VERSION,
     };
   }
 
@@ -16,6 +17,7 @@ export class AdminController {
       status: 'alive',
       timestamp: new Date().toISOString(),
       service: 'scratchpad-api',
+      build_version: BUILD_VERSION,
     };
   }
 }
