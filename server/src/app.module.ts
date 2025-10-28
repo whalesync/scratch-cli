@@ -14,6 +14,7 @@ import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
+import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { ExperimentsModule } from './experiments/experiments.module';
 import { JobModule } from './job/job.module';
 import { MentionsModule } from './mentions/mentions.module';
@@ -65,6 +66,7 @@ import { WorkerModule } from './worker/workers.module';
     WorkerEnqueuerModule,
     ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
     ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),
+    DevToolsModule,
   ],
   controllers: [],
   providers: [],

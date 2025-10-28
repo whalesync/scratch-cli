@@ -4,9 +4,9 @@ import { snapshotApi } from '@/lib/api/snapshot';
 import { Alert, Badge, Button, Group, Paper, Stack, Table, Text } from '@mantine/core';
 import { AlertCircle, Check, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useScratchPadUser } from '../../hooks/useScratchpadUser';
-import { FullPageLoader } from '../components/FullPageLoader';
-import MainContent from '../components/layouts/MainContent';
+import { useScratchPadUser } from '../../../hooks/useScratchpadUser';
+import { FullPageLoader } from '../../components/FullPageLoader';
+import MainContent from '../../components/layouts/MainContent';
 
 interface OldStyleSnapshot {
   id: string;
@@ -19,7 +19,7 @@ interface OldStyleSnapshot {
   snapshotTablesCount: number;
 }
 
-const AdminPage = () => {
+const SnapshotMigratorToolPage = () => {
   const { isAdmin, isLoading: isUserLoading } = useScratchPadUser();
   const [snapshots, setSnapshots] = useState<OldStyleSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +99,7 @@ const AdminPage = () => {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Admin - Old Style Snapshots" />
+      <MainContent.BasicHeader title="Snapshot Migrator Tool" />
       <MainContent.Body>
         <Stack gap="md">
           <Paper p="md" withBorder>
@@ -206,4 +206,4 @@ const AdminPage = () => {
   );
 };
 
-export default AdminPage;
+export default SnapshotMigratorToolPage;

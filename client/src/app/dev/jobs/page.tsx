@@ -3,11 +3,11 @@
 import { Badge, Button, Center, Group, Loader, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
 import { Check, Circle, Dot, Eye, X } from 'lucide-react';
 import { useState } from 'react';
-import { useJobs } from '../../hooks/use-jobs';
-import { JobEntity } from '../../types/server-entities/job';
-import { formatDate, timeAgo } from '../../utils/helpers';
-import { DownloadProgressModal2 } from '../components/jobs/download/DownloadJobProgressModal2';
-import MainContent from '../components/layouts/MainContent';
+import { useJobs } from '../../../hooks/use-jobs';
+import { JobEntity } from '../../../types/server-entities/job';
+import { formatDate, timeAgo } from '../../../utils/helpers';
+import { DownloadProgressModal2 } from '../../components/jobs/download/DownloadJobProgressModal2';
+import MainContent from '../../components/layouts/MainContent';
 
 const getStatusIcon = (status: JobEntity['state']) => {
   switch (status) {

@@ -10,6 +10,8 @@ export interface User {
   agentJwt?: string;
   subscription?: SubscriptionInfo;
   experimentalFlags?: UserExperimentFlags;
+  name?: string;
+  email?: string;
 }
 
 export interface SubscriptionInfo {

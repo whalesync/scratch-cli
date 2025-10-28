@@ -182,6 +182,24 @@ export class UsersService {
     return updatedUser;
   }
 
+  public async search(query: string): Promise<UserCluster.User[]> {
+    return this.db.client.user.findMany({
+      where: {
+        OR: [
+          { id: { contains: query, mode: 'insensitive' } },
+          { clerkId: { contains: query, mode: 'insensitive' } },
+          { stripeCustomerId: { contains: query, mode: 'insensitive' } },
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      include: UserCluster._validator.include,
+    });
+  }
+
   private generateApiToken(): string {
     // Generate a secure 32-character token using nanoid
     return nanoid(32);

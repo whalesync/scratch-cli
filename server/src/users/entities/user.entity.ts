@@ -18,6 +18,8 @@ export class User {
   clerkId: string | null;
   isAdmin: boolean;
   id: string;
+  name?: string;
+  email?: string;
 
   // The token for the client to use for websockets when connecting to the Scratchpaper API
   websocketToken?: string;
@@ -29,12 +31,14 @@ export class User {
 
   experimentalFlags?: UserFlagValues;
 
-  constructor(user: UserCluster.User, agentJwt: string, experiments?: UserFlagValues) {
+  constructor(user: UserCluster.User, agentJwt?: string, experiments?: UserFlagValues) {
     this.id = user.id;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
     this.clerkId = user.clerkId;
     this.isAdmin = user.role === UserRole.ADMIN;
+    this.name = user.name || undefined;
+    this.email = user.email || undefined;
 
     if (user.apiTokens) {
       this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
