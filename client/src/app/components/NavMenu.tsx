@@ -8,11 +8,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import {
   BookOpen,
   Bot,
+  Cpu,
   FileSpreadsheet,
   LucideIcon,
   MoonIcon,
@@ -22,6 +22,7 @@ import {
   Unplug,
   Upload,
 } from 'lucide-react';
+import { useDevTools } from '../../hooks/use-dev-tools';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
 import customBorderStyles from './theme/custom-borders.module.css';
@@ -31,19 +32,27 @@ type MenuItem = {
   label: string;
 
   enabled: boolean;
-  requiresAdmin: boolean;
   icon: LucideIcon;
   iconType: 'lucide';
+
+  isDevTool?: boolean;
 };
 
 const lowerLinks: MenuItem[] = [
+  {
+    href: RouteUrls.devToolsPageUrl,
+    label: 'Dev Tools',
+    icon: Cpu,
+    iconType: 'lucide',
+    enabled: true,
+    isDevTool: true,
+  },
   {
     href: RouteUrls.settingsPageUrl,
     label: 'Settings',
     icon: Settings,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: false,
   },
 ];
 
@@ -54,7 +63,6 @@ const upperLinks: MenuItem[] = [
     icon: Table2,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: false,
   },
   {
     href: RouteUrls.connectionsPageUrl,
@@ -62,7 +70,6 @@ const upperLinks: MenuItem[] = [
     icon: Unplug,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: false,
   },
   {
     href: RouteUrls.uploadsPageUrl,
@@ -70,7 +77,6 @@ const upperLinks: MenuItem[] = [
     icon: Upload,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: false,
   },
   {
     href: RouteUrls.resourcesPageUrl,
@@ -78,7 +84,6 @@ const upperLinks: MenuItem[] = [
     icon: BookOpen,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: false,
   },
 
   {
@@ -87,7 +92,7 @@ const upperLinks: MenuItem[] = [
     icon: FileSpreadsheet,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: true,
+    isDevTool: true,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
@@ -95,13 +100,13 @@ const upperLinks: MenuItem[] = [
     icon: Bot,
     iconType: 'lucide',
     enabled: true,
-    requiresAdmin: true,
+    isDevTool: true,
   },
 ];
 
 export function NavMenu() {
   const pathname = usePathname();
-  const { isAdmin } = useScratchPadUser();
+  const { isDevToolsEnabled } = useDevTools();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const createMenuItem = (link: MenuItem, isActive: boolean) => {
     return (
@@ -112,6 +117,7 @@ export function NavMenu() {
           component={Link}
           href={link.href}
           data-active={isActive || undefined}
+          data-dev-tool={link.isDevTool || undefined}
           className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}
         >
           <StyledLucideIcon Icon={link.icon} size={16} />
@@ -141,7 +147,7 @@ export function NavMenu() {
 
       <Stack gap="md">
         {upperLinks
-          .filter((link) => link.enabled && (isAdmin || !link.requiresAdmin))
+          .filter((link) => link.enabled && (isDevToolsEnabled || !link.isDevTool))
           .map((link) => {
             const isActive = pathname.startsWith(link.href);
             return createMenuItem(link, isActive);
@@ -152,10 +158,12 @@ export function NavMenu() {
           <SignUpButton />
         </SignedOut>
         <SignedIn>
-          {lowerLinks.map((link) => {
-            const isActive = pathname.startsWith(link.href);
-            return createMenuItem(link, isActive);
-          })}
+          {lowerLinks
+            .filter((link) => link.enabled && (isDevToolsEnabled || !link.isDevTool))
+            .map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return createMenuItem(link, isActive);
+            })}
           <UnstyledButton
             onClick={() => {
               setColorScheme(colorScheme === 'light' ? 'dark' : 'light');

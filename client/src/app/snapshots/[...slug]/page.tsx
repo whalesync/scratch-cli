@@ -102,11 +102,11 @@ function SnapshotPageContent() {
   if (!snapshot) {
     return (
       <ErrorInfo
-        title="Scratchpaper not found."
-        error="We were unable to find the scratchpaper you are looking for."
+        title="Workbook not found."
+        error="We were unable to find the workbook you are looking for."
         action={
           <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
-            Return to scratchpapers
+            Return to workbooks
           </ButtonPrimaryLight>
         }
       />
@@ -117,10 +117,10 @@ function SnapshotPageContent() {
     return (
       <ErrorInfo
         title={`No tables found in ${snapshot.name}`}
-        error={`There are no tables in this scratchpaper. You will need to abandon the scratchpaper and recreate it.`}
+        error={`There are no tables in this workbook. You will need to abandon the workbook and recreate it.`}
         action={
           <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
-            Return to scratchpapers
+            Return to workbooks
           </ButtonPrimaryLight>
         }
       />
@@ -300,7 +300,7 @@ function SnapshotPageContent() {
   }
 
   return (
-    <PageLayout pageTitle={snapshot.name ?? 'Scratchpaper'} rightPanel={aiChatPanel}>
+    <PageLayout pageTitle={snapshot.name ?? 'Workbook'} rightPanel={aiChatPanel}>
       <MainContent>
         <MainContent.Header>{header}</MainContent.Header>
         <MainContent.Body p="0">

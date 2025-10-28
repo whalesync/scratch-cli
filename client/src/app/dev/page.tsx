@@ -21,7 +21,7 @@ export default function DevListPage() {
         <Stack gap="md" w="300px">
           <DevToolButton
             component={Link}
-            href={RouteUrls.devToolsPageUrl}
+            href={RouteUrls.devToolsGalleryPageUrl}
             leftSection={<StyledLucideIcon Icon={GalleryVerticalIcon} size={16} />}
           >
             Component gallery

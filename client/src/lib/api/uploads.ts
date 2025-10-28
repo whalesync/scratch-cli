@@ -249,8 +249,8 @@ export const uploadsApi = {
 
   },
 
-  // Create scratchpaper from CSV upload
-  createScratchpaperFromCsv: async (
+  // Create workbook from CSV upload
+  createWorkbookFromCsv: async (
     uploadId: string,
     name: string,
     titleColumnRemoteId?: string[]
@@ -264,7 +264,7 @@ export const uploadsApi = {
       body: JSON.stringify({ name, titleColumnRemoteId }),
     });
 
-    await checkForApiError(res, 'Failed to create scratchpaper from CSV');
+    await checkForApiError(res, 'Failed to create workbook from CSV');
     return res.json();
   },
 

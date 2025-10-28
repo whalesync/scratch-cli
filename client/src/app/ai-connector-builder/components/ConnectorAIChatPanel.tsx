@@ -428,7 +428,7 @@ export default function ConnectorAIChatPanel({
           </Text>
         )}
         {selectedCapabilities.length > 0 && (
-          <Text span size="xs" c="purple" ml="xs">
+          <Text span size="xs" c="devTool" ml="xs">
             | Capabilities ({selectedCapabilities.length}): {selectedCapabilities.join(', ')}
           </Text>
         )}

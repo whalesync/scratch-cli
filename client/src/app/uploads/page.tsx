@@ -25,7 +25,7 @@ export default function UploadsPage() {
   const { uploads, isLoading, error, mutate } = useUploads();
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCreatingScratchpaper, setIsCreatingScratchpaper] = useState(false);
+  const [isCreatingWorkbook, setIsCreatingWorkbook] = useState(false);
   const [downloadingUploadId, setDownloadingUploadId] = useState<string | null>(null);
   const modalStack = useModalsStack(['confirm-delete', 'select-title-column']);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,39 +77,39 @@ export default function UploadsPage() {
     }
   };
 
-  const handleCreateScratchpaper = async (upload: Upload) => {
+  const handleCreateWorkbook = async (upload: Upload) => {
     // Show the title column selection modal
     setUploadForTitleSelection(upload);
     modalStack.open('select-title-column');
   };
 
-  const handleConfirmCreateScratchpaper = async (titleColumnRemoteId: string[]) => {
+  const handleConfirmCreateWorkbook = async (titleColumnRemoteId: string[]) => {
     if (!uploadForTitleSelection) return;
 
     modalStack.close('select-title-column');
-    setIsCreatingScratchpaper(true);
+    setIsCreatingWorkbook(true);
     try {
-      const result = await uploadsApi.createScratchpaperFromCsv(
+      const result = await uploadsApi.createWorkbookFromCsv(
         uploadForTitleSelection.id,
         uploadForTitleSelection.name,
         titleColumnRemoteId,
       );
       notifications.show({
         title: 'Success',
-        message: `Scratchpaper "${uploadForTitleSelection.name}" created successfully`,
+        message: `Workbook "${uploadForTitleSelection.name}" created successfully`,
         color: 'green',
       });
-      // Navigate to the new scratchpaper
+      // Navigate to the new workbook
       router.push(`/snapshots/${result.snapshotId}`);
     } catch (err) {
-      console.error('Failed to create scratchpaper:', err);
+      console.error('Failed to create workbook:', err);
       notifications.show({
         title: 'Error',
-        message: 'Failed to create scratchpaper',
+        message: 'Failed to create workbook',
         color: 'red',
       });
     } finally {
-      setIsCreatingScratchpaper(false);
+      setIsCreatingWorkbook(false);
       setUploadForTitleSelection(null);
     }
   };
@@ -311,7 +311,7 @@ export default function UploadsPage() {
             {...modalStack.register('select-title-column')}
             uploadId={uploadForTitleSelection?.id || ''}
             uploadName={uploadForTitleSelection?.name || ''}
-            onConfirm={handleConfirmCreateScratchpaper}
+            onConfirm={handleConfirmCreateWorkbook}
           />
 
           {sortedUploads.length === 0 ? (
@@ -377,12 +377,12 @@ export default function UploadsPage() {
                                 <StyledLucideIcon Icon={Download} size={16} />
                               </ActionIcon>
                             </Tooltip>
-                            <Tooltip label="Create scratchpaper">
+                            <Tooltip label="Create workbook">
                               <ActionIcon
                                 variant="subtle"
                                 color="blue"
-                                onClick={() => handleCreateScratchpaper(upload)}
-                                loading={isCreatingScratchpaper}
+                                onClick={() => handleCreateWorkbook(upload)}
+                                loading={isCreatingWorkbook}
                               >
                                 <StyledLucideIcon Icon={Plus} size={16} />
                               </ActionIcon>

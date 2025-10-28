@@ -54,33 +54,33 @@ export default function DevComponentGalleryPage() {
           <TextSmRegular>This is a gallery of components that are available in the application</TextSmRegular>
           {/* Table of contents */}
           <List>
-            <Anchor href="#title-text">
-              <List.Item>Text: title</List.Item>
-            </Anchor>
-            <Anchor href="#body-text">
-              <List.Item>Text: body</List.Item>
-            </Anchor>
-            <Anchor href="#mono-text">
-              <List.Item>Text: monospace</List.Item>
-            </Anchor>
-            <Anchor href="#buttons">
-              <List.Item>Buttons</List.Item>
-            </Anchor>
-            <Anchor href="#badges">
-              <List.Item>Badges</List.Item>
-            </Anchor>
-            <Anchor href="#loaders">
-              <List.Item>Loaders</List.Item>
-            </Anchor>
-            <Anchor href="#icons">
-              <List.Item>Icons</List.Item>
-            </Anchor>
-            <Anchor href="#info-panels">
-              <List.Item>Info Panels</List.Item>
-            </Anchor>
-            <Anchor href="#input-components">
-              <List.Item>Input Components</List.Item>
-            </Anchor>
+            <List.Item>
+              <Anchor href="#title-text">Text: title</Anchor>{' '}
+            </List.Item>
+            <List.Item>
+              <Anchor href="#body-text">Text: body</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#mono-text">Text: monospace</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#buttons">Buttons</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#badges">Badges</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#loaders">Loaders</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#icons">Icons</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#info-panels">Info Panels</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#input-components">Input Components</Anchor>
+            </List.Item>
           </List>
 
           <GallerySection id="title-text" title="Text: title" />

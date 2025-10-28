@@ -1,6 +1,6 @@
-# Scratchpaper Client
+# Scratch Client
 
-Data Studio Front-end for Scratchpaper.
+Data Studio Front-end for Scratch (formerly Scratchpaper).
 
 ## Set up
 
@@ -57,7 +57,7 @@ yarn run start
 
 ## Hosting
 
-The Scratchpaper client is hosted on Vercel and is automatically deployed with every merge into master
+The Scratch client is hosted on Vercel and is automatically deployed with every merge into master
 
 [Public URL - https://scratchpad-client.vercel.app/](https://scratchpad-client.vercel.app/)
 
@@ -69,7 +69,7 @@ The Scratchpaper client is hosted on Vercel and is automatically deployed with e
 
 ### Next.js
 
-The Scratchpaper UI is built using [next.js](https://nextjs.org/docs)
+The Scratch UI is built using [next.js](https://nextjs.org/docs)
 
 - Uses Next.js AppRouter
 - We are not using Server Side Rendering (SSR)
@@ -90,7 +90,7 @@ Read the docs!
 
 Authentication is managed by Clerk, with only Google SSO enabled, using Clerk's SDK and Next.js components to sign-in. [docs here](https://clerk.com/docs/quickstarts/nextjs). Auth is provided by a combination of the ClerkProvider and the clerk middleware.
 
-Once a user signs in, we check if a Scratchpaper account exists, and create it if necessary.
+Once a user signs in, we check if a Scratch account exists, and create it if necessary.
 
 ## Tips
 

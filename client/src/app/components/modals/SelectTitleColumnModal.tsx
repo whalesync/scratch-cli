@@ -55,7 +55,7 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
   };
 
   return (
-    <Modal {...props} title={`Create scratchpaper from "${uploadName}"`} centered size="md">
+    <Modal {...props} title={`Create workbook from "${uploadName}"`} centered size="md">
       <Stack>
         {error && (
           <Alert color="red" title="Error">
@@ -85,7 +85,7 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
             <Group justify="flex-end" mt="md">
               <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
               <ButtonPrimaryLight onClick={handleConfirm} disabled={!selectedColumn}>
-                Create Scratchpaper
+                Create workbook
               </ButtonPrimaryLight>
             </Group>
           </>

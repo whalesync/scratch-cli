@@ -100,7 +100,7 @@ export const CreateSnapshotModal = ({
       const snapshot = await createSnapshot({
         connectorAccountId: connectorAccount.id,
         tableIds: [table.id],
-        name: snapshotName ?? `New ${connectorAccount.displayName} scratchpaper`,
+        name: snapshotName ?? `New ${connectorAccount.displayName} workbook`,
       });
       props.onClose?.();
       router.push(RouteUrls.snapshotPage(snapshot.id));
@@ -153,10 +153,10 @@ export const CreateSnapshotModal = ({
   };
 
   return (
-    <Modal title="Start new scratchpaper" size="xl" centered {...props}>
+    <Modal title="Start new workbook" size="xl" centered {...props}>
       <Stack>
         <TextInput
-          placeholder="Enter a name for the scratchpaper"
+          placeholder="Enter a name for the workbook"
           required
           value={snapshotName}
           onChange={(e) => setSnapshotName(e.target.value)}
@@ -178,7 +178,7 @@ export const CreateSnapshotModal = ({
               }}
             >
               <Group justify="flex-start">
-                <Text size="sm">Select a {tableTerm} to include in the scratchpaper</Text>
+                <Text size="sm">Select a {tableTerm} to include in the workbook</Text>
               </Group>
 
               <Paper withBorder p="md" mt="sm">
@@ -217,7 +217,7 @@ export const CreateSnapshotModal = ({
             onClick={handleCreateSnapshot}
             disabled={!selectedTable || snapshotName.length === 0 || !!error}
           >
-            Create scratchpaper
+            Create workbook
           </ButtonPrimaryLight>
         </Group>
       </Stack>

@@ -65,7 +65,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         </Table.Td>
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
-            <ToolIconButton size="md" onClick={open} icon={Plus} tooltip="Create a Scratchpaper" />
+            <ToolIconButton size="md" onClick={open} icon={Plus} tooltip="Create a workbook" />
             <ToolIconButton
               size="md"
               onClick={() => onUpdate(connectorAccount)}

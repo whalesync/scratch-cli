@@ -15,7 +15,7 @@
 
 .text {
   &[data-variant='dimmed'] {
-    color: var(--mantine-color-gray-6);
+    opacity: 0.6;
     /* @mixin light {
       border-color: var(--mantine-color-gray-3);
     }

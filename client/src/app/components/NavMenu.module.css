@@ -11,4 +11,8 @@
   &[data-active] {
     color: var(--mantine-color-foreground-9);
   }
+
+  &[data-dev-tool] {
+    color: var(--mantine-color-devTool-filled);
+  }
 }

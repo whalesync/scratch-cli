@@ -59,8 +59,8 @@ export const ButtonDangerLight = Button.withProps({
 
 export const DevToolButton = Button.withProps({
   variant: 'outline',
-  c: 'purple',
-  color: 'purple',
+  c: 'devTool',
+  color: 'devTool',
   leftSection: <StyledLucideIcon Icon={Cpu} />,
   classNames: { root: customBordersClasses.cornerBorders },
 });

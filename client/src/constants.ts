@@ -1,1 +1,1 @@
-export const PROJECT_NAME = 'Scratchpaper';
+export const PROJECT_NAME = 'Scratch';

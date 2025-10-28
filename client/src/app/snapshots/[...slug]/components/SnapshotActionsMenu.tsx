@@ -66,13 +66,13 @@ export const SnapshotActionsMenu = () => {
       setSaving(true);
       await updateSnapshot({ name: snapshotName });
       ScratchpadNotifications.success({
-        message: 'The scratchpaper was renamed.',
+        message: 'The workbook was renamed.',
       });
       modalStack.close(Modals.RENAME);
     } catch {
       ScratchpadNotifications.error({
         title: 'Renaming failed',
-        message: 'There was an error renaming the scratchpaper to ' + snapshotName,
+        message: 'There was an error renaming the workbook to ' + snapshotName,
       });
     } finally {
       setSaving(false);
@@ -184,7 +184,7 @@ export const SnapshotActionsMenu = () => {
       await snapshotApi.delete(snapshot.id);
       ScratchpadNotifications.success({
         title: 'Snapshot abandoned',
-        message: 'The scratchpaper and its data have been deleted.',
+        message: 'The workbook and its data have been deleted.',
       });
 
       router.push(RouteUrls.snapshotsPageUrl);
@@ -192,7 +192,7 @@ export const SnapshotActionsMenu = () => {
       console.log(e);
       ScratchpadNotifications.error({
         title: 'Deletion failed',
-        message: 'There was an error deleting the scratchpaper.',
+        message: 'There was an error deleting the workbook.',
       });
     } finally {
       setSaving(false);
@@ -270,13 +270,13 @@ export const SnapshotActionsMenu = () => {
           <Text>Your data is being downloaded from the remote source. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register(Modals.PUBLISH)} title="Publishing scratchpaper" centered size="md">
+      <Modal {...modalStack.register(Modals.PUBLISH)} title="Publishing workbook" centered size="md">
         <Group gap="xs" wrap="nowrap">
           <Loader size="xs" />
           <Text>Your data is being published to {connectorAccount?.displayName}. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register(Modals.RENAME)} title="Rename scratchpaper" centered size="lg">
+      <Modal {...modalStack.register(Modals.RENAME)} title="Rename workbook" centered size="lg">
         <Stack>
           <TextInput label="Name" value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} />
           <Group justify="flex-end">

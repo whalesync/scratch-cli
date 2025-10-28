@@ -52,7 +52,7 @@ export const snapshotApi = {
       },
       body: JSON.stringify(dto),
     });
-    await checkForApiError(res, 'Failed to create a scratchpaper');
+    await checkForApiError(res, 'Failed to create a workbook');
     return res.json();
   },
 

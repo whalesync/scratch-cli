@@ -10,7 +10,7 @@ export const viewApi = {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
-    await checkForApiError(res, "Failed to get view list for this scratchpaper");
+    await checkForApiError(res, "Failed to get view list for this workbook");
     return res.json();
   },
 

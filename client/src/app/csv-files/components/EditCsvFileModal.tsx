@@ -68,7 +68,7 @@ export const EditCsvFileModal = (props: EditCsvFileModalProps) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter CSV file name"
-          description="The name of the CSV file. This will be used as the table name in the scratchpaper."
+          description="The name of the CSV file. This will be used as the table name in the workbook."
         />
         <Textarea
           label="CSV Content"

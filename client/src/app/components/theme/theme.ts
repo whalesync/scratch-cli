@@ -24,6 +24,13 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
     primary: CUSTOM_GREEN,
 
+    /** Use this color for all dev tools */
+    devTool: virtualColor({
+      name: 'devTool',
+      light: 'violet',
+      dark: 'violet',
+    }),
+
     // NOTE: this does not work yet, waiting to hear from Mantine team
     suggestion: virtualColor({
       name: 'suggestion',

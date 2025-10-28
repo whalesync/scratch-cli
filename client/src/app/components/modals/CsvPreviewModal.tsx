@@ -49,7 +49,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
   const [columnNames, setColumnNames] = useState<string[]>([]);
   const [columnTypes, setColumnTypes] = useState<ModalColumnType[]>([]);
   const [isImporting, setIsImporting] = useState(false);
-  const [scratchpaperName, setScratchpaperName] = useState('');
+  const [workbookName, setWorkbookName] = useState('');
   const router = useRouter();
   const pathname = usePathname();
   const { mutate } = useSWRConfig();
@@ -76,10 +76,10 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
     }
   }, [data, firstRowIsHeader]); // Removed firstRowIsHeader from dependencies
 
-  // Initialize scratchpaper name from filename
+  // Initialize workbook name from filename
   useEffect(() => {
     if (fileName) {
-      setScratchpaperName(fileName);
+      setWorkbookName(fileName);
     }
   }, [fileName]);
 
@@ -128,7 +128,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
 
       const result = await uploadsApi.uploadCsv({
         file,
-        uploadName: scratchpaperName,
+        uploadName: workbookName,
         columnNames: filteredColumnNames,
         columnTypes: filteredColumnTypes,
         columnIndices: filteredColumnIndices,
@@ -173,7 +173,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
           width: 150px !important;
         }
       `}</style>
-      <Modal opened={opened} onClose={onClose} title="Preview: Create Scratchpaper from CSV" size="80%" centered>
+      <Modal opened={opened} onClose={onClose} title="Preview: Create workbook from CSV" size="80%" centered>
         <Stack gap="xl">
           {/* Filename display */}
           <Text size="sm" fw={500}>
@@ -334,12 +334,12 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
           {/* Import section */}
           <Group align="center">
             <Text size="sm" fw={500} style={{ minWidth: '120px' }}>
-              Scratchpaper name
+              Workbook name
             </Text>
             <TextInput
-              value={scratchpaperName}
-              onChange={(event) => setScratchpaperName(event.currentTarget.value)}
-              placeholder="Enter scratchpaper name"
+              value={workbookName}
+              onChange={(event) => setWorkbookName(event.currentTarget.value)}
+              placeholder="Enter workbook name"
               style={{ flex: 1 }}
             />
             <Button onClick={handleImport} loading={isImporting} size="md">

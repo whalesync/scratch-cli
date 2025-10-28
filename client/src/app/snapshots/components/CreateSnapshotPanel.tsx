@@ -71,8 +71,8 @@ export const CreateSnapshotPanel = () => {
       const result = await uploadsApi.createTemplate({ scratchpaperName: contentName });
 
       ScratchpadNotifications.success({
-        title: 'Template scratchpaper created',
-        message: 'The template scratchpaper has been created',
+        title: 'Template workbook created',
+        message: 'The template workbook has been created',
       });
 
       await sleep(200);
@@ -100,7 +100,7 @@ export const CreateSnapshotPanel = () => {
 
   return (
     <>
-      <Modal title="Create scratchpaper" centered size="md" {...modalStack.register('create-content-snapshot')}>
+      <Modal title="Create workbook" centered size="md" {...modalStack.register('create-content-snapshot')}>
         <Stack>
           {saveError && (
             <Alert color="red" title="Error creating content snapshot">
@@ -109,7 +109,7 @@ export const CreateSnapshotPanel = () => {
           )}
           <TextInput
             label="Content Name"
-            description="Defines the name scratchpaper table"
+            description="Defines the name workbook table"
             required
             value={contentName}
             onChange={(e) => setContentName(e.target.value)}
@@ -137,7 +137,7 @@ export const CreateSnapshotPanel = () => {
           leftSection={<PlusIcon size={16} />}
           loading={isLoadingPreview}
         >
-          New scratchpaper from CSV file
+          New workbook from CSV file
         </ContentFooterButton>
         <ContentFooterButton
           w="min-content"
@@ -145,7 +145,7 @@ export const CreateSnapshotPanel = () => {
           leftSection={<PlusIcon size={16} />}
           loading={isSaving}
         >
-          New scratchpaper from template
+          New workbook from template
         </ContentFooterButton>
       </Group>
 
