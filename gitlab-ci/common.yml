@@ -22,6 +22,13 @@ include:
   script:
     - gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${GCP_REGION}-docker.pkg.dev
 
+# Reusable snippet for including into rules to trigger jobs only on merge to master, not in MRs or scheduled pipelines
+.rules:
+  on_merge_to_master:
+    - if: '$CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "merge_request_event" && $CI_PIPELINE_SOURCE != "schedule"'
+  on_merge_to_prod:
+    - if: '$CI_COMMIT_BRANCH == "prod" && $CI_PIPELINE_SOURCE != "merge_request_event" && $CI_PIPELINE_SOURCE != "schedule"'
+
 # Extend this rule to include OIDC auth and all required settings for the test project
 .gcp_test_env:
   extends: .google-oidc:auth

@@ -10,9 +10,9 @@ class ApiConfig {
   private snapshotWebsocketToken: string | null;
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010";
-    this.aiAgentApiUrl = process.env.NEXT_PUBLIC_AI_AGENT_API_URL || "http://localhost:8000";
-    this.aiAgentWebSocketUrl = process.env.NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL || "ws://localhost:8000";
+    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
+    this.aiAgentApiUrl = process.env.NEXT_PUBLIC_AI_AGENT_API_URL || 'http://localhost:8000';
+    this.aiAgentWebSocketUrl = process.env.NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL || 'ws://localhost:8000';
     this.authToken = null;
     this.agentJwt = null;
     this.snapshotWebsocketToken = null;

@@ -20,12 +20,55 @@ build and test client:
     paths:
       - client/.next
     expire_in: 1 hour
-  only:
-    changes:
-      - client/**/*
-    refs:
-      - merge_requests
-      - master
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - client/**/*
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+gcp push test client image to artifact registry:
+  stage: build
+  needs:
+    - job: build and test client
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - cd client
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "Labelling this build as $BUILD_VERSION"
+    # Environment-specific .env flags are set here.
+    # Service-type flags are set in terraform on launch.
+    - >
+      docker build
+      --build-arg APP_ENV=test
+      --build-arg BUILD_VERSION="${BUILD_VERSION}"
+      --build-arg CLERK_PUBLISHABLE_KEY="${CLERK_PUBLISHABLE_KEY_PRODUCTION}"
+      --build-arg NEXT_PUBLIC_POSTHOG_KEY="${POSTHOG_KEY}"
+      --build-arg NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"
+      --build-arg NEXT_PUBLIC_API_URL=https://api.scratchpaper.ai
+      --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratchpaper.ai
+      --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratchpaper.ai
+      -t spinner-test/spinner-client
+      -f Dockerfile .
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - client/Dockerfile
+        - client/package.json
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
 # SERVER SUBPROJECT
@@ -49,19 +92,15 @@ build and test server:
     paths:
       - server/dist
     expire_in: 1 hour
-  only:
-    changes:
-      - server/**/*
-    refs:
-      - merge_requests
-      - master
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - server/**/*
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
 
 # TODO: convert this to a Gitlab "Step":
 # https://docs.gitlab.com/tutorials/setup_steps/
-#
-# this builds one docker image for all of the bottlenose variants for the test environment.
-# note: this contrasts with the aws variants that build one for each environment.
-# at runtime, the image needs to be provided with service_type and friendly_service_name vars.
 gcp push test server image to artifact registry:
   stage: build
   needs:
@@ -87,11 +126,13 @@ gcp push test server image to artifact registry:
     - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
     - docker tag spinner-test/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
-  only:
-    refs:
-      - master
-      - staging
-      - prod
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - server/Dockerfile
+        - server/package.json
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
 # PYDANTIC-AI-AGENT SUBPROJECT
@@ -108,9 +149,9 @@ build and test agent:
     - find . -name "*.py" -not -path "./venv/*" -not -path "./testing/*" -print -exec python -m py_compile {} \;
     - echo "Checking for Python code style issues"
     - black --check .
-  only:
-    changes:
-      - pydantic-ai-agent/**/*
-    refs:
-      - merge_requests
-      - master
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - pydantic-ai-agent/**/*
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
