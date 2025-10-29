@@ -22,9 +22,10 @@ resource "google_compute_region_network_endpoint_group" "cloudrun_neg" {
 resource "google_compute_backend_service" "default" {
   name = "${var.name}-backend"
 
-  protocol    = "HTTP"
-  port_name   = "http"
-  timeout_sec = 30
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  protocol              = "HTTP"
+  port_name             = "http"
+  timeout_sec           = 30
 
   backend {
     group = google_compute_region_network_endpoint_group.cloudrun_neg.id
@@ -86,8 +87,8 @@ resource "google_compute_target_https_proxy" "default" {
 # Create global forwarding rule for HTTPS
 resource "google_compute_global_forwarding_rule" "https" {
   name                  = "${var.name}-https-forwarding-rule"
-  ip_protocol           = "TCP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_protocol           = "TCP"
   port_range            = "443"
   target                = google_compute_target_https_proxy.default.id
   ip_address            = google_compute_global_address.default.id
@@ -116,8 +117,8 @@ resource "google_compute_target_http_proxy" "http_redirect" {
 resource "google_compute_global_forwarding_rule" "http" {
   count                 = var.enable_http_redirect ? 1 : 0
   name                  = "${var.name}-http-forwarding-rule"
-  ip_protocol           = "TCP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_protocol           = "TCP"
   port_range            = "80"
   target                = google_compute_target_http_proxy.http_redirect[0].id
   ip_address            = google_compute_global_address.default.id
