@@ -3,6 +3,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Post,
   Query,
   Req,
   UnauthorizedException,
@@ -14,6 +15,7 @@ import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
+import { SnapshotId } from 'src/types/ids';
 import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/users.service';
 import { DevToolsService } from './dev-tools.service';
@@ -62,17 +64,44 @@ export class DevToolsController {
     return new UserDetail(user, snapshots, connectorAccounts, auditLogs);
   }
 
-  /**
-   * Temporary endpoing to reset the stripe customer and subscription for a user for migrating from one stripe account to a new one
-   * See DEV-8698 in Linear
-   * Remove after migration is complete
-   */
+  /*
+    Temporary endpoint to migrate old style snapshots to new Workbooks
+  */
   @UseGuards(ScratchpadAuthGuard)
-  @Get('users/:id/reset-stripe')
-  async resetStripeForUser(@Param('id') id: string, @Req() req: RequestWithUser): Promise<string> {
+  @Post('snapshots/fix-user')
+  async fixUser(@Req() req: RequestWithUser): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
+    return this.snapshotService.migrateUserSnapshots(req.user.id);
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Get('snapshots/old-style-snapshots')
+  async listOldStyleSnapshots(@Req() req: RequestWithUser): Promise<
+    Array<{
+      id: string;
+      name: string | null;
+      service: string;
+      userId: string;
+      createdAt: Date;
+      updatedAt: Date;
+      tableSpecsCount: number;
+      snapshotTablesCount: number;
+    }>
+  > {
     if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can reset stripe customer and subscription for a user');
+      throw new UnauthorizedException('Only admins can list old-style snapshots');
     }
-    return await this.devToolsService.resetStripeCustomerForUser(id);
+    return this.snapshotService.listOldStyleSnapshots();
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post('snapshots/fix-snapshot/:id')
+  async fixSnapshot(
+    @Param('id') id: SnapshotId,
+    @Req() req: RequestWithUser,
+  ): Promise<{ success: boolean; tablesCreated: number }> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can fix snapshots');
+    }
+    return this.snapshotService.migrateSnapshot(id);
   }
 }
