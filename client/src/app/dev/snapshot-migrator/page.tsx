@@ -1,6 +1,6 @@
 'use client';
 
-import { snapshotApi } from '@/lib/api/snapshot';
+import { devToolsApi } from '@/lib/api/dev-tools';
 import { Alert, Badge, Button, Group, Paper, Stack, Table, Text } from '@mantine/core';
 import { AlertCircle, Check, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -37,7 +37,7 @@ const SnapshotMigratorToolPage = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await snapshotApi.listOldStyleSnapshots();
+      const data = await devToolsApi.listOldStyleSnapshots();
       setSnapshots(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load snapshots');
@@ -51,7 +51,7 @@ const SnapshotMigratorToolPage = () => {
       setFixingSnapshots((prev) => new Set(prev).add(snapshotId));
       setError(null);
 
-      const result = await snapshotApi.fixSnapshot(snapshotId);
+      const result = await devToolsApi.fixSnapshot(snapshotId);
 
       if (result.success) {
         setFixedSnapshots((prev) => new Set(prev).add(snapshotId));

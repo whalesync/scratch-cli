@@ -383,37 +383,4 @@ export const snapshotApi = {
     return res.json();
   },
 
-  // Admin-only endpoints
-  async listOldStyleSnapshots(): Promise<
-    Array<{
-      id: string;
-      name: string | null;
-      service: string;
-      userId: string;
-      createdAt: Date;
-      updatedAt: Date;
-      tableSpecsCount: number;
-      snapshotTablesCount: number;
-    }>
-  > {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/admin/old-style-snapshots`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to list old-style snapshots');
-    return res.json();
-  },
-
-  async fixSnapshot(id: string): Promise<{ success: boolean; tablesCreated: number }> {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/admin/fix-snapshot/${id}`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to fix snapshot');
-    return res.json();
-  },
 };
