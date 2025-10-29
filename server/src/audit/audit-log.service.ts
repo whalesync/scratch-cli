@@ -8,7 +8,9 @@ import { AuditLogEventType } from './types';
 export class AuditLogService {
   constructor(private readonly dbService: DbService) {}
 
+  // TODO (DEV-8628): change signature to take Actor instead of userId and organizationId in args
   async logEvent(args: {
+    organizationId?: string;
     userId: string;
     eventType: AuditLogEventType;
     message: string;
@@ -20,6 +22,7 @@ export class AuditLogService {
       data: {
         id: createAuditLogEventId(),
         userId: args.userId,
+        organizationId: args.organizationId,
         eventType: args.eventType,
         message: args.message,
         entityId: args.entityId,
@@ -32,6 +35,24 @@ export class AuditLogService {
     return this.dbService.client.auditLogEvent.findMany({
       where: {
         userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take,
+      skip: cursor ? 1 : undefined,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+  }
+
+  async findEventsForOrganization(
+    organizationId: string,
+    take: number,
+    cursor: string | undefined,
+  ): Promise<AuditLogEvent[]> {
+    return this.dbService.client.auditLogEvent.findMany({
+      where: {
+        organizationId,
       },
       orderBy: {
         createdAt: 'desc',

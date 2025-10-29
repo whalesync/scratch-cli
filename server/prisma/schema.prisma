@@ -373,16 +373,19 @@ model Upload {
 }
 
 model AuditLogEvent {
-  id        String   @id // type: AuditLogEventId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String // user who triggered the event
-  message   String // message describing the event
-  eventType String // create, update, delete, publish, etc.
-  entityId  String // ID of the entity that was affected by this event like a snapshot or connection
-  context   Json? // Additional details about the event that can be used to to show what changed or store additional context
+  id             String        @id // type: AuditLogEventId
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  userId         String // user who triggered the event
+  organizationId String? // organization that owns the entity that was affected by this event
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  message        String // message describing the event
+  eventType      String // create, update, delete, publish, etc.
+  entityId       String // ID of the entity that was affected by this event like a snapshot or connection
+  context        Json? // Additional details about the event that can be used to to show what changed or store additional context
 
   @@index([userId])
+  @@index([organizationId])
   @@index([entityId])
 }
 
@@ -393,5 +396,6 @@ model Organization {
   updatedAt DateTime @updatedAt
   name      String
 
-  users User[]
+  users         User[]
+  AuditLogEvent AuditLogEvent[]
 }

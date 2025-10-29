@@ -4,6 +4,7 @@ import { JsonObject } from '@prisma/client/runtime/library';
 export class AuditLogEventEntity {
   id: string;
   userId: string;
+  organizationId: string | null;
   eventType: string;
   message: string;
   entityId: string;
@@ -13,6 +14,7 @@ export class AuditLogEventEntity {
   constructor(auditLogEvent: AuditLogEvent) {
     this.id = auditLogEvent.id;
     this.userId = auditLogEvent.userId;
+    this.organizationId = auditLogEvent.organizationId;
     this.eventType = auditLogEvent.eventType;
     this.message = auditLogEvent.message;
     this.entityId = auditLogEvent.entityId;
