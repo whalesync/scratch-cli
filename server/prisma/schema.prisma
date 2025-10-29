@@ -28,6 +28,8 @@ model User {
   email                   String?
   role                    UserRole                 @default(USER)
   stripeCustomerId        String?                  @unique
+  organizationId          String?
+  organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
   customConnectors        CustomConnector[]
@@ -382,4 +384,14 @@ model AuditLogEvent {
 
   @@index([userId])
   @@index([entityId])
+}
+
+model Organization {
+  id        String   @id // type: OrganizationId
+  clerkId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+
+  users User[]
 }

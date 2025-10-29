@@ -29,6 +29,7 @@ export enum IdPrefixes {
   INVOICE_RESULT = 'inv_',
   UPLOAD = 'upl_',
   AUDIT_LOG_EVENT = 'ael_', // Audit log event
+  ORGANIZATION = 'org_', // Organization
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -257,4 +258,15 @@ export function isAuditLogEventId(id: unknown): id is AuditLogEventId {
 
 export function createAuditLogEventId(): AuditLogEventId {
   return createId(IdPrefixes.AUDIT_LOG_EVENT) as AuditLogEventId;
+}
+
+// ------- Organization -------
+export type OrganizationId = PrefixedId<IdPrefixes.ORGANIZATION>;
+
+export function isOrganizationId(id: unknown): id is OrganizationId {
+  return isId(id, IdPrefixes.ORGANIZATION);
+}
+
+export function createOrganizationId(): OrganizationId {
+  return createId(IdPrefixes.ORGANIZATION) as OrganizationId;
 }
