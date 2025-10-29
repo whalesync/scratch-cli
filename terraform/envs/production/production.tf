@@ -11,6 +11,11 @@ module "production" {
   # Cloud IDS.
   enable_intrusion_detection = true
 
+  # Load Balancer
+  enable_client_load_balancer = true
+  client_domain              = "app.scratch.md"
+  enable_client_cdn          = true
+
   # Monitoring
   enable_pagerduty_notifications = false
 }

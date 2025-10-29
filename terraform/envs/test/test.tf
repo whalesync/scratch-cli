@@ -11,6 +11,11 @@ module "test" {
   # Cloud IDS.
   enable_intrusion_detection = false
 
+  # Load Balancer
+  enable_client_load_balancer = true
+  client_domain              = "test.scratch.md"
+  enable_client_cdn          = true
+
   db_disk_size         = 10
   db_high_availability = false
 }

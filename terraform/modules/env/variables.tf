@@ -162,3 +162,21 @@ variable "client_service_node_options" {
   default     = ""
   description = "Node.js options for the client service (e.g., '--max-old-space-size=512')."
 }
+
+variable "enable_client_load_balancer" {
+  type        = bool
+  default     = false
+  description = "Whether to enable the HTTPS load balancer for the client service."
+}
+
+variable "client_domain" {
+  type        = string
+  default     = ""
+  description = "Domain name for the client service (e.g., 'app.scratch.md')."
+}
+
+variable "enable_client_cdn" {
+  type        = bool
+  default     = true
+  description = "Whether to enable Cloud CDN for the client service load balancer."
+}

@@ -102,3 +102,22 @@ resource "google_cloud_run_service_iam_member" "client_service_public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Load Balancer for Client Service
+## ---------------------------------------------------------------------------------------------------------------------
+
+module "client_lb" {
+  count  = var.enable_client_load_balancer ? 1 : 0
+  source = "../../modules/cloudrun_lb"
+
+  name                    = "${var.env_name}-client"
+  region                  = var.gcp_region
+  cloud_run_service_name  = google_cloud_run_v2_service.client_service.name
+  domains                 = [var.client_domain]
+  enable_cdn              = var.enable_client_cdn
+  enable_http_redirect    = true
+  log_sample_rate         = 1.0
+
+  depends_on = [google_cloud_run_v2_service.client_service]
+}
