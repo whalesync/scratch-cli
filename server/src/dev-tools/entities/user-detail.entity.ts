@@ -4,7 +4,7 @@ import { SnapshotCluster, UserCluster } from 'src/db/cluster-types';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { User } from 'src/users/entities/user.entity';
 
-export class SnapshotSummary {
+export class WorkbookSummary {
   id: string;
   name: string;
   numTables: number;
@@ -16,7 +16,7 @@ export class SnapshotSummary {
   }
 }
 
-export class ConnectorAccountSummary {
+export class ConnectionSummary {
   id: string;
   name: string;
   service: string;
@@ -33,8 +33,8 @@ export class ConnectorAccountSummary {
  */
 export class UserDetail {
   user: User;
-  snapshots: SnapshotSummary[];
-  connectors: ConnectorAccountSummary[];
+  workbooks: WorkbookSummary[];
+  connections: ConnectionSummary[];
   auditLogs: AuditLogEventEntity[];
 
   constructor(
@@ -44,8 +44,8 @@ export class UserDetail {
     auditLogs: AuditLogEvent[],
   ) {
     this.user = new User(user);
-    this.snapshots = snapshots.map((snapshot) => new SnapshotSummary(snapshot));
-    this.connectors = connectors.map((connector) => new ConnectorAccountSummary(connector));
+    this.workbooks = snapshots.map((workbook) => new WorkbookSummary(workbook));
+    this.connections = connectors.map((connector) => new ConnectionSummary(connector));
     this.auditLogs = auditLogs.map((auditLog) => new AuditLogEventEntity(auditLog));
   }
 }

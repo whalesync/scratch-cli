@@ -1,17 +1,21 @@
 'use client';
 
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { TextMdRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useUserDevTools } from '@/hooks/use-user-dev-tools';
-import { ActionIcon, Alert, Badge, Code, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
-import { AlertCircleIcon, CheckIcon, CopyIcon, Search } from 'lucide-react';
-import { useState } from 'react';
+import { getBuildFlavor } from '@/utils/build';
+import { ActionIcon, Alert, Anchor, Badge, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
+import { AlertCircleIcon, CheckIcon, CopyIcon, HatGlassesIcon, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { UserDetailsCard } from './components/UserDetails';
+import { clerkUserUrl } from './utils';
 
 const UsersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { users, isLoading, error, search, retrieveUserDetails, userDetails, resetStripeForUser } = useUserDevTools();
+  const { users, isLoading, error, search, retrieveUserDetails, currentUserDetails, clearCurrentUserDetails } =
+    useUserDevTools();
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -24,6 +28,14 @@ const UsersPage = () => {
       handleSearch();
     }
   };
+
+  // sort newest first
+  const sortedUsers = useMemo(() => {
+    if (!users) return [];
+    return users.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [users]);
 
   return (
     <MainContent>
@@ -63,14 +75,14 @@ const UsersPage = () => {
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>ID</Table.Th>
-                    <Table.Th>Email</Table.Th>
                     <Table.Th>Name</Table.Th>
+                    <Table.Th>Clerk</Table.Th>
+                    <Table.Th>Email</Table.Th>
                     <Table.Th>Created</Table.Th>
-                    <Table.Th>Tools</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {users.map((user) => (
+                  {sortedUsers.map((user) => (
                     <Table.Tr key={user.id} onClick={() => retrieveUserDetails(user.id)} style={{ cursor: 'pointer' }}>
                       <Table.Td>
                         {user.id}{' '}
@@ -85,8 +97,18 @@ const UsersPage = () => {
                         </CopyButton>
                         {user.isAdmin && <Badge size="xs">Admin</Badge>}
                       </Table.Td>
+                      <Table.Td>{user.name || '-'}</Table.Td>
+
                       <Table.Td>
-                        {user.email || 'N/A'}
+                        <Group>
+                          {user.clerkId}
+                          <Anchor href={clerkUserUrl(user.clerkId, getBuildFlavor())} target="_blank" rel="noreferrer">
+                            <StyledLucideIcon Icon={HatGlassesIcon} size={16} />
+                          </Anchor>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        {user.email || '-'}
                         <CopyButton value={user?.email || ''} timeout={2000}>
                           {({ copied, copy }) => (
                             <Tooltip label={copied ? 'Copied' : `${user?.email}`} withArrow position="right">
@@ -97,30 +119,15 @@ const UsersPage = () => {
                           )}
                         </CopyButton>
                       </Table.Td>
-                      <Table.Td>{user.name || 'N/A'}</Table.Td>
                       <Table.Td>{new Date(user.createdAt).toLocaleDateString()}</Table.Td>
-                      <Table.Td>
-                        <ButtonSecondaryOutline
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            resetStripeForUser(user.id);
-                          }}
-                          loading={isLoading}
-                          size="xs"
-                        >
-                          Reset Stripe
-                        </ButtonSecondaryOutline>
-                      </Table.Td>
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
               </Table>
             )}
-            {userDetails && (
+            {currentUserDetails && (
               <Stack miw="40%">
-                <TextMdRegular>User details</TextMdRegular>
-                <Code block>{JSON.stringify(userDetails, null, 2)}</Code>
+                <UserDetailsCard details={currentUserDetails} onClose={clearCurrentUserDetails} />
               </Stack>
             )}
           </Group>

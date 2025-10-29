@@ -1,6 +1,4 @@
 import { AuditLogEvent } from "./audit-logs";
-import { ConnectorAccount } from "./connector-accounts";
-import { Snapshot } from "./snapshot";
 import { User } from "./users";
 
 /**
@@ -8,7 +6,21 @@ import { User } from "./users";
  */
 export interface UserDetails {
     user: User;
-    snapshots: Snapshot[];
-    connectors: ConnectorAccount[];
+    workbooks: WorkbookSummary[];
+    connections: ConnectionSummary[];
     auditLogs: AuditLogEvent[];
+  }
+
+
+  export interface WorkbookSummary {
+    id: string;
+    name: string;
+    numTables: number;
+  }
+  
+  export interface ConnectionSummary {
+    id: string;
+    name: string;
+    service: string;
+  
   }

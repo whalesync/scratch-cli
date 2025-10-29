@@ -1,4 +1,3 @@
-import { ScratchpadNotifications } from "@/app/components/ScratchpadNotifications";
 import { devToolsApi } from "@/lib/api/dev-tools";
 import { UserDetails } from "@/types/server-entities/dev-tools";
 import { User } from "@/types/server-entities/users";
@@ -11,7 +10,7 @@ export const useUserDevTools = () => {
     const [results, setResults] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | undefined>(undefined);
-    const [userDetails, setUserDetails] = useState<UserDetails | undefined>(undefined);
+    const [currentUserDetails, setCurrentUserDetails] = useState<UserDetails | undefined>(undefined);
 
   const search = async(query: string) => {
     if(!query.trim()) {
@@ -20,7 +19,7 @@ export const useUserDevTools = () => {
     }
     try {
         setResults([]);
-        setUserDetails(undefined);
+        setCurrentUserDetails(undefined);
         setIsLoading(true);
         const response = await devToolsApi.searchUsers(query);
         setResults(response);
@@ -35,7 +34,7 @@ export const useUserDevTools = () => {
     try {
         setIsLoading(true);
         const response = await devToolsApi.getUserDetails(userId);
-        setUserDetails(response);
+        setCurrentUserDetails(response);
     } catch (error) {
         setError(error as Error);
     } finally {
@@ -43,27 +42,14 @@ export const useUserDevTools = () => {
     }
   };
 
-  const resetStripeForUser = async(userId: string) => {
-    try {
-        setIsLoading(true);
-        const response = await devToolsApi.resetStripeForUser(userId);
-        ScratchpadNotifications.success({
-            title: 'Stripe Account Reset',
-            message: response,
-        });
-    } catch (error) {
-        setError(error as Error);
-    } finally {
-        setIsLoading(false);
-    }
-  };
+
   return {
     users: results,
     isLoading,
     error,
     search,
     retrieveUserDetails,
-    userDetails,
-    resetStripeForUser,
+    currentUserDetails,
+    clearCurrentUserDetails: () => setCurrentUserDetails(undefined),
   };
 }

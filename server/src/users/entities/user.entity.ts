@@ -16,6 +16,7 @@ export class User {
   createdAt: Date;
   updatedAt: Date;
   clerkId: string | null;
+  stripeCustomerId: string | null;
   isAdmin: boolean;
   id: string;
   name?: string;
@@ -39,6 +40,7 @@ export class User {
     this.isAdmin = user.role === UserRole.ADMIN;
     this.name = user.name || undefined;
     this.email = user.email || undefined;
+    this.stripeCustomerId = user.stripeCustomerId || null;
 
     if (user.apiTokens) {
       this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);

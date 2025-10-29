@@ -1,5 +1,6 @@
 'use client';
 
+import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import { Anchor, Box, Code, Divider, Group, List, Loader, Stack, Tooltip } from '@mantine/core';
 import { Ambulance, Home, Plus, Settings, User } from 'lucide-react';
@@ -80,6 +81,9 @@ export default function DevComponentGalleryPage() {
             </List.Item>
             <List.Item>
               <Anchor href="#input-components">Input Components</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#dev-tool-components">Dev Tool Components</Anchor>
             </List.Item>
           </List>
 
@@ -278,6 +282,11 @@ export default function DevComponentGalleryPage() {
               minRows={3}
               onChange={(e) => console.debug('Debounced value:', e.target.value)}
             />
+          </GalleryItem>
+
+          <GallerySection id="dev-tool-components" title="Dev Tool Components" />
+          <GalleryItem label="LabelValuePair">
+            <LabelValuePair label="Name" value="John Doe" canCopy />
           </GalleryItem>
         </Stack>
       </MainContent.Body>

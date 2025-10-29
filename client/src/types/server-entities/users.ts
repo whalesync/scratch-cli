@@ -12,6 +12,8 @@ export interface User {
   experimentalFlags?: UserExperimentFlags;
   name?: string;
   email?: string;
+  stripeCustomerId: string | null;
+
 }
 
 export interface SubscriptionInfo {
