@@ -53,7 +53,7 @@ git checkout master
 
 Once done, make sure to leave the `prod` branch immediately to avoid accidently branching from it or pushing new changes. The `prod` branch **must** always be equal or behind the `master` branch.
 
-## MCP Server (`/mcp`) - Deprecated
+# MCP Server (`/mcp`) - DEPRECATED
 
 - Model Context Protocol server that bridges Cursor with our API service
 - Built with TypeScript and MCP SDK

@@ -1,22 +1,22 @@
 # Scratchpad Server
 
-The NestJS backend for Scratchpaper application.
+The NestJS backend for the Scratch application.
 
 ## Available Yarn Commands
 
-### Run in development mode with watch
+#### Run in development mode with watch
 
 ```bash
 yarn run start:dev
 ```
 
-### Builds a optimized version for production
+#### Builds a optimized version for production
 
 ```bash
 yarn run build
 ```
 
-### Starts the optimized version built with `yarn run build`
+#### Starts the optimized version built with `yarn run build`
 
 ```bash
 yarn run start:prod
@@ -54,8 +54,6 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scratchpad?schema=pu
 Some values will require reaching out to other team members or checking values in 1Password.
 
 ### Set up the database
-
-[SEE CURRENT DB ENTITY DIAGRAM](prisma/ERD.md)
 
 Our docker image has a postgres DB, redis, and MongoDB in it. You'll have to start it after every reboot:
 
@@ -126,38 +124,39 @@ The Scratchpad API server is hosted on Render.
 
 - Owned by team@whalesync.com (Credentials in 1Password)
 
-## Tech Stack
+## OpenRouter
 
-### Core Framework
+Scratch utilizes OpenRouter.ai for interfacing with different LLMs. Every request through the agent utilizes an OpenRouter API key scoped to the user making the request. These keys can be provided by the user as Agent Credentials OR they can be provisioned by Scratch automatically at signup.
 
-- **NestJS** - Node.js framework for building scalable server-side applications
-- **TypeScript** - Type-safe JavaScript with enhanced developer experience
-- **Node.js** - JavaScript runtime environment
+Each Scratch server has access to a Provisioning Key which allows it to create API keys for users inside our OpenRouter.ai account.
 
-### Database & ORM
+### Managing OpenRouter
 
-- **PostgreSQL** - Primary relational database
-- **Prisma** - Type-safe database ORM with schema management
-- **Knex** - SQL builder layer for interacting with snapshot databases
-- **Redis** (via ioredis) - Caching and session storage
+There are two management accounts for [OpenRouter](https://openrouter.ai/), one for Production use and one for dev/test use. OpenRouter.ai doesn not support environments natively so we need to access them separately.
 
-### Authentication & Authorization
+#### Production
 
-- **Clerk** - User authentication and management
-- **JWT** - JSON Web Tokens for API authentication
-- **Passport** - Authentication middleware with custom strategies
+1. Go to [OpenRouter](https://openrouter.ai/)
+1. Login with your Google SSO, i.e. chris@whalesync.com account
+1. Switch to the Whalesync organization to see api keys and usage
 
-### Real-time Communication
+NOTE: This is the official Whalesync account and has payments linked to it.
 
-- **Socket.IO** - WebSocket connections for real-time features
-- **NestJS WebSockets** - WebSocket gateway implementation
+#### Test & Staging
 
-### Background Processing
+1. Go to [OpenRouter](https://openrouter.ai/)
+1. Login with your Google SSO, i.e. chris@whalesync.com account
+1. Switch to the Whalesync-Test organization
+   1. Ask Chris or Ryder for an invite if you don't see it
 
-- **BullMQ** - Redis-based job queue for background tasks
-- **Piscina** - Worker thread pool for CPU-intensive tasks
+This organization is owned by an account linked to the team@whalesync.com email address. Creds are in 1Password
 
-### Monitoring & Logging
+## Feature Flags
 
-- **Winston** - Structured logging
-- **PostHog** - Product analytics and user tracking
+Feature flags are managed inside of the [ExperimentsService](./src/experiments/experiments.service.ts) and utilize [OpenFeature](https://openfeature.dev/), a vendor agnostic feature flag SDK.
+
+The feature flag configurations are provided via PostHog, using the same projects that are used for analytics:
+
+[Test Feature Flags](https://us.posthog.com/project/225935/feature_flags?tab=overview)
+
+[Production Feature Flags](https://us.posthog.com/project/214130/feature_flags?tab=overview)
