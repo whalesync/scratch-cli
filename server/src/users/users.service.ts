@@ -9,7 +9,7 @@ import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
-import { createAiAgentCredentialId, createApiTokenId, createUserId } from 'src/types/ids';
+import { createAiAgentCredentialId, createApiTokenId, createOrganizationId, createUserId } from 'src/types/ids';
 import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
 
@@ -117,6 +117,13 @@ export class UsersService {
             token: this.generateApiToken(),
             expiresAt: this.generateTokenExpirationDate(),
             type: TokenType.WEBSOCKET,
+          },
+        },
+        organization: {
+          create: {
+            id: createOrganizationId(),
+            name: name ? `${name} Organization` : 'New Organization',
+            clerkId: clerkUserId, // Note(chris): this should be Clerk's Organization ID, and will need to be fixed later when fully implement Clerk orgs
           },
         },
       },

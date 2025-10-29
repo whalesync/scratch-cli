@@ -3,6 +3,7 @@ import { UserCluster } from 'src/db/cluster-types';
 import { UserFlagValues } from 'src/experiments/experiments.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlan, getPlanTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
+import { Organization } from './organization.entity';
 
 export interface SubscriptionInfo {
   status: 'valid' | 'expired' | 'payment_failed';
@@ -32,6 +33,8 @@ export class User {
 
   experimentalFlags?: UserFlagValues;
 
+  organization?: Organization;
+
   constructor(user: UserCluster.User, agentJwt?: string, experiments?: UserFlagValues) {
     this.id = user.id;
     this.createdAt = user.createdAt;
@@ -49,6 +52,7 @@ export class User {
     this.agentJwt = agentJwt;
     this.experimentalFlags = experiments;
     this.subscription = toSubscriptionInfo(user.subscriptions);
+    this.organization = user.organization ? new Organization(user.organization) : undefined;
   }
 }
 

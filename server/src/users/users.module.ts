@@ -12,12 +12,13 @@ import { PosthogModule } from 'src/posthog/posthog.module';
 import { SlackNotificationModule } from 'src/slack/slack-notification.module';
 import { AgentCredentialsController } from './agent-credentials.controller';
 import { AgentCredentialsService } from './agent-credentials.service';
+import { OrganizationsService } from './organizations.service';
 import { SubscriptionService } from './subscription.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService, AgentCredentialsService, SubscriptionService],
+  providers: [UsersService, AgentCredentialsService, SubscriptionService, OrganizationsService],
   imports: [
     DbModule,
     AgentJwtModule,

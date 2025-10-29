@@ -12,8 +12,8 @@ export interface User {
   experimentalFlags?: UserExperimentFlags;
   name?: string;
   email?: string;
-  stripeCustomerId: string | null;
-
+  stripeCustomerId?: string;
+  organization?: Organization;
 }
 
 export interface SubscriptionInfo {
@@ -33,4 +33,12 @@ export interface UserExperimentFlags {
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {
   return user?.experimentalFlags?.[experiment] === true;
+}
+
+export interface Organization {
+  id: string;
+  clerkId: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

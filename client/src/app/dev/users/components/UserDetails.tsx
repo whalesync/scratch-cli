@@ -51,6 +51,14 @@ export const UserDetailsCard = ({ details, onClose }: { details: UserDetails; on
       </Card.Section>
       <Card.Section p="xs" withBorder>
         <Stack>
+          <TextTitle3>Organization</TextTitle3>
+          <LabelValuePair label="ID" value={details.user.organization?.id} canCopy />
+          <LabelValuePair label="Clerk ID" value={details.user.organization?.clerkId} canCopy />
+          <LabelValuePair label="Name" value={details.user.organization?.name} />
+        </Stack>
+      </Card.Section>
+      <Card.Section p="xs" withBorder>
+        <Stack>
           <TextTitle3>Connections</TextTitle3>
           <Table>
             <Table.Thead>
