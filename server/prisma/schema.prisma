@@ -358,17 +358,20 @@ model DbJob {
 }
 
 model Upload {
-  id        String   @id // type: UploadId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  name      String // Upload name/filename
-  type      String // "CSV" | "MD" - stored as string for flexibility
-  typeId    String // Reference to csv table name or MdUpload record id
+  id             String        @id // type: UploadId
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String // Upload name/filename
+  type           String // "CSV" | "MD" - stored as string for flexibility
+  typeId         String // Reference to csv table name or MdUpload record id
 
   @@index([userId])
   @@index([type])
+  @@index([organizationId])
 }
 
 model AuditLogEvent {
@@ -400,4 +403,5 @@ model Organization {
   StyleGuide       StyleGuide[]
   ConnectorAccount ConnectorAccount[]
   Snapshot         Snapshot[]
+  Upload           Upload[]
 }

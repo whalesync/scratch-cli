@@ -20,6 +20,7 @@ import {
   createUploadId,
   SnapshotId,
 } from 'src/types/ids';
+import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { Readable, Transform } from 'stream';
 import { DbService } from '../db/db.service';
@@ -246,11 +247,7 @@ export class UploadsService {
   /**
    * Upload a CSV file, creating a new Upload entity and streaming data to a PG table
    */
-  async uploadCsv(
-    buffer: Buffer,
-    userId: string,
-    dto: UploadCsvDto,
-  ): Promise<UploadCsvResponseDto & { upload: Upload }> {
+  async uploadCsv(buffer: Buffer, actor: Actor, dto: UploadCsvDto): Promise<UploadCsvResponseDto & { upload: Upload }> {
     const uploadId = createUploadId();
 
     // Create table ID: csv_timestamp_name
@@ -263,11 +260,11 @@ export class UploadsService {
 
     try {
       // Ensure user's upload schema exists
-      await this.uploadsDbService.ensureUserUploadSchema(userId);
+      await this.uploadsDbService.ensureUserUploadSchema(actor);
 
       // Create the CSV table
       await this.uploadsDbService.createCsvTable(
-        userId,
+        actor,
         tableId,
         dto.columnNames.map((name, index) => ({
           name,
@@ -279,7 +276,7 @@ export class UploadsService {
       let rowCount = 0;
       await this.streamCsvToUploadsTable(
         buffer,
-        userId,
+        actor,
         tableId,
         dto.columnNames,
         dto.columnIndices,
@@ -293,7 +290,8 @@ export class UploadsService {
       const upload = await this.db.client.upload.create({
         data: {
           id: uploadId,
-          userId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
           name: dto.uploadName,
           type: UploadType.CSV,
           typeId: tableId,
@@ -314,7 +312,7 @@ export class UploadsService {
 
       // Try to clean up the table if it was created
       try {
-        await this.uploadsDbService.dropCsvTable(userId, tableId);
+        await this.uploadsDbService.dropCsvTable(actor, tableId);
       } catch (cleanupError) {
         console.error('Error cleaning up CSV table:', cleanupError);
       }
@@ -329,14 +327,14 @@ export class UploadsService {
    */
   private async streamCsvToUploadsTable(
     buffer: Buffer,
-    userId: string,
+    actor: Actor,
     tableId: string,
     columnNames: string[],
     columnIndices: number[],
     firstRowIsHeader: boolean,
     onComplete?: (recordCount: number) => void,
   ): Promise<void> {
-    const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
 
     return new Promise((resolve, reject) => {
       let recordCount = 0;
@@ -462,9 +460,9 @@ export class UploadsService {
   /**
    * List all uploads for a user
    */
-  async listUploads(userId: string): Promise<Upload[]> {
+  async listUploads(actor: Actor): Promise<Upload[]> {
     const uploads = await this.db.client.upload.findMany({
-      where: { userId },
+      where: { organizationId: actor.organizationId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -474,9 +472,9 @@ export class UploadsService {
   /**
    * Get a single upload by ID
    */
-  async getUpload(uploadId: string, userId: string): Promise<Upload> {
+  async getUpload(uploadId: string, actor: Actor): Promise<Upload> {
     const upload = await this.db.client.upload.findFirst({
-      where: { id: uploadId, userId },
+      where: { id: uploadId, organizationId: actor.organizationId },
     });
 
     if (!upload) {
@@ -489,16 +487,16 @@ export class UploadsService {
   /**
    * Delete an upload (and its associated data)
    */
-  async deleteUpload(uploadId: string, userId: string): Promise<void> {
-    const upload = await this.getUpload(uploadId, userId);
+  async deleteUpload(uploadId: string, actor: Actor): Promise<void> {
+    const upload = await this.getUpload(uploadId, actor);
 
     // Delete based on type
     if (upload.type === 'CSV') {
       // Drop the CSV table
-      await this.uploadsDbService.dropCsvTable(userId, upload.typeId);
+      await this.uploadsDbService.dropCsvTable(actor, upload.typeId);
     } else if (upload.type === 'MD') {
       // Delete from MdUploads table
-      await this.deleteMdUpload(userId, upload.typeId);
+      await this.deleteMdUpload(actor, upload.typeId);
     }
 
     // Delete the Upload record
@@ -512,14 +510,14 @@ export class UploadsService {
   /**
    * Get CSV data for a specific upload
    */
-  async getCsvData(uploadId: string, userId: string, limit = 10, offset = 0): Promise<{ rows: any[]; total: number }> {
-    const upload = await this.getUpload(uploadId, userId);
+  async getCsvData(uploadId: string, actor: Actor, limit = 10, offset = 0): Promise<{ rows: any[]; total: number }> {
+    const upload = await this.getUpload(uploadId, actor);
 
     if (upload.type !== 'CSV') {
       throw new Error('Upload is not a CSV');
     }
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const tableId = upload.typeId;
 
     // Get total count
@@ -535,9 +533,9 @@ export class UploadsService {
   /**
    * Download a CSV upload as a CSV file (authenticated)
    */
-  async downloadCsv(uploadId: string, userId: string, res: Response): Promise<void> {
+  async downloadCsv(uploadId: string, actor: Actor, res: Response): Promise<void> {
     // Verify user has access to the upload
-    const upload = await this.getUpload(uploadId, userId);
+    const upload = await this.getUpload(uploadId, actor);
 
     if (upload.type !== 'CSV') {
       throw new NotFoundException('Upload is not a CSV');
@@ -571,7 +569,10 @@ export class UploadsService {
    */
   private async streamCsvDownload(upload: Upload, res: Response): Promise<void> {
     try {
-      const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+      const schemaName = this.uploadsDbService.getUploadSchemaName({
+        userId: upload.userId,
+        organizationId: upload.organizationId,
+      });
       const tableId = upload.typeId;
 
       // Get column names from the table, excluding metadata columns
@@ -624,8 +625,8 @@ export class UploadsService {
   /**
    * Helper method to delete MD upload data
    */
-  private async deleteMdUpload(userId: string, mdUploadId: string): Promise<void> {
-    const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+  private async deleteMdUpload(actor: Actor, mdUploadId: string): Promise<void> {
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
 
     await this.uploadsDbService.knex('MdUploads').withSchema(schemaName).where({ id: mdUploadId }).delete();
 
@@ -649,7 +650,7 @@ export class UploadsService {
   previewMarkdown(
     buffer: Buffer,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    userId: string,
+    actor: Actor,
   ): Promise<{ data: Record<string, { value: unknown; type: string }>; PAGE_CONTENT: string }> {
     try {
       // Parse the markdown file
@@ -685,7 +686,7 @@ export class UploadsService {
    */
   async uploadMarkdown(
     buffer: Buffer,
-    userId: string,
+    actor: Actor,
     fileName: string,
   ): Promise<UploadMdResponseDto & { upload: Upload }> {
     const uploadId = createUploadId();
@@ -697,9 +698,9 @@ export class UploadsService {
       const parsed = matter(fileContent);
 
       // Ensure user's upload schema and MdUploads table exist
-      await this.uploadsDbService.ensureMdUploadsTable(userId);
+      await this.uploadsDbService.ensureMdUploadsTable(actor);
 
-      const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+      const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
 
       // Insert into MdUploads table
       await this.uploadsDbService
@@ -717,7 +718,8 @@ export class UploadsService {
       const upload = await this.db.client.upload.create({
         data: {
           id: uploadId,
-          userId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
           name: fileName,
           type: UploadType.MD,
           typeId: mdUploadId,
@@ -739,7 +741,7 @@ export class UploadsService {
 
       // Try to clean up the MD record if it was created
       try {
-        await this.deleteMdUpload(userId, mdUploadId);
+        await this.deleteMdUpload(actor, mdUploadId);
       } catch (cleanupError) {
         console.error('Error cleaning up MD upload:', cleanupError);
       }
@@ -752,14 +754,14 @@ export class UploadsService {
   /**
    * Get markdown data for a specific upload
    */
-  async getMdData(uploadId: string, userId: string): Promise<MdUploadData> {
-    const upload = await this.getUpload(uploadId, userId);
+  async getMdData(uploadId: string, actor: Actor): Promise<MdUploadData> {
+    const upload = await this.getUpload(uploadId, actor);
 
     if (upload.type !== 'MD') {
       throw new Error('Upload is not a Markdown file');
     }
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const mdUploadId = upload.typeId;
 
     const result = await this.uploadsDbService
@@ -786,12 +788,12 @@ export class UploadsService {
    */
   async createSnapshotFromCsvUpload(
     uploadId: string,
-    userId: string,
+    actor: Actor,
     snapshotName: string,
     titleColumnRemoteId?: string[],
   ): Promise<{ snapshotId: string; tableId: string }> {
     // Get the upload
-    const upload = await this.getUpload(uploadId, userId);
+    const upload = await this.getUpload(uploadId, actor);
 
     if (upload.type !== 'CSV') {
       throw new Error('Upload is not a CSV file');
@@ -799,7 +801,7 @@ export class UploadsService {
 
     const snapshotId = createSnapshotId();
     const tableId = uploadId; // Use uploadId as tableId so we can track it back to the upload
-    const uploadSchemaName = this.uploadsDbService.getUserUploadSchema(userId);
+    const uploadSchemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const uploadTableName = upload.typeId;
 
     try {
@@ -840,7 +842,8 @@ export class UploadsService {
       await this.db.client.snapshot.create({
         data: {
           id: snapshotId,
-          userId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
           connectorAccountId: null, // No connector account needed for CSV
           name: snapshotName,
           service: Service.CSV, // Set service to CSV

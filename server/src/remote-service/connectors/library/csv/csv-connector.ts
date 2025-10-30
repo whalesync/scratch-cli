@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Service } from '@prisma/client';
+import { Service, Upload } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { SnapshotColumnContexts } from 'src/snapshot/types';
 import { createCsvFileRecordId } from 'src/types/ids';
@@ -69,7 +69,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     }
 
     // Get table structure from the upload table
-    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
     const tableInfo = await this.uploadsDbService.knex(tableName).withSchema(schemaName).columnInfo();
@@ -126,7 +126,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       throw new Error(`CSV upload not found: ${uploadId}`);
     }
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
     // Read records from the upload table
@@ -178,7 +178,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       data: { updatedAt: new Date() },
     });
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
     // Insert new records with generated cfr_ IDs
@@ -222,7 +222,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       data: { updatedAt: new Date() },
     });
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
     // Update records by remoteId
@@ -254,7 +254,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       data: { updatedAt: new Date() },
     });
 
-    const schemaName = this.uploadsDbService.getUserUploadSchema(upload.userId);
+    const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
     // Delete records by remoteId
@@ -267,5 +267,15 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       userFriendlyMessage: 'An error occurred while interacting with CSV file',
       description: error instanceof Error ? error.message : String(error),
     };
+  }
+
+  private getSchemaName(upload: Upload): string {
+    if (!upload.organizationId) {
+      throw new Error('Upload does not have an organization ID');
+    }
+    return this.uploadsDbService.getUploadSchemaName({
+      userId: upload.userId,
+      organizationId: upload.organizationId ?? '',
+    });
   }
 }

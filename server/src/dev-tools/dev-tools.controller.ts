@@ -16,8 +16,9 @@ import { RequestWithUser, toActor } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { SnapshotId } from 'src/types/ids';
+import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { User } from 'src/users/entities/user.entity';
-import { userToActor } from 'src/users/types';
+import { Actor, userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
@@ -33,6 +34,7 @@ export class DevToolsController {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,
+    private readonly uploadsDbService: UploadsDbService,
   ) {}
 
   @UseGuards(ScratchpadAuthGuard)
@@ -105,5 +107,20 @@ export class DevToolsController {
       throw new UnauthorizedException('Only admins can fix snapshots');
     }
     return this.snapshotService.migrateSnapshot(id);
+  }
+
+  /**
+   * Temporary endpoint to migrate old style uploads to new organizations
+   */
+  @UseGuards(ScratchpadAuthGuard)
+  @Get('uploads/migrate-to-organization')
+  async migrateUploadsToOrganization(@Req() req: RequestWithUser): Promise<{ actor: Actor; result: string }[]> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can use this bulk migration tool');
+    }
+
+    const users = await this.usersService.search('usr_'); // easy way to find all users
+    const actors = users.map((user) => userToActor(user));
+    return this.uploadsDbService.devToolMigrateUploadsToOrganizationId(actors);
   }
 }

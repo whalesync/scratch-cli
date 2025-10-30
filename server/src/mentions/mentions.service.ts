@@ -36,7 +36,7 @@ export class MentionsService {
   }
 
   async searchResources({ actor, queryText }: { actor: Actor; queryText: string }): Promise<ResourceMentionEntity[]> {
-    const schemaName = this.uploadsDbService.getUserUploadSchema(actor.userId);
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
 
     // First, search the Uploads table by name using Prisma
     const uploads = await this.db.client.upload.findMany({

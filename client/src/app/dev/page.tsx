@@ -4,7 +4,7 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
 import { Stack } from '@mantine/core';
-import { DatabaseIcon, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
+import { DatabaseIcon, DatabaseZapIcon, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
 import { TextSmBook } from '../components/base/text';
@@ -48,6 +48,13 @@ export default function DevListPage() {
             leftSection={<StyledLucideIcon Icon={DatabaseIcon} size={16} />}
           >
             Snapshot Migration Tool
+          </DevToolButton>
+          <DevToolButton
+            component={Link}
+            href={'/dev/upload-migrator'}
+            leftSection={<StyledLucideIcon Icon={DatabaseZapIcon} size={16} />}
+          >
+            Upload schema migration Tool
           </DevToolButton>
         </Stack>
       </MainContent.Body>

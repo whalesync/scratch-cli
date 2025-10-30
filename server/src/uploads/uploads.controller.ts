@@ -19,7 +19,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import { RequestWithUser, toActor } from '../auth/types';
 import {
   CreateScratchpaperFromCsvDto,
   CreateScratchpaperFromCsvResponseDto,
@@ -61,7 +61,7 @@ export class UploadsController {
       throw new Error('File must be a Markdown file');
     }
 
-    return this.uploadsService.previewMarkdown(file.buffer, req.user.id);
+    return this.uploadsService.previewMarkdown(file.buffer, toActor(req.user));
   }
 
   @Post('csv')
@@ -79,7 +79,7 @@ export class UploadsController {
       throw new Error('File must be a CSV');
     }
 
-    const result = await this.uploadsService.uploadCsv(file.buffer, req.user.id, body);
+    const result = await this.uploadsService.uploadCsv(file.buffer, toActor(req.user), body);
 
     return {
       uploadId: result.uploadId,
@@ -99,7 +99,7 @@ export class UploadsController {
       throw new Error('File must be a Markdown file');
     }
 
-    const result = await this.uploadsService.uploadMarkdown(file.buffer, req.user.id, file.originalname);
+    const result = await this.uploadsService.uploadMarkdown(file.buffer, toActor(req.user), file.originalname);
 
     return {
       uploadId: result.uploadId,
@@ -110,7 +110,7 @@ export class UploadsController {
 
   @Get()
   async listUploads(@Req() req: RequestWithUser): Promise<ListUploadsResponseDto> {
-    const uploads = await this.uploadsService.listUploads(req.user.id);
+    const uploads = await this.uploadsService.listUploads(toActor(req.user));
     return { uploads };
   }
 
@@ -124,22 +124,22 @@ export class UploadsController {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
-    return this.uploadsService.getCsvData(uploadId, req.user.id, limitNum, offsetNum);
+    return this.uploadsService.getCsvData(uploadId, toActor(req.user), limitNum, offsetNum);
   }
 
   @Get('csv/:id/download')
   async downloadCsv(@Param('id') uploadId: string, @Req() req: RequestWithUser, @Res() res: Response): Promise<void> {
-    await this.uploadsService.downloadCsv(uploadId, req.user.id, res);
+    await this.uploadsService.downloadCsv(uploadId, toActor(req.user), res);
   }
 
   @Get('md/:id/data')
   async getMdData(@Param('id') uploadId: string, @Req() req: RequestWithUser) {
-    return this.uploadsService.getMdData(uploadId, req.user.id);
+    return this.uploadsService.getMdData(uploadId, toActor(req.user));
   }
 
   @Delete(':id')
   async deleteUpload(@Param('id') uploadId: string, @Req() req: RequestWithUser): Promise<{ message: string }> {
-    await this.uploadsService.deleteUpload(uploadId, req.user.id);
+    await this.uploadsService.deleteUpload(uploadId, toActor(req.user));
     return { message: 'Upload deleted successfully' };
   }
 
@@ -151,7 +151,7 @@ export class UploadsController {
   ): Promise<CreateScratchpaperFromCsvResponseDto> {
     return await this.uploadsService.createSnapshotFromCsvUpload(
       uploadId,
-      req.user.id,
+      toActor(req.user),
       body.name,
       body.titleColumnRemoteId,
     );

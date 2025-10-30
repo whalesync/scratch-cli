@@ -14,6 +14,7 @@ export enum UploadType {
 export interface Upload {
   id: UploadId;
   userId: string;
+  organizationId: string;
   name: string;
   type: string; // UploadType as string
   typeId: string; // CSV table name or MD record id

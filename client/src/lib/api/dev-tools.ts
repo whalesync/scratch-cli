@@ -62,4 +62,14 @@ export const devToolsApi = {
     return res.json();
   },
 
+  migrateUploadsToOrganization: async (): Promise<{ actor: { userId: string; organizationId: string }; result: string }[]> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/uploads/migrate-to-organization`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    await checkForApiError(res, 'Failed to migrate uploads to organization');
+    return res.json();
+  },
 };

@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import knex, { Knex } from 'knex';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
+import { Actor } from 'src/users/types';
 import { assertUnreachable } from 'src/utils/asserts';
 import { PostgresColumnType } from '../remote-service/connectors/types';
 
@@ -42,25 +43,25 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
   get knex(): Knex {
     return this.knexInstance;
   }
-
   /**
-   * Gets the schema name for a user's uploads
+   * Gets the schema name for a organizations uploads
    */
-  getUserUploadSchema(userId: string): string {
-    return `uploads_${userId}`;
+  getUploadSchemaName(actor: Actor): string {
+    return `uploads_${actor.organizationId}`;
   }
 
   /**
    * Ensures the user's upload schema exists
    */
-  async ensureUserUploadSchema(userId: string): Promise<void> {
-    const schemaName = this.getUserUploadSchema(userId);
+  async ensureUserUploadSchema(actor: Actor): Promise<void> {
+    const schemaName = this.getUploadSchemaName(actor);
     await this.knexInstance.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
     WSLogger.debug({
       source: 'UploadsDbService.ensureUserUploadSchema',
       message: 'Ensured upload schema exists',
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       schemaName,
     });
   }
@@ -68,11 +69,11 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
   /**
    * Ensures the MdUploads table exists in the user's schema
    */
-  async ensureMdUploadsTable(userId: string): Promise<void> {
-    const schemaName = this.getUserUploadSchema(userId);
+  async ensureMdUploadsTable(actor: Actor): Promise<void> {
+    const schemaName = this.getUploadSchemaName(actor);
 
     // Ensure schema exists first
-    await this.ensureUserUploadSchema(userId);
+    await this.ensureUserUploadSchema(actor);
 
     const tableExists = await this.knexInstance.schema.withSchema(schemaName).hasTable('MdUploads');
 
@@ -88,7 +89,8 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
       WSLogger.debug({
         source: 'UploadsDbService.ensureMdUploadsTable',
         message: 'Created MdUploads table',
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         schemaName,
       });
     }
@@ -97,17 +99,18 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
   /**
    * Creates a CSV table in the user's upload schema
    */
-  async createCsvTable(userId: string, tableId: string, columns: CsvColumnSpec[]): Promise<void> {
-    const schemaName = this.getUserUploadSchema(userId);
+  async createCsvTable(actor: Actor, tableId: string, columns: CsvColumnSpec[]): Promise<void> {
+    const schemaName = this.getUploadSchemaName(actor);
 
     // Ensure schema exists first
-    await this.ensureUserUploadSchema(userId);
+    await this.ensureUserUploadSchema(actor);
 
     // Check if table already exists
     const tableExists = await this.knexInstance.schema.withSchema(schemaName).hasTable(tableId);
 
     if (tableExists) {
-      throw new Error(`CSV table ${tableId} already exists for user ${userId}`);
+      throw new Error(`CSV table ${tableId} already exists for org
+         ${actor.organizationId}`);
     }
 
     await this.knexInstance.schema.withSchema(schemaName).createTable(tableId, (t) => {
@@ -150,7 +153,8 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
     WSLogger.debug({
       source: 'UploadsDbService.createCsvTable',
       message: 'Created CSV table',
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       schemaName,
       tableId,
       columnCount: columns.length,
@@ -160,8 +164,8 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
   /**
    * Drops a CSV table from the user's upload schema
    */
-  async dropCsvTable(userId: string, tableId: string): Promise<void> {
-    const schemaName = this.getUserUploadSchema(userId);
+  async dropCsvTable(actor: Actor, tableId: string): Promise<void> {
+    const schemaName = this.getUploadSchemaName(actor);
 
     const tableExists = await this.knexInstance.schema.withSchema(schemaName).hasTable(tableId);
 
@@ -171,7 +175,8 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
       WSLogger.debug({
         source: 'UploadsDbService.dropCsvTable',
         message: 'Dropped CSV table',
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         schemaName,
         tableId,
       });
@@ -194,5 +199,29 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
    */
   async tableExists(schemaName: string, tableName: string): Promise<boolean> {
     return this.knexInstance.schema.withSchema(schemaName).hasTable(tableName);
+  }
+
+  /**
+   * Temporary tool to migrate old style uploads to new organizations
+   * DEV-8628: can be removed once migration to organizations is complete
+   */
+  async devToolMigrateUploadsToOrganizationId(candidates: Actor[]): Promise<{ actor: Actor; result: string }[]> {
+    const results: { actor: Actor; result: string }[] = [];
+    for (const candidate of candidates) {
+      const oldSchemaName = `uploads_${candidate.userId}`;
+      const oldSchemaExists = await this.schemaExists(oldSchemaName);
+      const newSchemaName = this.getUploadSchemaName(candidate);
+      if (oldSchemaExists) {
+        await this.knexInstance.raw(`ALTER SCHEMA "${oldSchemaName}" RENAME TO "${newSchemaName}"`);
+        results.push({ actor: candidate, result: `migrated to ${newSchemaName}` });
+      } else {
+        if (await this.schemaExists(newSchemaName)) {
+          results.push({ actor: candidate, result: `already migrated` });
+        } else {
+          results.push({ actor: candidate, result: `no schema to migrate` });
+        }
+      }
+    }
+    return results;
   }
 }
