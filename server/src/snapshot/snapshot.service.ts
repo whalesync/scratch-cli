@@ -13,6 +13,7 @@ import { DecryptedCredentials } from 'src/remote-service/connector-account/types
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
+import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
@@ -52,10 +53,10 @@ export class SnapshotService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createSnapshotDto: CreateSnapshotDto, userId: string): Promise<SnapshotCluster.Snapshot> {
+  async create(createSnapshotDto: CreateSnapshotDto, actor: Actor): Promise<SnapshotCluster.Snapshot> {
     const { connectorAccountId, tableIds } = createSnapshotDto;
 
-    const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, userId);
+    const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
     if (!connectorAccount) {
       throw new NotFoundException('Connector account not found');
     }
@@ -105,7 +106,8 @@ export class SnapshotService {
     const newSnapshot = await this.db.client.snapshot.create({
       data: {
         id: snapshotId,
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         connectorAccountId,
         name: createSnapshotDto.name,
         service: connectorAccount.service,
@@ -141,10 +143,10 @@ export class SnapshotService {
     // });
 
     if (this.configService.getUseJobs()) {
-      await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, userId);
+      await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, actor);
     } else {
       // Fall back to synchronous download when jobs are not available
-      this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
+      this.downloadSnapshotInBackground(newSnapshot, actor).catch((error) => {
         WSLogger.error({
           source: 'SnapshotService.create',
           message: 'Error downloading snapshot',
@@ -154,9 +156,10 @@ export class SnapshotService {
       });
     }
 
-    this.posthogService.trackCreateSnapshot(userId, newSnapshot);
+    this.posthogService.trackCreateSnapshot(actor.userId, newSnapshot);
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'create',
       message: `Created snapshot ${newSnapshot.name}`,
       entityId: newSnapshot.id as SnapshotId,
@@ -176,12 +179,12 @@ export class SnapshotService {
   async addTableToSnapshot(
     snapshotId: SnapshotId,
     addTableDto: AddTableToSnapshotDto,
-    userId: string,
+    actor: Actor,
   ): Promise<SnapshotCluster.Snapshot> {
     const { service, connectorAccountId, tableId } = addTableDto;
 
     // 1. Verify snapshot exists and user has permission
-    const snapshot = await this.findOne(snapshotId, userId);
+    const snapshot = await this.findOne(snapshotId, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -189,7 +192,7 @@ export class SnapshotService {
     // 2. Get connector account if provided (for services that need it)
     let connectorAccount: ConnectorAccount | null = null;
     if (connectorAccountId) {
-      connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, userId);
+      connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
       if (!connectorAccount) {
         throw new NotFoundException('Connector account not found');
       }
@@ -253,7 +256,7 @@ export class SnapshotService {
     // 7. Start downloading records in background for this specific table only
     try {
       if (this.configService.getUseJobs()) {
-        await this.bullEnqueuerService.enqueueDownloadRecordsJob(snapshotId, userId, [snapshotTableId]);
+        await this.bullEnqueuerService.enqueueDownloadRecordsJob(snapshotId, actor, [snapshotTableId]);
       }
       WSLogger.info({
         source: 'SnapshotService.addTableToSnapshot',
@@ -283,7 +286,8 @@ export class SnapshotService {
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'update',
       message: `Added table ${tableSpec.name} to snapshot ${snapshot.name}`,
       entityId: snapshotId,
@@ -301,10 +305,10 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     hidden: boolean,
-    userId: string,
+    actor: Actor,
   ): Promise<SnapshotCluster.Snapshot> {
     // 1. Verify snapshot exists and user has permission
-    const snapshot = await this.findOne(snapshotId, userId);
+    const snapshot = await this.findOne(snapshotId, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -331,7 +335,8 @@ export class SnapshotService {
     }
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'update',
       message: `${hidden ? 'Hidden' : 'Unhidden'} table in snapshot ${snapshot.name}`,
       entityId: snapshotId,
@@ -344,9 +349,9 @@ export class SnapshotService {
     return updatedSnapshot;
   }
 
-  async deleteTable(snapshotId: SnapshotId, tableId: string, userId: string): Promise<SnapshotCluster.Snapshot> {
+  async deleteTable(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<SnapshotCluster.Snapshot> {
     // 1. Verify snapshot exists and user has permission
-    const snapshot = await this.findOne(snapshotId, userId);
+    const snapshot = await this.findOne(snapshotId, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -419,7 +424,8 @@ export class SnapshotService {
     }
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'delete',
       message: `Deleted table ${tableName} from snapshot ${snapshot.name}`,
       entityId: snapshotId,
@@ -432,28 +438,29 @@ export class SnapshotService {
     return updatedSnapshot;
   }
 
-  async delete(id: SnapshotId, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(id, userId); // Permissions
+  async delete(id: SnapshotId, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(id, actor); // Permissions
 
     await this.snapshotDbService.snapshotDb.cleanUpSnapshot(id);
     await this.db.client.snapshot.delete({
       where: { id },
     });
 
-    this.posthogService.trackRemoveSnapshot(userId, snapshot);
+    this.posthogService.trackRemoveSnapshot(actor.userId, snapshot);
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'delete',
       message: `Deleted snapshot ${snapshot.name}`,
       entityId: snapshot.id as SnapshotId,
     });
   }
 
-  findAll(connectorAccountId: string, userId: string): Promise<SnapshotCluster.Snapshot[]> {
+  findAll(connectorAccountId: string, actor: Actor): Promise<SnapshotCluster.Snapshot[]> {
     return this.db.client.snapshot.findMany({
       where: {
         connectorAccountId,
-        userId,
+        userId: actor.userId,
       },
       orderBy: {
         createdAt: 'desc',
@@ -462,10 +469,10 @@ export class SnapshotService {
     });
   }
 
-  findAllForUser(userId: string): Promise<SnapshotCluster.Snapshot[]> {
+  findAllForUser(actor: Actor): Promise<SnapshotCluster.Snapshot[]> {
     return this.db.client.snapshot.findMany({
       where: {
-        userId,
+        userId: actor.userId,
       },
       orderBy: {
         createdAt: 'desc',
@@ -474,16 +481,16 @@ export class SnapshotService {
     });
   }
 
-  findOne(id: SnapshotId, userId: string): Promise<SnapshotCluster.Snapshot | null> {
+  findOne(id: SnapshotId, actor: Actor): Promise<SnapshotCluster.Snapshot | null> {
     return this.db.client.snapshot.findFirst({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
       include: SnapshotCluster._validator.include,
     });
   }
 
-  private async findOneWithConnectorAccount(id: SnapshotId, userId: string): Promise<SnapshotWithConnectorAccount> {
+  private async findOneWithConnectorAccount(id: SnapshotId, actor: Actor): Promise<SnapshotWithConnectorAccount> {
     const snapshot = await this.db.client.snapshot.findFirst({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
       include: SnapshotCluster._validator.include,
     });
     if (!snapshot) {
@@ -492,13 +499,9 @@ export class SnapshotService {
     return snapshot;
   }
 
-  async update(
-    id: SnapshotId,
-    updateSnapshotDto: UpdateSnapshotDto,
-    userId: string,
-  ): Promise<SnapshotCluster.Snapshot> {
+  async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, actor: Actor): Promise<SnapshotCluster.Snapshot> {
     // Check that the snapshot exists and belongs to the user.
-    await this.findOneWithConnectorAccount(id, userId);
+    await this.findOneWithConnectorAccount(id, actor);
 
     const updatedSnapshot = await this.db.client.snapshot.update({
       where: { id },
@@ -509,7 +512,8 @@ export class SnapshotService {
     this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'update',
       message: `Updated snapshot ${updatedSnapshot.name}`,
       entityId: updatedSnapshot.id as SnapshotId,
@@ -525,9 +529,9 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     recordId: string,
-    userId: string,
+    actor: Actor,
   ): Promise<SnapshotRecord | null> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -539,12 +543,12 @@ export class SnapshotService {
   async listRecords(
     snapshotId: SnapshotId,
     tableId: string,
-    userId: string,
+    actor: Actor,
     cursor: string | undefined,
     take: number,
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -590,7 +594,7 @@ export class SnapshotService {
   async listRecordsForAi(
     snapshotId: SnapshotId,
     tableId: string,
-    userId: string,
+    actor: Actor,
     cursor: string | undefined,
     take: number,
     viewId: string | undefined,
@@ -599,7 +603,7 @@ export class SnapshotService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -646,9 +650,9 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     recordIds: string[],
-    userId: string,
+    actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -667,11 +671,11 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     dto: BulkUpdateRecordsDto,
-    userId: string,
+    actor: Actor,
     type: 'accepted' | 'suggested',
     viewId?: string,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -715,9 +719,9 @@ export class SnapshotService {
     tableId: string,
     recordIds: string[],
     fields: string[] | null,
-    userId: string,
+    actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -900,9 +904,9 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     items: { wsId: string; columnId: string }[],
-    userId: string,
+    actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -941,9 +945,9 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     items: { wsId: string; columnId: string }[],
-    userId: string,
+    actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -982,10 +986,10 @@ export class SnapshotService {
   async acceptAllSuggestions(
     snapshotId: SnapshotId,
     tableId: string,
-    userId: string,
+    actor: Actor,
     viewId?: string,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -1012,7 +1016,7 @@ export class SnapshotService {
     );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
-    await this.acceptCellValues(snapshotId, tableId, allSuggestions, userId);
+    await this.acceptCellValues(snapshotId, tableId, allSuggestions, actor);
 
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
@@ -1034,10 +1038,10 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     columnContexts: Record<string, SnapshotColumnSettings>,
-    userId: string,
+    actor: Actor,
   ): Promise<void> {
     // Fetch snapshot once for both permission check AND getting existing columnContexts
-    const currentSnapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const currentSnapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
 
     const existingContexts = (currentSnapshot.columnContexts as SnapshotColumnContexts) ?? {};
 
@@ -1080,10 +1084,10 @@ export class SnapshotService {
   async rejectAllSuggestions(
     snapshotId: SnapshotId,
     tableId: string,
-    userId: string,
+    actor: Actor,
     viewId?: string,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -1110,7 +1114,7 @@ export class SnapshotService {
     );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
-    await this.rejectValues(snapshotId, tableId, allSuggestions, userId);
+    await this.rejectValues(snapshotId, tableId, allSuggestions, actor);
 
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
@@ -1181,21 +1185,21 @@ export class SnapshotService {
     }
   }
 
-  async downloadWithoutJob(id: SnapshotId, userId: string): Promise<DownloadSnapshotWithouotJobResult> {
-    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+  async downloadWithoutJob(id: SnapshotId, actor: Actor): Promise<DownloadSnapshotWithouotJobResult> {
+    const snapshot = await this.findOneWithConnectorAccount(id, actor);
 
-    return this.downloadSnapshotInBackground(snapshot);
+    return this.downloadSnapshotInBackground(snapshot, actor);
   }
 
-  async download(id: SnapshotId, userId: string, snapshotTableIds?: string[]): Promise<DownloadSnapshotResult> {
+  async download(id: SnapshotId, actor: Actor, snapshotTableIds?: string[]): Promise<DownloadSnapshotResult> {
     if (!this.configService.getUseJobs()) {
       // Fall back to synchronous download when jobs are not available
-      await this.downloadWithoutJob(id, userId);
+      await this.downloadWithoutJob(id, actor);
       return {
         jobId: 'sync-download', // Use a placeholder ID for synchronous downloads
       };
     }
-    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, userId, snapshotTableIds);
+    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, actor, snapshotTableIds);
     return {
       jobId: job.id as string,
     };
@@ -1203,19 +1207,18 @@ export class SnapshotService {
 
   private async downloadSnapshotInBackground(
     snapshot: SnapshotWithConnectorAccount,
+    actor: Actor,
   ): Promise<DownloadSnapshotWithouotJobResult> {
     if (!snapshot.connectorAccount) {
       throw new Error('Snapshot does not have a connector account');
     }
     // need a full connector account object with decoded credentials
-    const connectorAccount = await this.connectorAccountService.findOne(
-      snapshot.connectorAccount.id,
-      snapshot.connectorAccount.userId,
-    );
+    const connectorAccount = await this.connectorAccountService.findOne(snapshot.connectorAccount.id, actor);
     const connector = await this.connectorService.getConnector({
       service: snapshot.connectorAccount.service,
       connectorAccount,
       decryptedCredentials: connectorAccount,
+      userId: actor.userId,
     });
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     let totalCount = 0;
@@ -1267,8 +1270,8 @@ export class SnapshotService {
     };
   }
 
-  async publish(id: SnapshotId, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+  async publish(id: SnapshotId, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(id, actor);
 
     // if (!snapshot.connectorAccount) {
     //   throw new BadRequestException('Cannot publish connectorless snapshots');
@@ -1276,19 +1279,20 @@ export class SnapshotService {
 
     // TODO: Do this work somewhere real.
     // For now it's running synchronously, but could also be done in the background.
-    await this.publishSnapshot(snapshot);
+    await this.publishSnapshot(snapshot, actor);
 
-    this.posthogService.trackPublishSnapshot(userId, snapshot);
+    this.posthogService.trackPublishSnapshot(actor.userId, snapshot);
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'publish',
       message: `Published snapshot ${snapshot.name}`,
       entityId: snapshot.id as SnapshotId,
     });
   }
 
-  async getPublishSummary(id: SnapshotId, userId: string): Promise<PublishSummaryDto> {
-    const snapshot = await this.findOneWithConnectorAccount(id, userId);
+  async getPublishSummary(id: SnapshotId, actor: Actor): Promise<PublishSummaryDto> {
+    const snapshot = await this.findOneWithConnectorAccount(id, actor);
 
     // if (!snapshot.connectorAccount) {
     //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
@@ -1344,13 +1348,13 @@ export class SnapshotService {
     return summary;
   }
 
-  private async publishSnapshot(snapshot: SnapshotWithConnectorAccount): Promise<void> {
+  private async publishSnapshot(snapshot: SnapshotWithConnectorAccount, actor: Actor): Promise<void> {
     // need a full connector account object with decoded credentials
     // if (!snapshot.connectorAccount) {
     //   throw new Error('Snapshot does not have a connector account');
     // }
     const connectorAccount: (ConnectorAccount & DecryptedCredentials) | null = snapshot.connectorAccount
-      ? await this.connectorAccountService.findOne(snapshot.connectorAccount.id, snapshot.connectorAccount.userId)
+      ? await this.connectorAccountService.findOne(snapshot.connectorAccount.id, actor)
       : null;
     const connector = await this.connectorService.getConnector({
       service: snapshot.service as Service,
@@ -1470,8 +1474,8 @@ export class SnapshotService {
     );
   }
 
-  async clearActiveView(snapshotId: SnapshotId, tableId: string, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+  async clearActiveView(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -1492,13 +1496,14 @@ export class SnapshotService {
       });
     }
   }
+
   async setActiveRecordsFilter(
     snapshotId: SnapshotId,
     tableId: string,
     dto: SetActiveRecordsFilterDto,
-    userId: string,
+    actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -1543,8 +1548,8 @@ export class SnapshotService {
     });
   }
 
-  async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+  async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
     if (!tableSpec) {
       throw new NotFoundException('Table not found in snapshot');
@@ -1659,132 +1664,6 @@ export class SnapshotService {
   }
 
   /**
-   * @deprecated
-   */
-  private async insertTemplateData(snapshotId: SnapshotId, tableId: string, sampleData: any[]): Promise<void> {
-    try {
-      const knex = this.snapshotDbService.snapshotDb.knex;
-
-      // Insert each record with a generated wsId
-      for (const record of sampleData) {
-        const wsId = `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        await knex(`${snapshotId}.${tableId}`).insert({
-          wsId,
-          ...record,
-          __edited_fields: {},
-          __suggested_values: {},
-          __metadata: {},
-          __dirty: false,
-        });
-      }
-
-      console.log(`Successfully inserted ${sampleData.length} template records to ${snapshotId}.${tableId}`);
-    } catch (error) {
-      console.error('Error inserting template data:', error);
-      throw new Error(`Failed to insert template data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-  /**
-   * @deprecated
-   */
-  async createTemplate(userId: string, scratchpaperName: string): Promise<{ snapshotId: string; tableId: string }> {
-    try {
-      // Create a connectorless snapshot
-      const snapshotId = createSnapshotId();
-      const tableId = 'content_data'; // Single table for template imports
-
-      // Sample data for the template (same as the original CONTENT_FILE_BODY)
-      const sampleData = [
-        { id: '1', name: 'Sample Item', content_md: 'This is some test content', status: 'unpublished' },
-      ];
-
-      // Create table specs for the template
-      const tableSpecs = [
-        {
-          id: { wsId: tableId, remoteId: ['-'] },
-          name: scratchpaperName,
-          columns: [
-            {
-              id: { wsId: 'id', remoteId: ['-'] },
-              name: 'id',
-              pgType: PostgresColumnType.TEXT,
-              readonly: false,
-            },
-            {
-              id: { wsId: 'name', remoteId: ['-'] },
-              name: 'name',
-              pgType: PostgresColumnType.TEXT,
-              readonly: false,
-            },
-            {
-              id: { wsId: 'content_md', remoteId: ['-'] },
-              name: 'content_md',
-              pgType: PostgresColumnType.TEXT,
-              readonly: false,
-            },
-            {
-              id: { wsId: 'status', remoteId: ['-'] },
-              name: 'status',
-              pgType: PostgresColumnType.TEXT,
-              readonly: false,
-            },
-          ],
-        },
-      ] satisfies AnyTableSpec[];
-
-      // Create the snapshot in the database
-      await this.db.client.snapshot.create({
-        data: {
-          id: snapshotId,
-          userId, // Direct user association
-          connectorAccountId: null, // Connectorless snapshot
-          name: scratchpaperName,
-          service: Service.CSV,
-          tableSpecs,
-          tableContexts: [
-            {
-              id: { wsId: tableId, remoteId: ['-'] },
-              activeViewId: null,
-              ignoredColumns: [],
-              readOnlyColumns: [],
-            },
-          ] satisfies SnapshotTableContext[],
-          snapshotTables: {
-            create: [
-              {
-                id: createSnapshotTableId(),
-                connectorAccountId: null,
-                connectorService: Service.CSV,
-                tableSpec: tableSpecs[0],
-                tableContext: {
-                  id: { wsId: tableId, remoteId: ['-'] },
-                  activeViewId: null,
-                  ignoredColumns: [],
-                  readOnlyColumns: [],
-                },
-                columnContexts: {},
-              },
-            ],
-          },
-        },
-      });
-
-      // Create the database schema and table
-      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs);
-
-      // Insert sample data using regular Knex (no streaming needed for small data)
-      await this.insertTemplateData(snapshotId, tableId, sampleData);
-
-      return { snapshotId, tableId };
-    } catch (error) {
-      console.error('Error creating template:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to create template: ${errorMessage}`);
-    }
-  }
-
-  /**
    * Export a snapshot as CSV without authentication (public endpoint)
    * Security relies on snapshot IDs being unguessable
    */
@@ -1892,10 +1771,10 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     buffer: Buffer,
-    userId: string,
+    actor: Actor,
   ): Promise<ImportSuggestionsResponseDto> {
     // Verify user has access to the snapshot
-    const snapshot = await this.findOne(snapshotId, userId);
+    const snapshot = await this.findOne(snapshotId, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -2003,7 +1882,7 @@ export class SnapshotService {
 
               // Create suggestions for this chunk
               if (operations.length > 0) {
-                await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, userId, 'suggested', undefined);
+                await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, actor, 'suggested', undefined);
               }
             }
 
@@ -2028,8 +1907,8 @@ export class SnapshotService {
     });
   }
 
-  async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, userId: string): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, userId);
+  async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
     const table = tableSpecs.find((t) => t.id.wsId === tableId);
 
@@ -2068,7 +1947,8 @@ export class SnapshotService {
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'update',
       message: `Set title column for table ${table.name} to ${column.name}`,
       entityId: snapshotId,
@@ -2217,17 +2097,18 @@ export class SnapshotService {
     return { success: true, tablesCreated: snapshotTablesToCreate.length };
   }
 
-  async migrateUserSnapshots(userId: string): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
+  async migrateUserSnapshots(actor: Actor): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
     WSLogger.info({
       source: 'SnapshotService.migrateUserSnapshots',
       message: 'Starting snapshot migration for user',
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
     });
 
     // Find all snapshots for this user that have old-style data (tableSpecs array) but no SnapshotTable records
     const snapshots = await this.db.client.snapshot.findMany({
       where: {
-        userId,
+        userId: actor.userId,
       },
       include: {
         snapshotTables: true,
@@ -2302,7 +2183,8 @@ export class SnapshotService {
     WSLogger.info({
       source: 'SnapshotService.migrateUserSnapshots',
       message: 'Completed snapshot migration for user',
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       migratedSnapshots,
       tablesCreated,
     });

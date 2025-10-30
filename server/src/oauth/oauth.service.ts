@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthType, Service } from '@prisma/client';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
+import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
 import { createConnectorAccountId } from '../types/ids';
@@ -20,6 +21,17 @@ export interface OAuthCallbackRequest {
   code: string;
   state: string;
 }
+
+export type OAuthStatePayload = {
+  userId: string;
+  organizationId: string;
+  service: string;
+  connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+  customClientId?: string;
+  customClientSecret?: string;
+  connectionName?: string;
+  ts: number;
+};
 
 @Injectable()
 export class OAuthService {
@@ -68,7 +80,7 @@ export class OAuthService {
    */
   initiateOAuth(
     service: string,
-    userId: string,
+    actor: Actor,
     options?: {
       connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
       customClientId?: string;
@@ -82,8 +94,9 @@ export class OAuthService {
     }
 
     // Embed connection method and optional custom client info into state (base64 JSON)
-    const statePayload = {
-      userId,
+    const statePayload: OAuthStatePayload = {
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       service,
       connectionMethod: options?.connectionMethod ?? 'OAUTH_SYSTEM',
       customClientId: options?.customClientId,
@@ -93,7 +106,7 @@ export class OAuthService {
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
 
-    const authUrl = provider.generateAuthUrl(userId, state, {
+    const authUrl = provider.generateAuthUrl(actor.userId, state, {
       clientId: options?.connectionMethod === 'OAUTH_CUSTOM' ? options?.customClientId : undefined,
     });
 
@@ -108,7 +121,7 @@ export class OAuthService {
    */
   async handleOAuthCallback(
     service: string,
-    userId: string,
+    actor: Actor,
     callbackData: OAuthCallbackRequest,
   ): Promise<{ connectorAccountId: string }> {
     const provider = this.providers.get(service);
@@ -117,31 +130,21 @@ export class OAuthService {
     }
 
     // Decode state and validate
-    let statePayload: {
-      userId: string;
-      connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
-      customClientId?: string;
-      customClientSecret?: string;
-      connectionName?: string;
-      ts: number;
-    };
+    let statePayload: OAuthStatePayload;
     try {
       const decoded = Buffer.from(callbackData.state, 'base64').toString();
-      const parsed = JSON.parse(decoded) as {
-        userId: string;
-        connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
-        customClientId?: string;
-        customClientSecret?: string;
-        connectionName?: string;
-        ts: number;
-      };
+      const parsed = JSON.parse(decoded) as OAuthStatePayload;
       statePayload = parsed;
     } catch {
       throw new BadRequestException('Invalid state parameter');
     }
 
-    if (statePayload.userId !== userId) {
-      throw new BadRequestException('Invalid state parameter');
+    if (statePayload.userId !== actor.userId) {
+      throw new BadRequestException('Invalid state parameter: invalid user Id ${statePayload.userId}');
+    }
+
+    if (statePayload.organizationId !== actor.organizationId) {
+      throw new BadRequestException('Invalid state parameter: invalid organization Id ${statePayload.organizationId}');
     }
 
     // Exchange authorization code for access token (with overrides for custom OAuth)
@@ -151,7 +154,7 @@ export class OAuthService {
     });
 
     // Create new connector account (include connection method and custom client creds for storage)
-    const connectorAccount = await this.createOAuthAccount(service, userId, tokenResponse, {
+    const connectorAccount = await this.createOAuthAccount(service, actor, tokenResponse, {
       connectionMethod: statePayload.connectionMethod,
       customClientId: statePayload.customClientId,
       customClientSecret: statePayload.customClientSecret,
@@ -210,7 +213,7 @@ export class OAuthService {
    */
   private async createOAuthAccount(
     service: string,
-    userId: string,
+    actor: Actor,
     tokenResponse: OAuthTokenResponse,
     connectionInfo?: {
       connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
@@ -239,7 +242,8 @@ export class OAuthService {
     const newConnectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         service: serviceEnum,
         displayName:
           connectionInfo?.connectionName ??
@@ -253,7 +257,7 @@ export class OAuthService {
       },
     });
 
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor.userId, {
       service: serviceEnum,
       authType: AuthType.OAUTH,
       healthStatus: 'OK',

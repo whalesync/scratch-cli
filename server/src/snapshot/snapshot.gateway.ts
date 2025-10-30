@@ -11,7 +11,7 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
-import { SocketWithUser } from 'src/auth/types';
+import { SocketWithUser, toActor } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
@@ -106,7 +106,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     }
 
     const snapshotId = data.snapshotId as SnapshotId;
-    const snapshot = await this.snapshotService.findOne(snapshotId, client.user.id);
+    const snapshot = await this.snapshotService.findOne(snapshotId, toActor(client.user));
     if (!snapshot) {
       WSLogger.error({
         message: 'Snapshot not found',

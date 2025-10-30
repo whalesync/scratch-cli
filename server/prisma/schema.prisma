@@ -93,6 +93,8 @@ model ConnectorAccount {
   updatedAt                 DateTime               @updatedAt
   user                      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId                    String
+  organizationId            String?
+  organization              Organization?          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   service                   Service
   displayName               String
   authType                  AuthType               @default(USER_PROVIDED_PARAMS)
@@ -104,6 +106,9 @@ model ConnectorAccount {
   extras                    Json? // Additional service-specific configuration
   snapshots                 Snapshot[]
   snapshotTables            SnapshotTable[]
+
+  @@index([userId])
+  @@index([organizationId])
 }
 
 enum Service {
@@ -136,8 +141,10 @@ model Snapshot {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
   connectorAccountId String?
@@ -155,6 +162,7 @@ model Snapshot {
 
   @@index([connectorAccountId])
   @@index([userId])
+  @@index([organizationId])
 }
 
 model SnapshotTable {
@@ -400,7 +408,9 @@ model Organization {
   updatedAt DateTime @updatedAt
   name      String
 
-  users         User[]
-  AuditLogEvent AuditLogEvent[]
-  StyleGuide    StyleGuide[]
+  users            User[]
+  AuditLogEvent    AuditLogEvent[]
+  StyleGuide       StyleGuide[]
+  ConnectorAccount ConnectorAccount[]
+  Snapshot         Snapshot[]
 }

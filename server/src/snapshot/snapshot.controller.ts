@@ -28,7 +28,7 @@ import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-
 import { SnapshotId } from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import { RequestWithUser, toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { AddTableToSnapshotDto } from './dto/add-table-to-snapshot.dto';
@@ -60,7 +60,7 @@ export class SnapshotController {
   @UseGuards(ScratchpadAuthGuard)
   @Post()
   async create(@Body() createSnapshotDto: CreateSnapshotDto, @Req() req: RequestWithUser): Promise<Snapshot> {
-    return new Snapshot(await this.service.create(createSnapshotDto, req.user.id));
+    return new Snapshot(await this.service.create(createSnapshotDto, toActor(req.user)));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -70,16 +70,16 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<Snapshot[]> {
     if (connectorAccountId) {
-      return (await this.service.findAll(connectorAccountId, req.user.id)).map((s) => new Snapshot(s));
+      return (await this.service.findAll(connectorAccountId, toActor(req.user))).map((s) => new Snapshot(s));
     }
 
-    return (await this.service.findAllForUser(req.user.id)).map((s) => new Snapshot(s));
+    return (await this.service.findAllForUser(toActor(req.user))).map((s) => new Snapshot(s));
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<Snapshot | null> {
-    const snapshot = await this.service.findOne(id, req.user.id);
+    const snapshot = await this.service.findOne(id, toActor(req.user));
     if (!snapshot) {
       return null;
     }
@@ -93,7 +93,7 @@ export class SnapshotController {
     @Body() updateSnapshotDto: UpdateSnapshotDto,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot> {
-    return new Snapshot(await this.service.update(id, updateSnapshotDto, req.user.id));
+    return new Snapshot(await this.service.update(id, updateSnapshotDto, toActor(req.user)));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -103,7 +103,7 @@ export class SnapshotController {
     @Body() addTableDto: AddTableToSnapshotDto,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot> {
-    return new Snapshot(await this.service.addTableToSnapshot(id, addTableDto, req.user.id));
+    return new Snapshot(await this.service.addTableToSnapshot(id, addTableDto, toActor(req.user)));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -114,7 +114,7 @@ export class SnapshotController {
     @Body('hidden') hidden: boolean,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot> {
-    return new Snapshot(await this.service.setTableHidden(snapshotId, tableId, hidden, req.user.id));
+    return new Snapshot(await this.service.setTableHidden(snapshotId, tableId, hidden, toActor(req.user)));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -124,19 +124,19 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<Snapshot> {
-    return new Snapshot(await this.service.deleteTable(snapshotId, tableId, req.user.id));
+    return new Snapshot(await this.service.deleteTable(snapshotId, tableId, toActor(req.user)));
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/publish')
   async publish(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
-    return this.service.publish(id, req.user.id);
+    return this.service.publish(id, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Get(':id/publish-summary')
   async getPublishSummary(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<PublishSummaryDto> {
-    return await this.service.getPublishSummary(id, req.user.id);
+    return await this.service.getPublishSummary(id, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -145,7 +145,7 @@ export class SnapshotController {
     @Param('id') id: SnapshotId,
     @Req() req: RequestWithUser,
   ): Promise<DownloadSnapshotWithouotJobResult> {
-    return this.service.downloadWithoutJob(id, req.user.id);
+    return this.service.downloadWithoutJob(id, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -155,14 +155,14 @@ export class SnapshotController {
     @Body() downloadDto: DownloadRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<DownloadSnapshotResult> {
-    return this.service.download(id, req.user.id, downloadDto.snapshotTableIds);
+    return this.service.download(id, toActor(req.user), downloadDto.snapshotTableIds);
   }
 
   @UseGuards(ScratchpadAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: SnapshotId, @Req() req: RequestWithUser): Promise<void> {
-    await this.service.delete(id, req.user.id);
+    await this.service.delete(id, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -175,7 +175,7 @@ export class SnapshotController {
     @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return this.service.listRecords(snapshotId, tableId, req.user.id, cursor, take, viewId);
+    return this.service.listRecords(snapshotId, tableId, toActor(req.user), cursor, take, viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -186,7 +186,7 @@ export class SnapshotController {
     @Param('recordId') recordId: string,
     @Req() req: RequestWithUser,
   ): Promise<SnapshotRecord> {
-    const record = await this.service.findOneRecord(snapshotId, tableId, recordId, req.user.id);
+    const record = await this.service.findOneRecord(snapshotId, tableId, recordId, toActor(req.user));
     if (!record) {
       throw new NotFoundException('Record not found');
     }
@@ -202,7 +202,7 @@ export class SnapshotController {
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'accepted');
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'accepted');
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -215,7 +215,14 @@ export class SnapshotController {
     @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, req.user.id, 'suggested', viewId);
+    await this.service.bulkUpdateRecords(
+      snapshotId,
+      tableId,
+      bulkUpdateRecordsDto,
+      toActor(req.user),
+      'suggested',
+      viewId,
+    );
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -236,7 +243,7 @@ export class SnapshotController {
       throw new BadRequestException('File must be a CSV');
     }
 
-    return await this.service.importSuggestions(snapshotId, tableId, file.buffer, req.user.id);
+    return await this.service.importSuggestions(snapshotId, tableId, file.buffer, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -252,7 +259,7 @@ export class SnapshotController {
       tableId,
       deepFetchRecordsDto.recordIds,
       deepFetchRecordsDto.fields || null,
-      req.user.id,
+      toActor(req.user),
     );
   }
 
@@ -265,7 +272,7 @@ export class SnapshotController {
     @Body() acceptCellValueDto: AcceptCellValueDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.acceptCellValues(snapshotId, tableId, acceptCellValueDto.items, req.user.id);
+    await this.service.acceptCellValues(snapshotId, tableId, acceptCellValueDto.items, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -276,7 +283,7 @@ export class SnapshotController {
     @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
-    return await this.service.acceptAllSuggestions(snapshotId, tableId, req.user.id, viewId);
+    return await this.service.acceptAllSuggestions(snapshotId, tableId, toActor(req.user), viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -288,7 +295,12 @@ export class SnapshotController {
     @Body() updateColumnContextsDto: UpdateColumnContextsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.updateColumnContexts(snapshotId, tableId, updateColumnContextsDto.columnContexts, req.user.id);
+    await this.service.updateColumnContexts(
+      snapshotId,
+      tableId,
+      updateColumnContextsDto.columnContexts,
+      toActor(req.user),
+    );
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -300,7 +312,7 @@ export class SnapshotController {
     @Body() setTitleColumnDto: SetTitleColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.setTitleColumn(snapshotId, tableId, setTitleColumnDto.columnId, req.user.id);
+    await this.service.setTitleColumn(snapshotId, tableId, setTitleColumnDto.columnId, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -312,7 +324,7 @@ export class SnapshotController {
     @Body() rejectCellValueDto: RejectCellValueDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.rejectValues(snapshotId, tableId, rejectCellValueDto.items, req.user.id);
+    await this.service.rejectValues(snapshotId, tableId, rejectCellValueDto.items, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -323,7 +335,7 @@ export class SnapshotController {
     @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
-    return await this.service.rejectAllSuggestions(snapshotId, tableId, req.user.id, viewId);
+    return await this.service.rejectAllSuggestions(snapshotId, tableId, toActor(req.user), viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -334,7 +346,7 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.clearActiveView(snapshotId, tableId, req.user.id);
+    await this.service.clearActiveView(snapshotId, tableId, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -346,7 +358,7 @@ export class SnapshotController {
     @Body() setActiveRecordsFilterDto: SetActiveRecordsFilterDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.setActiveRecordsFilter(snapshotId, tableId, setActiveRecordsFilterDto, req.user.id);
+    await this.service.setActiveRecordsFilter(snapshotId, tableId, setActiveRecordsFilterDto, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -357,7 +369,7 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.clearActiveRecordFilter(snapshotId, tableId, req.user.id);
+    await this.service.clearActiveRecordFilter(snapshotId, tableId, toActor(req.user));
   }
 
   /**
@@ -374,7 +386,7 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<Observable<SnapshotRecordEvent>> {
-    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+    const snapshot = await this.service.findOne(snapshotId, toActor(req.user));
 
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
@@ -401,7 +413,7 @@ export class SnapshotController {
     @Param('id') snapshotId: SnapshotId,
     @Req() req: RequestWithUser,
   ): Promise<Observable<SnapshotEvent>> {
-    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+    const snapshot = await this.service.findOne(snapshotId, toActor(req.user));
 
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
@@ -422,7 +434,7 @@ export class SnapshotController {
       throw new UnauthorizedException('Only admins can send test record events');
     }
 
-    const snapshot = await this.service.findOne(snapshotId, req.user.id);
+    const snapshot = await this.service.findOne(snapshotId, toActor(req.user));
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -449,7 +461,7 @@ export class SnapshotController {
     @Res() res: Response,
   ): Promise<void> {
     // Verify user has access to the snapshot
-    const snapshotData = await this.service.findOne(snapshotId, req.user.id);
+    const snapshotData = await this.service.findOne(snapshotId, toActor(req.user));
     if (!snapshotData) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -523,20 +535,5 @@ export class SnapshotController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
-  }
-
-  /**
-   * @deprecated
-   */
-  @Post('create-template')
-  async createTemplate(
-    @Body() body: { scratchpaperName: string },
-    @Req() req: RequestWithUser,
-  ): Promise<{ snapshotId: string; tableId: string }> {
-    if (!body.scratchpaperName) {
-      throw new Error('Missing required parameter: scratchpaperName');
-    }
-
-    return await this.service.createTemplate(req.user.id, body.scratchpaperName);
   }
 }

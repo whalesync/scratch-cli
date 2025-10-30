@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import { RequestWithUser, toActor } from '../auth/types';
 import { OAuthCallbackRequest, OAuthInitiateResponse, OAuthService } from './oauth.service';
 
 @Controller('oauth')
@@ -20,7 +20,7 @@ export class OAuthController {
       connectionName?: string;
     },
   ): OAuthInitiateResponse {
-    return this.oauthService.initiateOAuth(service, req.user.id, {
+    return this.oauthService.initiateOAuth(service, toActor(req.user), {
       connectionMethod: body.connectionMethod,
       customClientId: body.customClientId,
       customClientSecret: body.customClientSecret,
@@ -35,7 +35,7 @@ export class OAuthController {
     @Req() req: RequestWithUser,
     @Body() callbackData: OAuthCallbackRequest,
   ): Promise<{ connectorAccountId: string }> {
-    return this.oauthService.handleOAuthCallback(service, req.user.id, callbackData);
+    return this.oauthService.handleOAuthCallback(service, toActor(req.user), callbackData);
   }
 
   @UseGuards(ScratchpadAuthGuard)

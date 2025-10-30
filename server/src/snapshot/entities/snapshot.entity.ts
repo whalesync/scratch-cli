@@ -9,6 +9,7 @@ export class Snapshot {
   createdAt: Date;
   updatedAt: Date;
   userId: string;
+  organizationId: string;
 
   /** @deprecated Use snapshotTables[].connectorAccountId instead - kept for backward compatibility during migration */
   connectorAccountId: string | null;
@@ -29,6 +30,8 @@ export class Snapshot {
     this.createdAt = snapshot.createdAt;
     this.updatedAt = snapshot.updatedAt;
     this.userId = snapshot.userId;
+    // TODO (DEV-8628): can be removed once migration to organizations is complete -- just here to warn about potential issues during switchover
+    this.organizationId = snapshot.organizationId ?? 'unknown organization id';
     this.connectorAccountId = snapshot.connectorAccountId;
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
     this.connectorService = snapshot.service;

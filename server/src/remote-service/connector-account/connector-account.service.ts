@@ -3,6 +3,7 @@ import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { WSLogger } from 'src/logger';
+import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
@@ -57,7 +58,7 @@ export class ConnectorAccountService {
     };
   }
 
-  async create(createDto: CreateConnectorAccountDto, userId: string): Promise<ConnectorAccount> {
+  async create(createDto: CreateConnectorAccountDto, actor: Actor): Promise<ConnectorAccount> {
     const { credentials: parsedCredentials, extras } = await this.parseUserProvidedParams(
       createDto.userProvidedParams || {},
       createDto.service,
@@ -70,7 +71,8 @@ export class ConnectorAccountService {
     const connectorAccount = await this.db.client.connectorAccount.create({
       data: {
         id: createConnectorAccountId(),
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         service: createDto.service,
         displayName: createDto.displayName ?? `${_.startCase(createDto.service.toLowerCase())}`,
         authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
@@ -80,16 +82,16 @@ export class ConnectorAccountService {
       },
     });
 
-    const testResult = await this.testConnection(connectorAccount.id, userId);
+    const testResult = await this.testConnection(connectorAccount.id, actor);
 
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, userId, {
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor.userId, {
       service: createDto.service,
       authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
       healthStatus: testResult.health,
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
       eventType: 'create',
       message: `Created new connection ${connectorAccount.displayName}`,
       entityId: connectorAccount.id as ConnectorAccountId,
@@ -102,15 +104,15 @@ export class ConnectorAccountService {
     return connectorAccount;
   }
 
-  async findAll(userId: string): Promise<ConnectorAccount[]> {
+  async findAll(actor: Actor): Promise<ConnectorAccount[]> {
     return this.db.client.connectorAccount.findMany({
-      where: { userId },
+      where: { organizationId: actor.organizationId },
     });
   }
 
-  async findOne(id: string, userId: string): Promise<ConnectorAccount & DecryptedCredentials> {
+  async findOne(id: string, actor: Actor): Promise<ConnectorAccount & DecryptedCredentials> {
     const connectorAccount = await this.db.client.connectorAccount.findUnique({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
     });
     if (!connectorAccount) {
       throw new NotFoundException('ConnectorAccount not found');
@@ -121,11 +123,11 @@ export class ConnectorAccountService {
   async update(
     id: string,
     updateDto: UpdateConnectorAccountDto,
-    userId: string,
+    actor: Actor,
   ): Promise<ConnectorAccount & DecryptedCredentials> {
     // Get current account to decrypt existing credentials
     const currentAccount = await this.db.client.connectorAccount.findUnique({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
     });
     if (!currentAccount) {
       throw new NotFoundException('ConnectorAccount not found');
@@ -144,7 +146,7 @@ export class ConnectorAccountService {
     const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);
 
     const account = await this.db.client.connectorAccount.update({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
       data: {
         displayName: updateDto.displayName,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
@@ -156,7 +158,7 @@ export class ConnectorAccountService {
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
       eventType: 'update',
       message: `Updated connection ${account.displayName}`,
       entityId: account.id as ConnectorAccountId,
@@ -170,33 +172,33 @@ export class ConnectorAccountService {
     return this.getDecryptedAccount(account);
   }
 
-  async remove(id: string, userId: string): Promise<void> {
-    const account = await this.findOne(id, userId);
+  async remove(id: string, actor: Actor): Promise<void> {
+    const account = await this.findOne(id, actor);
     if (!account) {
       throw new NotFoundException('ConnectorAccount not found');
     }
     await this.db.client.connectorAccount.delete({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
     });
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, userId, {
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, actor.userId, {
       service: account.service,
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
       eventType: 'delete',
       message: `Deleted connection ${account.displayName}`,
       entityId: account.id as ConnectorAccountId,
     });
   }
 
-  async listTables(service: Service, connectorAccountId: string | null, userId: string): Promise<TablePreview[]> {
+  async listTables(service: Service, connectorAccountId: string | null, actor: Actor): Promise<TablePreview[]> {
     // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (e.g., CSV)
     // When connectorAccountId is provided, load the account and pass it to the connector
     let account: (ConnectorAccount & DecryptedCredentials) | null = null;
 
     if (connectorAccountId !== null) {
-      account = await this.findOne(connectorAccountId, userId);
+      account = await this.findOne(connectorAccountId, actor);
     }
 
     let connector: Connector<Service, any>;
@@ -205,7 +207,7 @@ export class ConnectorAccountService {
         service,
         connectorAccount: account,
         decryptedCredentials: account,
-        userId,
+        userId: actor.userId,
       });
     } catch (error) {
       throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {
@@ -240,8 +242,8 @@ export class ConnectorAccountService {
     }
   }
 
-  async testConnection(id: string, userId: string): Promise<TestConnectionResponse> {
-    const account = await this.findOne(id, userId);
+  async testConnection(id: string, actor: Actor): Promise<TestConnectionResponse> {
+    const account = await this.findOne(id, actor);
     try {
       const connector = await this.connectorsService.getConnector({
         service: account.service,
@@ -265,7 +267,7 @@ export class ConnectorAccountService {
         source: 'ConnectorAccountService',
         message: 'Error testing connection',
         error,
-        userId,
+        userId: actor.userId,
         connectorAccountId: id,
       });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

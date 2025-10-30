@@ -26,6 +26,7 @@ export type DownloadRecordsJobDefinition = JobDefinitionBuilder<
     snapshotId: string;
     snapshotTableIds?: string[]; // Optional: if provided, only download these tables
     userId: string;
+    organizationId: string;
     progress?: JsonSafeObject;
   },
   DownloadRecordsPublicProgress,
@@ -120,10 +121,10 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
       if (snapshotTable.connectorAccountId) {
-        decryptedConnectorAccount = await this.connectorAccountService.findOne(
-          snapshotTable.connectorAccountId,
-          data.userId,
-        );
+        decryptedConnectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, {
+          userId: data.userId,
+          organizationId: data.organizationId,
+        });
         if (!decryptedConnectorAccount) {
           throw new Error(`Connector account ${snapshotTable.connectorAccountId} not found`);
         }

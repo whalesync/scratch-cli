@@ -12,11 +12,12 @@ import {
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser } from 'src/auth/types';
+import { RequestWithUser, toActor } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { SnapshotId } from 'src/types/ids';
 import { User } from 'src/users/entities/user.entity';
+import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
@@ -53,15 +54,16 @@ export class DevToolsController {
       throw new UnauthorizedException('Only admins can get user details');
     }
 
-    const user = await this.usersService.findOne(id);
-    if (!user) {
+    const targetUser = await this.usersService.findOne(id);
+    if (!targetUser) {
       throw new NotFoundException('User not found');
     }
 
-    const snapshots = await this.snapshotService.findAllForUser(id);
-    const connectorAccounts = await this.connectorAccountService.findAll(id);
-    const auditLogs = await this.auditLogService.findEventsForUser(id, 20, undefined);
-    return new UserDetail(user, snapshots, connectorAccounts, auditLogs);
+    const actor = userToActor(targetUser);
+    const snapshots = await this.snapshotService.findAllForUser(actor);
+    const connectorAccounts = await this.connectorAccountService.findAll(actor);
+    const auditLogs = await this.auditLogService.findEventsForUser(actor.userId, 20, undefined);
+    return new UserDetail(targetUser, snapshots, connectorAccounts, auditLogs);
   }
 
   /*
@@ -70,7 +72,7 @@ export class DevToolsController {
   @UseGuards(ScratchpadAuthGuard)
   @Post('snapshots/fix-user')
   async fixUser(@Req() req: RequestWithUser): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
-    return this.snapshotService.migrateUserSnapshots(req.user.id);
+    return this.snapshotService.migrateUserSnapshots(toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)

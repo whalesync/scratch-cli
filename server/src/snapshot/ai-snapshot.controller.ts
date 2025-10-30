@@ -1,7 +1,7 @@
 import { Body, Controller, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import { RequestWithUser, toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { SnapshotService } from './snapshot.service';
 
@@ -27,7 +27,7 @@ export class AiSnapshotController {
     return await this.service.listRecordsForAi(
       snapshotId,
       tableId,
-      req.user.id,
+      toActor(req.user),
       cursor,
       take,
       viewId,
@@ -44,6 +44,6 @@ export class AiSnapshotController {
     @Body() body: { recordIds: string[] },
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    return await this.service.getRecordsByIdsForAi(snapshotId, tableId, body.recordIds, req.user.id);
+    return await this.service.getRecordsByIdsForAi(snapshotId, tableId, body.recordIds, toActor(req.user));
   }
 }

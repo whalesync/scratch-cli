@@ -6,9 +6,10 @@ import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { SnapshotId } from 'src/types/ids';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
+import { Actor } from 'src/users/types';
 import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
-type SearchInput = { text: string; snapshotId: SnapshotId; userId: string; tableId?: string };
+type SearchInput = { text: string; snapshotId: SnapshotId; actor: Actor; tableId?: string };
 
 @Injectable()
 export class MentionsService {
@@ -23,30 +24,24 @@ export class MentionsService {
     resources: { id: string; title: string; preview: string }[];
     records: { id: string; title: string; tableId: string }[];
   }> {
-    const { text, snapshotId, userId, tableId } = input;
+    const { text, snapshotId, actor, tableId } = input;
     const queryText = (text || '').trim();
 
     const [resources, records] = await Promise.all([
-      this.searchResources({ userId, queryText }),
-      this.searchRecords({ snapshotId, userId, queryText, tableId }),
+      this.searchResources({ actor, queryText }),
+      this.searchRecords({ snapshotId, actor, queryText, tableId }),
     ]);
 
     return { resources, records };
   }
 
-  async searchResources({
-    userId,
-    queryText,
-  }: {
-    userId: string;
-    queryText: string;
-  }): Promise<ResourceMentionEntity[]> {
-    const schemaName = this.uploadsDbService.getUserUploadSchema(userId);
+  async searchResources({ actor, queryText }: { actor: Actor; queryText: string }): Promise<ResourceMentionEntity[]> {
+    const schemaName = this.uploadsDbService.getUserUploadSchema(actor.userId);
 
     // First, search the Uploads table by name using Prisma
     const uploads = await this.db.client.upload.findMany({
       where: {
-        userId,
+        userId: actor.userId,
         name: {
           contains: queryText,
           mode: 'insensitive',
@@ -97,12 +92,12 @@ export class MentionsService {
 
   async searchRecords({
     snapshotId,
-    userId,
+    actor,
     queryText,
     tableId,
   }: {
     snapshotId: SnapshotId;
-    userId: string;
+    actor: Actor;
     queryText: string;
     tableId?: string;
   }): Promise<RecordMentionEntity[]> {
@@ -110,7 +105,7 @@ export class MentionsService {
       return [];
     }
 
-    const snapshot = await this.snapshotService.findOne(snapshotId, userId);
+    const snapshot = await this.snapshotService.findOne(snapshotId, actor);
     if (!snapshot) return [];
 
     // Find the table by tableId using tableSpecs

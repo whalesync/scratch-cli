@@ -139,14 +139,6 @@ export const CreateSnapshotPanel = () => {
         >
           New workbook from CSV file
         </ContentFooterButton>
-        <ContentFooterButton
-          w="min-content"
-          onClick={() => modalStack.open('create-content-snapshot')}
-          leftSection={<PlusIcon size={16} />}
-          loading={isSaving}
-        >
-          New workbook from template
-        </ContentFooterButton>
       </Group>
 
       {/* Hidden file input for CSV selection */}

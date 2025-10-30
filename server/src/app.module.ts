@@ -8,7 +8,6 @@ import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
-import { ContentToolsModule } from './content-tools/content-tools.module';
 import { CronModule } from './cron/cron.module';
 import { CsvFileModule } from './csv-file/csv-file.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
@@ -58,7 +57,6 @@ import { WorkerModule } from './worker/workers.module';
     UploadsModule,
     ViewModule,
     AiAgentTokenUsageModule,
-    ContentToolsModule,
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,
