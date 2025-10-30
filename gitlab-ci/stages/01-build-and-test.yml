@@ -8,7 +8,6 @@ include:
 
 build and test client:
   stage: build
-  image: node:$NODE_VERSION
   interruptible: true
   script:
     - cd client
@@ -27,19 +26,18 @@ build and test client:
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
-gcp push test client image to artifact registry:
+build client docker image for test:
   stage: build
-  needs:
-    - job: build and test client
-      artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
     - docker:26-dind
+  artifacts:
+    paths:
+      - client/image-test.tar
+    expire_in: 1 hour
   script:
-    - !reference [.setup_docker_gcp_auth, script]
     - cd client
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "Labelling this build as $BUILD_VERSION"
@@ -49,24 +47,62 @@ gcp push test client image to artifact registry:
       docker build
       --build-arg APP_ENV=test
       --build-arg BUILD_VERSION="${BUILD_VERSION}"
+      --build-arg CLERK_PUBLISHABLE_KEY="${CLERK_PUBLISHABLE_KEY_DEVELOPMENT}"
+      --build-arg NEXT_PUBLIC_POSTHOG_KEY="${POSTHOG_KEY_DEVELOPMENT}"
+      --build-arg NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"
+      --build-arg NEXT_PUBLIC_API_URL=https://test-api.scratch.md
+      --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://test-agent.scratch.md
+      --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://test-agent.scratch.md
+      -t spinner-test/spinner-client
+      -f Dockerfile .
+    - docker save spinner-test/spinner-client > image-test.tar
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - client/Dockerfile
+        - client/package.json
+        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+build client docker image for production:
+  stage: build
+  extends:
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  artifacts:
+    paths:
+      - client/image-production.tar
+    expire_in: 1 hour
+  script:
+    - cd client
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "Labelling this build as $BUILD_VERSION"
+    # Environment-specific .env flags are set here.
+    # Service-type flags are set in terraform on launch.
+    - >
+      docker build
+      --build-arg APP_ENV=production
+      --build-arg BUILD_VERSION="${BUILD_VERSION}"
       --build-arg CLERK_PUBLISHABLE_KEY="${CLERK_PUBLISHABLE_KEY_PRODUCTION}"
       --build-arg NEXT_PUBLIC_POSTHOG_KEY="${POSTHOG_KEY}"
       --build-arg NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"
       --build-arg NEXT_PUBLIC_API_URL=https://api.scratchpaper.ai
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratchpaper.ai
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratchpaper.ai
-      -t spinner-test/spinner-client
+      -t spinner-production/spinner-client
       -f Dockerfile .
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker save spinner-production/spinner-client > image-production.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - client/Dockerfile
         - client/package.json
+        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -76,10 +112,10 @@ gcp push test client image to artifact registry:
 
 build and test server:
   stage: build
-  image: node:$NODE_VERSION
   interruptible: true
   script:
     - cd server
+    - !reference [.use_nvm, script]
     - yarn install --frozen-lockfile
     - yarn prisma generate
     - yarn lint
@@ -99,38 +135,34 @@ build and test server:
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
-# TODO: convert this to a Gitlab "Step":
-# https://docs.gitlab.com/tutorials/setup_steps/
-gcp push test server image to artifact registry:
+build server docker image:
   stage: build
-  needs:
-    - job: build and test server
-      artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
     - docker:26-dind
+  artifacts:
+    paths:
+      - server/image.tar
+    expire_in: 1 hour
   script:
-    - !reference [.setup_docker_gcp_auth, script]
     - cd server
-    # Environment-specific .env flags are set here.
-    # Service-type flags are set in terraform on launch.
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "Labelling this build as $BUILD_VERSION"
     - >
       docker build
-      -t spinner-test/spinner-server
+      --build-arg BUILD_VERSION="${BUILD_VERSION}"
+      -t spinner/spinner-server
       -f Dockerfile .
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner-test/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner-test/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
+    - docker save spinner/spinner-server > image.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - server/Dockerfile
         - server/package.json
+        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -156,35 +188,33 @@ build and test agent:
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
-gcp push test agent image to artifact registry:
+build agent docker image:
   stage: build
-  needs:
-    - job: build and test agent
-      artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
     - docker:26-dind
+  artifacts:
+    paths:
+      - pydantic-ai-agent/image.tar
+    expire_in: 1 hour
   script:
-    - !reference [.setup_docker_gcp_auth, script]
     - cd pydantic-ai-agent
-    # Environment-specific .env flags are set here.
-    # Service-type flags are set in terraform on launch.
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "Labelling this build as $BUILD_VERSION"
     - >
       docker build
-      -t spinner-test/spinner-agent
+      --build-arg BUILD_VERSION="${BUILD_VERSION}"
+      -t spinner/spinner-agent
       -f Dockerfile .
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner-test/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner-test/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
+    - docker save spinner/spinner-agent > image.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - pydantic-ai-agent/Dockerfile
-        - pydantic-ai-agent/requirements.txt
+        - pydantic-ai-agent/package.json
+        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]

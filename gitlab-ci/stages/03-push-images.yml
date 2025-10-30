@@ -1,0 +1,191 @@
+include:
+  - "/gitlab-ci/stages.yml"
+  - "/gitlab-ci/common.yml"
+
+# region client
+
+push client image to test artifact registry:
+  stage: deploy
+  needs:
+    - job: build client docker image for test
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i client/image-test.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/03-push-images.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+push client image to production artifact registry:
+  stage: deploy
+  needs:
+    - job: build client docker image for production
+      artifacts: true
+  extends:
+    - .gcp_production_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i client/image-production.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner-production/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner-production/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - client/Dockerfile
+        - client/package.json
+        # FIXME: remove
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+# endregion
+
+# region server
+
+push server image to test artifact registry:
+  stage: deploy
+  needs:
+    - job: build server docker image
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i server/image.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - server/Dockerfile
+        - server/package.json
+        # FIXME: remove
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+push server image to production artifact registry:
+  stage: deploy
+  needs:
+    - job: build server docker image
+      artifacts: true
+  extends:
+    - .gcp_production_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i server/image.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - server/Dockerfile
+        - server/package.json
+        # FIXME: remove
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+# endregion
+
+# region agent
+
+push agent image to test artifact registry:
+  stage: deploy
+  needs:
+    - job: build agent docker image
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i pydantic-ai-agent/image.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - pydantic-ai-agent/Dockerfile
+        - pydantic-ai-agent/package.json
+        # FIXME: remove
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+push agent image to production artifact registry:
+  stage: deploy
+  needs:
+    - job: build agent docker image
+      artifacts: true
+  extends:
+    - .gcp_test_env # sets before_script and variables
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  script:
+    - !reference [.setup_docker_gcp_auth, script]
+    - docker load -i pydantic-ai-agent/image.tar
+    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
+    - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
+  rules:
+    # FIXME: remove
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - pydantic-ai-agent/Dockerfile
+        - pydantic-ai-agent/package.json
+        # FIXME: remove
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+# endregion

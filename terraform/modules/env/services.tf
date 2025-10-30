@@ -3,7 +3,6 @@ locals {
   force_reload_uuid = var.force_reload_services ? uuid() : null
 }
 
-// DUSKY SERVICE
 resource "google_cloud_run_v2_service" "client_service" {
   name     = "client-service"
   location = "us-central1"

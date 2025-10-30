@@ -22,6 +22,12 @@ include:
   script:
     - gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${GCP_REGION}-docker.pkg.dev
 
+.use_nvm:
+  script:
+    # To get nvm working.
+    - . ~/.bashrc
+    - if [ ! -d node_modules ]; then nvm use && yarn install --immutable --cache-folder .yarn --prefer-offline; else echo "node_modules exists. Using cache."; fi
+
 # Reusable snippet for including into rules to trigger jobs only on merge to master, not in MRs or scheduled pipelines
 .rules:
   on_merge_to_master:
@@ -44,4 +50,21 @@ include:
     - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
     - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
     - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/test"
+    - !reference [.google-oidc:auth, before_script]
+
+# Extend this rule to include OIDC auth and all required settings for the production project
+.gcp_production_env:
+  extends: .google-oidc:auth
+  variables:
+    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/production"
+    AUDIENCE: "https://gitlab.com"
+  before_script:
+    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
+    - export GCLOUD_PROJECT="spv1-production"
+    - export GCP_PROJECT_NUMBER="806617013435"
+    - export GCP_REGISTRY="production-registry"
+    - export SERVICE_ACCOUNT="gitlab-service-account@spv1-production.iam.gserviceaccount.com"
+    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
+    - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
+    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/production"
     - !reference [.google-oidc:auth, before_script]
