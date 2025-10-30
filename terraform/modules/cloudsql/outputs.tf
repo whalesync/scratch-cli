@@ -7,6 +7,11 @@ output "host_ip_address" {
   description = "The private network IP address that can be used to connect to the instance."
 }
 
+output "root_password" {
+  value       = google_sql_database_instance.primary.root_password
+  description = "The root password assigned to the instance."
+}
+
 output "primary_connection_name" {
   value       = google_sql_database_instance.primary.connection_name
   description = "The connection name to use when connecting to the instance."

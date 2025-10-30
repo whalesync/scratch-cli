@@ -16,7 +16,7 @@ project_id="spv1-$env"
 secret_ids=()
 while IFS= read -r line; do
     trimmed_line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-    if [ -n "$trimmed_line" ]; then
+    if [ -n "$trimmed_line" ] && [[ ! "$trimmed_line" =~ ^# ]]; then
         secret_ids+=("$trimmed_line")
     fi
 done < "$secrets_file"

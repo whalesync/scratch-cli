@@ -2,7 +2,7 @@ include:
   - "/gitlab-ci/stages.yml"
   - "/gitlab-ci/common.yml"
 
-# region client
+#region client
 
 push client image to test artifact registry:
   stage: deploy
@@ -24,7 +24,6 @@ push client image to test artifact registry:
     - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
@@ -51,19 +50,15 @@ push client image to production artifact registry:
     - docker tag spinner-production/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - client/Dockerfile
-        - client/package.json
-        # FIXME: remove
-        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
-# endregion
+#endregion
 
-# region server
+#region server
 
 push server image to test artifact registry:
   stage: deploy
@@ -85,13 +80,9 @@ push server image to test artifact registry:
     - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - server/Dockerfile
-        - server/package.json
-        # FIXME: remove
-        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -115,19 +106,15 @@ push server image to production artifact registry:
     - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - server/Dockerfile
-        - server/package.json
-        # FIXME: remove
-        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
-# endregion
+#endregion
 
-# region agent
+#region agent
 
 push agent image to test artifact registry:
   stage: deploy
@@ -149,13 +136,9 @@ push agent image to test artifact registry:
     - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - pydantic-ai-agent/Dockerfile
-        - pydantic-ai-agent/package.json
-        # FIXME: remove
-        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -165,7 +148,7 @@ push agent image to production artifact registry:
     - job: build agent docker image
       artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
+    - .gcp_production_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -179,13 +162,9 @@ push agent image to production artifact registry:
     - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
   rules:
-    # FIXME: remove
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - pydantic-ai-agent/Dockerfile
-        - pydantic-ai-agent/package.json
-        # FIXME: remove
-        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
-# endregion
+#endregion

@@ -13,8 +13,10 @@ module "production" {
 
   # Load Balancer
   enable_client_load_balancer = true
-  client_domain              = "app.scratch.md"
-  enable_client_cdn          = true
+  client_domain               = "app.scratch.md"
+  enable_client_cdn           = true
+  api_domain                  = "api.scratch.md"
+  agent_domain                = "agent.scratch.md"
 
   # Monitoring
   enable_pagerduty_notifications = false

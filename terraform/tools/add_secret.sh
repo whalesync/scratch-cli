@@ -42,7 +42,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-for env in test staging production; do
+for env in test production; do
     pushd "$(dirname "$0")/../envs/$env"
     terraform apply --target "module.$env.google_secret_manager_secret.required"
     popd

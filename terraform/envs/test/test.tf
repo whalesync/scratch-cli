@@ -13,8 +13,10 @@ module "test" {
 
   # Load Balancer
   enable_client_load_balancer = true
-  client_domain              = "test.scratch.md"
-  enable_client_cdn          = true
+  client_domain               = "test.scratch.md"
+  enable_client_cdn           = true
+  api_domain                  = "test-api.scratch.md"
+  agent_domain                = "test-agent.scratch.md"
 
   db_disk_size         = 10
   db_high_availability = false
