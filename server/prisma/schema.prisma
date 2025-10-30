@@ -34,7 +34,6 @@ model User {
   connectorAccounts       ConnectorAccount[]
   customConnectors        CustomConnector[]
   styleGuides             StyleGuide[]
-  csvFiles                CsvFile[]
   aiAgentCredentials      AiAgentCredential[]
   aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
   subscriptions           Subscription[]
@@ -256,18 +255,6 @@ model StyleGuide {
 
   @@index([userId])
   @@index([organizationId])
-}
-
-model CsvFile {
-  id        String   @id // type: CsvFileId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String
-  body      String // CSV content
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-
-  @@index([userId])
 }
 
 model ColumnView {

@@ -37,9 +37,3 @@ export namespace StyleGuideCluster {
 
   export const _validator = Prisma.validator<Prisma.StyleGuideDefaultArgs>()({});
 }
-
-export namespace CsvFileCluster {
-  export type CsvFile = Prisma.CsvFileGetPayload<typeof _validator>;
-
-  export const _validator = Prisma.validator<Prisma.CsvFileDefaultArgs>()({});
-}
