@@ -4,6 +4,7 @@ import { CsvColumnSpecExtras, CsvTableSpecExtras } from './csv/csv-spec-types';
 import { CustomColumnSpecExtras, CustomTableSpecExtras } from './custom/custom-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
 import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
+import { WixBlogColumnSpecExtras, WixBlogTableSpecExtras } from './wix/wix-blog/wix-blog-spec-types';
 import { WordPressColumnSpecExtras, WordPressTableSpecExtras } from './wordpress/wordpress-spec-types';
 import { YouTubeColumnSpecExtras, YouTubeTableSpecExtras } from './youtube/youtube-spec-types';
 
@@ -30,6 +31,9 @@ export type WordPressTableSpec = BaseTableSpec<WordPressColumnSpec> & WordPressT
 export type WebflowColumnSpec = BaseColumnSpec & WebflowColumnSpecExtras;
 export type WebflowTableSpec = BaseTableSpec<WebflowColumnSpec> & WebflowTableSpecExtras;
 
+export type WixBlogColumnSpec = BaseColumnSpec & WixBlogColumnSpecExtras;
+export type WixBlogTableSpec = BaseTableSpec<WixBlogColumnSpec> & WixBlogTableSpecExtras;
+
 export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSpec[] };
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
@@ -39,6 +43,7 @@ export interface TableSpecs {
   YOUTUBE: YouTubeTableSpec;
   WORDPRESS: WordPressTableSpec;
   WEBFLOW: WebflowTableSpec;
+  WIX_BLOG: WixBlogTableSpec;
   POSTGRES: CsvTableSpec; // TODO - change to PostgresTableSpec once we implement the connector
 }
 
@@ -50,5 +55,6 @@ export interface ColumnSpecs {
   YOUTUBE: YouTubeColumnSpec;
   WORDPRESS: WordPressColumnSpec;
   WEBFLOW: WebflowColumnSpec;
+  WIX_BLOG: WixBlogColumnSpec;
   POSTGRES: CsvColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
 }

@@ -6,12 +6,13 @@ import { OAuthController } from './oauth.controller';
 import { OAuthService } from './oauth.service';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
+import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
 @Module({
   imports: [ConfigModule, DbModule, PosthogModule],
   controllers: [OAuthController],
-  providers: [OAuthService, NotionOAuthProvider, WebflowOAuthProvider, YouTubeOAuthProvider],
+  providers: [OAuthService, NotionOAuthProvider, WebflowOAuthProvider, WixOAuthProvider, YouTubeOAuthProvider],
   exports: [OAuthService],
 })
 export class OAuthModule {}

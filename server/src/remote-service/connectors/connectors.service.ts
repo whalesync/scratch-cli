@@ -11,6 +11,7 @@ import { CsvConnector } from './library/csv/csv-connector';
 import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
+import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
 import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
 import { WordPressConnector } from './library/wordpress/wordpress-connector';
 import { YouTubeConnector } from './library/youtube/youtube-connector';
@@ -114,6 +115,18 @@ export class ConnectorsService {
         } else {
           // Webflow only supports OAuth authentication
           throw new Error('Webflow only supports OAuth authentication');
+        }
+      case Service.WIX_BLOG:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Wix', service);
+        }
+        if (connectorAccount.authType === AuthType.OAUTH) {
+          // For OAuth accounts, get the valid access token
+          // Site ID is automatically discovered via App Instance API
+          const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+          return new WixBlogConnector(accessToken);
+        } else {
+          throw new Error('Wix requires either OAuth or API key authentication');
         }
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);

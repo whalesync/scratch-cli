@@ -115,6 +115,7 @@ enum Service {
   YOUTUBE
   WORDPRESS
   WEBFLOW
+  WIX_BLOG
 }
 
 enum AuthType {

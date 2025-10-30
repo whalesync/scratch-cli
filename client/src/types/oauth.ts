@@ -1,4 +1,4 @@
-import { Service } from "./server-entities/connector-accounts";
+import { Service } from './server-entities/connector-accounts';
 
 export interface OAuthInitiateResponse {
   authUrl: string;
@@ -14,7 +14,7 @@ export interface OAuthCallbackResponse {
   connectorAccountId: string;
 }
 
-export type OAuthService = Service.NOTION | Service.AIRTABLE | Service.YOUTUBE;
+export type OAuthService = Service.NOTION | Service.AIRTABLE | Service.YOUTUBE | Service.WEBFLOW | Service.WIX_BLOG;
 
 export interface OAuthError {
   error: string;

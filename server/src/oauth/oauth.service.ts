@@ -8,6 +8,7 @@ import { EncryptedData, getEncryptionService } from '../utils/encryption';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
+import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
 export interface OAuthInitiateResponse {
@@ -28,12 +29,14 @@ export class OAuthService {
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
     private readonly webflowProvider: WebflowOAuthProvider,
+    private readonly wixProvider: WixOAuthProvider,
     private readonly youtubeProvider: YouTubeOAuthProvider,
     private readonly posthogService: PostHogService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
     this.providers.set('WEBFLOW', this.webflowProvider);
+    this.providers.set('WIX_BLOG', this.wixProvider);
     this.providers.set('YOUTUBE', this.youtubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
@@ -272,6 +275,8 @@ export class OAuthService {
         return Service.AIRTABLE;
       case 'youtube':
         return Service.YOUTUBE; // For now, map Google to CUSTOM
+      case 'wix_blog':
+        return Service.WIX_BLOG;
       default:
         throw new BadRequestException(`Unsupported service: ${service}`);
     }

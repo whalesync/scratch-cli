@@ -303,6 +303,11 @@
   dependencies:
     core-js "^2.6.12"
 
+"@babel/runtime@^7.26.0", "@babel/runtime@^7.28.2":
+  version "7.28.4"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.28.4.tgz#a70226016fabe25c5783b2f22d3e1c9bc5ca3326"
+  integrity sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==
+
 "@babel/template@^7.27.2", "@babel/template@^7.3.3":
   version "7.27.2"
   resolved "https://registry.yarnpkg.com/@babel/template/-/template-7.27.2.tgz#fa78ceed3c4e7b63ebf6cb39e5852fca45f6809d"
@@ -1445,6 +1450,19 @@
   dependencies:
     safe-buffer "^5.0.1"
 
+"@preact/signals-core@^1.11.0", "@preact/signals-core@^1.12.0":
+  version "1.12.1"
+  resolved "https://registry.yarnpkg.com/@preact/signals-core/-/signals-core-1.12.1.tgz#714b489bb35d9874cc44b35706a9dc27da8d21c4"
+  integrity sha512-BwbTXpj+9QutoZLQvbttRg5x3l5468qaV2kufh+51yha1c53ep5dY4kTuZR35+3pAZxpfQerGJiQqg34ZNZ6uA==
+
+"@preact/signals-react@^3.2.1":
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/@preact/signals-react/-/signals-react-3.3.1.tgz#676c4f8b83ee42bc8f9f49539e6d505a4a064419"
+  integrity sha512-VMVDVt2zxtv/uvYBfuaAX1KJPZjpSB23ohbbCAzWAv0J0IXRxyDMSVUirxq1nY6nzeyldAAXJOykAtlVIyQ/jA==
+  dependencies:
+    "@preact/signals-core" "^1.12.0"
+    use-sync-external-store "^1.2.0"
+
 "@prisma/client@^6.16.3":
   version "6.16.3"
   resolved "https://registry.yarnpkg.com/@prisma/client/-/client-6.16.3.tgz#6c3a9b749a8155f3dfea1358068a6b1e41080182"
@@ -1495,6 +1513,18 @@
   integrity sha512-X1LxiFXinJ4iQehrodGp0f66Dv6cDL0GbRlcCoLtSu6f4Wi+hgo7eND/afIs5029GQLgNWKZ46vn8hjyXTsHLA==
   dependencies:
     "@prisma/debug" "6.16.3"
+
+"@radix-ui/react-compose-refs@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-compose-refs/-/react-compose-refs-1.1.2.tgz#a2c4c47af6337048ee78ff6dc0d090b390d2bb30"
+  integrity sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg==
+
+"@radix-ui/react-slot@^1.1.0", "@radix-ui/react-slot@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-slot/-/react-slot-1.2.3.tgz#502d6e354fc847d4169c3bc5f189de777f68cfe1"
+  integrity sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A==
+  dependencies:
+    "@radix-ui/react-compose-refs" "1.1.2"
 
 "@sec-ant/readable-stream@^0.4.1":
   version "0.4.1"
@@ -2267,6 +2297,454 @@
   dependencies:
     "@webassemblyjs/ast" "1.14.1"
     "@xtuc/long" "4.2.2"
+
+"@wix/auto_sdk_blog_blog-cache@1.0.24":
+  version "1.0.24"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_blog-cache/-/auto_sdk_blog_blog-cache-1.0.24.tgz#06d9b425fa6653d2a3f811063a1d40879a10ae6e"
+  integrity sha512-sMJkhkBsTXY1SGO018wJ3AcvM0IVLxlOt3cQ6N5HZ27m1VhxUTm6Adh9Ek/Aw7inzsTg8pQUqK0GX0WxqTHuNA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_blog_blog-importer@1.0.21":
+  version "1.0.21"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_blog-importer/-/auto_sdk_blog_blog-importer-1.0.21.tgz#a9bd19de7165c183a11ed538a558dd04821d96aa"
+  integrity sha512-hEx1Qe+7mrvxzrxVtQ5qSvhKTQ/B9Z7/kvoGLp9TtpPwIwhx3g8Vm6hQ9ldXoLFVqQlarDH9b8/4WzkUVAaA7A==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_blog_categories@1.0.24":
+  version "1.0.24"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_categories/-/auto_sdk_blog_categories-1.0.24.tgz#9f036922ab9ecba9f3bfa1263b2cc2bf1d0f451b"
+  integrity sha512-OTQAdasGTB0ka2yKvBSni/rUx/NRI4KHxA6udltkTZKPg6WsMcDcVO6S0I8JsdYG5Kb+aQ9mctfag2Uk2Cao3g==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_blog_draft-posts@1.0.53":
+  version "1.0.53"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_draft-posts/-/auto_sdk_blog_draft-posts-1.0.53.tgz#d1ebb0c7b5b0c92f38fb735a9eccc3bfdfebb3a1"
+  integrity sha512-3J1VLxILil9pXtkzh02NB6rU72DPhCZPgEfU0JsAQ3r5PgxpuWXtd31I2WONnERsjacIGi1eEM3dAGha3Bcs7g==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_blog_posts@1.0.68":
+  version "1.0.68"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_posts/-/auto_sdk_blog_posts-1.0.68.tgz#5f82198cb82e836aecf3c93ff5185367a4fffcd7"
+  integrity sha512-1oNx4HPvIClfnqyTIpXKld8Ev74wT5wVXWdioiDZo6dpZa4UE8G5VEYeMC6M8x9HymVlKlfGTGCMSYeJnrU8KQ==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_blog_tags@1.0.33":
+  version "1.0.33"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_blog_tags/-/auto_sdk_blog_tags-1.0.33.tgz#8749de8e55afd5c0d6d7cba300fcf7d014c68176"
+  integrity sha512-Bf08CXnwSP0OuOsy7sfHPX5afcl5YL+fH56oGCr4osCMwDnz6nwd1UVpOEvw6Xh7ibDaod309/JTgpYg/tNn6w==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_comments_categories@1.0.33":
+  version "1.0.33"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_comments_categories/-/auto_sdk_comments_categories-1.0.33.tgz#8c8b99e25037c8497174c8fb38061d8d3c6e7be7"
+  integrity sha512-rDnW1eFMSemihdLhMhc96b2BT5V9eYci3X1jbKULpCIWhjNHG87iy+rOkMgnT/5vzj93WQNonZBU/O/WGIN02g==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_comments_comments@1.0.32":
+  version "1.0.32"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_comments_comments/-/auto_sdk_comments_comments-1.0.32.tgz#900f39be7cb51952720109c714cc06ada455b0e3"
+  integrity sha512-XCSnqKpSiUEYfhCsjx+tZhCKFJCsLbMytTj01LMdv5P75V30Xc9/dO7wIGAG0cNc9z8uwR+rvk07sdmLZiBsLg==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_comments_widgets@1.0.21":
+  version "1.0.21"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_comments_widgets/-/auto_sdk_comments_widgets-1.0.21.tgz#5cb0d73d303f80a2613ae095f1d50da45cabb5c6"
+  integrity sha512-lkcUujwCbzbg+2Ef21LRMG2LQnjtV99/fupr9w+a8XmKhugQEtH/8KQowqX2uOLj/AUgLF5is8ErErSKmy4dxA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_identity_authentication@1.0.31":
+  version "1.0.31"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_identity_authentication/-/auto_sdk_identity_authentication-1.0.31.tgz#72bba565842c6bb16968d2c35269769e6bd3ce1b"
+  integrity sha512-wUSgU8SnxEd/5+gIJIQU5RfP2/XfmynCu+r4dD/jam7REL3irWrdsr/JhI988CHi6orPpGwrePKKXFBFIixqkg==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_identity_oauth@1.0.24":
+  version "1.0.24"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_identity_oauth/-/auto_sdk_identity_oauth-1.0.24.tgz#fa8fb531e336e72ee2f8c7d910c15942a8a27eab"
+  integrity sha512-I2A5HS47GdNnAdT2Ka4pztEpgrv0Rgq9jtpumH4SZMPIVjjJKfsBYhgwt2LHdeLpleCqKyignkWyrMdVRDqfag==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_identity_recovery@1.0.31":
+  version "1.0.31"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_identity_recovery/-/auto_sdk_identity_recovery-1.0.31.tgz#5dc840119fa8bef40625e88bd50481f747208900"
+  integrity sha512-9dTLv/x9rgN+bzvkKw7qAqlz5WLqhh1AQYLGxsRA575BcFMyT9s0Uow1qeBtcGQOc63kmrhhmJ8H8qLAe55EqQ==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_identity_verification@1.0.33":
+  version "1.0.33"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_identity_verification/-/auto_sdk_identity_verification-1.0.33.tgz#47aa455cf0c0df308734bae243d8ae5e4af91abe"
+  integrity sha512-0WHvuFuXOuAzvMujGr/oqoJbQ3FOsI4xonYWN60mYRqsxJQAdJjNCse4Phh0WZK+DvIe51wOg60f0S0LpLo/SQ==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_authentication@1.0.25":
+  version "1.0.25"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_authentication/-/auto_sdk_members_authentication-1.0.25.tgz#db6b4a7c71a929a776876d8e2623af1f2001f076"
+  integrity sha512-PHXVBA+K6ul48n4RejtJ6pipqh+o5OlC7YCuh0nuWc+R13LWLcyfJVfENZ4e2Q1TfwaVhEMTGqLD+4e/qtWYUg==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_authorization@1.0.20":
+  version "1.0.20"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_authorization/-/auto_sdk_members_authorization-1.0.20.tgz#80fcdd35d7292d3a8c13538455ff8bcb9980e79b"
+  integrity sha512-PuVJfGqDCbiNr0u99vb7yffEkPtBo/9P0tnenDkAJ/B0UdxSt9Mb3SfWiTbnr6XbAO6QvmTVOZyWLnnrt8Ap5w==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_badge-assignments@1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_badge-assignments/-/auto_sdk_members_badge-assignments-1.0.4.tgz#6a62fd9b58ff58ec7aa2c08585e1ddb94ff733f5"
+  integrity sha512-9Xpo9SnOwqTXi1WUBBZo4097h/zuR5cb4jeU6ORXyCINUcx8MnanT03cq8yDPE5ODPuI3k9EsBXizulKKoLMXw==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_badges-v-2@1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_badges-v-2/-/auto_sdk_members_badges-v-2-1.0.5.tgz#c157ad666f9126359395d9f24e0100b168de1a91"
+  integrity sha512-1rzvxmFS2c2d2rx/kpO2I7cfHR2EE2KjqbNF0cKZtXDCTDE1LeqjYUOMf1/HpLDj8v4Z8RGxqjpJx0hX6wHH0w==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_badges@1.0.32":
+  version "1.0.32"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_badges/-/auto_sdk_members_badges-1.0.32.tgz#da868f554becf428035e7d7c9bc653bf616c8516"
+  integrity sha512-BZE0G2kQYJ9N7Bec2Mb04Vkqp/5ed3b2r7n3BPAfIwtGlJd4QaXmMiq4EVrxD4jFZV8JVpKQz31qVFZlEsxBqA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_custom-field-applications@1.0.24":
+  version "1.0.24"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_custom-field-applications/-/auto_sdk_members_custom-field-applications-1.0.24.tgz#4a37d6bb65b56ac5c9715143220c41accaa728bc"
+  integrity sha512-du0PfLox1oNUe3U7OW1jbEUbwNHB67gwzcs9Ut4mECc54lITjZjzbf0rA5XEsV3LBBC0aqDuJwiDUBS8Lp285Q==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_custom-field-suggestions@1.0.18":
+  version "1.0.18"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_custom-field-suggestions/-/auto_sdk_members_custom-field-suggestions-1.0.18.tgz#20e4b455d2ff578e435da90881ffa7965fc36284"
+  integrity sha512-T3WrsWC8XkBfNVdPFh367T74jU23qsc3Teao2byBXXbUKCy+xezo/itw0way/M0AMAPYDvrw0Qxw3FWuT8+6Zw==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_custom-fields@1.0.33":
+  version "1.0.33"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_custom-fields/-/auto_sdk_members_custom-fields-1.0.33.tgz#2bfafc800823485b064c0efa307dbdc9797c0a3e"
+  integrity sha512-HxrE9XAVVzp8YSZdaNw4Dp4pQRWd58cXvhJiSz6NT8obWX3BK6KFHdFsxdx5cShVqZNOvBgqpjOhPYutMiRVbA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_default-privacy@1.0.20":
+  version "1.0.20"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_default-privacy/-/auto_sdk_members_default-privacy-1.0.20.tgz#f5ee8644279a36da83e3be046ed100ae9fed74e8"
+  integrity sha512-S+kPd/HY76OKtbpPEzBHrZqufUSDDWM4YMxIQ1Ni0zSmUW+5DtNVdKbsGU7kjn59OP7vaAV/Y0vLcysn7qb2SA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_member-followers@1.0.22":
+  version "1.0.22"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_member-followers/-/auto_sdk_members_member-followers-1.0.22.tgz#43416348658a216381378006b11d758b377fd8ed"
+  integrity sha512-WQwmwksTnaUkTI5wBSz9mM9WAUI7EpHbDcV12hjUn7TgjIaXnfn3x0U7vgsrFHFzUuS6HBquv0mySn7CRzLg+Q==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_member-privacy-settings@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_member-privacy-settings/-/auto_sdk_members_member-privacy-settings-1.0.34.tgz#f71a26f0f1c790c46f4aa89d820725e3719684a1"
+  integrity sha512-32BPydgOkG4KyLsEh9oKED2wE7BzlZoty2ybLhvsE32aWqEog4UxcvJOkVQJjnsw/7tpNotEWGNG+5wLc+/FRA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_member-report@1.0.23":
+  version "1.0.23"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_member-report/-/auto_sdk_members_member-report-1.0.23.tgz#911de396fd7fb66e242bd92a64d2c97751577989"
+  integrity sha512-+p+7Nb0e4GpFk8mkboRG/t0329L8X7dW880FZxaCMeXXNNf0WYKxJKwz2Lwj9wz1W1IfJkNsEUkO8y2Qz/TuDw==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_member-role-definition@1.0.27":
+  version "1.0.27"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_member-role-definition/-/auto_sdk_members_member-role-definition-1.0.27.tgz#f3893953e4a71cf9e0aab5402fa8da352e4b28e7"
+  integrity sha512-ASu/JvoErKgIj43ToAifE9Od5RuIthF+zHi6TRsnH0p/UHnxSiOwqVQ5C7g+k0iIOjBLFADvOetCcAuqjIVB6A==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_member-to-member-block@1.0.19":
+  version "1.0.19"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_member-to-member-block/-/auto_sdk_members_member-to-member-block-1.0.19.tgz#eb951a5cccc6c05849cb103495ac3c88dcf22436"
+  integrity sha512-jQNlUEbnWlOCbuUg6N5TNNrMB2KQrpt3ram+5zjfaN694h4eV1Hi8poPRF3xOgWlDr5KAPlwVb8MlgBXozTNlg==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_members-about@1.0.36":
+  version "1.0.36"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_members-about/-/auto_sdk_members_members-about-1.0.36.tgz#40b4fa3957da7607f9d16e7e2ca4c51b10a53d27"
+  integrity sha512-xyVWandHCG7vlOrbpi7D20opM/IiNIgqHv5sptbj3I8Lf+E8k1TsKvbwuoA1H2b3EdGV6V1t+GAN7laAR9+r3w==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_members@1.0.84":
+  version "1.0.84"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_members/-/auto_sdk_members_members-1.0.84.tgz#5cc1a73c55f9d6c29a7a0476744c58c597b759ce"
+  integrity sha512-p3Hl9J4Np6A/Be/5XhSn5LnVpaRsis9i8otRD4XSoVU4EJQlLTL3PeKSQpypL+uxf9lHd0AALYDLtps2jdu3Qg==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_members_user-member@1.0.30":
+  version "1.0.30"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_members_user-member/-/auto_sdk_members_user-member-1.0.30.tgz#ebcdc6b07c799b0ac09e99f2e7fd84c46b228868"
+  integrity sha512-QAkPp0hJI1ClSzb7WEPrJovvjkYpfPmtbWZsRyhdu4d/o8P7vefzhhB2xtKxMnQ5GncyczewLlNUeF5elJEAzA==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/auto_sdk_redirects_redirects@1.0.27":
+  version "1.0.27"
+  resolved "https://registry.yarnpkg.com/@wix/auto_sdk_redirects_redirects/-/auto_sdk_redirects_redirects-1.0.27.tgz#6738c622240db94f718fab1e3fdfa349d9232f25"
+  integrity sha512-DGsAAD9E4dCXA0sNMDJ+EFRdpt65bEoNLVA/8tpo9FtJjnB8NIjaYoS6+hFE6cbVeKuh0/HQLfOPSC2BeW4qHQ==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/blog@^1.0.477", "@wix/blog@^1.0.500":
+  version "1.0.500"
+  resolved "https://registry.yarnpkg.com/@wix/blog/-/blog-1.0.500.tgz#d336ac4c9f336e7e0c26e1ee435f3c80a0bfe1f5"
+  integrity sha512-yVSqnSHOJBOPcaaQifcUWOWlLsMqa5XmmHE2mUcJNhzpACn57x4aT0+Q9Zu41xfsI15EXRefBMvLn7MVd3UU+w==
+  dependencies:
+    "@wix/auto_sdk_blog_blog-cache" "1.0.24"
+    "@wix/auto_sdk_blog_blog-importer" "1.0.21"
+    "@wix/auto_sdk_blog_categories" "1.0.24"
+    "@wix/auto_sdk_blog_draft-posts" "1.0.53"
+    "@wix/auto_sdk_blog_posts" "1.0.68"
+    "@wix/auto_sdk_blog_tags" "1.0.33"
+    "@wix/blog_app-extensions" "1.0.42"
+    "@wix/headless-blog" "0.0.19"
+
+"@wix/blog_app-extensions@1.0.42":
+  version "1.0.42"
+  resolved "https://registry.yarnpkg.com/@wix/blog_app-extensions/-/blog_app-extensions-1.0.42.tgz#c6ce4949e3edfee5695e472aaf3617777324348e"
+  integrity sha512-lDq1TBiAfDndeLUYU7bK+Yl1uEBIo9CvjIZHpjdsUiLvswjZv4J6XSfWo7BbutgigqpIvTpxA3zjmAlilkclHw==
+  dependencies:
+    "@wix/sdk-runtime" "^0.5.0"
+    "@wix/sdk-types" "^1.13.35"
+
+"@wix/comments@^1.0.133":
+  version "1.0.144"
+  resolved "https://registry.yarnpkg.com/@wix/comments/-/comments-1.0.144.tgz#f6200dd86334c836b85f69d088f1b95b2a5199d8"
+  integrity sha512-KjW57b6dEMyGq5+0CwsozKBn+T5BBJOIcQtJX39PQxKCQSj93kwcgyYjopORW682QH8Z5DSGerfUDlrlczqhEw==
+  dependencies:
+    "@wix/auto_sdk_comments_categories" "1.0.33"
+    "@wix/auto_sdk_comments_comments" "1.0.32"
+    "@wix/auto_sdk_comments_widgets" "1.0.21"
+
+"@wix/error-handler-types@^1.19.0":
+  version "1.19.0"
+  resolved "https://registry.yarnpkg.com/@wix/error-handler-types/-/error-handler-types-1.19.0.tgz#e183019a812ea52e7f2792149f2979113cdba094"
+  integrity sha512-3z9eURV+VfhNp7tQ7FLOzjbkRvxRJt8bPkq0F9qrGj3/p6VUHB82PStdhPQgJRbqzYrgeiMKu1dQLN/9RXXq1g==
+  dependencies:
+    "@babel/runtime" "^7.28.2"
+
+"@wix/headless-blog@0.0.19":
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/@wix/headless-blog/-/headless-blog-0.0.19.tgz#f2393557f560a0fb21c23ee62d8db96c62460d81"
+  integrity sha512-ltVcz7M6cpyjDLvvtjWy1+DsR7ZPIYGtRJIlXeY5Cgo9drj4uQJw2HTl6zYOj49erl3wkfITgwaiX6IIDuiEVQ==
+  dependencies:
+    "@radix-ui/react-slot" "^1.1.0"
+    "@wix/blog" "^1.0.477"
+    "@wix/comments" "^1.0.133"
+    "@wix/headless-media" "0.0.15"
+    "@wix/headless-utils" "0.0.4"
+    "@wix/members" "^1.0.322"
+    "@wix/redirects" "^1.0.0"
+    "@wix/sdk" "^1.15.27"
+    "@wix/services-definitions" "^0.1.5"
+    "@wix/services-manager-react" "^0.1.27"
+
+"@wix/headless-media@0.0.15":
+  version "0.0.15"
+  resolved "https://registry.yarnpkg.com/@wix/headless-media/-/headless-media-0.0.15.tgz#dc23d0967c1d7a07a0e2f75b0bbf4181c228d7e9"
+  integrity sha512-Hfmo3KbjZXBIKLhLw/emA7bpyqacP/RkTjfAXH4yaRb+j5lkbdCGsPga+d0CVBj/lvSHfsF+2/58mtZ3wiTmtg==
+  dependencies:
+    "@wix/sdk" "^1.17.1"
+    "@wix/services-definitions" "^0.1.4"
+    "@wix/services-manager-react" "^0.1.26"
+
+"@wix/headless-utils@0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@wix/headless-utils/-/headless-utils-0.0.4.tgz#2f2aa6028fc98f7233bd9f91114a15715b57615c"
+  integrity sha512-S4gYIxsF+KMfe/hhm8puoagZ/Nc29fMxcZ/IaUyMJnI+1z93TFEkjh8E+o7/bI0KksappNL1tWoRtD0glKnxkA==
+  dependencies:
+    "@radix-ui/react-slot" "^1.2.3"
+
+"@wix/identity@^1.0.104":
+  version "1.0.176"
+  resolved "https://registry.yarnpkg.com/@wix/identity/-/identity-1.0.176.tgz#f354b7630f4be5b7ad756e7d2e4b77a77db0e863"
+  integrity sha512-6mlv4KEtHgLhGJDcKnkpbA/8zZzkkaK+6mxfNf2rOp1dS1k6l/LZx5nhU4/E+C9sGcigYkMg7bB1X3UICsbfpA==
+  dependencies:
+    "@wix/auto_sdk_identity_authentication" "1.0.31"
+    "@wix/auto_sdk_identity_oauth" "1.0.24"
+    "@wix/auto_sdk_identity_recovery" "1.0.31"
+    "@wix/auto_sdk_identity_verification" "1.0.33"
+
+"@wix/image-kit@^1.113.0":
+  version "1.113.0"
+  resolved "https://registry.yarnpkg.com/@wix/image-kit/-/image-kit-1.113.0.tgz#02b4bb6c16beba450625fb8f255ba1e67774d7ce"
+  integrity sha512-5hrHA8+peRjxp9uSgeyQCvxArWN+x0T17vhrQtY6KzoqrCIUMJtdxOkNfoXjL7JpMrIoB/5luyRR0d5KfB7tmA==
+  dependencies:
+    "@babel/runtime" "^7.26.0"
+    tslib "^2.8.1"
+
+"@wix/members@^1.0.322":
+  version "1.0.365"
+  resolved "https://registry.yarnpkg.com/@wix/members/-/members-1.0.365.tgz#3ef6ccb332e1e2f0619d15f2102a6ad5e788df86"
+  integrity sha512-XC4PqUXTLZLZtYtw07rYvBcczDs5YlURfwc5FnZrAPp8AIqNE5Gy+mn1GDHL5pA7XqQB4TeBml9AqiWqCJoQYg==
+  dependencies:
+    "@wix/auto_sdk_members_authentication" "1.0.25"
+    "@wix/auto_sdk_members_authorization" "1.0.20"
+    "@wix/auto_sdk_members_badge-assignments" "1.0.4"
+    "@wix/auto_sdk_members_badges" "1.0.32"
+    "@wix/auto_sdk_members_badges-v-2" "1.0.5"
+    "@wix/auto_sdk_members_custom-field-applications" "1.0.24"
+    "@wix/auto_sdk_members_custom-field-suggestions" "1.0.18"
+    "@wix/auto_sdk_members_custom-fields" "1.0.33"
+    "@wix/auto_sdk_members_default-privacy" "1.0.20"
+    "@wix/auto_sdk_members_member-followers" "1.0.22"
+    "@wix/auto_sdk_members_member-privacy-settings" "1.0.34"
+    "@wix/auto_sdk_members_member-report" "1.0.23"
+    "@wix/auto_sdk_members_member-role-definition" "1.0.27"
+    "@wix/auto_sdk_members_member-to-member-block" "1.0.19"
+    "@wix/auto_sdk_members_members" "1.0.84"
+    "@wix/auto_sdk_members_members-about" "1.0.36"
+    "@wix/auto_sdk_members_user-member" "1.0.30"
+
+"@wix/monitoring-types@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@wix/monitoring-types/-/monitoring-types-0.12.0.tgz#3f0e54d363c4b7d99a0ddc9ed9e4bc590dc7f1e6"
+  integrity sha512-nlv4jwQMewjzPIWFF9rnKf9WhVojj67oLtvilYXfi+lnhXyVlYOfqCnL3qLJuKtJ6wT5XIJdt0Fj0su2NM5taQ==
+
+"@wix/redirects@^1.0.0", "@wix/redirects@^1.0.70":
+  version "1.0.99"
+  resolved "https://registry.yarnpkg.com/@wix/redirects/-/redirects-1.0.99.tgz#7bb89575125b72b29d2bbdad72f33e6be16f935f"
+  integrity sha512-vt346M6K0HhZBVVFGMDdxTzz8vBaBTI3P8HUuc9TpcSIteCwfMYEPTzRFeK2Sd1AQiS+TOeIAflLfMGJ4ji/fw==
+  dependencies:
+    "@wix/auto_sdk_redirects_redirects" "1.0.27"
+
+"@wix/sdk-context@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@wix/sdk-context/-/sdk-context-0.0.1.tgz#8c1436d382b720f80e72dd0c1c4e0576b6ab3fec"
+  integrity sha512-ziSzrceUC0KFn4IJIVBn1cXXKrZ49ZKG5tQ6fl+TpontyUw5p/Z4VofFUUsnqNl9JYCpYNTzIXpzwok93Vrl8A==
+
+"@wix/sdk-react-context@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@wix/sdk-react-context/-/sdk-react-context-0.0.3.tgz#1b1bcbf081a628f1b9c987a39ae058251ecb9fc0"
+  integrity sha512-qNULv5LaQgOjqVdddsDIhVL5e/wbFOSSc9BhDjFfsUCfWyd/wpOP47xqythGChIH0R5da4T3BurXPURFqg1TgA==
+
+"@wix/sdk-runtime@0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@wix/sdk-runtime/-/sdk-runtime-0.4.0.tgz#a90823f6a5a9a41dc49f634f578fd9f905de82eb"
+  integrity sha512-kFSeyhKTJ5AY6+kXMatk7HY0ZmIuERNrWuowmpLX/XxNWNvboBL/5fclZMTQBKX47wDKJWqEDOx3lg2BXYb7bA==
+  dependencies:
+    "@wix/sdk-context" "0.0.1"
+    "@wix/sdk-types" "1.14.0"
+
+"@wix/sdk-runtime@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@wix/sdk-runtime/-/sdk-runtime-0.5.0.tgz#45ffc3d7fd71c45aa46a294b30cd9b1ae05f834e"
+  integrity sha512-WFzsQ8NhFNIPPXXeQZ2BaWCVRuvTadlcIQ2NofZnC5yEpWohzZJWoUWD9l+pxKFjVICQFFCuj7nZMF8RapVitg==
+  dependencies:
+    "@wix/sdk-context" "0.0.1"
+    "@wix/sdk-types" "1.14.0"
+
+"@wix/sdk-types@1.14.0", "@wix/sdk-types@^1.13.35":
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/@wix/sdk-types/-/sdk-types-1.14.0.tgz#54f0516da2aeaa531609b4b5289b2e047579a75a"
+  integrity sha512-1ae6emTMiiYr+cpupnmHS05WMU04vP12DlW5cII3pjau3iLhmfo6KjA++ZRSnmOJc0sNYI5iL7sMVrJFy46hPA==
+  dependencies:
+    "@wix/error-handler-types" "^1.19.0"
+    "@wix/monitoring-types" "^0.12.0"
+    type-fest "^4.41.0"
+
+"@wix/sdk@^1.15.27", "@wix/sdk@^1.17.1":
+  version "1.17.1"
+  resolved "https://registry.yarnpkg.com/@wix/sdk/-/sdk-1.17.1.tgz#34c9e99077411e14995711218536f496be668298"
+  integrity sha512-h4B0SjywWJNiNw7kZ7zd71nWslq/S3n+Bi1L6drPXaGkiXuHBS4T88lEtM8xy3+ls1UuWeB6gs278/CARn5nwQ==
+  dependencies:
+    "@wix/identity" "^1.0.104"
+    "@wix/image-kit" "^1.113.0"
+    "@wix/redirects" "^1.0.70"
+    "@wix/sdk-context" "0.0.1"
+    "@wix/sdk-runtime" "0.4.0"
+    "@wix/sdk-types" "1.14.0"
+    jose "^5.10.0"
+    type-fest "^4.41.0"
+  optionalDependencies:
+    graphql "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0"
+
+"@wix/services-definitions@^0.1.4", "@wix/services-definitions@^0.1.5":
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@wix/services-definitions/-/services-definitions-0.1.5.tgz#b455dffd31c0fb2be48a5bdb21e93aad6d628b1c"
+  integrity sha512-T5uxfgs1wPF+/NzBHcvS0CIEKDyq1covqRr7GUrDsVEqh97tOYs+wA6zr/cDNTxn77WDYCmUt2iPyn0wYtDj1Q==
+  dependencies:
+    type-fest "^4.41.0"
+
+"@wix/services-manager-react@^0.1.26", "@wix/services-manager-react@^0.1.27":
+  version "0.1.27"
+  resolved "https://registry.yarnpkg.com/@wix/services-manager-react/-/services-manager-react-0.1.27.tgz#42c8abb9f0fbbfdf0f415d867ae78ae984509113"
+  integrity sha512-NUWZXiwvhQt1CYs0KfPP1KoJj8XQZke7xfumkHCzn95yaTlyCIOHsPEjRijJ/A835pIDMU+wA/cGS0zmTC1UTg==
+  dependencies:
+    "@preact/signals-react" "^3.2.1"
+    "@wix/sdk-react-context" "0.0.3"
+    "@wix/services-definitions" "^0.1.5"
+    "@wix/services-manager" "0.2.21"
+
+"@wix/services-manager@0.2.21":
+  version "0.2.21"
+  resolved "https://registry.yarnpkg.com/@wix/services-manager/-/services-manager-0.2.21.tgz#fc16297b72c51ac3d5739c68042f63bf846ce784"
+  integrity sha512-gImN/WpsoWdYv6lNbOUXEhuT9T0Rs9dD4OjaHsWji8xv4/vlMYNzcG5kVIFiNpZmTSwb8qLrqQ1fzNkCq6SmHA==
+  dependencies:
+    "@preact/signals-core" "^1.11.0"
+    "@wix/sdk-context" "0.0.1"
+    "@wix/services-definitions" "^0.1.5"
 
 "@xhmikosr/archive-type@^7.0.0":
   version "7.0.0"
@@ -4864,6 +5342,11 @@ graphemer@^1.4.0:
   resolved "https://registry.yarnpkg.com/graphemer/-/graphemer-1.4.0.tgz#fb2f1d55e0e3a1849aeffc90c4fa0dd53a0e66c6"
   integrity sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==
 
+"graphql@^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0":
+  version "16.11.0"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-16.11.0.tgz#96d17f66370678027fdf59b2d4c20b4efaa8a633"
+  integrity sha512-mS1lbMsxgQj6hge1XZ6p7GPhbrtFwUFYi3wRzXAC/FmYnyXMTvvI3td3rjmQ2u8ewXueaSvRPWaEcgVVOT9Jnw==
+
 gray-matter@^4.0.3:
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/gray-matter/-/gray-matter-4.0.3.tgz#e893c064825de73ea1f5f7d88c7a9f7274288798"
@@ -5738,6 +6221,11 @@ jiti@^2.4.2:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/jiti/-/jiti-2.6.1.tgz#178ef2fc9a1a594248c20627cd820187a4d78d92"
   integrity sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==
+
+jose@^5.10.0:
+  version "5.10.0"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-5.10.0.tgz#c37346a099d6467c401351a9a0c2161e0f52c4be"
+  integrity sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==
 
 jquery@^3.5.0:
   version "3.7.1"
@@ -8316,7 +8804,7 @@ tsconfig-paths@4.2.0, tsconfig-paths@^4.1.2, tsconfig-paths@^4.2.0:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tslib@2.8.1, tslib@^2.0.0, tslib@^2.0.3, tslib@^2.1.0:
+tslib@2.8.1, tslib@^2.0.0, tslib@^2.0.3, tslib@^2.1.0, tslib@^2.8.1:
   version "2.8.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.8.1.tgz#612efe4ed235d567e8aba5f2a5fab70280ade83f"
   integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
@@ -8497,6 +8985,11 @@ url-template@^2.0.8:
   version "2.0.8"
   resolved "https://registry.yarnpkg.com/url-template/-/url-template-2.0.8.tgz#fc565a3cccbff7730c775f5641f9555791439f21"
   integrity sha512-XdVKMF4SJ0nP/O7XIPB0JwAEuT9lDIYnNsK8yGVe43y0AWoKeJNdv3ZNWh7ksJ6KqQFjOO6ox/VEitLnaVNufw==
+
+use-sync-external-store@^1.2.0:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.6.0.tgz#b174bfa65cb2b526732d9f2ac0a408027876f32d"
+  integrity sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==
 
 use-sync-external-store@^1.4.0:
   version "1.5.0"

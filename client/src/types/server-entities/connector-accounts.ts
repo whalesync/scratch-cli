@@ -6,8 +6,9 @@ export enum Service {
   YOUTUBE = 'YOUTUBE',
   WORDPRESS = 'WORDPRESS',
   WEBFLOW = 'WEBFLOW',
+  WIX_BLOG = 'WIX_BLOG',
 }
-export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE, Service.WORDPRESS, Service.WEBFLOW];
+export const LIVE_SERVICES = [Service.NOTION, Service.YOUTUBE, Service.WORDPRESS, Service.WEBFLOW, Service.WIX_BLOG];
 export const INTERNAL_SERVICES = [Service.AIRTABLE, Service.CUSTOM, Service.CSV];
 
 export enum ConnectorHealthStatus {

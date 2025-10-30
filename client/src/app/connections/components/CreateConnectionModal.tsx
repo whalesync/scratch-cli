@@ -33,7 +33,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
   const getDefaultAuthMethod = (service: Service): AuthMethod => {
     // Services that support OAuth
-    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE];
+    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
 
     // Services that use generic parameters
     const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
@@ -47,7 +47,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   };
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
-    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW];
+    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
     const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
