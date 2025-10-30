@@ -33,21 +33,19 @@ export const CUSTOM_RED: MantineColorsTuple = [
 ];
 
 export const CUSTOM_GRAY: MantineColorsTuple = [
-  // "#F8F8F9",
-  '#F1F1F3',
+  "#F8F8F9",
+  // '#F1F1F3',
   '#F2F3F3',
   '#EBEBEC',
-  '#E3E4E5',
+  // '#E3E4E5',
   '#D7D7D9',
   '#BDBEC1',
   '#AEAFB3',
   '#8B8C92',
   '#818288',
-  // '#62646B',
+  '#62646B',
   "#1C1F25"
 ];
-
-export const CUSTOM_GRAY_REVERSED: MantineColorsTuple = CUSTOM_GRAY.toReversed() as [string, string, string, string, string, string, string, string, string, string];
 
 export const CUSTOM_BLUE: MantineColorsTuple = [
   '#e8f3ff',

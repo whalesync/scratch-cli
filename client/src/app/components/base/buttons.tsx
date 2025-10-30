@@ -22,31 +22,31 @@ export const ButtonPrimaryLight = Button.withProps({
 export const ButtonSecondarySolid = Button.withProps({
   variant: 'filled',
   size: 'sm',
-  color: 'foreground.9', // fill
+  color: 'surface.9', // fill
   c: 'background', // text
 });
 
 export const ButtonSecondaryOutline = Button.withProps({
   variant: 'outline',
   size: 'sm',
-  color: 'foreground.9',
-  c: 'foreground.9', // text
+  color: 'surface.9',
+  c: 'surface.9', // text
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
 export const ButtonSecondaryGhost = Button.withProps({
   variant: 'subtle',
   size: 'sm',
-  color: 'foreground.9',
-  c: 'foreground.9',
+  color: 'surface.9',
+  c: 'surface.9',
 });
 
 export const ButtonSecondaryInline = Button.withProps({
   w: 'min-content',
   size: 'compact-sm',
   variant: 'subtle',
-  color: 'foreground.9',
-  c: 'foreground.9',
+  color: 'surface.9',
+  c: 'surface.9',
 });
 
 export const ButtonDangerLight = Button.withProps({
@@ -77,8 +77,8 @@ export const AcceptSuggestionButton = Button.withProps({
 export const RejectSuggestionButton = Button.withProps({
   size: 'xs',
   variant: 'outline',
-  color: 'secondary',
-  c: 'secondary',
+  color: 'surface',
+  c: 'surface',
 });
 
 /** @deprecated */

@@ -7,7 +7,7 @@ export const BadgeBase = Badge.withProps({
   classNames: { root: classes.badgeRoot },
 
   size: 'md',
-  color: 'secondary',
+  color: 'surface',
 });
 
 export const BadgeOK = (props: BadgeProps): JSX.Element => {

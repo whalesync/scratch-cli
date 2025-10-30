@@ -2,11 +2,24 @@
 
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
-import { Anchor, Box, Code, Divider, Group, List, Loader, Stack, Tooltip } from '@mantine/core';
-import { Ambulance, Home, Plus, Settings, User } from 'lucide-react';
+import {
+  Anchor,
+  Box,
+  Code,
+  ColorSwatch,
+  Divider,
+  Group,
+  List,
+  Loader,
+  Stack,
+  Tooltip,
+  useComputedColorScheme,
+} from '@mantine/core';
+import { Ambulance, Home, MoonStar, Plus, Settings, User } from 'lucide-react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
+import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { BadgeBase, BadgeError, BadgeOK } from '../../components/base/badges';
 import {
   AcceptSuggestionButton,
@@ -56,7 +69,13 @@ export default function DevComponentGalleryPage() {
           {/* Table of contents */}
           <List>
             <List.Item>
-              <Anchor href="#title-text">Text: title</Anchor>{' '}
+              <Anchor href="#colors">Colors</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#colors">Colors</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#title-text">Text: title</Anchor>
             </List.Item>
             <List.Item>
               <Anchor href="#body-text">Text: body</Anchor>
@@ -66,6 +85,9 @@ export default function DevComponentGalleryPage() {
             </List.Item>
             <List.Item>
               <Anchor href="#buttons">Buttons</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#action-icons">Action Icons</Anchor>
             </List.Item>
             <List.Item>
               <Anchor href="#badges">Badges</Anchor>
@@ -86,6 +108,23 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#dev-tool-components">Dev Tool Components</Anchor>
             </List.Item>
           </List>
+
+          <GallerySection id="colors" title="Colors" />
+          <GalleryItem label="body" notes="Use for a pure background color">
+            <ColorChip cssName="--mantine-color-body" label="body" withBorder modeAware />
+          </GalleryItem>
+          <GalleryItem label="text" notes="Use for a pure foreground/text color">
+            <ColorChip cssName="--mantine-color-text" label="text" withBorder modeAware />
+          </GalleryItem>
+          <GalleryColor
+            color="surface"
+            notes="A spectrum from body to text. Use surface.0/1/2 for background panels"
+            modeAware
+          />
+          <GalleryColor color="green" notes="AKA primary. Can be used in light or dark for emphasis" />
+          <GalleryColor color="red" />
+          <GalleryColor color="blue" />
+          <GalleryColor color="devTool" notes="Use for anything dev-only." />
 
           <GallerySection id="title-text" title="Text: title" />
           <TypeGalleryItem label="TextTitle1">
@@ -190,6 +229,11 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GalleryItem deprecated label="ToolIconButton">
             <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" />
+          </GalleryItem>
+
+          <GallerySection id="action-icons" title="Action Icons" />
+          <GalleryItem label="ActionIconThreeDots">
+            <ActionIconThreeDots />
           </GalleryItem>
 
           <GallerySection id="badges" title="Badges" />
@@ -306,18 +350,28 @@ function GallerySection({ id, title }: { id: string; title: string }): ReactNode
 
 function GalleryItem({
   label,
+  notes,
   children,
   deprecated = false,
 }: {
   label: string;
+  notes?: string;
   deprecated?: boolean;
   children: ReactNode;
 }): ReactNode {
   return (
     <Group align="center" ml="md">
-      <TextMdHeavier w={250} style={{ textDecoration: deprecated ? 'line-through' : 'none' }}>
-        {label}
-      </TextMdHeavier>
+      <Stack>
+        <TextMdHeavier w={250} style={{ textDecoration: deprecated ? 'line-through' : 'none' }}>
+          {label}
+        </TextMdHeavier>
+        {notes && (
+          <TextSmBook variant="dimmed" maw={250}>
+            {notes}
+          </TextSmBook>
+        )}
+      </Stack>
+
       <Box flex={1} p="md">
         {children}
       </Box>
@@ -328,10 +382,12 @@ function GalleryItem({
 
 function TypeGalleryItem({
   label,
+  notes,
   children,
   deprecated = false,
 }: {
   label: string;
+  notes?: string;
   deprecated?: boolean;
   children: ReactNode;
 }): ReactNode {
@@ -355,7 +411,7 @@ function TypeGalleryItem({
   }, [children]); // This effect will re-run if the children change
 
   return (
-    <GalleryItem label={label} deprecated={deprecated}>
+    <GalleryItem label={label} notes={notes} deprecated={deprecated}>
       <Group align="baseline">
         {/* Wrap children in a div and attach the ref to it */}
         <div ref={wrapperRef}>{children}</div>
@@ -363,5 +419,66 @@ function TypeGalleryItem({
         <Code>{styles ? `fz: ${styles.fontSize} / fw: ${styles.fontWeight} / lh: ${styles.lineHeight}` : '—'}</Code>
       </Group>
     </GalleryItem>
+  );
+}
+
+function GalleryColor({
+  color,
+  notes,
+  modeAware = false,
+}: {
+  color: string;
+  notes?: string;
+  modeAware?: boolean;
+}): ReactNode {
+  return (
+    <GalleryItem label={color} notes={notes}>
+      <Group gap={0}>
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+          <ColorChip key={i} cssName={`--mantine-color-${color}-${i}`} label={'' + i} modeAware={modeAware} />
+        ))}
+      </Group>
+    </GalleryItem>
+  );
+}
+
+function ColorChip({
+  cssName,
+  label,
+  modeAware = false,
+  withBorder = false,
+}: {
+  cssName: string;
+  label: string;
+  modeAware?: boolean;
+  withBorder?: boolean;
+}): ReactNode {
+  const [colorValue, setColorValue] = useState('');
+  const colorScheme = useComputedColorScheme();
+
+  useEffect(() => {
+    // Get the computed value of a CSS variable
+    const value = getComputedStyle(document.documentElement).getPropertyValue(cssName);
+    setColorValue(value.trim());
+  }, [cssName, colorScheme]);
+
+  return (
+    <ColorSwatch
+      color={`var(${cssName})`}
+      size={100}
+      radius={0}
+      withShadow={false}
+      bd={withBorder ? '1px solid #aaaaaa' : 'none'}
+    >
+      {modeAware && (
+        <Tooltip label="Dark-mode aware">
+          <MoonStar size={16} fill="var(--mantine-color-body)" style={{ position: 'absolute', top: 3, right: 3 }} />
+        </Tooltip>
+      )}
+      <Stack align="center" justify="center" p={0}>
+        {label && <Code opacity={0.6}>{label}</Code>}
+        <Code opacity={0.6}>{colorValue}</Code>
+      </Stack>
+    </ColorSwatch>
   );
 }

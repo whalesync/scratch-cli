@@ -11,18 +11,13 @@ import { getPullOperationName, getPushOperationName, serviceName } from '@/servi
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ActionIcon, Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
-import {
-  DotsThreeVerticalIcon,
-  DownloadSimpleIcon,
-  PencilSimpleLineIcon,
-  TrashIcon,
-  UploadIcon,
-} from '@phosphor-icons/react';
+import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
+import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
 import { ArrowUp, Bot, Command, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useRef, useState } from 'react';
+import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { useTableContext } from './contexts/table-context';
@@ -289,9 +284,7 @@ export const SnapshotActionsMenu = () => {
       </Modal>
       <Menu shadow="md" width={250}>
         <Menu.Target>
-          <ActionIcon variant="transparent-hover" size="md" color="gray">
-            <StyledLucideIcon Icon={DotsThreeVerticalIcon} size={16} />
-          </ActionIcon>
+          <ActionIconThreeDots />
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item

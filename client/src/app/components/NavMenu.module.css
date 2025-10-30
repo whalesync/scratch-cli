@@ -9,7 +9,7 @@
   }
 
   &[data-active] {
-    color: var(--mantine-color-foreground-9);
+    color: var(--mantine-color-text);
   }
 
   &[data-dev-tool] {

@@ -1,8 +1,8 @@
 'use client';
 
-import { ActionIcon, createTheme, Text, Title, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, MantineColorsTuple, Text, Title, virtualColor } from '@mantine/core';
 import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
-import { CUSTOM_BLUE,  CUSTOM_GRAY, CUSTOM_GRAY_REVERSED, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
+import { CUSTOM_BLUE, CUSTOM_GRAY, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
 import classes from './theme.module.css';
 import { variantColorResolver } from './variantColorResolver';
 
@@ -19,10 +19,18 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     red: CUSTOM_RED,
     green: CUSTOM_GREEN,
     blue: CUSTOM_BLUE,
-    gray: CUSTOM_GRAY,
-    grayReversed: CUSTOM_GRAY_REVERSED,
-
     primary: CUSTOM_GREEN,
+
+    // TODO: Use real colors here.
+    surfaceLight: CUSTOM_GRAY,
+    surfaceDark: CUSTOM_GRAY.toReversed() as unknown as MantineColorsTuple,
+
+    surface: virtualColor({
+      name: 'surface',
+      light: 'surfaceLight',
+      dark: 'surfaceDark',
+    }),
+
 
     /** Use this color for all dev tools */
     devTool: virtualColor({
@@ -36,18 +44,6 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       name: 'suggestion',
       light: 'blue',
       dark: 'green',
-    }),
-
-    secondary: virtualColor({
-      name: 'secondary',
-      light: 'gray',
-      dark: 'gray',
-    }),
-
-    foreground: virtualColor({
-      name: 'foreground',
-      light: 'gray',
-      dark: 'grayReversed',
     }),
   },
 
