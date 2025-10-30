@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import { RequestWithUser, toActor } from '../auth/types';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { StyleGuideService } from './style-guide.service';
@@ -17,31 +17,31 @@ export class StyleGuideController {
 
   @Post()
   create(@Body() createStyleGuideDto: CreateStyleGuideDto, @Req() req: RequestWithUser) {
-    return this.styleGuideService.create(createStyleGuideDto, req.user.id);
+    return this.styleGuideService.create(createStyleGuideDto, toActor(req.user));
   }
 
   @Get()
   findAll(@Req() req: RequestWithUser) {
-    return this.styleGuideService.findAll(req.user.id);
+    return this.styleGuideService.findAll(toActor(req.user));
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return this.styleGuideService.findOne(id, req.user.id);
+    return this.styleGuideService.findOne(id, toActor(req.user));
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateStyleGuideDto: UpdateStyleGuideDto, @Req() req: RequestWithUser) {
-    return this.styleGuideService.update(id, updateStyleGuideDto, req.user.id);
+    return this.styleGuideService.update(id, updateStyleGuideDto, toActor(req.user));
   }
 
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return this.styleGuideService.remove(id, req.user.id);
+    return this.styleGuideService.remove(id, toActor(req.user));
   }
 
   @Patch(':id/update-external-resource')
   updateExternalResource(@Param('id') id: string, @Req() req: RequestWithUser) {
-    return this.styleGuideService.updateExternalResource(id, req.user.id);
+    return this.styleGuideService.updateExternalResource(id, toActor(req.user));
   }
 }

@@ -130,6 +130,7 @@ export class PostHogService implements OnModuleDestroy {
   trackCreateResource(userId: string, resource: StyleGuide): void {
     this.captureEvent(PostHogEventName.RESOURCE_CREATED, userId, {
       resourceId: resource.id,
+      organizationId: resource.organizationId,
       isExternal: !!resource.sourceUrl,
       resourceType: resource.contentType,
     });
@@ -138,6 +139,7 @@ export class PostHogService implements OnModuleDestroy {
   trackRemoveResource(userId: string, resource: StyleGuide): void {
     this.captureEvent(PostHogEventName.RESOURCE_REMOVED, userId, {
       resourceId: resource.id,
+      organizationId: resource.organizationId,
       isExternal: !!resource.sourceUrl,
       resourceType: resource.contentType,
     });

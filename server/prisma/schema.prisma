@@ -230,20 +230,23 @@ model CustomConnector {
 }
 
 model StyleGuide {
-  id               String    @id // type: StyleGuideId
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id               String        @id // type: StyleGuideId
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   name             String
   body             String // Markdown content
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String
-  autoInclude      Boolean   @default(false) // Whether to automatically include this style guide in conversations
+  autoInclude      Boolean       @default(false) // Whether to automatically include this style guide in conversations
   sourceUrl        String? // URL of where this resource an be download from
-  contentType      String    @default("markdown") // "markdown" | "json" | "text"
+  contentType      String        @default("markdown") // "markdown" | "json" | "text"
   lastDownloadedAt DateTime? // When the resource was last downloaded
   tags             String[] // User defined tags for the resource
+  organizationId   String? // organization that owns this resource
+  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([organizationId])
 }
 
 model CsvFile {
@@ -398,4 +401,5 @@ model Organization {
 
   users         User[]
   AuditLogEvent AuditLogEvent[]
+  StyleGuide    StyleGuide[]
 }

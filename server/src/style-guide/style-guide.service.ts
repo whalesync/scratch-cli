@@ -9,6 +9,7 @@ import Parser from '@postlight/parser';
 import axios, { AxiosError, HttpStatusCode } from 'axios';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { WSLogger } from 'src/logger';
+import { Actor } from 'src/users/types';
 import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
@@ -26,7 +27,7 @@ export class StyleGuideService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createStyleGuideDto: CreateStyleGuideDto, userId: string): Promise<StyleGuide> {
+  async create(createStyleGuideDto: CreateStyleGuideDto, actor: Actor): Promise<StyleGuide> {
     // validate the DTO
     if (createStyleGuideDto.sourceUrl) {
       createStyleGuideDto.sourceUrl = this.sanitizeUrl(createStyleGuideDto.sourceUrl);
@@ -36,13 +37,15 @@ export class StyleGuideService {
       data: {
         id: createStyleGuideId(),
         ...createStyleGuideDto,
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
       },
     });
 
-    this.posthogService.trackCreateResource(userId, styleGuide);
+    this.posthogService.trackCreateResource(actor.userId, styleGuide);
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'create',
       message: `Created resource ${styleGuide.name}`,
       entityId: styleGuide.id as StyleGuideId,
@@ -54,31 +57,31 @@ export class StyleGuideService {
     return new StyleGuide(styleGuide);
   }
 
-  async findAll(userId: string): Promise<StyleGuide[]> {
+  async findAll(actor: Actor): Promise<StyleGuide[]> {
     const styleGuides = await this.db.client.styleGuide.findMany({
-      where: { userId },
+      where: { organizationId: actor.organizationId },
       orderBy: { updatedAt: 'desc' },
     });
 
     return styleGuides.map((styleGuide) => new StyleGuide(styleGuide));
   }
 
-  async findOne(id: string, userId: string): Promise<StyleGuide | null> {
+  async findOne(id: string, actor: Actor): Promise<StyleGuide | null> {
     const styleGuide = await this.db.client.styleGuide.findFirst({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
     });
 
     return styleGuide ? new StyleGuide(styleGuide) : null;
   }
 
-  async update(id: string, updateStyleGuideDto: UpdateStyleGuideDto, userId: string): Promise<StyleGuide | null> {
+  async update(id: string, updateStyleGuideDto: UpdateStyleGuideDto, actor: Actor): Promise<StyleGuide | null> {
     // validate the DTO
     if (updateStyleGuideDto.sourceUrl) {
       updateStyleGuideDto.sourceUrl = this.sanitizeUrl(updateStyleGuideDto.sourceUrl);
     }
 
     const styleGuide = await this.db.client.styleGuide.updateMany({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
       data: updateStyleGuideDto,
     });
 
@@ -95,7 +98,8 @@ export class StyleGuideService {
     }
 
     await this.auditLogService.logEvent({
-      userId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
       eventType: 'update',
       message: `Updated resource ${updatedStyleGuide.name}`,
       entityId: updatedStyleGuide.id as StyleGuideId,
@@ -107,20 +111,21 @@ export class StyleGuideService {
     return new StyleGuide(updatedStyleGuide);
   }
 
-  async remove(id: string, userId: string): Promise<boolean> {
-    const styleGuide = await this.findOne(id, userId);
+  async remove(id: string, actor: Actor): Promise<boolean> {
+    const styleGuide = await this.findOne(id, actor);
     if (!styleGuide) {
       return false;
     }
 
     const result = await this.db.client.styleGuide.deleteMany({
-      where: { id, userId },
+      where: { id, organizationId: actor.organizationId },
     });
 
     if (result.count > 0) {
-      this.posthogService.trackRemoveResource(userId, styleGuide);
+      this.posthogService.trackRemoveResource(actor.userId, styleGuide);
       await this.auditLogService.logEvent({
-        userId,
+        userId: actor.userId,
+        organizationId: actor.organizationId,
         eventType: 'delete',
         message: `Deleted resource ${styleGuide.name}`,
         entityId: styleGuide.id as StyleGuideId,
@@ -130,8 +135,8 @@ export class StyleGuideService {
     return result.count > 0;
   }
 
-  async updateExternalResource(id: string, userId: string): Promise<StyleGuide | null> {
-    const styleGuide = await this.findOne(id, userId);
+  async updateExternalResource(id: string, actor: Actor): Promise<StyleGuide | null> {
+    const styleGuide = await this.findOne(id, actor);
     if (!styleGuide) {
       return null;
     }
@@ -142,7 +147,7 @@ export class StyleGuideService {
 
     const { content, contentType } = await this.downloadResource(styleGuide.sourceUrl);
 
-    return this.update(id, { body: content, contentType }, userId);
+    return this.update(id, { body: content, contentType }, actor);
   }
 
   sanitizeUrl(url: string): string {

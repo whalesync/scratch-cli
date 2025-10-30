@@ -8,6 +8,7 @@ export interface StyleGuide {
   name: string;
   body: string;
   userId: string;
+  organizationId: string;
   autoInclude: boolean;
   sourceUrl: string | null;
   contentType: ResourceContentType;
