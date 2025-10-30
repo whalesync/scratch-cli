@@ -9,19 +9,7 @@ import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { trackToggleDisplayMode } from '@/lib/posthog';
-import {
-  BookOpen,
-  Bot,
-  Cpu,
-  FileSpreadsheet,
-  LucideIcon,
-  MoonIcon,
-  Settings,
-  SunIcon,
-  Table2,
-  Unplug,
-  Upload,
-} from 'lucide-react';
+import { BookOpen, Bot, Cpu, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug, Upload } from 'lucide-react';
 import { useDevTools } from '../../hooks/use-dev-tools';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
@@ -84,15 +72,6 @@ const upperLinks: MenuItem[] = [
     icon: BookOpen,
     iconType: 'lucide',
     enabled: true,
-  },
-
-  {
-    href: RouteUrls.csvFilesPageUrl,
-    label: 'CSV Files',
-    icon: FileSpreadsheet,
-    iconType: 'lucide',
-    enabled: true,
-    isDevTool: true,
   },
   {
     href: RouteUrls.apiImportDemoPageUrl,
