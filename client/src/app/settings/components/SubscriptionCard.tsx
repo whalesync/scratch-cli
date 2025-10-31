@@ -33,6 +33,7 @@ export const SubscriptionCard = () => {
           target="_blank"
           leftSection={cardIcon}
           href={RouteUrls.manageSubscriptionPage}
+          disabled={!user?.subscription?.canManageSubscription}
         >
           Manage Subscription
         </ButtonSecondaryOutline>
@@ -50,6 +51,7 @@ export const SubscriptionCard = () => {
           target="_blank"
           leftSection={cardIcon}
           href={RouteUrls.manageSubscriptionPage}
+          disabled={!user?.subscription?.canManageSubscription}
         >
           Manage subscription
         </ButtonPrimaryLight>

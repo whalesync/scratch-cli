@@ -20,7 +20,7 @@ import {
   unexpectedError,
 } from 'src/types/results';
 import Stripe from 'stripe';
-import { getActiveSubscriptions } from './helpers';
+import { getActiveSubscriptions, isActiveSubscriptionOwnedByUser } from './helpers';
 import { getPlans, ScratchpadPlanType } from './plans';
 
 /**
@@ -147,6 +147,11 @@ export class StripePaymentService {
       message: `Creating customer portal URL for user ${user.id}`,
     });
 
+    // If the user has an active subscription on the organization, redirect them to the manage subscription page.
+    if (!isActiveSubscriptionOwnedByUser(user.organization?.subscriptions ?? [], user.id)) {
+      return badRequestError('You do not own the active subscription for this organization');
+    }
+
     const stripeCustomerId = await this.upsertStripeCustomerId(user);
     if (isErr(stripeCustomerId)) {
       return stripeCustomerId;
@@ -176,9 +181,9 @@ export class StripePaymentService {
       message: `Generating checkout URL for user ${user.id}, product ${productType}`,
     });
 
-    // Never allow someone to checkout again if they already have a current subscription.
+    // Never allow someone to checkout again if they already have a current subscription on the organization.
     // Instead send them to manage the existing one.
-    if (getActiveSubscriptions(user.subscriptions).length > 0) {
+    if (getActiveSubscriptions(user.organization?.subscriptions ?? []).length > 0) {
       return this.createCustomerPortalUrl(user);
     }
 
@@ -348,6 +353,7 @@ export class StripePaymentService {
 
     return result;
   }
+
   /*
   Stripe webhookevent handlers
   */
@@ -445,6 +451,7 @@ export class StripePaymentService {
             data: {
               id: createInvoiceResultId(),
               userId: user.id,
+              organizationId: user.organizationId, // invoice results belong to the organization, not the user
               invoiceId: invoice.id as string,
               succeeded: true,
             },
@@ -609,11 +616,17 @@ export class StripePaymentService {
 
     // This should always be an insert, except if the same message is delivered twice accidentally.
     try {
+      const user = await this.getUserFromStripeCustomerId(stripeCustomerId);
+      if (!user) {
+        return unexpectedError('User not found', { context: { stripeCustomerId } });
+      }
+
       await this.dbService.client.subscription.upsert({
         where: { stripeSubscriptionId },
         create: {
           id: createSubscriptionId(),
-          user: { connect: { stripeCustomerId } },
+          userId: user.id,
+          organizationId: user.organizationId, // subscriptions belong to the organization, not the user
           stripeSubscriptionId,
           expiration,
           productType,

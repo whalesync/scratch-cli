@@ -11,6 +11,8 @@ export interface SubscriptionInfo {
   planType: ScratchpadPlanType;
   daysRemaining: number;
   isTrial: boolean;
+  canManageSubscription: boolean; // if the current user can manage the subscription
+  ownerId: string; // the id of the user who created the subscription
 }
 
 export class User {
@@ -51,7 +53,7 @@ export class User {
 
     this.agentJwt = agentJwt;
     this.experimentalFlags = experiments;
-    this.subscription = toSubscriptionInfo(user.subscriptions);
+    this.subscription = toSubscriptionInfo(user.id, user.organization?.subscriptions ?? []);
     this.organization = user.organization ? new Organization(user.organization) : undefined;
   }
 }
@@ -60,7 +62,7 @@ export function findValidToken(user: UserCluster.User, type: TokenType): string 
   return user.apiTokens.find((token) => token.expiresAt > new Date() && token.type === type)?.token;
 }
 
-function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | undefined {
+function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): SubscriptionInfo | undefined {
   const latestSubscription = getLastestExpiringSubscription(subscriptions);
   if (!latestSubscription) {
     return undefined;
@@ -93,5 +95,7 @@ function toSubscriptionInfo(subscriptions: Subscription[]): SubscriptionInfo | u
     planType: planType,
     daysRemaining,
     isTrial: latestSubscription.stripeStatus === 'trialing',
+    canManageSubscription: latestSubscription.userId === userId,
+    ownerId: latestSubscription.userId,
   };
 }

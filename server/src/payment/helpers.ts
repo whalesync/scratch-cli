@@ -9,3 +9,11 @@ export function getActiveSubscriptions(subscriptions: Subscription[]): Subscript
 export function getLastestExpiringSubscription(subscriptions: Subscription[]): Subscription | null {
   return _.maxBy(subscriptions, (s) => s.expiration) ?? null;
 }
+
+export function isActiveSubscriptionOwnedByUser(subscriptions: Subscription[], userId: string): boolean {
+  const activeSub = getLastestExpiringSubscription(subscriptions);
+  if (!activeSub) {
+    return false;
+  }
+  return activeSub.userId === userId;
+}

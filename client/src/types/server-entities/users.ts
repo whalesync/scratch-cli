@@ -22,6 +22,8 @@ export interface SubscriptionInfo {
   planType: ScratchpadPlanType;
   daysRemaining: number;
   isTrial: boolean;
+  canManageSubscription: boolean;
+  ownerId: string;
 }
 
 /** User-scoped feature flag settings provided by the server */

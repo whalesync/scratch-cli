@@ -287,21 +287,24 @@ model AiAgentTokenUsageEvent {
 /// A user's subscription with stripe.
 /// There *should* only ever be one of these for a user, but we track any subscriptions stripe sends our way.
 model Subscription {
-  id                   String   @id // type: SubscriptionId
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  version              Int      @default(1)
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String        @id // type: SubscriptionId
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  version              Int           @default(1)
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId               String
+  organizationId       String?
+  organization         Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   productType          String
-  stripeSubscriptionId String   @unique
+  stripeSubscriptionId String        @unique
   expiration           DateTime
-  priceInDollars       Int      @default(0)
+  priceInDollars       Int           @default(0)
   stripeStatus         String?
   /// Set when we receive invoice.paid or invoice.payment_failed webhooks.
   lastInvoicePaid      Boolean?
 
   @@index([userId])
+  @@index([organizationId])
 }
 
 /// Simple log to cache whether a user's subscription is getting paid.
@@ -314,11 +317,17 @@ model InvoiceResult {
   invoiceId String
 
   /// The user that the invoice is for.
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // True if the invoice was paid.
   succeeded Boolean
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([invoiceId])
 }
 
 model AgentSession {
@@ -398,10 +407,12 @@ model Organization {
   updatedAt DateTime @updatedAt
   name      String
 
-  users            User[]
-  AuditLogEvent    AuditLogEvent[]
-  StyleGuide       StyleGuide[]
-  ConnectorAccount ConnectorAccount[]
-  Snapshot         Snapshot[]
-  Upload           Upload[]
+  users             User[]
+  auditLogEvents    AuditLogEvent[]
+  styleGuides       StyleGuide[]
+  connectorAccounts ConnectorAccount[]
+  snapshots         Snapshot[]
+  uploads           Upload[]
+  subscriptions     Subscription[]
+  invoiceResults    InvoiceResult[]
 }

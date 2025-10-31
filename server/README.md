@@ -160,3 +160,49 @@ The feature flag configurations are provided via PostHog, using the same project
 [Test Feature Flags](https://us.posthog.com/project/225935/feature_flags?tab=overview)
 
 [Production Feature Flags](https://us.posthog.com/project/214130/feature_flags?tab=overview)
+
+## Stripe
+
+Scratch uses Stripe to handle payments and subscriptions via Stripes hosted customer portals and webhooks. The code for this integration and subscriptions is in the [PaymentModule](src/payment/)
+
+- StripePaymentService - handles all the integration with Stripe and processes webhook payloads
+- StripeController - contains the Rest API and the webhook endpoint
+- `plans.ts` - describes the products in the system
+  - The `ScratchpadPlanType` defines the internal unique identifiers for the different plans
+  - Each deployment environment has it's own set of plans, with specific stripe product and price IDs
+
+### Testing
+
+To test stripe locally you need to do some additional setup
+
+#### 1. Start `ngrok` for your server (or other tunnel service)
+
+```cmd
+ngrok http 3010
+```
+
+#### 2. Register a webhook in the **Scratch - Test** Sandbox
+
+1. Got to the [Stripe Dashboard](https://dashboard.stripe.com/)
+1. enter sandbox
+1. Search for webhooks in the search box at the top and select the Webhooks option from the Workbench session
+1. Click on **+ Add destination** to create a new destination
+   1. Select "Your account"
+   1. Include the following events:
+      - checkout.session.completed
+      - customer.subscription.created
+      - customer.subscription.deleted
+      - customer.subscription.updated
+      - invoice.paid
+      - invoice.payment_failed
+   1. Set the endpoint to your ngrok host with the `/payment/webhook` path
+   - i.e. https://cafea40927f9.ngrok-free.app/payment/webhook
+   1. Copy the signing secret
+
+#### Update your `server/.env`
+
+Set the `STRIPE_WEBHOOK_SECRET` and `STRIPE_API_KEY` with the secret from step 2 and the API key for the **Scratch - Test** Sandbox
+
+#### Restart your server
+
+At this point your local environment can interact with the sandbox account and recieve webhooks, you should be able to go through a full payment workflow.

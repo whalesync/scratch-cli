@@ -105,3 +105,9 @@ You can confirm whether a deploy is possible to run with the service account Git
 ```
 terraform plan -var as_gitlab=true
 ```
+
+## DNS Management
+
+Scratch uses the `scratch.md` domain which is managed on GoDaddy using thier DNS Management service.
+
+Login with the team@whalesync.com account (creds in 1PW) and go to the [DNS Management](https://dcc.godaddy.com/control/dnsmanagement?domainName=scratch.md) page.
