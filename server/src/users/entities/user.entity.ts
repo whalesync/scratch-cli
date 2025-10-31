@@ -23,10 +23,10 @@ export class User {
   name?: string;
   email?: string;
 
-  // The token for the client to use for websockets when connecting to the Scratchpaper API
+  // The token for the client to use for websockets when connecting to the Scratch API
   websocketToken?: string;
 
-  // The JWT for the AI agent to use when talking to the Scratchpaper API
+  // The JWT for the AI agent to use when talking to the Scratch API
   agentJwt?: string;
 
   subscription?: SubscriptionInfo;

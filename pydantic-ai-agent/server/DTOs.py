@@ -44,7 +44,7 @@ class SendMessageRequestDTO(BaseModel):
     )
     api_token: Optional[str] = Field(
         default=None,
-        description="DEPRECATED:API token for Scratchpaper server authentication",
+        description="DEPRECATED:API token for Scratch server authentication",
     )
     credential_id: Optional[str] = Field(
         default=None, description="ID of the credentials to use for the agent"

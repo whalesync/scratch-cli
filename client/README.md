@@ -1,6 +1,6 @@
 # Scratch Client
 
-Data Studio Front-end for Scratch (formerly Scratchpaper).
+Data Studio Front-end for Scratch.
 
 ## Set up
 

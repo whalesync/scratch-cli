@@ -444,7 +444,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
       if (notionError.code === APIErrorCode.Unauthorized) {
         return {
-          userFriendlyMessage: 'The credentials Scratchpaper.ai uses to communicate with Notion are no longer valid.',
+          userFriendlyMessage: 'The credentials Scratch uses to communicate with Notion are no longer valid.',
           description: notionError.message,
         };
       }

@@ -22,7 +22,7 @@ export const NoSubscriptionDetectedModal = (): JSX.Element => {
       title={null}
     >
       <Stack gap="xs" mb="md" align="center">
-        <TextTitle2>Get started with Scratchpaper.ai</TextTitle2>
+        <TextTitle2>Get started with Scratch</TextTitle2>
         <TextSmRegular ta="center">
           Sign up for your 7 day free trial and start editing your data with AI.
         </TextSmRegular>

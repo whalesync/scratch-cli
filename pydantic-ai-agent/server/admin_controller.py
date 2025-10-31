@@ -15,7 +15,7 @@ router = APIRouter(tags=["admin"])
 
 @router.get("/")
 async def root():
-    return {"server": "Scratchpaper AI Agent", "version": "1.0.0"}
+    return {"server": "Scratch AI Agent", "version": "1.0.0"}
 
 
 @router.get("/health")

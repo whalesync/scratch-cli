@@ -76,21 +76,21 @@ export class ScratchpadConfigService {
   }
 
   /**
-   * @returns The Scratchpaper Agent Auth token. Used for special bearer token auth for the agent to make API calls
+   * @returns The Scratch Agent Auth token. Used for special bearer token auth for the agent to make API calls
    */
   getScratchpadAgentAuthToken(): string {
     return this.getEnvVariable('SCRATCHPAD_AGENT_AUTH_TOKEN');
   }
 
   /**
-   * @returns The Scratchpaper Agent JWT secret. Used to sign expiring JWT tokens allowing the client to make API calls to the agent.
+   * @returns The Scratch Agent JWT secret. Used to sign expiring JWT tokens allowing the client to make API calls to the agent.
    */
   getScratchpadAgentJWTSecret(): string {
     return this.getEnvVariable('SCRATCHPAD_AGENT_JWT_SECRET');
   }
 
   /**
-   * @returns The Scratchpaper Agent JWT expires in. Used to set the expiration time for the generated tokens.
+   * @returns The Scratch Agent JWT expires in. Used to set the expiration time for the generated tokens.
    */
   getScratchpadAgentJWTExpiresIn(): string {
     return this.getEnvVariable('SCRATCHPAD_AGENT_JWT_EXPIRES_IN');

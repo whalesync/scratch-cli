@@ -15,7 +15,7 @@ class ConnectorBuilderRunContext(BaseModel):
         description="The ID of the custom connector to work with"
     )
     api_token: Optional[str] = Field(
-        default=None, description="API token for Scratchpaper server authentication"
+        default=None, description="API token for Scratch server authentication"
     )
     custom_connector: Optional[Dict[str, Any]] = Field(
         default=None, description="The loaded custom connector data"

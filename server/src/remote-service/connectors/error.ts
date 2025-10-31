@@ -17,7 +17,7 @@ export class ConnectorInstantiationError extends Error {
 export class ErrorMessageTemplates {
   // API issues.
   static readonly API_UNAUTHORIZED = (serviceName: string) =>
-    `The credentials Scratchpaper.ai uses to communicate with ${serviceName} are no longer valid.`;
+    `The credentials Scratch uses to communicate with ${serviceName} are no longer valid.`;
   static readonly API_QUOTA_EXCEEDED = (serviceName: string) =>
     `You have exceeded the service API quota for ${serviceName}.`;
   static readonly API_TIMEOUT = (serviceName: string) => `Request to ${serviceName} timed out. Please try again.`;

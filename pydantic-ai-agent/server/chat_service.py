@@ -532,7 +532,7 @@ class ChatService:
                     )
                 except Exception as e:
                     logger.exception(
-                        f"❌ Failed to track token usage through Scratchpaper API"
+                        f"❌ Failed to track token usage through Scratch API"
                     )
 
             return ResponseFromAgent(
@@ -613,9 +613,7 @@ class ChatService:
                     },
                 )
             except Exception as e:
-                logger.exception(
-                    f"❌ Failed to track token usage through Scratchpaper API"
-                )
+                logger.exception(f"❌ Failed to track token usage through Scratch API")
 
             return actual_response
         else:

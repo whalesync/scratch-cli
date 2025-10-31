@@ -20,7 +20,7 @@ The agent **generates functions directly** using the LLM and **saves them to the
 
 ### What the Agent Does:
 
-1. **Loads Custom Connector Data**: Retrieves the current custom connector from the Scratchpaper server
+1. **Loads Custom Connector Data**: Retrieves the current custom connector from the Scratch server
 2. **Generates Functions**: Uses the LLM to generate JavaScript functions based on user requests
 3. **Tests Functions**: Executes generated functions to verify they work correctly
 4. **Saves Functions**: Updates the custom connector with the new function code
@@ -96,7 +96,7 @@ response = await service.process_connector_builder_request(
 
 The agent has access to the following tools:
 
-- `execute_list_tables_tool`: Tests generated listTables functions by calling the Scratchpaper server
+- `execute_list_tables_tool`: Tests generated listTables functions by calling the Scratch server
 - `save_custom_connector_tool`: Saves generated functions to the custom connector
 - `save_custom_connector_with_test_result_tool`: Saves generated functions and test results to the custom connector
 
@@ -178,8 +178,8 @@ async function listTables(apiKey) {
 Required environment variables:
 
 - `OPENROUTER_API_KEY`: API key for OpenRouter (for LLM access)
-- `SCRATCHPAD_API_TOKEN`: API token for Scratchpaper server
-- `SCRATCHPAD_API_URL`: URL of the Scratchpaper server (defaults to http://localhost:3001)
+- `SCRATCHPAD_API_TOKEN`: API token for Scratch server
+- `SCRATCHPAD_API_URL`: URL of the Scratch server (defaults to http://localhost:3001)
 
 ## Testing
 

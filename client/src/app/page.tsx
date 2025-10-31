@@ -22,7 +22,7 @@ const GetStartedContent = () => {
   return (
     <Center w="100%" p="3rem">
       <Stack gap="lg" w="100%" mb="20px">
-        <Title order={1}>Welcome to Scratchpaper.ai</Title>
+        <Title order={1}>Welcome to Scratch</Title>
         <Box>
           <Text>
             Welcome to an early look at a new way of working with content. This guide skips the fluff and gets straight
@@ -35,12 +35,11 @@ const GetStartedContent = () => {
             The core principle: a safe sandbox for live data
           </Title>
           <Text>
-            Scratchpaper works by creating a temporary, isolated copy of your live data. The AI agent only ever
-            interacts with this safe copy.
+            Scratch works by creating a temporary, isolated copy of your live data. The AI agent only ever interacts
+            with this safe copy.
           </Text>
           <Text fw={600}>
-            No changes are ever made to your live data until you explicitly review, approve, and click
-            &quot;Publish&quot;.
+            No changes are ever made to your live data until you explicitly review, approve, and click <em>Publish</em>.
           </Text>
           <Text>
             This architecture puts a human-in-the-loop by design. You can experiment with powerful AI edits, knowing
@@ -55,25 +54,25 @@ const GetStartedContent = () => {
               <Text component="span" fw={600}>
                 Connect:
               </Text>{' '}
-              Click on &quot;Connections&quot; to link a live data source (Notion, YouTube, etc.).
+              Click on <em>Connections</em> to link a live data source (Notion, YouTube, etc.).
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
                 Create:
               </Text>{' '}
-              Open that connection and create a new &quot;Scratchpaper&quot;.
+              Open that connection and create a new <em>Workbook</em>.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
                 Edit:
               </Text>{' '}
-              Open the Scratchpaper and start giving the AI instructions.
+              Open the <em>Workbook</em> and start giving the AI instructions.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
                 Reset:
               </Text>{' '}
-              Want to start over? Click &quot;Download&quot; to refresh the content from the live connection.
+              Want to start over? Click <em>Download</em> to refresh the content from the live connection.
             </List.Item>
           </List>
         </Stack>
@@ -111,40 +110,40 @@ const GetStartedContent = () => {
           <List spacing="sm" size="md" mb="lg">
             <List.Item>
               <Text component="span" fw={600}>
-                Provide lasting context with resources:
+                Provide lasting context with resources.
               </Text>{' '}
               Add reusable instructions, style guides, or content from URLs (.md, sitemaps, etc.) to the chat. The AI
               will use this context for its tasks, ensuring consistency and accuracy.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
-                Choose the right AI model:
+                Choose the right AI model.
               </Text>{' '}
               Select a fast, lightweight model for simple tasks like tagging, or a more powerful model for complex
               writing and editing.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
-                Filter with precision:
+                Filter with precision.
               </Text>{' '}
               Use natural language or SQL queries to instantly filter records and give the AI a focused set of data to
               work on.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
-                Review changes instantly:
+                Review changes instantly.
               </Text>{' '}
               The UI shows all AI suggestions as string-level diffs, so you can see exactly what changed at a glance.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
-                Approve or reject:
+                Approve or reject.
               </Text>{' '}
               Accept or discard suggestions for a single cell, an entire record, or the whole library.
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>
-                Make surgical edits:
+                Make surgical edits.
               </Text>{' '}
               Use precise tools for targeted changes without needing the AI to rewrite the whole text:
               <List withPadding spacing="xs" size="sm" mt="xs">
@@ -178,7 +177,7 @@ const GetStartedContent = () => {
         </Stack>
 
         <Stack gap="sm">
-          <Title order={3}>Navigate like a pro: keyboard shortcuts</Title>
+          <Title order={3}>Navigate like a pro with keyboard shortcuts</Title>
           <List spacing="sm" size="md">
             <List.Item>
               <Text component="span" fw={600}>

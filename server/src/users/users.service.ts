@@ -170,7 +170,7 @@ export class UsersService {
             service: 'openrouter',
             apiKey: result.v.key,
             externalApiKeyId: result.v.hash,
-            description: `Starter OpenRouter credentials for Scratchpaper.ai`,
+            description: `Starter OpenRouter credentials for Scratch`,
             enabled: true,
             source: AiAgentCredentialSource.SYSTEM,
             default: true,

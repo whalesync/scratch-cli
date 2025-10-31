@@ -1,6 +1,6 @@
 # PydanticAI Agent
 
-The agent server is the bridge between the user, the Scratchpaper data and the LLMs by assembling the context and providing a set of tools for the LLM to use and interact with the Scratchpaper backend.
+The agent server is the bridge between the user, the Scratch data and the LLMs by assembling the context and providing a set of tools for the LLM to use and interact with the Scratch backend.
 
 ## Setup
 
@@ -25,7 +25,7 @@ cp .env.example .env
 
 Set your `OPENROUTER_API_KEY` and `LOGFIRE_TOKEN` values
 
-The `OPENROUTER_API_KEY` will be used as a fallback for admin users that don't have credentials configured. You can create your own or use the `Scratchpaper Devs - shared API key` that is in 1Password.
+The `OPENROUTER_API_KEY` will be used as a fallback for admin users that don't have credentials configured. You can create your own or use the `Scratch Devs - shared API key` that is in 1Password.
 
 If you are doing a lot of iteration on the Agent, it is recommended you use the shared key as it has a higher token credit limit.
 
@@ -41,7 +41,7 @@ python main.py
 
 5. Check **Black** is working as your formatter
 
-   Scratchpaper uses Black for our Python code formatter and it is install with the pip command above. It is configured in `.vscode/settings.json`
+   Scratch uses Black for our Python code formatter and it is install with the pip command above. It is configured in `.vscode/settings.json`
 
    Ensure it is working properly in your editor since these things are easily broken.
 
@@ -86,7 +86,7 @@ python main.py
 
 The Scratchpad Agent server is hosted on Render.
 
-[Public URL - https://agent.scratchpaper.ai](https://agent.scratchpaper.ai)
+[Public URL - https://agent.scratch.ai](https://agent.scratch.ai)
 
 [Manage Render Project](https://dashboard.render.com/web/srv-d347qore5dus73epu9r0)
 

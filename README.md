@@ -1,11 +1,11 @@
 # Project Structure
 
-The Scratchpaper consists of 3 elements:
+The Scratch project consists of 3 elements:
 
 ## 1. API Server (`/server`)
 
 - NestJS application serving as the main backend
-- Provides scratchpaper data functionality via REST API
+- Provides data functionality via REST API
 - Modelled after the Whalesync Bottlenose server
 - Runs locally on port 3010
 
@@ -22,7 +22,7 @@ Full [Documentation](/client/README.md)
 
 ## 3. Pydantic AI Agent (`/pydantic-ai-agent`)
 
-- The agent server that powers Scratchpaper chat
+- The agent server that powers Scratch chat
 - Interfaces with the LLMs through OpenRouter and provides a set of data tools for the LLMs to invoke
 - FastAPI, Pydantic & Pydantic AI
 - Runs locally on port 8000

@@ -1,6 +1,6 @@
-# Scratchpaper GCP Infrastructure
+# Scratch GCP Infrastructure
 
-Terraform modules for Scratchpaper's GCP environments
+Terraform modules for Scratch's GCP environments
 
 ## Repo Structure
 

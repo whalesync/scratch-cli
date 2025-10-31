@@ -20,7 +20,7 @@ export interface Plan {
   stripePriceId: string;
 }
 
-// Configured in the Scratchpaper Test sandbox environment for developer testing
+// Configured in the Scratch Test sandbox environment for developer testing
 export const TEST_SANDBOX_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,
@@ -30,7 +30,7 @@ export const TEST_SANDBOX_PLANS: Plan[] = [
   },
 ];
 
-// Configured in the Scratchpaper Staging sandbox environment for developer testing
+// Configured in the Scratch Staging sandbox environment for developer testing
 export const STAGING_SANDBOX_PLANS: Plan[] = [
   {
     productType: ScratchpadPlanType.STARTER_PLAN,

@@ -1,1 +1,1 @@
-PROJECT_NAME = "Scratchpaper"
+PROJECT_NAME = "Scratch"

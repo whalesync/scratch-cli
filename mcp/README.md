@@ -1,6 +1,6 @@
 # MCP Search Tools Server
 
-A simple Model Context Protocol (MCP) server built with TypeScript that provides access to the Scratchpaper API:
+A simple Model Context Protocol (MCP) server built with TypeScript that provides access to the Scratch API:
 
 ## Setup
 
@@ -71,7 +71,7 @@ The user will need Node.js installed locally in order to run it.
       "env": {
         "NODE_ENV": "production",
         "SCRATCHPAD_SERVER_URL": "http://localhost:3010",
-        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratchpaper>"
+        "SCRATCHPAD_API_TOKEN": "<Your API Token from Scratch>"
 
       }
     }
@@ -79,7 +79,7 @@ The user will need Node.js installed locally in order to run it.
 }
 ```
 
-By default the MCP server uses the localhost Scratchpaper server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
+By default the MCP server uses the localhost Scratch server. If you want to use the deployed version you can change the `SCRATCHPAD_SERVER_URL` to the following:
 
 ```
   "SCRATCHPAD_SERVER_URL": "https://scratchpad-server.onrender.com",

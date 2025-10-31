@@ -784,7 +784,7 @@ export class UploadsService {
   }
 
   /**
-   * Create a snapshot (scratchpaper) from a CSV upload
+   * Create a snapshot from a CSV upload
    */
   async createSnapshotFromCsvUpload(
     uploadId: string,

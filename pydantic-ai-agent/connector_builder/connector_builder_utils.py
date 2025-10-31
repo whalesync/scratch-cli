@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 
 
 def get_scratchpad_api_url() -> str:
-    """Get the Scratchpaper API URL from environment or use default"""
+    """Get the Scratch API URL from environment or use default"""
     return os.getenv("SCRATCHPAD_API_URL", "http://localhost:3010")
 
 
@@ -34,7 +34,7 @@ def call_scratchpad_api(
     api_url = get_scratchpad_api_url()
 
     if not api_token:
-        raise ValueError("API token is required for Scratchpaper API calls")
+        raise ValueError("API token is required for Scratch API calls")
 
     url = f"{api_url}{endpoint}"
     headers = {
@@ -68,7 +68,7 @@ def load_custom_connector(
     connector_id: str, api_token: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Load a custom connector from the Scratchpaper API
+    Load a custom connector from the Scratch API
 
     Args:
         connector_id: The ID of the custom connector to load
