@@ -171,7 +171,7 @@ resource "google_cloud_run_v2_service" "api_service" {
           "NODE_OPTIONS" : var.api_service_node_options,
           "NOTION_PAGE_SIZE" : "100",
           "POSTHOG_HOST" : "https://us.i.posthog.com",
-          "REDIRECT_URI" : "https://scratch.md/oauth/callback",
+          "REDIRECT_URI" : "https://${var.client_domain}/oauth/callback",
           "REDIS_HOST" : module.redis.host,
           "REDIS_PASSWORD" : module.redis.password,
           "REDIS_PORT" : module.redis.port,

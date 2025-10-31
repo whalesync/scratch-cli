@@ -20,10 +20,18 @@ module "test" {
 
   db_disk_size         = 10
   db_high_availability = false
+
+  force_reload_services = var.force_reload_services
 }
 
 variable "as_gitlab" {
   type        = bool
   default     = false
   description = "Use the GitLab service account to run Terraform"
+}
+
+variable "force_reload_services" {
+  type        = bool
+  default     = false
+  description = "When set to true, forces all google_cloud_run_v2_service resources to be reloaded by setting an env var to a randomly generated value."
 }

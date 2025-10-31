@@ -31,7 +31,7 @@ resource "google_sql_database_instance" "primary" {
 
       # This combo ensures that SSL is required to communicate with the DB but no client certificates are verified
       # See https://cloud.google.com/sql/docs/mysql/admin-api/rest/v1/instances#SslMode
-      ssl_mode = "ENCRYPTED_ONLY"
+      ssl_mode = "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
 
       enable_private_path_for_google_cloud_services = true
     }

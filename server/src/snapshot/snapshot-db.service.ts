@@ -16,6 +16,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       connection: this.config.getDatabaseUrl(),
       searchPath: ['public'],
       debug: this.config.getDbDebug(),
+      asyncStackTraces: true,
     });
     this.snapshotDb.init(knexInstance);
 
@@ -27,7 +28,16 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
-    await knexInstance.raw('SELECT 1');
+    try {
+      await knexInstance.raw('SELECT 1');
+    } catch (err) {
+      WSLogger.error({
+        source: 'SnapshotDbService.onModuleInit',
+        message: 'Unexpected error on testing knex connection',
+        error: err,
+      });
+      process.exit(1);
+    }
   }
 
   async onModuleDestroy() {

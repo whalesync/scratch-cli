@@ -23,6 +23,7 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
       connection: this.config.getDatabaseUrl(),
       searchPath: ['public'],
       debug: this.config.getDbDebug(),
+      asyncStackTraces: true,
     });
 
     this.knexInstance.on('error', (err: Error) => {
@@ -33,7 +34,16 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
-    await this.knexInstance.raw('SELECT 1');
+    try {
+      await this.knexInstance.raw('SELECT 1');
+    } catch (err) {
+      WSLogger.error({
+        source: 'UploadsDbService.onModuleInit',
+        message: 'Unexpected error on testing knex connection',
+        error: err,
+      });
+      process.exit(1);
+    }
   }
 
   async onModuleDestroy() {
