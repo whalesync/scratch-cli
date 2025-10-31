@@ -1,11 +1,14 @@
 import { ActionIcon } from '@mantine/core';
 import { EllipsisVertical } from 'lucide-react';
+import { forwardRef } from 'react';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 
-export const ActionIconThreeDots = () => {
+export const ActionIconThreeDots = forwardRef<HTMLButtonElement>((props, ref) => {
   return (
-    <ActionIcon variant="subtle" size="md" color="text">
+    <ActionIcon ref={ref} variant="subtle" size="md" color="text" {...props}>
       <StyledLucideIcon Icon={EllipsisVertical} size={19} />
     </ActionIcon>
   );
-};
+});
+
+ActionIconThreeDots.displayName = 'ActionIconThreeDots';
