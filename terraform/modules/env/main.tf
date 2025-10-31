@@ -3,6 +3,7 @@ locals {
 
   # APIs
   enabled_apis = [
+    "certificatemanager.googleapis.com",
     "cloudkms.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",

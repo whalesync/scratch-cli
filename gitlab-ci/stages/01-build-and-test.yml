@@ -90,9 +90,9 @@ build client docker image for production:
       --build-arg CLERK_PUBLISHABLE_KEY="${CLERK_PUBLISHABLE_KEY_PRODUCTION}"
       --build-arg NEXT_PUBLIC_POSTHOG_KEY="${POSTHOG_KEY}"
       --build-arg NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"
-      --build-arg NEXT_PUBLIC_API_URL=https://api.scratchpaper.ai
-      --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratchpaper.ai
-      --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratchpaper.ai
+      --build-arg NEXT_PUBLIC_API_URL=https://api.scratch.md
+      --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratch.md
+      --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratch.md
       -t spinner-production/spinner-client
       -f Dockerfile .
     - docker save spinner-production/spinner-client > image-production.tar
