@@ -1,6 +1,7 @@
+import _ from 'lodash';
 import { Webflow } from 'webflow-api';
 import { sanitizeForWsId } from '../../ids';
-import { ColumnMetadata, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import { ColumnMetadata, ColumnOptions, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { WebflowColumnSpec, WebflowTableSpec } from '../custom-spec-registry';
 import {
   WEBFLOW_CREATED_ON_COLUMN_ID,
@@ -40,7 +41,9 @@ export class WebflowSchemaParser {
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
     // Parse all collection fields
-    const columns = collection.fields.map((field) => this.parseColumn(field, titleColumnSlug?.[0]));
+    const columns = collection.fields
+      .map((field) => this.parseColumn(field, titleColumnSlug?.[0]))
+      .filter((column) => column.pgType !== PostgresColumnType.JSONB);
 
     // Add predefined metadata columns (readonly)
     columns.push(
@@ -127,6 +130,7 @@ export class WebflowSchemaParser {
     pgType: PostgresColumnType;
     metadata?: ColumnMetadata;
     dataConverterTypes?: string[];
+    options?: ColumnOptions[];
   } {
     const type = field.type;
     switch (type) {
@@ -187,27 +191,13 @@ export class WebflowSchemaParser {
       case Webflow.FieldType.Option:
         return {
           pgType: PostgresColumnType.TEXT,
-        };
-
-      case Webflow.FieldType.Image:
-      case Webflow.FieldType.MultiImage:
-      case Webflow.FieldType.File:
-      case Webflow.FieldType.ExtFileRef:
-        // These return objects with url, fileId, etc.
-        return {
-          pgType: PostgresColumnType.JSONB,
-        };
-
-      case Webflow.FieldType.Reference:
-        // Single reference to another collection item
-        return {
-          pgType: PostgresColumnType.TEXT,
-        };
-
-      case Webflow.FieldType.MultiReference:
-        // Array of references to other collection items
-        return {
-          pgType: PostgresColumnType.TEXT_ARRAY,
+          metadata: {
+            // Webflow api type is wrong in here, the options are actually an array of objects with id and name (inside validations).
+            options: _.get(field.validations, 'options', []).map((option: { id: string; name: string }) => ({
+              value: option.id,
+              label: option.name,
+            })),
+          },
         };
 
       default:

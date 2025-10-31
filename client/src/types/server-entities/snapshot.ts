@@ -1,11 +1,22 @@
-import _ from "lodash";
-import { Service } from "./connector-accounts";
-import { EntityId } from "./table-list";
+import _ from 'lodash';
+import { Service } from './connector-accounts';
+import { EntityId } from './table-list';
 
 export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
   dateFormat?: 'date' | 'datetime' | 'time';
   numberFormat?: 'decimal' | 'integer';
+  options?: ColumnOption[];
+  /**
+   * If true, any value is allowed for the column.
+   * otherwise the column must follow the option values.
+   */
+  allowAnyOption?: boolean;
+};
+
+export type ColumnOption = {
+  value?: string;
+  label?: string;
 };
 
 export interface ColumnSpec {
@@ -18,14 +29,14 @@ export interface ColumnSpec {
 }
 
 export enum PostgresColumnType {
-  TEXT = "text",
-  NUMERIC = "numeric",
-  BOOLEAN = "boolean",
-  JSONB = "jsonb",
-  TEXT_ARRAY = "text[]",
-  NUMERIC_ARRAY = "numeric[]",
-  BOOLEAN_ARRAY = "boolean[]",
-  TIMESTAMP = "timestamp",
+  TEXT = 'text',
+  NUMERIC = 'numeric',
+  BOOLEAN = 'boolean',
+  JSONB = 'jsonb',
+  TEXT_ARRAY = 'text[]',
+  NUMERIC_ARRAY = 'numeric[]',
+  BOOLEAN_ARRAY = 'boolean[]',
+  TIMESTAMP = 'timestamp',
 }
 
 export interface TableSpec {
@@ -165,7 +176,6 @@ export interface AcceptAllSuggestionsResult {
   totalChangesAccepted: number;
 }
 
-
 export interface RejectAllSuggestionsResult {
   recordsRejected: number;
   totalChangesRejected: number;
@@ -176,11 +186,16 @@ export function isTextColumn(column: ColumnSpec) {
 }
 
 export function isLargeTextColumn(column: ColumnSpec, value: string | undefined | null) {
-  return column.metadata?.textFormat === 'markdown' || column.metadata?.textFormat === 'rich_text' || column.pgType === PostgresColumnType.JSONB || (column.pgType === PostgresColumnType.TEXT && value && value.length > 100);
+  return (
+    column.metadata?.textFormat === 'markdown' ||
+    column.metadata?.textFormat === 'rich_text' ||
+    column.pgType === PostgresColumnType.JSONB ||
+    (column.pgType === PostgresColumnType.TEXT && value && value.length > 100)
+  );
 }
 
 export function isUrlColumn(column: ColumnSpec, value: string | undefined | null): boolean {
-  if(column.pgType === PostgresColumnType.TEXT && column.name.toLowerCase().includes('url') && value) {
+  if (column.pgType === PostgresColumnType.TEXT && column.name.toLowerCase().includes('url') && value) {
     try {
       new URL(value);
       return true;
@@ -197,7 +212,7 @@ export function formatFieldValue(value: unknown, column: ColumnSpec): string {
   if (value === null || value === undefined) {
     return '';
   }
-  
+
   if (column.pgType === PostgresColumnType.JSONB) {
     try {
       return JSON.stringify(value, null, 2);
@@ -206,12 +221,11 @@ export function formatFieldValue(value: unknown, column: ColumnSpec): string {
       return String(value);
     }
   }
-  
+
   return String(value);
 }
 
 export function buildRecordTitle(record: SnapshotRecord): string {
-
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
@@ -242,7 +256,11 @@ export function getSafeBooleanValue(fields: Record<string, unknown>, columnId: s
   return new Boolean(value).valueOf();
 }
 
-export function getSafeNumberValue(fields: Record<string, unknown>, columnId: string, defaultValue?: number): number | undefined {
+export function getSafeNumberValue(
+  fields: Record<string, unknown>,
+  columnId: string,
+  defaultValue?: number,
+): number | undefined {
   const value = fields[columnId];
   if (value === null || value === undefined) {
     return defaultValue ?? undefined;

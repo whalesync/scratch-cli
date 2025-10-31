@@ -49,6 +49,17 @@ export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
   dateFormat?: 'date' | 'datetime' | 'time';
   numberFormat?: 'decimal' | 'integer';
+  options?: ColumnOptions[];
+  /**
+   * If true, any value is allowed for the column.
+   * otherwise the column must follow the option values.
+   */
+  allowAnyOption?: boolean;
+};
+
+export type ColumnOptions = {
+  value?: string;
+  label?: string;
 };
 
 export type BaseColumnSpec = {
@@ -56,6 +67,10 @@ export type BaseColumnSpec = {
   name: string;
 
   pgType: PostgresColumnType;
+  /** @deprecated
+   * This is deprecated and replaced with options inside the column metadata.
+   * it's only used by youtube.
+   */
   limitedToValues?: string[];
   required?: boolean;
   readonly?: boolean;
