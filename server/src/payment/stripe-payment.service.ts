@@ -446,6 +446,10 @@ export class StripePaymentService {
       // Only log invoice results if we actually updated a subscription
       const user = await this.getUserFromStripeCustomerId(invoice.customer as string);
       if (user) {
+        if (!user.organizationId) {
+          return unexpectedError('User does not have an organization id', { context: { userId: user.id } });
+        }
+
         try {
           await this.dbService.client.invoiceResult.create({
             data: {
@@ -619,6 +623,10 @@ export class StripePaymentService {
       const user = await this.getUserFromStripeCustomerId(stripeCustomerId);
       if (!user) {
         return unexpectedError('User not found', { context: { stripeCustomerId } });
+      }
+
+      if (!user.organizationId) {
+        return unexpectedError('User does not have an organization id', { context: { userId: user.id } });
       }
 
       await this.dbService.client.subscription.upsert({

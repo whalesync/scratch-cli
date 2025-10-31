@@ -6,8 +6,8 @@ export class ConnectorAccount implements PrismaConnectorAccount {
   id: string;
   createdAt: Date;
   updatedAt: Date;
-  userId: string;
-  organizationId: string | null;
+  userId: string | null;
+  organizationId: string;
   service: Service;
   displayName: string;
   authType: AuthType;

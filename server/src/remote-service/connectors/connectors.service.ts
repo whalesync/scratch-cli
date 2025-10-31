@@ -89,7 +89,12 @@ export class ConnectorsService {
         if (!connectorAccount || !decryptedCredentials?.apiKey) {
           throw new Error('API key is required for Custom connector');
         }
-        return new CustomConnector(connectorAccount.userId, this.db, decryptedCredentials.apiKey, connectorAccount);
+        return new CustomConnector(
+          connectorAccount.userId ?? '',
+          this.db,
+          decryptedCredentials.apiKey,
+          connectorAccount,
+        );
       case Service.CSV:
         return new CsvConnector(this.db, this.uploadsDbService, connectorAccount?.userId ?? userId);
       case Service.YOUTUBE:

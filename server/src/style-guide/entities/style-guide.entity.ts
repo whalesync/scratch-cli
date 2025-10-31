@@ -6,8 +6,8 @@ export class StyleGuide {
   updatedAt: Date;
   name: string;
   body: string;
-  userId: string;
-  organizationId: string | null;
+  userId: string | null;
+  organizationId: string;
   autoInclude: boolean;
   sourceUrl: string | null;
   contentType: string;
@@ -20,7 +20,7 @@ export class StyleGuide {
     this.updatedAt = styleGuide.updatedAt;
     this.name = styleGuide.name;
     this.body = styleGuide.body;
-    this.userId = styleGuide.userId;
+    this.userId = styleGuide.userId ?? null;
     this.organizationId = styleGuide.organizationId;
     this.autoInclude = styleGuide.autoInclude;
     this.sourceUrl = styleGuide.sourceUrl;

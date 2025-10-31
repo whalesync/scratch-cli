@@ -31,7 +31,7 @@ export function toActor(user: AuthenticatedUser): Actor {
   return {
     userId: user.id,
     // TODO (DEV-8628): Once migration to organizations is complete the user.organizationId will not be null and we can remove the fallback
-    organizationId: user.organizationId ?? '<empty organization id>',
+    organizationId: user.organizationId ?? '<empty org id>',
   };
 }
 

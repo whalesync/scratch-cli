@@ -21,6 +21,6 @@ export function userToActor(user: UserCluster.User): Actor {
 
   return {
     userId: user.id,
-    organizationId: user.organizationId ?? '<empty organization id>',
+    organizationId: user.organizationId ?? '<empty org id>',
   };
 }

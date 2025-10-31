@@ -1965,7 +1965,8 @@ export class SnapshotService {
       id: string;
       name: string | null;
       service: string;
-      userId: string;
+      userId: string | null;
+      organizationId: string | null;
       createdAt: Date;
       updatedAt: Date;
       tableSpecsCount: number;
@@ -2001,6 +2002,7 @@ export class SnapshotService {
         name: snapshot.name,
         service: snapshot.service,
         userId: snapshot.userId,
+        organizationId: snapshot.organizationId,
         createdAt: snapshot.createdAt,
         updatedAt: snapshot.updatedAt,
         tableSpecsCount: tableSpecs.length,

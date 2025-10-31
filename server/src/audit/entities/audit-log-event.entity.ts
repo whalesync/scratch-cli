@@ -3,7 +3,7 @@ import { JsonObject } from '@prisma/client/runtime/library';
 
 export class AuditLogEventEntity {
   id: string;
-  userId: string;
+  userId: string | null;
   organizationId: string | null;
   eventType: string;
   message: string;

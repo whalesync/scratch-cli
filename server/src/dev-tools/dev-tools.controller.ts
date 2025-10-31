@@ -84,7 +84,8 @@ export class DevToolsController {
       id: string;
       name: string | null;
       service: string;
-      userId: string;
+      userId: string | null;
+      organizationId: string | null;
       createdAt: Date;
       updatedAt: Date;
       tableSpecsCount: number;

@@ -274,7 +274,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       throw new Error('Upload does not have an organization ID');
     }
     return this.uploadsDbService.getUploadSchemaName({
-      userId: upload.userId,
+      userId: upload.userId ?? '',
       organizationId: upload.organizationId ?? '',
     });
   }
