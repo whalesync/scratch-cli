@@ -18,8 +18,14 @@ module "test" {
   api_domain                  = "test-api.scratch.md"
   agent_domain                = "test-agent.scratch.md"
 
+  # Database
   db_disk_size         = 10
   db_high_availability = false
+
+  # Monitoring
+  enable_alerts                  = false
+  enable_email_notifications     = false
+  enable_pagerduty_notifications = false
 
   force_reload_services = var.force_reload_services
 }

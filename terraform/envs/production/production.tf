@@ -19,6 +19,8 @@ module "production" {
   agent_domain                = "agent.scratch.md"
 
   # Monitoring
+  enable_alerts                  = true
+  enable_email_notifications     = true
   enable_pagerduty_notifications = false
 
   force_reload_services = var.force_reload_services

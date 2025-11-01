@@ -34,15 +34,482 @@ resource "google_monitoring_notification_channel" "team_email" {
 resource "google_monitoring_notification_channel" "pagerduty" {
   count = var.enable_pagerduty_notifications ? 1 : 0
 
-  display_name = "GCP Bottlenose Prod"
+  display_name = "GCP Prod"
   description  = "PagerDuty alerting channel"
   type         = "pagerduty"
-  #sensitive_labels {
-  #  # TODO: Set Pagerduty key
-  #  service_key = data.google_secret_manager_secret_version.pagerduty_integration_key.secret_data
-  #}
+  sensitive_labels {
+    service_key = data.google_secret_manager_secret_version.pagerduty_integration_key[0].secret_data
+  }
   force_delete = false
   depends_on   = [google_project_service.services]
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## SLO Monitoring
+## ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_monitoring_service" "api_service_monitoring_service" {
+  service_id   = "${google_cloud_run_v2_service.api_service.name}-monitoring"
+  display_name = google_cloud_run_v2_service.api_service.name
+
+  basic_service {
+    service_type = "CLOUD_RUN"
+    service_labels = {
+      service_name = google_cloud_run_v2_service.api_service.name
+      location     = google_cloud_run_v2_service.api_service.location
+    }
+  }
+}
+
+resource "google_monitoring_service" "client_service_monitoring_service" {
+  service_id   = "${google_cloud_run_v2_service.client_service.name}-monitoring"
+  display_name = google_cloud_run_v2_service.client_service.name
+
+  basic_service {
+    service_type = "CLOUD_RUN"
+    service_labels = {
+      service_name = google_cloud_run_v2_service.client_service.name
+      location     = google_cloud_run_v2_service.client_service.location
+    }
+  }
+}
+
+resource "google_monitoring_service" "agent_service_monitoring_service" {
+  service_id   = "${google_cloud_run_v2_service.agent_service.name}-monitoring"
+  display_name = google_cloud_run_v2_service.agent_service.name
+
+  basic_service {
+    service_type = "CLOUD_RUN"
+    service_labels = {
+      service_name = google_cloud_run_v2_service.agent_service.name
+      location     = google_cloud_run_v2_service.agent_service.location
+    }
+  }
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## SQL PROXY VM Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+resource "google_monitoring_alert_policy" "sqlproxy_cpu_too_high" {
+  display_name = "${local.display_env} CloudSQL Proxy CPU > 80%"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} CloudSQL Proxy CPU Utilization > 80%"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "VM Instance - CPU utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "900s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"gce_instance\" AND metric.type = \"compute.googleapis.com/instance/cpu/utilization\" AND metric.labels.instance_name = \"${local.proxy_instance_name}\""
+      threshold_value = 0.8
+      trigger {
+        count = 3
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "WARNING"
+
+  lifecycle {
+    // Needed for a Vanta test
+    prevent_destroy = true
+  }
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Cloud SQL Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_monitoring_alert_policy" "db_cpu_too_high" {
+  display_name = "${local.display_env} DB CPU Utilization too high"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB CPU Utilization too high"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - CPU utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/cpu/utilization\""
+      threshold_value = "0.95"
+      trigger {
+        percent = 100
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "CRITICAL"
+}
+
+resource "google_monitoring_alert_policy" "db_out_of_disk_space" {
+  display_name = "${local.display_env} DB low on disk space"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB low on disk space"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - Disk utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/disk/utilization\""
+      threshold_value = 0.90
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.extended_renotify_interval
+    }
+  }
+
+  notification_channels = local.warning_notification_channels
+  severity              = "WARNING"
+}
+
+resource "google_monitoring_alert_policy" "db_disk_read_io_high" {
+  display_name = "${local.display_env} DB Disk Read I/O above threshold"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB Disk Read I/O above threshold"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - Disk Read I/O"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_RATE"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/disk/read_ops_count\""
+      threshold_value = var.db_io_read_limit
+      trigger {
+        count = 5
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "CRITICAL"
+}
+
+
+resource "google_monitoring_alert_policy" "db_disk_write_io_high" {
+  display_name = "${local.display_env} DB Disk Write I/O above threshold"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB Disk Write I/O above threshold"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - Disk Write I/O"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_RATE"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/disk/write_ops_count\""
+      threshold_value = var.db_io_write_limit
+      trigger {
+        count = 5
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "CRITICAL"
+}
+
+resource "google_monitoring_alert_policy" "db_mem_usage_too_high" {
+  display_name = "${local.display_env} DB memory utilization > 95%"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB memory utilization > 95%"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - Memory utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "120s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/memory/utilization\""
+      threshold_value = 0.95
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "CRITICAL"
+}
+
+
+resource "google_monitoring_alert_policy" "db_connections_too_high" {
+  display_name = "${local.display_env} DB Connections > 95% of max capacity"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} DB Connections > 95% of max capacity"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud SQL Database - PostgreSQL Connections"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "600s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "300s"
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${local.alert_database_id}\" AND metric.type = \"cloudsql.googleapis.com/database/postgresql/num_backends\" AND metric.labels.database = \"postgres\""
+      threshold_value = local.db_connection_alert_threshold
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "ERROR"
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Redis Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_monitoring_alert_policy" "redis_mem_usage_too_high" {
+  display_name = "${local.display_env} Redis using too much Memory"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} Redis using too much Memory"
+    content = "Ops Playbook: ${local.playbook_link}"
+
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Cloud Memorystore Redis Instance - Memory Usage Ratio"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"redis_instance\" AND resource.labels.instance_id = \"${local.alert_redis_id}\" AND metric.type = \"redis.googleapis.com/stats/memory/usage_ratio\""
+      threshold_value = 0.95
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "ERROR"
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Client Service Request Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_monitoring_alert_policy" "client_high_5xx_error_count" {
+  display_name = "${local.display_env} Client Service - 5xx Errors"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} Client Service - 5xx Errors"
+    content = "[Remediation Playbook](https://www.notion.so/whalesync/Playbook-Firefighting-and-On-Call-c1914705f4ed45eba45d6c92e786ddfa?pvs=4#d58b6663c58346058b8157bc9caf8919)"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Client Service Cloud Run - 5xx Mean Request Count"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "600s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_v2_service.client_service.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
+      threshold_value = 50
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "ERROR"
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## API Service Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+
+resource "google_monitoring_alert_policy" "api_frontend_high_5xx_error_count" {
+  display_name = "${local.display_env} API Service - 5xx Errors"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} API Service - 5xx Errors"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "API Service Cloud Run - 5xx Request Count"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_v2_service.api_service.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
+      threshold_value = 50
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "ERROR"
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
+## Agent Service Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+
+resource "google_monitoring_alert_policy" "agent_service_high_5xx_error_count" {
+  display_name = "${local.display_env} Agent Service - 5xx Errors"
+  enabled      = var.enable_alerts
+  documentation {
+    subject = "${local.display_env} Agent Service - 5xx Errors"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "Agent Service Cloud Run - 5xx Request Count"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_v2_service.agent_service.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
+      threshold_value = 50
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+
+  notification_channels = local.notification_channels
+  severity              = "ERROR"
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------

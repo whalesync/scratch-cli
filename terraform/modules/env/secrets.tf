@@ -35,6 +35,7 @@ resource "google_secret_manager_secret_version" "REDIS_PASSWORD" {
 # The following data resources pull in the values for secrets to pass to other resources.
 # All access to secrets should be done here so we can manage them in one place.
 
-#data "google_secret_manager_secret_version" "pagerduty_integration_key" {
-#  secret = "PAGERDUTY_INTEGRATION_KEY"
-#}
+data "google_secret_manager_secret_version" "pagerduty_integration_key" {
+  count  = var.enable_pagerduty_notifications ? 1 : 0
+  secret = "PAGERDUTY_INTEGRATION_KEY"
+}
