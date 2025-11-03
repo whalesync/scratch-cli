@@ -8,9 +8,10 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_snapshot_error,
 )
 from agents.data_agent.data_agent_utils import format_records_for_prompt
-from typing import List
+from typing import List, Union
 from pydantic import Field, BaseModel
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ToolReturn
 from scratchpad.api import ScratchpadApi
 from logger import log_info, log_error
 
@@ -34,7 +35,7 @@ def fetch_records_by_ids_tool_implementation(
     ctx: RunContext[ChatRunContext],
     table_id: str,
     record_ids: List[str],
-) -> str:
+) -> Union[str, ToolReturn]:
     """Fetch specific records by their IDs from a table in the active snapshot."""
     try:
         chatRunContext: ChatRunContext = ctx.deps
@@ -154,15 +155,41 @@ def fetch_records_by_ids_tool_implementation(
             columns_to_exclude=columns_to_exclude,
         )
 
-        result = f"Successfully fetched {len(fetched_records)} records by ID from table '{table.name}' (ID: {table_id}).\n"
-        result += f"Requested: {len(record_ids)} records, Found: {len(fetched_records)} records\n"
-
+        # Build summary for history cleanup
+        found_ids = {r.get("id", {}).get("wsId") for r in fetched_records}
+        summary = f"Fetched {len(fetched_records)} records by ID from table '{table.name}' (ID: {table_id})"
+        if found_ids:
+            # Truncate ID list if too many
+            id_list = list(found_ids)
+            if len(id_list) <= 5:
+                summary += f": {', '.join(id_list)}"
+            else:
+                summary += f": {', '.join(id_list[:5])}... ({len(id_list)} total)"
         if missing_ids:
-            result += f"⚠️ Missing records (not found): {', '.join(missing_ids)}\n"
+            summary += f", {len(missing_ids)} IDs not found"
 
-        result += f"FETCHED RECORDS:\n{records_summary}"
+        # Create structured response as JSON string with data field that can be cleaned up
+        import json
 
-        return result
+        response_data = {
+            "summary": summary,
+            "table_id": table_id,
+            "table_name": table.name,
+            "requested_count": len(record_ids),
+            "found_count": len(fetched_records),
+            "missing_count": len(missing_ids),
+            "found_ids": list(found_ids),
+            "missing_ids": missing_ids,
+            "data": records_summary,
+        }
+
+        return ToolReturn(
+            return_value=json.dumps(response_data, indent=2),
+            metadata={
+                "is_data_fetch": True,
+                "tool_type": "fetch_records_by_ids",
+            },
+        )
 
     except Exception as e:
         error_msg = f"Failed to fetch records by IDs from table '{table_id}': {str(e)}"
@@ -183,7 +210,7 @@ def define_fetch_records_by_ids_tool(agent: Agent[ChatRunContext, ResponseFromAg
     @agent.tool
     async def fetch_records_by_ids_tool(
         ctx: RunContext[ChatRunContext], input_data: FetchRecordsByIdsInput
-    ) -> str:  # type: ignore
+    ) -> Union[str, ToolReturn]:  # type: ignore
         """
         Fetch specific records by their IDs from a table in the active snapshot.
 

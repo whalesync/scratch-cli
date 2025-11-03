@@ -10,9 +10,10 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_snapshot_error,
 )
 from agents.data_agent.data_agent_utils import format_records_for_prompt
-from typing import Optional
+from typing import Optional, Union
 from pydantic import Field, BaseModel
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ToolReturn
 from scratchpad.api import ScratchpadApi
 from logger import log_info, log_error
 
@@ -42,7 +43,7 @@ def fetch_additional_records_tool_implementation(
     table_id: str,
     limit: int = 50,
     cursor: Optional[str] = None,
-) -> str:
+) -> Union[str, ToolReturn]:
     """Fetch additional records from a table in the active snapshot."""
     try:
         chatRunContext: ChatRunContext = ctx.deps
@@ -158,21 +159,36 @@ def fetch_additional_records_tool_implementation(
             columns_to_exclude=columns_to_exclude,
         )
 
-        result = f"Successfully fetched {len(fetched_records)} additional records from table '{table.name}' (ID: {table_id}).\n"
-        result += f"Cursor: {cursor or 'None (first page)'}, Limit: {limit}\n"
-
-        # Include next cursor if available for pagination
+        # Build summary for history cleanup
+        summary = f"Fetched {len(fetched_records)} records from table '{table.name}' (ID: {table_id})"
+        if cursor:
+            summary += f", starting from cursor: {cursor}"
         if records_result.nextCursor:
-            result += f"Next cursor for pagination: {records_result.nextCursor}\n"
-            result += (
-                f"To fetch more records, use cursor='{records_result.nextCursor}'\n"
-            )
+            summary += f", next cursor available: {records_result.nextCursor}"
         else:
-            result += f"No more records available (this is the last page)\n"
+            summary += ", reached end of table"
 
-        result += f"FETCHED RECORDS:\n{records_summary}"
+        # Create structured response as JSON string with data field that can be cleaned up
+        import json
 
-        return result
+        response_data = {
+            "summary": summary,
+            "table_id": table_id,
+            "table_name": table.name,
+            "cursor": cursor or "None (first page)",
+            "next_cursor": records_result.nextCursor,
+            "limit": limit,
+            "records_fetched": len(fetched_records),
+            "data": records_summary,
+        }
+
+        return ToolReturn(
+            return_value=json.dumps(response_data, indent=2),
+            metadata={
+                "is_data_fetch": True,
+                "tool_type": "fetch_additional_records",
+            },
+        )
 
     except Exception as e:
         error_msg = (
@@ -197,7 +213,7 @@ def define_fetch_additional_records_tool(
     @agent.tool
     async def fetch_additional_records_tool(
         ctx: RunContext[ChatRunContext], input_data: FetchAdditionalRecordsInput
-    ) -> str:  # type: ignore
+    ) -> Union[str, ToolReturn]:  # type: ignore
         """
         Fetch additional records from a table in the active snapshot.
 

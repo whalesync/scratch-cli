@@ -33,6 +33,9 @@ from server.agent_stream_processor import (
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
 )
+from agents.data_agent.data_agent_history_processor import (
+    data_agent_history_processor,
+)
 from utils.helpers import find_first_matching, mask_string
 from server.agent_run_state_manager import AgentRunStateManager
 from server.session_service import SessionService
@@ -542,7 +545,10 @@ class ChatService:
                 usage_stats=cancelled_result.usage_stats,
             )
 
-        session.message_history = result.all_messages()
+        # Apply history processor to clean up data-fetch tool responses before persisting
+        raw_messages = result.all_messages()
+        cleaned_messages = data_agent_history_processor(raw_messages)
+        session.message_history = cleaned_messages
 
         # Extract the actual response from the AgentRunResult
         actual_response = extract_response(result, ResponseFromAgent)
