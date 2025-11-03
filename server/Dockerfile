@@ -2,11 +2,12 @@ FROM node:22.20.0-alpine as deps
 
 WORKDIR /app
 COPY ./package.json ./yarn.lock /app/
-COPY ./prisma /app/prisma
 
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --ignore-scripts
 
 FROM node:22.20.0-alpine AS builder
+
+ARG BUILD_VERSION=0.0.0-local
 
 WORKDIR /app
 
@@ -15,7 +16,8 @@ COPY ./src/ /app/src
 COPY ./prisma/ /app/prisma
 COPY ./nest-cli.json ./package.json ./tsconfig.build.json ./tsconfig.json /app/
 
-RUN yarn run prisma generate && yarn run build
+RUN sed -i "s/0.0.0-local/${BUILD_VERSION}/g" /app/src/version.ts && \
+    yarn run prisma generate && yarn run build
 
 FROM node:22.20.0-alpine AS runner
 
@@ -30,7 +32,7 @@ COPY --from=builder /app/node_modules /app/node_modules
 # Set up environment variables.
 # These platform-specific vars are passed in from the CI/CD builder.
 # Service and env-specific type vars (production/staging/test, frontend/data/jobqueue) are supplied at runtime.
-ENV RUNNING_IN_CLOUD=false
+ENV RUNNING_IN_CLOUD=true
 ENV PORT=8080
 
 # These should be passed in as env vars, not built into the image

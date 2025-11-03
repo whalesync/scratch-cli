@@ -17,17 +17,23 @@ export enum LogLevel {
   SILLY = 'silly',
 }
 
+const nodeEnv = process.env.NODE_ENV ?? 'production';
+const logFormat =
+  nodeEnv === 'development'
+    ? winston.format.combine(
+        // By default Error objects do not spread properly into JSON, so we need to unpack them.
+        expandedErrorsFormat(),
+        winston.format.colorize(),
+        winston.format.simple(),
+      )
+    : winston.format.combine(expandedErrorsFormat(), winston.format.simple());
+
 export class WSLogger {
   private static logger = winston.createLogger({
     level: 'info',
     transports: [
       new winston.transports.Console({
-        format: winston.format.combine(
-          // By default Error objects do not spread properly into JSON, so we need to unpack them.
-          expandedErrorsFormat(),
-          winston.format.colorize(),
-          winston.format.simple(),
-        ),
+        format: logFormat,
       }),
     ],
   });

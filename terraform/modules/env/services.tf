@@ -257,6 +257,13 @@ resource "google_cloud_run_v2_service" "api_service" {
   }
 }
 
+resource "google_cloud_run_service_iam_member" "api_service_public" {
+  service  = google_cloud_run_v2_service.api_service.name
+  location = google_cloud_run_v2_service.api_service.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
 module "api_lb" {
   source = "../../modules/cloudrun_lb"
 
@@ -381,6 +388,13 @@ resource "google_cloud_run_v2_service" "agent_service" {
       client_version,
     ]
   }
+}
+
+resource "google_cloud_run_service_iam_member" "agent_service_public" {
+  service  = google_cloud_run_v2_service.agent_service.name
+  location = google_cloud_run_v2_service.agent_service.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
 module "agent_lb" {
