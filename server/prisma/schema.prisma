@@ -148,14 +148,14 @@ model Snapshot {
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
   connectorAccountId String?
 
-  tableSpecs Json[] // TableSpec[]
+  tableSpecs Json[] // @deprecated(reason: "Replaced with SnapshotTable.tableSpec")
 
-  tableContexts Json[] // SnapshotTableContext[]
+  tableContexts Json[] // @deprecated(reason: "Replaced with SnapshotTable.tableContext")
 
   columnContexts Json @default("{}") // SnapshotColumnContexts (Record<string, SnapshotColumnSettings>)
 
-  activeRecordFilter    Json? // {[tableId: string]: string[]}
-  activeRecordSqlFilter Json? // {[tableId: string]: string}
+  activeRecordFilter    Json? // @deprecated(reason: "Replacd with SnapshotTable.activeRecordSqlFilter")
+  activeRecordSqlFilter Json? // @deprecated(reason: "Replaced with SnapshotTable.activeRecordSqlFilter")
 
   snapshotTables SnapshotTable[]
 
@@ -180,7 +180,7 @@ model SnapshotTable {
   connectorService Service
 
   // Single TableSpec object (not array)
-  tableSpec Json // TableSpec
+  tableSpec Json // TableSpec 
 
   // Single SnapshotTableContext object (not array)
   tableContext Json? // SnapshotTableContext

@@ -1,11 +1,13 @@
 import { PublishSummary } from '@/types/server-entities/publish-summary';
 import type {
   AcceptAllSuggestionsResult,
+  AddScratchColumnDto,
   AddTableToSnapshotDto,
   CreateSnapshotDto,
   DownloadSnapshotResult,
   DownloadSnapshotWithouotJobResult,
   RejectAllSuggestionsResult,
+  RemoveScratchColumnDto,
   Snapshot,
   SnapshotRecord,
   UpdateColumnContextsDto,
@@ -383,4 +385,27 @@ export const snapshotApi = {
     return res.json();
   },
 
+  async addScratchColumn(snapshotId: string, tableId: string, dto: AddScratchColumnDto): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/add-scratch-column`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dto),
+    });
+    await checkForApiError(res, 'Failed to add scratch column');
+  },
+
+  async removeScratchColumn(snapshotId: string, tableId: string, dto: RemoveScratchColumnDto): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/remove-scratch-column`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dto),
+    });
+    await checkForApiError(res, 'Failed to remove scratch column');
+  },
 };

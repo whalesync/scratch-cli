@@ -12,6 +12,11 @@ export type ColumnMetadata = {
    * otherwise the column must follow the option values.
    */
   allowAnyOption?: boolean;
+  /**
+   * If true, the column is a scratch column.
+   * scratch columns are not saved to the connector and are only internally by the UI and the agents.
+   */
+  scratch?: boolean;
 };
 
 export type ColumnOption = {
@@ -122,6 +127,15 @@ export interface UpdateSnapshotDto {
 
 export interface UpdateColumnContextsDto {
   columnContexts: Record<string, SnapshotColumnSettings>;
+}
+
+export interface AddScratchColumnDto {
+  columnName: string;
+  dataType: PostgresColumnType;
+}
+
+export interface RemoveScratchColumnDto {
+  columnId: string;
 }
 
 export interface AcceptCellValueItem {

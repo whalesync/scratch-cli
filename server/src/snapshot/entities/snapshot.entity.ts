@@ -18,8 +18,11 @@ export class Snapshot {
   /** @deprecated Use snapshotTables[].connectorService instead - kept for backward compatibility during migration */
   connectorService: string;
 
+  /** @deprecated Use snapshotTables[].tableSpec instead - kept for backward compatibility during migration */
   tables: AnyTableSpec[];
+  /** @deprecated Use snapshotTables[].tableContext instead - kept for backward compatibility during migration */
   tableContexts: SnapshotTableContext[];
+  /** @deprecated Use snapshotTables[].activeRecordSqlFilter instead - kept for backward compatibility during migration */
   activeRecordSqlFilter?: Record<string, string>;
   columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTableEntity[];

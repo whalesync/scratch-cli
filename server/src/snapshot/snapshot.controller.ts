@@ -25,7 +25,7 @@ import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { SnapshotId } from 'src/types/ids';
+import { SnapshotId, SnapshotTableId } from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser, toActor } from '../auth/types';
@@ -39,6 +39,7 @@ import { DownloadRecordsDto } from './dto/download-records.dto';
 import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
+import { AddScratchColumnDto, RemoveScratchColumnDto } from './dto/scratch-column.dto';
 import { SetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateColumnContextsDto } from './dto/update-column-contexts.dto';
@@ -535,5 +536,27 @@ export class SnapshotController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to generate CSV: ${errorMessage}`);
     }
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/add-scratch-column')
+  async addScratchColumn(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: SnapshotTableId,
+    @Body() addScratchColumnDto: AddScratchColumnDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.addScratchColumn(snapshotId, tableId, addScratchColumnDto, toActor(req.user));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/remove-scratch-column')
+  async removeScratchColumn(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: SnapshotTableId,
+    @Body() removeScratchColumnDto: RemoveScratchColumnDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.removeScratchColumn(snapshotId, tableId, removeScratchColumnDto.columnId, toActor(req.user));
   }
 }

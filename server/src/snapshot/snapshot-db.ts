@@ -30,7 +30,7 @@ export const DIRTY_COLUMN = '__dirty';
 export const DELETED_FIELD = '__deleted';
 export const CREATED_FIELD = '__created';
 
-const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
+export const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
 
 export type EditedFieldsMetadata = {
   /** Timestamps when the record was created locally. */
@@ -787,5 +787,47 @@ export class SnapshotDb {
 
   async cleanUpSnapshot(snapshotId: SnapshotId) {
     await this.knex.raw(`DROP SCHEMA IF EXISTS "${snapshotId}" CASCADE`);
+  }
+
+  async addColumn(
+    snapshotId: SnapshotId,
+    tableId: string,
+    config: { columnId: string; columnType: PostgresColumnType },
+  ): Promise<void> {
+    // Check if table already exists
+    const tableExists = await this.knex.schema.withSchema(snapshotId).hasTable(tableId);
+    if (!tableExists) {
+      throw new Error(`Table ${tableId} does not exist in snapshot ${snapshotId}`);
+    }
+
+    // Check if column already exists
+    const columnExists = await this.knex.schema.withSchema(snapshotId).hasColumn(tableId, config.columnId);
+    if (columnExists) {
+      throw new Error(`Column ${config.columnId} already exists in table ${tableId} in snapshot ${snapshotId}`);
+    }
+
+    // Add the column to the snapshot table
+    await this.knex.schema.withSchema(snapshotId).alterTable(tableId, (t) => {
+      t.specificType(config.columnId, config.columnType);
+    });
+  }
+
+  /**
+   * Remove a scratch column from a snapshot table.
+   * @param snapshotId - The snapshot ID (schema name)
+   * @param tableId - The table ID (table name)
+   * @param columnId - The column ID (column name)
+   */
+  async removeColumn(snapshotId: SnapshotId, tableId: string, columnId: string): Promise<void> {
+    // Check if column exists
+    const columnExists = await this.knex.schema.withSchema(snapshotId).hasColumn(tableId, columnId);
+    if (!columnExists) {
+      throw new Error(`Column ${columnId} does not exist in table ${tableId} in snapshot ${snapshotId}`);
+    }
+
+    // Remove the column from the snapshot table
+    await this.knex.schema.withSchema(snapshotId).alterTable(tableId, (t) => {
+      t.dropColumn(columnId);
+    });
   }
 }

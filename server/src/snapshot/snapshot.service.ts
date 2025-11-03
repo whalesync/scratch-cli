@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Service } from '@prisma/client';
+import { InputJsonObject } from '@prisma/client/runtime/library';
 import { Response } from 'express';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -11,7 +12,8 @@ import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
-import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
+import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
+import { createSnapshotId, createSnapshotTableId, SnapshotId, SnapshotTableId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
@@ -21,17 +23,23 @@ import { ConnectorAccountService } from '../remote-service/connector-account/con
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
-import { ExistingSnapshotRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import {
+  BaseColumnSpec,
+  ExistingSnapshotRecord,
+  PostgresColumnType,
+  SnapshotRecord,
+} from '../remote-service/connectors/types';
 import { AddTableToSnapshotDto } from './dto/add-table-to-snapshot.dto';
 import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
 import { CreateSnapshotDto } from './dto/create-snapshot.dto';
 import { ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
+import { AddScratchColumnDto } from './dto/scratch-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
-import { CREATED_FIELD, DELETED_FIELD } from './snapshot-db';
+import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
@@ -2192,6 +2200,141 @@ export class SnapshotService {
     });
 
     return { migratedSnapshots, tablesCreated };
+  }
+
+  async addScratchColumn(
+    snapshotId: SnapshotId,
+    tableId: SnapshotTableId,
+    addScratchColumnDto: AddScratchColumnDto,
+    actor: Actor,
+  ): Promise<void> {
+    const { columnName, dataType } = addScratchColumnDto;
+    const snapshot = await this.findOne(snapshotId, actor);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+    const table = snapshot.snapshotTables?.find((t) => t.id === tableId);
+    if (!table) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const columnId = sanitizeForWsId(columnName);
+    if (DEFAULT_COLUMNS.includes(columnId)) {
+      throw new BadRequestException(
+        `Column name ${columnName} is reserved and cannot be used. Choose a different name.`,
+      );
+    }
+
+    const tableSpec = table.tableSpec as AnyTableSpec;
+    // check the column isn't already used
+    const existingColumn = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (existingColumn) {
+      throw new BadRequestException(
+        `Column ${columnName} already exists in table ${tableSpec.name}. Choose a different name.`,
+      );
+    }
+
+    const columnSpec: BaseColumnSpec = {
+      id: { wsId: columnId, remoteId: [columnId, 'scratch-column'] },
+      name: columnName,
+      pgType: dataType,
+      metadata: {
+        scratch: true,
+      },
+    };
+
+    const newTableSpec = {
+      ...tableSpec,
+      columns: [...tableSpec.columns, columnSpec],
+    };
+
+    await this.db.client.snapshotTable.update({
+      where: { id: tableId },
+      data: {
+        tableSpec: newTableSpec as InputJsonObject,
+      },
+    });
+
+    await this.snapshotDbService.snapshotDb.addColumn(snapshotId, tableSpec.id.wsId, {
+      columnId,
+      columnType: dataType,
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+
+    await this.auditLogService.logEvent({
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      eventType: 'update',
+      message: `Added scratch column ${columnName} to table ${tableSpec.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId,
+        columnId,
+        columnName,
+      },
+    });
+  }
+
+  async removeScratchColumn(
+    snapshotId: SnapshotId,
+    tableId: SnapshotTableId,
+    columnId: string,
+    actor: Actor,
+  ): Promise<void> {
+    const snapshot = await this.findOne(snapshotId, actor);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+    const table = snapshot.snapshotTables?.find((t) => t.id === tableId);
+    if (!table) {
+      throw new NotFoundException('Table not found in snapshot');
+    }
+
+    const tableSpec = table.tableSpec as AnyTableSpec;
+    const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!column) {
+      throw new NotFoundException(`Column not found in table: ${tableSpec.name} with id: ${columnId}`);
+    }
+
+    if (!column.metadata?.scratch) {
+      throw new BadRequestException(`Column ${columnId} is not a scratch column and cannot be removed`);
+    }
+
+    const newTableSpec = {
+      ...tableSpec,
+      columns: tableSpec.columns.filter((c) => c.id.wsId !== columnId),
+    };
+
+    await this.db.client.snapshotTable.update({
+      where: { id: tableId },
+      data: {
+        tableSpec: newTableSpec as InputJsonObject,
+      },
+    });
+
+    await this.snapshotDbService.snapshotDb.removeColumn(snapshotId, tableSpec.id.wsId, columnId);
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+
+    await this.auditLogService.logEvent({
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      eventType: 'update',
+      message: `Removed scratch column ${column.name} from table ${tableSpec.name}`,
+      entityId: snapshotId,
+      context: {
+        tableId,
+        columnId,
+        columnName: column.name,
+      },
+    });
   }
 }
 
