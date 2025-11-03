@@ -1,8 +1,17 @@
 'use client';
 
-import { ActionIcon, createTheme, MantineColorsTuple, Text, Title, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, Text, Title, virtualColor } from '@mantine/core';
 import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
-import { CUSTOM_BLUE, CUSTOM_GRAY, CUSTOM_GREEN, CUSTOM_RED } from './custom-colors';
+import {
+  CUSTOM_BLUE,
+  CUSTOM_DARK,
+  CUSTOM_GRAY_DARK,
+  CUSTOM_GRAY_LIGHT,
+  CUSTOM_GREEN_DARK,
+  CUSTOM_GREEN_LIGHT,
+  CUSTOM_RED_DARK,
+  CUSTOM_RED_LIGHT,
+} from './custom-colors';
 import classes from './theme.module.css';
 import { variantColorResolver } from './variantColorResolver';
 
@@ -16,21 +25,32 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   cursorType: 'pointer',
   colors: {
-    red: CUSTOM_RED,
-    green: CUSTOM_GREEN,
-    blue: CUSTOM_BLUE,
-    primary: CUSTOM_GREEN,
-
-    // TODO: Use real colors here.
-    surfaceLight: CUSTOM_GRAY,
-    surfaceDark: CUSTOM_GRAY.toReversed() as unknown as MantineColorsTuple,
-
-    surface: virtualColor({
-      name: 'surface',
-      light: 'surfaceLight',
-      dark: 'surfaceDark',
+    grayLight: CUSTOM_GRAY_LIGHT,
+    grayDark: CUSTOM_GRAY_DARK,
+    gray: virtualColor({
+      name: 'gray',
+      light: 'grayLight',
+      dark: 'grayDark',
     }),
 
+    redLight: CUSTOM_RED_LIGHT,
+    redDark: CUSTOM_RED_DARK,
+    red: virtualColor({
+      name: 'red',
+      light: 'redLight',
+      dark: 'redDark',
+    }),
+
+    greenLight: CUSTOM_GREEN_LIGHT,
+    greenDark: CUSTOM_GREEN_DARK,
+    green: virtualColor({
+      name: 'green',
+      light: 'greenLight',
+      dark: 'greenDark',
+    }),
+
+    blue: CUSTOM_BLUE,
+    dark: CUSTOM_DARK,
 
     /** Use this color for all dev tools */
     devTool: virtualColor({
@@ -47,9 +67,14 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     }),
   },
 
-  primaryColor: 'primary',
-  primaryShade: { light: 8, dark: 8 }, 
+  primaryColor: 'greenLight',
+  primaryShade: { light: 8, dark: 8 },
 
+  // These only apply to light mode, the darkmode equivalents are set in `colors.dark` instead.
+  white: '#ffffff', // colors.dark[7] in dark mode
+  black: '#000000' /* Figma gray/12*. colrs.dark[0] in dark mode */,
+
+  // variable
   variantColorResolver: variantColorResolver,
 
   fontSizes: {
@@ -104,7 +129,8 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
     Text: Text.extend({
       // Add support for variant='dimmed'
-      classNames: {root: classes.text},
+      // TODO: Just use color='dimmed'
+      classNames: { root: classes.text },
     }),
   },
 });

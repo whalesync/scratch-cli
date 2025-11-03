@@ -69,7 +69,7 @@ export default function DevComponentGalleryPage() {
           {/* Table of contents */}
           <List>
             <List.Item>
-              <Anchor href="#colors">Colors</Anchor>
+              <Anchor href="#shades">Key shades</Anchor>
             </List.Item>
             <List.Item>
               <Anchor href="#colors">Colors</Anchor>
@@ -109,20 +109,39 @@ export default function DevComponentGalleryPage() {
             </List.Item>
           </List>
 
+          <GallerySection id="shades" title="Key shades" />
+          <TextXsBook variant="dimmed">
+            These are single-color shades that adjust for light/dark mode. Use these for all panels and text.
+          </TextXsBook>
+          <GalleryItem
+            label="page"
+            notes="Use these for background/paper colors. Default to body, with gray-0 for contrasting panels and gray-1 for selections."
+          >
+            <Group gap={0}>
+              <ColorChip cssName="--mantine-color-body" modeAware />
+              <ColorChip cssName="--mantine-color-gray-0" modeAware />
+              <ColorChip cssName="--mantine-color-gray-1" modeAware />
+            </Group>
+          </GalleryItem>
+          <GalleryItem
+            label="text"
+            notes="Use these for foreground/text colors. Default to gray-9, with gray-8 for subtitles. Secondary text can just be c='dimmed'"
+          >
+            <Group gap={0}>
+              <ColorChip cssName="--mantine-color-gray-9" modeAware />
+              <ColorChip cssName="--mantine-color-gray-8" modeAware />
+            </Group>
+          </GalleryItem>
+
           <GallerySection id="colors" title="Colors" />
-          <GalleryItem label="body" notes="Use for a pure background color">
-            <ColorChip cssName="--mantine-color-body" label="body" withBorder modeAware />
-          </GalleryItem>
-          <GalleryItem label="text" notes="Use for a pure foreground/text color">
-            <ColorChip cssName="--mantine-color-text" label="text" withBorder modeAware />
-          </GalleryItem>
-          <GalleryColor
-            color="surface"
-            notes="A spectrum from body to text. Use surface.0/1/2 for background panels"
-            modeAware
-          />
-          <GalleryColor color="green" notes="AKA primary. Can be used in light or dark for emphasis" />
-          <GalleryColor color="red" />
+          <TextXsBook variant="dimmed">
+            These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
+            because Mantine only supports 10 shades. Mostly use the shades above instead.
+          </TextXsBook>
+
+          <GalleryColor color="green" modeAware notes="AKA primary. Can be used in light or dark for emphasis" />
+          <GalleryColor color="gray" modeAware />
+          <GalleryColor color="red" modeAware />
           <GalleryColor color="blue" />
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
 
@@ -435,24 +454,14 @@ function GalleryColor({
     <GalleryItem label={color} notes={notes}>
       <Group gap={0}>
         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-          <ColorChip key={i} cssName={`--mantine-color-${color}-${i}`} label={'' + i} modeAware={modeAware} />
+          <ColorChip key={i} cssName={`--mantine-color-${color}-${i}`} modeAware={modeAware} />
         ))}
       </Group>
     </GalleryItem>
   );
 }
 
-function ColorChip({
-  cssName,
-  label,
-  modeAware = false,
-  withBorder = false,
-}: {
-  cssName: string;
-  label: string;
-  modeAware?: boolean;
-  withBorder?: boolean;
-}): ReactNode {
+function ColorChip({ cssName, modeAware = false }: { cssName: string; modeAware?: boolean }): ReactNode {
   const [colorValue, setColorValue] = useState('');
   const colorScheme = useComputedColorScheme();
 
@@ -463,22 +472,18 @@ function ColorChip({
   }, [cssName, colorScheme]);
 
   return (
-    <ColorSwatch
-      color={`var(${cssName})`}
-      size={100}
-      radius={0}
-      withShadow={false}
-      bd={withBorder ? '1px solid #aaaaaa' : 'none'}
-    >
-      {modeAware && (
-        <Tooltip label="Dark-mode aware">
-          <MoonStar size={16} fill="var(--mantine-color-body)" style={{ position: 'absolute', top: 3, right: 3 }} />
-        </Tooltip>
-      )}
-      <Stack align="center" justify="center" p={0}>
-        {label && <Code opacity={0.6}>{label}</Code>}
-        <Code opacity={0.6}>{colorValue}</Code>
-      </Stack>
-    </ColorSwatch>
+    <Stack>
+      <ColorSwatch color={`var(${cssName})`} radius={0} withShadow={false} w={100} h={200}>
+        {modeAware && (
+          <Tooltip label="Dark-mode aware">
+            <MoonStar size={16} fill="var(--mantine-color-body)" style={{ position: 'absolute', top: 3, right: 3 }} />
+          </Tooltip>
+        )}
+        <Stack align="center" justify="flex-end" p={5}>
+          <Code opacity={0.6}>{cssName}</Code>
+          <Code opacity={0.6}>{colorValue}</Code>
+        </Stack>
+      </ColorSwatch>
+    </Stack>
   );
 }

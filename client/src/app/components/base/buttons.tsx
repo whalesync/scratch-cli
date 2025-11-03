@@ -6,16 +6,16 @@ import customBordersClasses from '../theme/custom-borders.module.css';
 export const ButtonPrimarySolid = Button.withProps({
   variant: 'filled',
   size: 'sm',
-  color: 'primary.7', // fill
+  color: 'green.7', // fill
   c: 'background', // text
-  styles: { root: { border: 'primary.9', backgroundColor: 'primary.7' } },
+  styles: { root: { border: 'green.9', backgroundColor: 'green.7' } },
 });
 
 export const ButtonPrimaryLight = Button.withProps({
   variant: 'light',
   size: 'sm',
-  color: 'primary.8', // fill
-  c: 'primary.8', // text
+  color: 'green.8', // fill
+  c: 'green.8', // text
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
@@ -69,8 +69,8 @@ export const DevToolButton = Button.withProps({
 export const AcceptSuggestionButton = Button.withProps({
   size: 'xs',
   variant: 'outline',
-  color: 'primary', // border
-  c: 'primary', // text
+  color: 'green', // border
+  c: 'green', // text
 });
 
 /** @deprecated */
