@@ -77,7 +77,16 @@ export class NotionSchemaParser {
 
       case 'email':
         return { textFormat: 'email' };
-
+      case 'select':
+        return {
+          options: property.select.options.map((o) => ({ label: o.name, value: o.name })),
+          allowAnyOption: true,
+        };
+      case 'multi_select':
+        return {
+          options: property.multi_select.options.map((o) => ({ label: o.name, value: o.name })),
+          allowAnyOption: true,
+        };
       default:
         return undefined;
     }

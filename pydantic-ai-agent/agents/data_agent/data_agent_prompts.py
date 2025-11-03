@@ -275,6 +275,21 @@ When calling tools that expect lists or dictionaries, pass them as proper Python
 - INCORRECT: record_updates="[{'wsId': 'id1', 'data': {'field': 'value'}}]"
 """
 
+DATA_FORMATTING_INSTRUCTIONS = """
+# ENUMS HANDLING
+When columns have options defined in their metadata, we have to follow these rules:
+- You will receive a list in the options in the metadata like this: [{"label": "Active", "value": "service_id_active"}, {"label": "Inactive", "value": "service_id_inactive"}]
+- CORRECT: status = "service_id_active"
+- INCORRECT: status = "Active"
+- If the field is an array type, pass the array as a list of values, NOT as a list of labels. For example:
+- CORRECT: status = ["service_id_active", "service_id_inactive"]
+- INCORRECT: status = ["Active", "Inactive"]
+
+## IMPORTANT
+- If the allowAnyOption is true, you can pass any value that doesn't exist in the options list.
+- Keep the format of array vs single items based on the type of the field, use a json object for arrays and a single value for single items.
+"""
+
 DATA_STRUCTURE_INSTRUCTIONS = """
 # DATA STRUCTURE EXPLANATION
 When you receive snapshot data, each record has this structure:

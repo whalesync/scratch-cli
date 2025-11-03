@@ -43,7 +43,10 @@ export enum PostgresColumnType {
   JSONB = 'jsonb',
   TIMESTAMP = 'timestamp',
 }
-
+/** This is being passed to the agent as a string.
+ * make sure we don't add any actionable properties here.
+ * e.g. writeable: true would make the agent belive that the column is writable.
+ */
 export type ColumnMetadata = {
   // Defintes the flavor of the text in the column and influences how it is displayed in the UI.
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
