@@ -213,7 +213,7 @@ export function formatFieldValue(value: unknown, column: ColumnSpec): string {
     return '';
   }
 
-  if (column.pgType === PostgresColumnType.JSONB) {
+  if (column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT_ARRAY) {
     try {
       return JSON.stringify(value, null, 2);
     } catch (error) {

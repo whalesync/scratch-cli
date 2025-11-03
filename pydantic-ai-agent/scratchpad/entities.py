@@ -85,6 +85,7 @@ class ScratchpadSnapshot:
     createdAt: str
     updatedAt: str
     userId: str
+    organizationId: str
     connectorAccountId: str
     tables: List[TableSpec]
     tableContexts: List[TableContext]
