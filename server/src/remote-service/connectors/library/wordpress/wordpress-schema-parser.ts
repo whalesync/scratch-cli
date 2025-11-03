@@ -134,9 +134,6 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
         pgType = PostgresColumnType.TEXT;
       }
       break;
-    case WordPressDataType.OBJECT:
-      pgType = PostgresColumnType.JSONB;
-      break;
     case WordPressDataType.RENDERED:
       pgType = PostgresColumnType.TEXT;
       metadata = { textFormat: 'html' };
@@ -162,9 +159,12 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
       pgType = PostgresColumnType.TEXT;
       break;
     case WordPressDataType.STRING:
+      pgType = PostgresColumnType.TEXT;
+      break;
+    case WordPressDataType.OBJECT:
     case WordPressDataType.UNKNOWN:
     default:
-      pgType = PostgresColumnType.TEXT;
+      pgType = PostgresColumnType.JSONB;
       break;
   }
 
@@ -175,6 +175,12 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
     if (columnId === 'status') {
       enumList.push('inherit');
     }
+    metadata = {
+      options: enumList.map((value) => ({
+        value,
+        label: value,
+      })),
+    };
   }
 
   return {

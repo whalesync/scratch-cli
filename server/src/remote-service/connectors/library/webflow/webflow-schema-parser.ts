@@ -41,9 +41,7 @@ export class WebflowSchemaParser {
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
     // Parse all collection fields
-    const columns = collection.fields
-      .map((field) => this.parseColumn(field, titleColumnSlug?.[0]))
-      .filter((column) => column.pgType !== PostgresColumnType.JSONB);
+    const columns = collection.fields.map((field) => this.parseColumn(field, titleColumnSlug?.[0]));
 
     // Add predefined metadata columns (readonly)
     columns.push(
