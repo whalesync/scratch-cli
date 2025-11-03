@@ -1,9 +1,10 @@
 'use client';
 
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
-import { Stack } from '@mantine/core';
+import { Group, Stack } from '@mantine/core';
 import { DatabaseIcon, DatabaseZapIcon, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
@@ -59,9 +60,11 @@ export default function DevListPage() {
         </Stack>
       </MainContent.Body>
       <MainContent.Footer>
-        <TextSmBook c="dimmed" ta="center">
-          Build version: {BUILD_VERSION}
-        </TextSmBook>
+        <Group justify="center">
+          <TextSmBook c="dimmed">Environment: {getBuildFlavor()}</TextSmBook>
+          <TextSmBook c="dimmed">Build version: {BUILD_VERSION}</TextSmBook>
+          <TextSmBook c="dimmed">Clerk key: {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}</TextSmBook>
+        </Group>
       </MainContent.Footer>
     </MainContent>
   );

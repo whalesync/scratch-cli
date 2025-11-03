@@ -14,6 +14,9 @@ export async function GET() {
     environment: process.env.NODE_ENV || "development",
     package_version: process.env.npm_package_version || "1.0.0",
     build_version: BUILD_VERSION,
+    clerk_info: {
+      publishable_key: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    },
   };
 
   return NextResponse.json(healthCheck, { status: 200 });

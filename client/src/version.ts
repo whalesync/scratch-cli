@@ -1,1 +1,1 @@
-export const BUILD_VERSION = '0.0.0-local';
+export const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_VERSION || '0.0.0-local';
