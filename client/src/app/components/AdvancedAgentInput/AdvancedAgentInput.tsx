@@ -2,7 +2,7 @@
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi, RecordMentionEntity, ResourceMentionEntity } from '@/lib/api/mentions';
-import { Snapshot } from '@/types/server-entities/snapshot';
+import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
 import { FC, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
@@ -258,13 +258,14 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           color: '#00bb00',
         }}
         data={(query, callback) => {
-          if (!snapshot?.tables) {
+          if (!snapshot?.snapshotTables) {
             callback([]);
             return;
           }
 
+          const tableSpecs = snapshot.snapshotTables.map((t) => t.tableSpec as TableSpec);
           // Get all tables
-          const allTables = snapshot.tables.map((table) => ({
+          const allTables = tableSpecs.map((table) => ({
             id: `tbl_${table.id.wsId}`,
             display: table.name,
             type: 'table',
@@ -272,7 +273,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           }));
 
           // Get all fields
-          const allFields = snapshot.tables.flatMap((table) => {
+          const allFields = tableSpecs.flatMap((table) => {
             console.debug(`Processing table ${table.name} with ${table.columns.length} columns`);
             return table.columns.map((column) => ({
               id: `fld_${table.id.wsId}_${column.id.wsId}`,

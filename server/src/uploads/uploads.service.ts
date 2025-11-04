@@ -12,7 +12,6 @@ import { WSLogger } from 'src/logger';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
-import { SnapshotTableContext } from 'src/snapshot/types';
 import {
   createCsvFileRecordId,
   createSnapshotId,
@@ -847,16 +846,8 @@ export class UploadsService {
           connectorAccountId: null, // No connector account needed for CSV
           name: snapshotName,
           service: Service.CSV, // Set service to CSV
-          tableSpecs,
           columnContexts: [],
-          tableContexts: [
-            {
-              id: { wsId: tableId, remoteId: [uploadId] },
-              activeViewId: null,
-              ignoredColumns: [],
-              readOnlyColumns: [],
-            },
-          ] satisfies SnapshotTableContext[],
+
           snapshotTables: {
             create: [
               {

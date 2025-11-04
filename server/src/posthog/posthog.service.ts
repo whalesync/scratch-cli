@@ -107,7 +107,7 @@ export class PostHogService implements OnModuleDestroy {
     this.captureEvent(PostHogEventName.SNAPSHOT_CREATED, userId, {
       snapshotId: snapshot.id,
       connector: snapshot.connectorAccount?.service ?? 'connectorless',
-      numTables: snapshot.tableSpecs.length,
+      numTables: snapshot.snapshotTables.length,
     });
   }
 
@@ -115,7 +115,7 @@ export class PostHogService implements OnModuleDestroy {
     this.captureEvent(PostHogEventName.SNAPSHOT_REMOVED, userId, {
       snapshotId: snapshot.id,
       connector: snapshot.connectorAccount?.service ?? 'connectorless',
-      numTables: snapshot.tableSpecs.length,
+      numTables: snapshot.snapshotTables.length,
     });
   }
 
@@ -123,7 +123,7 @@ export class PostHogService implements OnModuleDestroy {
     this.captureEvent(PostHogEventName.SNAPSHOT_PUBLISHED, userId, {
       snapshotId: snapshot.id,
       connector: snapshot.connectorAccount?.service ?? 'connectorless',
-      numTables: snapshot.tableSpecs.length,
+      numTables: snapshot.snapshotTables.length,
     });
   }
 

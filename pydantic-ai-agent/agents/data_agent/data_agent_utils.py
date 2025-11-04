@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from scratchpad.entities import ColumnView, ScratchpadSnapshot
+from scratchpad.entities import ColumnView, ScratchpadSnapshot, SnapshotTable
 from session import ChatSession
 from logging import getLogger
 
@@ -80,8 +80,9 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
 
     # Convert tables one by one
     converted_tables = []
-    for i, table in enumerate(snapshot_data.tables):
-        logger.debug(f"🔍 Converting table {i+1}/{len(snapshot_data.tables)}: {table['name']}")  # type: ignore
+    for i, snapshotTable in enumerate[SnapshotTable](snapshot_data.snapshotTables):
+        logger.debug(f"🔍 Converting table: {snapshotTable}")
+        table = snapshotTable["tableSpec"]  # type: ignore
 
         # Convert columns for this table
         converted_columns = []
@@ -123,7 +124,8 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
             tableViews[table_id] = table_view
 
     converted_table_contexts = []
-    for i, table_context in enumerate(snapshot_data.tableContexts):
+    for i, snapshotTable in enumerate[SnapshotTable](snapshot_data.snapshotTables):
+        table_context = snapshotTable["tableContext"]  # type: ignore
         table_context_spec = TableContext(
             id=EntityId(wsId=table_context["id"]["wsId"], remoteId=table_context["id"]["remoteId"]),  # type: ignore
             activeViewId=table_context["activeViewId"],  # type: ignore

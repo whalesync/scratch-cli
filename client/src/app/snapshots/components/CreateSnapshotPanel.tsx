@@ -80,7 +80,10 @@ export const CreateSnapshotPanel = () => {
       // Get the snapshot details to navigate to it
       const snapshot = await snapshotApi.detail(result.snapshotId);
       if (snapshot) {
-        const tableId = snapshot.tables.length > 0 ? snapshot.tables[0].id.wsId : undefined;
+        const tableId =
+          snapshot.snapshotTables && snapshot.snapshotTables.length > 0
+            ? snapshot.snapshotTables[0].tableSpec.id.wsId
+            : undefined;
         let recordId = undefined;
         if (tableId) {
           const records = await snapshotApi.listRecords(snapshot.id, tableId ?? '', undefined, 1);

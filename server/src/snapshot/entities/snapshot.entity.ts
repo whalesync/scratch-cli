@@ -38,8 +38,6 @@ export class Snapshot {
     this.connectorAccountId = snapshot.connectorAccountId;
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
     this.connectorService = snapshot.service;
-    this.tables = snapshot.tableSpecs as AnyTableSpec[];
-    this.tableContexts = snapshot.tableContexts as SnapshotTableContext[];
     this.columnContexts = snapshot.columnContexts as SnapshotColumnContexts;
     this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
     this.snapshotTables = snapshot.snapshotTables?.map((st) => new SnapshotTableEntity(st));

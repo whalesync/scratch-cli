@@ -34,6 +34,8 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
     {} as Record<Service, number>,
   );
 
+  const tableZero = snapshot.snapshotTables?.[0];
+
   const handleAbandon = async () => {
     if (!snapshot) return;
     try {
@@ -143,16 +145,24 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
               icon={Trash2}
               tooltip="Abandon workbook"
             />
-            <ToolIconButton
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownloadCsv(snapshot, snapshot.tables[0].id.wsId, snapshot.tables[0].name, setDownloading, false);
-              }}
-              icon={Download}
-              tooltip={`Export as CSV`}
-              loading={downloading === snapshot.tables[0].id.wsId}
-            />
+            {tableZero && (
+              <ToolIconButton
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadCsv(
+                    snapshot,
+                    tableZero.tableSpec.id.wsId,
+                    tableZero.tableSpec.name,
+                    setDownloading,
+                    false,
+                  );
+                }}
+                icon={Download}
+                tooltip={`Export as CSV`}
+                loading={downloading === tableZero.tableSpec.id.wsId}
+              />
+            )}
           </Group>
         </Table.Td>
       </Table.Tr>

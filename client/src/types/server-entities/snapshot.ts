@@ -93,8 +93,6 @@ export interface Snapshot {
   name: string | null;
   createdAt: string;
   updatedAt: string;
-  tables: TableSpec[];
-  tableContexts: SnapshotTableContext[];
   columnContexts: SnapshotColumnContexts;
   activeRecordSqlFilter?: Record<string, string>;
   snapshotTables?: SnapshotTable[];
@@ -285,4 +283,19 @@ export function getSafeNumberValue(
   }
 
   return _.toNumber(value);
+}
+
+
+export function getSnapshotTableByWsId(snapshot: Snapshot, tableId: string): SnapshotTable | undefined {
+  return snapshot.snapshotTables?.find((t) => t.tableSpec.id.wsId === tableId);
+}
+
+export function getTableSpecByWsId(snapshot: Snapshot, tableId: string): TableSpec | undefined {
+  const table = getSnapshotTableByWsId(snapshot, tableId);
+  return table?.tableSpec;
+}
+
+export function getSnapshotTableContextByWsId(snapshot: Snapshot, tableId: string): SnapshotTableContext | undefined {
+  const table = getSnapshotTableByWsId(snapshot, tableId);
+  return table?.tableContext ?? undefined;
 }

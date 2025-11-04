@@ -24,7 +24,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
-import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotId, SnapshotTableId } from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
@@ -49,6 +48,7 @@ import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
+import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
 
 @Controller('snapshot')
 export class SnapshotController {
@@ -393,9 +393,9 @@ export class SnapshotController {
       throw new NotFoundException('Snapshot not found');
     }
 
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot`);
     }
 
     return this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
@@ -462,18 +462,14 @@ export class SnapshotController {
     @Res() res: Response,
   ): Promise<void> {
     // Verify user has access to the snapshot
-    const snapshotData = await this.service.findOne(snapshotId, toActor(req.user));
-    if (!snapshotData) {
+    const snapshot = await this.service.findOne(snapshotId, toActor(req.user));
+    if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
 
-    // Convert to Snapshot entity to get tables
-    const snapshot = new Snapshot(snapshotData);
-
-    // Find the table specification
-    const tableSpec = snapshot.tables.find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot`);
     }
 
     try {
@@ -497,7 +493,7 @@ export class SnapshotController {
 
       // Check if we should apply the SQL filter
       const shouldApplyFilter = filteredOnly === 'true';
-      const sqlWhereClause = shouldApplyFilter ? snapshot.activeRecordSqlFilter?.[tableId] : null;
+      const sqlWhereClause = shouldApplyFilter ? snapshotTable.activeRecordSqlFilter : null;
 
       // Build the WHERE clause if filter should be applied and exists
       const whereClause =

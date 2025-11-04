@@ -5,6 +5,7 @@ import { snapshotApi } from "@/lib/api/snapshot";
 import { trackAcceptChanges, trackRejectChanges } from "@/lib/posthog";
 import {
   AcceptAllSuggestionsResult,
+  getTableSpecByWsId,
   RejectAllSuggestionsResult,
   SNAPSHOT_RECORD_CREATED_FIELD,
   SNAPSHOT_RECORD_DELETED_FIELD,
@@ -238,7 +239,7 @@ export interface UseSnapshotRecordsReturn {
     const createNewRecord = useCallback(async () => {
 
       if (!snapshot) return;
-      const table = snapshot.tables.find((t) => t.id.wsId === tableId);
+      const table = getTableSpecByWsId(snapshot, tableId);
 
       if (!table) return;
       const newRecordId = generatePendingId();

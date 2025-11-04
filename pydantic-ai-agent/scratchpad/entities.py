@@ -87,8 +87,6 @@ class ScratchpadSnapshot:
     userId: str
     organizationId: str
     connectorAccountId: str
-    tables: List[TableSpec]
-    tableContexts: List[TableContext]
     columnContexts: Any
     activeRecordSqlFilter: Optional[Dict[str, str]] = None
     snapshotTables: Optional[List[SnapshotTable]] = None

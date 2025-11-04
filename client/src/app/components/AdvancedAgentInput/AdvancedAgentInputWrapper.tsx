@@ -31,10 +31,10 @@ export default function AdvancedAgentInputWrapper() {
   useEffect(() => {
     if (snapshot && !selectedTableId) {
       // Set default table if provided in URL, otherwise use first table
-      if (defaultTableId && snapshot.tables.some((table) => table.id.wsId === defaultTableId)) {
+      if (defaultTableId && snapshot.snapshotTables?.some((table) => table.tableSpec.id.wsId === defaultTableId)) {
         setSelectedTableId(defaultTableId);
-      } else if (snapshot.tables.length > 0) {
-        setSelectedTableId(snapshot.tables[0].id.wsId);
+      } else if (snapshot.snapshotTables && snapshot.snapshotTables.length > 0) {
+        setSelectedTableId(snapshot.snapshotTables[0].tableSpec.id.wsId);
       }
     }
   }, [snapshot, defaultTableId, selectedTableId]);
@@ -60,9 +60,9 @@ export default function AdvancedAgentInputWrapper() {
     );
   }
 
-  const tableOptions = snapshot.tables.map((table) => ({
-    value: table.id.wsId,
-    label: table.name,
+  const tableOptions = snapshot.snapshotTables?.map((table) => ({
+    value: table.tableSpec.id.wsId,
+    label: table.tableSpec.name,
   }));
 
   return (

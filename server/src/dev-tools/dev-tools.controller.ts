@@ -3,7 +3,6 @@ import {
   Get,
   NotFoundException,
   Param,
-  Post,
   Query,
   Req,
   UnauthorizedException,
@@ -12,10 +11,9 @@ import {
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from 'src/auth/types';
+import { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
-import { SnapshotId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { User } from 'src/users/entities/user.entity';
 import { Actor, userToActor } from 'src/users/types';
@@ -66,48 +64,6 @@ export class DevToolsController {
     const connectorAccounts = await this.connectorAccountService.findAll(actor);
     const auditLogs = await this.auditLogService.findEventsForUser(actor.userId, 20, undefined);
     return new UserDetail(targetUser, snapshots, connectorAccounts, auditLogs);
-  }
-
-  /*
-    Temporary endpoint to migrate old style snapshots to new Workbooks
-  */
-  @UseGuards(ScratchpadAuthGuard)
-  @Post('snapshots/fix-user')
-  async fixUser(@Req() req: RequestWithUser): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
-    return this.snapshotService.migrateUserSnapshots(toActor(req.user));
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Get('snapshots/old-style-snapshots')
-  async listOldStyleSnapshots(@Req() req: RequestWithUser): Promise<
-    Array<{
-      id: string;
-      name: string | null;
-      service: string;
-      userId: string | null;
-      organizationId: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      tableSpecsCount: number;
-      snapshotTablesCount: number;
-    }>
-  > {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can list old-style snapshots');
-    }
-    return this.snapshotService.listOldStyleSnapshots();
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Post('snapshots/fix-snapshot/:id')
-  async fixSnapshot(
-    @Param('id') id: SnapshotId,
-    @Req() req: RequestWithUser,
-  ): Promise<{ success: boolean; tablesCreated: number }> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can fix snapshots');
-    }
-    return this.snapshotService.migrateSnapshot(id);
   }
 
   /**

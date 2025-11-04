@@ -40,13 +40,6 @@ export type SnapshotColumnContexts = {
 };
 
 /**
- * Maps tableId to an array of record IDs that are currently visible (filtered in).
- */
-export type ActiveRecordFilter = {
-  [tableId: string]: string[];
-};
-
-/**
  * Maps tableId to an SQL WHERE clause that filters records.
  */
 export type ActiveRecordSqlFilter = {

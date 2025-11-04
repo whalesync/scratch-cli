@@ -71,11 +71,11 @@ function SnapshotPageContent() {
         const table = snapshotTables.find((t) => t.tableSpec.id.wsId === tableId);
         if (table) {
           setActiveTable(table);
-          setSelectedTableContext(snapshot?.tableContexts.find((t) => t.id.wsId === tableId) ?? null);
+          setSelectedTableContext(table.tableContext ?? null);
         }
-      } else {
+      } else if (snapshotTables.length > 0) {
         setActiveTable(snapshotTables[0] ?? undefined);
-        setSelectedTableContext(snapshot?.tableContexts[0] ?? null);
+        setSelectedTableContext(snapshotTables[0].tableContext ?? null);
       }
     }
   }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTable, setSelectedTableContext]);
@@ -113,7 +113,7 @@ function SnapshotPageContent() {
     );
   }
 
-  if (snapshot.tables.length === 0) {
+  if (snapshot.snapshotTables && snapshot.snapshotTables.length === 0) {
     return (
       <ErrorInfo
         title={`No tables found in ${snapshot.name}`}

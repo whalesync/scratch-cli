@@ -109,7 +109,7 @@ export class MentionsService {
     if (!snapshot) return [];
 
     // Find the table by tableId using tableSpecs
-    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
     const table = tableSpecs.find((t) => t.id.wsId === tableId);
     if (!table) return [];
 

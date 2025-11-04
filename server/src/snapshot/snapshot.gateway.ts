@@ -128,7 +128,9 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       message: 'subscribed to snapshot events',
     });
 
-    (snapshot.tableSpecs as AnyTableSpec[]).forEach((tableSpec) => {
+    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
+
+    tableSpecs.forEach((tableSpec) => {
       const tableObservable = this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
       if (tableObservable) {
         tableObservable.subscribe((event) => {

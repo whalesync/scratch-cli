@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConnectorAccount, Service } from '@prisma/client';
+import { ConnectorAccount, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
 import { Response } from 'express';
 import _ from 'lodash';
@@ -38,11 +38,11 @@ import { AddScratchColumnDto } from './dto/scratch-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
-import { Snapshot } from './entities/snapshot.entity';
 import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
+import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
@@ -119,8 +119,6 @@ export class SnapshotService {
         connectorAccountId,
         name: createSnapshotDto.name,
         service: connectorAccount.service,
-        tableSpecs, // Cast to any for Prisma JSON storage
-        tableContexts,
         columnContexts: [],
         snapshotTables: {
           create: snapshotTables,
@@ -237,12 +235,6 @@ export class SnapshotService {
     const updatedSnapshot = await this.db.client.snapshot.update({
       where: { id: snapshotId },
       data: {
-        tableSpecs: {
-          push: tableSpec,
-        },
-        tableContexts: {
-          push: tableContext,
-        },
         // Also create the new SnapshotTable record
         snapshotTables: {
           create: {
@@ -400,27 +392,6 @@ export class SnapshotService {
       },
     });
 
-    // 5. Remove from legacy arrays (for backward compatibility)
-    const tableIndex = (snapshot.tableSpecs as unknown as AnyTableSpec[]).findIndex(
-      (ts) => ts.id.wsId === tableSpec.id.wsId,
-    );
-
-    if (tableIndex !== -1) {
-      const updatedTableSpecs = [...(snapshot.tableSpecs as unknown as AnyTableSpec[])];
-      const updatedTableContexts = [...(snapshot.tableContexts as unknown as SnapshotTableContext[])];
-
-      updatedTableSpecs.splice(tableIndex, 1);
-      updatedTableContexts.splice(tableIndex, 1);
-
-      await this.db.client.snapshot.update({
-        where: { id: snapshotId },
-        data: {
-          tableSpecs: updatedTableSpecs as any[],
-          tableContexts: updatedTableContexts as any[],
-        },
-      });
-    }
-
     // 6. Fetch and return updated snapshot
     const updatedSnapshot = await this.db.client.snapshot.findUnique({
       where: { id: snapshotId },
@@ -540,9 +511,9 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<SnapshotRecord | null> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     return this.snapshotDbService.snapshotDb.getRecord(snapshotId, tableId, recordId);
@@ -557,9 +528,9 @@ export class SnapshotService {
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     let viewConfig: ViewConfig | undefined = undefined;
@@ -612,9 +583,9 @@ export class SnapshotService {
     writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     let viewConfig: ViewConfig | undefined = undefined;
@@ -661,9 +632,9 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Fetch the records by their IDs from the snapshot database
@@ -684,9 +655,9 @@ export class SnapshotService {
     viewId?: string,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     let viewConfig: ViewConfig | undefined = undefined;
@@ -730,9 +701,9 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     if (!snapshot.connectorAccount) {
@@ -915,9 +886,9 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Validate that all columns exist in the table spec
@@ -956,9 +927,9 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Validate that all columns exist in the table spec
@@ -998,9 +969,9 @@ export class SnapshotService {
     viewId?: string,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     let viewConfig: ViewConfig | undefined = undefined;
@@ -1096,9 +1067,9 @@ export class SnapshotService {
     viewId?: string,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     let viewConfig: ViewConfig | undefined = undefined;
@@ -1228,7 +1199,7 @@ export class SnapshotService {
       decryptedCredentials: connectorAccount,
       userId: actor.userId,
     });
-    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
     let totalCount = 0;
     const tables: { id: string; name: string; records: number }[] = [];
     for (const tableSpec of tableSpecs) {
@@ -1306,7 +1277,7 @@ export class SnapshotService {
     //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
     // }
 
-    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
 
     const summary: PublishSummaryDto = {
       deletes: [],
@@ -1369,7 +1340,7 @@ export class SnapshotService {
       connectorAccount: connectorAccount,
       decryptedCredentials: connectorAccount,
     });
-    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
+    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
 
     try {
       // First create everything.
@@ -1484,22 +1455,21 @@ export class SnapshotService {
 
   async clearActiveView(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    const contexts = snapshot.tableContexts as SnapshotTableContext[];
-
-    const tableContext = contexts.find((c) => c.id.wsId === tableId);
+    const tableContext = snapshotTable.tableContext as SnapshotTableContext;
     if (tableContext) {
       // set the active ID
       tableContext.activeViewId = null;
 
-      await this.db.client.snapshot.update({
-        where: { id: snapshotId },
+      await this.db.client.snapshotTable.update({
+        where: { id: snapshotTable.id },
         data: {
-          tableContexts: contexts,
+          tableContext,
         },
       });
     }
@@ -1512,9 +1482,10 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Validate SQL WHERE clause if provided
@@ -1558,9 +1529,9 @@ export class SnapshotService {
 
   async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Load existing activeRecordSqlFilter or create empty object
@@ -1682,34 +1653,30 @@ export class SnapshotService {
     res: Response,
   ): Promise<void> {
     // Get snapshot without user check
-    const snapshotData = await this.db.client.snapshot.findUnique({
+    const snapshot = await this.db.client.snapshot.findUnique({
       where: { id: snapshotId },
       include: SnapshotCluster._validator.include,
     });
 
-    if (!snapshotData) {
+    if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
 
-    // Convert to Snapshot entity to get tables
-    const snapshot = new Snapshot(snapshotData);
-
-    // Find the table specification
-    const tableSpec = snapshot.tables.find((t) => t.id.wsId === tableId);
-    if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    await this.streamCsvExport(snapshotId, tableId, snapshot, filteredOnly, res);
+    await this.streamCsvExport(snapshot, snapshotTable, tableId, filteredOnly, res);
   }
 
   /**
    * Helper method to stream CSV export
    */
   private async streamCsvExport(
-    snapshotId: SnapshotId,
+    snapshot: SnapshotCluster.Snapshot,
+    snapshotTable: SnapshotTable,
     tableId: string,
-    snapshot: Snapshot,
     filteredOnly: boolean,
     res: Response,
   ): Promise<void> {
@@ -1718,7 +1685,7 @@ export class SnapshotService {
       const columnQuery = `
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_schema = '${snapshotId}' 
+        WHERE table_schema = '${snapshot.id}' 
         AND table_name = '${tableId}'
         AND column_name NOT IN ('__edited_fields', '__suggested_values', '__metadata', '__dirty')
         ORDER BY ordinal_position
@@ -1733,7 +1700,7 @@ export class SnapshotService {
       const columnNames = columns.rows.map((row) => row.column_name);
 
       // Check if we should apply the SQL filter
-      const sqlWhereClause = filteredOnly ? snapshot.activeRecordSqlFilter?.[tableId] : null;
+      const sqlWhereClause = filteredOnly ? snapshotTable.activeRecordSqlFilter : null;
 
       // Build the WHERE clause if filter should be applied and exists
       const whereClause =
@@ -1741,7 +1708,7 @@ export class SnapshotService {
 
       // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
       if (!filteredOnly) {
-        await this.snapshotDbService.snapshotDb.knex(`${snapshotId}.${tableId}`).update({
+        await this.snapshotDbService.snapshotDb.knex(`${snapshot.id}.${tableId}`).update({
           __dirty: false,
           __edited_fields: {},
         });
@@ -1756,7 +1723,7 @@ export class SnapshotService {
       // Use the CSV stream helper to stream the data
       const { stream, cleanup } = await createCsvStream({
         knex: this.snapshotDbService.snapshotDb.knex,
-        schema: snapshotId,
+        schema: snapshot.id,
         table: tableId,
         columnNames,
         whereClause,
@@ -1788,9 +1755,9 @@ export class SnapshotService {
     }
 
     // Find the table specification
-    const tableSpec = (snapshot.tableSpecs as AnyTableSpec[]).find((t) => t.id.wsId === tableId);
+    const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Parse CSV to process suggestions
@@ -1917,35 +1884,33 @@ export class SnapshotService {
 
   async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpecs = snapshot.tableSpecs as AnyTableSpec[];
-    const table = tableSpecs.find((t) => t.id.wsId === tableId);
-
-    if (!table) {
-      throw new NotFoundException('Table not found in snapshot');
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
+    if (!snapshotTable.tableSpec) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     // Verify the column exists in the table
-    const column = table.columns.find((c) => c.id.wsId === columnId);
+    const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
     if (!column) {
       throw new NotFoundException('Column not found in table');
     }
 
     // Update the table spec with the new title column
-    const updatedTableSpecs = tableSpecs.map((t) => {
-      if (t.id.wsId === tableId) {
-        return {
-          ...t,
-          titleColumnRemoteId: [columnId],
-        };
-      }
-      return t;
-    });
+    const updatedTableSpec = {
+      ...tableSpec,
+      titleColumnRemoteId: [columnId],
+    };
 
     // Update the snapshot with the new table specs
-    await this.db.client.snapshot.update({
-      where: { id: snapshotId },
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
       data: {
-        tableSpecs: updatedTableSpecs,
+        tableSpec: updatedTableSpec as InputJsonObject,
       },
     });
 
@@ -1958,7 +1923,7 @@ export class SnapshotService {
       userId: actor.userId,
       organizationId: actor.organizationId,
       eventType: 'update',
-      message: `Set title column for table ${table.name} to ${column.name}`,
+      message: `Set title column for table ${tableSpec.name} to ${column.name}`,
       entityId: snapshotId,
       context: {
         tableId,
@@ -1966,240 +1931,6 @@ export class SnapshotService {
         columnName: column.name,
       },
     });
-  }
-
-  async listOldStyleSnapshots(): Promise<
-    Array<{
-      id: string;
-      name: string | null;
-      service: string;
-      userId: string | null;
-      organizationId: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      tableSpecsCount: number;
-      snapshotTablesCount: number;
-    }>
-  > {
-    WSLogger.info({
-      source: 'SnapshotService.listOldStyleSnapshots',
-      message: 'Listing all old-style snapshots',
-    });
-
-    // Find all snapshots with tableSpecs but no SnapshotTable records
-    const snapshots = await this.db.client.snapshot.findMany({
-      where: {
-        snapshotTables: {
-          none: {}, // No related SnapshotTable records
-        },
-        NOT: {
-          tableSpecs: {
-            equals: [], // Exclude snapshots with empty tableSpecs array
-          },
-        },
-      },
-      include: {
-        snapshotTables: true,
-      },
-    });
-
-    const oldStyleSnapshots = snapshots.map((snapshot) => {
-      const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
-      return {
-        id: snapshot.id,
-        name: snapshot.name,
-        service: snapshot.service,
-        userId: snapshot.userId,
-        organizationId: snapshot.organizationId,
-        createdAt: snapshot.createdAt,
-        updatedAt: snapshot.updatedAt,
-        tableSpecsCount: tableSpecs.length,
-        snapshotTablesCount: snapshot.snapshotTables.length,
-      };
-    });
-
-    WSLogger.info({
-      source: 'SnapshotService.listOldStyleSnapshots',
-      message: 'Found old-style snapshots',
-      count: oldStyleSnapshots.length,
-    });
-
-    return oldStyleSnapshots;
-  }
-
-  async migrateSnapshot(snapshotId: SnapshotId): Promise<{ success: boolean; tablesCreated: number }> {
-    WSLogger.info({
-      source: 'SnapshotService.migrateSnapshot',
-      message: 'Starting snapshot migration',
-      snapshotId,
-    });
-
-    const snapshot = await this.db.client.snapshot.findUnique({
-      where: { id: snapshotId },
-      include: {
-        snapshotTables: true,
-      },
-    });
-
-    if (!snapshot) {
-      throw new NotFoundException('Snapshot not found');
-    }
-
-    // Check if already migrated
-    if (snapshot.snapshotTables.length > 0) {
-      WSLogger.info({
-        source: 'SnapshotService.migrateSnapshot',
-        message: 'Snapshot already has SnapshotTable records',
-        snapshotId,
-      });
-      return { success: false, tablesCreated: 0 };
-    }
-
-    // Check if snapshot has old-style data
-    const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
-    if (!tableSpecs || tableSpecs.length === 0) {
-      WSLogger.info({
-        source: 'SnapshotService.migrateSnapshot',
-        message: 'Snapshot has no tableSpecs to migrate',
-        snapshotId,
-      });
-      return { success: false, tablesCreated: 0 };
-    }
-
-    const tableContexts = (snapshot.tableContexts as unknown as SnapshotTableContext[]) || [];
-    const columnContexts = (snapshot.columnContexts as unknown as SnapshotColumnContexts) || {};
-    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as unknown as ActiveRecordSqlFilter) || {};
-
-    // Create SnapshotTable records
-    const snapshotTablesToCreate = tableSpecs.map((tableSpec, index) => {
-      const tableId = tableSpec.id.wsId;
-      const tableContext = tableContexts[index] || null;
-      const tableColumnContexts = columnContexts[tableId] || {};
-      const tableSqlFilter = activeRecordSqlFilter[tableId] || null;
-
-      return {
-        id: createSnapshotTableId(),
-        snapshotId: snapshot.id,
-        connectorAccountId: snapshot.connectorAccountId,
-        connectorService: snapshot.service as Service,
-        tableSpec: tableSpec as unknown as Record<string, unknown>,
-        tableContext: tableContext as unknown as Record<string, unknown>,
-        columnContexts: tableColumnContexts as unknown as Record<string, unknown>,
-        activeRecordSqlFilter: tableSqlFilter,
-        hidden: false,
-      };
-    });
-
-    // Create all SnapshotTable records for this snapshot
-    await this.db.client.snapshotTable.createMany({
-      // temp fix
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      data: snapshotTablesToCreate as any,
-    });
-
-    WSLogger.info({
-      source: 'SnapshotService.migrateSnapshot',
-      message: 'Successfully migrated snapshot',
-      snapshotId,
-      tablesCreated: snapshotTablesToCreate.length,
-    });
-
-    return { success: true, tablesCreated: snapshotTablesToCreate.length };
-  }
-
-  async migrateUserSnapshots(actor: Actor): Promise<{ migratedSnapshots: number; tablesCreated: number }> {
-    WSLogger.info({
-      source: 'SnapshotService.migrateUserSnapshots',
-      message: 'Starting snapshot migration for user',
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-    });
-
-    // Find all snapshots for this user that have old-style data (tableSpecs array) but no SnapshotTable records
-    const snapshots = await this.db.client.snapshot.findMany({
-      where: {
-        userId: actor.userId,
-      },
-      include: {
-        snapshotTables: true,
-        connectorAccount: true,
-      },
-    });
-
-    let migratedSnapshots = 0;
-    let tablesCreated = 0;
-
-    for (const snapshot of snapshots) {
-      // Skip if snapshot already has SnapshotTable records
-      if (snapshot.snapshotTables.length > 0) {
-        continue;
-      }
-
-      // Skip if snapshot has no old-style data
-      const tableSpecs = snapshot.tableSpecs as unknown as AnyTableSpec[];
-      if (!tableSpecs || tableSpecs.length === 0) {
-        continue;
-      }
-
-      WSLogger.info({
-        source: 'SnapshotService.migrateUserSnapshots',
-        message: 'Migrating snapshot',
-        snapshotId: snapshot.id,
-        tableCount: tableSpecs.length,
-      });
-
-      const tableContexts = (snapshot.tableContexts as unknown as SnapshotTableContext[]) || [];
-      const columnContexts = (snapshot.columnContexts as unknown as SnapshotColumnContexts) || {};
-      const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as unknown as ActiveRecordSqlFilter) || {};
-
-      // Create SnapshotTable records
-      const snapshotTablesToCreate = tableSpecs.map((tableSpec, index) => {
-        const tableId = tableSpec.id.wsId;
-        const tableContext = tableContexts[index] || null;
-        const tableColumnContexts = columnContexts[tableId] || {};
-        const tableSqlFilter = activeRecordSqlFilter[tableId] || null;
-
-        return {
-          id: createSnapshotTableId(),
-          snapshotId: snapshot.id,
-          connectorAccountId: snapshot.connectorAccountId,
-          connectorService: snapshot.service as Service,
-          tableSpec: tableSpec as unknown as Record<string, unknown>,
-          tableContext: tableContext as unknown as Record<string, unknown>,
-          columnContexts: tableColumnContexts as unknown as Record<string, unknown>,
-          activeRecordSqlFilter: tableSqlFilter,
-          hidden: false,
-        };
-      });
-
-      // Create all SnapshotTable records for this snapshot
-      await this.db.client.snapshotTable.createMany({
-        // temp fix
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        data: snapshotTablesToCreate as any,
-      });
-
-      migratedSnapshots++;
-      tablesCreated += snapshotTablesToCreate.length;
-
-      WSLogger.info({
-        source: 'SnapshotService.migrateUserSnapshots',
-        message: 'Successfully migrated snapshot',
-        snapshotId: snapshot.id,
-        tablesCreated: snapshotTablesToCreate.length,
-      });
-    }
-
-    WSLogger.info({
-      source: 'SnapshotService.migrateUserSnapshots',
-      message: 'Completed snapshot migration for user',
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-      migratedSnapshots,
-      tablesCreated,
-    });
-
-    return { migratedSnapshots, tablesCreated };
   }
 
   async addScratchColumn(
@@ -2213,9 +1944,9 @@ export class SnapshotService {
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
-    const table = snapshot.snapshotTables?.find((t) => t.id === tableId);
+    const table = getSnapshotTableByWsId(snapshot, tableId);
     if (!table) {
-      throw new NotFoundException('Table not found in snapshot');
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     const columnId = sanitizeForWsId(columnName);
@@ -2289,12 +2020,12 @@ export class SnapshotService {
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
-    const table = snapshot.snapshotTables?.find((t) => t.id === tableId);
-    if (!table) {
-      throw new NotFoundException('Table not found in snapshot');
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    const tableSpec = table.tableSpec as AnyTableSpec;
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
     if (!column) {
       throw new NotFoundException(`Column not found in table: ${tableSpec.name} with id: ${columnId}`);
@@ -2310,7 +2041,7 @@ export class SnapshotService {
     };
 
     await this.db.client.snapshotTable.update({
-      where: { id: tableId },
+      where: { id: snapshotTable.id },
       data: {
         tableSpec: newTableSpec as InputJsonObject,
       },
