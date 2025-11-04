@@ -1,4 +1,6 @@
 stages:
   - build
   - external
+  - push images
+  - run migrations
   - deploy

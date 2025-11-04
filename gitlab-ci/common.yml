@@ -45,6 +45,7 @@ include:
     - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
     - export GCLOUD_PROJECT="spv1-test"
     - export GCP_PROJECT_NUMBER="211553068097"
+    - export CLOUDSDK_RUN_REGION="${GCP_REGION}"
     - export GCP_REGISTRY="test-registry"
     - export SERVICE_ACCOUNT="gitlab-service-account@spv1-test.iam.gserviceaccount.com"
     - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
@@ -62,6 +63,7 @@ include:
     - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
     - export GCLOUD_PROJECT="spv1-production"
     - export GCP_PROJECT_NUMBER="806617013435"
+    - export CLOUDSDK_RUN_REGION="${GCP_REGION}"
     - export GCP_REGISTRY="production-registry"
     - export SERVICE_ACCOUNT="gitlab-service-account@spv1-production.iam.gserviceaccount.com"
     - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"

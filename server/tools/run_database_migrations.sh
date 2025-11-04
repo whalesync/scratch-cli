@@ -7,7 +7,8 @@ then
   exit 1
 fi
 
-cd "$(dirname "$0")/../../server"
+# Change to server directory
+cd "$(dirname "$0")/../"
 
 # Ensure gcloud is installed
 if ! command -v gcloud &> /dev/null; then

@@ -1,0 +1,38 @@
+include:
+  - "/gitlab-ci/stages.yml"
+  - "/gitlab-ci/common.yml"
+
+#region test env
+
+run migrations on test environment:
+  extends:
+    - .gcp_test_env # sets before_script and variables
+  stage: run migrations
+  script:
+    - pushd server
+    - !reference [.use_nvm, script]
+    - ./tools/run_database_migrations.sh test
+    - popd
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/04-run-migrations.yml
+      when: manual
+      allow_failure: true
+    - !reference [.rules, on_merge_to_master]
+
+#endregion
+
+#region production env
+run migrations on production environment:
+  extends:
+    - .gcp_test_env # sets before_script and variables
+  stage: run migrations
+  script:
+    - pushd server
+    - !reference [.use_nvm, script]
+    - ./tools/run_database_migrations.sh test
+    - popd
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+#endregion

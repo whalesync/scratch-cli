@@ -53,9 +53,9 @@ build client docker image for test:
       --build-arg NEXT_PUBLIC_API_URL=https://test-api.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://test-agent.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://test-agent.scratch.md
-      -t spinner-test/spinner-client
+      -t spinner/spinner-client-test
       -f Dockerfile .
-    - docker save spinner-test/spinner-client > image-test.tar
+    - docker save spinner/spinner-client-test > image-test.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -64,7 +64,6 @@ build client docker image for test:
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
-    - !reference [.rules, on_merge_to_prod]
 
 build client docker image for production:
   stage: build
@@ -93,9 +92,9 @@ build client docker image for production:
       --build-arg NEXT_PUBLIC_API_URL=https://api.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratch.md
-      -t spinner-production/spinner-client
+      -t spinner/spinner-client-production
       -f Dockerfile .
-    - docker save spinner-production/spinner-client > image-production.tar
+    - docker save spinner/spinner-client-production > image-production.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -103,7 +102,6 @@ build client docker image for production:
         - client/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
-    - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
@@ -117,7 +115,6 @@ build and test server:
     - cd server
     - !reference [.use_nvm, script]
     - yarn install --frozen-lockfile
-    - yarn prisma generate
     - yarn lint
     - yarn test
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`

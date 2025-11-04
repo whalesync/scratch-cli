@@ -1,0 +1,91 @@
+include:
+  - "/gitlab-ci/stages.yml"
+  - "/gitlab-ci/common.yml"
+
+#region test env
+
+deploy api service to Cloud Run test environment:
+  stage: deploy
+  extends:
+    - .gcp_test_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update api-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic api-service --to-latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/05-deploy.yml
+      when: manual
+      allow_failure: true
+    - !reference [.rules, on_merge_to_master]
+
+deploy client service to Cloud Run test environment:
+  stage: deploy
+  extends:
+    - .gcp_test_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-client-test:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update client-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic client-service --to-latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/05-deploy.yml
+      when: manual
+      allow_failure: true
+    - !reference [.rules, on_merge_to_master]
+
+deploy agent service to Cloud Run test environment:
+  stage: deploy
+  extends:
+    - .gcp_test_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update agent-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic agent-service --to-latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/05-deploy.yml
+      when: manual
+      allow_failure: true
+    - !reference [.rules, on_merge_to_master]
+
+#endregion
+
+#region production env
+
+deploy api service to Cloud Run production environment:
+  stage: deploy
+  extends:
+    - .gcp_production_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update api-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic api-service --to-latest
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+deploy client service to Cloud Run production environment:
+  stage: deploy
+  extends:
+    - .gcp_production_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-client-production:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update client-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic client-service --to-latest
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+deploy agent service to Cloud Run production environment:
+  stage: deploy
+  extends:
+    - .gcp_production_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update agent-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic agent-service --to-latest
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+#endregion

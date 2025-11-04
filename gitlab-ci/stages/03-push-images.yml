@@ -5,7 +5,7 @@ include:
 #region client
 
 push client image to test artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build client docker image for test
       artifacts: true
@@ -19,10 +19,10 @@ push client image to test artifact registry:
     - !reference [.setup_docker_gcp_auth, script]
     - docker load -i client/image-test.tar
     # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner-test/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client-test:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client-test:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client-test:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client-test:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -31,7 +31,7 @@ push client image to test artifact registry:
     - !reference [.rules, on_merge_to_prod]
 
 push client image to production artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build client docker image for production
       artifacts: true
@@ -45,15 +45,14 @@ push client image to production artifact registry:
     - !reference [.setup_docker_gcp_auth, script]
     - docker load -i client/image-production.tar
     # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner-production/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner-production/spinner-client:latest ${GCP_REGISTRY_URL}/spinner-client:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client-production:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client-production:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client-production:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client-production:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
-    - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
 #endregion
@@ -61,7 +60,7 @@ push client image to production artifact registry:
 #region server
 
 push server image to test artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build server docker image
       artifacts: true
@@ -87,7 +86,7 @@ push server image to test artifact registry:
     - !reference [.rules, on_merge_to_prod]
 
 push server image to production artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build server docker image
       artifacts: true
@@ -109,7 +108,6 @@ push server image to production artifact registry:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
-    - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
 #endregion
@@ -117,7 +115,7 @@ push server image to production artifact registry:
 #region agent
 
 push agent image to test artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build agent docker image
       artifacts: true
@@ -143,7 +141,7 @@ push agent image to test artifact registry:
     - !reference [.rules, on_merge_to_prod]
 
 push agent image to production artifact registry:
-  stage: deploy
+  stage: push images
   needs:
     - job: build agent docker image
       artifacts: true
@@ -165,6 +163,5 @@ push agent image to production artifact registry:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
-    - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 #endregion
