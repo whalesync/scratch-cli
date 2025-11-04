@@ -3,24 +3,21 @@ import { TextMdHeavier, TextSmRegular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { formatDate, timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { Download, Edit3, Trash2 } from 'lucide-react';
+import { Edit3, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
   const { deleteSnapshot, updateSnapshot } = useSnapshots();
-  const { handleDownloadCsv } = useExportAsCsv();
   const [saving, setSaving] = useState(false);
   const [snapshotName, setSnapshotName] = useState(snapshot.name ?? undefined);
-  const [downloading, setDownloading] = useState<string | null>(null);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
 
   // Group tables by service and count them
@@ -33,8 +30,6 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
     },
     {} as Record<Service, number>,
   );
-
-  const tableZero = snapshot.snapshotTables?.[0];
 
   const handleAbandon = async () => {
     if (!snapshot) return;
@@ -145,24 +140,6 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
               icon={Trash2}
               tooltip="Abandon workbook"
             />
-            {tableZero && (
-              <ToolIconButton
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownloadCsv(
-                    snapshot,
-                    tableZero.tableSpec.id.wsId,
-                    tableZero.tableSpec.name,
-                    setDownloading,
-                    false,
-                  );
-                }}
-                icon={Download}
-                tooltip={`Export as CSV`}
-                loading={downloading === tableZero.tableSpec.id.wsId}
-              />
-            )}
           </Group>
         </Table.Td>
       </Table.Tr>

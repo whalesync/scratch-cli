@@ -146,7 +146,7 @@ model Snapshot {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
-  connectorAccountId String?
+  connectorAccountId String? // @deprecated(reason: "Replaced with SnapshotTable.connectorAccountId")
 
   columnContexts Json @default("{}") // @deprecated(reason: "Replaced with SnapshotTable.columnContexts")
 

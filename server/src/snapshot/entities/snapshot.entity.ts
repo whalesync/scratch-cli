@@ -10,13 +10,6 @@ export class Snapshot {
   userId: string | null;
   organizationId: string;
 
-  /** @deprecated Use snapshotTables[].connectorAccountId instead - kept for backward compatibility during migration */
-  connectorAccountId: string | null;
-  /** @deprecated Use snapshotTables[].connectorDisplayName instead - kept for backward compatibility during migration */
-  connectorDisplayName: string | null;
-  /** @deprecated Use snapshotTables[].connectorService instead - kept for backward compatibility during migration */
-  connectorService: string;
-
   columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTableEntity[];
 
@@ -27,9 +20,6 @@ export class Snapshot {
     this.updatedAt = snapshot.updatedAt;
     this.userId = snapshot.userId ?? null;
     this.organizationId = snapshot.organizationId;
-    this.connectorAccountId = snapshot.connectorAccountId;
-    this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
-    this.connectorService = snapshot.service;
     this.columnContexts = snapshot.columnContexts as SnapshotColumnContexts;
     this.snapshotTables = snapshot.snapshotTables?.map((st) => new SnapshotTableEntity(st));
   }

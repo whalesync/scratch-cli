@@ -94,17 +94,11 @@ export interface Snapshot {
   name: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @deprecated Use snapshotTables[].columnContexts instead - kept for backward compatibility during migration */
   columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTable[];
 
   userId: string;
-
-  /** @deprecated Use snapshotTables[].connectorAccountId instead - kept for backward compatibility during migration */
-  connectorAccountId?: string | null;
-  /** @deprecated Use snapshotTables[].connectorDisplayName instead - kept for backward compatibility during migration */
-  connectorDisplayName?: string | null;
-  /** @deprecated Use snapshotTables[].connectorService instead - kept for backward compatibility during migration */
-  connectorService?: Service;
 }
 
 export interface CreateSnapshotDto {

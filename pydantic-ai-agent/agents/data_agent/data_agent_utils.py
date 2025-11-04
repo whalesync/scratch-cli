@@ -49,11 +49,8 @@ class TableViewConfig(BaseModel):
 class SnapshotForAi(BaseModel):
     id: str
     name: Optional[str]
-    connectorDisplayName: Optional[str]
-    connectorService: Optional[str]
     createdAt: str
     updatedAt: str
-    connectorAccountId: Optional[str]
     tables: List[TableSpec]
     tableContexts: List[TableContext]
     tableViews: Dict[str, TableViewConfig]
@@ -141,11 +138,8 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
     snapshot = SnapshotForAi(
         id=snapshot_data.id,
         name=snapshot_data.name,
-        connectorDisplayName=snapshot_data.connectorDisplayName,
-        connectorService=snapshot_data.connectorService,
         createdAt=snapshot_data.createdAt,
         updatedAt=snapshot_data.updatedAt,
-        connectorAccountId=snapshot_data.connectorAccountId,
         tables=converted_tables,
         tableContexts=converted_table_contexts,  # note, may be deprecated
         tableViews=tableViews,

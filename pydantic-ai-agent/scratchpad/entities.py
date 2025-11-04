@@ -80,16 +80,11 @@ class SnapshotTable:
 class ScratchpadSnapshot:
     id: str
     name: Optional[str]
-    connectorDisplayName: Optional[str]
-    connectorService: Optional[str]
     createdAt: str
     updatedAt: str
     userId: str
     organizationId: str
-    connectorAccountId: str
     columnContexts: Any
-    # deprecated, use SnapshotTable.activeRecordSqlFilter instead
-    activeRecordSqlFilter: Optional[Dict[str, str]] = None
     snapshotTables: Optional[List[SnapshotTable]] = None
 
 
