@@ -6,9 +6,9 @@ import { useUpsertView } from '@/hooks/use-view';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
-import { Group, Radio } from '@mantine/core';
+import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
-import { Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -478,7 +478,16 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         )}
 
         <span className="ag-header-cell-text">{props.displayName}</span>
-
+        {/* Column extra info, e.g. required */}
+        {props.columnSpec?.required && (
+          <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', gap: '2px' }}>
+            <Tooltip label="This field is required" position="top" withArrow>
+              <span style={{ marginLeft: '2px', display: 'flex', alignItems: 'center' }}>
+                <StyledLucideIcon Icon={AlertCircle} size={12} />
+              </span>
+            </Tooltip>
+          </div>
+        )}
         {/* Column state icons */}
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', gap: '2px' }}>
           {isColumnHidden && (
@@ -499,7 +508,6 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
           )}
         </div>
       </div>
-
       {/* Menu button - only show on hover or when menu is open */}
       {(isHovered || isMenuOpen) && (
         <div style={{ position: 'relative' }}>

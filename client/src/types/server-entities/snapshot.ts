@@ -28,6 +28,7 @@ export interface ColumnSpec {
   id: EntityId;
   name: string;
   readonly?: boolean;
+  required?: boolean;
   pgType: PostgresColumnType;
   metadata?: ColumnMetadata;
   dataConverterTypes?: string[];
@@ -284,7 +285,6 @@ export function getSafeNumberValue(
 
   return _.toNumber(value);
 }
-
 
 export function getSnapshotTableByWsId(snapshot: Snapshot, tableId: string): SnapshotTable | undefined {
   return snapshot.snapshotTables?.find((t) => t.tableSpec.id.wsId === tableId);

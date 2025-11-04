@@ -78,7 +78,7 @@ def build_snapshot_context(
                 if column_config and column_config.protected:
                     readonly = True
             readonly_marker = " (Read Only)" if readonly else ""
-            snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}{readonly_marker}, Metadata: {col.metadata or {}}\n"
+            snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}{readonly_marker}, Metadata: {col.metadata or {}}, Required: {col.required}\n"
 
         # Add records if available
         if preloaded_records and table.name in preloaded_records:

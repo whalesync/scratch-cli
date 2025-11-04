@@ -18,6 +18,7 @@ class ColumnSpecForAi(BaseModel):
     id: EntityId
     name: str
     type: str  # "text" | "number" | "json"
+    required: bool = False
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -91,6 +92,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
                 id=EntityId(wsId=col["id"]["wsId"], remoteId=col["id"]["remoteId"]),  # type: ignore
                 name=col["name"],  # type: ignore
                 type=col["pgType"],  # type: ignore
+                required=col.get("required", False),  # type: ignore
                 metadata=col.get("metadata", None),  # type: ignore
             )
             converted_columns.append(column_spec)
