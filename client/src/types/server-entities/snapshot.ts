@@ -95,7 +95,6 @@ export interface Snapshot {
   createdAt: string;
   updatedAt: string;
   columnContexts: SnapshotColumnContexts;
-  activeRecordSqlFilter?: Record<string, string>;
   snapshotTables?: SnapshotTable[];
 
   userId: string;
@@ -286,6 +285,10 @@ export function getSafeNumberValue(
   return _.toNumber(value);
 }
 
+/** These utilties help extract table data from a snapshot. They exist to
+ * help with migration from the old format where snapshots had data config objects
+ * keyed by table id. */
+
 export function getSnapshotTableByWsId(snapshot: Snapshot, tableId: string): SnapshotTable | undefined {
   return snapshot.snapshotTables?.find((t) => t.tableSpec.id.wsId === tableId);
 }
@@ -298,4 +301,9 @@ export function getTableSpecByWsId(snapshot: Snapshot, tableId: string): TableSp
 export function getSnapshotTableContextByWsId(snapshot: Snapshot, tableId: string): SnapshotTableContext | undefined {
   const table = getSnapshotTableByWsId(snapshot, tableId);
   return table?.tableContext ?? undefined;
+}
+
+export function getActiveRecordSqlFilterByWsId(snapshot: Snapshot, tableId: string): string | undefined {
+  const table = getSnapshotTableByWsId(snapshot, tableId);
+  return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
 }

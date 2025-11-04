@@ -41,7 +41,7 @@ import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './ent
 import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
+import { SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
 import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
 
 type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
@@ -528,10 +528,13 @@ export class SnapshotService {
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
+
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
     let viewConfig: ViewConfig | undefined = undefined;
 
@@ -544,8 +547,6 @@ export class SnapshotService {
       }
     }
 
-    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
-
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
@@ -553,7 +554,7 @@ export class SnapshotService {
       take + 1,
       viewConfig,
       tableSpec,
-      activeRecordSqlFilter,
+      snapshotTable.activeRecordSqlFilter,
     );
 
     let nextCursor: string | undefined;
@@ -583,7 +584,11 @@ export class SnapshotService {
     writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -599,8 +604,6 @@ export class SnapshotService {
       }
     }
 
-    const activeRecordSqlFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
-
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
@@ -608,7 +611,7 @@ export class SnapshotService {
       take + 1,
       viewConfig,
       tableSpec,
-      activeRecordSqlFilter,
+      snapshotTable.activeRecordSqlFilter,
     );
 
     let nextCursor: string | undefined;
@@ -1502,19 +1505,10 @@ export class SnapshotService {
       }
     }
 
-    // Load existing activeRecordSqlFilter or create empty object
-    const currentFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
-
-    // Update the filter for the specific table with SQL WHERE clause
-    const updatedFilter = {
-      ...currentFilter,
-      [tableId]: dto.sqlWhereClause,
-    };
-
-    await this.db.client.snapshot.update({
-      where: { id: snapshotId },
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
       data: {
-        activeRecordSqlFilter: updatedFilter,
+        activeRecordSqlFilter: dto.sqlWhereClause,
       },
     });
 
@@ -1534,19 +1528,10 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    // Load existing activeRecordSqlFilter or create empty object
-    const currentFilter = (snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter) || {};
-
-    // Remove the table from the filter (or set to empty string)
-    const updatedFilter = {
-      ...currentFilter,
-      [tableId]: '',
-    };
-
-    await this.db.client.snapshot.update({
-      where: { id: snapshotId },
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
       data: {
-        activeRecordSqlFilter: updatedFilter,
+        activeRecordSqlFilter: null,
       },
     });
 

@@ -7,7 +7,6 @@ import { ViewConfig } from 'src/view/types';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
-import { ActiveRecordSqlFilter } from './types';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -293,7 +292,7 @@ export class SnapshotDb {
     take: number,
     view: ViewConfig | undefined,
     tableSpec?: AnyTableSpec,
-    activeRecordSqlFilter?: ActiveRecordSqlFilter,
+    activeRecordSqlFilter?: string | null,
   ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number }> {
     // const query = this.knex<DbRecord>(tableId);
 
@@ -304,12 +303,9 @@ export class SnapshotDb {
     }
 
     // Apply active record filter using SQL WHERE clauses
-    if (activeRecordSqlFilter && activeRecordSqlFilter[tableId] && activeRecordSqlFilter[tableId].trim() !== '') {
-      const sqlWhereClause = activeRecordSqlFilter[tableId];
-      if (sqlWhereClause && sqlWhereClause.trim() !== '') {
-        // Apply the SQL WHERE clause directly
-        query.whereRaw(sqlWhereClause);
-      }
+    if (activeRecordSqlFilter && activeRecordSqlFilter.trim() !== '') {
+      // Apply the SQL WHERE clause directly
+      query.whereRaw(activeRecordSqlFilter);
     }
 
     const tableViewConfig = view?.[tableId];
@@ -339,9 +335,7 @@ export class SnapshotDb {
     let count: number;
     let filteredCount: number;
 
-    const sqlWhereClause = activeRecordSqlFilter?.[tableId];
-
-    if (sqlWhereClause && sqlWhereClause.trim() !== '') {
+    if (activeRecordSqlFilter && activeRecordSqlFilter.trim() !== '') {
       // Count total records without filter
       const totalQuery = this.knex<DbRecord>(tableId).withSchema(snapshotId);
       const totalRecords = await totalQuery.select('wsId');
@@ -349,7 +343,7 @@ export class SnapshotDb {
 
       // Count filtered records with filter
       const filteredQuery = this.knex<DbRecord>(tableId).withSchema(snapshotId);
-      filteredQuery.whereRaw(sqlWhereClause);
+      filteredQuery.whereRaw(activeRecordSqlFilter);
       const filteredRecords = await filteredQuery.select('wsId');
       filteredCount = filteredRecords.length;
     } else {

@@ -1,6 +1,5 @@
 import { SnapshotCluster } from '../../db/cluster-types';
-import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { ActiveRecordSqlFilter, SnapshotColumnContexts, SnapshotTableContext } from '../types';
+import { SnapshotColumnContexts } from '../types';
 import { SnapshotTable as SnapshotTableEntity } from './snapshot-table.entity';
 
 export class Snapshot {
@@ -18,12 +17,6 @@ export class Snapshot {
   /** @deprecated Use snapshotTables[].connectorService instead - kept for backward compatibility during migration */
   connectorService: string;
 
-  /** @deprecated Use snapshotTables[].tableSpec instead - kept for backward compatibility during migration */
-  tables: AnyTableSpec[];
-  /** @deprecated Use snapshotTables[].tableContext instead - kept for backward compatibility during migration */
-  tableContexts: SnapshotTableContext[];
-  /** @deprecated Use snapshotTables[].activeRecordSqlFilter instead - kept for backward compatibility during migration */
-  activeRecordSqlFilter?: Record<string, string>;
   columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTableEntity[];
 
@@ -33,13 +26,11 @@ export class Snapshot {
     this.createdAt = snapshot.createdAt;
     this.updatedAt = snapshot.updatedAt;
     this.userId = snapshot.userId ?? null;
-    // TODO (DEV-8628): can be removed once migration to organizations is complete -- just here to warn about potential issues during switchover
-    this.organizationId = snapshot.organizationId ?? 'unknown organization id';
+    this.organizationId = snapshot.organizationId;
     this.connectorAccountId = snapshot.connectorAccountId;
     this.connectorDisplayName = snapshot.connectorAccount?.displayName ?? null;
     this.connectorService = snapshot.service;
     this.columnContexts = snapshot.columnContexts as SnapshotColumnContexts;
-    this.activeRecordSqlFilter = snapshot.activeRecordSqlFilter as ActiveRecordSqlFilter;
     this.snapshotTables = snapshot.snapshotTables?.map((st) => new SnapshotTableEntity(st));
   }
 }

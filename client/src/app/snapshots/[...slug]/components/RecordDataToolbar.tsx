@@ -9,13 +9,13 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { getActiveRecordSqlFilterByWsId, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
 import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
@@ -55,10 +55,12 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const [sqlFilterText, setSqlFilterText] = useState('');
   const [sqlFilterError, setSqlFilterError] = useState<string | null>(null);
 
-  const currentTableFilter =
-    table.id.wsId && snapshot && snapshot.activeRecordSqlFilter && table.id.wsId in snapshot.activeRecordSqlFilter
-      ? snapshot.activeRecordSqlFilter[table.id.wsId]
-      : undefined;
+  const currentTableFilter = useMemo(() => {
+    if (!snapshot) return undefined;
+    if (!table.id.wsId) return undefined;
+
+    return getActiveRecordSqlFilterByWsId(snapshot, table.id.wsId);
+  }, [snapshot, table.id.wsId]);
 
   useEffect(() => {
     if (sqlFilterModalOpen) {

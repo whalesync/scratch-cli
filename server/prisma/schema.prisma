@@ -150,8 +150,6 @@ model Snapshot {
 
   columnContexts Json @default("{}") // @deprecated(reason: "Replaced with SnapshotTable.columnContexts")
 
-  activeRecordSqlFilter Json? // @deprecated(reason: "Replaced with SnapshotTable.activeRecordSqlFilter")
-
   snapshotTables SnapshotTable[]
 
   @@index([connectorAccountId])

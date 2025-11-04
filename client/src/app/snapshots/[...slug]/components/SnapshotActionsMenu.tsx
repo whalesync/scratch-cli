@@ -8,7 +8,11 @@ import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
-import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from '@/types/server-entities/snapshot';
+import {
+  DownloadSnapshotResult,
+  DownloadSnapshotWithouotJobResult,
+  getActiveRecordSqlFilterByWsId,
+} from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
@@ -202,7 +206,10 @@ export const SnapshotActionsMenu = () => {
   const menuItemsDisabled = isLoading || saving;
 
   const hasActiveRecordSqlFilter = (tableId: string) => {
-    return snapshot?.activeRecordSqlFilter?.[tableId] && snapshot.activeRecordSqlFilter[tableId].trim() !== '';
+    if (!snapshot) return false;
+    if (!tableId) return false;
+    const filter = getActiveRecordSqlFilterByWsId(snapshot, tableId);
+    return filter && filter.trim() !== '';
   };
 
   return (
