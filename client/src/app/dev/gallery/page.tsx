@@ -57,6 +57,7 @@ import { DotSpacer } from '../../components/DotSpacer';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
 import { ErrorInfo, Info } from '../../components/InfoPanel';
 import { LoaderWithMessage } from '../../components/LoaderWithMessage';
+import { RelativeDate } from '../../components/RelativeDate';
 import { ToolIconButton } from '../../components/ToolIconButton';
 
 export default function DevComponentGalleryPage() {
@@ -99,6 +100,9 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#icons">Icons</Anchor>
             </List.Item>
             <List.Item>
+              <Anchor href="#formatting">Formatting</Anchor>
+            </List.Item>
+            <List.Item>
               <Anchor href="#info-panels">Info Panels</Anchor>
             </List.Item>
             <List.Item>
@@ -108,43 +112,53 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#dev-tool-components">Dev Tool Components</Anchor>
             </List.Item>
           </List>
-
           <GallerySection id="shades" title="Key shades" />
-          <TextXsBook variant="dimmed">
+          <TextXsBook c="dimmed">
             These are single-color shades that adjust for light/dark mode. Use these for all panels and text.
           </TextXsBook>
-          <GalleryItem
-            label="page"
-            notes="Use these for background/paper colors. Default to body, with gray-0 for contrasting panels and gray-1 for selections."
-          >
-            <Group gap={0}>
-              <ColorChip cssName="--mantine-color-body" modeAware />
-              <ColorChip cssName="--mantine-color-gray-0" modeAware />
-              <ColorChip cssName="--mantine-color-gray-1" modeAware />
-            </Group>
+          <GalleryItem label="Background: base" notes="Main body/page background color">
+            <ColorChip cssName="--bg-base" modeAware />
           </GalleryItem>
           <GalleryItem
-            label="text"
-            notes="Use these for foreground/text colors. Default to gray-9, with gray-8 for subtitles. Secondary text can just be c='dimmed'"
+            label="Background: panel"
+            notes="Use this for elevated background region of panels and cards. AKA --mantine-color-gray-0, or Figma grey/1"
           >
-            <Group gap={0}>
-              <ColorChip cssName="--mantine-color-gray-9" modeAware />
-              <ColorChip cssName="--mantine-color-gray-8" modeAware />
-            </Group>
+            <ColorChip cssName="--bg-panel" modeAware />
           </GalleryItem>
-
+          <GalleryItem
+            label="Background: selected"
+            notes="Use this as background for selected items. AKA --mantine-color-gray-1, or Figma grey/2"
+          >
+            <ColorChip cssName="--bg-selected" modeAware />
+          </GalleryItem>
+          <GalleryItem
+            label="Foreground: primary"
+            notes="Use for all main text. AKA --mantine-color-gray-9, or Figma grey/12"
+          >
+            <ColorChip cssName="--fg-primary" modeAware />
+          </GalleryItem>
+          <GalleryItem
+            label="Foreground: secondary"
+            notes="Use for secondary text: table headers, . AKA --mantine-color-gray-8, or Figma grey/11"
+          >
+            <ColorChip cssName="--fg-secondary" modeAware />
+          </GalleryItem>
+          <GalleryItem
+            label="Foreground: muted"
+            notes="Tertiary text, most toolbars or decorative icons. AKA --mantine-color-gray-7, or Figma grey/10"
+          >
+            <ColorChip cssName="--fg-muted" modeAware />
+          </GalleryItem>
           <GallerySection id="colors" title="Colors" />
-          <TextXsBook variant="dimmed">
+          <TextXsBook c="dimmed">
             These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
             because Mantine only supports 10 shades. Mostly use the shades above instead.
           </TextXsBook>
-
           <GalleryColor color="green" modeAware notes="AKA primary. Can be used in light or dark for emphasis" />
           <GalleryColor color="gray" modeAware />
           <GalleryColor color="red" modeAware />
           <GalleryColor color="blue" />
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
-
           <GallerySection id="title-text" title="Text: title" />
           <TypeGalleryItem label="TextTitle1">
             <TextTitle1>Brown fox is quick</TextTitle1>
@@ -158,9 +172,8 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="TextTitle4">
             <TextTitle4>Brown fox is quick</TextTitle4>
           </TypeGalleryItem>
-
           <GallerySection id="body-text" title="Text: body" />
-          <TextXsBook variant="dimmed">All of these support variant=&apos;dimmed&apos;</TextXsBook>
+          <TextXsBook c="dimmed">All of these support c=&apos;dimmed&apos;</TextXsBook>
           <TypeGalleryItem label="TextMdHeavier">
             <TextMdHeavier>Brown fox is quick</TextMdHeavier>
           </TypeGalleryItem>
@@ -188,10 +201,9 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="TextXsBook">
             <TextXsBook>Brown fox is quick</TextXsBook>
           </TypeGalleryItem>
-          <TypeGalleryItem label="variant='dimmed'">
-            <TextMdRegular variant="dimmed">Brown fox is quick</TextMdRegular>
+          <TypeGalleryItem label="TextXsBook c='dimmed'">
+            <TextXsBook c="dimmed">Brown fox is quick</TextXsBook>
           </TypeGalleryItem>
-
           <GalleryItem label="DotSpacer">
             <Group gap={0}>
               <TextSmRegular>Item 1</TextSmRegular>
@@ -199,7 +211,6 @@ export default function DevComponentGalleryPage() {
               <TextSmRegular>Item 2</TextSmRegular>
             </Group>
           </GalleryItem>
-
           <GallerySection id="mono-text" title="Text: monospace" />
           <TypeGalleryItem label="TextMonoRegularSm">
             <TextMonoSmRegular>Brown fox is quick</TextMonoSmRegular>
@@ -210,7 +221,6 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="Code">
             <Code>Brown fox is quick</Code>
           </TypeGalleryItem>
-
           <GallerySection id="buttons" title="Buttons" />
           <GalleryItem label="ButtonPrimarySolid">
             <ButtonPrimarySolid leftSection={<Plus />}>Click</ButtonPrimarySolid>
@@ -236,6 +246,9 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="DevToolButton">
             <DevToolButton>Click</DevToolButton>
           </GalleryItem>
+          <GalleryItem label="ToolIconButton" notes="ActionIcon Button with tooltip. Use on toolbars and inline rows. ">
+            <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" size="sm" />
+          </GalleryItem>
           {/* // TODO: Remove the deprecated ones below: */}
           <GalleryItem deprecated label="AcceptSuggestionButton">
             <AcceptSuggestionButton>Click</AcceptSuggestionButton>
@@ -246,15 +259,10 @@ export default function DevComponentGalleryPage() {
           <GalleryItem deprecated label="ContentFooterButton">
             <ContentFooterButton>Click</ContentFooterButton>
           </GalleryItem>
-          <GalleryItem deprecated label="ToolIconButton">
-            <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" />
-          </GalleryItem>
-
           <GallerySection id="action-icons" title="Action Icons" />
           <GalleryItem label="ActionIconThreeDots">
             <ActionIconThreeDots />
           </GalleryItem>
-
           <GallerySection id="badges" title="Badges" />
           <GalleryItem label="BadgeBase">
             <BadgeBase>Neutral badge</BadgeBase>
@@ -270,7 +278,6 @@ export default function DevComponentGalleryPage() {
               <Ambulance color="pink" />
             </Tooltip>
           </GalleryItem>
-
           <GallerySection id="loaders" title="Loaders" />
           <GalleryItem label="Loader">
             <Loader size="sm" />
@@ -278,7 +285,6 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="LoaderWithMessage">
             <LoaderWithMessage message="Customize me..." />
           </GalleryItem>
-
           <GallerySection id="icons" title="Icons" />
           <GalleryItem label="StyledLucideIcon (sm)">
             <Group gap="sm">
@@ -305,9 +311,18 @@ export default function DevComponentGalleryPage() {
             <AnimatedArrowsClockwise size={32} weight="regular" />
           </GalleryItem>
           <GalleryItem label="ConnectorIcon">
-            <ConnectorIcon connector={Service.YOUTUBE} size={40} />
+            <Group gap="sm">
+              {Object.values(Service).map((service) => (
+                <ConnectorIcon key={service} connector={service} size={40} />
+              ))}
+            </Group>
           </GalleryItem>
-
+          <GallerySection id="formatting" title="Formatting" />
+          <GalleryItem label="RelativeDate (with tooltip)">
+            <TextSmBook c="dimmed">
+              <RelativeDate date={'2025-10-05T00:25:10.892Z'} />
+            </TextSmBook>
+          </GalleryItem>
           <GallerySection id="info-panels" title="Info Panels" />
           <GalleryItem label="Info.NotFoundIcon">
             <Info>
@@ -337,7 +352,6 @@ export default function DevComponentGalleryPage() {
               retry={() => console.debug('Retry clicked')}
             />
           </GalleryItem>
-
           <GallerySection id="input-components" title="Input Components" />
           <GalleryItem label="DebouncedTextArea">
             <DebouncedTextArea
@@ -346,7 +360,6 @@ export default function DevComponentGalleryPage() {
               onChange={(e) => console.debug('Debounced value:', e.target.value)}
             />
           </GalleryItem>
-
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
           <GalleryItem label="LabelValuePair">
             <LabelValuePair label="Name" value="John Doe" canCopy />
@@ -385,7 +398,7 @@ function GalleryItem({
           {label}
         </TextMdHeavier>
         {notes && (
-          <TextSmBook variant="dimmed" maw={250}>
+          <TextSmBook c="dimmed" maw={250}>
             {notes}
           </TextSmBook>
         )}

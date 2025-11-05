@@ -1,12 +1,12 @@
-import { ActionIcon } from '@mantine/core';
+import { ActionIcon, MantineSize } from '@mantine/core';
 import { EllipsisVertical } from 'lucide-react';
 import { forwardRef } from 'react';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 
-export const ActionIconThreeDots = forwardRef<HTMLButtonElement>((props, ref) => {
+export const ActionIconThreeDots = forwardRef<HTMLButtonElement, { size?: MantineSize }>((props, ref) => {
   return (
-    <ActionIcon ref={ref} variant="subtle" size="md" color="text" {...props}>
-      <StyledLucideIcon Icon={EllipsisVertical} size={19} />
+    <ActionIcon ref={ref} variant="subtle" size={props.size ?? 'md'} c="var(--fg-muted)" {...props}>
+      <StyledLucideIcon Icon={EllipsisVertical} size={props.size ?? 'md'} />
     </ActionIcon>
   );
 });

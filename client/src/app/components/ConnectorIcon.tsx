@@ -12,6 +12,9 @@ export function ConnectorIcon(props: { connector: string | null; size?: number }
       w={props.size ?? 40}
       h={props.size ?? 40}
       alt={props.connector || 'Connector icon'}
+      bd="1px solid var(--mantine-color-gray-4)"
+      bg="var(--bg-base)"
+      radius="xs"
       {...props}
     />
   );

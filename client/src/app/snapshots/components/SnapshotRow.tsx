@@ -1,17 +1,17 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextMdHeavier, TextSmRegular } from '@/app/components/base/text';
+import { TextMdHeavier } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useSnapshots } from '@/hooks/use-snapshot';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { Snapshot } from '@/types/server-entities/snapshot';
-import { formatDate, timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { Edit3, Trash2 } from 'lucide-react';
+import { Box, Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Edit3, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
+import { RelativeDate } from '../../components/RelativeDate';
+import { ToolbarIconButton } from '../../components/ToolbarIconButton';
 
 export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const router = useRouter();
@@ -19,17 +19,6 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const [saving, setSaving] = useState(false);
   const [snapshotName, setSnapshotName] = useState(snapshot.name ?? undefined);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
-
-  // Group tables by service and count them
-  const serviceTableCounts = (snapshot.snapshotTables || []).reduce(
-    (acc, table) => {
-      if (table.connectorService) {
-        acc[table.connectorService] = (acc[table.connectorService] || 0) + 1;
-      }
-      return acc;
-    },
-    {} as Record<Service, number>,
-  );
 
   const handleAbandon = async () => {
     if (!snapshot) return;
@@ -102,43 +91,40 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>
-          <TextMdHeavier>{snapshot.name}</TextMdHeavier>
+          <TextMdHeavier>
+            <StyledLucideIcon Icon={Table2} size={13} centerInText c="gray.7" mr="xs" />
+            {snapshot.name}
+          </TextMdHeavier>
         </Table.Td>
         <Table.Td>
-          <Group gap="md" wrap="nowrap">
-            {Object.entries(serviceTableCounts).map(([service, count]) => (
-              <Group key={service} gap={4} wrap="nowrap">
-                <ConnectorIcon connector={service as Service} size={24} />
-                <TextSmRegular variant="dimmed">× {count}</TextSmRegular>
-              </Group>
-            ))}
-          </Group>
+          {/* Icons are stacked on top of each other with an offset */}
+          <Box pos="relative" h={21}>
+            {(snapshot.snapshotTables || [])
+              .filter((table) => !!table.connectorService)
+              .map((table, index) => (
+                <Box
+                  key={table.id}
+                  pos="absolute"
+                  top={0}
+                  left={index * 12}
+                  bd="1px solid var(--mantine-color-body)"
+                  bdrs="xs"
+                >
+                  <ConnectorIcon key={table.id} connector={table.connectorService} size={21} />
+                </Box>
+              ))}
+          </Box>
         </Table.Td>
         <Table.Td>
-          <Group gap="xs">
-            <TextSmRegular>{formatDate(snapshot.createdAt)}</TextSmRegular>
-            <TextSmRegular variant="dimmed">({timeAgo(snapshot.createdAt)})</TextSmRegular>
-          </Group>
+          <RelativeDate date={snapshot.createdAt} />
         </Table.Td>
         <Table.Td>
-          <Group gap="xs" justify="flex-end">
-            <ToolIconButton
-              size="md"
-              onClick={(e) => {
-                e.stopPropagation();
-                modalStack.open('rename');
-              }}
-              icon={Edit3}
-              tooltip="Rename workbook"
-            />
-            <ToolIconButton
-              size="md"
-              onClick={(e) => {
-                e.stopPropagation();
-                modalStack.open('confirm-delete');
-              }}
+          <Group gap="xs" justify="flex-end" onClick={(e) => e.stopPropagation()}>
+            <ToolbarIconButton icon={Edit3} onClick={() => modalStack.open('rename')} title="Rename workbook" />
+            <ToolbarIconButton
               icon={Trash2}
-              tooltip="Abandon workbook"
+              onClick={() => modalStack.open('confirm-delete')}
+              title="Delete workbook"
             />
           </Group>
         </Table.Td>

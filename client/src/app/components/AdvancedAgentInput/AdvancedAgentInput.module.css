@@ -43,11 +43,11 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
   margin: 0;
-  background-color: light-dark(#ffffff, var(--mantine-color-gray-9));
+  background-color: var(--bg-panel);
 }
 
 .mentions__suggestions__item--focused {
-  background-color: light-dark(#e3f2fd, var(--mantine-color-gray-7));
+  background-color: var(--bg-selected);
 }
 
 .mentions__suggestions__item:hover {

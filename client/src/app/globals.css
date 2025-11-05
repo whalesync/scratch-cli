@@ -1,10 +1,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Semantic names for some custom colors */
+
+  /* Backgrounds */
+  --bg-base: var(--mantine-color-body);
+  --bg-panel: var(--mantine-color-gray-0);
+  --bg-selected: var(--mantine-color-gray-1);
+
+  /* Foreground/Text */
+  --fg-primary: var(--mantine-color-gray-9);
+  --fg-secondary: var(--mantine-color-gray-8);
+  --fg-muted: var(--mantine-color-gray-7);
+
   font-feature-settings:
     'liga' 1,
     'calt' 1; /* fix for Chrome */
 }
+
 @supports (font-variation-settings: normal) {
   :root {
     font-family: InterVariable, sans-serif;

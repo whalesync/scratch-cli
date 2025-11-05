@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, createTheme, Text, Title, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, Table, Title, virtualColor } from '@mantine/core';
 import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
 import {
   CUSTOM_BLUE,
@@ -120,17 +120,15 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       classNames: classes,
     }),
 
+    Table: Table.extend({
+      classNames: { table: classes.table, thead: classes.tableThead, th: classes.tableTh, tbody: classes.tableTbody },
+    }),
+
     Title: Title.extend({
       defaultProps: {
         ff: funnelDisplay.style.fontFamily,
         fw: 450,
       },
-    }),
-
-    Text: Text.extend({
-      // Add support for variant='dimmed'
-      // TODO: Just use color='dimmed'
-      classNames: { root: classes.text },
     }),
   },
 });

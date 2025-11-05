@@ -320,7 +320,7 @@ export default function UploadsPage() {
                 <StyledLucideIcon Icon={FileText} size={48} />
                 <div style={{ textAlign: 'center' }}>
                   <TextMdHeavier>No uploads yet</TextMdHeavier>
-                  <TextSmBook variant="dimmed" mt="xs">
+                  <TextSmBook c="dimmed" mt="xs">
                     Drag and drop a CSV or Markdown file anywhere to get started
                   </TextSmBook>
                 </div>
@@ -350,12 +350,12 @@ export default function UploadsPage() {
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label={formatDate(upload.createdAt)}>
-                        <TextSmRegular variant="dimmed">{timeAgo(upload.createdAt)}</TextSmRegular>
+                        <TextSmRegular c="dimmed">{timeAgo(upload.createdAt)}</TextSmRegular>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label={formatDate(upload.updatedAt)}>
-                        <TextSmRegular variant="dimmed">{timeAgo(upload.updatedAt)}</TextSmRegular>
+                        <TextSmRegular c="dimmed">{timeAgo(upload.updatedAt)}</TextSmRegular>
                       </Tooltip>
                     </Table.Td>
                     <Table.Td align="right">

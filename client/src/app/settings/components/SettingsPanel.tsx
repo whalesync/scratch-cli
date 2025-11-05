@@ -15,7 +15,7 @@ export const SettingsPanel = ({
     <Group className={classes.settingsPanel}>
       <Stack className={classes.settingsPanelLeft}>
         <TextSmRegular>{title}</TextSmRegular>
-        <TextSmBook variant="dimmed">{subtitle}</TextSmBook>
+        <TextSmBook c="dimmed">{subtitle}</TextSmBook>
       </Stack>
       <Box className={classes.settingsPanelRight}>{children}</Box>
     </Group>

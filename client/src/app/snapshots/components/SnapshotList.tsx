@@ -3,7 +3,7 @@
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshots } from '@/hooks/use-snapshot';
 import { ScratchpadApiError } from '@/lib/api/error';
-import { Center, Loader, Table } from '@mantine/core';
+import { Center, Divider, Loader, Table } from '@mantine/core';
 import { SWRConfig } from 'swr';
 import { ErrorInfo } from '../../components/InfoPanel';
 import { CreateSnapshotPanel } from './CreateSnapshotPanel';
@@ -44,15 +44,14 @@ export const SnapshotsList = () => {
       <MainContent>
         <MainContent.BasicHeader title="Workbooks" />
         <MainContent.Body>
+          <Divider />
           <Table highlightOnHover>
             <Table.Thead>
               <Table.Tr>
                 <Table.Td w="40%">Name</Table.Td>
-                <Table.Td w="20%">Tables</Table.Td>
+                <Table.Td w="20%">Data sources</Table.Td>
                 <Table.Td w="25%">Created</Table.Td>
-                <Table.Td w="15%" align="right">
-                  Actions
-                </Table.Td>
+                <Table.Td w="15%"> </Table.Td>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>

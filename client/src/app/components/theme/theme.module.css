@@ -13,16 +13,12 @@
   }
 }
 
-.text {
-  &[data-variant='dimmed'] {
-    opacity: 0.6;
-    /* @mixin light {
-      border-color: var(--mantine-color-gray-3);
-    }
+/** CUSTOM TABLE STYLES */
+.tableThead {
+  font-weight: 425;
+  color: var(--fg-secondary);
+}
 
-    @mixin dark {
-      border-color: var(--mantine-color-dark-3);
-    }
- */
-  }
+.tableTbody {
+  color: var(--mantine-color-gray-9);
 }
