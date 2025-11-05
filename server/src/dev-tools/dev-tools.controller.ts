@@ -16,7 +16,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { User } from 'src/users/entities/user.entity';
-import { Actor, userToActor } from 'src/users/types';
+import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
@@ -64,20 +64,5 @@ export class DevToolsController {
     const connectorAccounts = await this.connectorAccountService.findAll(actor);
     const auditLogs = await this.auditLogService.findEventsForUser(actor.userId, 20, undefined);
     return new UserDetail(targetUser, snapshots, connectorAccounts, auditLogs);
-  }
-
-  /**
-   * Temporary endpoint to migrate old style uploads to new organizations
-   */
-  @UseGuards(ScratchpadAuthGuard)
-  @Get('uploads/migrate-to-organization')
-  async migrateUploadsToOrganization(@Req() req: RequestWithUser): Promise<{ actor: Actor; result: string }[]> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can use this bulk migration tool');
-    }
-
-    const users = await this.usersService.search('usr_'); // easy way to find all users
-    const actors = users.map((user) => userToActor(user));
-    return this.uploadsDbService.devToolMigrateUploadsToOrganizationId(actors);
   }
 }

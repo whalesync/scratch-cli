@@ -5,7 +5,7 @@ import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
 import { Group, Stack } from '@mantine/core';
-import { DatabaseIcon, DatabaseZapIcon, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
+import { GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
 import { TextSmBook } from '../components/base/text';
@@ -42,20 +42,6 @@ export default function DevListPage() {
             leftSection={<StyledLucideIcon Icon={UsersIcon} size={16} />}
           >
             User Management
-          </DevToolButton>
-          <DevToolButton
-            component={Link}
-            href={RouteUrls.devToolsSnapshotMigratorPageUrl}
-            leftSection={<StyledLucideIcon Icon={DatabaseIcon} size={16} />}
-          >
-            Snapshot Migration Tool
-          </DevToolButton>
-          <DevToolButton
-            component={Link}
-            href={'/dev/upload-migrator'}
-            leftSection={<StyledLucideIcon Icon={DatabaseZapIcon} size={16} />}
-          >
-            Upload schema migration Tool
           </DevToolButton>
         </Stack>
       </MainContent.Body>

@@ -1,16 +1,16 @@
 export class RouteUrls {
   // Public routes
-  static healthEndpoint = "/api/health";
-  static signInPageUrl = "/sign-in";
+  static healthEndpoint = '/api/health';
+  static signInPageUrl = '/sign-in';
   static signInPageWithRedirect = (redirect_url: string) => `${this.signInPageUrl}?redirect_url=${redirect_url}`;
-  static signUpPageUrl = "/sign-up";
+  static signUpPageUrl = '/sign-up';
   static signUpPageWithRedirect = (redirect_url: string) => `${this.signUpPageUrl}?redirect_url=${redirect_url}`;
-  
+
   // Authenticated Routes & Route Generators
-  static homePageUrl = "/";
-  static connectionsPageUrl = "/connections";
-  static apiImportDemoPageUrl = "/ai-connector-builder";
-  static healthPageUrl = "/health";
+  static homePageUrl = '/';
+  static connectionsPageUrl = '/connections';
+  static apiImportDemoPageUrl = '/ai-connector-builder';
+  static healthPageUrl = '/health';
   static snapshotPage = (id: string, tableId?: string, recordId?: string) => {
     if (tableId && recordId) {
       return this.snapshotRecordView(id, tableId, recordId);
@@ -21,22 +21,22 @@ export class RouteUrls {
     return `/snapshots/${id}`;
   };
   static snapshotTablePage = (id: string, tableId: string) => `/snapshots/${id}/${tableId}`;
-  static snapshotRecordView = (id: string, tableId: string, recordId: string) => `/snapshots/${id}/${tableId}/${recordId}`;
+  static snapshotRecordView = (id: string, tableId: string, recordId: string) =>
+    `/snapshots/${id}/${tableId}/${recordId}`;
   static snapshotColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
     `/snapshots/${id}/${tableId}/${recordId}/${columnId}`;
-  static snapshotsPageUrl = "/snapshots";
-  static resourcesPageUrl = "/resources";
-  static uploadsPageUrl = "/uploads";
-  static settingsPageUrl = "/settings";
+  static snapshotsPageUrl = '/snapshots';
+  static resourcesPageUrl = '/resources';
+  static uploadsPageUrl = '/uploads';
+  static settingsPageUrl = '/settings';
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
-  static manageSubscriptionPage = "/subscription/manage";
+  static manageSubscriptionPage = '/subscription/manage';
 
   // Dev Tools routes
-  static devToolsPageUrl = "/dev";
-  static devToolsGalleryPageUrl = "/dev/gallery";
-  static devToolsJobsPageUrl = "/dev/jobs";
-  static devToolsUsersPageUrl = "/dev/users";
-  static devToolsSnapshotMigratorPageUrl = "/dev/snapshot-migrator";
+  static devToolsPageUrl = '/dev';
+  static devToolsGalleryPageUrl = '/dev/gallery';
+  static devToolsJobsPageUrl = '/dev/jobs';
+  static devToolsUsersPageUrl = '/dev/users';
 
   /** Utils */
 
@@ -47,9 +47,7 @@ export class RouteUrls {
    * Pretty much limited to health check endpoints and signin/signup pages
    */
   static isPublicRoute(pathname: string): boolean {
-    return RouteUrls.publicRoutePatterns.some((pattern) =>
-      new RegExp(pattern).test(pathname)
-    );
+    return RouteUrls.publicRoutePatterns.some((pattern) => new RegExp(pattern).test(pathname));
   }
 
   static subscriptionRoutePatterns = [
