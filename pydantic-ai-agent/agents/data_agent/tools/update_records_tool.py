@@ -94,7 +94,7 @@ description = """
     Use this tool when the user asks to modify or edit existing records in a table.
     The record_updates should be a list of entities with the following fields:
     - 'wsId': the record ID to update
-    - 'updates': a list of field updates, each containing 'field' and 'value' keys
+    - 'updates': a list of field update objects, each containing 'field' and 'value' keys
 
     CRITICAL: Pass record_updates as a proper list object, NOT as a JSON string.
     Example: [{'wsId': 'record_id_1', 'updates': [{'field': 'status', 'value': 'active'}, {'field': 'priority', 'value': 'high'}]}]
@@ -112,10 +112,17 @@ async def update_records_implementation(
             return "Error: The list of record updates is empty. Provide at least one record update"
 
         for update in record_updates:
-            if update.get("wsId") is None:
+            if not isinstance(update, dict):
+                return "Error: Each record update must be an object with 'wsId' and 'updates' keys"
+
+            if "wsId" not in update or update.get("wsId") is None:
                 return "Error: The wsId is required for each record update"
 
-            if update.get("updates") is None or len(update.get("updates")) == 0:
+            if (
+                "updates" not in update
+                or update.get("updates") is None
+                or len(update.get("updates")) == 0
+            ):
                 return f"Error: The updates is empty for update {update.get('wsId')}. The updates list must include at least one field update"
 
             # Validate each field update has required properties

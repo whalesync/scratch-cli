@@ -92,14 +92,14 @@ description = """
     Use this tool when the user asks to create new records or add content data to a table.
     The table_name should be the name of the table you want to create records for.
     The record_data_list should be a list of entities with the following fields:
-    - 'data': a list of field data, each containing 'field' and 'value' keys
-    Only include fields that are present in the table and are not protected or read only.
+      - 'data': a non-empty list of field data objects, each containing 'field' and 'value' keys
+    Only include fields that exist in the table and are not read only
+    Do not call this tool with an empty record_data_list
 
     CRITICAL: Pass record_data_list as a proper list object, NOT as a JSON string.
     Example: [{'data': [{'field': 'name', 'value': 'John Doe'}, {'field': 'email', 'value': 'john@example.com'}]}, {'data': [{'field': 'name', 'value': 'Jane Smith'}, {'field': 'email', 'value': 'jane@example.com'}]}]
     NOT: "[{'data': [{'field': 'name', 'value': 'John Doe'}, {'field': 'email', 'value': 'john@example.com'}]}]"
 
-    If calling this tool always include the table_name and non empty record_data_list.
 """
 
 
@@ -113,6 +113,9 @@ async def create_records_implementation(
             return "Error: The list of record data is empty. Provide at least one record data"
 
         for i, record_data in enumerate(record_data_list):
+            if not isinstance(record_data, dict):
+                return "Error: Each data record must be an object with 'data' key and list of field data"
+
             if record_data.get("data") is None or len(record_data.get("data")) == 0:
                 return f"Error: The data is empty for record {i+1}. The data list must include at least one field data"
 
