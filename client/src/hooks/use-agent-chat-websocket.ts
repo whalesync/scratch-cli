@@ -1,7 +1,7 @@
 import { API_CONFIG } from '@/lib/api/config';
-import { RecordCell } from '@/types/common';
 import { ChatMessage, DataScope } from '@/types/server-entities/chat-session';
 import { sleep } from '@/utils/helpers';
+import pluralize from 'pluralize';
 import { useCallback, useRef, useState } from 'react';
 
 type ClientMessageType = 'message' | 'ping' | 'echo_error';
@@ -22,14 +22,12 @@ export interface SendMessageRequestDTO {
   capabilities?: string[];
   model?: string;
   view_id?: string;
-  read_focus?: RecordCell[];
-  write_focus?: RecordCell[];
   active_table_id?: string;
   data_scope?: DataScope;
   record_id?: string;
   column_id?: string;
   max_records_in_prompt?: number;
-} 
+}
 
 interface UseWebSocketOptions {
   onMessage?: (message: WebSocketMessage) => Promise<void>;
@@ -48,103 +46,88 @@ interface UseWebSocketReturn {
   clearChat: () => void;
 }
 
-// export type AIAgentMessage = {
-//   message: string;
-//   agent_jwt?: string;
-//   credential_id?: string;
-//   style_guides?: Array<{ name: string; content: string }>;
-//   capabilities?: string[];
-//   model?: string;
-//   view_id?: string;
-//   read_focus?: RecordCell[];
-//   write_focus?: RecordCell[];
-// }
-
-export function useAIAgentChatWebSocket({
-  onMessage,
-}: UseWebSocketOptions): UseWebSocketReturn {
+export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): UseWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'offline' | 'connecting' | 'connected'>('offline');
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [connectedSessionId, setConnectedSessionId] = useState<string | null>(null);
   const [messageHistory, setMessageHistory] = useState<ChatMessage[]>([]);
-  
-  const connect = useCallback(async (sessionId: string) => {
-    console.log('Connecting WebSocket');
-    if (wsRef.current != null && (connectionStatus === 'connecting' || connectionStatus === 'connected')) return;
 
-    setConnectionStatus('connecting');
-    setConnectionError(null);
-    setMessageHistory([]);
+  const connect = useCallback(
+    async (sessionId: string) => {
+      console.log('Connecting WebSocket');
+      if (wsRef.current != null && (connectionStatus === 'connecting' || connectionStatus === 'connected')) return;
 
-    try {
-      // Assuming the WebSocket server is running on the same host but different port
-      // You may need to adjust this URL based on your setup
-      const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
-      const ws = new WebSocket(wsUrl);
+      setConnectionStatus('connecting');
+      setConnectionError(null);
+      setMessageHistory([]);
 
-      ws.onopen = () => {
-        console.debug('WebSocket connected');
-        setConnectionStatus('connected');
-        setConnectionError(null);
-     };
+      try {
+        // Assuming the WebSocket server is running on the same host but different port
+        // You may need to adjust this URL based on your setup
+        const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
+        const ws = new WebSocket(wsUrl);
 
-      ws.onmessage = (event) => {
-        try {
-          console.debug('Agent websocket event:', event);
-          const wsMessage: WebSocketMessage = JSON.parse(event.data);
-          const chatMessages = buildResponseChatMessages(wsMessage);
+        ws.onopen = () => {
+          console.debug('WebSocket connected');
+          setConnectionStatus('connected');
+          setConnectionError(null);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            console.debug('Agent websocket event:', event);
+            const wsMessage: WebSocketMessage = JSON.parse(event.data);
+            const chatMessages = buildResponseChatMessages(wsMessage);
+            setMessageHistory((prev) => [...prev, ...chatMessages]);
+            onMessage?.(wsMessage).catch((error) => {
+              console.error('Error handling websocket message:', error);
+            });
+          } catch (error) {
+            console.log('Error parsing WebSocket message:', error);
+          }
+        };
+
+        ws.onclose = (event) => {
+          console.debug('WebSocket disconnected:', event.code, event.reason);
+          setConnectionStatus('offline');
+
+          // 1000 is normal closure, 1012 is connection closed by server due to restart
+          if (event.code !== 1000) {
+            if (event.code === 1012) {
+              setConnectionError('Connection closed: Server restarted');
+            } else {
+              setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
+            }
+          }
+
           setMessageHistory((prev) => [
             ...prev,
-            ...chatMessages,
-          ]);
-          onMessage?.(wsMessage).catch((error) => {
-            console.error('Error handling websocket message:', error);
-          });
-
-        } catch (error) {
-          console.log('Error parsing WebSocket message:', error);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.debug('WebSocket disconnected:', event.code, event.reason);
-        setConnectionStatus('offline');
-
-        // 1000 is normal closure, 1012 is connection closed by server due to restart
-        if (event.code !== 1000) {
-          if(event.code === 1012) {
-            setConnectionError('Connection closed: Server restarted');
-          } else {
-            setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
-          }
-        }
-
-        setMessageHistory((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            role: 'assistant',
-            message: 'Disconnected from AI Agent',
-            timestamp: new Date().toISOString(),
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              message: 'Disconnected from AI Agent',
+              timestamp: new Date().toISOString(),
               variant: 'admin',
-          },
-        ]);
-      };
+            },
+          ]);
+        };
 
-      ws.onerror = (error) => {
-        console.log('WebSocket error:', error);
-        setConnectionError('Failed to connect to WebSocket server');
+        ws.onerror = (error) => {
+          console.log('WebSocket error:', error);
+          setConnectionError('Failed to connect to WebSocket server');
+          setConnectionStatus('offline');
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.log('Error creating WebSocket connection:', error);
+        setConnectionError('Failed to create WebSocket connection');
         setConnectionStatus('offline');
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      console.log('Error creating WebSocket connection:', error);
-      setConnectionError('Failed to create WebSocket connection');
-      setConnectionStatus('offline');
-    }
-  }, [connectionStatus, onMessage]);
+      }
+    },
+    [connectionStatus, onMessage],
+  );
 
   const disconnect = useCallback(async () => {
     console.log('Disconnecting WebSocket');
@@ -159,36 +142,41 @@ export function useAIAgentChatWebSocket({
     }
   }, [wsRef]);
 
-  const sendWebSocketMessage = useCallback((message: WebSocketMessage) => {
-    if (connectionStatus !== 'connected' || !wsRef.current) {
-      return;
-    }
-    wsRef.current.send(JSON.stringify(message));
-  }, [wsRef, connectionStatus]);
-  
-  const sendAiAgentMessage = useCallback((data: SendMessageRequestDTO) => {
-    // update with the most recent agent JWT token
-    data.agent_jwt = API_CONFIG.getAgentJwt() || undefined;
+  const sendWebSocketMessage = useCallback(
+    (message: WebSocketMessage) => {
+      if (connectionStatus !== 'connected' || !wsRef.current) {
+        return;
+      }
+      wsRef.current.send(JSON.stringify(message));
+    },
+    [wsRef, connectionStatus],
+  );
 
-    console.log('Sending WebSocket message:', data);
+  const sendAiAgentMessage = useCallback(
+    (data: SendMessageRequestDTO) => {
+      // update with the most recent agent JWT token
+      data.agent_jwt = API_CONFIG.getAgentJwt() || undefined;
 
-    sendWebSocketMessage({
-      type: 'message',
-      data: data,
-    });
+      console.log('Sending WebSocket message:', data);
 
-    setMessageHistory((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        role: 'user',
-        message: data.message,
-        timestamp: new Date().toISOString(),
-        variant: 'message',
-      },
-    ]);
+      sendWebSocketMessage({
+        type: 'message',
+        data: data,
+      });
 
-  }, [sendWebSocketMessage]);
+      setMessageHistory((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'user',
+          message: data.message,
+          timestamp: new Date().toISOString(),
+          variant: 'message',
+        },
+      ]);
+    },
+    [sendWebSocketMessage],
+  );
 
   const sendPing = useCallback(() => {
     sendWebSocketMessage({
@@ -222,7 +210,6 @@ export function useAIAgentChatWebSocket({
         variant: 'message',
       },
     ]);
-
   }, [sendWebSocketMessage]);
 
   const clearChat = useCallback(() => {
@@ -241,11 +228,10 @@ export function useAIAgentChatWebSocket({
     sendEchoError,
     clearChat,
   };
-} 
-
+}
 
 export interface BasicAgentMessageDataPayload {
-    message: string;
+  message: string;
 }
 
 export interface AgentErrorResponseDataPayload {
@@ -267,11 +253,17 @@ export interface AgentResponseDataPayload {
 }
 
 export interface AgentProgressMessageData {
-  progress_type: 'run_started' | 'status' | 'tool_call' | 'tool_result' | 'create_agent' | 'request_sent' | 'build_response';
+  progress_type:
+    | 'run_started'
+    | 'status'
+    | 'tool_call'
+    | 'tool_result'
+    | 'create_agent'
+    | 'request_sent'
+    | 'build_response';
   message: string;
   payload: Record<string, unknown>;
 }
-
 
 function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
   let displayMessage = '';
@@ -293,25 +285,27 @@ function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
   } else if (message.type === 'message_response') {
     const x = message.data as AgentResponseDataPayload;
     displayMessage = x.response_message;
-    // additionalMessages.push({
-    //   id: new Date().getTime().toString(),
-    //   role: 'assistant',
-    //   message: `Modal usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
-    //   timestamp: message.timestamp || new Date().toISOString(),
-    //   payload: x.usage_stats,
-    //   variant: 'usage',
-    // });
+    additionalMessages.push({
+      id: new Date().getTime().toString(),
+      role: 'assistant',
+      message: `Modal usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
+      timestamp: message.timestamp || new Date().toISOString(),
+      payload: x.usage_stats,
+      variant: 'usage',
+    });
   } else {
     displayMessage = 'Unknown message type';
   }
 
-  return [{
-    id: new Date().getTime().toString(),
-    role: 'assistant',
-    message: displayMessage,
-    timestamp: message.timestamp || new Date().toISOString(),
-    payload: message.data,
-    variant,
-  }, ...additionalMessages];
+  return [
+    {
+      id: new Date().getTime().toString(),
+      role: 'assistant',
+      message: displayMessage,
+      timestamp: message.timestamp || new Date().toISOString(),
+      payload: message.data,
+      variant,
+    },
+    ...additionalMessages,
+  ];
 }
-

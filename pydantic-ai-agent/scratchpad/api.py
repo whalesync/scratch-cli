@@ -79,15 +79,8 @@ class ScratchpadApi:
         if view_id:
             params["viewId"] = view_id
 
-        # Prepare request body with focus arrays
-        body = {}
-        if read_focus:
-            body["readFocus"] = read_focus
-        if write_focus:
-            body["writeFocus"] = write_focus
-
         response = requests.post(
-            url, headers=API_CONFIG.get_api_headers(user_id), params=params, json=body
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
         )
         data = _handle_response(response, "Failed to list records for AI")
 

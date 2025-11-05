@@ -17,23 +17,9 @@ export class AiSnapshotController {
     @Query('cursor') cursor: string | undefined,
     @Query('take', new ParseIntPipe({ optional: true })) take = 100,
     @Query('viewId') viewId: string | undefined,
-    @Body()
-    body: {
-      readFocus?: Array<{ recordWsId: string; columnWsId: string }>;
-      writeFocus?: Array<{ recordWsId: string; columnWsId: string }>;
-    } = {},
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return await this.service.listRecordsForAi(
-      snapshotId,
-      tableId,
-      toActor(req.user),
-      cursor,
-      take,
-      viewId,
-      body.readFocus,
-      body.writeFocus,
-    );
+    return await this.service.listRecordsForAi(snapshotId, tableId, toActor(req.user), cursor, take, viewId);
   }
 
   @UseGuards(ScratchpadAuthGuard)

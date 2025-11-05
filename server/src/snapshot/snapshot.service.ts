@@ -578,10 +578,6 @@ export class SnapshotService {
     cursor: string | undefined,
     take: number,
     viewId: string | undefined,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    readFocus?: Array<{ recordWsId: string; columnWsId: string }>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    writeFocus?: Array<{ recordWsId: string; columnWsId: string }>,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);

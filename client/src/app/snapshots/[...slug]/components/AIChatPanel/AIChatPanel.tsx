@@ -103,16 +103,8 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    readFocus,
-    writeFocus,
-    dataScope,
-    activeRecordId,
-    activeColumnId,
-    activeResources,
-    activeModel,
-    setActiveModel,
-  } = useAgentChatContext();
+  const { dataScope, activeRecordId, activeColumnId, activeResources, activeModel, setActiveModel } =
+    useAgentChatContext();
 
   const {
     activeSessionId,
@@ -319,15 +311,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       // Include capabilities if selected
       if (selectedCapabilities.length > 0) {
         messageData.capabilities = selectedCapabilities;
-      }
-
-      // Include focused cells if available
-      if (readFocus && readFocus.length > 0) {
-        messageData.read_focus = readFocus;
-      }
-
-      if (writeFocus && writeFocus.length > 0) {
-        messageData.write_focus = writeFocus;
       }
 
       if (activeTable) {
