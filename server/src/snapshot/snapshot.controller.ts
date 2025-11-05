@@ -24,7 +24,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
-import { SnapshotId, SnapshotTableId } from 'src/types/ids';
+import { SnapshotId } from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser, toActor } from '../auth/types';
@@ -538,7 +538,7 @@ export class SnapshotController {
   @Post(':id/tables/:tableId/add-scratch-column')
   async addScratchColumn(
     @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: SnapshotTableId,
+    @Param('tableId') tableId: string, // The WS Table ID
     @Body() addScratchColumnDto: AddScratchColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
@@ -549,7 +549,7 @@ export class SnapshotController {
   @Post(':id/tables/:tableId/remove-scratch-column')
   async removeScratchColumn(
     @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: SnapshotTableId,
+    @Param('tableId') tableId: string, // The WS Table ID
     @Body() removeScratchColumnDto: RemoveScratchColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {

@@ -16,8 +16,9 @@ import {
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
-import { ArrowUp, Bot, Command, FileDownIcon, FileUpIcon } from 'lucide-react';
+import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useRef, useState } from 'react';
@@ -25,6 +26,7 @@ import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { useTableContext } from './contexts/table-context';
+import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
 enum Modals {
@@ -58,6 +60,8 @@ export const SnapshotActionsMenu = () => {
     mode: 'current',
     tableIds: activeTable ? [activeTable.id] : [],
   });
+  const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
+    useDisclosure(false);
 
   const handleRename = async () => {
     if (!snapshot) return;
@@ -422,7 +426,9 @@ export const SnapshotActionsMenu = () => {
                   }
                 }}
               />
-
+              <Menu.Item onClick={openCreateScratchColumnModal} leftSection={<BetweenVerticalEndIcon size={16} />}>
+                Add Scratch Column
+              </Menu.Item>
               <Menu.Divider />
             </>
           )}
@@ -453,6 +459,14 @@ export const SnapshotActionsMenu = () => {
           snapshotId={snapshot.id}
           jobId={downloadInProgress.jobId}
           onClose={() => setDownloadInProgress(null)}
+        />
+      )}
+      {snapshot && activeTable && activeTable.tableSpec.id.wsId && (
+        <CreateScratchColumnModal
+          opened={createScratchColumnModal}
+          onClose={closeCreateScratchColumnModal}
+          snapshotId={snapshot.id}
+          tableId={activeTable.tableSpec.id.wsId}
         />
       )}
     </>

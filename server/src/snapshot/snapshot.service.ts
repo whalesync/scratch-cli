@@ -13,7 +13,7 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
-import { createSnapshotId, createSnapshotTableId, SnapshotId, SnapshotTableId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
 import { UploadsService } from 'src/uploads/uploads.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
@@ -1920,7 +1920,7 @@ export class SnapshotService {
 
   async addScratchColumn(
     snapshotId: SnapshotId,
-    tableId: SnapshotTableId,
+    tableId: string, // The WS Table ID
     addScratchColumnDto: AddScratchColumnDto,
     actor: Actor,
   ): Promise<void> {
@@ -1929,8 +1929,8 @@ export class SnapshotService {
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
-    const table = getSnapshotTableByWsId(snapshot, tableId);
-    if (!table) {
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
@@ -1941,7 +1941,7 @@ export class SnapshotService {
       );
     }
 
-    const tableSpec = table.tableSpec as AnyTableSpec;
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     // check the column isn't already used
     const existingColumn = tableSpec.columns.find((c) => c.id.wsId === columnId);
     if (existingColumn) {
@@ -1965,7 +1965,7 @@ export class SnapshotService {
     };
 
     await this.db.client.snapshotTable.update({
-      where: { id: tableId },
+      where: { id: snapshotTable.id },
       data: {
         tableSpec: newTableSpec as InputJsonObject,
       },
@@ -1997,7 +1997,7 @@ export class SnapshotService {
 
   async removeScratchColumn(
     snapshotId: SnapshotId,
-    tableId: SnapshotTableId,
+    tableId: string, // The WS Table ID
     columnId: string,
     actor: Actor,
   ): Promise<void> {

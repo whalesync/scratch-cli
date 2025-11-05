@@ -41,7 +41,13 @@ interface SnapshotProviderProps {
 }
 
 export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps) => {
-  const { snapshot, isLoading: snapshotLoading, error: snapshotError, publish, refreshSnapshot } = useSnapshot(snapshotId);
+  const {
+    snapshot,
+    isLoading: snapshotLoading,
+    error: snapshotError,
+    publish,
+    refreshSnapshot,
+  } = useSnapshot(snapshotId);
   const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
   const { upsertView } = useUpsertView();
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);

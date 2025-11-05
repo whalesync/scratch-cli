@@ -25,6 +25,7 @@ import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import '@glideapps/glide-data-grid/dist/index.css';
+import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { AddTableModal } from './components/AddTableModal';
 import { TableProvider, useTableContext } from './components/contexts/table-context';
@@ -65,6 +66,7 @@ function SnapshotPageContent() {
   // });
 
   useEffect(() => {
+    if (!snapshot) return;
     if (!activeTable) {
       const snapshotTables = getSnapshotTables(snapshot);
       if (tableId) {
@@ -77,6 +79,20 @@ function SnapshotPageContent() {
         setActiveTable(snapshotTables[0] ?? undefined);
         setSelectedTableContext(snapshotTables[0].tableContext ?? null);
       }
+      return;
+    }
+
+    // check to see if the content of the active table has changed and reset the object if it has, to trigger re-render of the grid
+    const updatedTable = getSnapshotTables(snapshot).find((t) => t.tableSpec.id.wsId === activeTable.tableSpec.id.wsId);
+    if (
+      updatedTable &&
+      (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
+        !_.isEqual(activeTable.tableContext, updatedTable.tableContext) ||
+        !_.isEqual(activeTable.columnContexts, updatedTable.columnContexts))
+    ) {
+      // update the active table and table context with the newer version
+      setActiveTable(updatedTable);
+      setSelectedTableContext(updatedTable.tableContext ?? null);
     }
   }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTable, setSelectedTableContext]);
 

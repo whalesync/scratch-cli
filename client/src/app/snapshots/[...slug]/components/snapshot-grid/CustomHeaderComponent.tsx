@@ -8,7 +8,7 @@ import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
-import { AlertCircle, Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star, TrashIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -87,6 +87,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === columnId);
   const isColumnHidden = columnConfig?.hidden === true;
   const isColumnProtected = columnConfig?.protected === true;
+  const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
 
   // Get current data converter setting from snapshot columnContexts
   const currentDataConverter = props.tableId
@@ -420,6 +421,37 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       ScratchpadNotifications.error({
         title: 'Error setting title column',
         message: error instanceof Error ? error.message : 'Failed to set title column',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveScratchColumn = async () => {
+    try {
+      setIsProcessing(true);
+      setIsMenuOpen(false);
+
+      if (!snapshot || !props.tableId) {
+        ScratchpadNotifications.error({
+          title: 'Error',
+          message: 'Missing snapshot or table information',
+        });
+        return;
+      }
+
+      await snapshotApi.removeScratchColumn(snapshot.id, props.tableId, {
+        columnId,
+      });
+
+      ScratchpadNotifications.success({
+        title: 'Scratch Column Removed',
+        message: `Column "${columnName}" has been removed from the table`,
+      });
+    } catch (error) {
+      ScratchpadNotifications.error({
+        title: `Error removing scratch column "${columnName}"`,
+        message: error instanceof Error ? error.message : 'Failed to remove scratch column',
       });
     } finally {
       setIsProcessing(false);
@@ -788,6 +820,36 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                 <StyledLucideIcon Icon={Star} size={14} c="#ffd700" />
                 Set as Title Column
               </button>
+              {isScratchColumn && (
+                <button
+                  onClick={handleRemoveScratchColumn}
+                  disabled={isProcessing}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'none',
+                    border: 'none',
+                    color: isProcessing ? '#666' : '#ffffff',
+                    textAlign: 'left',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <StyledLucideIcon Icon={TrashIcon} size={14} c="red" />
+                  Remove Scratch Column
+                </button>
+              )}
             </div>
           )}
         </div>
