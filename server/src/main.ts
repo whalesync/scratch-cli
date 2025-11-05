@@ -50,5 +50,10 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(port);
   startupFinished = true;
+
+  if (process.env.SERVER_STARTUP_CHECK) {
+    WSLogger.info({ source: 'main', message: 'The app started up successfully! Exiting with return code 0.' });
+    process.exit(0);
+  }
 }
 void bootstrap();

@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import knex, { Knex } from 'knex';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { Knex } from 'knex';
+import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { Actor } from 'src/users/types';
 import { assertUnreachable } from 'src/utils/asserts';
@@ -15,16 +15,10 @@ export interface CsvColumnSpec {
 export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
   private knexInstance: Knex;
 
-  constructor(private readonly config: ScratchpadConfigService) {}
+  constructor(private readonly dbService: DbService) {}
 
   async onModuleInit() {
-    this.knexInstance = knex({
-      client: 'pg',
-      connection: this.config.getDatabaseUrl(),
-      searchPath: ['public'],
-      debug: this.config.getDbDebug(),
-      asyncStackTraces: true,
-    });
+    this.knexInstance = this.dbService.knexClient();
 
     this.knexInstance.on('error', (err: Error) => {
       WSLogger.error({

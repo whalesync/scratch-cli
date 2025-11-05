@@ -1,6 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import knex from 'knex';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { SnapshotDb } from './snapshot-db';
 
@@ -8,16 +7,10 @@ import { SnapshotDb } from './snapshot-db';
 export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
   public snapshotDb = new SnapshotDb();
 
-  constructor(private readonly config: ScratchpadConfigService) {}
+  constructor(private readonly dbService: DbService) {}
 
   async onModuleInit() {
-    const knexInstance = knex({
-      client: 'pg',
-      connection: this.config.getDatabaseUrl(),
-      searchPath: ['public'],
-      debug: this.config.getDbDebug(),
-      asyncStackTraces: true,
-    });
+    const knexInstance = this.dbService.knexClient();
     this.snapshotDb.init(knexInstance);
 
     knexInstance.on('error', (err: Error) => {

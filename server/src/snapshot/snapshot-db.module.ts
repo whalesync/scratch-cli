@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { DbModule } from 'src/db/db.module';
 import { SnapshotDbService } from './snapshot-db.service';
 
 @Module({
-  imports: [ScratchpadConfigModule],
+  imports: [DbModule],
   providers: [SnapshotDbService],
   exports: [SnapshotDbService],
 })
