@@ -61,6 +61,16 @@ AVAILABLE_CAPABILITIES = [
         enabledByDefault=True,
         description="Set or clear SQL-based filters on tables to show/hide specific records.",
     ),
+    Capability(
+        code="data:add-column",
+        enabledByDefault=True,
+        description="Add a new column to the active table.",
+    ),
+    Capability(
+        code="data:remove-column",
+        enabledByDefault=True,
+        description="Remove a column from the active table.",
+    ),
 ]
 
 

@@ -26,6 +26,8 @@ from agents.data_agent.tools.fetch_additional_records_tool import (
 from agents.data_agent.tools.fetch_records_by_ids_tool import (
     define_fetch_records_by_ids_tool,
 )
+from agents.data_agent.tools.add_column_tool import define_add_column_tool
+from agents.data_agent.tools.remove_column_tool import define_remove_column_tool
 
 
 class GetRecordsInput(BaseModel):
@@ -75,6 +77,16 @@ def configure_tools(
 
     if capabilities is None or "views:filtering" in capabilities:
         define_set_filter_tool(agent)
+
+    if (
+        capabilities is not None and "table:add-column" in capabilities
+    ) and data_scope == "table":
+        define_add_column_tool(agent)
+
+    if (
+        capabilities is not None and "table:remove-column" in capabilities
+    ) and data_scope == "table":
+        define_remove_column_tool(agent)
 
     # Common tools / utilities
     define_url_content_load_tool(agent)

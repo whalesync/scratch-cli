@@ -22,7 +22,7 @@ class ColumnSpecForAi(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
-class TableSpec(BaseModel):
+class TableSpecForAi(BaseModel):
     id: EntityId
     name: str
     columns: List[ColumnSpecForAi]
@@ -51,7 +51,7 @@ class SnapshotForAi(BaseModel):
     name: Optional[str]
     createdAt: str
     updatedAt: str
-    tables: List[TableSpec]
+    tables: List[TableSpecForAi]
     tableContexts: List[TableContext]
     tableViews: Dict[str, TableViewConfig]
 
@@ -95,7 +95,7 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
             converted_columns.append(column_spec)
 
         # Create table spec
-        table_spec = TableSpec(
+        table_spec = TableSpecForAi(
             id=EntityId(wsId=table["id"]["wsId"], remoteId=table["id"]["remoteId"]),  # type: ignore
             name=table["name"],  # type: ignore
             columns=converted_columns,
@@ -200,4 +200,13 @@ def get_table_context(snapshot: SnapshotForAi, table_id: str) -> Optional[TableC
     for table_context in snapshot.tableContexts:
         if table_context.id.wsId == table_id:
             return table_context
+    return None
+
+
+def find_column_by_id(
+    table: TableSpecForAi, column_id: str
+) -> Optional[ColumnSpecForAi]:
+    for column in table.columns:
+        if column.id.wsId == column_id:
+            return column
     return None

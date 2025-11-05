@@ -345,3 +345,33 @@ class ScratchpadApi:
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
         data = _handle_response(response, "Failed to get upload content")
         return data
+
+    @staticmethod
+    def add_scratch_column(
+        user_id: str, snapshot_id: str, table_id: str, column_name: str, data_type: str
+    ) -> None:
+        """Add a scratch column to a table"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-scratch-column"
+        payload = {"columnName": column_name, "dataType": data_type}
+        response = requests.post(
+            url, headers=API_CONFIG.get_api_headers(user_id), json=payload
+        )
+        if not response.ok:
+            raise ScratchpadApiError(
+                f"Failed to add scratch column: {response.status_code} - {response.text}"
+            )
+
+    @staticmethod
+    def remove_scratch_column(
+        user_id: str, snapshot_id: str, table_id: str, column_id: str
+    ) -> None:
+        """Remove a scratch column from a table"""
+        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/remove-scratch-column"
+        payload = {"columnId": column_id}
+        response = requests.post(
+            url, headers=API_CONFIG.get_api_headers(user_id), json=payload
+        )
+        if not response.ok:
+            raise ScratchpadApiError(
+                f"Failed to remove scratch column: {response.status_code} - {response.text}"
+            )

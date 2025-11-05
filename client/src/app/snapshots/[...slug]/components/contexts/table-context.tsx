@@ -23,11 +23,6 @@ export interface PendingUpdate {
 interface TableContextValue {
   activeTable: SnapshotTable | undefined;
   setActiveTable: (table: SnapshotTable | undefined) => void;
-  // displayMode: DisplayMode;
-  // switchToRecordView: (recordId: string, columnId?: string) => Promise<void>;
-  // switchToSpreadsheetView: () => Promise<void>;
-  // switchToNewSpreadsheetView: () => Promise<void>;
-  // switchDisplayMode: (recordId?: string, columnId?: string) => Promise<void>;
   activeRecord: ActiveRecord | null;
   setActiveRecord: (activeRecord: ActiveRecord | null) => void;
   recordDetailsVisible: boolean;
@@ -49,7 +44,6 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   const { viewDataAsAgent, currentViewId } = useSnapshotContext();
   /** State */
   const [activeTable, setActiveTable] = useState<SnapshotTable | undefined>(undefined);
-  // const [displayMode, setDisplayMode] = useState<DisplayMode>(recordIdParam ? 'record' : 'spreadsheet');
   const [activeRecord, setActiveRecord] = useState<ActiveRecord | null>(
     recordIdParam
       ? {

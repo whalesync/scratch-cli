@@ -76,6 +76,16 @@ const availableCapabilities = [
     enabledByDefault: true,
     description: 'Set or clear SQL-based filters on tables to show/hide specific records.',
   },
+  {
+    code: 'table:add-column',
+    enabledByDefault: false,
+    description: 'Add scratch columns to the active table.',
+  },
+  {
+    code: 'table:remove-column',
+    enabledByDefault: false,
+    description: 'Remove scratch columns from the active table.',
+  },
 ];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {

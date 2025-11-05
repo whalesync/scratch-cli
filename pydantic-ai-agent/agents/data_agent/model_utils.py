@@ -1,6 +1,6 @@
 from scratchpad.entities import ColumnSpec, SnapshotRecord, RecordId, TableSpec
 from agents.data_agent.models import ChatRunContext
-
+from agents.data_agent.data_agent_utils import TableSpecForAi, ColumnSpecForAi
 
 ### Context Utils
 
@@ -19,7 +19,9 @@ def find_table_by_name(
     return None
 
 
-def find_column_by_name(table: TableSpec, column_name: str) -> ColumnSpec | None:
+def find_column_by_name(
+    table: TableSpecForAi, column_name: str
+) -> ColumnSpecForAi | None:
     for column in table.columns:
         if column.name.lower() == column_name.lower():
             return column
@@ -28,7 +30,7 @@ def find_column_by_name(table: TableSpec, column_name: str) -> ColumnSpec | None
     return None
 
 
-def find_column_by_id(table: TableSpec, column_id: str) -> ColumnSpec | None:
+def find_column_by_id(table: TableSpecForAi, column_id: str) -> ColumnSpecForAi | None:
     for column in table.columns:
         if column.id.wsId == column_id:
             return column
@@ -130,7 +132,7 @@ def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str)
     return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"
 
 
-def missing_field_error(table: TableSpec, missing_field_name: str) -> str:
+def missing_field_error(table: TableSpecForAi, missing_field_name: str) -> str:
     available_fields = [c.name for c in table.columns]
     return f"Error: Field '{missing_field_name}' not found. Available fields: {available_fields}"
 
