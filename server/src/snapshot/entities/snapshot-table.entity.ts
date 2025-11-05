@@ -23,7 +23,7 @@ export class SnapshotTable {
     this.snapshotId = snapshotTable.snapshotId;
     this.connectorAccountId = snapshotTable.connectorAccountId;
     this.connectorDisplayName = snapshotTable.connectorAccount?.displayName ?? null;
-    this.connectorService = snapshotTable.connectorService; // Now stored directly on SnapshotTable
+    this.connectorService = snapshotTable.connectorService;
     this.tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     this.tableContext = snapshotTable.tableContext as SnapshotTableContext | null;
     this.columnSettings = (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {};

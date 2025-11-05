@@ -65,7 +65,7 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
         addToMessageLog('Mutate snapshot SWR keys');
         // Invalidate snapshot detail cache
         globalMutate(SWR_KEYS.snapshot.detail(snapshotId));
-        globalMutate(SWR_KEYS.snapshot.list('all'));
+        globalMutate(SWR_KEYS.snapshot.list());
 
         if (event.data.tableId) {
           globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {

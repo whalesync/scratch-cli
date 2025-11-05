@@ -72,11 +72,6 @@ export type SnapshotColumnSettings = {
 
 export type SnapshotColumnSettingsMap = { [columnWsId: string]: SnapshotColumnSettings };
 
-/** Deprecated - use SnapshotColumnSettingsMap instead */
-export type SnapshotColumnContexts = {
-  [tableId: string]: SnapshotColumnSettingsMap;
-};
-
 export interface SnapshotTable {
   id: string;
   createdAt: string;
@@ -97,17 +92,17 @@ export interface Snapshot {
   name: string | null;
   createdAt: string;
   updatedAt: string;
-  /** @deprecated Use snapshotTables[].columnContexts instead - kept for backward compatibility during migration */
-  columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTable[];
 
   userId: string;
 }
 
 export interface CreateSnapshotDto {
-  connectorAccountId: string;
-  name: string;
-  tableIds: EntityId[];
+  name?: string;
+  tables?: {
+    connectorAccountId: string;
+    tableId: EntityId;
+  }[];
 }
 
 export interface AddTableToSnapshotDto {
@@ -120,8 +115,9 @@ export interface UpdateSnapshotDto {
   name?: string;
 }
 
-export interface UpdateColumnContextsDto {
-  columnContexts: Record<string, SnapshotColumnSettings>;
+export interface UpdateColumnSettingsDto {
+  /** Only keys present in the map will be updated, other keys will be left unchanged. */
+  columnSettings: SnapshotColumnSettingsMap;
 }
 
 export interface AddScratchColumnDto {

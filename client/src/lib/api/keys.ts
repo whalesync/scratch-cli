@@ -1,76 +1,104 @@
-import { Arguments } from "swr";
+import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
   agentCredentials: {
-    list: (includeUsageStats: boolean = false) => ["agent-credentials", includeUsageStats ? "with-usage" : "without-usage"],
-    detail: (id: string) => ["agent-credentials", "detail", id],
+    list: (includeUsageStats: boolean = false) => [
+      'agent-credentials',
+      includeUsageStats ? 'with-usage' : 'without-usage',
+    ],
+    detail: (id: string) => ['agent-credentials', 'detail', id],
   },
   connectorAccounts: {
-    list: () => ["connector-accounts"],
-    detail: (id: string) => ["connector-accounts", "detail", id],
+    list: () => ['connector-accounts'],
+    detail: (id: string) => ['connector-accounts', 'detail', id],
   },
   genericConnections: {
-    list: () => ["generic-connections"],
+    list: () => ['generic-connections'],
   },
   customConnectors: {
-    list: () => ["custom-connectors"],
-    detail: (id: string) => ["custom-connectors", "detail", id],
+    list: () => ['custom-connectors'],
+    detail: (id: string) => ['custom-connectors', 'detail', id],
   },
-  customConnector: (id: string) => ["custom-connectors", id] as const,
+  customConnector: (id: string) => ['custom-connectors', id] as const,
   apiImport: {
-    generatePollRecords: () => ["api-import", "generate-poll-records"],
-    generateDeleteRecord: () => ["api-import", "generate-delete-record"],
-    executeDeleteRecord: () => ["api-import", "execute-delete-record"],
+    generatePollRecords: () => ['api-import', 'generate-poll-records'],
+    generateDeleteRecord: () => ['api-import', 'generate-delete-record'],
+    executeDeleteRecord: () => ['api-import', 'execute-delete-record'],
   },
   snapshot: {
-    list: (connectorAccountId: string) => [
-      "snapshot",
-      "list",
-      connectorAccountId,
+    list: () => ['snapshot', 'list', 'all'],
+    detail: (id: string) => ['snapshot', 'detail', id],
+    records: (snapshotId: string, tableId: string, cursor?: string, take?: number, viewId?: string) => [
+      'snapshot',
+      'records',
+      snapshotId,
+      tableId,
+      cursor,
+      take,
+      viewId,
     ],
-    detail: (id: string) => ["snapshot", "detail", id],
-    records: (
-      snapshotId: string,
-      tableId: string,
-      cursor?: string,
-      take?: number,
-      viewId?: string
-    ) => ["snapshot", "records", snapshotId, tableId, cursor, take, viewId],
     // Matches all SWR keys for records for a given snapshot and table
-    recordsKeyMatcher: (snapshotId: string, tableId: string) => (key: Arguments) => Array.isArray(key) && key[0] === 'snapshot' && key[1] === 'records' && key[2] === snapshotId && key[3] === tableId,
-    views: (snapshotId: string, tableId: string) => ["snapshot", "views", snapshotId, tableId],
-    publishSummary: (id: string) => ["snapshot", "publish-summary", id],
+    recordsKeyMatcher: (snapshotId: string, tableId: string) => (key: Arguments) =>
+      Array.isArray(key) &&
+      key[0] === 'snapshot' &&
+      key[1] === 'records' &&
+      key[2] === snapshotId &&
+      key[3] === tableId,
+    views: (snapshotId: string, tableId: string) => ['snapshot', 'views', snapshotId, tableId],
+    publishSummary: (id: string) => ['snapshot', 'publish-summary', id],
   },
   view: {
-    list: (snapshotId: string) => ["view", "list", snapshotId],
-    upsert: () => ["view", "upsert"],
+    list: (snapshotId: string) => ['view', 'list', snapshotId],
+    upsert: () => ['view', 'upsert'],
   },
   users: {
-    activeUser: () => ["users", "activeUser"],
+    activeUser: () => ['users', 'activeUser'],
   },
   agentUsage: {
-    list: (cursor?: string, take?: number) => ["agent-usage", "list", cursor, take],
-    summary: () => ["agent-usage", "summary"],
+    list: (cursor?: string, take?: number) => ['agent-usage', 'list', cursor, take],
+    summary: () => ['agent-usage', 'summary'],
   },
   agentSessions: {
-    list: (snapshotId: string) => ["agent-sessions", "list", snapshotId],
-    detail: (id: string) => ["agent-sessions", "detail", id],
+    list: (snapshotId: string) => ['agent-sessions', 'list', snapshotId],
+    detail: (id: string) => ['agent-sessions', 'detail', id],
   },
   uploads: {
-    list: () => ["uploads", "list"],
-    detail: (id: string) => ["uploads", "detail", id],
-    csvData: (id: string, limit?: number, offset?: number) => ["uploads", "csv-data", id, limit, offset],
-    mdData: (id: string) => ["uploads", "md-data", id],
+    list: () => ['uploads', 'list'],
+    detail: (id: string) => ['uploads', 'detail', id],
+    csvData: (id: string, limit?: number, offset?: number) => ['uploads', 'csv-data', id, limit, offset],
+    mdData: (id: string) => ['uploads', 'md-data', id],
   },
 };
 
 export const API_IMPORT_KEYS = {
   generatePollRecords: (prompt: string) => ['api-import', 'generate-poll-records', prompt],
-  executePollRecords: (functionString: string, apiKey: string) => ['api-import', 'execute-poll-records', functionString, apiKey],
+  executePollRecords: (functionString: string, apiKey: string) => [
+    'api-import',
+    'execute-poll-records',
+    functionString,
+    apiKey,
+  ],
   generateDeleteRecord: (prompt: string) => ['api-import', 'generate-delete-record', prompt],
-  executeDeleteRecord: (functionString: string, recordId: string, apiKey: string) => ['api-import', 'execute-delete-record', functionString, recordId, apiKey],
+  executeDeleteRecord: (functionString: string, recordId: string, apiKey: string) => [
+    'api-import',
+    'execute-delete-record',
+    functionString,
+    recordId,
+    apiKey,
+  ],
   generateCreateRecord: (prompt: string) => ['api-import', 'generate-create-record', prompt],
-  executeCreateRecord: (functionString: string, recordData: Record<string, unknown>, apiKey: string) => ['api-import', 'execute-create-record', functionString, recordData, apiKey],
+  executeCreateRecord: (functionString: string, recordData: Record<string, unknown>, apiKey: string) => [
+    'api-import',
+    'execute-create-record',
+    functionString,
+    recordData,
+    apiKey,
+  ],
   generateUpdateRecord: (prompt: string) => ['api-import', 'generate-update-record', prompt],
-  executeUpdateRecord: (functionString: string, recordId: string, recordData: Record<string, unknown>, apiKey: string) => ['api-import', 'execute-update-record', functionString, recordId, recordData, apiKey],
+  executeUpdateRecord: (
+    functionString: string,
+    recordId: string,
+    recordData: Record<string, unknown>,
+    apiKey: string,
+  ) => ['api-import', 'execute-update-record', functionString, recordId, recordData, apiKey],
 } as const;

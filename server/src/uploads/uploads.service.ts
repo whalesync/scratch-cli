@@ -843,10 +843,7 @@ export class UploadsService {
           id: snapshotId,
           userId: actor.userId,
           organizationId: actor.organizationId,
-          connectorAccountId: null, // No connector account needed for CSV
           name: snapshotName,
-          service: Service.CSV, // Set service to CSV
-          columnContexts: {},
 
           snapshotTables: {
             create: [

@@ -11,10 +11,10 @@ export namespace UserCluster {
 
 export namespace SnapshotCluster {
   export type Snapshot = Prisma.SnapshotGetPayload<typeof _validator>;
+  export type SnapshotTable = Snapshot['snapshotTables'][number];
 
   export const _validator = Prisma.validator<Prisma.SnapshotDefaultArgs>()({
     include: {
-      connectorAccount: true,
       snapshotTables: {
         include: {
           connectorAccount: true,

@@ -103,7 +103,6 @@ model ConnectorAccount {
   healthStatusMessage       String? // Message if health status is not OK
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
-  snapshots                 Snapshot[]
   snapshotTables            SnapshotTable[]
 
   @@index([userId])
@@ -136,7 +135,6 @@ enum ConnectorHealthStatus {
 model Snapshot {
   id        String   @id // type: SnapshotId
   name      String?
-  service   String // Service that created this snapshot (CSV, NOTION, AIRTABLE, etc.)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -145,14 +143,8 @@ model Snapshot {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
-  connectorAccountId String? // @deprecated(reason: "Replaced with SnapshotTable.connectorAccountId")
-
-  columnContexts Json @default("{}") // @deprecated(reason: "Replaced with SnapshotTable.columnContexts")
-
   snapshotTables SnapshotTable[]
 
-  @@index([connectorAccountId])
   @@index([userId])
   @@index([organizationId])
 }

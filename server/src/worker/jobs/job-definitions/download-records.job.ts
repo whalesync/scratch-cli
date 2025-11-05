@@ -60,7 +60,6 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     const snapshot = await this.prisma.snapshot.findUnique({
       where: { id: data.snapshotId },
       include: {
-        connectorAccount: true,
         snapshotTables: {
           include: {
             connectorAccount: true,

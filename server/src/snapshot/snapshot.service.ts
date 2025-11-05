@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConnectorAccount, Service, SnapshotTable } from '@prisma/client';
+import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
 import { Response } from 'express';
 import _ from 'lodash';
@@ -14,7 +14,6 @@ import { DecryptedCredentials } from 'src/remote-service/connector-account/types
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
 import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
-import { UploadsService } from 'src/uploads/uploads.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ViewConfig, ViewTableConfig } from 'src/view/types';
@@ -41,10 +40,8 @@ import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './ent
 import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { SnapshotColumnContexts, SnapshotColumnSettings, SnapshotTableContext } from './types';
+import { SnapshotColumnSettingsMap, SnapshotTableContext } from './types';
 import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
-
-type SnapshotWithConnectorAccount = SnapshotCluster.Snapshot;
 
 @Injectable()
 export class SnapshotService {
@@ -56,46 +53,63 @@ export class SnapshotService {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
-    private readonly uploadsService: UploadsService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
   async create(createSnapshotDto: CreateSnapshotDto, actor: Actor): Promise<SnapshotCluster.Snapshot> {
-    const { connectorAccountId, tableIds } = createSnapshotDto;
+    const { name, tables } = createSnapshotDto;
 
-    const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
-    if (!connectorAccount) {
-      throw new NotFoundException('Connector account not found');
-    }
-
-    // Poll the connector for the set of columns.
-    // This probably could be something the user selects, which would mean we poll for it earlier and just take the
-    // results back here.
-    const connector = await this.connectorService.getConnector({
-      service: connectorAccount.service,
-      connectorAccount,
-      decryptedCredentials: connectorAccount,
-    });
-
+    const snapshotId = createSnapshotId();
     const tableSpecs: AnyTableSpec[] = [];
     const tableContexts: SnapshotTableContext[] = [];
-    try {
-      for (const tableId of tableIds) {
-        tableSpecs.push(await connector.fetchTableSpec(tableId));
-        tableContexts.push({
-          id: tableId,
-          activeViewId: null,
-          ignoredColumns: [],
-          readOnlyColumns: [],
-        });
-      }
-    } catch (error) {
-      throw exceptionForConnectorError(error, connector);
-    }
+    const tableCreateInput: Prisma.SnapshotTableUncheckedCreateWithoutSnapshotInput[] = [];
 
-    // Create the entity in the DB.
-    const snapshotId = createSnapshotId();
+    if (tables) {
+      for (const { connectorAccountId, tableId } of tables) {
+        let connector: Connector<Service, any> | undefined = undefined;
+        try {
+          const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
+          if (!connectorAccount) {
+            throw new NotFoundException('Connector account not found');
+          }
+          connector = await this.connectorService.getConnector({
+            service: connectorAccount.service,
+            connectorAccount,
+            decryptedCredentials: connectorAccount,
+          });
+
+          // Poll the connector for the set of columns.
+          // This probably could be something the user selects, which would mean we poll for it earlier and just take the
+          // results back here.
+          const tableSpec = await connector.fetchTableSpec(tableId);
+          tableSpecs.push(tableSpec);
+
+          const tableContext = {
+            id: tableId,
+            activeViewId: null,
+            ignoredColumns: [],
+            readOnlyColumns: [],
+          };
+          tableContexts.push(tableContext);
+
+          tableCreateInput.push({
+            id: createSnapshotTableId(),
+            connectorAccountId,
+            connectorService: connectorAccount.service,
+            tableSpec,
+            tableContext,
+            columnSettings: {},
+          });
+        } catch (error) {
+          if (connector) {
+            throw exceptionForConnectorError(error, connector);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
 
     WSLogger.info({
       source: 'SnapshotService.create',
@@ -103,26 +117,13 @@ export class SnapshotService {
       tableCount: tableSpecs.length,
     });
 
-    const snapshotTables = tableSpecs.map((tableSpec, index) => ({
-      id: createSnapshotTableId(),
-      connectorAccountId,
-      connectorService: connectorAccount.service,
-      tableSpec: tableSpec,
-      tableContext: tableContexts[index],
-      columnContexts: {},
-    }));
     const newSnapshot = await this.db.client.snapshot.create({
       data: {
         id: snapshotId,
         userId: actor.userId,
         organizationId: actor.organizationId,
-        connectorAccountId,
-        name: createSnapshotDto.name,
-        service: connectorAccount.service,
-        columnContexts: {},
-        snapshotTables: {
-          create: snapshotTables,
-        },
+        name: name ?? `New workbook`,
+        snapshotTables: { create: tableCreateInput },
       },
       include: SnapshotCluster._validator.include,
     });
@@ -131,7 +132,7 @@ export class SnapshotService {
       source: 'SnapshotService.create',
       message: 'Snapshot created',
       snapshotId: newSnapshot.id,
-      snapshotTablesCount: newSnapshot.snapshotTables?.length || 0,
+      snapshotTablesCount: tableCreateInput.length,
     });
 
     // Make a new schema and create tables to store its data.
@@ -152,7 +153,7 @@ export class SnapshotService {
       await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, actor);
     } else {
       // Fall back to synchronous download when jobs are not available
-      this.downloadSnapshotInBackground(newSnapshot, actor).catch((error) => {
+      this.downloadAllSnapshotTablesInBackground(newSnapshot, actor).catch((error) => {
         WSLogger.error({
           source: 'SnapshotService.create',
           message: 'Error downloading snapshot',
@@ -171,7 +172,7 @@ export class SnapshotService {
       entityId: newSnapshot.id as SnapshotId,
       context: {
         tables: tableSpecs.map((t) => t.id.wsId),
-        service: connectorAccount.service,
+        services: tableCreateInput.map((t) => t.connectorService),
       },
     });
 
@@ -418,7 +419,7 @@ export class SnapshotService {
   }
 
   async delete(id: SnapshotId, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(id, actor); // Permissions
+    const snapshot = await this.findOneOrThrow(id, actor); // Permissions
 
     await this.snapshotDbService.snapshotDb.cleanUpSnapshot(id);
     await this.db.client.snapshot.delete({
@@ -435,11 +436,15 @@ export class SnapshotService {
     });
   }
 
-  findAll(connectorAccountId: string, actor: Actor): Promise<SnapshotCluster.Snapshot[]> {
+  findAllForConnectorAccount(connectorAccountId: string, actor: Actor): Promise<SnapshotCluster.Snapshot[]> {
     return this.db.client.snapshot.findMany({
       where: {
-        connectorAccountId,
         userId: actor.userId,
+        snapshotTables: {
+          some: {
+            connectorAccountId,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -467,11 +472,8 @@ export class SnapshotService {
     });
   }
 
-  private async findOneWithConnectorAccount(id: SnapshotId, actor: Actor): Promise<SnapshotWithConnectorAccount> {
-    const snapshot = await this.db.client.snapshot.findFirst({
-      where: { id, organizationId: actor.organizationId },
-      include: SnapshotCluster._validator.include,
-    });
+  private async findOneOrThrow(id: SnapshotId, actor: Actor): Promise<SnapshotCluster.Snapshot> {
+    const snapshot = await this.findOne(id, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
@@ -480,7 +482,7 @@ export class SnapshotService {
 
   async update(id: SnapshotId, updateSnapshotDto: UpdateSnapshotDto, actor: Actor): Promise<SnapshotCluster.Snapshot> {
     // Check that the snapshot exists and belongs to the user.
-    await this.findOneWithConnectorAccount(id, actor);
+    await this.findOneOrThrow(id, actor);
 
     const updatedSnapshot = await this.db.client.snapshot.update({
       where: { id },
@@ -510,7 +512,7 @@ export class SnapshotService {
     recordId: string,
     actor: Actor,
   ): Promise<SnapshotRecord | null> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -527,7 +529,7 @@ export class SnapshotService {
     take: number,
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
@@ -579,7 +581,7 @@ export class SnapshotService {
     take: number,
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -630,7 +632,7 @@ export class SnapshotService {
     recordIds: string[],
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -653,7 +655,7 @@ export class SnapshotService {
     type: 'accepted' | 'suggested',
     viewId?: string,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -699,26 +701,26 @@ export class SnapshotService {
     fields: string[] | null,
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
-
-    if (!snapshot.connectorAccount) {
-      throw new BadRequestException('Cannot deep fetch records for connectorless snapshots');
+    if (!snapshotTable.connectorAccount) {
+      throw new BadRequestException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
     const connector = await this.connectorService.getConnector({
-      service: snapshot.connectorAccount.service,
-      connectorAccount: snapshot.connectorAccount,
+      service: snapshotTable.connectorService,
+      connectorAccount: snapshotTable.connectorAccount,
       decryptedCredentials: null,
     });
 
     // Check if the connector supports deep fetch
     if (!connector.downloadRecordDeep) {
       throw new BadRequestException(
-        `Connector for service ${snapshot.connectorAccount.service} does not support deep record fetching`,
+        `Connector for service ${snapshotTable.connectorService} does not support deep record fetching`,
       );
     }
 
@@ -771,7 +773,7 @@ export class SnapshotService {
               } as SnapshotRecord);
             }
           },
-          snapshot.connectorAccount,
+          snapshotTable.connectorAccount,
         );
       } catch (error) {
         WSLogger.error({
@@ -884,7 +886,7 @@ export class SnapshotService {
     items: { wsId: string; columnId: string }[],
     actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -925,7 +927,7 @@ export class SnapshotService {
     items: { wsId: string; columnId: string }[],
     actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -967,7 +969,7 @@ export class SnapshotService {
     actor: Actor,
     viewId?: string,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -1012,26 +1014,27 @@ export class SnapshotService {
     };
   }
 
-  async updateColumnContexts(
+  async updateColumnSettings(
     snapshotId: SnapshotId,
     tableId: string,
-    columnContexts: Record<string, SnapshotColumnSettings>,
+    newColumnSettings: SnapshotColumnSettingsMap,
     actor: Actor,
   ): Promise<void> {
     // Fetch snapshot once for both permission check AND getting existing columnContexts
-    const currentSnapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const currentSnapshot = await this.findOneOrThrow(snapshotId, actor);
+    const table = currentSnapshot.snapshotTables.find((t) => t.id === tableId);
+    if (!table) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
 
-    const existingContexts = (currentSnapshot.columnContexts as SnapshotColumnContexts) ?? {};
+    const existingSettings = (table.columnSettings ?? {}) as SnapshotColumnSettingsMap;
 
-    await this.db.client.snapshot.update({
+    await this.db.client.snapshotTable.update({
       where: { id: snapshotId },
       data: {
-        columnContexts: {
-          ...existingContexts,
-          [tableId]: {
-            ...(existingContexts[tableId] ?? {}),
-            ...columnContexts,
-          },
+        columnSettings: {
+          ...existingSettings,
+          ...newColumnSettings,
         },
       },
     });
@@ -1065,7 +1068,7 @@ export class SnapshotService {
     actor: Actor,
     viewId?: string,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -1164,9 +1167,9 @@ export class SnapshotService {
   }
 
   async downloadWithoutJob(id: SnapshotId, actor: Actor): Promise<DownloadSnapshotWithouotJobResult> {
-    const snapshot = await this.findOneWithConnectorAccount(id, actor);
+    const snapshot = await this.findOneOrThrow(id, actor);
 
-    return this.downloadSnapshotInBackground(snapshot, actor);
+    return this.downloadAllSnapshotTablesInBackground(snapshot, actor);
   }
 
   async download(id: SnapshotId, actor: Actor, snapshotTableIds?: string[]): Promise<DownloadSnapshotResult> {
@@ -1183,25 +1186,17 @@ export class SnapshotService {
     };
   }
 
-  private async downloadSnapshotInBackground(
-    snapshot: SnapshotWithConnectorAccount,
+  private async downloadAllSnapshotTablesInBackground(
+    snapshot: SnapshotCluster.Snapshot,
     actor: Actor,
   ): Promise<DownloadSnapshotWithouotJobResult> {
-    if (!snapshot.connectorAccount) {
-      throw new Error('Snapshot does not have a connector account');
-    }
-    // need a full connector account object with decoded credentials
-    const connectorAccount = await this.connectorAccountService.findOne(snapshot.connectorAccount.id, actor);
-    const connector = await this.connectorService.getConnector({
-      service: snapshot.connectorAccount.service,
-      connectorAccount,
-      decryptedCredentials: connectorAccount,
-      userId: actor.userId,
-    });
-    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
+    const tables = snapshot.snapshotTables ?? [];
     let totalCount = 0;
-    const tables: { id: string; name: string; records: number }[] = [];
-    for (const tableSpec of tableSpecs) {
+    const tableResults: { id: string; name: string; records: number }[] = [];
+    for (const table of tables) {
+      const connector = await this.getConnectorForSnapshotTable(table, actor);
+
+      const tableSpec = table.tableSpec as AnyTableSpec;
       WSLogger.debug({
         source: 'SnapshotService',
         message: 'Downloading records',
@@ -1212,13 +1207,12 @@ export class SnapshotService {
       try {
         await connector.downloadTableRecords(
           tableSpec,
-          // TODO: Move over to reading them from the table.
-          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
+          table.columnSettings as SnapshotColumnSettingsMap,
           async (params) => {
             const { records } = params;
             await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
             totalCount += records.length;
-            tables.push({
+            tableResults.push({
               id: tableSpec.id.wsId,
               name: tableSpec.name,
               records: records.length,
@@ -1245,12 +1239,12 @@ export class SnapshotService {
 
     return {
       totalRecords: totalCount,
-      tables,
+      tables: tableResults,
     };
   }
 
   async publish(id: SnapshotId, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(id, actor);
+    const snapshot = await this.findOneOrThrow(id, actor);
 
     // if (!snapshot.connectorAccount) {
     //   throw new BadRequestException('Cannot publish connectorless snapshots');
@@ -1258,7 +1252,7 @@ export class SnapshotService {
 
     // TODO: Do this work somewhere real.
     // For now it's running synchronously, but could also be done in the background.
-    await this.publishSnapshot(snapshot, actor);
+    await this.publishAllTablesInSnapshot(snapshot, actor);
 
     this.posthogService.trackPublishSnapshot(actor.userId, snapshot);
     await this.auditLogService.logEvent({
@@ -1271,7 +1265,7 @@ export class SnapshotService {
   }
 
   async getPublishSummary(id: SnapshotId, actor: Actor): Promise<PublishSummaryDto> {
-    const snapshot = await this.findOneWithConnectorAccount(id, actor);
+    const snapshot = await this.findOneOrThrow(id, actor);
 
     // if (!snapshot.connectorAccount) {
     //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
@@ -1327,38 +1321,51 @@ export class SnapshotService {
     return summary;
   }
 
-  private async publishSnapshot(snapshot: SnapshotWithConnectorAccount, actor: Actor): Promise<void> {
+  private async getConnectorForSnapshotTable(
+    table: SnapshotCluster.SnapshotTable,
+    actor: Actor,
+  ): Promise<Connector<Service, any>> {
+    if (!table.connectorAccount || !table.connectorAccountId) {
+      throw new Error('Snapshot table does not have a connector account');
+    }
     // need a full connector account object with decoded credentials
-    // if (!snapshot.connectorAccount) {
-    //   throw new Error('Snapshot does not have a connector account');
-    // }
-    const connectorAccount: (ConnectorAccount & DecryptedCredentials) | null = snapshot.connectorAccount
-      ? await this.connectorAccountService.findOne(snapshot.connectorAccount.id, actor)
-      : null;
-    const connector = await this.connectorService.getConnector({
-      service: snapshot.service as Service,
+    const connectorAccount = await this.connectorAccountService.findOne(table.connectorAccountId, actor);
+    if (!connectorAccount) {
+      throw new NotFoundException('Connector account not found');
+    }
+
+    return this.connectorService.getConnector({
+      service: connectorAccount.service,
       connectorAccount: connectorAccount,
       decryptedCredentials: connectorAccount,
+      userId: actor.userId,
     });
-    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
+  }
 
-    try {
-      // First create everything.
-      for (const tableSpec of tableSpecs) {
-        await this.publishCreatesToTable(snapshot, connector, tableSpec);
-      }
+  private async publishAllTablesInSnapshot(snapshot: SnapshotCluster.Snapshot, actor: Actor): Promise<void> {
+    const tableAndConnector: {
+      table: SnapshotCluster.SnapshotTable;
+      tableSpec: TableSpecs[Service];
+      connector: Connector<Service, any>;
+    }[] = [];
+    for (const table of snapshot.snapshotTables) {
+      const connector = await this.getConnectorForSnapshotTable(table, actor);
+      tableAndConnector.push({ table, tableSpec: table.tableSpec as AnyTableSpec, connector });
+    }
 
-      // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
-      for (const tableSpec of tableSpecs) {
-        await this.publishUpdatesToTable(snapshot, connector, tableSpec);
-      }
+    // First create everything.
+    for (const { table, tableSpec, connector } of tableAndConnector) {
+      await this.publishCreatesToTable(snapshot, connector, table, tableSpec);
+    }
 
-      // Finally the deletes since hopefully nothing references them any more.
-      for (const tableSpec of tableSpecs) {
-        await this.publishDeletesToTable(snapshot, connector, tableSpec);
-      }
-    } catch (error) {
-      throw exceptionForConnectorError(error, connector);
+    // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
+    for (const { table, tableSpec, connector } of tableAndConnector) {
+      await this.publishUpdatesToTable(snapshot, connector, table, tableSpec);
+    }
+
+    // Finally the deletes since hopefully nothing references them any more.
+    for (const { tableSpec, connector } of tableAndConnector) {
+      await this.publishDeletesToTable(snapshot, connector, tableSpec);
     }
 
     WSLogger.debug({
@@ -1369,8 +1376,9 @@ export class SnapshotService {
   }
 
   private async publishCreatesToTable<S extends Service>(
-    snapshot: SnapshotWithConnectorAccount,
+    snapshot: SnapshotCluster.Snapshot,
     connector: Connector<S>,
+    table: SnapshotCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
@@ -1385,8 +1393,7 @@ export class SnapshotService {
 
         const returnedRecords = await connector.createRecords(
           tableSpec,
-          // TODO: Move over to reading them from the table.
-          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
+          table.columnSettings as SnapshotColumnSettingsMap,
           sanitizedRecords,
         );
         // Save the created IDs.
@@ -1402,8 +1409,9 @@ export class SnapshotService {
   }
 
   private async publishUpdatesToTable<S extends Service>(
-    snapshot: SnapshotWithConnectorAccount,
+    snapshot: SnapshotCluster.Snapshot,
     connector: Connector<S>,
+    table: SnapshotCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
@@ -1417,19 +1425,14 @@ export class SnapshotService {
         const sanitizedRecords = records.map((record) =>
           connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
         );
-        await connector.updateRecords(
-          tableSpec,
-          // TODO: Move over to reading them from the table.
-          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
-          sanitizedRecords,
-        );
+        await connector.updateRecords(tableSpec, table.columnSettings as SnapshotColumnSettingsMap, sanitizedRecords);
       },
       true,
     );
   }
 
   private async publishDeletesToTable<S extends Service>(
-    snapshot: SnapshotWithConnectorAccount,
+    snapshot: SnapshotCluster.Snapshot,
     connector: Connector<S>,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
@@ -1460,7 +1463,7 @@ export class SnapshotService {
   }
 
   async clearActiveView(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
@@ -1487,7 +1490,7 @@ export class SnapshotService {
     dto: SetActiveRecordsFilterDto,
     actor: Actor,
   ): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
@@ -1525,7 +1528,7 @@ export class SnapshotService {
   }
 
   async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
@@ -1871,7 +1874,7 @@ export class SnapshotService {
   }
 
   async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneWithConnectorAccount(snapshotId, actor);
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);

@@ -1,15 +1,16 @@
-import { ArrayNotEmpty, IsArray, IsString } from 'class-validator';
-import { ConnectorAccountId } from 'src/types/ids';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 import { EntityId } from '../../remote-service/connectors/types';
+import { ConnectorAccountId } from '../../types/ids';
 
 export class CreateSnapshotDto {
+  @IsOptional()
   @IsString()
-  connectorAccountId: ConnectorAccountId;
-
-  @IsString()
-  name: string;
+  name?: string;
 
   @IsArray()
-  @ArrayNotEmpty()
-  tableIds: EntityId[];
+  @IsOptional()
+  tables?: {
+    connectorAccountId: ConnectorAccountId;
+    tableId: EntityId;
+  }[];
 }

@@ -41,7 +41,7 @@ import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { AddScratchColumnDto, RemoveScratchColumnDto } from './dto/scratch-column.dto';
 import { SetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
-import { UpdateColumnContextsDto } from './dto/update-column-contexts.dto';
+import { UpdateColumnSettingsDto } from './dto/update-column-settings.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
 import { Snapshot } from './entities/snapshot.entity';
@@ -71,7 +71,9 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<Snapshot[]> {
     if (connectorAccountId) {
-      return (await this.service.findAll(connectorAccountId, toActor(req.user))).map((s) => new Snapshot(s));
+      return (await this.service.findAllForConnectorAccount(connectorAccountId, toActor(req.user))).map(
+        (s) => new Snapshot(s),
+      );
     }
 
     return (await this.service.findAllForUser(toActor(req.user))).map((s) => new Snapshot(s));
@@ -288,18 +290,18 @@ export class SnapshotController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
-  @Patch(':id/tables/:tableId/column-contexts')
+  @Patch(':id/tables/:tableId/column-settings')
   @HttpCode(204)
-  async updateColumnContexts(
+  async updateColumnSettings(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
-    @Body() updateColumnContextsDto: UpdateColumnContextsDto,
+    @Body() updateColumnSettingsDto: UpdateColumnSettingsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.updateColumnContexts(
+    await this.service.updateColumnSettings(
       snapshotId,
       tableId,
-      updateColumnContextsDto.columnContexts,
+      updateColumnSettingsDto.columnSettings,
       toActor(req.user),
     );
   }

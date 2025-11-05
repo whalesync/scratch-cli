@@ -10,7 +10,7 @@ import type {
   RemoveScratchColumnDto,
   Snapshot,
   SnapshotRecord,
-  UpdateColumnContextsDto,
+  UpdateColumnSettingsDto,
   UpdateSnapshotDto,
 } from '@/types/server-entities/snapshot';
 import { BulkUpdateRecordsDto, ListRecordsResponse } from '../../types/server-entities/records';
@@ -109,8 +109,8 @@ export const snapshotApi = {
     return res.json();
   },
 
-  updateColumnContexts: async (id: string, tableId: string, dto: UpdateColumnContextsDto): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/tables/${tableId}/column-contexts`, {
+  updateColumnSettings: async (id: string, tableId: string, dto: UpdateColumnSettingsDto): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/tables/${tableId}/column-settings`, {
       method: 'PATCH',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -398,14 +398,17 @@ export const snapshotApi = {
   },
 
   async removeScratchColumn(snapshotId: string, tableId: string, dto: RemoveScratchColumnDto): Promise<void> {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/remove-scratch-column`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
+    const res = await fetch(
+      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/remove-scratch-column`,
+      {
+        method: 'POST',
+        headers: {
+          ...API_CONFIG.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dto),
       },
-      body: JSON.stringify(dto),
-    });
+    );
     await checkForApiError(res, 'Failed to remove scratch column');
   },
 };

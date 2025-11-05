@@ -98,9 +98,13 @@ export const CreateSnapshotModal = ({
     setIsSaving(true);
     try {
       const snapshot = await createSnapshot({
-        connectorAccountId: connectorAccount.id,
-        tableIds: [table.id],
         name: snapshotName ?? `New ${connectorAccount.displayName} workbook`,
+        tables: [
+          {
+            connectorAccountId: connectorAccount.id,
+            tableId: table.id,
+          },
+        ],
       });
       props.onClose?.();
       router.push(RouteUrls.snapshotPage(snapshot.id));

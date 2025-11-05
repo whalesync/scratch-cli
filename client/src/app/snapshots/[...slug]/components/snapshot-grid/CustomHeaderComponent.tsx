@@ -31,7 +31,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, currentView, currentViewId, viewDataAsAgent, updateColumnContexts } = useSnapshotContext();
+  const { snapshot, currentView, currentViewId, viewDataAsAgent, updateColumnSettings } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: props.tableId ?? '',
@@ -88,11 +88,8 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const isColumnHidden = columnConfig?.hidden === true;
   const isColumnProtected = columnConfig?.protected === true;
   const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
-
-  // Get current data converter setting from snapshot columnContexts
-  const currentDataConverter = props.tableId
-    ? (snapshot?.columnContexts?.[props.tableId]?.[columnId]?.dataConverter ?? '')
-    : '';
+  const currentTable = props.tableId ? snapshot?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
+  const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -205,7 +202,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     }
 
     try {
-      await updateColumnContexts(props.tableId, {
+      await updateColumnSettings(props.tableId, {
         [columnId]: {
           dataConverter: value,
         },

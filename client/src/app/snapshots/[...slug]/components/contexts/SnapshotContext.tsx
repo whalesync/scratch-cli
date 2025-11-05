@@ -5,7 +5,7 @@ import { useSnapshot } from '@/hooks/use-snapshot';
 import { useUpsertView, useViews } from '@/hooks/use-view';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { Snapshot, SnapshotColumnSettings, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
+import { Snapshot, SnapshotColumnSettingsMap, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
 import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useSWRConfig } from 'swr';
@@ -28,7 +28,7 @@ interface SnapshotContextValue {
   // filteredRecordsCount: number;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
   updateSnapshot: (updateDto: UpdateSnapshotDto) => Promise<void>;
-  updateColumnContexts: (tableId: string, columnContexts: Record<string, SnapshotColumnSettings>) => Promise<void>;
+  updateColumnSettings: (tableId: string, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
   viewDataAsAgent: boolean;
   setViewDataAsAgent: (viewDataAsAgent: boolean) => void;
 }
@@ -140,15 +140,15 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     async (updateDto: UpdateSnapshotDto): Promise<void> => {
       if (!snapshot) return;
       await snapshotApi.update(snapshot.id, updateDto);
-      mutate(SWR_KEYS.snapshot.list('all'));
+      mutate(SWR_KEYS.snapshot.list());
       mutate(SWR_KEYS.snapshot.detail(snapshot.id));
     },
     [snapshot, mutate],
   );
-  const updateColumnContexts = useCallback(
-    async (tableId: string, columnContexts: Record<string, SnapshotColumnSettings>): Promise<void> => {
+  const updateColumnSettings = useCallback(
+    async (tableId: string, columnSettings: SnapshotColumnSettingsMap): Promise<void> => {
       if (!snapshot) return;
-      await snapshotApi.updateColumnContexts(snapshot.id, tableId, { columnContexts });
+      await snapshotApi.updateColumnSettings(snapshot.id, tableId, { columnSettings });
       mutate(SWR_KEYS.snapshot.detail(snapshot.id));
     },
     [snapshot, mutate],
@@ -165,7 +165,7 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     refreshSnapshot,
     publish,
     updateSnapshot,
-    updateColumnContexts,
+    updateColumnSettings,
     setCurrentViewId,
     createView,
     selectView,

@@ -1,5 +1,4 @@
 import { SnapshotCluster } from '../../db/cluster-types';
-import { SnapshotColumnContexts } from '../types';
 import { SnapshotTable as SnapshotTableEntity } from './snapshot-table.entity';
 
 export class Snapshot {
@@ -10,8 +9,6 @@ export class Snapshot {
   userId: string | null;
   organizationId: string;
 
-  /** @deprecated */
-  columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTableEntity[];
 
   constructor(snapshot: SnapshotCluster.Snapshot) {
@@ -21,7 +18,6 @@ export class Snapshot {
     this.updatedAt = snapshot.updatedAt;
     this.userId = snapshot.userId ?? null;
     this.organizationId = snapshot.organizationId;
-    this.columnContexts = snapshot.columnContexts as SnapshotColumnContexts;
     this.snapshotTables = snapshot.snapshotTables?.map((st) => new SnapshotTableEntity(st));
   }
 }
