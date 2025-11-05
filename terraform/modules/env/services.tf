@@ -177,7 +177,7 @@ resource "google_cloud_run_v2_service" "api_service" {
           "REDIS_PORT" : module.redis.port,
           "REQUIRE_SUBSCRIPTION" : "true",
           "SCRATCHPAD_AGENT_JWT_EXPIRES_IN" : "6h",
-          "SERVICE_TYPE" : "api",
+          "SERVICE_TYPE" : "monolith",
           "SLACK_NOTIFICATION_ENABLED" : "true",
           "TRIAL_REQUIRE_PAYMENT_METHOD" : "false",
           "USE_JOBS" : "true",
@@ -208,7 +208,9 @@ resource "google_cloud_run_v2_service" "api_service" {
           "STRIPE_API_KEY",
           "STRIPE_WEBHOOK_SECRET",
           "WEBFLOW_CLIENT_ID",
-          "WEBFLOW_CLIENT_SECRET"
+          "WEBFLOW_CLIENT_SECRET",
+          "WIX_CLIENT_ID",
+          "WIX_CLIENT_SECRET"
         ]
         content {
           name = env.value
