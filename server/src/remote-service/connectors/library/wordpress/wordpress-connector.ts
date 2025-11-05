@@ -1,6 +1,6 @@
 import { Service } from '@prisma/client';
 import MarkdownIt from 'markdown-it';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { sanitizeForWsId } from '../../ids';
@@ -67,7 +67,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
 
   async downloadTableRecords(
     tableSpec: WordPressTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
     progress?: WordPressDownloadProgress,
   ): Promise<void> {
@@ -83,7 +83,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       }
 
       const records = response.map((wpRecord) =>
-        this.wordPressRecordToConnectorRecord(wpRecord, tableSpec, columnContexts),
+        this.wordPressRecordToConnectorRecord(wpRecord, tableSpec, columnSettingsMap),
       );
 
       const returnedCount = records.length;
@@ -105,7 +105,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
 
   async createRecords(
     tableSpec: WordPressTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const [tableId] = tableSpec.id.remoteId;
@@ -121,7 +121,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       const wpRecord = this.connectorFieldsToWordPressRecord(
         record.fields,
         tableSpec,
-        columnContexts,
+        columnSettingsMap,
         Object.keys(record.fields),
       );
       const created = await this.client.createRecord(tableId, wpRecord);
@@ -133,7 +133,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
 
   async updateRecords(
     tableSpec: WordPressTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
@@ -146,7 +146,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       const wpRecord = this.connectorFieldsToWordPressRecord(
         record.partialFields,
         tableSpec,
-        columnContexts,
+        columnSettingsMap,
         modifiedColumns,
       );
       await this.client.updateRecord(tableId, record.id.remoteId, wpRecord);
@@ -167,7 +167,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   private wordPressRecordToConnectorRecord(
     wpRecord: WordPressRecord,
     tableSpec: WordPressTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
   ): ConnectorRecord {
     const record: ConnectorRecord = {
       id: String(wpRecord.id),
@@ -197,7 +197,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
         if (value !== undefined) {
           // Handle rendered objects (content, title, etc)
           if (value && typeof value === 'object' && 'rendered' in value) {
-            const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+            const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
             const rendered = (value as { rendered: string }).rendered;
             if (dataConverter === 'html') {
               record.fields[column.id.wsId] = rendered;
@@ -221,7 +221,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   private connectorFieldsToWordPressRecord(
     fields: Record<string, unknown>,
     tableSpec: WordPressTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     modifiedColumns: string[],
   ): WordPressRecord {
     const wpRecord: WordPressRecord = {};
@@ -234,7 +234,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       const value = fields[wsId];
       const remoteId = column.id.remoteId[0];
       if (column.wordpressDataType === WordPressDataType.RENDERED) {
-        const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+        const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
         if (dataConverter === 'html') {
           wpRecord[remoteId] = value;
         } else {

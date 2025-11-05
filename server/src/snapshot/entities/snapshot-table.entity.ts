@@ -1,6 +1,6 @@
 import { SnapshotTableCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { SnapshotColumnSettings, SnapshotTableContext } from '../types';
+import { SnapshotColumnSettingsMap, SnapshotTableContext } from '../types';
 
 export class SnapshotTable {
   id: string;
@@ -12,7 +12,7 @@ export class SnapshotTable {
   connectorService: string | null;
   tableSpec: AnyTableSpec;
   tableContext: SnapshotTableContext | null;
-  columnContexts: Record<string, SnapshotColumnSettings>;
+  columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
   hidden: boolean;
 
@@ -26,7 +26,7 @@ export class SnapshotTable {
     this.connectorService = snapshotTable.connectorService; // Now stored directly on SnapshotTable
     this.tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     this.tableContext = snapshotTable.tableContext as SnapshotTableContext | null;
-    this.columnContexts = (snapshotTable.columnContexts as Record<string, SnapshotColumnSettings>) ?? {};
+    this.columnSettings = (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {};
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
     this.hidden = snapshotTable.hidden;
   }

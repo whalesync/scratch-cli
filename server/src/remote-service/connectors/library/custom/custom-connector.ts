@@ -1,7 +1,7 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import * as _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import {
   executeCreateRecord,
@@ -185,7 +185,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   async downloadTableRecords(
     tableSpec: CustomTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     // Get the custom connector configuration using the modifier field
@@ -284,7 +284,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   async createRecords(
     tableSpec: CustomTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // Get the custom connector configuration using the modifier field
@@ -366,7 +366,7 @@ export class CustomConnector extends Connector<typeof Service.CUSTOM> {
 
   async updateRecords(
     tableSpec: CustomTableSpec,
-    _columnContexts: SnapshotColumnContexts,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;

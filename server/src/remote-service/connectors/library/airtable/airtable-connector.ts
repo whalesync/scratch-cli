@@ -1,7 +1,7 @@
 import { Service } from '@prisma/client';
 import { isAxiosError } from 'axios';
 import _ from 'lodash';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
@@ -59,7 +59,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   async downloadTableRecords(
     tableSpec: AirtableTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
@@ -98,7 +98,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   async createRecords(
     tableSpec: AirtableTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const [baseId, tableId] = tableSpec.id.remoteId;
@@ -117,7 +117,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   async updateRecords(
     tableSpec: AirtableTableSpec,
-    _columnContexts: SnapshotColumnContexts,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;

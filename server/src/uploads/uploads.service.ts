@@ -846,7 +846,7 @@ export class UploadsService {
           connectorAccountId: null, // No connector account needed for CSV
           name: snapshotName,
           service: Service.CSV, // Set service to CSV
-          columnContexts: [],
+          columnContexts: {},
 
           snapshotTables: {
             create: [
@@ -861,7 +861,7 @@ export class UploadsService {
                   ignoredColumns: [],
                   readOnlyColumns: [],
                 } as any,
-                columnContexts: {},
+                columnSettings: {},
               },
             ],
           },

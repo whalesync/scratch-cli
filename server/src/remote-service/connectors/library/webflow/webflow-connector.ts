@@ -1,7 +1,7 @@
 import { Service } from '@prisma/client';
 import _ from 'lodash';
 import MarkdownIt from 'markdown-it';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import TurndownService from 'turndown';
 import { Webflow, WebflowClient } from 'webflow-api';
@@ -73,7 +73,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
   async downloadTableRecords(
     tableSpec: WebflowTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     const [, collectionId] = tableSpec.id.remoteId;
@@ -95,7 +95,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         break;
       }
 
-      const records = this.wireToConnectorRecord(items, tableSpec, columnContexts);
+      const records = this.wireToConnectorRecord(items, tableSpec, columnSettingsMap);
       await callback({ records });
 
       // Check if there are more items
@@ -116,7 +116,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   private wireToConnectorRecord(
     items: Webflow.CollectionItem[],
     tableSpec: WebflowTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
   ): ConnectorRecord[] {
     return items.map((item) => {
       const { id, fieldData, ...metadata } = item;
@@ -145,7 +145,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
         if (fieldValue !== undefined) {
           if (column.webflowFieldType === Webflow.FieldType.RichText) {
-            const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+            const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
             if (dataConverter === 'html') {
               record.fields[fieldId] = fieldValue;
             } else {
@@ -168,14 +168,14 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
   async createRecords(
     tableSpec: WebflowTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const [, collectionId] = tableSpec.id.remoteId;
 
     const fieldData: Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData[] = [];
     for (const record of records) {
-      const fields = await this.wsFieldsToWebflowFields(record.fields, tableSpec, columnContexts);
+      const fields = await this.wsFieldsToWebflowFields(record.fields, tableSpec, columnSettingsMap);
       fieldData.push({
         ...fields,
       } as Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData);
@@ -197,7 +197,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
   async updateRecords(
     tableSpec: WebflowTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
@@ -207,7 +207,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
     const items: { id: string; fieldData: Webflow.CollectionItemFieldData }[] = [];
     for (const record of records) {
-      const fieldData = await this.wsFieldsToWebflowFields(record.partialFields, tableSpec, columnContexts);
+      const fieldData = await this.wsFieldsToWebflowFields(record.partialFields, tableSpec, columnSettingsMap);
       items.push({
         id: record.id.remoteId,
         fieldData: fieldData as Webflow.CollectionItemFieldData,
@@ -228,7 +228,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   private async wsFieldsToWebflowFields(
     wsFields: Record<string, unknown>,
     tableSpec: WebflowTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
   ): Promise<Record<string, unknown>> {
     const webflowFields: Record<string, unknown> = {};
 
@@ -242,7 +242,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       const wsValue = wsFields[column.id.wsId];
       if (wsValue !== undefined && column.slug) {
         if (column.webflowFieldType === Webflow.FieldType.RichText) {
-          const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+          const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
           let html: string = '';
           if (dataConverter === 'html') {
             html = wsValue as string;

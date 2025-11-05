@@ -178,8 +178,9 @@ model SnapshotTable {
   // Single SnapshotTableContext object (not array)
   tableContext Json? // SnapshotTableContext
 
-  // Column contexts for this table only (Record<string, SnapshotColumnSettings>)
-  columnContexts Json @default("{}") // Record<columnId, SnapshotColumnSettings>
+  /// Map of user settings for the columns in this table
+  /// type: SnapshotColumnSettingsMap.
+  columnSettings Json @default("{}")
 
   // SQL WHERE clause filter for this table
   activeRecordSqlFilter String?

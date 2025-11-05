@@ -10,6 +10,7 @@ export class Snapshot {
   userId: string | null;
   organizationId: string;
 
+  /** @deprecated */
   columnContexts: SnapshotColumnContexts;
   snapshotTables?: SnapshotTableEntity[];
 

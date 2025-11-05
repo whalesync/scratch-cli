@@ -11,7 +11,7 @@ import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
 import { WSLogger } from 'src/logger';
 import TurndownService from 'turndown';
-import { SnapshotColumnContexts } from '../../../../snapshot/types';
+import { SnapshotColumnSettingsMap } from '../../../../snapshot/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForWsId } from '../../ids';
@@ -136,7 +136,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async downloadTableRecords(
     tableSpec: NotionTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress?: NotionDownloadProgress,
   ): Promise<void> {
@@ -169,7 +169,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
             if (pageContentColumn) {
               try {
                 // Check what data converter the user wants for this column
-                const dataConverter = columnContexts[tableSpec.id.wsId]?.[pageContentColumn.id.wsId]?.dataConverter;
+                const dataConverter = columnSettingsMap[pageContentColumn.id.wsId]?.dataConverter;
                 const blocks = await this.fetchBlocksWithChildren(page.id);
                 let htmlContent = '';
                 for (const block of blocks) {
@@ -320,7 +320,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async createRecords(
     tableSpec: NotionTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const results: { wsId: string; remoteId: string }[] = [];
@@ -351,7 +351,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   async updateRecords(
     tableSpec: NotionTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
   ): Promise<void> {
     for (const record of records) {
@@ -386,7 +386,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       // Update page content if needed
       if (hasPageContentUpdate && pageContentValue) {
         // Check if the data converter for this column is markdown
-        const dataConverter = columnContexts[tableSpec.id.wsId]?.[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
+        const dataConverter = columnSettingsMap[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
         const isMarkdown = dataConverter === 'markdown';
         await this.updatePageContent(record.id.remoteId, pageContentValue, isMarkdown);
       }

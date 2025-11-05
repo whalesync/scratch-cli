@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount, Service } from '@prisma/client';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
@@ -220,7 +220,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   async downloadTableRecords(
     tableSpec: YouTubeTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     const channelId = tableSpec.id.remoteId[0];
@@ -317,7 +317,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   createRecords(
     _tableSpec: YouTubeTableSpec,
-    _columnContexts: SnapshotColumnContexts,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
     _records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // YouTube doesn't support creating videos through the API
@@ -329,7 +329,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
   async updateRecords(
     _tableSpec: YouTubeTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: SnapshotRecordSanitizedForUpdate[],
   ): Promise<void> {
     // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags

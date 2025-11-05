@@ -10,7 +10,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { WSLogger } from '../../../logger';
-import { SnapshotColumnContexts } from '../../../snapshot/types';
+import { SnapshotColumnSettingsMap } from '../../../snapshot/types';
 
 export type DownloadRecordsPublicProgress = {
   totalRecords: number;
@@ -159,7 +159,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       try {
         await connector.downloadTableRecords(
           tableSpec,
-          (snapshotTable.columnContexts as SnapshotColumnContexts) || {},
+          (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {},
           callback,
           progress,
         );

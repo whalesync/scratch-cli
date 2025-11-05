@@ -5,7 +5,7 @@ import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
 import _ from 'lodash';
 import MarkdownIt from 'markdown-it';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import TurndownService from 'turndown';
 import { Connector } from '../../../connector';
@@ -100,7 +100,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
   async downloadTableRecords(
     tableSpec: WixBlogTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     let offset = 0;
@@ -123,7 +123,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
         break;
       }
 
-      const records = this.wireToConnectorRecord(posts, tableSpec, columnContexts);
+      const records = this.wireToConnectorRecord(posts, tableSpec, columnSettingsMap);
       await callback({ records });
 
       // Check pagination
@@ -143,7 +143,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   private wireToConnectorRecord(
     posts: DraftPost[],
     tableSpec: WixBlogTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
   ): ConnectorRecord[] {
     return posts.map((post) => {
       const { _id, ...fields } = post;
@@ -161,7 +161,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
         if (fieldValue !== undefined) {
           // Handle rich content conversion using proper Ricos converters
           if (column.wixFieldType === 'RichText') {
-            const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+            const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
             if (dataConverter === 'wix') {
               record.fields[fieldId] = fieldValue as string;
             } else {
@@ -190,14 +190,14 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
   async createRecords(
     tableSpec: WixBlogTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const results: { wsId: string; remoteId: string }[] = [];
 
     // Wix doesn't support bulk create for posts, so we create one at a time
     for (const record of records) {
-      const draftPostData = this.wsFieldsToWixPost(record.fields, tableSpec, columnContexts);
+      const draftPostData = this.wsFieldsToWixPost(record.fields, tableSpec, columnSettingsMap);
 
       // Create draft post with default author using SDK
       const response = await this.wixClient.draftPosts.createDraftPost(
@@ -229,7 +229,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
   async updateRecords(
     tableSpec: WixBlogTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: {
       id: { wsId: string; remoteId: string };
       partialFields: Record<string, unknown>;
@@ -237,7 +237,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   ): Promise<void> {
     // Wix doesn't support bulk update, so we update one at a time
     for (const record of records) {
-      const postData = this.wsFieldsToWixPost(record.partialFields, tableSpec, columnContexts);
+      const postData = this.wsFieldsToWixPost(record.partialFields, tableSpec, columnSettingsMap);
 
       // Update the draft post using SDK
       await this.wixClient.draftPosts.updateDraftPost(record.id.remoteId, postData as DraftPost, {
@@ -260,7 +260,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   private wsFieldsToWixPost(
     wsFields: Record<string, unknown>,
     tableSpec: WixBlogTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
   ): Record<string, unknown> {
     const wixPost: Record<string, unknown> = {};
 
@@ -271,7 +271,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
         // Handle rich content conversion using proper Ricos converters
         if (fieldId === 'richContent' && column.wixFieldType === 'RichText') {
-          const dataConverter = columnContexts[tableSpec.id.wsId]?.[column.id.wsId]?.dataConverter;
+          const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
           let html: string = '';
           if (dataConverter === 'wix') {
             wixPost[fieldId] = wsValue as string;

@@ -119,7 +119,7 @@ export class SnapshotService {
         connectorAccountId,
         name: createSnapshotDto.name,
         service: connectorAccount.service,
-        columnContexts: [],
+        columnContexts: {},
         snapshotTables: {
           create: snapshotTables,
         },
@@ -243,7 +243,7 @@ export class SnapshotService {
             connectorService: service,
             tableSpec: tableSpec,
             tableContext: tableContext,
-            columnContexts: {},
+            columnSettings: {},
           },
         },
       },
@@ -1216,7 +1216,8 @@ export class SnapshotService {
       try {
         await connector.downloadTableRecords(
           tableSpec,
-          snapshot.columnContexts as SnapshotColumnContexts,
+          // TODO: Move over to reading them from the table.
+          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
           async (params) => {
             const { records } = params;
             await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
@@ -1388,7 +1389,8 @@ export class SnapshotService {
 
         const returnedRecords = await connector.createRecords(
           tableSpec,
-          snapshot.columnContexts as SnapshotColumnContexts,
+          // TODO: Move over to reading them from the table.
+          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
           sanitizedRecords,
         );
         // Save the created IDs.
@@ -1419,7 +1421,12 @@ export class SnapshotService {
         const sanitizedRecords = records.map((record) =>
           connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
         );
-        await connector.updateRecords(tableSpec, snapshot.columnContexts as SnapshotColumnContexts, sanitizedRecords);
+        await connector.updateRecords(
+          tableSpec,
+          // TODO: Move over to reading them from the table.
+          (snapshot.columnContexts as SnapshotColumnContexts | undefined)?.[tableSpec.id.wsId] ?? {},
+          sanitizedRecords,
+        );
       },
       true,
     );

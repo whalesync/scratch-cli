@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Service, Upload } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
-import { SnapshotColumnContexts } from 'src/snapshot/types';
+import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { createCsvFileRecordId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';
@@ -111,7 +111,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   async downloadTableRecords(
     tableSpec: CsvTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
   ): Promise<void> {
     // For CSV, the uploadId is stored in remoteId array
@@ -157,7 +157,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   async createRecords(
     tableSpec: CsvTableSpec,
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     // For CSV, the uploadId is stored in remoteId array
@@ -201,7 +201,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
   async updateRecords(
     tableSpec: CsvTableSpec,
-    _columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
   ): Promise<void> {
     // For CSV, the uploadId is stored in remoteId array

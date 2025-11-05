@@ -70,8 +70,11 @@ export type SnapshotColumnSettings = {
   dataConverter: string | null;
 };
 
+export type SnapshotColumnSettingsMap = { [columnWsId: string]: SnapshotColumnSettings };
+
+/** Deprecated - use SnapshotColumnSettingsMap instead */
 export type SnapshotColumnContexts = {
-  [tableId: string]: Record<string, SnapshotColumnSettings>;
+  [tableId: string]: SnapshotColumnSettingsMap;
 };
 
 export interface SnapshotTable {
@@ -84,7 +87,7 @@ export interface SnapshotTable {
   connectorService: Service | null;
   tableSpec: TableSpec;
   tableContext: SnapshotTableContext | null;
-  columnContexts: Record<string, SnapshotColumnSettings>;
+  columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
   hidden: boolean;
 }

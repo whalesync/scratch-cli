@@ -88,7 +88,7 @@ function SnapshotPageContent() {
       updatedTable &&
       (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
         !_.isEqual(activeTable.tableContext, updatedTable.tableContext) ||
-        !_.isEqual(activeTable.columnContexts, updatedTable.columnContexts))
+        !_.isEqual(activeTable.columnSettings, updatedTable.columnSettings))
     ) {
       // update the active table and table context with the newer version
       setActiveTable(updatedTable);

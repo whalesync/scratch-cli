@@ -1,6 +1,6 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import { JsonSafeObject } from 'src/utils/objects';
-import { SnapshotColumnContexts } from '../../snapshot/types';
+import { SnapshotColumnSettingsMap } from '../../snapshot/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
   ConnectorErrorDetails,
@@ -71,7 +71,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    */
   abstract downloadTableRecords(
     tableSpec: TableSpecs[T],
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
   ): Promise<void>;
@@ -132,7 +132,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    */
   abstract createRecords(
     tableSpec: TableSpecs[T],
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]>;
 
@@ -144,7 +144,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    */
   abstract updateRecords(
     tableSpec: TableSpecs[T],
-    columnContexts: SnapshotColumnContexts,
+    columnSettingsMap: SnapshotColumnSettingsMap,
     records: SnapshotRecordSanitizedForUpdate[],
   ): Promise<void>;
 
