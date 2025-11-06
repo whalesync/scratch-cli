@@ -1,5 +1,6 @@
 'use client';
 
+import { ModelOption, PersistedModelOption } from '@/types/common';
 import {
   Alert,
   Badge,
@@ -21,6 +22,8 @@ import { useEffect, useState } from 'react';
 const POPULAR_MODEL_KEYS = [
   'openai/gpt-4o-mini',
   'openai/gpt-4o',
+  'openai/gpt-5-mini-2025-08-07',
+  'openai/gpt-5-2025-08-07',
   'anthropic/claude-3-5-sonnet',
   'anthropic/claude-3-haiku',
   'google/gemini-2.5-pro',
@@ -59,33 +62,13 @@ interface OpenRouterModel {
   supported_parameters: string[];
 }
 
-interface ModelOption {
-  value: string;
-  label: string;
-  provider: string;
-  description: string;
-  contextLength?: number;
-  id: string;
-  canonicalSlug: string;
-  created: number;
-  pricing?: {
-    prompt: string;
-    completion: string;
-    request: string;
-    image: string;
-    web_search: string;
-    internal_reasoning: string;
-  };
-  isPopular?: boolean;
-}
-
 interface ModelPickerProps {
-  value: string;
-  onChange: (value: string) => void;
+  currentModelOption: PersistedModelOption;
+  onChange: (modelOption: ModelOption) => void;
   placeholder?: string;
 }
 
-export default function ModelPicker({ value, onChange }: ModelPickerProps) {
+export default function ModelPicker({ currentModelOption, onChange }: ModelPickerProps) {
   const [allModels, setAllModels] = useState<ModelOption[]>([]);
   const [filteredModels, setFilteredModels] = useState<ModelOption[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -315,9 +298,10 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
                   withBorder
                   style={{
                     cursor: 'pointer',
-                    border: value === model.value ? '2px solid var(--mantine-color-blue-6)' : undefined,
+                    border:
+                      currentModelOption.value === model.value ? '2px solid var(--mantine-color-blue-6)' : undefined,
                   }}
-                  onClick={() => onChange(model.value)}
+                  onClick={() => onChange(model)}
                 >
                   <Stack gap="xs">
                     {formatModelLabel(model)}

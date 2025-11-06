@@ -1,0 +1,123 @@
+import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
+
+export type TokenCalculation = {
+  tokenCount: number;
+  charCount: number;
+  method: 'tiktoken' | 'estimate' | 'sampling' | 'empty_array' | 'missing_data';
+  accuracy: 'estimate' | 'exact';
+};
+
+// Cache encoding instances per model to avoid recreating them on every call
+const encodingCache = new Map<string, Tiktoken>();
+
+/**
+ * Count tokens for a list of records by JSON stringifying them
+ */
+export function calculateTokensForRecords(records: unknown[], model: string): TokenCalculation {
+  if (!records) return { tokenCount: 0, charCount: 0, method: 'missing_data', accuracy: 'exact' };
+  if (records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
+
+  const [provider, modelName] = model.split('/');
+  const encoding = provider === 'openai' ? getEncoding(provider, modelName) : null;
+
+  const allRecordsStringified = JSON.stringify(records);
+
+  if (!encoding) {
+    return {
+      tokenCount: estimateTokens(allRecordsStringified),
+      charCount: allRecordsStringified.length,
+      method: 'estimate',
+      accuracy: 'estimate',
+    };
+  }
+
+  // For small arrays, use exact tiktoken counting
+  if (records.length <= 10) {
+    const encoded = encoding.encode(JSON.stringify(records));
+    return {
+      tokenCount: encoded.length,
+      charCount: allRecordsStringified.length,
+      method: 'tiktoken',
+      accuracy: 'exact',
+    };
+  }
+
+  // For large arrays, use sampling strategy
+  // Sample 10 records relatively equally spaced
+  const sampleSize = 10;
+  const sampledRecords: unknown[] = [];
+  const step = (records.length - 1) / (sampleSize - 1);
+
+  for (let i = 0; i < sampleSize; i++) {
+    const index = Math.round(i * step);
+    sampledRecords.push(records[index]);
+  }
+
+  // Calculate tokens for the sample
+  const sampleJsonStr = JSON.stringify(sampledRecords);
+  const sampleEncoded = encoding.encode(sampleJsonStr);
+  const sampleTokens = sampleEncoded.length;
+
+  // Calculate tokens for all records
+  const allJsonStr = JSON.stringify(records);
+  const allLength = allJsonStr.length;
+  const sampleLength = sampleJsonStr.length;
+
+  // Extrapolate: tokens for all = (tokens for sample) * (length of all) / (length of sample)
+  const estimatedTokens = Math.round((sampleTokens * allLength) / sampleLength);
+
+  return { tokenCount: estimatedTokens, charCount: allLength, method: 'sampling', accuracy: 'estimate' };
+}
+/**
+ * Get or create a cached encoding for a model
+ */
+function getEncoding(provider: string, modelName: string): Tiktoken | null {
+  if (!provider || provider != 'openai' || !modelName) return null;
+
+  // Check cache first
+  if (encodingCache.has(modelName)) {
+    return encodingCache.get(modelName)!;
+  }
+
+  try {
+    const encoding = encodingForModel(modelName as TiktokenModel);
+    encodingCache.set(modelName, encoding);
+    return encoding;
+  } catch (error) {
+    console.warn('Failed to get encoding for model:', error);
+    return null;
+  }
+}
+
+/**
+ * Simple token estimation function
+ * Uses the heuristic: word_count * 1.3
+ *
+ * This is a rough approximation based on empirical observations.
+ * For more accurate counts, consider using a proper tokenizer like tiktoken.
+ */
+export function estimateTokens(text: string): number {
+  if (!text) return 0;
+
+  // Split on whitespace and count words
+  const wordCount = text.split(/\s+/).filter((word) => word.length > 0).length;
+
+  // Apply 1.3 multiplier and round up
+  return Math.ceil(wordCount * 1.3);
+}
+
+/**
+ * Format token count with K/M suffix
+ * Examples: 1234 -> "1.2K", 1234567 -> "1.2M"
+ */
+export function formatTokenCount(tokens: number): string {
+  if (tokens < 1000) {
+    return tokens.toString();
+  } else if (tokens < 1000000) {
+    return `${(tokens / 1000).toFixed(1)}K`;
+  } else {
+    return `${(tokens / 1000000).toFixed(1)}M`;
+  }
+}
+export const tokenCalculationSymbol = (calculation: TokenCalculation) =>
+  calculation.accuracy === 'estimate' ? '≈' : '=';

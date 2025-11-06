@@ -10,12 +10,19 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { getActiveRecordSqlFilterByWsId, TableSpec } from '@/types/server-entities/snapshot';
-import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
+import {
+  calculateTokensForRecords,
+  formatTokenCount,
+  TokenCalculation,
+  tokenCalculationSymbol,
+} from '@/utils/token-counter';
+import { Box, Button, Group, Menu, Modal, Textarea, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/react';
 import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAgentChatContext } from './contexts/agent-chat-context';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
@@ -26,6 +33,7 @@ interface RecordDataToolbarProps {
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
   const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
+  const { activeModel } = useAgentChatContext();
   const { isDevToolsEnabled } = useDevTools();
   const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
   const [
@@ -44,7 +52,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [openHelpOverlay]);
 
-  const { count, filteredCount, createNewRecord } = useSnapshotTableRecords({
+  const { count, filteredCount, records, createNewRecord } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
     viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
@@ -61,6 +69,68 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
 
     return getActiveRecordSqlFilterByWsId(snapshot, table.id.wsId);
   }, [snapshot, table.id.wsId]);
+
+  const tokenCalculation: TokenCalculation = useMemo(() => {
+    if (!records || records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
+    return calculateTokensForRecords(records, activeModel?.value ?? '');
+  }, [records, activeModel?.value]);
+
+  const tokenPercentage = useMemo(() => {
+    if (!tokenCalculation || !activeModel || !activeModel.contextLength) return null;
+    return Math.round((tokenCalculation.tokenCount / activeModel.contextLength) * 100);
+  }, [tokenCalculation, activeModel]);
+
+  const avgTokensPerRecord = useMemo(() => {
+    if (!filteredCount || filteredCount === 0 || !tokenCalculation) return null;
+    return Math.round(tokenCalculation.tokenCount / filteredCount);
+  }, [filteredCount, tokenCalculation]);
+
+  const maxRecordsFit = useMemo(() => {
+    if (!activeModel || !activeModel.contextLength || !avgTokensPerRecord || avgTokensPerRecord === 0) return null;
+    return Math.floor(activeModel.contextLength / avgTokensPerRecord);
+  }, [activeModel, avgTokensPerRecord]);
+
+  const tokenTooltipContent = useMemo(() => {
+    if (!tokenCalculation) return null;
+
+    const methodLabel =
+      tokenCalculation.method === 'tiktoken'
+        ? 'exact'
+        : tokenCalculation.method === 'sampling'
+          ? 'sampling'
+          : tokenCalculation.method === 'estimate'
+            ? 'word count estimate'
+            : tokenCalculation.method === 'empty_array'
+              ? 'empty array'
+              : 'missing data';
+
+    return (
+      <Box>
+        <Box mb="xs">
+          <TextSmBook fw={600} component="span">
+            method:
+          </TextSmBook>{' '}
+          <TextSmBook component="span">{methodLabel}</TextSmBook>
+        </Box>
+        {avgTokensPerRecord !== null && (
+          <Box mb={tokenPercentage !== null && tokenPercentage > 100 ? 'xs' : undefined}>
+            <TextSmBook fw={600} component="span">
+              avg. per record:
+            </TextSmBook>{' '}
+            <TextSmBook component="span">{formatTokenCount(avgTokensPerRecord)} tokens</TextSmBook>
+          </Box>
+        )}
+        {tokenPercentage !== null && tokenPercentage > 100 && maxRecordsFit !== null && (
+          <Box>
+            <TextSmBook fw={600} component="span">
+              100% ≈
+            </TextSmBook>{' '}
+            <TextSmBook component="span">{maxRecordsFit} {pluralize('record', maxRecordsFit)}</TextSmBook>
+          </Box>
+        )}
+      </Box>
+    );
+  }, [tokenCalculation, avgTokensPerRecord, tokenPercentage, maxRecordsFit]);
 
   useEffect(() => {
     if (sqlFilterModalOpen) {
@@ -116,10 +186,25 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
         <Group ml="auto" gap="xs" align="center">
           {count !== undefined && (
             <>
-              <TextSmBook>{`${filteredCount} ${pluralize('record', filteredCount)}`}</TextSmBook>
-              {filteredCount !== undefined && count > filteredCount && (
-                <TextSmBook>({`${count - filteredCount} filtered`})</TextSmBook>
-              )}
+              <TextSmBook>
+                {`${filteredCount} ${pluralize('record', filteredCount)} `}
+                =
+                {` ${formatTokenCount(tokenCalculation.charCount)} chars `}
+                {tokenCalculationSymbol(tokenCalculation)}{' '}
+                <Tooltip label={tokenTooltipContent} withArrow>
+                  <span
+                    style={{
+                      textDecoration: 'underline',
+                      textDecorationStyle: 'dotted',
+                      cursor: 'help',
+                    }}
+                  >
+                    {`${formatTokenCount(tokenCalculation.tokenCount)} Tokens`}
+                    {tokenPercentage !== null && ` (${tokenPercentage}%)`}
+                  </span>
+                </Tooltip>
+                {filteredCount !== undefined && count > filteredCount && ` - ${count - filteredCount} filtered`}
+              </TextSmBook>
             </>
           )}
           {isDevToolsEnabled && (

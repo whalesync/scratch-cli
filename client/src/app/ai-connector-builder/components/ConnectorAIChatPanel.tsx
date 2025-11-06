@@ -2,7 +2,6 @@
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
-import ModelPicker from '@/app/components/ModelPicker';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';
@@ -571,13 +570,13 @@ export default function ConnectorAIChatPanel({
         size="xl"
         zIndex={1003}
       >
-        <ModelPicker
+        {/* <ModelPicker
           value={selectedModel}
           onChange={(value) => {
             setSelectedModel(value);
             setShowModelSelector(false);
           }}
-        />
+        /> */}
       </Modal>
     </Paper>
   );

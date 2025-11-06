@@ -32,6 +32,7 @@
     "ag-grid-react": "^34.2.0",
     "dayjs": "^1.11.18",
     "diff": "^8.0.2",
+    "js-tiktoken": "^1.0.21",
     "lodash": "^4.17.21",
     "lucide-react": "^0.544.0",
     "marked": "^15.0.12",

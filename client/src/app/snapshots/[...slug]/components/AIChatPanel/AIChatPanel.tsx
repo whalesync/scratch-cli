@@ -27,6 +27,7 @@ import { Capability } from '@/types/server-entities/chat-session';
 import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
+import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Tooltip } from '@mantine/core';
 import _ from 'lodash';
 import {
@@ -136,6 +137,15 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
   const { styleGuides } = useStyleGuides();
+
+  // // Calculate model display name with token limit
+  // const modelDisplayName = useMemo(() => {
+  //   const tokenLimit = getModelTokenLimit(activeModel);
+  //   if (tokenLimit) {
+  //     return `${activeModel} (${formatTokenCount(tokenLimit)})`;
+  //   }
+  //   return activeModel;
+  // }, [activeModel]);
 
   // Commands for the AdvancedAgentInput
   const commands: Command[] = [
@@ -307,7 +317,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
       const messageData: SendMessageRequestDTO = {
         message: message.trim(),
-        model: activeModel,
+        model: activeModel.value,
         credential_id: activeOpenRouterCredentials?.id,
       };
 
@@ -580,7 +590,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             rightSection={<ChevronDownIcon size={12} color="gray" />}
           >
             <TextXsRegular component="span" c="dimmed">
-              {activeModel}
+              {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
             </TextXsRegular>
           </Button>
           {/* Capabilities Selection */}
@@ -627,10 +637,10 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         zIndex={1003}
       >
         <ModelPicker
-          value={activeModel}
+          currentModelOption={activeModel}
           onChange={(value) => {
             setActiveModel(value);
-            trackChangeAgentModel(value, snapshot);
+            trackChangeAgentModel(activeModel.value, snapshot);
             setShowModelSelector(false);
           }}
         />

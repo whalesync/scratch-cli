@@ -1,9 +1,11 @@
 'use client';
 
 import { useStyleGuides } from '@/hooks/use-style-guide';
+import { ModelOption, PersistedModelOption } from '@/types/common';
 import { DataScope } from '@/types/server-entities/chat-session';
 import { useLocalStorage } from '@mantine/hooks';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+
 
 /**
  * Manages all of the extra context state for the Agent chat, allowing it to be managed from different parts of the UI and the chat itself
@@ -23,8 +25,8 @@ interface AgentChatContextValue {
   setColumnScope: (recordId: string, columnId: string) => void;
   activeResources: string[];
   setActiveResources: (ids: string[]) => void;
-  activeModel: string;
-  setActiveModel: (model: string) => void;
+  activeModel: PersistedModelOption;
+  setActiveModel: (model: ModelOption) => void;
 }
 
 export const AgentChatContext = createContext<AgentChatContextValue | undefined>(undefined);
@@ -34,7 +36,7 @@ interface AgentChatContextProviderProps {
   snapshotId: string;
 }
 
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+const DEFAULT_MODEL:PersistedModelOption = {value: 'openai/gpt-4o-mini', contextLength: 200000};
 
 export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatContextProviderProps) => {
   const [dataScope, setDataScope] = useState<DataScope>('table');
@@ -45,7 +47,7 @@ export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatCont
   const { styleGuides } = useStyleGuides();
 
   const [activeModel, setActiveModel] = useLocalStorage({
-    key: `agent-chat-context-model-${snapshotId}`,
+    key: `agent-chat-context-model-v2-${snapshotId}`,
     defaultValue: DEFAULT_MODEL,
   });
 
