@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from session import ChatSession
-from agents.data_agent.models import ChatSession, FocusedCell
+from agents.data_agent.models import ChatSession
 
 
 class Capability(BaseModel):

@@ -72,7 +72,7 @@ class SnapshotTable:
     connectorService: Optional[str]
     tableSpec: TableSpec
     tableContext: Optional[TableContext]
-    columnContexts: Dict[str, SnapshotColumnSettings]
+    columnSettings: Optional[Dict[str, SnapshotColumnSettings]] = None
     activeRecordSqlFilter: Optional[str] = None
 
 
@@ -84,7 +84,6 @@ class ScratchpadSnapshot:
     updatedAt: str
     userId: str
     organizationId: str
-    columnContexts: Any
     snapshotTables: Optional[List[SnapshotTable]] = None
 
 
