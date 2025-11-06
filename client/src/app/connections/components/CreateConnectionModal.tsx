@@ -4,7 +4,7 @@ import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { getLogo, getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
-import { INTERNAL_SERVICES, LIVE_SERVICES, Service } from '@/types/server-entities/connector-accounts';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from '@mantine/core';
 import Image from 'next/image';
@@ -26,7 +26,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
   const [showOAuthCustom, setShowOAuthCustom] = useState(false);
-  const { isAdmin } = useScratchPadUser();
+  const { user } = useScratchPadUser();
 
   const { createConnectorAccount } = useConnectorAccounts();
   const { data: customConnectors } = useCustomConnectors();
@@ -144,8 +144,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
     props.onClose?.();
   };
 
-  // TODO (Chris) - this should be powered by the server via a FeatureFlag
-  const availableServices = isAdmin ? [...LIVE_SERVICES, ...INTERNAL_SERVICES] : LIVE_SERVICES;
+  const availableServices = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
 
   return (
     <Modal
@@ -163,10 +162,9 @@ export const CreateConnectionModal = (props: ModalProps) => {
           label="Service"
           placeholder="Pick a service"
           data={availableServices.map((service) => {
-            const isInternalOnly = INTERNAL_SERVICES.includes(service);
             return {
               value: service,
-              label: `${serviceName(service)} ${isInternalOnly ? '(Internal Only)' : ''}`,
+              label: `${serviceName(service)}`,
             };
           })}
           value={newService}

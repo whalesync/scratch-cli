@@ -1,3 +1,5 @@
-export type FlagDataType = 'boolean' | 'string' | 'number' | 'json';
+import { JsonValue } from '@openfeature/core';
 
-export type ExperimentFlagVariantValue = string | number | boolean | undefined;
+export type FlagDataType = 'boolean' | 'string' | 'number' | 'array';
+
+export type ExperimentFlagVariantValue = string | number | undefined | JsonValue;

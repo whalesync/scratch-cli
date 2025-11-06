@@ -16,6 +16,7 @@ export enum UserFlag {
   REQUIRE_SUBSCRIPTION = 'REQUIRE_SUBSCRIPTION',
   USE_JOBS = 'USE_JOBS',
   SAMPLE_USER_FLAG = 'sample_user_flag',
+  CONNECTOR_LIST = 'CONNECTOR_LIST',
 }
 
 /**
@@ -35,6 +36,7 @@ export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   [UserFlag.DEV_TOOLBOX]: 'boolean',
   [UserFlag.REQUIRE_SUBSCRIPTION]: 'boolean',
   [UserFlag.USE_JOBS]: 'boolean',
+  [UserFlag.CONNECTOR_LIST]: 'array',
   // User-scoped feature flags
   [UserFlag.SAMPLE_USER_FLAG]: 'boolean',
 };

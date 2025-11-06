@@ -1,4 +1,4 @@
-import { ScratchpadPlanType } from "./payment";
+import { ScratchpadPlanType } from './payment';
 
 export interface User {
   id: string;
@@ -31,6 +31,7 @@ export interface UserExperimentFlags {
   DEV_TOOLBOX: boolean;
   REQUIRE_SUBSCRIPTION: boolean;
   USE_JOBS: boolean;
+  CONNECTOR_LIST: string[];
 }
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {

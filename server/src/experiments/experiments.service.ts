@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client, EvaluationContext, InMemoryProvider, OpenFeature } from '@openfeature/server-sdk';
+import { Client, EvaluationContext, InMemoryProvider, JsonValue, OpenFeature } from '@openfeature/server-sdk';
 import { User, UserRole } from '@prisma/client';
 import { PostHogProvider } from '@tapico/node-openfeature-posthog';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
@@ -28,6 +28,14 @@ const IN_MEMORY_FLAGS = {
     },
     disabled: false,
     defaultVariant: 'off',
+  },
+  [UserFlag.CONNECTOR_LIST]: {
+    variants: {
+      on: ['WEBFLOW'], // Just for testing flags locally.
+      off: [],
+    },
+    disabled: false,
+    defaultVariant: 'on', // Or 'off' depending on your needs
   },
 };
 
@@ -90,6 +98,8 @@ export class ExperimentsService {
         flagValues[key] = await this.getStringFlag(key, '', user);
       } else if (dataType === 'number') {
         flagValues[key] = await this.getNumberFlag(key, 0, user);
+      } else if (dataType === 'array') {
+        flagValues[key] = await this.getJsonFlag(key, [], user);
       }
     }
     return flagValues;
@@ -135,5 +145,19 @@ export class ExperimentsService {
       throw new Error('User ID must be provided when accessing a User-scoped feature flag');
     }
     return this.client.getNumberValue(flag, defaultValue, user ? this.getUserContext(user) : undefined);
+  }
+
+  /**
+   * Gets a JSON flag value for a given feature flag JSON and Array types are the same for the client.
+   * @param flag - The feature flag to get the value for
+   * @param defaultValue - The default value to return if the flag is not set
+   * @param user - Optional. The user / userId to get the flag value for
+   * @returns The JSON flag value
+   */
+  public async getJsonFlag(flag: AllFeatureFlags, defaultValue: JsonValue, user?: PartialUser): Promise<JsonValue> {
+    if (flag in UserFlag && !user) {
+      throw new Error('User ID must be provided when accessing a User-scoped feature flag');
+    }
+    return this.client.getObjectValue(flag, defaultValue, user ? this.getUserContext(user) : undefined);
   }
 }
