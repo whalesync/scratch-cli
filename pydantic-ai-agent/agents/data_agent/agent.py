@@ -20,8 +20,11 @@ from agents.data_agent.data_agent_history_processor import data_agent_history_pr
 from scratchpad.entities import AgentCredential
 from server.user_prompt_utils import build_snapshot_context
 from logging import getLogger
+from config import get_settings
 
 logger = getLogger(__name__)
+
+settings = get_settings()
 
 
 def create_agent(
@@ -47,7 +50,7 @@ def create_agent(
     try:
         # Use provided model name or fall back to environment variable
         if model_name is None:
-            model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
+            model_name = settings.model_name
 
         # Create the model using OpenRouter
         model = OpenAIModel(

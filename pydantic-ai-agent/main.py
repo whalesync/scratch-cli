@@ -22,19 +22,21 @@ from server.websocket_handler import websocket_endpoint
 from connector_builder.connector_builder_controller import (
     router as connector_builder_router,
 )
-from constants import PROJECT_NAME
+from config import get_settings
+from logging import getLogger
 
-# Load environment variables
-
+logger = getLogger(__name__)
 
 # Initialize FastAPI app
 
-app = FastAPI(title=f"{PROJECT_NAME} AI Agent", version="1.0.0")
+app = FastAPI(title=f"{get_settings().project_name} AI Agent", version="1.0.0")
+
+logger.info(f"App Environment: {get_settings().app_env}")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=get_settings().get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

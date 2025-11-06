@@ -3,7 +3,6 @@
 Centralized logging module for the chat server
 """
 
-import os
 from pathlib import Path
 from typing import Optional, Any
 from logging import (
@@ -19,6 +18,8 @@ from logging import (
 from logging.handlers import RotatingFileHandler
 from pydantic_ai.agent import Agent
 from pydantic_ai.models.instrumented import InstrumentationSettings
+
+from config import get_settings
 
 
 class AccessLogExclustionFilter(Filter):
@@ -55,6 +56,8 @@ def initialize_logging() -> None:
     """Initialize the logger with Logfire if available"""
     global _logger, _logfire_available
 
+    settings = get_settings()
+
     # Ensure logs directory exists
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
@@ -82,10 +85,8 @@ def initialize_logging() -> None:
     # Add filter to exclude health endpoint logs
     access_logger.addFilter(AccessLogExclustionFilter())
 
-    logfire_token = os.getenv("LOGFIRE_TOKEN")
-    enabled_full_instrumentation = (
-        os.getenv("LOGFIRE_ENABLE_FULL_INSTRUMENTATION", "false").lower() == "true"
-    )
+    logfire_token = settings.logfire_token
+    enabled_full_instrumentation = settings.logfire_enable_full_instrumentation
 
     if logfire_token:
         try:

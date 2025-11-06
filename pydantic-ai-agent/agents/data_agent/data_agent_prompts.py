@@ -1,8 +1,6 @@
 from utils.get_styleguide import get_styleguide
 from logging import getLogger
 
-# from constants import PROJECT_NAME
-
 logger = getLogger(__name__)
 
 # Base instructions that are always included

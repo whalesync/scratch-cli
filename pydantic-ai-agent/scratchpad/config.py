@@ -1,6 +1,7 @@
 import os
 from typing import Dict
 from logging import getLogger
+from config import get_settings
 
 
 logger = getLogger(__name__)
@@ -10,8 +11,9 @@ class ScratchpadApiConfig:
     """Configuration for Scratch API calls"""
 
     def __init__(self):
-        self.api_url = os.getenv("SCRATCHPAD_SERVER_URL", "http://localhost:3010")
-        self.agent_auth_token = os.getenv("SCRATCHPAD_AGENT_AUTH_TOKEN")
+        settings = get_settings()
+        self.api_url = settings.scratchpad_server_url
+        self.agent_auth_token = settings.scratchpad_agent_auth_token
 
     def get_api_url(self) -> str:
         return self.api_url

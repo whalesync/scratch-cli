@@ -161,6 +161,8 @@ The feature flag configurations are provided via PostHog, using the same project
 
 [Production Feature Flags](https://us.posthog.com/project/214130/feature_flags?tab=overview)
 
+When creating new flags on Posthog **do not** set the `Persist flag across authentication steps` setting for flags. This setting depends on a Posthog feature we are not using and will cause your feature flag to return "FlagNotFoundError" in the system and subsequently return a default value if provided.
+
 ## Stripe
 
 Scratch uses Stripe to handle payments and subscriptions via Stripes hosted customer portals and webhooks. The code for this integration and subscriptions is in the [PaymentModule](src/payment/)

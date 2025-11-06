@@ -5,8 +5,11 @@ from typing import Any, Callable, List, Dict, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from fastapi import HTTPException, Header
+from config import get_settings
 
 logger = getLogger(__name__)
+
+settings = get_settings()
 
 
 class AgentUser(BaseModel):
@@ -28,7 +31,7 @@ def decode_and_validate_agent_jwt(jwt_token: str) -> Optional[AgentUser]:
         jwt.InvalidTokenError: If the token is invalid, expired, or malformed
         jwt.DecodeError: If the token cannot be decoded
     """
-    secret = os.getenv("SCRATCHPAD_AGENT_JWT_SECRET")
+    secret = settings.scratchpad_agent_jwt_secret
     if not secret:
         return None
 
