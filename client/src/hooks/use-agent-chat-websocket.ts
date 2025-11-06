@@ -288,7 +288,7 @@ function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
     additionalMessages.push({
       id: new Date().getTime().toString(),
       role: 'assistant',
-      message: `Modal usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
+      message: `Usage: ${x.usage_stats.requests} ${pluralize('request', x.usage_stats.requests)} and ${x.usage_stats.total_tokens} tokens used (${x.usage_stats.request_tokens} request, ${x.usage_stats.response_tokens} response)`,
       timestamp: message.timestamp || new Date().toISOString(),
       payload: x.usage_stats,
       variant: 'usage',

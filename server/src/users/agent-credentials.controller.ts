@@ -40,7 +40,7 @@ export class AgentCredentialsController {
     if (creds && creds.length > 0) {
       if (includeUsage) {
         for (const cred of creds) {
-          if (cred.service === 'openrouter' && cred.externalApiKeyId) {
+          if (cred.service === 'openrouter' && cred.apiKey) {
             let usageData: CreditUsage | undefined;
             const apiKeyData = await this.openRouterService.getCurrentApiKeyData(cred.apiKey);
             if (isErr(apiKeyData)) {

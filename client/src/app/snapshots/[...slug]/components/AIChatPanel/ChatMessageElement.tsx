@@ -151,7 +151,7 @@ export const ChatMessageElement = ({
   }
 
   if (msg.variant === 'usage') {
-    return showDetailedProgress ? <BasicMessage msg={msg.message} /> : null;
+    return <BasicMessage msg={msg.message} />;
   }
 
   if (msg.variant === 'progress') {
