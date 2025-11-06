@@ -10,6 +10,7 @@ export enum SystemFeatureFlag {
 /**
  * User-scoped feature flags.
  * These flags are scoped to a specific user and are used to control the behavior of the system for that user.
+ * DO NOT USE Persist flag across authentication steps on Posthog flag settings, or they will be hidden from us.
  */
 export enum UserFlag {
   DEV_TOOLBOX = 'DEV_TOOLBOX',
