@@ -224,7 +224,7 @@ export class ScratchpadConfigService {
       return `http://localhost:3000`;
     }
     // Otherwise, test or staging
-    return `https://${env}.scratchpaper.ai`;
+    return `https://${env}.scratch.md`;
   }
 
   public static getScratchpadServiceType(): MicroserviceType {
