@@ -18,14 +18,15 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     def get_cors_origins(self) -> List[str]:
-        if self.app_env == "development" or self.app_env == "local":
-            return ["*"]
-        else:
-            return [
-                "*.scratchpaper.ai",
-                "*.scratch.md",
-                "scratchpad-client.vercel.app",
-            ]
+        return ["*"]
+        # if self.app_env == "development" or self.app_env == "local":
+        #     return ["*"]
+        # else:
+        #     return [
+        #         "*.scratchpaper.ai",
+        #         "*.scratch.md",
+        #         "scratchpad-client.vercel.app",
+        #     ]
 
 
 @lru_cache
