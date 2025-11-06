@@ -933,19 +933,6 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    // Validate that all columns exist in the table spec
-    const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
-    for (const item of items) {
-      if (item.columnId === DELETED_FIELD || item.columnId === CREATED_FIELD) {
-        // ignore the deleted field, it is handled as a special case
-        continue;
-      }
-      const columnSpec = columnMap.get(item.columnId);
-      if (!columnSpec) {
-        throw new NotFoundException(`Column '${item.columnId}' not found in table`);
-      }
-    }
-
     // Count unique wsId values in the items list
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
     const uniqueRecordCount = uniqueWsIds.size;
@@ -2024,6 +2011,29 @@ export class SnapshotService {
 
     if (!column.metadata?.scratch) {
       throw new BadRequestException(`Column ${columnId} is not a scratch column and cannot be removed`);
+    }
+
+    // Need to remove any suggestions that use this column before we remove the column, otherwise it will block future accept/reject suggestion operations
+    const records = await this.snapshotDbService.snapshotDb.listRecords(
+      snapshotId,
+      tableId,
+      undefined,
+      10000,
+      undefined,
+      tableSpec,
+    );
+
+    const { allSuggestions } = this.extractSuggestions(records.records);
+    const itemsToReject = allSuggestions.filter((s) => s.columnId === columnId);
+    if (itemsToReject.length > 0) {
+      WSLogger.debug({
+        source: 'SnapshotService.removeScratchColumn',
+        message: `Rejecting ${itemsToReject.length} suggestions for column ${columnId} in table ${tableSpec.name} before removing the column`,
+        snapshotId,
+        tableId,
+        columnId,
+      });
+      await this.rejectValues(snapshotId, tableId, itemsToReject, actor);
     }
 
     const newTableSpec = {
