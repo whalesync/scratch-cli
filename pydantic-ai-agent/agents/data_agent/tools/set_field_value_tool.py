@@ -6,7 +6,6 @@ from agents.data_agent.models import (
 )
 from agents.data_agent.model_utils import (
     find_record_by_wsId,
-    is_in_write_focus,
     missing_field_error,
     find_column_by_name,
     find_column_by_id,
@@ -15,7 +14,6 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_record_error,
     unable_to_identify_active_table_error,
     record_not_in_context_error,
-    not_in_write_focus_error,
     unable_to_identify_active_snapshot_error,
     update_record_in_context,
 )
@@ -72,9 +70,6 @@ def set_field_value_tool_implementation(
 
         if not record:
             return record_not_in_context_error(chatRunContext, wsId)
-
-        if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
-            return not_in_write_focus_error(chatRunContext, column.id.wsId, wsId)
 
         if column.id.wsId in record.suggested_fields:
             current_value: str = str(record.suggested_fields[column.id.wsId])

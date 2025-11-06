@@ -37,32 +37,6 @@ def find_column_by_id(table: TableSpecForAi, column_id: str) -> ColumnSpecForAi 
     return None
 
 
-def is_in_write_focus(
-    chatRunContext: ChatRunContext, column_id: str, rec_id: str
-) -> bool:
-    # if the write focus is not provided, then we don't care
-    if not chatRunContext.write_focus:
-        return True
-
-    for focus in chatRunContext.write_focus:
-        if focus.columnWsId == column_id and focus.recordWsId == rec_id:
-            return True
-    return False
-
-
-def is_in_read_focus(
-    chatRunContext: ChatRunContext, column_id: str, rec_id: str
-) -> bool:
-    # if the read focus is not provided, then we don't care
-    if not chatRunContext.read_focus:
-        return True
-
-    for focus in chatRunContext.read_focus:
-        if focus.columnWsId == column_id and focus.recordWsId == rec_id:
-            return True
-    return False
-
-
 # Extract a specific record from the preloaded records in the context
 def find_record_by_wsId(
     chatRunContext: ChatRunContext, table_name: str, rec_id: str
@@ -151,12 +125,6 @@ def unable_to_identify_active_record_error(chatRunContext: ChatRunContext) -> st
 
 def unable_to_identify_active_snapshot_error(chatRunContext: ChatRunContext) -> str:
     return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
-
-
-def not_in_write_focus_error(
-    chatRunContext: ChatRunContext, column_id: str, rec_id: str
-) -> str:
-    return f"Error: Field '{column_id}' of record '{rec_id}' is not in write focus."
 
 
 def record_not_in_context_error(chatRunContext: ChatRunContext, rec_id: str) -> str:

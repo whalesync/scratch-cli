@@ -66,10 +66,8 @@ class ScratchpadApi:
         cursor: Optional[str] = None,
         take: Optional[int] = None,
         view_id: Optional[str] = None,
-        read_focus: Optional[List[Dict[str, str]]] = None,
-        write_focus: Optional[List[Dict[str, str]]] = None,
     ) -> ListRecordsResponse:
-        """List records for a table in a snapshot with focus arrays for AI processing"""
+        """List records for a table in a snapshot for AI processing"""
         url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/active-view"
         params = {}
         if cursor:

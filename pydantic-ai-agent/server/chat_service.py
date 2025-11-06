@@ -8,12 +8,11 @@ import os
 import uuid
 from typing import Dict, List, Optional, Any, Callable, Awaitable
 from fastapi import HTTPException
-from pydantic_ai.usage import RunUsage
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from agents.data_agent.models import (
     ChatRunContext,
     ChatSession,
-    FocusedCell,
     ResponseFromAgent,
     UsageStats,
 )
@@ -24,7 +23,7 @@ from logging import getLogger
 
 from scratchpad.api import ScratchpadApi
 
-from server.user_prompt_utils import build_snapshot_context, build_focus_context
+from server.user_prompt_utils import build_snapshot_context
 from server.agent_stream_processor import (
     process_agent_stream,
     CancelledAgentRunResult,
@@ -354,8 +353,6 @@ class ChatService:
         style_guides: Dict[str, str],
         model: Optional[str] = None,
         view_id: Optional[str] = None,
-        read_focus: Optional[List[FocusedCell]] = None,
-        write_focus: Optional[List[FocusedCell]] = None,
         capabilities: Optional[List[str]] = None,
         active_table_id: Optional[str] = None,
         data_scope: Optional[str] = None,
@@ -414,8 +411,6 @@ class ChatService:
                 user_id=user.userId,
                 view_id=view_id,
                 snapshot=snapshot,
-                read_focus=read_focus,
-                write_focus=write_focus,
                 preloaded_records=preloaded_records,
                 active_table_id=active_table_id,
                 data_scope=data_scope,
@@ -429,7 +424,7 @@ class ChatService:
                 {"run_id": agent_run_id},
             )
 
-            # The snapshot context and focus context are now handled by dynamic instructions
+            # The snapshot context is now handled by dynamic instructions
             # in the agent, so we just pass the user message directly
             full_prompt = user_message
 
@@ -493,10 +488,10 @@ class ChatService:
             log_error(
                 "Agent processing timeout",
                 session_id=session.id,
-                timeout_seconds=30,
+                timeout_seconds=timeout_seconds,
                 snapshot_id=session.snapshot_id,
             )
-            logger.info(f"❌ Agent.run() timed out after 30 seconds")
+            logger.info(f"❌ Agent.run() timed out after {timeout_seconds} seconds")
             raise HTTPException(status_code=408, detail="Agent response timeout")
         finally:
             await self._run_state_manager.delete_run(agent_run_id)

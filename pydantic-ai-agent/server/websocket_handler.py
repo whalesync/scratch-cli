@@ -316,15 +316,13 @@ async def websocket_endpoint(
                         style_guides_dict,
                         request.model,
                         request.view_id,
-                        request.read_focus,
-                        request.write_focus,
                         request.capabilities,
                         request.active_table_id,
                         request.data_scope,
                         request.record_id,
                         request.column_id,
                         request.credential_id,
-                        300.0,
+                        1800.0,  # 30 minutes timeout
                         progress_callback,
                     )
 

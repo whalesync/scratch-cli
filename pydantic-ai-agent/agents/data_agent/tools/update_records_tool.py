@@ -13,7 +13,6 @@ from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
     find_column_by_name,
     get_active_table,
-    is_in_write_focus,
     unable_to_identify_active_table_error,
 )
 from logger import log_info, log_error
@@ -154,14 +153,6 @@ async def update_records_implementation(
             for field_update in update["updates"]:
                 column = find_column_by_name(table, field_update["field"])
                 if column:
-                    if not is_in_write_focus(
-                        chatRunContext, column.id.wsId, update["wsId"]
-                    ):
-                        data_errors.append(
-                            f"Field '{field_update['field']}' is not in write focus and cannot be updated."
-                        )
-                        continue
-
                     data_payload[column.id.wsId] = field_update["value"]
                 else:
                     data_errors.append(

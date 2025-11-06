@@ -71,6 +71,12 @@ const availableCapabilities = [
     description: 'Delete records from a table in the active snapshot by their IDs.',
   },
   { code: 'data:field-tools', enabledByDefault: true, description: 'Tools to edit specific fields' },
+
+  {
+    code: 'data:fetch-tools',
+    enabledByDefault: true,
+    description: 'Tools for loading additional records from different tables and views into the context.',
+  },
   {
     code: 'views:filtering',
     enabledByDefault: true,
@@ -85,6 +91,16 @@ const availableCapabilities = [
     code: 'table:remove-column',
     enabledByDefault: false,
     description: 'Remove scratch columns from the active table.',
+  },
+  {
+    code: 'other:url-content-load',
+    enabledByDefault: false,
+    description: 'Allows the LLM to load content from a URL and use it in the conversation.',
+  },
+  {
+    code: 'other:upload-content',
+    enabledByDefault: false,
+    description: 'Allows the LLM to upload content to the active snapshot.',
   },
 ];
 

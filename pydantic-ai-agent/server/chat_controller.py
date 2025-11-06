@@ -129,7 +129,8 @@ async def get_session(
     return session
 
 
-# Deprecated code - moved to websocket endpoint
+# WARNING: This endpoint has become wildly out of date as all effort was put into the websocket endpoint
+# it will need a major overhaul to be useful again
 @router.post("/sessions/{session_id}/messages", response_model=SendMessageResponseDTO)
 async def send_message(
     session_id: str,
@@ -239,8 +240,6 @@ async def send_message(
             style_guides_dict,
             request.model,
             request.view_id,
-            request.read_focus,
-            request.write_focus,
             request.capabilities,
             request.active_table_id,
             request.data_scope,

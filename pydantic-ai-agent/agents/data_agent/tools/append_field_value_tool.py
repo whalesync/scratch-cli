@@ -10,7 +10,6 @@ from agents.data_agent.models import (
     WithTableName,
 )
 from agents.data_agent.model_utils import (
-    is_in_write_focus,
     missing_field_error,
     find_column_by_name,
     find_column_by_id,
@@ -20,7 +19,6 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_field_error,
     unable_to_identify_active_snapshot_error,
     record_not_in_context_error,
-    not_in_write_focus_error,
     update_record_in_context,
 )
 from typing import Optional
@@ -73,9 +71,6 @@ def append_field_value_tool_implementation(
             value=value,
             snapshot_id=chatRunContext.session.snapshot_id,
         )
-
-        if not is_in_write_focus(chatRunContext, column.id.wsId, wsId):
-            return not_in_write_focus_error(chatRunContext, column.id.wsId, wsId)
 
         # Get the record from the preloaded records
         # record = find_record_by_wsId(chatRunContext, table.name, wsId)

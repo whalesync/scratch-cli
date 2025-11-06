@@ -150,21 +150,6 @@ VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
 # TABLE and COLUMN VIEWS:
 - Tables and columns can be set as hidden (in which case you see no values at all in this table/column).
 - Tables and columns can be set as protected (in which case you should not update them, since updtes will be dropped).
-
-# FOCUS CELLS SYSTEM:
-- You may receive read focus and write focus cells that specify which cells you should work with. 
-- Focus cells help you understand which specific data points the user wants you to focus on for reading or writing operations.
-- These cells are provided with record IDs (recordWsId) and column IDs (columnWsId).
-
-## Read Focus Cells: 
-- When generating new values or analyzing data, you should ONLY consider and reference these specific cells. 
-- Other available cells can be used for reference, but should not be used in the generation of new values.
-- For example: the user might ask you to update the 'Short Biography' column of Authors with Active status. You can use the 'Status' column to narrow down the records internally to only the Active ones, but you should not use the 'Status' column in the process of writing the Biography Summary. You should use the cells with read focus only. 
-
-## Write Focus Cells
-- When updating records, you should ONLY modify these specific cells. 
-- When write focuis cells are provided in a table do not update any other cells in the table.
-- If nowrite  focus cells are provided, you can modify other cells too.
 """
 
 # Instructions for data manipulation capabilities (create, update, delete)
@@ -185,10 +170,8 @@ DATA_MANIPULATION_INSTRUCTIONS = """
 ## For updating records, you should do the following actions:
 1. Identify the record IDs (wsId) that should be updated
 2. Generate the new data for each record
-3. If read focus cells are provided only use them in the process of generating suggestions.
-4. If write focus cells are provided, only update the specific cells mentioned in the write focus
-5. Call the `update_records` tool with the parameters in it's schema/description
-6. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+3. Call the `update_records` tool with the parameters in it's schema/description
+4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
 
 
 ## For deleting records, you should:
@@ -214,9 +197,8 @@ DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED = """
 
 ## For updating records, you should do the following actions:
 1. Generate the new data for the field you want to update
-2. If read focus cells are provided only use them in the process of generating suggestions.
-3. Call the tool matching the operation you want to perform with the parameters in it's schema/description
-4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+2. Call the tool matching the operation you want to perform with the parameters in it's schema/description
+3. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
 
 ## IMPORTANT
 - some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
@@ -239,9 +221,8 @@ DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED = """
 ## For updating records, you should do the following actions:
 1. Identify the field name that should be updated
 2. Generate the new data for the field you want to update
-3. If read focus cells are provided only use them in the process of generating suggestions.
-4. Call the tool matching the operation you want to perform with the parameters in it's schema/description
-5. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+3. Call the tool matching the operation you want to perform with the parameters in it's schema/description
+4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
 
 ## IMPORTANT
 - some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
@@ -337,9 +318,15 @@ You: "Record 3: [makes up plausible data], Record 4: [makes up plausible data]" 
 
 SUPPORTING_TOOLS_INSTRUCTIONS = """
 # SUPPORTING TOOLS:
-- You have access to the following tools:
+You have access to the following tools:
 - url_content_load_tool - loads the content of a URL and returns it as a string
+"""
 
+TABLE_TOOLS_INSTRUCTIONS = """
+# TABLE TOOLS:
+You have access to the following tools that modify the table structure:
+- add_column_tool - adds a new scratch column to the active table
+- remove_column_tool - removes a scratch column from the active table
 """
 
 
@@ -362,6 +349,8 @@ def get_data_agent_instructions(
         "DATA_FORMATTING_INSTRUCTIONS",
         "DATA_STRUCTURE_INSTRUCTIONS",
         "DATA_FETCH_TOOLS_INSTRUCTIONS",
+        "SUPPORTING_TOOLS_INSTRUCTIONS",
+        "TABLE_TOOLS_INSTRUCTIONS",
     ]
 
     def get_section(variable_name: str, default_content: str) -> str:
@@ -403,6 +392,7 @@ def get_data_agent_instructions(
     supporting_tools = get_section(
         "SUPPORTING_TOOLS_INSTRUCTIONS", SUPPORTING_TOOLS_INSTRUCTIONS
     )
+    table_tools = get_section("TABLE_TOOLS_INSTRUCTIONS", TABLE_TOOLS_INSTRUCTIONS)
 
     # Build the main prompt
     main_prompt = (
@@ -415,6 +405,7 @@ def get_data_agent_instructions(
         + data_structure
         + data_fetch_tools
         + supporting_tools
+        + table_tools
     )
 
     # Add non-matching style guides as a STYLE GUIDES section

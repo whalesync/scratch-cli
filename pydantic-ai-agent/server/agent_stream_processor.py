@@ -40,6 +40,7 @@ async def process_agent_stream(
     model: str,
     run_state_manager: Any,
     progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
+    usage_limits: Optional[UsageLimits] = None,
 ) -> Any:
     """
     Process agent stream and return the result.
@@ -67,12 +68,7 @@ async def process_agent_stream(
             full_prompt,
             deps=chat_run_context,
             message_history=session.message_history,
-            usage_limits=UsageLimits(
-                request_limit=10,  # Maximum 10 requests per agent run
-                # request_tokens_limit=10000,  # Maximum 10k tokens per request
-                # response_tokens_limit=5000,  # Maximum 5k tokens per response
-                # total_tokens_limit=15000  # Maximum 15k tokens total
-            ),
+            usage_limits=usage_limits,
         ) as agent_run:
             async for node in agent_run:
                 if await run_state_manager.is_cancelled(agent_run_id):

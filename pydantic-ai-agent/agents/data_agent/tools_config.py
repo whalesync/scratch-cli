@@ -2,32 +2,33 @@
 """
 PydanticAI Tools for the Chat Server
 """
+from typing import Dict, List, Optional
+
 from agents.data_agent.models import ChatRunContext, ResponseFromAgent
-from typing import Optional, Dict, List
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
-from agents.data_agent.tools.update_records_tool import create_update_records_tool
+from agents.data_agent.tools.add_column_tool import define_add_column_tool
 from agents.data_agent.tools.append_field_value_tool import (
     define_append_field_value_tool,
 )
-from agents.data_agent.tools.insert_value_tool import define_insert_value_tool
-from agents.data_agent.tools.search_and_replace_field_value_tool import (
-    define_search_and_replace_field_value_tool,
-)
-from agents.data_agent.tools.delete_records_tool import define_delete_records_tool
 from agents.data_agent.tools.create_records_tool import create_create_records_tool
-from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
-from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
-from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
-from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
+from agents.data_agent.tools.delete_records_tool import define_delete_records_tool
 from agents.data_agent.tools.fetch_additional_records_tool import (
     define_fetch_additional_records_tool,
 )
 from agents.data_agent.tools.fetch_records_by_ids_tool import (
     define_fetch_records_by_ids_tool,
 )
-from agents.data_agent.tools.add_column_tool import define_add_column_tool
+from agents.data_agent.tools.insert_value_tool import define_insert_value_tool
 from agents.data_agent.tools.remove_column_tool import define_remove_column_tool
+from agents.data_agent.tools.search_and_replace_field_value_tool import (
+    define_search_and_replace_field_value_tool,
+)
+from agents.data_agent.tools.set_field_value_tool import define_set_field_value_tool
+from agents.data_agent.tools.update_records_tool import create_update_records_tool
+from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
+from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
+from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
 
 
 class GetRecordsInput(BaseModel):
@@ -89,7 +90,15 @@ def configure_tools(
         define_remove_column_tool(agent)
 
     # Common tools / utilities
-    define_url_content_load_tool(agent)
-    define_upload_content_tool(agent)
-    define_fetch_additional_records_tool(agent)
-    define_fetch_records_by_ids_tool(agent)
+    if capabilities is not None and "other:url-content-load" in capabilities:
+        # must be manually enabled
+        define_url_content_load_tool(agent)
+
+    if capabilities is not None and "other:upload-content" in capabilities:
+        # must be manually enabled
+        define_upload_content_tool(agent)
+
+    if capabilities is None or "data:fetch-tools" in capabilities:
+        # available by default
+        define_fetch_additional_records_tool(agent)
+        define_fetch_records_by_ids_tool(agent)

@@ -13,7 +13,6 @@ from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
     find_column_by_name,
     get_active_table,
-    is_in_write_focus,
     unable_to_identify_active_snapshot_error,
     unable_to_identify_active_table_error,
 )

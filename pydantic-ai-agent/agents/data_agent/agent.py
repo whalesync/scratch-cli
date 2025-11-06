@@ -18,7 +18,7 @@ from utils.helpers import mask_string
 from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 from scratchpad.entities import AgentCredential
-from server.user_prompt_utils import build_snapshot_context, build_focus_context
+from server.user_prompt_utils import build_snapshot_context
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -82,15 +82,8 @@ def create_agent(
                     column_id=ctx.deps.column_id,
                 )
 
-            # Build focus context
-            focus_context = build_focus_context(
-                ctx.deps.read_focus, ctx.deps.write_focus
-            )
-
             # Combine all instructions
-            full_instructions = (
-                f"{base_instructions}\n\n{snapshot_context}\n\n{focus_context}"
-            )
+            full_instructions = f"{base_instructions}\n\n{snapshot_context}"
 
             return full_instructions
 

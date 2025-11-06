@@ -12,13 +12,6 @@ from session import ChatSession
 from agents.data_agent.data_agent_utils import SnapshotForAi
 
 
-class FocusedCell(BaseModel):
-    """A focused cell in the grid"""
-
-    recordWsId: str = Field(description="Record ID of the focused cell")
-    columnWsId: str = Field(description="Column ID of the focused cell")
-
-
 class UsageStats(BaseModel):
     """Usage stats for the agent"""
 
@@ -57,12 +50,6 @@ class ChatRunContext(BaseModel):
     )
     preloaded_records: Optional[Dict[str, Any]] = Field(
         default=None, description="Preloaded records for the session"
-    )
-    read_focus: Optional[List[FocusedCell]] = Field(
-        default=None, description="List of read-focused cells"
-    )
-    write_focus: Optional[List[FocusedCell]] = Field(
-        default=None, description="List of write-focused cells"
     )
     active_table_id: Optional[str] = Field(
         default=None, description="ID of the table that has active focus in the context"
