@@ -78,6 +78,14 @@ class SendMessageRequestDTO(BaseModel):
         default=50,
         description="Maximum number of records to include in the snapshot context prompt",
     )
+    mentioned_table_ids: Optional[List[str]] = Field(
+        default=None,
+        description="IDs of tables mentioned in the user message",
+    )
+    model_context_length: Optional[int] = Field(
+        default=None,
+        description="Maximum context length (tokens) supported by the model",
+    )
 
 
 class SendMessageResponseDTO(BaseModel):

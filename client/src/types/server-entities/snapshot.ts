@@ -84,6 +84,7 @@ export interface SnapshotTable {
   tableContext: SnapshotTableContext | null;
   columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
+  pageSize: number | null;
   hidden: boolean;
 }
 
@@ -299,4 +300,9 @@ export function getSnapshotTableContextByWsId(snapshot: Snapshot, tableId: strin
 export function getActiveRecordSqlFilterByWsId(snapshot: Snapshot, tableId: string): string | undefined {
   const table = getSnapshotTableByWsId(snapshot, tableId);
   return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
+}
+
+export function getPageSizeByWsId(snapshot: Snapshot, tableId: string): number | null {
+  const table = getSnapshotTableByWsId(snapshot, tableId);
+  return table ? table.pageSize : null;
 }

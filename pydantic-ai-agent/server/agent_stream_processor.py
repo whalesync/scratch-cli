@@ -3,10 +3,12 @@
 Agent Stream Processor for handling agent execution and streaming
 """
 
+import re
 from typing import Optional, Callable, Awaitable, Any
 from logging import getLogger
 
 from pydantic_ai import Agent
+from pydantic_ai.run import AgentRunResult
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
@@ -14,10 +16,19 @@ from pydantic_ai.messages import (
     ToolCallPart,
     RetryPromptPart,
     ToolReturnPart,
+    ModelRequest,
+    ModelResponse,
 )
-from pydantic_ai.exceptions import UserError
+from pydantic_ai.exceptions import UserError, UsageLimitExceeded, ModelHTTPError
 
-from agents.data_agent.models import ChatSession, ChatRunContext, UsageStats
+from agents.data_agent.models import (
+    ChatSession,
+    ChatRunContext,
+    UsageStats,
+    ResponseFromAgent,
+)
+from server.exceptions import TokenLimitExceededException
+from server.token_utils import estimate_tokens_from_request_parts
 
 logger = getLogger(__name__)
 
@@ -41,7 +52,8 @@ async def process_agent_stream(
     run_state_manager: Any,
     progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     usage_limits: Optional[UsageLimits] = None,
-) -> Any:
+    model_context_length: Optional[int] = None,
+) -> AgentRunResult[ResponseFromAgent] | "CancelledAgentRunResult" | None:
     """
     Process agent stream and return the result.
 
@@ -83,12 +95,48 @@ async def process_agent_stream(
 
                 if Agent.is_user_prompt_node(node):
                     # A user prompt node => The user has provided input
-                    # await progress_callback(f"User prompt constructed")
                     continue
                 elif Agent.is_model_request_node(node):
                     # A model request node => We can stream tokens from the model's request
+                    estimated_tokens = None
+                    try:
+                        # Get the request object from the node
+                        request = node.request
+
+                        # Estimate tokens using utility function
+                        estimated_tokens = estimate_tokens_from_request_parts(
+                            request.instructions or "", request.parts or []
+                        )
+
+                        # Check if estimated tokens exceed 50% of model capacity
+                        if model_context_length and estimated_tokens:
+                            threshold = model_context_length * 0.5
+                            if estimated_tokens > threshold:
+                                raise TokenLimitExceededException(
+                                    requested_tokens=estimated_tokens,
+                                    max_tokens=model_context_length,
+                                    is_prerun=True,
+                                )
+
+                            # Log the estimate for monitoring
+                            logger.info(
+                                f"Request token estimate: {estimated_tokens:,} tokens "
+                                f"(~{(estimated_tokens/model_context_length)*100:.1f}% of {model_context_length:,} capacity)"
+                            )
+                    except Exception as e:
+                        if isinstance(e, TokenLimitExceededException):
+                            raise
+                        logger.debug(f"Could not estimate tokens for request: {e}")
+                        estimated_tokens = None
+
                     await progress_callback(
-                        "request_sent", f"Request sent to {model}", {}
+                        "request_sent",
+                        f"Request sent to {model}",
+                        (
+                            {"estimated_tokens": estimated_tokens}
+                            if estimated_tokens
+                            else {}
+                        ),
                     )
 
                     async with node.stream(agent_run.ctx) as request_stream:
@@ -102,7 +150,25 @@ async def process_agent_stream(
                                 )
 
                 elif Agent.is_call_tools_node(node):
-                    # A handle-response node => The model returned some data, potentially calls a tool
+                    # Before processing the tool call lets report back the agent usage stats
+                    if progress_callback:
+                        try:
+                            await progress_callback(
+                                "model_response",
+                                f"Model response received",
+                                {
+                                    "response_tokens": node.model_response.usage.output_tokens,
+                                    "request_tokens": node.model_response.usage.input_tokens,
+                                    "total_tokens": (
+                                        node.model_response.usage.input_tokens
+                                        + node.model_response.usage.output_tokens
+                                    ),
+                                },
+                            )
+                            # Get all messages from context to find the latest ModelResponse
+                            node.model_response.usage
+                        except Exception as e:
+                            logger.debug(f"Failed processing model response: {e}")
 
                     async with node.stream(agent_run.ctx) as handle_stream:
                         async for event in handle_stream:
@@ -166,6 +232,51 @@ async def process_agent_stream(
     except AgentRunCancelledError as e:
         logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
         result = CancelledAgentRunResult(agent_run.usage() if agent_run.usage else None)
+    except UsageLimitExceeded as e:
+        # Pydantic-AI's built-in usage limit exception. Unfortunately we do not hit it.
+        # se should investigate why. Until than - handle the error manually for common providers
+        logger.error(f"Usage limit exceeded: {e.message}")
+
+        # Get current usage to extract token counts
+        current_usage = agent_run.usage() if agent_run else None
+        requested_tokens = current_usage.input_tokens if current_usage else 0
+
+        # Try to extract max tokens from the error message or use a reasonable default
+        # The error message format is like "Exceeded the input_tokens_limit of 128000 (input_tokens=130000)"
+        match = re.search(r"input_tokens_limit of (\d+)", e.message)
+        max_tokens = int(match.group(1)) if match else 0
+
+        raise TokenLimitExceededException(
+            requested_tokens=requested_tokens, max_tokens=max_tokens, is_prerun=False
+        )
+    except ModelHTTPError as e:
+        # Check if this is a context length error from the LLM provider
+        error_message = str(e.body) if e.body else str(e)
+        if (
+            "maximum context length" in error_message.lower()
+            or "context length" in error_message.lower()
+        ):
+            logger.error(f"Context length exceeded from provider: {error_message}")
+
+            # Extract token counts from the error message
+            # Format: "requested about 881556 tokens (878300 of text input, 3256 of tool input)"
+            match = re.search(r"requested about (\d+) tokens", error_message)
+            requested_tokens = int(match.group(1)) if match else 0
+
+            match = re.search(r"maximum context length is (\d+) tokens", error_message)
+            max_tokens = int(match.group(1)) if match else 0
+
+            raise TokenLimitExceededException(
+                requested_tokens=requested_tokens,
+                max_tokens=max_tokens,
+                is_prerun=False,
+            )
+        else:
+            # Re-raise other ModelHTTPErrors
+            raise
+    except Exception as e:
+        logger.exception(f"Unhandled exception in process_agent_stream: {str(e)}")
+        raise
 
     return result
 

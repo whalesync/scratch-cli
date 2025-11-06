@@ -549,18 +549,21 @@ export class SnapshotService {
       }
     }
 
+    // Apply pageSize limit if set
+    const effectiveTake = snapshotTable.pageSize !== null ? Math.min(take, snapshotTable.pageSize) : take;
+
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
       cursor,
-      take + 1,
+      effectiveTake + 1,
       viewConfig,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
     );
 
     let nextCursor: string | undefined;
-    if (result.records.length === take + 1) {
+    if (result.records.length === effectiveTake + 1) {
       const nextRecord = result.records.pop();
       nextCursor = nextRecord!.id.wsId;
     }
@@ -578,7 +581,6 @@ export class SnapshotService {
     tableId: string,
     actor: Actor,
     cursor: string | undefined,
-    take: number,
     viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
@@ -602,25 +604,28 @@ export class SnapshotService {
       }
     }
 
+    // For AI, use pageSize if set, otherwise use a large default (10000)
+    const effectiveTake = snapshotTable.pageSize !== null ? snapshotTable.pageSize : 10000;
+
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
       tableId,
       cursor,
-      take + 1,
+      effectiveTake,
       viewConfig,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
     );
 
-    let nextCursor: string | undefined;
-    if (result.records.length === take + 1) {
-      const nextRecord = result.records.pop();
-      nextCursor = nextRecord!.id.wsId;
-    }
+    // let nextCursor: string | undefined;
+    // if (result.records.length === take + 1) {
+    //   const nextRecord = result.records.pop();
+    //   nextCursor = nextRecord!.id.wsId;
+    // }
 
     return {
       records: result.records,
-      nextCursor,
+      nextCursor: 'Not supported, agent cannot paginate, all records visible to the user are returned',
       count: result.count,
       filteredCount: result.filteredCount,
     };
@@ -1533,6 +1538,21 @@ export class SnapshotService {
       data: {
         tableId,
         source: 'user',
+      },
+    });
+  }
+
+  async setPageSize(snapshotId: SnapshotId, tableId: string, pageSize: number | null, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
+      data: {
+        pageSize: pageSize,
       },
     });
   }

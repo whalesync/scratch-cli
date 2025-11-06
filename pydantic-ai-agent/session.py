@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
 
+from pydantic_ai.messages import ModelMessage
+
 
 class RequestAndResponseSummary(BaseModel):
     """Summary of request and response for agent context"""
@@ -38,6 +40,6 @@ class ChatSession(BaseModel):
     last_activity: datetime
     created_at: datetime
     snapshot_id: str = Field(description="Associated snapshot ID")
-    message_history: List[ChatMessage] = Field(
+    message_history: List[ModelMessage] = Field(
         default=[], description="Message history for agent context (keep all)"
     )

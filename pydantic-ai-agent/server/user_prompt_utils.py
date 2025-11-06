@@ -15,6 +15,7 @@ def build_snapshot_context(
     record_id: Optional[str] = None,
     column_id: Optional[str] = None,
     max_records_to_include: Optional[int] = 50,
+    mentioned_table_ids: Optional[List[str]] = None,
 ) -> str:
     """
     Build snapshot context string for inclusion in prompts.
@@ -34,11 +35,20 @@ def build_snapshot_context(
     snapshot_context += f"Snapshot: {snapshot.name or snapshot.id}\n"
     # snapshot_context += f"Tables: {len(snapshot.tables)}\n\n"
 
-    truncate_record_content = data_scope == "table"
+    # truncate_record_content = data_scope == "table"
+    truncate_record_content = False
 
     for table in snapshot.tables:
         # Determine if this is the active table
         is_active_table = (not active_table_id) or (active_table_id == table.id.wsId)
+
+        # Determine if this table is mentioned in the user message
+        is_mentioned_table = (
+            mentioned_table_ids and table.id.wsId in mentioned_table_ids
+        )
+
+        # Include full records for active or mentioned tables
+        include_records = is_active_table or is_mentioned_table
 
         columns_to_exclude = []
         if data_scope == "column" and is_active_table:
@@ -81,47 +91,44 @@ def build_snapshot_context(
             snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}{readonly_marker}, Metadata: {col.metadata or {}}, Required: {col.required}\n"
 
         # Add records if available
-        if preloaded_records and table.name in preloaded_records:
+        if preloaded_records and table.name in preloaded_records and include_records:
             records = preloaded_records[table.name]
 
             snapshot_context += f"NOTES:\n"
 
-            # Different messaging for active table vs non-active table (sample record)
-            if is_active_table:
-                snapshot_context += f" - {len(records)} records are currently loaded\n"
+            # Explain why records are visible
+            if is_active_table and is_mentioned_table:
+                snapshot_context += f" - Records for this table are visible since this table is both active and mentioned in the user prompt\n"
+            elif is_active_table:
+                snapshot_context += f" - Records for this table are visible since this table is active\n"
+            elif is_mentioned_table:
+                snapshot_context += f" - Records for this table are visible since this table was mentioned in the user prompt\n"
 
-                if truncate_record_content:
-                    snapshot_context += (
-                        f" - Large field values are truncated to 200 characters\n"
-                    )
+            snapshot_context += f" - {len(records)} records are currently loaded\n"
 
-                # Add filtered records information if available
-                if filtered_counts and table.name in filtered_counts:
-                    filtered_count = filtered_counts[table.name]
-                    if filtered_count > 0:
-                        snapshot_context += f" - {filtered_count} records are currently filtered out and not included in this list.\n"
-
-                # Add max records information if necessary
-                if max_records_to_include and len(records) > max_records_to_include:
-                    snapshot_context += f" - Only the first {max_records_to_include} records in included in this list.\n"
-            else:
-                # This is a sample record from a non-active table
-                snapshot_context += f" - This is a sample record from this table (not the active table)\n"
-                snapshot_context += f" - Only 1 sample record is shown to provide context about this table's structure and data\n"
+            # Add filtered records information if available
+            if filtered_counts and table.name in filtered_counts:
+                filtered_count = filtered_counts[table.name]
+                if filtered_count > 0:
+                    snapshot_context += f" - {filtered_count} records are currently filtered out and not included in this list.\n"
 
             snapshot_context += "\n"
 
             # Format records using the shared function
             records_summary = format_records_for_prompt(
                 records,
-                limit=max_records_to_include if is_active_table else 1,
+                # limit=max_records_to_include if is_active_table else 1,
+                limit=100000,
                 truncate_record_content=truncate_record_content,
                 columns_to_exclude=columns_to_exclude,
             )
 
             snapshot_context += f"RECORDS:\n{records_summary}\n"
         else:
-            snapshot_context += "Records: Not loaded\n"
+            # Schema only - explain why records are not visible
+            snapshot_context += f"NOTES:\n"
+            snapshot_context += f" - No records for this table are listed since it is neither the active table nor mentioned in the user prompt\n"
+            snapshot_context += f" - Only the schema is shown to provide context about this table's structure\n\n"
         snapshot_context += "\n"
 
     snapshot_context += f"\n-- CURRENT SNAPSHOT DATA PREVIEW END --\n"

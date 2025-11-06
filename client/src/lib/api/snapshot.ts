@@ -254,6 +254,18 @@ export const snapshotApi = {
     await checkForApiError(res, 'Failed to clear active record filter');
   },
 
+  async setPageSize(snapshotId: string, tableId: string, pageSize: number | null): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/page-size`, {
+      method: 'PATCH',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ pageSize }),
+    });
+    await checkForApiError(res, 'Failed to set page size');
+  },
+
   async bulkUpdateRecords(snapshotId: string, tableId: string, dto: BulkUpdateRecordsDto): Promise<void> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/bulk`, {
       method: 'POST',

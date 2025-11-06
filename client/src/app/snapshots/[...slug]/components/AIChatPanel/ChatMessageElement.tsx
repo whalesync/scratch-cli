@@ -1,14 +1,15 @@
 'use client';
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { AgentProgressMessageData } from '@/hooks/use-agent-chat-websocket';
+import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/hooks/use-agent-chat-websocket';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { ChatMessage } from '@/types/server-entities/chat-session';
 import { timeAgo } from '@/utils/helpers';
-import { ActionIcon, Box, Code, Group, Paper, Stack, Text } from '@mantine/core';
+import { formatTokenCount } from '@/utils/token-counter';
+import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import _ from 'lodash';
-import { FoldVerticalIcon, UnfoldVerticalIcon } from 'lucide-react';
+import { Coins, FoldVerticalIcon, UnfoldVerticalIcon } from 'lucide-react';
 import { MarkdownRenderer } from '../../../../components/markdown/MarkdownRenderer';
 
 const LocalAdminMessage = ({ msg }: { msg: string }) => {
@@ -178,7 +179,36 @@ export const ChatMessageElement = ({
     }
 
     if (payload.progress_type === 'request_sent') {
-      return <BasicMessage msg={showDetailedProgress ? msg.message : 'Request Sent'} />;
+      // The payload structure: payload.payload contains the data dict from the server
+      const dataPayload = payload.payload || {};
+      console.debug('request_sent payload:', { payload, dataPayload, msgPayload: msg.payload });
+      const estimatedTokens = dataPayload['estimated_tokens'] as number | undefined;
+      let displayMessage = showDetailedProgress ? msg.message : 'Request Sent';
+
+      if (estimatedTokens !== undefined && estimatedTokens !== null && estimatedTokens > 0) {
+        const formattedTokens = formatTokenCount(estimatedTokens);
+        displayMessage = `Request Sent - ~${formattedTokens} tokens (estimated)`;
+      }
+
+      return <BasicMessage msg={displayMessage} />;
+    }
+
+    if (payload.progress_type === 'model_response') {
+      // The payload structure: payload.payload contains the data dict from the server
+      const dataPayload = payload.payload || {};
+      const responseTokens = dataPayload['response_tokens'] as number | undefined;
+      const requestTokens = dataPayload['request_tokens'] as number | undefined;
+      const totalTokens = dataPayload['total_tokens'] as number | undefined;
+
+      let displayMessage = showDetailedProgress ? msg.message : 'Response Received';
+
+      if (totalTokens !== undefined && totalTokens !== null && totalTokens > 0) {
+        const formattedTotal = formatTokenCount(totalTokens);
+        const formattedRequest = requestTokens ? formatTokenCount(requestTokens) : '0';
+        const formattedResponse = responseTokens ? formatTokenCount(responseTokens) : '0';
+        displayMessage = `Response Received - ${formattedTotal} tokens (${formattedRequest} request, ${formattedResponse} response)`;
+      }
+      return <BasicMessage msg={displayMessage} />;
     }
 
     if (payload.progress_type === 'build_response') {
@@ -197,6 +227,49 @@ export const ChatMessageElement = ({
   const maxWidth = msg.role === 'user' ? '90%' : '100%';
   const padding = '4px';
 
+  // Extract usage stats for response messages
+  const usageStats: UsageStats | null =
+    msg.variant === 'message' && msg.role === 'assistant' && msg.payload
+      ? (msg.payload as AgentResponseDataPayload).usage_stats || null
+      : null;
+
+  const usageTooltipContent = usageStats ? (
+    <Box>
+      <Box mb="xs">
+        <Text size="xs" fw={600} component="span">
+          requests:
+        </Text>{' '}
+        <Text size="xs" component="span">
+          {usageStats.requests}
+        </Text>
+      </Box>
+      <Box mb="xs">
+        <Text size="xs" fw={600} component="span">
+          request tokens:
+        </Text>{' '}
+        <Text size="xs" component="span">
+          {formatTokenCount(usageStats.request_tokens)}
+        </Text>
+      </Box>
+      <Box mb="xs">
+        <Text size="xs" fw={600} component="span">
+          response tokens:
+        </Text>{' '}
+        <Text size="xs" component="span">
+          {formatTokenCount(usageStats.response_tokens)}
+        </Text>
+      </Box>
+      <Box>
+        <Text size="xs" fw={600} component="span">
+          total tokens:
+        </Text>{' '}
+        <Text size="xs" component="span">
+          {formatTokenCount(usageStats.total_tokens)}
+        </Text>
+      </Box>
+    </Box>
+  ) : null;
+
   return (
     <Paper
       p={padding}
@@ -213,9 +286,18 @@ export const ChatMessageElement = ({
         <Box fz="xs" style={{ overflow: 'hidden' }}>
           <MarkdownRenderer>{msg.message}</MarkdownRenderer>
         </Box>
-        <Text c="dimmed" fz="8px" ta="right">
-          {timeAgo(msg.timestamp)}
-        </Text>
+        <Group gap="xs" justify="flex-end" align="center">
+          {usageStats && (
+            <Tooltip label={usageTooltipContent} withArrow>
+              <Box style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+                <StyledLucideIcon Icon={Coins} size={10} c="dimmed" centerInText />
+              </Box>
+            </Tooltip>
+          )}
+          <Text c="dimmed" fz="8px">
+            {timeAgo(msg.timestamp)}
+          </Text>
+        </Group>
       </Stack>
     </Paper>
   );

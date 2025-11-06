@@ -322,6 +322,8 @@ async def websocket_endpoint(
                         request.record_id,
                         request.column_id,
                         request.credential_id,
+                        request.mentioned_table_ids,
+                        request.model_context_length,
                         1800.0,  # 30 minutes timeout
                         progress_callback,
                     )

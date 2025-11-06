@@ -177,6 +177,9 @@ model SnapshotTable {
   // SQL WHERE clause filter for this table
   activeRecordSqlFilter String?
 
+  // Page size limit for records (null means unlimited)
+  pageSize Int? @default(1000)
+
   // Whether this table is hidden from the UI
   hidden Boolean @default(false)
 

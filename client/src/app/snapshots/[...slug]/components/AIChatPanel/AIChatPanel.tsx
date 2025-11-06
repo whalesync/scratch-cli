@@ -315,11 +315,27 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       // Get selected style guide content
       const selectedStyleGuides = styleGuides.filter((sg) => activeResources.includes(sg.id));
 
+      // Extract table IDs from mentions in the message
+      // Format: $[Table Name](tbl_tableId)
+      const tableMentionPattern = /\$\[([^\]]+)\]\(tbl_([^)]+)\)/g;
+      const tableMentions = [...message.matchAll(tableMentionPattern)];
+      const mentionedTableIds = tableMentions.map((match) => match[2]); // Extract tableId from tbl_tableId
+
       const messageData: SendMessageRequestDTO = {
         message: message.trim(),
         model: activeModel.value,
         credential_id: activeOpenRouterCredentials?.id,
       };
+
+      // Include model context length if available
+      if (activeModel.contextLength) {
+        messageData.model_context_length = activeModel.contextLength;
+      }
+
+      // Include mentioned table IDs if any
+      if (mentionedTableIds.length > 0) {
+        messageData.mentioned_table_ids = mentionedTableIds;
+      }
 
       // Include style guide content if selected
       if (selectedStyleGuides.length > 0) {

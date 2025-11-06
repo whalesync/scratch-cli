@@ -28,6 +28,7 @@ from server.agent_stream_processor import (
     process_agent_stream,
     CancelledAgentRunResult,
 )
+from server.exceptions import TokenLimitExceededException
 
 from agents.data_agent.data_agent_utils import (
     convert_scratchpad_snapshot_to_ai_snapshot,
@@ -179,6 +180,7 @@ class ChatService:
         active_table_id: Optional[str],
         data_scope: Optional[str],
         record_id: Optional[str],
+        mentioned_table_ids: Optional[List[str]] = None,
     ) -> tuple[Any, Dict[str, List[Dict]], Dict[str, int]]:
         """Load snapshot data and preload records for efficiency"""
         logger.info(
@@ -223,6 +225,14 @@ class ChatService:
                     active_table_id == table.id.wsId
                 )
 
+                # Determine if this table is mentioned
+                is_mentioned_table = (
+                    mentioned_table_ids and table.id.wsId in mentioned_table_ids
+                )
+
+                # Load records for active or mentioned tables
+                should_load_records = is_active_table or is_mentioned_table
+
                 if (
                     record_id
                     and (data_scope == "record" or data_scope == "column")
@@ -256,8 +266,8 @@ class ChatService:
                             f"⚠️ Failed to pre-load record {record_id} for table '{table.name}'"
                         )
                         preloaded_records[table.name] = []
-                elif is_active_table:
-                    # Load all records for the active table
+                elif should_load_records:
+                    # Load all records for active or mentioned tables
                     try:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
@@ -281,8 +291,11 @@ class ChatService:
                             }
                             for record in records_result.records
                         ]
+                        table_reason = "active" if is_active_table else "mentioned"
+                        if is_active_table and is_mentioned_table:
+                            table_reason = "active and mentioned"
                         logger.info(
-                            f"📊 Pre-loaded {len(preloaded_records[table.name])} records for active table '{table.name}'"
+                            f"📊 Pre-loaded {len(preloaded_records[table.name])} records for {table_reason} table '{table.name}'"
                         )
                         if records_result.filteredRecordsCount > 0:
                             logger.info(
@@ -301,7 +314,7 @@ class ChatService:
                             session.snapshot_id,
                             table.id.wsId,
                             view_id=view_id,
-                            take=1,  # Only fetch 1 sample record
+                            # take=1,  #we used to include a sample record from the non active tables, now we dump everything that the user sees
                         )
                         preloaded_records[table.name] = [
                             {
@@ -359,6 +372,8 @@ class ChatService:
         record_id: Optional[str] = None,
         column_id: Optional[str] = None,
         credential_id: Optional[str] = None,
+        mentioned_table_ids: Optional[List[str]] = None,
+        model_context_length: Optional[int] = None,
         timeout_seconds: float = 60.0,
         progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     ) -> ResponseFromAgent:
@@ -400,7 +415,13 @@ class ChatService:
         try:
             # Pre-load snapshot data and records for efficiency
             snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
-                session, user, view_id, active_table_id, data_scope, record_id
+                session,
+                user,
+                view_id,
+                active_table_id,
+                data_scope,
+                record_id,
+                mentioned_table_ids,
             )
 
             # Create context with pre-loaded data
@@ -416,6 +437,7 @@ class ChatService:
                 data_scope=data_scope,
                 record_id=record_id,
                 column_id=column_id,
+                mentioned_table_ids=mentioned_table_ids,
             )
 
             await progress_callback(
@@ -436,9 +458,7 @@ class ChatService:
                 )
             else:
                 await progress_callback(
-                    "create_agent",
-                    f"Creating agent using the {model} model",
-                    {},
+                    "create_agent", f"Creating agent using the {model} model", {}
                 )
 
             agent = create_agent(
@@ -476,6 +496,7 @@ class ChatService:
                     model=model,
                     run_state_manager=self._run_state_manager,
                     progress_callback=progress_callback,
+                    model_context_length=model_context_length,
                 ),
                 timeout=timeout_seconds,
             )
@@ -493,6 +514,18 @@ class ChatService:
             )
             logger.info(f"❌ Agent.run() timed out after {timeout_seconds} seconds")
             raise HTTPException(status_code=408, detail="Agent response timeout")
+        except TokenLimitExceededException as e:
+            log_error(
+                "Token limit exceeded",
+                session_id=session.id,
+                requested_tokens=e.requested_tokens,
+                max_tokens=e.max_tokens,
+                snapshot_id=session.snapshot_id,
+            )
+            logger.info(
+                f"❌ Token limit exceeded: {e.requested_tokens} requested, {e.max_tokens} max"
+            )
+            raise HTTPException(status_code=413, detail=str(e))
         finally:
             await self._run_state_manager.delete_run(agent_run_id)
 

@@ -72,8 +72,8 @@ class ScratchpadApi:
         params = {}
         if cursor:
             params["cursor"] = cursor
-        if take:
-            params["take"] = str(take)
+        # if take:
+        #     params["take"] = str(take)
         if view_id:
             params["viewId"] = view_id
 

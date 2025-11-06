@@ -83,6 +83,7 @@ def create_agent(
                     active_table_id=ctx.deps.active_table_id,
                     record_id=ctx.deps.record_id,
                     column_id=ctx.deps.column_id,
+                    mentioned_table_ids=ctx.deps.mentioned_table_ids,
                 )
 
             # Combine all instructions

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     scratchpad_agent_jwt_secret: str = ""
     debug: bool = True
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     def get_cors_origins(self) -> List[str]:
         return ["*"]

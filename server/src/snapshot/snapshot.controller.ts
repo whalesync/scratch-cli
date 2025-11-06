@@ -39,6 +39,7 @@ import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { AddScratchColumnDto, RemoveScratchColumnDto } from './dto/scratch-column.dto';
+import { SetPageSizeDto } from './dto/set-page-size.dto';
 import { SetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateColumnSettingsDto } from './dto/update-column-settings.dto';
@@ -373,6 +374,18 @@ export class SnapshotController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.clearActiveRecordFilter(snapshotId, tableId, toActor(req.user));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Patch(':id/tables/:tableId/page-size')
+  @HttpCode(204)
+  async setPageSize(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() setPageSizeDto: SetPageSizeDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.setPageSize(snapshotId, tableId, setPageSizeDto.pageSize ?? null, toActor(req.user));
   }
 
   /**

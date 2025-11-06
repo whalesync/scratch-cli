@@ -27,6 +27,8 @@ export interface SendMessageRequestDTO {
   record_id?: string;
   column_id?: string;
   max_records_in_prompt?: number;
+  mentioned_table_ids?: string[];
+  model_context_length?: number;
 }
 
 interface UseWebSocketOptions {
@@ -260,6 +262,7 @@ export interface AgentProgressMessageData {
     | 'tool_result'
     | 'create_agent'
     | 'request_sent'
+    | 'model_response'
     | 'build_response';
   message: string;
   payload: Record<string, unknown>;
@@ -276,6 +279,12 @@ function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
     if (message.type === 'connection_confirmed') {
       variant = 'admin';
     } else if (message.type === 'message_progress') {
+      debugger; // Debug progress messages coming through websocket
+      console.debug('Progress message received:', {
+        message,
+        data: message.data,
+        fullMessage: JSON.stringify(message, null, 2),
+      });
       variant = 'progress';
     }
   } else if (message.type === 'agent_error') {

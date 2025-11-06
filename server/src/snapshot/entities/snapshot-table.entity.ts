@@ -14,6 +14,7 @@ export class SnapshotTable {
   tableContext: SnapshotTableContext | null;
   columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
+  pageSize: number | null;
   hidden: boolean;
 
   constructor(snapshotTable: SnapshotTableCluster.SnapshotTable) {
@@ -28,6 +29,7 @@ export class SnapshotTable {
     this.tableContext = snapshotTable.tableContext as SnapshotTableContext | null;
     this.columnSettings = (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {};
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
+    this.pageSize = snapshotTable.pageSize ?? null;
     this.hidden = snapshotTable.hidden;
   }
 }

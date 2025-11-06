@@ -204,7 +204,7 @@ const log = (message: string, data?: unknown) => {
 };
 
 export interface SnapshotEvent {
-  type: 'snapshot-updated' | 'filter-changed';
+  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed';
   data: {
     tableId?: string;
     source: 'user' | 'agent';

@@ -8,8 +8,9 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { getActiveRecordSqlFilterByWsId, TableSpec } from '@/types/server-entities/snapshot';
+import { getActiveRecordSqlFilterByWsId, getPageSizeByWsId, TableSpec } from '@/types/server-entities/snapshot';
 import {
   calculateTokensForRecords,
   formatTokenCount,
@@ -22,6 +23,7 @@ import { FunnelSimpleIcon, LineVerticalIcon, PlusIcon } from '@phosphor-icons/re
 import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSWRConfig } from 'swr';
 import { useAgentChatContext } from './contexts/agent-chat-context';
 import { useSnapshotContext } from './contexts/SnapshotContext';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
@@ -35,6 +37,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
   const { activeModel } = useAgentChatContext();
   const { isDevToolsEnabled } = useDevTools();
+  const { mutate: globalMutate } = useSWRConfig();
   const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
   const [
     snapshotEventDebugDialogOpen,
@@ -70,10 +73,28 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
     return getActiveRecordSqlFilterByWsId(snapshot, table.id.wsId);
   }, [snapshot, table.id.wsId]);
 
+  const currentPageSize = useMemo(() => {
+    if (!snapshot) return 10; // default
+    if (!table.id.wsId) return 10;
+
+    return getPageSizeByWsId(snapshot, table.id.wsId);
+  }, [snapshot, table.id.wsId]);
+
   const tokenCalculation: TokenCalculation = useMemo(() => {
-    if (!records || records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
+    if (!records || records.length === 0)
+      return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
     return calculateTokensForRecords(records, activeModel?.value ?? '');
   }, [records, activeModel?.value]);
+
+  const visibleRecordCount = useMemo(() => {
+    if (!records) return 0;
+    return records.length;
+  }, [records]);
+
+  const hiddenByPageSize = useMemo(() => {
+    if (!filteredCount || !currentPageSize) return 0;
+    return Math.max(0, filteredCount - visibleRecordCount);
+  }, [filteredCount, currentPageSize, visibleRecordCount]);
 
   const tokenPercentage = useMemo(() => {
     if (!tokenCalculation || !activeModel || !activeModel.contextLength) return null;
@@ -81,9 +102,9 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   }, [tokenCalculation, activeModel]);
 
   const avgTokensPerRecord = useMemo(() => {
-    if (!filteredCount || filteredCount === 0 || !tokenCalculation) return null;
-    return Math.round(tokenCalculation.tokenCount / filteredCount);
-  }, [filteredCount, tokenCalculation]);
+    if (!visibleRecordCount || visibleRecordCount === 0 || !tokenCalculation) return null;
+    return Math.round(tokenCalculation.tokenCount / visibleRecordCount);
+  }, [visibleRecordCount, tokenCalculation]);
 
   const maxRecordsFit = useMemo(() => {
     if (!activeModel || !activeModel.contextLength || !avgTokensPerRecord || avgTokensPerRecord === 0) return null;
@@ -125,7 +146,9 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
             <TextSmBook fw={600} component="span">
               100% ≈
             </TextSmBook>{' '}
-            <TextSmBook component="span">{maxRecordsFit} {pluralize('record', maxRecordsFit)}</TextSmBook>
+            <TextSmBook component="span">
+              {maxRecordsFit} {pluralize('record', maxRecordsFit)}
+            </TextSmBook>
           </Box>
         )}
       </Box>
@@ -159,6 +182,35 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
     }
   }, [table.id.wsId, snapshot, sqlFilterText]);
 
+  const handleSetPageSize = useCallback(
+    async (pageSize: number | null) => {
+      if (!table.id.wsId || !snapshot) return;
+
+      try {
+        await snapshotApi.setPageSize(snapshot.id, table.id.wsId, pageSize);
+
+        // Invalidate caches to refetch data with new page size
+        globalMutate(SWR_KEYS.snapshot.detail(snapshot.id));
+        globalMutate(SWR_KEYS.snapshot.list());
+        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, table.id.wsId), undefined, {
+          revalidate: true,
+        });
+
+        ScratchpadNotifications.success({
+          title: 'Page Size Updated',
+          message: pageSize === null ? 'Showing all records' : `Showing ${pageSize} records per page`,
+        });
+      } catch (error) {
+        console.error('Error setting page size:', error);
+        ScratchpadNotifications.error({
+          title: 'Failed to Update Page Size',
+          message: error instanceof Error ? error.message : 'Failed to set page size',
+        });
+      }
+    },
+    [table.id.wsId, snapshot, globalMutate],
+  );
+
   return (
     <>
       <Group justify="flex-start" align="center" h="100%">
@@ -181,14 +233,32 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
+          <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
+          <Menu shadow="md" width={200}>
+            <Menu.Target>
+              <ContentFooterButton>
+                {currentPageSize === null ? 'All records' : `${currentPageSize} records`}
+              </ContentFooterButton>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>Page Size</Menu.Label>
+              <Menu.Item onClick={() => handleSetPageSize(10)}>10 records</Menu.Item>
+              <Menu.Item onClick={() => handleSetPageSize(25)}>25 records</Menu.Item>
+              <Menu.Item onClick={() => handleSetPageSize(50)}>50 records</Menu.Item>
+              <Menu.Item onClick={() => handleSetPageSize(100)}>100 records</Menu.Item>
+              <Menu.Item onClick={() => handleSetPageSize(500)}>500 records</Menu.Item>
+              <Menu.Item onClick={() => handleSetPageSize(1000)}>1,000 records</Menu.Item>
+              <Menu.Divider />
+              <Menu.Item onClick={() => handleSetPageSize(null)}>All records</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
 
         <Group ml="auto" gap="xs" align="center">
           {count !== undefined && (
             <>
               <TextSmBook>
-                {`${filteredCount} ${pluralize('record', filteredCount)} `}
-                =
+                {`${visibleRecordCount} ${pluralize('record', visibleRecordCount)} `}=
                 {` ${formatTokenCount(tokenCalculation.charCount)} chars `}
                 {tokenCalculationSymbol(tokenCalculation)}{' '}
                 <Tooltip label={tokenTooltipContent} withArrow>
@@ -203,7 +273,16 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
                     {tokenPercentage !== null && ` (${tokenPercentage}%)`}
                   </span>
                 </Tooltip>
-                {filteredCount !== undefined && count > filteredCount && ` - ${count - filteredCount} filtered`}
+                {(() => {
+                  const parts: string[] = [];
+                  if (count > filteredCount) {
+                    parts.push(`${count - filteredCount} filtered`);
+                  }
+                  if (hiddenByPageSize > 0) {
+                    parts.push(`${hiddenByPageSize} hidden`);
+                  }
+                  return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
+                })()}
               </TextSmBook>
             </>
           )}

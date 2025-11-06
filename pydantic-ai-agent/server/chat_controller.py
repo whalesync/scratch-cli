@@ -245,6 +245,9 @@ async def send_message(
             request.data_scope,
             request.record_id,
             request.column_id,
+            None,  # credential_id - not used in this controller
+            request.mentioned_table_ids,
+            request.model_context_length,
             60.0,
         )
 

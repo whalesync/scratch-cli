@@ -63,6 +63,9 @@ class ChatRunContext(BaseModel):
     column_id: Optional[str] = Field(
         default=None, description="ID of the column to scope the data to"
     )
+    mentioned_table_ids: Optional[List[str]] = Field(
+        default=None, description="IDs of tables mentioned in the user message"
+    )
 
 
 class WithTableName(BaseModel):
