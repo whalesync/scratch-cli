@@ -37,7 +37,7 @@ variable "force_reload_services" {
 
 variable "db_version" {
   type    = string
-  default = "POSTGRES_15"
+  default = "POSTGRES_17"
 }
 
 variable "db_tier" {

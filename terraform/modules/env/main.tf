@@ -310,6 +310,7 @@ module "db_primary" {
   database_version   = var.db_version
   tier               = var.db_tier
   disk_size          = var.db_disk_size
+  high_availability  = var.db_high_availability
   private_network_id = module.vpc.network
   password           = random_password.DB_PASS.result
 
@@ -321,7 +322,9 @@ module "db_primary" {
 
   labels = {
     # Used to help the connect_to_gcp_* scripts to find the right instance automatically
-    "primary" = "true"
+    "primary"   = "true"
+    "env"       = var.env_name,
+    "terraform" = "true",
   }
 
   depends_on = [
