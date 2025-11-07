@@ -73,7 +73,7 @@ export class StripePaymentService {
         name: user.name ?? '',
         email: user.email ?? undefined,
         metadata: {
-          source: 'scratchpaper', // used to identify new users created from Scratch vs Whalesync
+          source: 'scratch', // used to identify new users created from Scratch vs Whalesync
           internal_id: user.id,
         },
       });

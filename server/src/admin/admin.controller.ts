@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { BUILD_VERSION } from 'src/version';
 
 @Controller()
@@ -18,6 +19,8 @@ export class AdminController {
       timestamp: new Date().toISOString(),
       service: 'scratchpad-api',
       build_version: BUILD_VERSION,
+      in_cloud: ScratchpadConfigService.isRunningInCloudRun(),
+      app_url: ScratchpadConfigService.getClientBaseUrl(),
     };
   }
 }

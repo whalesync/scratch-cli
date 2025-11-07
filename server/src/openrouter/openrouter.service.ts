@@ -17,8 +17,8 @@ import {
 @Injectable()
 export class OpenRouterService {
   private readonly openRouterApiUrl = 'https://openrouter.ai/api/v1';
-  private readonly httpReferer = 'https://scratchpaper.ai';
-  private readonly httpXTitle = 'Scratchpaper.ai';
+  private readonly httpReferer = 'https://app.scratch.md';
+  private readonly httpXTitle = 'Scratch.md';
 
   constructor(private readonly configService: ScratchpadConfigService) {}
 

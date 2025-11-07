@@ -28,9 +28,11 @@ export class ScratchpadConfigService {
   private readonly databaseUrl: string;
   private readonly environment: ScratchpadEnvironment;
   private readonly serviceType: MicroserviceType;
+  private readonly runningInCloudRun: boolean;
 
   constructor(private readonly configService: ConfigService) {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
+    this.runningInCloudRun = this.getOptionalFlagVariable('RUNNING_IN_CLOUD', false);
     this.environment = ScratchpadConfigService.getScratchpadEnvironment();
     this.serviceType = ScratchpadConfigService.getScratchpadServiceType();
 
@@ -215,14 +217,21 @@ export class ScratchpadConfigService {
     ]) as ScratchpadEnvironment;
   }
 
+  public static isRunningInCloudRun(): boolean {
+    return process.env.RUNNING_IN_CLOUD === 'true';
+  }
+
   public static getClientBaseUrl(): string {
     const env = ScratchpadConfigService.getScratchpadEnvironment();
-    if (env === 'production') {
-      return 'https://app.scratchpaper.ai';
-    }
     if (env === 'development') {
       return `http://localhost:3000`;
     }
+
+    if (env === 'production') {
+      // Need to check this because we have two different production environments until we fully migrate to the new domain.
+      return ScratchpadConfigService.isRunningInCloudRun() ? 'https://app.scratch.md' : 'https://app.scratchpaper.ai';
+    }
+
     // Otherwise, test or staging
     return `https://${env}.scratch.md`;
   }

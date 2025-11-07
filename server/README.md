@@ -118,7 +118,7 @@ Once the account exists, go into your database and update the `role` of your new
 
 The Scratch API server is hosted on Render.
 
-[Public URL - https://api.scratchpaper.ai/](https://api.scratchpaper.ai/)
+[Public URL - https://api.scratch.md/](https://api.scratch.md/)
 
 [Manage Render Project](https://dashboard.render.com/web/srv-d347khidbo4c73bouaj0)
 
