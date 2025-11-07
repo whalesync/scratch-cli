@@ -28,16 +28,16 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
     setIsLoading(true);
     setError(null);
     try {
-      const data = await uploadsApi.getCsvData(uploadId, 1, 0);
-      if (data.rows.length > 0) {
-        const columnNames = Object.keys(data.rows[0]);
+      const columns = await uploadsApi.getCsvColumns(uploadId);
+      if (columns.length > 0) {
+        const columnNames = columns.map((column) => column.name);
         setColumns(columnNames);
         // Default to first column
         if (columnNames.length > 0) {
           setSelectedColumn(columnNames[0]);
         }
       } else {
-        setError('No data found in CSV');
+        setError('No columns found in CSV file');
       }
     } catch (err) {
       console.error('Failed to load columns:', err);

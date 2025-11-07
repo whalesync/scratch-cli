@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { RequestWithUser, toActor } from '../auth/types';
 import {
@@ -125,6 +126,11 @@ export class UploadsController {
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
     return this.uploadsService.getCsvData(uploadId, toActor(req.user), limitNum, offsetNum);
+  }
+
+  @Get('csv/:id/columns')
+  async getCsvColumns(@Param('id') uploadId: string, @Req() req: RequestWithUser): Promise<BaseColumnSpec[]> {
+    return this.uploadsService.getCsvColumnsForUpload(uploadId, toActor(req.user));
   }
 
   @Get('csv/:id/download')

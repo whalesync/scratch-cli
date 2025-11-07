@@ -10,7 +10,7 @@ import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
-import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
+import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import {
   createCsvFileRecordId,
@@ -527,6 +527,48 @@ export class UploadsService {
     const rows = await this.uploadsDbService.knex(tableId).withSchema(schemaName).limit(limit).offset(offset);
 
     return { rows, total };
+  }
+
+  /**
+   * Gets a preview of the columns in a CSV upload as they would look when used in a SnapshotTable
+   * @param uploadId The ID of the upload
+   * @param actor The actor making the request
+   * @returns The structure of the column in the upload table as it would look in a SnapshotTable
+   */
+  async getCsvColumnsForUpload(uploadId: string, actor: Actor): Promise<CsvColumnSpec[]> {
+    const upload = await this.getUpload(uploadId, actor);
+
+    if (upload.type !== 'CSV') {
+      throw new Error('Upload is not a CSV');
+    }
+
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
+    const tableId = upload.typeId;
+
+    const columnInfo = await this.uploadsDbService.knex(tableId).withSchema(schemaName).columnInfo();
+
+    const schemaParser = new CsvSchemaParser();
+    // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
+    const columnNames = Object.keys(columnInfo).filter(
+      (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
+    );
+
+    const columns = columnNames.map((name) => {
+      const colInfo = columnInfo[name];
+      // Map Postgres types to our PostgresColumnType enum
+      const pgType = schemaParser.getPostgresType(colInfo);
+      const metadata = schemaParser.getColumnMetadata(name, colInfo);
+
+      return {
+        id: { wsId: name, remoteId: [name] },
+        name: name,
+        pgType,
+        metadata,
+        readonly: false,
+      };
+    });
+
+    return columns;
   }
 
   /**

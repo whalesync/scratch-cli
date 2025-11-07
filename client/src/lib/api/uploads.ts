@@ -1,3 +1,4 @@
+import { ColumnSpec } from '@/types/server-entities/snapshot';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -206,6 +207,17 @@ export const uploadsApi = {
     return res.json();
   },
 
+  getCsvColumns: async (uploadId: string): Promise<ColumnSpec[]> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/columns`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    await checkForApiError(res, 'Failed to get CSV columns');
+    return res.json();
+  },
+
   // Get Markdown data
   getMdData: async (uploadId: string): Promise<MdDataResponse> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md/${uploadId}/data`, {
@@ -236,7 +248,7 @@ export const uploadsApi = {
     // Use public endpoint that doesn't require authentication
     // Security relies on upload IDs being unguessable
     const url = `${API_CONFIG.getApiUrl()}/uploads/public/csv/${uploadId}/download`;
-    
+
     // Create a hidden anchor element and click it to trigger download
     // Set the download attribute with the filename to avoid browser using page title
     const a = document.createElement('a');
@@ -245,15 +257,13 @@ export const uploadsApi = {
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    
-
   },
 
   // Create workbook from CSV upload
   createWorkbookFromCsv: async (
     uploadId: string,
     name: string,
-    titleColumnRemoteId?: string[]
+    titleColumnRemoteId?: string[],
   ): Promise<{ snapshotId: string; tableId: string }> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
       method: 'POST',
