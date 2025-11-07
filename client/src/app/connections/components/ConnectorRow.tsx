@@ -3,7 +3,7 @@
 import { TextMdHeavier, TextSmRegular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { useSnapshots } from '@/hooks/use-snapshot';
+import { useSnapshots } from '@/hooks/use-snapshots';
 import { serviceName } from '@/service-naming-conventions';
 import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
 import { formatDate } from '@/utils/helpers';

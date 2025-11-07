@@ -22,10 +22,9 @@ import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, FileDownIcon, FileUpIcon
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useRef, useState } from 'react';
+import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
-import { useSnapshotContext } from './contexts/SnapshotContext';
-import { useTableContext } from './contexts/table-context';
 import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
@@ -41,8 +40,7 @@ enum Modals {
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { user } = useScratchPadUser();
-  const { snapshot, isLoading, publish, updateSnapshot } = useSnapshotContext();
-  const { activeTable } = useTableContext();
+  const { snapshot, activeTable, updateSnapshot, publish, isLoading } = useActiveSnapshot();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
   const { isDevToolsEnabled } = useDevTools();

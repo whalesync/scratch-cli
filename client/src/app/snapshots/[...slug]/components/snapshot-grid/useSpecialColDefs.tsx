@@ -72,7 +72,7 @@ export const useSpecialColDefs = ({
       );
     },
     // cellStyle,
-    cellClass: getCellClassFn({ gridApi, activeRecord: null, columnId: 'id' }),
+    cellClass: getCellClassFn({ gridApi, activeCells: null, columnId: 'id' }),
   };
 
   const dotColumn: ColDef = {

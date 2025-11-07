@@ -24,8 +24,8 @@ import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
+import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 import { useAgentChatContext } from './contexts/agent-chat-context';
-import { useSnapshotContext } from './contexts/SnapshotContext';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
 interface RecordDataToolbarProps {
@@ -34,7 +34,7 @@ interface RecordDataToolbarProps {
 
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
-  const { snapshot, clearActiveRecordFilter } = useSnapshotContext();
+  const { snapshot, clearActiveRecordFilter } = useActiveSnapshot();
   const { activeModel } = useAgentChatContext();
   const { isDevToolsEnabled } = useDevTools();
   const { mutate: globalMutate } = useSWRConfig();

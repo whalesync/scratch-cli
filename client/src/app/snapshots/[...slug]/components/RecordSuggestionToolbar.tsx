@@ -8,7 +8,7 @@ import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, TableSpec } from '@/type
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useMemo, useState } from 'react';
-import { useSnapshotContext } from './contexts/SnapshotContext';
+import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 
 type RecordSuggestionToolbarProps = {
   table: TableSpec;
@@ -25,7 +25,7 @@ interface SuggestionItem {
 
 export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JSX.Element | null => {
   const { table, record, columnId, ...boxProps } = props;
-  const { snapshot } = useSnapshotContext();
+  const { snapshot } = useActiveSnapshot();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,

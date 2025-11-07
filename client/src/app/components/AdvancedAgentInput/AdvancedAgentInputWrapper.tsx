@@ -1,9 +1,9 @@
 'use client';
 
-import { useSnapshot } from '@/hooks/use-snapshot';
 import { Box, Group, Loader, Paper, Select, Stack, Text } from '@mantine/core';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useActiveSnapshot } from '../../../hooks/use-active-snapshot';
 import { AdvancedAgentInput } from './AdvancedAgentInput';
 
 export default function AdvancedAgentInputWrapper() {
@@ -11,7 +11,8 @@ export default function AdvancedAgentInputWrapper() {
   const snapshotId = params?.slug?.[0] as string;
   const defaultTableId = params?.slug?.[1] as string;
 
-  const { snapshot, isLoading, error } = useSnapshot(snapshotId);
+  const { snapshot, isLoading, error } = useActiveSnapshot();
+  // TODO: State move this into the SnapshotEditorUIStore.
   const [selectedTableId, setSelectedTableId] = useState<string>(defaultTableId || '');
   const [inputValue, setInputValue] = useState<string>('');
 

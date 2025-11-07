@@ -2,7 +2,7 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { TextMdHeavier } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSnapshots } from '@/hooks/use-snapshot';
+import { useSnapshots } from '@/hooks/use-snapshots';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';

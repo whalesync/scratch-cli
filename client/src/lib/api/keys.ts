@@ -43,7 +43,6 @@ export const SWR_KEYS = {
       key[1] === 'records' &&
       key[2] === snapshotId &&
       key[3] === tableId,
-    views: (snapshotId: string, tableId: string) => ['snapshot', 'views', snapshotId, tableId],
     publishSummary: (id: string) => ['snapshot', 'publish-summary', id],
   },
   view: {

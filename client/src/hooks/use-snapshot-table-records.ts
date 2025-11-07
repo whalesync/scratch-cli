@@ -3,6 +3,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
+
 import {
   AcceptAllSuggestionsResult,
   getTableSpecByWsId,
@@ -14,7 +15,7 @@ import {
 import { hashStringList } from '@/utils/helpers';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { BulkUpdateRecordsDto, ListRecordsResponse } from '../types/server-entities/records';
+import { useUpdateRecordsContext } from '../app/snapshots/[...slug]/components/contexts/update-records-context';
 import { useSnapshot } from './use-snapshot';
 
 export interface UseSnapshotRecordsReturn {
@@ -22,7 +23,6 @@ export interface UseSnapshotRecordsReturn {
   recordDataHash: number;
   isLoading: boolean;
   error: Error | undefined;
-  bulkUpdateRecords: (dto: BulkUpdateRecordsDto) => Promise<void>;
   refreshRecords: () => Promise<void>;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
@@ -35,7 +35,6 @@ export interface UseSnapshotRecordsReturn {
   acceptAllSuggestions: () => Promise<AcceptAllSuggestionsResult>;
   rejectAllSuggestions: () => Promise<RejectAllSuggestionsResult>;
   createNewRecord: () => Promise<void>;
-  updateRecordOptimistically: (recordId: string, field: string, value: string) => void;
 }
 
 export const useSnapshotTableRecords = (args: {
@@ -48,6 +47,7 @@ export const useSnapshotTableRecords = (args: {
   const { snapshotId, tableId, cursor, take = 1000, generateHash = false } = args;
   const { snapshot } = useSnapshot(snapshotId);
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
+  const { addPendingChange } = useUpdateRecordsContext();
 
   const { mutate } = useSWRConfig();
 
@@ -71,88 +71,6 @@ export const useSnapshotTableRecords = (args: {
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);
   }, [mutate, swrKey]);
-
-  const bulkUpdateRecords = useCallback(
-    async (dto: BulkUpdateRecordsDto) => {
-      // Optimistic update.
-      // We don't have to handle rollbacks, because the revalidate:true will pull the canonical state from the server.
-      const optimisticData = (data: ListRecordsResponse | undefined) => {
-        if (!data) {
-          return undefined;
-        }
-
-        let newRecords = [...data.records];
-
-        for (const op of dto.ops) {
-          const recordIndex = newRecords.findIndex((r) => r.id.wsId === op.wsId);
-
-          if (op.op === 'update') {
-            if (recordIndex === -1) {
-              continue;
-            }
-
-            // Clone the record to avoid mutating the original cache
-            const record = { ...newRecords[recordIndex] };
-
-            // Update the data fields
-            if (op.data) {
-              Object.assign(record.fields, op.data);
-            }
-
-            // Update the edited fields metadata
-            const newEditedFields = { ...(record.__edited_fields || {}) };
-            if (op.data) {
-              for (const key of Object.keys(op.data)) {
-                newEditedFields[key] = 'NOW';
-              }
-            }
-            record.__edited_fields = newEditedFields;
-            newRecords[recordIndex] = record;
-          } else if (op.op === 'delete') {
-            if (recordIndex === -1) {
-              continue;
-            }
-            const record = { ...newRecords[recordIndex] };
-            record.__edited_fields = { __deleted: 'NOW' };
-            newRecords[recordIndex] = record;
-          } else if (op.op === 'create') {
-            if (recordIndex !== -1) {
-              // Already exists, this is an error condition but we'll ignore it for optimistic updates.
-              continue;
-            }
-            const newRecord: SnapshotRecord = {
-              id: {
-                wsId: op.wsId,
-                remoteId: null,
-              },
-              fields: op.data ?? {},
-              __edited_fields: { __created: 'NOW' },
-              __dirty: true,
-            };
-            newRecords = [...newRecords, newRecord];
-          }
-        }
-
-        const newData: ListRecordsResponse = {
-          ...data,
-          records: newRecords,
-        };
-        return newData;
-      };
-
-      try {
-        await mutate(swrKey, optimisticData(data), { revalidate: false });
-        await snapshotApi.bulkUpdateRecords(snapshotId, tableId, dto);
-      } catch (e) {
-        // Re-throw the error so the calling component can handle it.
-        throw e;
-      } finally {
-        // Always revalidate to get the canonical state from the server.
-        await mutate(swrKey);
-      }
-    },
-    [snapshotId, tableId, mutate, swrKey, data],
-  );
 
   const acceptCellValues = useCallback(
     async (items: { wsId: string; columnId: string }[]) => {
@@ -249,57 +167,16 @@ export const useSnapshotTableRecords = (args: {
       }
     });
 
-    const dto: BulkUpdateRecordsDto = {
-      ops: [
-        {
-          op: 'create',
-          wsId: newRecordId,
-          data: newRecordData,
-        },
-      ],
-    };
-
-    await bulkUpdateRecords(dto);
-  }, [snapshot, tableId, bulkUpdateRecords]);
-
-  const updateRecordOptimistically = useCallback(
-    (recordId: string, field: string, value: string) => {
-      const optimisticData = (data: ListRecordsResponse | undefined) => {
-        if (!data) {
-          return undefined;
-        }
-
-        const newRecords = [...data.records];
-        const recordIndex = newRecords.findIndex((r) => r.id.wsId === recordId);
-
-        if (recordIndex === -1) {
-          return data;
-        }
-
-        // Clone the record to avoid mutating the original cache
-        const record = { ...newRecords[recordIndex] };
-
-        // Update the data field
-        record.fields = { ...record.fields, [field]: value };
-
-        // Update the edited fields metadata
-        const newEditedFields = { ...(record.__edited_fields || {}) };
-        newEditedFields[field] = new Date().toISOString();
-        record.__edited_fields = newEditedFields;
-
-        newRecords[recordIndex] = record;
-
-        return {
-          ...data,
-          records: newRecords,
-        };
-      };
-
-      // Update the cache optimistically without revalidation
-      mutate(swrKey, optimisticData(data), { revalidate: false });
-    },
-    [mutate, swrKey, data],
-  );
+    addPendingChange({
+      snapshotId: snapshot.id,
+      tableId: table.id.wsId,
+      operation: {
+        op: 'create',
+        wsId: newRecordId,
+        data: newRecordData,
+      },
+    });
+  }, [snapshot, tableId, addPendingChange]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {
@@ -314,7 +191,6 @@ export const useSnapshotTableRecords = (args: {
     recordDataHash,
     isLoading,
     error: displayError, // show a sanitized error message to the user to avoid exposing the exception details
-    bulkUpdateRecords,
     refreshRecords,
     acceptCellValues,
     rejectCellValues,
@@ -327,6 +203,5 @@ export const useSnapshotTableRecords = (args: {
     acceptAllSuggestions,
     rejectAllSuggestions,
     createNewRecord,
-    updateRecordOptimistically,
   };
 };

@@ -1,6 +1,5 @@
 'use client';
 
-import { SnapshotProvider, useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { SnapshotTableContext } from '@/types/server-entities/snapshot';
 import { ActionIcon, Box, Button, Group, Menu, Modal, ScrollArea, Tabs, Text, useModalsStack } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
@@ -27,8 +26,10 @@ import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import '@glideapps/glide-data-grid/dist/index.css';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
+import { useActiveSnapshot } from '../../../hooks/use-active-snapshot';
+import { useSnapshotEditorUIStore } from '../../../stores/snapshot-editor-store';
 import { AddTableModal } from './components/AddTableModal';
-import { TableProvider, useTableContext } from './components/contexts/table-context';
+import { UpdateRecordsProvider } from './components/contexts/update-records-context';
 import { ManageTablesModal } from './components/ManageTablesModal';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
@@ -38,19 +39,12 @@ import { useSnapshotParams } from './hooks/use-snapshot-params';
 
 function SnapshotPageContent() {
   const { tableId, updateSnapshotPath } = useSnapshotParams();
-  const {
-    activeTable,
-    setActiveTable,
-    // switchDisplayMode,
-    // displayMode,
-    // switchToSpreadsheetView,
-    // switchToRecordView,
-    // switchToNewSpreadsheetView,
-  } = useTableContext();
+  const { activeTable } = useActiveSnapshot();
+  const setActiveTableId = useSnapshotEditorUIStore((state) => state.setActiveTableId);
+
   const router = useRouter();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
-
-  const { snapshot, isLoading, refreshSnapshot } = useSnapshotContext();
+  const { snapshot, isLoading, refreshSnapshot } = useActiveSnapshot();
 
   const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [showAddTableModal, setShowAddTableModal] = useState(false);
@@ -65,11 +59,11 @@ function SnapshotPageContent() {
       if (tableId) {
         const table = snapshotTables.find((t) => t.tableSpec.id.wsId === tableId);
         if (table) {
-          setActiveTable(table);
+          setActiveTableId(table.id);
           setSelectedTableContext(table.tableContext ?? null);
         }
       } else if (snapshotTables.length > 0) {
-        setActiveTable(snapshotTables[0] ?? undefined);
+        setActiveTableId(snapshotTables[0]?.id ?? null);
         setSelectedTableContext(snapshotTables[0].tableContext ?? null);
       }
       return;
@@ -84,10 +78,10 @@ function SnapshotPageContent() {
         !_.isEqual(activeTable.columnSettings, updatedTable.columnSettings))
     ) {
       // update the active table and table context with the newer version
-      setActiveTable(updatedTable);
+      setActiveTableId(updatedTable.id);
       setSelectedTableContext(updatedTable.tableContext ?? null);
     }
-  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTable, setSelectedTableContext]);
+  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTableId, setSelectedTableContext]);
 
   // Temp place untill we have a better handling of hotkeys, commands,
   useEffect(() => {
@@ -180,7 +174,7 @@ function SnapshotPageContent() {
             if (value) {
               const table = snapshotTables.find((t) => t.id === value);
               if (table) {
-                setActiveTable(table);
+                setActiveTableId(table.id);
               }
             }
           }}
@@ -347,19 +341,25 @@ function SnapshotPageContent() {
 }
 
 export default function SnapshotPage() {
-  const { snapshotId: id } = useSnapshotParams();
+  const params = useSnapshotParams();
+
+  // Top level logic for managing the snapshot editor UI state.
+  const openSnapshot = useSnapshotEditorUIStore((state) => state.openSnapshot);
+  const closeSnapshot = useSnapshotEditorUIStore((state) => state.closeSnapshot);
+  useEffect(() => {
+    openSnapshot(params);
+    return () => closeSnapshot();
+  }, [params, openSnapshot, closeSnapshot]);
 
   return (
-    <AgentChatContextProvider snapshotId={id}>
-      <SnapshotProvider snapshotId={id}>
-        <SnapshotEventProvider snapshotId={id}>
-          <AIAgentSessionManagerProvider snapshotId={id}>
-            <TableProvider>
-              <SnapshotPageContent />
-            </TableProvider>
-          </AIAgentSessionManagerProvider>
-        </SnapshotEventProvider>
-      </SnapshotProvider>
+    <AgentChatContextProvider snapshotId={params.snapshotId}>
+      <SnapshotEventProvider snapshotId={params.snapshotId}>
+        <AIAgentSessionManagerProvider snapshotId={params.snapshotId}>
+          <UpdateRecordsProvider>
+            <SnapshotPageContent />
+          </UpdateRecordsProvider>
+        </AIAgentSessionManagerProvider>
+      </SnapshotEventProvider>
     </AgentChatContextProvider>
   );
 }

@@ -23,7 +23,7 @@ interface DisplayFieldProps {
   columnId: string;
   mode: 'multiple' | 'single';
   align?: React.CSSProperties['alignItems'];
-  updateField: (columnId: string, value: string) => void;
+  updateField: (columnId: string, value: string | number | boolean) => void;
   onFieldLabelClick: () => void;
   onAcceptSuggestion: () => void;
   onRejectSuggestion: () => void;
@@ -76,7 +76,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
       <NumberInput
         key={columnId}
         value={currentValue}
-        onChange={(value) => updateField(columnId, value.toString())}
+        onChange={(value) => updateField(columnId, typeof value === 'number' ? value : value.toString())}
         readOnly={column.readonly || hasSuggestion}
         hideControls
         styles={{
@@ -182,7 +182,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         key={columnId}
         label={mode === 'single' ? column.name : undefined}
         checked={currentValue}
-        onChange={(e) => updateField(columnId, e.target.checked.toString())}
+        onChange={(e) => updateField(columnId, e.target.checked)}
         readOnly={column.readonly || hasSuggestion || mode === 'multiple'}
         p={basicFieldPadding}
       />

@@ -209,7 +209,7 @@ export default function UploadsPage() {
     return (
       <PageLayout>
         <MainContent>
-          <MainContent.BasicHeader title="Uploads 1" />
+          <MainContent.BasicHeader title="Uploads" />
           <MainContent.Body>
             <Center h="100%">
               <Loader />

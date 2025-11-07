@@ -6,54 +6,54 @@ import customBordersClasses from '../theme/custom-borders.module.css';
 export const ButtonPrimarySolid = Button.withProps({
   variant: 'filled',
   size: 'sm',
-  color: 'green.7', // fill
-  c: 'background', // text
-  styles: { root: { border: 'green.9', backgroundColor: 'green.7' } },
+  color: 'var(--mantine-color-green-6)', // fill
+  c: 'var(--mantine-color-green-0)', // text
+  styles: { root: { borderColor: 'var(--mantine-color-green-8)' } },
 });
 
 export const ButtonPrimaryLight = Button.withProps({
   variant: 'light',
   size: 'sm',
-  color: 'green.8', // fill
   c: 'green.8', // text
   classNames: { root: customBordersClasses.cornerBorders },
+  styles: { root: { backgroundColor: 'var(--mantine-color-green-2)' } },
 });
 
 export const ButtonSecondarySolid = Button.withProps({
   variant: 'filled',
   size: 'sm',
-  color: 'surface.9', // fill
+  color: 'gray.9', // fill
   c: 'background', // text
 });
 
 export const ButtonSecondaryOutline = Button.withProps({
   variant: 'outline',
   size: 'sm',
-  color: 'surface.9',
-  c: 'surface.9', // text
+  color: 'gray.9',
+  c: 'gray.9', // text
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
 export const ButtonSecondaryGhost = Button.withProps({
   variant: 'subtle',
   size: 'sm',
-  color: 'surface.9',
-  c: 'surface.9',
+  color: 'gray.9',
+  c: 'gray.9',
 });
 
 export const ButtonSecondaryInline = Button.withProps({
   w: 'min-content',
   size: 'compact-sm',
   variant: 'subtle',
-  color: 'surface.9',
-  c: 'surface.9',
+  color: 'gray.9',
+  c: 'gray.9',
 });
 
 export const ButtonDangerLight = Button.withProps({
   variant: 'light',
   size: 'sm',
-  color: 'red.9',
-  c: 'red.9',
+  color: 'red.6',
+  c: 'red.8',
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
@@ -77,8 +77,8 @@ export const AcceptSuggestionButton = Button.withProps({
 export const RejectSuggestionButton = Button.withProps({
   size: 'xs',
   variant: 'outline',
-  color: 'surface',
-  c: 'surface',
+  color: 'gray',
+  c: 'gray',
 });
 
 /** @deprecated */

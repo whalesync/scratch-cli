@@ -41,9 +41,9 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
 import { TextTitle3, TextXsRegular } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
-import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
 import CapabilitiesButton from './CapabilitiesButton';
 import CapabilitiesModal from './CapabilitiesModal';
@@ -106,7 +106,7 @@ const availableCapabilities = [
 ];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { snapshot, publish } = useSnapshotContext();
+  const { snapshot, publish } = useActiveSnapshot();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { activeOpenRouterCredentials } = useAgentCredentials();
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { useSnapshots } from '@/hooks/use-snapshot';
+import { useSnapshots } from '@/hooks/use-snapshots';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { tableName, tablesName } from '@/service-naming-conventions';
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';

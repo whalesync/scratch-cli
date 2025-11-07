@@ -1,12 +1,13 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { GridApi } from 'ag-grid-community';
 import { Columns3, FileText, Filter, FilterX, List, ListChecks, Rows3, Square, Trash2, Undo2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-store';
+import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
 
 interface TableContextMenuProps {
   isOpen: boolean;
@@ -31,10 +32,11 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
+  const { addPendingChange } = useUpdateRecordsContext();
 
-  const { snapshot } = useSnapshotContext();
-  const { acceptCellValues, rejectCellValues, refreshRecords, bulkUpdateRecords } = useSnapshotTableRecords({
-    snapshotId: snapshot?.id ?? '',
+  const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
+  const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
+    snapshotId: snapshotId ?? '',
     tableId: tableId,
   });
 
@@ -316,7 +318,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" NOT IN (${recordIdsList})`;
 
-      await snapshotApi.setActiveRecordsFilter(snapshot?.id || '', tableId, sqlWhereClause);
+      await snapshotApi.setActiveRecordsFilter(snapshotId || '', tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -445,7 +447,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" IN (${recordIdsList})`;
 
-      await snapshotApi.setActiveRecordsFilter(snapshot?.id || '', tableId, sqlWhereClause);
+      await snapshotApi.setActiveRecordsFilter(snapshotId || '', tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -478,13 +480,19 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       setIsProcessing(true);
       onClose(); // Close menu immediately
 
-      const ops = selectedRows.map((record) => ({
-        op: 'delete' as const,
-        wsId: record.id.wsId,
-      }));
-
-      await bulkUpdateRecords({ ops });
-
+      // Add in a batch to speed up the invalidation of the cache.
+      addPendingChange(
+        ...selectedRows.map(
+          (record): PendingRecordUpdate => ({
+            snapshotId: snapshotId ?? '',
+            tableId: tableId,
+            operation: {
+              op: 'delete',
+              wsId: record.id.wsId,
+            },
+          }),
+        ),
+      );
       ScratchpadNotifications.success({
         title: 'Records Deleted',
         message: `Deleted ${selectedRows.length} ${selectedRows.length === 1 ? 'record' : 'records'}`,
@@ -509,12 +517,19 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       setIsProcessing(true);
       onClose(); // Close menu immediately
 
-      const ops = selectedRows.map((record) => ({
-        op: 'undelete' as const,
-        wsId: record.id.wsId,
-      }));
-
-      await bulkUpdateRecords({ ops });
+      // Add in a batch to speed up the invalidation of the cache.
+      addPendingChange(
+        ...selectedRows.map(
+          (record): PendingRecordUpdate => ({
+            snapshotId: snapshotId ?? '',
+            tableId: tableId,
+            operation: {
+              op: 'undelete',
+              wsId: record.id.wsId,
+            },
+          }),
+        ),
+      );
 
       ScratchpadNotifications.success({
         title: 'Records Restored',

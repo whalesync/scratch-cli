@@ -24,8 +24,9 @@ import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
+import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-store';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
-import { useTableContext } from '../contexts/table-context';
+import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
@@ -45,14 +46,15 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
-  const { records, error, isLoading, acceptCellValues, rejectCellValues, updateRecordOptimistically, recordDataHash } =
-    useSnapshotTableRecords({
-      snapshotId: snapshot.id,
-      tableId: table.id.wsId,
-      generateHash: true,
-    });
+  const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash } = useSnapshotTableRecords({
+    snapshotId: snapshot.id,
+    tableId: table.id.wsId,
+    generateHash: true,
+  });
+  const activeCells = useSnapshotEditorUIStore((state) => state.activeCells);
+  const setActiveCells = useSnapshotEditorUIStore((state) => state.setActiveCells);
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
-  const { activeRecord, setActiveRecord, savePendingUpdates } = useTableContext();
+  const { savePendingChanges } = useUpdateRecordsContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
 
@@ -78,14 +80,14 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         gridApi.deselectAll();
 
         const focusedCell = gridApi.getFocusedCell();
-        if (activeRecord?.recordId && !records.some((record) => record.id.wsId === activeRecord.recordId)) {
+        if (activeCells?.recordId && !records.some((record) => record.id.wsId === activeCells.recordId)) {
           // active record is not in the new record set, close the overlay and clear focus
-          setActiveRecord(null);
+          setActiveCells(null);
           gridApi.clearFocusedCell();
-        } else if (activeRecord?.recordId) {
+        } else if (activeCells?.recordId) {
           // active record is still in the new records, update the grid selection to the new location of the active record
           gridApi.forEachNode((node) => {
-            if (node.data?.id.wsId === activeRecord.recordId) {
+            if (node.data?.id.wsId === activeCells.recordId) {
               // select the row
               node.setSelected(true);
               return;
@@ -109,7 +111,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         lastRecordDataHash.current = recordDataHash;
       }
     }
-  }, [records, gridApi, activeRecord, setActiveRecord, recordDataHash]);
+  }, [records, gridApi, activeCells, setActiveCells, recordDataHash]);
 
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
@@ -180,10 +182,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   const handleColumnResized = useCallback(() => {
     onColumnStateChanged();
     // Recalculate overlay width if the overlay is visible
-    if (activeRecord?.recordId) {
+    if (activeCells?.recordId) {
       recalculateOverlayWidth();
     }
-  }, [onColumnStateChanged, activeRecord?.recordId, recalculateOverlayWidth]);
+  }, [onColumnStateChanged, activeCells?.recordId, recalculateOverlayWidth]);
 
   // Handle grid ready to store API reference and apply column state immediately
   const onGridReady = useCallback(
@@ -208,7 +210,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: true,
     gridApi,
-    recordDetailsVisible: !!activeRecord?.recordId,
+    recordDetailsVisible: !!activeCells?.recordId,
   });
 
   // Context menu handlers
@@ -220,34 +222,31 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     setJsonModalRecord(record);
   }, []);
 
-  const handleRecordUpdate = useCallback(
-    (recordId: string, field: string, value: string) => {
-      updateRecordOptimistically(recordId, field, value);
-    },
-    [updateRecordOptimistically],
-  );
+  const handleRecordUpdate = useCallback(() => {
+    // TODO: Remove.
+  }, []);
 
   // Handlers for record details mode
   const handleCloseRecordDetails = useCallback(async () => {
     // Save any pending changes before closing
-    if (savePendingUpdates) {
-      await savePendingUpdates();
+    if (savePendingChanges) {
+      await savePendingChanges();
     }
 
     // Reset data scope back to table
-    setActiveRecord(null);
+    setActiveCells(null);
     setTableScope();
     // Clear grid selection
     if (gridApi) {
       gridApi.deselectAll();
     }
-  }, [gridApi, setActiveRecord, setTableScope, savePendingUpdates]);
+  }, [gridApi, setActiveCells, setTableScope, savePendingChanges]);
 
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Handle Esc key to close record view
-      if (event.key === 'Escape' && activeRecord?.recordId) {
+      if (event.key === 'Escape' && activeCells?.recordId) {
         // event.preventDefault();
         handleCloseRecordDetails();
         return;
@@ -261,7 +260,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       }
 
       // Handle Enter key to open record view with current focused cell
-      if (event.key === 'Enter' && !activeRecord?.recordId && gridApi) {
+      if (event.key === 'Enter' && !activeCells?.recordId && gridApi) {
         event.preventDefault();
         const focusedCell = gridApi.getFocusedCell();
         if (focusedCell) {
@@ -280,7 +279,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
             recalculateOverlayWidth();
 
-            setActiveRecord({ recordId: record.id.wsId, columnId: column?.id.wsId });
+            setActiveCells({ recordId: record.id.wsId, columnId: column?.id.wsId });
             // setSelectedRecordId(record.id.wsId);
             // setSelectedColumnId(column?.id.wsId);
             // showRecordDetails();
@@ -406,11 +405,11 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       }
     },
     [
-      activeRecord?.recordId,
+      activeCells?.recordId,
       gridApi,
       handleCloseRecordDetails,
       table.columns,
-      setActiveRecord,
+      setActiveCells,
       clipboard,
       recalculateOverlayWidth,
     ],
@@ -427,10 +426,10 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         const column = table.columns.find((col) => col.id.wsId === columnId);
 
         recalculateOverlayWidth();
-        setActiveRecord({ recordId: record.id.wsId, columnId: column?.id.wsId });
+        setActiveCells({ recordId: record.id.wsId, columnId: column?.id.wsId });
       }
     },
-    [table.columns, setActiveRecord, recalculateOverlayWidth],
+    [table.columns, setActiveCells, recalculateOverlayWidth],
   );
 
   const handleMoveCellFocus = useCallback(
@@ -453,27 +452,27 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   );
 
   // Get selected record from state
-  const selectedRecord = activeRecord?.recordId
-    ? records?.find((record) => record.id.wsId === activeRecord.recordId)
+  const selectedRecord = activeCells?.recordId
+    ? records?.find((record) => record.id.wsId === activeCells.recordId)
     : null;
 
   // Set record scope when a record is selected in details mode
   useEffect(() => {
-    if (activeRecord?.recordId) {
-      if (activeRecord.columnId) {
-        setColumnScope(activeRecord.recordId, activeRecord.columnId);
+    if (activeCells?.recordId) {
+      if (activeCells.columnId) {
+        setColumnScope(activeCells.recordId, activeCells.columnId);
       } else {
-        setRecordScope(activeRecord.recordId);
+        setRecordScope(activeCells.recordId);
       }
     }
-  }, [activeRecord?.recordId, activeRecord?.columnId, setRecordScope, setColumnScope]);
+  }, [activeCells?.recordId, activeCells?.columnId, setRecordScope, setColumnScope]);
 
   // Handlers for record details mode
   const handleFieldFocus = useCallback(
     (columnId: string | undefined) => {
-      setActiveRecord({ recordId: activeRecord?.recordId, columnId: columnId });
+      setActiveCells({ recordId: activeCells?.recordId, columnId: columnId });
     },
-    [setActiveRecord, activeRecord?.recordId],
+    [setActiveCells, activeCells?.recordId],
   );
 
   // Add keyboard event listener for copy functionality
@@ -509,9 +508,9 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     return (
       records &&
       records.some((record) => record.__suggested_values && Object.keys(record.__suggested_values).length > 0) &&
-      !activeRecord?.recordId
+      !activeCells?.recordId
     );
-  }, [records, activeRecord?.recordId]);
+  }, [records, activeCells?.recordId]);
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
@@ -560,7 +559,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       valueGetter,
       cellRenderer,
       cellStyle,
-      cellClass: getCellClassFn({ gridApi, activeRecord, columnId: column.id.wsId }),
+      cellClass: getCellClassFn({ gridApi, activeCells, columnId: column.id.wsId }),
       // Pin the title column to the left (like the ID column)
       pinned: index === 0 ? 'left' : undefined,
       // Lock position and suppress movable for title column
@@ -632,7 +631,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             suppressKeyboardEvent: (params) => {
               // When record view is open, suppress arrow keys so record view can handle them
               if (
-                activeRecord?.recordId &&
+                activeCells?.recordId &&
                 (params.event.key === 'ArrowLeft' ||
                   params.event.key === 'ArrowRight' ||
                   params.event.key === 'ArrowUp' ||
@@ -662,14 +661,14 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           onColumnVisible={onColumnStateChanged}
           onCellDoubleClicked={handleCellDoubleClicked}
           onSelectionChanged={(event) => {
-            if (activeRecord?.recordId) {
+            if (activeCells?.recordId) {
               // In record details mode, update the selected record state
               const selectedRows = event.api.getSelectedRows();
               if (selectedRows.length === 1) {
                 const newSelectedId = selectedRows[0].id.wsId;
-                setActiveRecord({ recordId: newSelectedId, columnId: activeRecord?.columnId });
+                setActiveCells({ recordId: newSelectedId, columnId: activeCells?.columnId });
               } else {
-                setActiveRecord(null);
+                setActiveCells(null);
               }
             }
             // Note: Normal mode callback handling was removed as per user's changes
@@ -708,7 +707,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
               if (gridApi && event.rowIndex !== null && event.rowIndex !== undefined) {
                 const currentRowNode = gridApi.getDisplayedRowAtIndex(event.rowIndex);
 
-                if (currentRowNode && lastKeyPressed.shiftKey && !activeRecord?.recordId) {
+                if (currentRowNode && lastKeyPressed.shiftKey && !activeCells?.recordId) {
                   // Shift+Arrow key logic (only in normal mode)
                   if (!currentRowNode.isSelected()) {
                     currentRowNode.setSelected(true);
@@ -754,12 +753,12 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       )}
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
-      {activeRecord?.recordId && selectedRecord && (
+      {activeCells?.recordId && selectedRecord && (
         <RecordDetailsOverlay
           width={overlayWidth}
           snapshotId={snapshot.id}
           selectedRecord={selectedRecord}
-          activeRecord={activeRecord}
+          activeCells={activeCells}
           table={table}
           handleFieldFocus={handleFieldFocus}
           handleCloseRecordDetails={handleCloseRecordDetails}

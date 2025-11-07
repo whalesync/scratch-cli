@@ -1,20 +1,18 @@
-import { SnapshotRecord} from '@/types/server-entities/snapshot';
-import { CellClassFunc, GridApi} from 'ag-grid-community';
-import { ActiveRecord } from '../contexts/table-context';
-
+import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { CellClassFunc, GridApi } from 'ag-grid-community';
+import { ActiveCells } from '../../../../../stores/snapshot-editor-store';
 
 export const getCellClassFn = (params: {
-  gridApi: GridApi<SnapshotRecord> | null | undefined, 
-  activeRecord: ActiveRecord | null | undefined, 
-  columnId: string
+  gridApi: GridApi<SnapshotRecord> | null | undefined;
+  activeCells: ActiveCells | null | undefined;
+  columnId: string;
 }) => {
-  const {gridApi, activeRecord, columnId} = params;
+  const { gridApi, activeCells, columnId } = params;
   const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
     const classes: string[] = [];
 
     const focusedCell = gridApi?.getFocusedCell();
-    const isInFocusedColumn =
-      focusedCell && !activeRecord?.recordId && focusedCell.column.getColId() === columnId;
+    const isInFocusedColumn = focusedCell && !activeCells?.recordId && focusedCell.column.getColId() === columnId;
 
     if (isInFocusedColumn) {
       classes.push('ag-cell-focus-column');
@@ -28,6 +26,5 @@ export const getCellClassFn = (params: {
     return classes;
   };
 
-  return cellClass
-}
-
+  return cellClass;
+};

@@ -3,7 +3,7 @@
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Paper, ScrollArea } from '@mantine/core';
 import { FC, useEffect } from 'react';
-import { ActiveRecord } from '../contexts/table-context';
+import { ActiveCells } from '../../../../../stores/snapshot-editor-store';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
@@ -12,13 +12,13 @@ type Props = {
   width: string;
   snapshotId: string;
   selectedRecord: SnapshotRecord;
-  activeRecord: ActiveRecord;
+  activeCells: ActiveCells;
   table: TableSpec;
   handleFieldFocus: (columnId: string | undefined) => void;
   handleCloseRecordDetails: () => void;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
-  handleRecordUpdate: (recordId: string, field: string, value: string) => void;
+  handleRecordUpdate: (recordId: string, field: string, value: string | number | boolean) => void;
   handleRowNavigation: (direction: 'up' | 'down', source: KeyboardEvent | null) => void;
 };
 
@@ -26,7 +26,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
   const {
     width,
     selectedRecord,
-    activeRecord,
+    activeCells,
     table,
     handleFieldFocus,
     handleCloseRecordDetails,
@@ -39,7 +39,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
   const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
   const hasSuggestions =
     columnsWithSuggestions.length > 0 &&
-    (!activeRecord.columnId || columnsWithSuggestions.includes(activeRecord.columnId));
+    (!activeCells.columnId || columnsWithSuggestions.includes(activeCells.columnId));
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -86,7 +86,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
           <RecordDetailsHeader
             h={HEADER_HEIGHT}
             table={table}
-            columnId={activeRecord.columnId}
+            columnId={activeCells.columnId}
             onSwitchColumn={handleFieldFocus}
             v2
             onClose={handleCloseRecordDetails}
@@ -97,7 +97,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
                 snapshotId={snapshotId}
                 currentRecord={selectedRecord}
                 table={table}
-                currentColumnId={activeRecord.columnId}
+                currentColumnId={activeCells.columnId}
                 acceptCellValues={acceptCellValues}
                 rejectCellValues={rejectCellValues}
                 onFocusOnField={handleFieldFocus}
@@ -111,7 +111,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
         <RecordSuggestionToolbar
           record={selectedRecord}
           table={table}
-          columnId={activeRecord.columnId}
+          columnId={activeCells.columnId}
           style={{
             position: 'absolute',
             bottom: 0,

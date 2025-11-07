@@ -7,7 +7,7 @@ import { TableSpec } from '@/types/server-entities/snapshot';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
-import { useSnapshotContext } from './contexts/SnapshotContext';
+import { useSnapshotEditorUIStore } from '../../../../stores/snapshot-editor-store';
 
 type GridSuggestionToolbarProps = {
   table: TableSpec;
@@ -15,10 +15,10 @@ type GridSuggestionToolbarProps = {
 
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
   const { table, ...boxProps } = props;
-  const { snapshot } = useSnapshotContext();
+  const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
   const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
     useSnapshotTableRecords({
-      snapshotId: snapshot?.id ?? '',
+      snapshotId: snapshotId ?? '',
       tableId: table.id.wsId,
     });
   const [saving, setSaving] = useState(false);

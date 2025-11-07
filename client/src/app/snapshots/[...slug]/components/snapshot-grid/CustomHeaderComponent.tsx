@@ -1,6 +1,5 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
@@ -9,10 +8,7 @@ import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
 import { AlertCircle, EyeOff, List, ListChecks, Lock, MoreVertical, Star, TrashIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-
-// interface CustomHeaderComponentProps extends IHeaderParams {
-//   Add any custom props here
-// }
+import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: string;
@@ -30,7 +26,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, updateColumnSettings } = useSnapshotContext();
+  const { snapshot, updateColumnSettings } = useActiveSnapshot();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: props.tableId ?? '',

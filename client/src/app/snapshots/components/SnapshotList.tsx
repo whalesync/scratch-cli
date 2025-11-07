@@ -1,7 +1,7 @@
 'use client';
 
 import MainContent from '@/app/components/layouts/MainContent';
-import { useSnapshots } from '@/hooks/use-snapshot';
+import { useSnapshots } from '@/hooks/use-snapshots';
 import { ScratchpadApiError } from '@/lib/api/error';
 import { Center, Divider, Loader, Table } from '@mantine/core';
 import { SWRConfig } from 'swr';

@@ -3,7 +3,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { useCallback, useMemo, useState } from 'react';
-import { useTableContext } from '../contexts/table-context';
+import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';
 
@@ -15,10 +15,11 @@ interface RecordDetailsProps {
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   onFocusOnField?: (columnId: string | undefined) => void;
-  onRecordUpdate?: (recordId: string, field: string, value: string) => void;
+  onRecordUpdate?: (recordId: string, field: string, value: string | number | boolean) => void;
 }
 
 export const RecordDetails = ({
+  snapshotId,
   currentRecord,
   table,
   currentColumnId,
@@ -27,7 +28,7 @@ export const RecordDetails = ({
   onFocusOnField,
   onRecordUpdate,
 }: RecordDetailsProps) => {
-  const { addPendingChange, savingPendingChanges } = useTableContext();
+  const { addPendingChange, savingPendingChanges } = useUpdateRecordsContext();
   const [savingSuggestions, setSavingSuggestions] = useState(false);
 
   const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
@@ -36,17 +37,25 @@ export const RecordDetails = ({
   }, [table]);
 
   const updateField = useCallback(
-    async (field: string, value: string) => {
+    async (field: string, value: string | number | boolean) => {
       if (!currentRecord) return;
 
-      // Notify parent to update the cache optimistically
+      // Notify parent in case it has processing to do.
       if (onRecordUpdate) {
         onRecordUpdate(currentRecord.id.wsId, field, value);
       }
-
-      addPendingChange({ recordWsId: currentRecord.id.wsId, field, value });
+      // Add the change to the context to be flushed later, also updates the cache optimistically.
+      addPendingChange({
+        snapshotId,
+        tableId: table.id.wsId,
+        operation: {
+          op: 'update',
+          wsId: currentRecord.id.wsId,
+          data: { [field]: value },
+        },
+      });
     },
-    [currentRecord, addPendingChange, onRecordUpdate],
+    [currentRecord, onRecordUpdate, addPendingChange, snapshotId, table.id.wsId],
   );
   const handleFocusOnField = useCallback(
     (columnId: string | undefined) => {
