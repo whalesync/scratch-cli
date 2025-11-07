@@ -26,7 +26,8 @@ echo >> "$secrets_file"
 echo "$name" >> "$secrets_file"
 
 # sort the secrets file
-sort "$secrets_file" -o "$secrets_file"
+sort "$secrets_file" | uniq > "${secrets_file}.new"
+mv "${secrets_file}.new" "$secrets_file"
 
 # delete any blank lines
 awk 'NF' "$secrets_file" > "${secrets_file}.tmp" && mv "${secrets_file}.tmp" "$secrets_file"
