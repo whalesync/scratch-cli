@@ -183,6 +183,9 @@ model SnapshotTable {
   // Whether this table is hidden from the UI
   hidden Boolean @default(false)
 
+  // Whether records are currently being synced/downloaded for this table
+  syncInProgress Boolean @default(false)
+
   @@index([snapshotId])
   @@index([connectorAccountId])
 }

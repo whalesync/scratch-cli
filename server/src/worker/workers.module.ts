@@ -3,6 +3,7 @@ import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { SnapshotDbModule } from 'src/snapshot/snapshot-db.module';
+import { SnapshotModule } from 'src/snapshot/snapshot.module';
 import { JobModule } from '../job/job.module';
 import { WorkerEnqueuerModule } from '../worker-enqueuer/worker-enqueuer.module';
 import { QueueService } from './bull-worker.service';
@@ -17,6 +18,7 @@ import { WorkersController } from './test/workers.controller';
     WorkerEnqueuerModule,
     ConnectorsModule,
     SnapshotDbModule,
+    SnapshotModule,
     JobModule,
     ConnectorAccountModule,
   ],

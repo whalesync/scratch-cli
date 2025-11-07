@@ -298,7 +298,7 @@ function SnapshotPageContent() {
   let content = null;
   let contentFooter = null;
   if (snapshot && activeTable) {
-    content = <SnapshotGrid snapshot={snapshot} table={activeTable.tableSpec} />;
+    content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
     contentFooter = <RecordDataToolbar table={activeTable.tableSpec} />;
   }
 

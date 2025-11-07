@@ -35,6 +35,6 @@ import { SnapshotService } from './snapshot.service';
   ],
   controllers: [SnapshotController, AiSnapshotController, SnapshotPublicController],
   providers: [SnapshotService, SnapshotEventService, SnapshotDataGateway],
-  exports: [SnapshotService],
+  exports: [SnapshotService, SnapshotEventService],
 })
 export class SnapshotModule {}

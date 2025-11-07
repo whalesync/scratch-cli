@@ -102,35 +102,6 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  // private getJobTypeFromData(data: JobData): JobType {
-  //   switch (data.type) {
-  //     case 'download-records':
-  //       return JobType.DOWNLOAD_RECORDS;
-  //     case 'add-two-numbers':
-  //       return JobType.ADD_TWO_NUMBERS;
-  //     case 'add-three-numbers':
-  //       return JobType.ADD_THREE_NUMBERS;
-  //     default:
-  //       throw new Error(`Unknown job type: ${data.type}`);
-  //   }
-  // }
-
-  // private getJobStatusFromBullState(state: string): JobStatus {
-  //   switch (state) {
-  //     case 'waiting':
-  //     case 'delayed':
-  //       return JobStatus.PENDING;
-  //     case 'active':
-  //       return JobStatus.ACTIVE;
-  //     case 'completed':
-  //       return JobStatus.COMPLETED;
-  //     case 'failed':
-  //       return JobStatus.FAILED;
-  //     default:
-  //       return JobStatus.PENDING;
-  //   }
-  // }
-
   async processJob(job: Job) {
     const jobData = job.data as JobData;
     const handler = this.jobHandlerService.getHandler(jobData);

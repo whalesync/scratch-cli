@@ -1,8 +1,8 @@
-import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
+import { Snapshot, SnapshotTable } from '@/types/server-entities/snapshot';
 
 export interface SnapshotTableGridProps {
   snapshot: Snapshot;
-  table: TableSpec;
+  table: SnapshotTable;
   limited?: boolean;
   // onSingleRowSelected?: (recordId: string | null) => void;
   // onCellDoubleClickTransition?: (recordId: string, columnId: string) => void;

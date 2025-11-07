@@ -1010,6 +1010,17 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<DownloadSnapshotWithouotJobResult> {
     const tables = snapshot.snapshotTables ?? [];
+
+    // Set syncInProgress=true for all tables
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        id: { in: tables.map((t) => t.id) },
+      },
+      data: {
+        syncInProgress: true,
+      },
+    });
+
     let totalCount = 0;
     const tableResults: { id: string; name: string; records: number }[] = [];
     for (const table of tables) {
@@ -1043,7 +1054,28 @@ export class SnapshotService {
             connectorProgress: {},
           },
         );
+
+        // Set syncInProgress=false for this table on success
+        await this.db.client.snapshotTable.update({
+          where: { id: table.id },
+          data: { syncInProgress: false },
+        });
+
+        // Send snapshot-updated event to client
+        this.snapshotEventService.sendSnapshotEvent(snapshot.id, {
+          type: 'snapshot-updated',
+          data: {
+            tableId: tableSpec.id.wsId,
+            source: 'agent',
+          },
+        });
       } catch (error) {
+        // Set syncInProgress=false for this table on failure
+        await this.db.client.snapshotTable.update({
+          where: { id: table.id },
+          data: { syncInProgress: false },
+        });
+
         throw exceptionForConnectorError(error, connector);
       }
     }

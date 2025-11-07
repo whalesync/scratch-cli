@@ -84,6 +84,7 @@ export interface SnapshotTable {
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
   hidden: boolean;
+  syncInProgress: boolean;
 }
 
 export interface Snapshot {

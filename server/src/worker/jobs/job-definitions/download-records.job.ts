@@ -10,6 +10,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { WSLogger } from '../../../logger';
+import { SnapshotEventService } from '../../../snapshot/snapshot-event.service';
 import { SnapshotColumnSettingsMap } from '../../../snapshot/types';
 
 export type DownloadRecordsPublicProgress = {
@@ -40,6 +41,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDb: SnapshotDb,
     private readonly connectorAccountService: ConnectorAccountService,
+    private readonly snapshotEventService: SnapshotEventService,
   ) {}
 
   async run(params: {
@@ -80,6 +82,23 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         throw new Error(`No SnapshotTables found with the provided IDs in snapshot ${data.snapshotId}`);
       }
     }
+
+    // Set syncInProgress=true for all tables being processed
+    await this.prisma.snapshotTable.updateMany({
+      where: {
+        id: { in: snapshotTablesToProcess.map((st) => st.id) },
+      },
+      data: {
+        syncInProgress: true,
+      },
+    });
+
+    WSLogger.debug({
+      source: 'DownloadRecordsJob',
+      message: 'Set syncInProgress=true for tables',
+      snapshotId: snapshot.id,
+      tableCount: snapshotTablesToProcess.length,
+    });
 
     type TableToProcess = {
       id: string;
@@ -143,6 +162,18 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         currentTable.records += records.length;
         totalRecords += records.length;
 
+        // TODO(ivan): Centralize this outside of the job.
+        // Probably in the processor there the callback is being handeled.
+        // That way we don't have to inject the event service in the job handler
+        // and handling will be more uniform across all jobs.
+        this.snapshotEventService.sendSnapshotEvent(snapshot.id, {
+          type: 'snapshot-updated',
+          data: {
+            tableId: tableSpec.id.wsId,
+            source: 'user',
+          },
+        });
+
         await checkpoint({
           publicProgress: {
             totalRecords,
@@ -164,9 +195,30 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         );
         // Mark table as completed
         currentTable.status = 'completed';
+
+        // Set syncInProgress=false for this table on success
+        await this.prisma.snapshotTable.update({
+          where: { id: snapshotTable.id },
+          data: { syncInProgress: false },
+        });
+
+        WSLogger.debug({
+          source: 'DownloadRecordsJob',
+          message: 'Download completed for table',
+          tableId: tableSpec.id.wsId,
+          snapshotId: snapshot.id,
+          snapshotTableId: snapshotTable.id,
+        });
       } catch (error) {
         // Mark table as failed
         currentTable.status = 'failed';
+
+        // Set syncInProgress=false for this table on failure
+        await this.prisma.snapshotTable.update({
+          where: { id: snapshotTable.id },
+          data: { syncInProgress: false },
+        });
+
         WSLogger.error({
           source: 'DownloadRecordsJob',
           message: 'Failed to download records for table',

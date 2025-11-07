@@ -16,6 +16,7 @@ export class SnapshotTable {
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
   hidden: boolean;
+  syncInProgress: boolean;
 
   constructor(snapshotTable: SnapshotTableCluster.SnapshotTable) {
     this.id = snapshotTable.id;
@@ -31,5 +32,6 @@ export class SnapshotTable {
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
     this.pageSize = snapshotTable.pageSize ?? null;
     this.hidden = snapshotTable.hidden;
+    this.syncInProgress = snapshotTable.syncInProgress;
   }
 }

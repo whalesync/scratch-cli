@@ -48,7 +48,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
   const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash } = useSnapshotTableRecords({
     snapshotId: snapshot.id,
-    tableId: table.id.wsId,
+    tableId: table.tableSpec.id.wsId, // TODO: Check if table.id is the same
     generateHash: true,
   });
   const activeCells = useSnapshotEditorUIStore((state) => state.activeCells);
@@ -117,7 +117,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
     if (gridApi) {
       // Get the width of the first 2 columns (ID and Title)
       // Use the table spec to identify the title column (respects titleColumnRemoteId)
-      const titleColumnWsId = identifyRecordTitleColumn(table);
+      const titleColumnWsId = identifyRecordTitleColumn(table.tableSpec);
       const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === titleColumnWsId);
 
       let pinnedColumnsWidth = AG.dotColumn.width;
@@ -174,7 +174,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Storage key for this specific snapshot and table
   const { columnState, mounted, onColumnStateChanged, clearColumnState } = useStoreColumnState(
     snapshot.id,
-    table.id.wsId,
+    table.tableSpec.id.wsId,
     gridApi,
   );
 
@@ -205,7 +205,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
-  const { cellRenderer } = useCellRenderer(table, acceptCellValues, rejectCellValues);
+  const { cellRenderer } = useCellRenderer(table.tableSpec, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: true,
@@ -278,7 +278,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
           if (record && record.id?.wsId) {
             // Find the column definition to get the proper column ID
-            const column = table.columns.find((col) => col.id.wsId === columnId);
+            const column = table.tableSpec.columns.find((col) => col.id.wsId === columnId);
 
             console.debug('Enter key pressed - opening record view:', {
               recordId: record.id.wsId,
@@ -416,7 +416,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       activeCells?.recordId,
       gridApi,
       handleCloseRecordDetails,
-      table.columns,
+      table.tableSpec.columns,
       setActiveCells,
       clipboard,
       recalculateOverlayWidth,
@@ -431,13 +431,13 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
       if (record && record.id?.wsId) {
         // Find the column definition to get the proper column ID
-        const column = table.columns.find((col) => col.id.wsId === columnId);
+        const column = table.tableSpec.columns.find((col) => col.id.wsId === columnId);
 
         recalculateOverlayWidth();
         setActiveCells({ recordId: record.id.wsId, columnId: column?.id.wsId });
       }
     },
-    [table.columns, setActiveCells, recalculateOverlayWidth],
+    [table.tableSpec.columns, setActiveCells, recalculateOverlayWidth],
   );
 
   const handleMoveCellFocus = useCallback(
@@ -492,8 +492,8 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   }, [handleKeyDown]);
 
   // Find title column and other columns (moved up to be available in useEffect)
-  const headerColumnSpecs = getHeaderColumnSpec(table);
-  const otherColumnSpecs = getOtherColumnSpecs(table);
+  const headerColumnSpecs = getHeaderColumnSpec(table.tableSpec);
+  const otherColumnSpecs = getOtherColumnSpecs(table.tableSpec);
 
   // Always include all columns, but we'll control visibility via AG Grid API
   const columnsWithTitleFirst = headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
@@ -575,7 +575,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       // Use custom header component
       headerComponent: CustomHeaderComponent,
       headerComponentParams: {
-        tableId: table.id.wsId,
+        tableId: table.tableSpec.id.wsId,
         records: records,
         columnSpec: column,
         showDataTypeInHeader: showDataTypeInHeader,
@@ -754,7 +754,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
       {showSuggestionToolbar && (
         <GridSuggestionToolbar
-          table={table}
+          table={table.tableSpec}
           style={{
             position: 'absolute',
             bottom: 0,
@@ -772,7 +772,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           snapshotId={snapshot.id}
           selectedRecord={selectedRecord}
           activeCells={activeCells}
-          table={table}
+          table={table.tableSpec}
           handleFieldFocus={handleFieldFocus}
           handleCloseRecordDetails={handleCloseRecordDetails}
           acceptCellValues={acceptCellValues}
@@ -794,8 +794,8 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         position={contextMenu.position}
         onClose={handleCloseContextMenu}
         gridApi={gridApi}
-        tableColumns={table.columns}
-        tableId={table.id.wsId}
+        tableColumns={table.tableSpec.columns}
+        tableId={table.tableSpec.id.wsId} // TODO: check if table.id is the same
         onShowRecordJson={handleShowRecordJson}
       />
 
@@ -812,6 +812,32 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
       {/* Record JSON Modal */}
       <RecordJsonModal isOpen={!!jsonModalRecord} onClose={() => setJsonModalRecord(null)} record={jsonModalRecord} />
+
+      {/* 
+      Sync In Progress Overlay. Temp solution until we have design.
+      Table will be stil clickable but the overlay will indicate that sync is in progress.
+      */}
+      {table.syncInProgress && (
+        <Box
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'all',
+          }}
+        >
+          <Center>
+            <Loader size="xl" />
+          </Center>
+        </Box>
+      )}
     </Box>
   );
 };
