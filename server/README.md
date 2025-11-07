@@ -1,4 +1,4 @@
-# Scratchpad Server
+# Scratch Server
 
 The NestJS backend for the Scratch application.
 
@@ -10,7 +10,7 @@ The NestJS backend for the Scratch application.
 yarn run start:dev
 ```
 
-#### Builds a optimized version for production
+#### Builds an optimized version for production
 
 ```bash
 yarn run build
@@ -88,7 +88,7 @@ yarn run migrate
 
 The agent server uses OpenRouter to interact with the various LLMs. For running locally you will need an API key and a Provisioning key. The provisioning key is used to create new API keys for new users.
 
-1. Go to [Openrouter.ai](https://openrouter.ai/) and create an account for your Whalesync email account
+1. Go to [OpenRouter.ai](https://openrouter.ai/) and create an account for your Whalesync email account
 
 2. Setup a provisioning key
 
@@ -100,7 +100,7 @@ The agent server uses OpenRouter to interact with the various LLMs. For running 
 - Go to [API keys](https://openrouter.ai/settings/keys)
 - Create a new API key
 - This can be set into your `pydantic-ai-agent/.env` file
-- It can also be used by adding an Agent Credential on the Scratchpaper settings screen
+- It can also be used by adding an Agent Credential on the Scratch settings screen
 
 ### Start the Server
 
@@ -116,7 +116,7 @@ Once the account exists, go into your database and update the `role` of your new
 
 ## Production Hosting
 
-The Scratchpad API server is hosted on Render.
+The Scratch API server is hosted on Render.
 
 [Public URL - https://api.scratchpaper.ai/](https://api.scratchpaper.ai/)
 
@@ -132,20 +132,20 @@ Each Scratch server has access to a Provisioning Key which allows it to create A
 
 ### Managing OpenRouter
 
-There are two management accounts for [OpenRouter](https://openrouter.ai/), one for Production use and one for dev/test use. OpenRouter.ai doesn not support environments natively so we need to access them separately.
+There are two management accounts for [OpenRouter](https://openrouter.ai/), one for Production use and one for dev/test use. OpenRouter.ai does not support environments natively so we need to access them separately.
 
 #### Production
 
 1. Go to [OpenRouter](https://openrouter.ai/)
-1. Login with your Google SSO, i.e. chris@whalesync.com account
-1. Switch to the Whalesync organization to see api keys and usage
+1. Log in with your Google SSO, e.g. chris@whalesync.com account
+1. Switch to the Whalesync organization to see API keys and usage
 
 NOTE: This is the official Whalesync account and has payments linked to it.
 
 #### Test & Staging
 
 1. Go to [OpenRouter](https://openrouter.ai/)
-1. Login with your Google SSO, i.e. chris@whalesync.com account
+1. Log in with your Google SSO, e.g. chris@whalesync.com account
 1. Switch to the Whalesync-Test organization
    1. Ask Chris or Ryder for an invite if you don't see it
 
@@ -165,7 +165,7 @@ When creating new flags on Posthog **do not** set the `Persist flag across authe
 
 ## Stripe
 
-Scratch uses Stripe to handle payments and subscriptions via Stripes hosted customer portals and webhooks. The code for this integration and subscriptions is in the [PaymentModule](src/payment/)
+Scratch uses Stripe to handle payments and subscriptions via Stripe's hosted customer portals and webhooks. The code for this integration and subscriptions is in the [PaymentModule](src/payment/)
 
 - StripePaymentService - handles all the integration with Stripe and processes webhook payloads
 - StripeController - contains the Rest API and the webhook endpoint
@@ -207,4 +207,4 @@ Set the `STRIPE_WEBHOOK_SECRET` and `STRIPE_API_KEY` with the secret from step 2
 
 #### Restart your server
 
-At this point your local environment can interact with the sandbox account and recieve webhooks, you should be able to go through a full payment workflow.
+At this point your local environment can interact with the sandbox account and receive webhooks, you should be able to go through a full payment workflow.
