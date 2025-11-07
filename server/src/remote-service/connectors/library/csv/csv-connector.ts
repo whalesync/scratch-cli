@@ -227,6 +227,10 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Update records by remoteId
     for (const record of records) {
+      if (Object.keys(record.partialFields).length === 0) {
+        // Don't create empty update statements
+        continue;
+      }
       await this.uploadsDbService
         .knex(tableName)
         .withSchema(schemaName)

@@ -1144,19 +1144,15 @@ export class SnapshotService {
     table: SnapshotCluster.SnapshotTable,
     actor: Actor,
   ): Promise<Connector<Service, any>> {
-    if (!table.connectorAccount || !table.connectorAccountId) {
-      throw new Error('Snapshot table does not have a connector account');
-    }
     // need a full connector account object with decoded credentials
-    const connectorAccount = await this.connectorAccountService.findOne(table.connectorAccountId, actor);
-    if (!connectorAccount) {
-      throw new NotFoundException('Connector account not found');
-    }
+    const connectorAccountWithCreds = table.connectorAccountId
+      ? await this.connectorAccountService.findOne(table.connectorAccountId, actor)
+      : null;
 
     return this.connectorService.getConnector({
-      service: connectorAccount.service,
-      connectorAccount: connectorAccount,
-      decryptedCredentials: connectorAccount,
+      service: table.connectorService,
+      connectorAccount: connectorAccountWithCreds,
+      decryptedCredentials: connectorAccountWithCreds,
       userId: actor.userId,
     });
   }
@@ -1430,6 +1426,11 @@ export class SnapshotService {
       // Find the column spec for this field
       const column = tableSpec.columns.find((col) => col.id.wsId === fieldName);
       if (!column) {
+        continue;
+      }
+
+      // Skip scratch columns since they are not saved to the connector
+      if (column.metadata?.scratch) {
         continue;
       }
 
@@ -1895,6 +1896,7 @@ export class SnapshotService {
 
 function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: AnyTableSpec): SnapshotRecord {
   const editedFieldNames = tableSpec.columns
+    .filter((c) => !c.metadata?.scratch)
     .map((c) => c.id.wsId)
     .filter((colWsId) => !!record.__edited_fields[colWsId]);
   const editedFields = Object.fromEntries(

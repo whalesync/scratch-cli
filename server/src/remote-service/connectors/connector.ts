@@ -95,13 +95,14 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<void>;
 
   /**
-   * Sanitize the record for update. Usually involves removing fields that are not touched.
+   * Sanitize the record for update. Usually involves removing fields that are not touched or are scratch fields that the connector does not know about.
    * @param record - The record to sanitize.
    * @param tableSpec - The table spec to sanitize the record for.
    * @returns The sanitized record.
    */
   sanitizeRecordForUpdate(record: ExistingSnapshotRecord, tableSpec: TableSpecs[T]): SnapshotRecordSanitizedForUpdate {
     const editedFieldNames = (tableSpec as AnyTableSpec).columns
+      .filter((c) => !c.metadata?.scratch)
       .map((c) => c.id.wsId)
       .filter((colWsId) => !!record.__edited_fields[colWsId]);
     const editedFields = Object.fromEntries(
