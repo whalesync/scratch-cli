@@ -1,20 +1,3 @@
-import { EntityId } from 'src/remote-service/connectors/types';
-
-/**
- * Persitant configuration for a table within a snapshot that is shared between the UI and the AI agent.
- * Defines how the table can be used in the context and how it should be displayed.
- */
-export type SnapshotTableContext = {
-  // The id of the table in the snapshot.
-  id: EntityId;
-
-  // Columns that should not be considered in the context for the AI agent
-  ignoredColumns: string[];
-
-  // Columns that should be read only in the UI.
-  readOnlyColumns: string[];
-};
-
 /**
  * Persitant configuration for columns within a snapshot that is shared in the UI and the connectors.
  * Defines columns extra settings, e.g. Notion data converter HTML/Markdown, Custom converter..

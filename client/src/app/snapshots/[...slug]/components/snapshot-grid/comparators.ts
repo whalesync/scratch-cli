@@ -23,11 +23,12 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
     const suggestedValueA = nodeA.data?.__suggested_values?.[columnSpec.id.wsId] as string | undefined;
     const suggestedValueB = nodeB.data?.__suggested_values?.[columnSpec.id.wsId] as string | undefined;
 
-
     // Force conversion to string for all values, preserving null and undefined values
     // We can convert back to the original type for special comparisons after checking for undefined/null
-    const valueToCompareA = (suggestedValueA ? _.toString(suggestedValueA): suggestedValueA) || (valueA ? _.toString(valueA): valueA);
-    const valueToCompareB = (suggestedValueB ? _.toString(suggestedValueB): suggestedValueB) || (valueB ? _.toString(valueB): valueB);
+    const valueToCompareA =
+      (suggestedValueA ? _.toString(suggestedValueA) : suggestedValueA) || (valueA ? _.toString(valueA) : valueA);
+    const valueToCompareB =
+      (suggestedValueB ? _.toString(suggestedValueB) : suggestedValueB) || (valueB ? _.toString(valueB) : valueB);
 
     if (valueToCompareA === valueToCompareB) {
       // suggested values are lower priority than the base value, so use that to break ties
@@ -35,11 +36,11 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
         // comparing base values, no preference
         return 0;
       }
-      if (suggestedValueA === undefined) {
+      if (suggestedValueA === undefined || suggestedValueA === null) {
         // A has no suggested value, B has a suggested value, so A is higher priority
         return 1;
       }
-      if (suggestedValueB === undefined) {
+      if (suggestedValueB === undefined || suggestedValueB === null) {
         // B has no suggested value, A has a suggested value, so B is higher priority
         return -1;
       }
@@ -47,42 +48,42 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
       return 0;
     }
 
-    if (valueToCompareA === undefined) {
+    if (valueToCompareA === undefined || valueToCompareA === null) {
       return -1;
     }
-    if (valueToCompareB === undefined) {
+    if (valueToCompareB === undefined || valueToCompareB === null) {
       return 1;
     }
 
-    if(columnSpec.pgType === PostgresColumnType.TIMESTAMP){
+    if (columnSpec.pgType === PostgresColumnType.TIMESTAMP) {
       const dateValueA = new Date(valueToCompareA);
       const dateValueB = new Date(valueToCompareB);
       return dateValueA.getTime() - dateValueB.getTime();
     }
-   
-    if(columnSpec.pgType === PostgresColumnType.NUMERIC){
-        const numericValueA = parseFloat(valueToCompareA);
-        const numericValueB = parseFloat(valueToCompareB);
-    
-        // Handle NaN cases - treat them as undefined for sorting purposes
-        if (isNaN(numericValueA) && isNaN(numericValueB)) {
-          return 0;
-        }
-        if (isNaN(numericValueA)) {
-          return -1;
-        }
-        if (isNaN(numericValueB)) {
-          return 1;
-        }
-    
-        const comparison = numericValueA - numericValueB;
-        return comparison;
+
+    if (columnSpec.pgType === PostgresColumnType.NUMERIC) {
+      const numericValueA = parseFloat(valueToCompareA);
+      const numericValueB = parseFloat(valueToCompareB);
+
+      // Handle NaN cases - treat them as undefined for sorting purposes
+      if (isNaN(numericValueA) && isNaN(numericValueB)) {
+        return 0;
+      }
+      if (isNaN(numericValueA)) {
+        return -1;
+      }
+      if (isNaN(numericValueB)) {
+        return 1;
+      }
+
+      const comparison = numericValueA - numericValueB;
+      return comparison;
     }
 
-    if(columnSpec.pgType === PostgresColumnType.BOOLEAN){
-        const booleanValueA = valueToCompareA === 'true' ? 1 : 0;
-        const booleanValueB = valueToCompareB === 'true' ? 1 : 0;
-        return booleanValueA - booleanValueB;
+    if (columnSpec.pgType === PostgresColumnType.BOOLEAN) {
+      const booleanValueA = valueToCompareA === 'true' ? 1 : 0;
+      const booleanValueB = valueToCompareB === 'true' ? 1 : 0;
+      return booleanValueA - booleanValueB;
     }
 
     return valueToCompareA.localeCompare(valueToCompareB);

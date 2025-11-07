@@ -139,17 +139,6 @@ def fetch_additional_records_tool_implementation(
         # Format records for display
         # Determine columns to exclude based on table context
         columns_to_exclude = []
-        for table_context in chatRunContext.snapshot.tableContexts:
-            if table_context.id.wsId == table.id.wsId:
-                columns_to_exclude.extend(table_context.ignoredColumns)
-                break
-
-        # Check view configuration for hidden columns
-        table_view = chatRunContext.snapshot.tableViews.get(table.id.wsId)
-        if table_view:
-            for column_id, column_config in table_view.columns.items():
-                if column_config.hidden:
-                    columns_to_exclude.append(column_id)
 
         records_summary = format_records_for_prompt(
             fetched_records,

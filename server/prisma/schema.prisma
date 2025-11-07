@@ -167,9 +167,6 @@ model SnapshotTable {
   // Single TableSpec object (not array)
   tableSpec Json // TableSpec 
 
-  // Single SnapshotTableContext object (not array)
-  tableContext Json? // SnapshotTableContext
-
   /// Map of user settings for the columns in this table
   /// type: SnapshotColumnSettingsMap.
   columnSettings Json @default("{}")

@@ -278,7 +278,6 @@ function buildResponseChatMessages(message: WebSocketMessage): ChatMessage[] {
     if (message.type === 'connection_confirmed') {
       variant = 'admin';
     } else if (message.type === 'message_progress') {
-      debugger; // Debug progress messages coming through websocket
       console.debug('Progress message received:', {
         message,
         data: message.data,

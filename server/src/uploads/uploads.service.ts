@@ -894,11 +894,6 @@ export class UploadsService {
                 connectorAccountId: null,
                 connectorService: Service.CSV,
                 tableSpec: tableSpecs[0] as any,
-                tableContext: {
-                  id: { wsId: tableId, remoteId: [uploadId] },
-                  ignoredColumns: [],
-                  readOnlyColumns: [],
-                } as any,
                 columnSettings: {},
               },
             ],

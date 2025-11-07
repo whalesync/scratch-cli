@@ -28,31 +28,12 @@ class TableSpecForAi(BaseModel):
     columns: List[ColumnSpecForAi]
 
 
-class TableContext(BaseModel):
-    id: EntityId
-    ignoredColumns: List[str]
-    readOnlyColumns: List[str]
-
-
-class ColumnViewConfig(BaseModel):
-    hidden: bool = False
-    protected: bool = False
-
-
-class TableViewConfig(BaseModel):
-    hidden: bool = False
-    protected: bool = False
-    columns: Dict[str, ColumnViewConfig]
-
-
 class SnapshotForAi(BaseModel):
     id: str
     name: Optional[str]
     createdAt: str
     updatedAt: str
     tables: List[TableSpecForAi]
-    tableContexts: List[TableContext]
-    tableViews: Dict[str, TableViewConfig]
 
 
 def convert_scratchpad_snapshot_to_ai_snapshot(
@@ -100,19 +81,6 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         )
         converted_tables.append(table_spec)
 
-    # Create table contexts
-    tableViews = {}
-
-    converted_table_contexts = []
-    for i, snapshotTable in enumerate[SnapshotTable](snapshot_data.snapshotTables):
-        table_context = snapshotTable["tableContext"]  # type: ignore
-        table_context_spec = TableContext(
-            id=EntityId(wsId=table_context["id"]["wsId"], remoteId=table_context["id"]["remoteId"]),  # type: ignore
-            ignoredColumns=table_context["ignoredColumns"],  # type: ignore
-            readOnlyColumns=table_context["readOnlyColumns"],  # type: ignore
-        )
-        converted_table_contexts.append(table_context_spec)
-
     # Create the snapshot
     logger.debug(f"🔍 Creating Snapshot object...")
     snapshot = SnapshotForAi(
@@ -121,8 +89,6 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         createdAt=snapshot_data.createdAt,
         updatedAt=snapshot_data.updatedAt,
         tables=converted_tables,
-        tableContexts=converted_table_contexts,  # note, may be deprecated
-        tableViews=tableViews,
     )
     logger.debug(f"✅ Snapshot object created successfully")
 
@@ -174,13 +140,6 @@ def format_records_for_prompt(
         records_summary.append(record_data)
 
     return str(records_summary)
-
-
-def get_table_context(snapshot: SnapshotForAi, table_id: str) -> Optional[TableContext]:
-    for table_context in snapshot.tableContexts:
-        if table_context.id.wsId == table_id:
-            return table_context
-    return None
 
 
 def find_column_by_id(

@@ -1,6 +1,6 @@
 import { SnapshotTableCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { SnapshotColumnSettingsMap, SnapshotTableContext } from '../types';
+import { SnapshotColumnSettingsMap } from '../types';
 
 export class SnapshotTable {
   id: string;
@@ -11,7 +11,6 @@ export class SnapshotTable {
   connectorDisplayName: string | null;
   connectorService: string | null;
   tableSpec: AnyTableSpec;
-  tableContext: SnapshotTableContext | null;
   columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
@@ -27,7 +26,6 @@ export class SnapshotTable {
     this.connectorDisplayName = snapshotTable.connectorAccount?.displayName ?? null;
     this.connectorService = snapshotTable.connectorService;
     this.tableSpec = snapshotTable.tableSpec as AnyTableSpec;
-    this.tableContext = snapshotTable.tableContext as SnapshotTableContext | null;
     this.columnSettings = (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {};
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
     this.pageSize = snapshotTable.pageSize ?? null;

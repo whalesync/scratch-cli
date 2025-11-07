@@ -1,7 +1,6 @@
 'use client';
 
-import { SnapshotTableContext } from '@/types/server-entities/snapshot';
-import { ActionIcon, Box, Button, Group, Menu, Modal, ScrollArea, Tabs, Text, useModalsStack } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Menu, Tabs, Text } from '@mantine/core';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { EyeOff, PanelRightIcon, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -12,7 +11,6 @@ import { TextTitle4 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ErrorInfo } from '@/app/components/InfoPanel';
-import JsonTreeViewer from '@/app/components/JsonTreeViewer';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
@@ -46,11 +44,9 @@ function SnapshotPageContent() {
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { snapshot, isLoading, refreshSnapshot } = useActiveSnapshot();
 
-  const [selectedTableContext, setSelectedTableContext] = useState<SnapshotTableContext | null>(null);
   const [showAddTableModal, setShowAddTableModal] = useState(false);
   const [showManageTablesModal, setShowManageTablesModal] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
-  const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -60,11 +56,9 @@ function SnapshotPageContent() {
         const table = snapshotTables.find((t) => t.tableSpec.id.wsId === tableId);
         if (table) {
           setActiveTableId(table.id);
-          setSelectedTableContext(table.tableContext ?? null);
         }
       } else if (snapshotTables.length > 0) {
         setActiveTableId(snapshotTables[0]?.id ?? null);
-        setSelectedTableContext(snapshotTables[0].tableContext ?? null);
       }
       return;
     }
@@ -74,14 +68,12 @@ function SnapshotPageContent() {
     if (
       updatedTable &&
       (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
-        !_.isEqual(activeTable.tableContext, updatedTable.tableContext) ||
         !_.isEqual(activeTable.columnSettings, updatedTable.columnSettings))
     ) {
       // update the active table and table context with the newer version
       setActiveTableId(updatedTable.id);
-      setSelectedTableContext(updatedTable.tableContext ?? null);
     }
-  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTableId, setSelectedTableContext]);
+  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTableId]);
 
   // Temp place untill we have a better handling of hotkeys, commands,
   useEffect(() => {
@@ -129,33 +121,6 @@ function SnapshotPageContent() {
       />
     );
   }
-
-  const debugModals = (
-    <>
-      {activeTable && (
-        <Modal
-          {...modalStack.register('tableSpecDebug')}
-          title={`TableSpec for ${activeTable?.tableSpec.name}`}
-          size="lg"
-        >
-          <ScrollArea h={500}>
-            <JsonTreeViewer jsonData={activeTable} expandAll={true} />
-          </ScrollArea>
-        </Modal>
-      )}
-      {activeTable && (
-        <Modal
-          {...modalStack.register('tableContextDebug')}
-          title={`Table Context settings for ${activeTable?.tableSpec.name}`}
-          size="lg"
-        >
-          <ScrollArea h={500}>
-            <JsonTreeViewer jsonData={selectedTableContext ?? {}} expandAll={true} />
-          </ScrollArea>
-        </Modal>
-      )}
-    </>
-  );
 
   const snapshotTables = getSnapshotTables(snapshot);
   const allTables = getSnapshotTables(snapshot, true); // Include hidden tables
@@ -306,10 +271,7 @@ function SnapshotPageContent() {
     <PageLayout pageTitle={snapshot.name ?? 'Workbook'} rightPanel={aiChatPanel}>
       <MainContent>
         <MainContent.Header>{header}</MainContent.Header>
-        <MainContent.Body p="0">
-          {content}
-          {debugModals}
-        </MainContent.Body>
+        <MainContent.Body p="0">{content}</MainContent.Body>
         {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
       </MainContent>
 

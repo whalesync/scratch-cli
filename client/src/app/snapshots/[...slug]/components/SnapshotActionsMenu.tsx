@@ -162,7 +162,7 @@ export const SnapshotActionsMenu = () => {
 
       ScratchpadNotifications.success({
         title: 'Published',
-        message: `Your data has been published to ${connectorAccount?.service}`,
+        message: `Your data has been published to ${activeTable?.connectorService ? serviceName(activeTable.connectorService) : 'unknown'}`,
         autoClose: 5000,
       });
     } catch (e) {

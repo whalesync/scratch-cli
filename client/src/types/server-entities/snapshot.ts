@@ -53,17 +53,6 @@ export interface TableSpec {
   titleColumnRemoteId?: string[];
 }
 
-export type SnapshotTableContext = {
-  // The id of the table in the snapshot.
-  id: EntityId;
-
-  // Columns that should not be considered in the context for the AI agent
-  ignoredColumns: string[];
-
-  // Columns that should be read only in the UI.
-  readOnlyColumns: string[];
-};
-
 export type SnapshotColumnSettings = {
   dataConverter: string | null;
 };
@@ -79,7 +68,6 @@ export interface SnapshotTable {
   connectorDisplayName: string | null;
   connectorService: Service | null;
   tableSpec: TableSpec;
-  tableContext: SnapshotTableContext | null;
   columnSettings: SnapshotColumnSettingsMap;
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
@@ -289,11 +277,6 @@ export function getSnapshotTableByWsId(snapshot: Snapshot, tableId: string): Sna
 export function getTableSpecByWsId(snapshot: Snapshot, tableId: string): TableSpec | undefined {
   const table = getSnapshotTableByWsId(snapshot, tableId);
   return table?.tableSpec;
-}
-
-export function getSnapshotTableContextByWsId(snapshot: Snapshot, tableId: string): SnapshotTableContext | undefined {
-  const table = getSnapshotTableByWsId(snapshot, tableId);
-  return table?.tableContext ?? undefined;
 }
 
 export function getActiveRecordSqlFilterByWsId(snapshot: Snapshot, tableId: string): string | undefined {

@@ -57,20 +57,6 @@ def build_snapshot_context(
                 col.id.wsId for col in table.columns if col.id.wsId != column_id
             ]
 
-        table_context = None
-        for table_context in snapshot.tableContexts:
-            if table_context.id.wsId == table.id.wsId:
-                break
-
-        if table_context:
-            columns_to_exclude.extend(table_context.ignoredColumns)
-
-        table_view = snapshot.tableViews.get(table.id.wsId)
-        if table_view:
-            for column_id, column_config in table_view.columns.items():
-                if column_config.hidden:
-                    columns_to_exclude.append(column_id)
-
         # Mark active table in the output
         table_marker = " [ACTIVE TABLE]" if is_active_table else ""
         snapshot_context += (
@@ -81,14 +67,7 @@ def build_snapshot_context(
         for col in table.columns:
             if columns_to_exclude and col.id.wsId in columns_to_exclude:
                 continue
-
-            readonly = False
-            if table_view and col.id.wsId in table_view.columns:
-                column_config = table_view.columns.get(col.id.wsId)
-                if column_config and column_config.protected:
-                    readonly = True
-            readonly_marker = " (Read Only)" if readonly else ""
-            snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}{readonly_marker}, Metadata: {col.metadata or {}}, Required: {col.required}\n"
+            snapshot_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}, Metadata: {col.metadata or {}}, Required: {col.required}\n"
 
         # Add records if available
         if preloaded_records and table.name in preloaded_records and include_records:

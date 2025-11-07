@@ -39,7 +39,7 @@ import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './ent
 import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { SnapshotColumnSettingsMap, SnapshotTableContext } from './types';
+import { SnapshotColumnSettingsMap } from './types';
 import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
 
 @Injectable()
@@ -61,7 +61,6 @@ export class SnapshotService {
 
     const snapshotId = createSnapshotId();
     const tableSpecs: AnyTableSpec[] = [];
-    const tableContexts: SnapshotTableContext[] = [];
     const tableCreateInput: Prisma.SnapshotTableUncheckedCreateWithoutSnapshotInput[] = [];
 
     if (tables) {
@@ -84,19 +83,11 @@ export class SnapshotService {
           const tableSpec = await connector.fetchTableSpec(tableId);
           tableSpecs.push(tableSpec);
 
-          const tableContext = {
-            id: tableId,
-            ignoredColumns: [],
-            readOnlyColumns: [],
-          };
-          tableContexts.push(tableContext);
-
           tableCreateInput.push({
             id: createSnapshotTableId(),
             connectorAccountId,
             connectorService: connectorAccount.service,
             tableSpec,
-            tableContext,
             columnSettings: {},
           });
         } catch (error) {
@@ -135,17 +126,6 @@ export class SnapshotService {
 
     // Make a new schema and create tables to store its data.
     await this.snapshotDbService.snapshotDb.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
-
-    // Start downloading in the background
-    // TODO: Do this work somewhere real.
-    // this.downloadSnapshotInBackground(newSnapshot).catch((error) => {
-    //   WSLogger.error({
-    //     source: 'SnapshotService.create',
-    //     message: 'Error downloading snapshot',
-    //     snapshotId: newSnapshot.id,
-    //     error,
-    //   });
-    // });
 
     if (this.configService.getUseJobs()) {
       await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, actor);
@@ -219,13 +199,6 @@ export class SnapshotService {
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
     }
-
-    const tableContext: SnapshotTableContext = {
-      id: tableId,
-      ignoredColumns: [],
-      readOnlyColumns: [],
-    };
-
     // 4. Create the snapshotTableId first so we can pass it to the download job
     const snapshotTableId = createSnapshotTableId();
 
@@ -240,7 +213,6 @@ export class SnapshotService {
             connectorAccountId: connectorAccountId ?? null,
             connectorService: service,
             tableSpec: tableSpec,
-            tableContext: tableContext,
             columnSettings: {},
           },
         },

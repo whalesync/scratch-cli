@@ -16,7 +16,6 @@ from agents.data_agent.model_utils import (
     unable_to_identify_active_snapshot_error,
     unable_to_identify_active_table_error,
 )
-from agents.data_agent.data_agent_utils import get_table_context
 from logger import log_info, log_error
 import json
 from utils.get_styleguide import get_styleguide
@@ -143,8 +142,6 @@ async def create_records_implementation(
         if not table:
             return unable_to_identify_active_table_error(chatRunContext)
 
-        table_context = get_table_context(chatRunContext.snapshot, table.id.wsId)
-
         create_operations = []
         data_errors = []
         for index, record_data in enumerate(record_data_list):
@@ -152,16 +149,6 @@ async def create_records_implementation(
             for field_data in record_data["data"]:
                 column = find_column_by_name(table, field_data["field"])
                 if column:
-                    if (
-                        table_context
-                        and table_context.readOnlyColumns
-                        and column.id.wsId in table_context.readOnlyColumns
-                    ):
-                        data_errors.append(
-                            f"Field '{field_data['field']}' is read only and cannot be set when creating records."
-                        )
-                        continue
-
                     data_payload[column.id.wsId] = field_data["value"]
                 else:
                     data_errors.append(
