@@ -245,10 +245,18 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Handle keyboard events for navigation tracking and shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // Handle Esc key to close record view
-      if (event.key === 'Escape' && activeCells?.recordId) {
-        // event.preventDefault();
-        handleCloseRecordDetails();
+      // Handle Esc key to close record view or clear selection
+      if (event.key === 'Escape') {
+        if (activeCells?.recordId) {
+          // Close record details overlay
+          handleCloseRecordDetails();
+        } else if (gridApi) {
+          // Clear all selections in regular table view
+          gridApi.deselectAll();
+          gridApi.clearFocusedCell();
+          // Refresh cells to remove column highlighting
+          gridApi.refreshCells({ force: true });
+        }
         return;
       }
       // Only handle keyboard events if they originate from within the AG Grid
@@ -629,6 +637,11 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
             suppressKeyboardEvent: (params) => {
+              // Suppress Escape key - we handle it in our custom handler
+              if (params.event.key === 'Escape') {
+                return true; // Suppress AG Grid's default Escape behavior
+              }
+
               // When record view is open, suppress arrow keys so record view can handle them
               if (
                 activeCells?.recordId &&
