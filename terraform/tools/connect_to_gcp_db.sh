@@ -85,6 +85,7 @@ while ! lsof -iTCP:$LOCAL_PORT -s tcp:listen >/dev/null; do
 done
 
 echo "SSH tunnel to GCP VM started. Use your database client to connect to $LOCAL_HOSTNAME:$LOCAL_PORT"
+echo "Use $(dirname $0)/get_gcp_database_url.sh $ENVIRONMENT to get a database URL."
 
 echo "Press any key to terminate the tunnel..."
 
