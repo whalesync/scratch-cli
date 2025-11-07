@@ -29,7 +29,6 @@ class TableSpec:
 @dataclass
 class TableContext:
     id: EntityId
-    activeViewId: Optional[str]
     ignoredColumns: List[str]
     readOnlyColumns: List[str]
 

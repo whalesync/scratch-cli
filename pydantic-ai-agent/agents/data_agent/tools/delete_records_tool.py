@@ -77,7 +77,6 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 snapshot_id=chatRunContext.session.snapshot_id,
                 table_id=table.id.wsId,
                 operations=delete_operations,
-                view_id=chatRunContext.view_id,
             )
 
             logger.info(

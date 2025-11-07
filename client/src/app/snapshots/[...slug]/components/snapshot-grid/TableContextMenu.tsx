@@ -32,11 +32,10 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
 
-  const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { snapshot } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords, bulkUpdateRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: tableId,
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   // Calculate smart position to keep menu visible

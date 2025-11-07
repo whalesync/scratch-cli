@@ -16,7 +16,6 @@ import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
 import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
-import { ViewConfig, ViewTableConfig } from 'src/view/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
@@ -87,7 +86,6 @@ export class SnapshotService {
 
           const tableContext = {
             id: tableId,
-            activeViewId: null,
             ignoredColumns: [],
             readOnlyColumns: [],
           };
@@ -224,7 +222,6 @@ export class SnapshotService {
 
     const tableContext: SnapshotTableContext = {
       id: tableId,
-      activeViewId: null,
       ignoredColumns: [],
       readOnlyColumns: [],
     };
@@ -527,7 +524,6 @@ export class SnapshotService {
     actor: Actor,
     cursor: string | undefined,
     take: number,
-    viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
@@ -538,17 +534,6 @@ export class SnapshotService {
 
     const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
-    let viewConfig: ViewConfig | undefined = undefined;
-
-    if (viewId) {
-      const view = await this.db.client.columnView.findUnique({
-        where: { id: viewId },
-      });
-      if (view) {
-        viewConfig = view.config as ViewConfig;
-      }
-    }
-
     // Apply pageSize limit if set
     const effectiveTake = snapshotTable.pageSize !== null ? Math.min(take, snapshotTable.pageSize) : take;
 
@@ -557,7 +542,6 @@ export class SnapshotService {
       tableId,
       cursor,
       effectiveTake + 1,
-      viewConfig,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
     );
@@ -581,7 +565,6 @@ export class SnapshotService {
     tableId: string,
     actor: Actor,
     cursor: string | undefined,
-    viewId: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
@@ -593,17 +576,6 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    let viewConfig: ViewConfig | undefined = undefined;
-
-    if (viewId) {
-      const view = await this.db.client.columnView.findUnique({
-        where: { id: viewId },
-      });
-      if (view) {
-        viewConfig = view.config as ViewConfig;
-      }
-    }
-
     // For AI, use pageSize if set, otherwise use a large default (10000)
     const effectiveTake = snapshotTable.pageSize !== null ? snapshotTable.pageSize : 10000;
 
@@ -612,7 +584,6 @@ export class SnapshotService {
       tableId,
       cursor,
       effectiveTake,
-      viewConfig,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
     );
@@ -658,7 +629,6 @@ export class SnapshotService {
     dto: BulkUpdateRecordsDto,
     actor: Actor,
     type: 'accepted' | 'suggested',
-    viewId?: string,
   ): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
@@ -666,37 +636,19 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    let viewConfig: ViewConfig | undefined = undefined;
-
-    // Only apply view filtering for suggested updates
-    if (type === 'suggested' && viewId) {
-      const view = await this.db.client.columnView.findUnique({
-        where: { id: viewId },
-      });
-      if (view) {
-        viewConfig = view.config as ViewConfig;
-      }
-    }
-
-    // Filter operations based on view if provided
-    const filteredOps =
-      type === 'suggested' && viewConfig
-        ? this.filterOperationsByView(dto.ops, viewConfig, tableId, tableSpec)
-        : dto.ops;
-
-    this.validateBulkUpdateOps(filteredOps, tableSpec);
+    this.validateBulkUpdateOps(dto.ops, tableSpec);
 
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
       data: {
         tableId,
-        numRecords: filteredOps.length,
+        numRecords: dto.ops.length,
         changeType: type,
         source: type === 'suggested' ? 'agent' : 'user',
       },
     });
 
-    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(snapshotId, tableId, filteredOps, type);
+    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(snapshotId, tableId, dto.ops, type);
   }
 
   async deepFetchRecords(
@@ -796,95 +748,6 @@ export class SnapshotService {
     return { records, totalCount };
   }
 
-  private filterOperationsByView(
-    ops: RecordOperation[],
-    viewConfig: ViewConfig,
-    tableId: string,
-    tableSpec: AnyTableSpec,
-  ): RecordOperation[] {
-    const tableViewConfig = viewConfig[tableId];
-    if (!tableViewConfig) {
-      return ops; // No view config for this table, return all operations
-    }
-
-    return ops.filter((op) => {
-      // For create operations, only filter by column visibility
-      if (op.op === 'create') {
-        return this.isCreateOperationAllowed(op, tableViewConfig, tableSpec);
-      }
-
-      // For update operations, filter by both record and column visibility
-      if (op.op === 'update') {
-        return this.isUpdateOperationAllowed(op, tableViewConfig, tableSpec);
-      }
-
-      // For delete operations, only filter by record visibility
-      if (op.op === 'delete') {
-        return this.isDeleteOperationAllowed(op, tableViewConfig);
-      }
-
-      // For undelete operations, only filter by record visibility
-      if (op.op === 'undelete') {
-        return this.isDeleteOperationAllowed(op, tableViewConfig);
-      }
-
-      return true; // Allow other operations
-    });
-  }
-
-  private isCreateOperationAllowed(
-    op: RecordOperation,
-    tableViewConfig: ViewTableConfig,
-    tableSpec: AnyTableSpec,
-  ): boolean {
-    // For create operations, we only need to check if the columns being set are visible
-    if (op.op !== 'create' || !op.data) return true;
-
-    const visibleColumns = this.getVisibleColumns(tableViewConfig, tableSpec);
-    const requestedColumns = Object.keys(op.data);
-
-    // Check if all requested columns are visible
-    return requestedColumns.every((column) => visibleColumns.includes(column));
-  }
-
-  private isUpdateOperationAllowed(
-    op: RecordOperation,
-    tableViewConfig: ViewTableConfig,
-    tableSpec: AnyTableSpec,
-  ): boolean {
-    // TODO: Record filtering moved to different entity - temporarily allow all operations
-    // First check if the record is visible
-    // if (op.op !== 'update' || !this.isRecordVisible(op.wsId, tableViewConfig)) {
-    //   return false;
-    // }
-
-    // Then check if the columns being updated are visible
-    if (op.op !== 'update' || !op.data) return true;
-
-    const visibleColumns = this.getVisibleColumns(tableViewConfig, tableSpec);
-    const requestedColumns = Object.keys(op.data);
-
-    // Check if all requested columns are visible
-    return requestedColumns.every((column) => visibleColumns.includes(column));
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private isDeleteOperationAllowed(op: RecordOperation, tableViewConfig: ViewTableConfig): boolean {
-    // TODO: Record filtering moved to different entity - temporarily allow all operations
-    // For delete operations, we only need to check if the record is visible
-    // if (op.op !== 'delete') return true;
-    // return this.isRecordVisible(op.wsId, tableViewConfig);
-    return true;
-  }
-
-  private getVisibleColumns(tableViewConfig: ViewTableConfig, tableSpec: AnyTableSpec): string[] {
-    const allColumns = tableSpec.columns.map((c) => c.id.wsId);
-
-    // Remove hidden columns from the set of all columns
-    const hiddenColumns = tableViewConfig.columns?.filter((c) => c.hidden === true).map((c) => c.wsId) ?? [];
-    return allColumns.filter((col) => !hiddenColumns.includes(col));
-  }
-
   async acceptCellValues(
     snapshotId: SnapshotId,
     tableId: string,
@@ -959,7 +822,6 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     actor: Actor,
-    viewId?: string,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
@@ -967,25 +829,8 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    let viewConfig: ViewConfig | undefined = undefined;
-
-    if (viewId) {
-      const view = await this.db.client.columnView.findUnique({
-        where: { id: viewId },
-      });
-      if (view) {
-        viewConfig = view.config as ViewConfig;
-      }
-    }
-
     // get all of the records for the table with suggestions and build a list of items to accept
-    const records = await this.snapshotDbService.snapshotDb.listRecords(
-      snapshotId,
-      tableId,
-      undefined,
-      10000,
-      viewConfig,
-    );
+    const records = await this.snapshotDbService.snapshotDb.listRecords(snapshotId, tableId, undefined, 10000);
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.acceptCellValues(snapshotId, tableId, allSuggestions, actor);
@@ -1058,7 +903,6 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     tableId: string,
     actor: Actor,
-    viewId?: string,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
     const tableSpec = getTableSpecByWsId(snapshot, tableId);
@@ -1066,25 +910,8 @@ export class SnapshotService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    let viewConfig: ViewConfig | undefined = undefined;
-
-    if (viewId) {
-      const view = await this.db.client.columnView.findUnique({
-        where: { id: viewId },
-      });
-      if (view) {
-        viewConfig = view.config as ViewConfig;
-      }
-    }
-
     // get all of the records for the table with suggestions and build a list of items to reject
-    const records = await this.snapshotDbService.snapshotDb.listRecords(
-      snapshotId,
-      tableId,
-      undefined,
-      10000,
-      viewConfig,
-    );
+    const records = await this.snapshotDbService.snapshotDb.listRecords(snapshotId, tableId, undefined, 10000);
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.rejectValues(snapshotId, tableId, allSuggestions, actor);
@@ -1453,29 +1280,6 @@ export class SnapshotService {
       true,
     );
   }
-
-  async clearActiveView(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
-    const snapshot = await this.findOneOrThrow(snapshotId, actor);
-
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
-    if (!snapshotTable) {
-      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
-    }
-
-    const tableContext = snapshotTable.tableContext as SnapshotTableContext;
-    if (tableContext) {
-      // set the active ID
-      tableContext.activeViewId = null;
-
-      await this.db.client.snapshotTable.update({
-        where: { id: snapshotTable.id },
-        data: {
-          tableContext,
-        },
-      });
-    }
-  }
-
   async setActiveRecordsFilter(
     snapshotId: SnapshotId,
     tableId: string,
@@ -1855,7 +1659,7 @@ export class SnapshotService {
 
               // Create suggestions for this chunk
               if (operations.length > 0) {
-                await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, actor, 'suggested', undefined);
+                await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, actor, 'suggested');
               }
             }
 
@@ -2039,7 +1843,6 @@ export class SnapshotService {
       tableId,
       undefined,
       10000,
-      undefined,
       tableSpec,
     );
 

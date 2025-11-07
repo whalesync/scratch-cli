@@ -113,7 +113,6 @@ def insert_value_tool_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=update_operations,
-            view_id=chatRunContext.view_id,
         )
 
         updated_record = ScratchpadApi.get_record(

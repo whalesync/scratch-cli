@@ -58,13 +58,6 @@ function SnapshotPageContent() {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const modalStack = useModalsStack(['tableSpecDebug', 'tableContextDebug', 'snapshotEventLog']);
 
-  // Get count information for the current table
-  // const { records } = useSnapshotTableRecords({
-  //   snapshotId: id,
-  //   tableId: activeTable ? activeTable.id.wsId : '',
-  //   viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
-  // });
-
   useEffect(() => {
     if (!snapshot) return;
     if (!activeTable) {

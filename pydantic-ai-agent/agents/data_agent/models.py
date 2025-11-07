@@ -45,9 +45,6 @@ class ChatRunContext(BaseModel):
     snapshot: Optional[SnapshotForAi] = Field(
         default=None, description="Associated snapshot"
     )
-    view_id: Optional[str] = Field(
-        default=None, description="ID of the currently selected view"
-    )
     preloaded_records: Optional[Dict[str, Any]] = Field(
         default=None, description="Preloaded records for the session"
     )

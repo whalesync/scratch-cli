@@ -246,17 +246,6 @@ model StyleGuide {
   @@index([organizationId])
 }
 
-model ColumnView {
-  id         String   @id // type: ColumnViewId
-  name       String? // Optional name for the view
-  snapshotId String
-  config     Json // ViewConfig
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([snapshotId])
-}
-
 model AiAgentTokenUsageEvent {
   id             String   @id // type: AiAgentTokenUsageEventId
   createdAt      DateTime @default(now())

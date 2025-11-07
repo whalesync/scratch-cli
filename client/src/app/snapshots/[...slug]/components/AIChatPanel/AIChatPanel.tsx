@@ -106,7 +106,7 @@ const availableCapabilities = [
 ];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { snapshot, currentView, publish } = useSnapshotContext();
+  const { snapshot, publish } = useSnapshotContext();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { activeOpenRouterCredentials } = useAgentCredentials();
 
@@ -345,11 +345,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         }));
       }
 
-      // Include view ID if available
-      if (currentView) {
-        messageData.view_id = currentView.id;
-      }
-
       // Include capabilities if selected
       if (selectedCapabilities.length > 0) {
         messageData.capabilities = selectedCapabilities;
@@ -570,7 +565,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             snapshot={snapshot}
             resetInputFocus={() => textInputRef.current?.focus()}
           />
-          <ContextBadges activeTable={activeTable?.tableSpec ?? null} currentView={currentView} />
+          <ContextBadges />
         </Stack>
         {/* User Input for Chat */}
         <AdvancedAgentInput

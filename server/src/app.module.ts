@@ -28,7 +28,6 @@ import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/users.module';
-import { ViewModule } from './view/view.module';
 import { WorkerEnqueuerModule } from './worker-enqueuer/worker-enqueuer.module';
 import { WorkerModule } from './worker/workers.module';
 
@@ -53,7 +52,6 @@ import { WorkerModule } from './worker/workers.module';
     CustomConnectorModule,
     StyleGuideModule,
     UploadsModule,
-    ViewModule,
     AiAgentTokenUsageModule,
     PaymentModule,
     OpenRouterModule,

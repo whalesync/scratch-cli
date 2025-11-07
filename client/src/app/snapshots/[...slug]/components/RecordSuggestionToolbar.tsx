@@ -25,11 +25,10 @@ interface SuggestionItem {
 
 export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JSX.Element | null => {
   const { table, record, columnId, ...boxProps } = props;
-  const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { snapshot } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
   const [saving, setSaving] = useState(false);
 

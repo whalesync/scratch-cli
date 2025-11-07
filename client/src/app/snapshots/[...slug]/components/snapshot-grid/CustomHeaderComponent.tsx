@@ -2,13 +2,12 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotContext } from '@/app/snapshots/[...slug]/components/contexts/SnapshotContext';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { useUpsertView } from '@/hooks/use-view';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
-import { AlertCircle, Eye, EyeOff, List, ListChecks, Lock, MoreVertical, Square, Star, TrashIcon } from 'lucide-react';
+import { AlertCircle, EyeOff, List, ListChecks, Lock, MoreVertical, Star, TrashIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // interface CustomHeaderComponentProps extends IHeaderParams {
@@ -31,13 +30,11 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, currentView, currentViewId, viewDataAsAgent, updateColumnSettings } = useSnapshotContext();
+  const { snapshot, updateColumnSettings } = useSnapshotContext();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: props.tableId ?? '',
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
-  const { upsertView } = useUpsertView();
 
   // Monitor sort changes and update local state
   useEffect(() => {
@@ -83,10 +80,8 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const hasDataConverterTypes = props.columnSpec?.dataConverterTypes && props.columnSpec.dataConverterTypes.length > 0;
 
   // Get current column configuration
-  const tableConfig = currentView?.config[props.tableId || ''];
-  const columnConfig = tableConfig?.columns?.find((c: { wsId: string }) => c.wsId === columnId);
-  const isColumnHidden = columnConfig?.hidden === true;
-  const isColumnProtected = columnConfig?.protected === true;
+  const isColumnHidden = false;
+  const isColumnProtected = false;
   const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
   const currentTable = props.tableId ? snapshot?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
   const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
@@ -221,178 +216,19 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     }
   };
 
+  /*
+  // NOTE(Chris): I am leaving this here for now as it will get reactivated with a new implementation in DEV-8768
+
   const handleToggleColumnVisibility = async () => {
-    try {
-      setIsProcessing(true);
-      setIsMenuOpen(false);
-
-      if (!currentView || !snapshot || !props.tableId) {
-        ScratchpadNotifications.error({
-          title: 'No View',
-          message: 'No active view to update column settings',
-        });
-        return;
-      }
-
-      const existingConfig = currentView.config;
-      const tableConfig = existingConfig[props.tableId] || {
-        hidden: false,
-        protected: false,
-        columns: [],
-      };
-
-      const columns = tableConfig.columns || [];
-      const existingColumnIndex = columns.findIndex((c: { wsId: string }) => c.wsId === columnId);
-      const existingColumn = existingColumnIndex >= 0 ? columns[existingColumnIndex] : null;
-
-      let updatedColumn;
-      if (isColumnHidden) {
-        // Unhide column - remove hidden override, keep protected if it exists
-        updatedColumn = {
-          wsId: columnId,
-          ...(existingColumn?.protected !== undefined && { protected: existingColumn.protected }),
-        };
-      } else {
-        // Hide column
-        updatedColumn = {
-          wsId: columnId,
-          hidden: true,
-          ...(existingColumn?.protected !== undefined && { protected: existingColumn.protected }),
-        };
-      }
-
-      // Update or add the column
-      const updatedColumns = [...columns];
-      if (existingColumnIndex >= 0) {
-        if (Object.keys(updatedColumn).length === 1) {
-          // Only has wsId, remove the column entirely
-          updatedColumns.splice(existingColumnIndex, 1);
-        } else {
-          updatedColumns[existingColumnIndex] = updatedColumn;
-        }
-      } else if (Object.keys(updatedColumn).length > 1) {
-        // Only add if it has more than just wsId
-        updatedColumns.push(updatedColumn);
-      }
-
-      const updatedTableConfig = {
-        ...tableConfig,
-        columns: updatedColumns,
-      };
-
-      const updatedConfig = {
-        ...existingConfig,
-        [props.tableId]: updatedTableConfig,
-      };
-
-      await upsertView({
-        id: currentView.id,
-        name: currentView.name || undefined,
-        snapshotId: snapshot.id,
-        config: updatedConfig,
-      });
-
-      ScratchpadNotifications.success({
-        title: 'Column Updated',
-        message: `Column ${isColumnHidden ? 'shown' : 'hidden'}`,
-      });
-    } catch (error) {
-      console.error('Error toggling column visibility:', error);
-      ScratchpadNotifications.error({
-        title: 'Error updating column',
-        message: error instanceof Error ? error.message : 'Failed to update column visibility',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    // ColumnViews were deprecated
+    // TODO: Need a new place to store the hidden columns on the SnapshotTable
   };
 
   const handleToggleColumnProtection = async () => {
-    try {
-      setIsProcessing(true);
-      setIsMenuOpen(false);
-
-      if (!currentView || !snapshot || !props.tableId) {
-        ScratchpadNotifications.error({
-          title: 'No View',
-          message: 'No active view to update column settings',
-        });
-        return;
-      }
-
-      const existingConfig = currentView.config;
-      const tableConfig = existingConfig[props.tableId] || {
-        hidden: false,
-        protected: false,
-        columns: [],
-      };
-
-      const columns = tableConfig.columns || [];
-      const existingColumnIndex = columns.findIndex((c: { wsId: string }) => c.wsId === columnId);
-      const existingColumn = existingColumnIndex >= 0 ? columns[existingColumnIndex] : null;
-
-      let updatedColumn;
-      if (isColumnProtected) {
-        // Unprotect column - remove protected override, keep hidden if it exists
-        updatedColumn = {
-          wsId: columnId,
-          ...(existingColumn?.hidden !== undefined && { hidden: existingColumn.hidden }),
-        };
-      } else {
-        // Protect column
-        updatedColumn = {
-          wsId: columnId,
-          protected: true,
-          ...(existingColumn?.hidden !== undefined && { hidden: existingColumn.hidden }),
-        };
-      }
-
-      // Update or add the column
-      const updatedColumns = [...columns];
-      if (existingColumnIndex >= 0) {
-        if (Object.keys(updatedColumn).length === 1) {
-          // Only has wsId, remove the column entirely
-          updatedColumns.splice(existingColumnIndex, 1);
-        } else {
-          updatedColumns[existingColumnIndex] = updatedColumn;
-        }
-      } else if (Object.keys(updatedColumn).length > 1) {
-        // Only add if it has more than just wsId
-        updatedColumns.push(updatedColumn);
-      }
-
-      const updatedTableConfig = {
-        ...tableConfig,
-        columns: updatedColumns,
-      };
-
-      const updatedConfig = {
-        ...existingConfig,
-        [props.tableId]: updatedTableConfig,
-      };
-
-      await upsertView({
-        id: currentView.id,
-        name: currentView.name || undefined,
-        snapshotId: snapshot.id,
-        config: updatedConfig,
-      });
-
-      ScratchpadNotifications.success({
-        title: 'Column Updated',
-        message: `Column ${isColumnProtected ? 'unprotected' : 'protected'}`,
-      });
-    } catch (error) {
-      console.error('Error toggling column protection:', error);
-      ScratchpadNotifications.error({
-        title: 'Error updating column',
-        message: error instanceof Error ? error.message : 'Failed to update column protection',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    // ColumnViews were deprecated
+    // TODO: Need a new place to store the protected columns on the SnapshotTable
   };
-
+ */
   const handleSetTitleColumn = async () => {
     try {
       setIsProcessing(true);
@@ -725,6 +561,8 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
               <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>
                 Column View
               </div>
+              {/* 
+              // NOTE(Chris): I am leaving this here for now as it will get reactivated with a new implementation in DEV-8768
               <button
                 onClick={handleToggleColumnVisibility}
                 disabled={isProcessing}
@@ -789,6 +627,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                 )}
                 {isColumnProtected ? 'Unprotect Column' : 'Protect Column'}
               </button>
+              */}
               <button
                 onClick={handleSetTitleColumn}
                 disabled={isProcessing}

@@ -5,7 +5,6 @@ import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { useSnapshotParams } from '../../hooks/use-snapshot-params';
-import { useSnapshotContext } from './SnapshotContext';
 
 export interface ActiveRecord {
   recordId: string | undefined;
@@ -41,7 +40,6 @@ interface TableProviderProps {
 export const TableProvider = ({ children }: TableProviderProps) => {
   /** Dependant Hooks */
   const { snapshotId, recordId: recordIdParam, columnId: columnIdParam } = useSnapshotParams();
-  const { viewDataAsAgent, currentViewId } = useSnapshotContext();
   /** State */
   const [activeTable, setActiveTable] = useState<SnapshotTable | undefined>(undefined);
   const [activeRecord, setActiveRecord] = useState<ActiveRecord | null>(
@@ -58,7 +56,6 @@ export const TableProvider = ({ children }: TableProviderProps) => {
   const { bulkUpdateRecords } = useSnapshotTableRecords({
     snapshotId: snapshotId,
     tableId: activeTable?.tableSpec.id.wsId ?? '',
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   /** API */
@@ -130,13 +127,8 @@ export const TableProvider = ({ children }: TableProviderProps) => {
     activeTable,
     setActiveTable,
     setActiveRecord,
-    // displayMode,
     activeRecord,
     recordDetailsVisible: !!activeRecord?.recordId,
-    // switchToRecordView,
-    // switchToSpreadsheetView,
-    // switchToNewSpreadsheetView,
-    // switchDisplayMode,
     addPendingChange,
     savePendingUpdates,
     pendingChanges,

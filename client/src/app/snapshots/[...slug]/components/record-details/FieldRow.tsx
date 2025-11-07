@@ -10,9 +10,7 @@ export const FieldRow = ({
   fieldName: string;
   showLabel?: boolean;
   hasEditedValue?: boolean;
-  isProtected?: boolean;
   isReadOnly?: boolean;
-  isHidden?: boolean;
   align?: React.CSSProperties['alignItems'];
   children: React.ReactNode;
   onLabelClick?: () => void;

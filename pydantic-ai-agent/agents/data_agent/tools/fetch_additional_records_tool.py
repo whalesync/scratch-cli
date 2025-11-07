@@ -81,7 +81,6 @@ def fetch_additional_records_tool_implementation(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
-            view_id=chatRunContext.view_id,
             cursor=cursor,
             take=limit,
         )

@@ -200,7 +200,6 @@ async def create_records_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=create_operations,
-            view_id=chatRunContext.view_id,
         )
 
         logger.info(

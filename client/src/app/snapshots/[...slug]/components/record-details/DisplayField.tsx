@@ -11,7 +11,6 @@ import {
   SnapshotRecord,
   TableSpec,
 } from '@/types/server-entities/snapshot';
-import { ColumnView, isColumnHidden, isColumnProtected } from '@/types/server-entities/view';
 import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { CircleArrowRightIcon } from 'lucide-react';
@@ -24,7 +23,6 @@ interface DisplayFieldProps {
   columnId: string;
   mode: 'multiple' | 'single';
   align?: React.CSSProperties['alignItems'];
-  currentView?: ColumnView;
   updateField: (columnId: string, value: string) => void;
   onFieldLabelClick: () => void;
   onAcceptSuggestion: () => void;
@@ -39,7 +37,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
     columnId,
     mode,
     align = 'flex-start',
-    currentView,
     updateField,
     onFieldLabelClick,
     onAcceptSuggestion,
@@ -52,8 +49,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const column = table.columns.find((c) => c.id.wsId === columnId);
   if (!column) return null;
 
-  const isHidden = currentView && isColumnHidden(table.id.wsId, columnId, currentView);
-  const isProtected = currentView && isColumnProtected(table.id.wsId, columnId, currentView);
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
   const suggestValueColor = '#284283';
@@ -98,8 +93,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
-        isProtected={isProtected}
-        isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
         onLabelClick={onFieldLabelClick}
@@ -154,8 +147,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
-        isProtected={isProtected}
-        isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
         onLabelClick={onFieldLabelClick}
@@ -202,8 +193,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
-        isProtected={isProtected}
-        isHidden={isHidden}
         isReadOnly={column.readonly}
         align={align}
         onLabelClick={onFieldLabelClick}
@@ -239,8 +228,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         <FieldRow
           fieldName={column.name}
           hasEditedValue={hasEditedValue}
-          isProtected={isProtected}
-          isHidden={isHidden}
           isReadOnly={column.readonly}
           align={align}
           onLabelClick={onFieldLabelClick}
@@ -349,8 +336,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
       fieldName={column.name}
       showLabel={mode === 'multiple'}
       hasEditedValue={hasEditedValue}
-      isProtected={isProtected}
-      isHidden={isHidden}
       align={align}
       onLabelClick={onFieldLabelClick}
     >

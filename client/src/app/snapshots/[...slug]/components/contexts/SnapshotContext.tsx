@@ -2,28 +2,18 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshot } from '@/hooks/use-snapshot';
-import { useUpsertView, useViews } from '@/hooks/use-view';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
 import { Snapshot, SnapshotColumnSettingsMap, UpdateSnapshotDto } from '@/types/server-entities/snapshot';
-import { ColumnView, ViewConfig } from '@/types/server-entities/view';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useSWRConfig } from 'swr';
 
 interface SnapshotContextValue {
   snapshot: Snapshot | undefined;
-  views: ColumnView[] | undefined;
-  currentViewId: string | null;
-  currentView: ColumnView | undefined;
   isLoading: boolean;
   error: Error | undefined;
-  refreshViews: (() => Promise<ColumnView[] | undefined>) | undefined;
   refreshSnapshot: (() => Promise<void>) | undefined;
   publish: (() => Promise<void>) | undefined;
-  setCurrentViewId: (viewId: string | null) => void;
-  createView: (config: ViewConfig, name?: string) => Promise<string>;
-  selectView: (viewId: string | null) => void;
-  updateTableInCurrentView: (tableId: string, tableConfig: Record<string, unknown>) => Promise<void>;
   // Filter management
   // filteredRecordsCount: number;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
@@ -48,62 +38,8 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
     publish,
     refreshSnapshot,
   } = useSnapshot(snapshotId);
-  const { views, isLoading: viewsLoading, error: viewsError, refreshViews } = useViews(snapshotId);
-  const { upsertView } = useUpsertView();
-  const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [viewDataAsAgent, setViewDataAsAgent] = useState(false);
   const { mutate } = useSWRConfig();
-
-  // Get the current view based on currentViewId
-  const currentView = views?.find((v) => v.id === currentViewId);
-
-  const createView = useCallback(
-    async (config: ViewConfig, name?: string): Promise<string> => {
-      if (!snapshot) {
-        throw new Error('Snapshot not available');
-      }
-
-      const result = await upsertView({
-        snapshotId: snapshot.id,
-        config,
-        name,
-      });
-
-      // Refresh views after creation
-      await refreshViews?.();
-
-      return result.id;
-    },
-    [snapshot, upsertView, refreshViews],
-  );
-
-  const selectView = useCallback((viewId: string | null) => {
-    setCurrentViewId(viewId);
-  }, []);
-
-  const updateTableInCurrentView = useCallback(
-    async (tableId: string, tableConfig: Record<string, unknown>): Promise<void> => {
-      if (!snapshot || !currentView) {
-        throw new Error('Snapshot or current view not available');
-      }
-
-      const newConfig = {
-        ...currentView.config,
-        [tableId]: tableConfig,
-      };
-
-      await upsertView({
-        id: currentView.id,
-        name: currentView.name || undefined,
-        snapshotId: snapshot.id,
-        config: newConfig,
-      });
-
-      // Refresh views after update
-      await refreshViews?.();
-    },
-    [snapshot, currentView, upsertView, refreshViews],
-  );
 
   const clearActiveRecordFilter = useCallback(
     async (tableId: string) => {
@@ -156,20 +92,12 @@ export const SnapshotProvider = ({ snapshotId, children }: SnapshotProviderProps
 
   const value: SnapshotContextValue = {
     snapshot,
-    views,
-    currentViewId,
-    currentView,
-    isLoading: snapshotLoading || viewsLoading,
-    error: snapshotError || viewsError,
-    refreshViews,
+    isLoading: snapshotLoading,
+    error: snapshotError,
     refreshSnapshot,
     publish,
     updateSnapshot,
     updateColumnSettings,
-    setCurrentViewId,
-    createView,
-    selectView,
-    updateTableInCurrentView,
     // Filter management
     clearActiveRecordFilter,
     viewDataAsAgent,

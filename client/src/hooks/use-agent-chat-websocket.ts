@@ -21,7 +21,6 @@ export interface SendMessageRequestDTO {
   style_guides?: { name: string; content: string }[];
   capabilities?: string[];
   model?: string;
-  view_id?: string;
   active_table_id?: string;
   data_scope?: DataScope;
   record_id?: string;

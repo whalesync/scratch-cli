@@ -3,7 +3,6 @@ import { types } from 'pg';
 import { WSLogger } from 'src/logger';
 import { createSnapshotRecordId, SnapshotId, SnapshotRecordId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
-import { ViewConfig } from 'src/view/types';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
@@ -290,9 +289,9 @@ export class SnapshotDb {
     tableId: string,
     cursor: string | undefined,
     take: number,
-    view: ViewConfig | undefined,
     tableSpec?: AnyTableSpec,
     activeRecordSqlFilter?: string | null,
+    hiddenColumns?: string[],
   ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number }> {
     // const query = this.knex<DbRecord>(tableId);
 
@@ -308,23 +307,12 @@ export class SnapshotDb {
       query.whereRaw(activeRecordSqlFilter);
     }
 
-    const tableViewConfig = view?.[tableId];
-    if (tableViewConfig) {
-      // If table is hidden, return empty array
-      if (tableViewConfig.hidden === true) {
-        query.select([]);
-      } else {
-        // Remove hidden columns from the set of all columns
-        const hiddenColumns = (tableViewConfig.columns ?? []).filter((c) => c.hidden === true).map((c) => c.wsId);
-        if (hiddenColumns.length > 0) {
-          // Get all available columns from the table spec and subtract the hidden ones
-          const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
-          const visibleColumns = allColumns.filter((col) => !hiddenColumns.includes(col));
-          query.select([...DEFAULT_COLUMNS, ...visibleColumns]);
-        } else {
-          query.select('*');
-        }
-      }
+    if (hiddenColumns && hiddenColumns.length > 0) {
+      // Remove hidden columns from the set of all columns
+      // Get all available columns from the table spec and subtract the hidden ones
+      const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
+      const visibleColumns = allColumns.filter((col) => !hiddenColumns.includes(col));
+      query.select([...DEFAULT_COLUMNS, ...visibleColumns]);
     } else {
       query.select('*');
     }

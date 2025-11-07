@@ -15,11 +15,9 @@ export class AiSnapshotController {
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
     @Query('cursor') cursor: string | undefined,
-    // @Query('take', new ParseIntPipe({ optional: true })) take = 10000,
-    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; filteredRecordsCount: number }> {
-    const result = await this.service.listRecordsForAi(snapshotId, tableId, toActor(req.user), cursor, viewId);
+    const result = await this.service.listRecordsForAi(snapshotId, tableId, toActor(req.user), cursor);
     return {
       records: result.records,
       nextCursor: result.nextCursor,

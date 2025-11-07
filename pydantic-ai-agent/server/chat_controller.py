@@ -239,7 +239,6 @@ async def send_message(
             current_user,
             style_guides_dict,
             request.model,
-            request.view_id,
             request.capabilities,
             request.active_table_id,
             request.data_scope,

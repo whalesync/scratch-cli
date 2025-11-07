@@ -176,10 +176,9 @@ export class SnapshotController {
     @Param('tableId') tableId: string,
     @Query('cursor') cursor: string | undefined,
     @Query('take', new ParseIntPipe({ optional: true })) take = 100,
-    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return this.service.listRecords(snapshotId, tableId, toActor(req.user), cursor, take, viewId);
+    return this.service.listRecords(snapshotId, tableId, toActor(req.user), cursor, take);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -216,17 +215,9 @@ export class SnapshotController {
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
-    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(
-      snapshotId,
-      tableId,
-      bulkUpdateRecordsDto,
-      toActor(req.user),
-      'suggested',
-      viewId,
-    );
+    await this.service.bulkUpdateRecords(snapshotId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'suggested');
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -284,10 +275,9 @@ export class SnapshotController {
   async acceptAllSuggestions(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
-    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
-    return await this.service.acceptAllSuggestions(snapshotId, tableId, toActor(req.user), viewId);
+    return await this.service.acceptAllSuggestions(snapshotId, tableId, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -336,21 +326,9 @@ export class SnapshotController {
   async rejectAllSuggestions(
     @Param('id') snapshotId: SnapshotId,
     @Param('tableId') tableId: string,
-    @Query('viewId') viewId: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
-    return await this.service.rejectAllSuggestions(snapshotId, tableId, toActor(req.user), viewId);
-  }
-
-  @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/tables/:tableId/clear-activate-view')
-  @HttpCode(204)
-  async clearActiveView(
-    @Param('id') snapshotId: SnapshotId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.clearActiveView(snapshotId, tableId, toActor(req.user));
+    return await this.service.rejectAllSuggestions(snapshotId, tableId, toActor(req.user));
   }
 
   @UseGuards(ScratchpadAuthGuard)

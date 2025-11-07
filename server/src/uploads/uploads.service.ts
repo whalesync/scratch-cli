@@ -854,7 +854,6 @@ export class UploadsService {
                 tableSpec: tableSpecs[0] as any,
                 tableContext: {
                   id: { wsId: tableId, remoteId: [uploadId] },
-                  activeViewId: null,
                   ignoredColumns: [],
                   readOnlyColumns: [],
                 } as any,

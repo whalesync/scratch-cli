@@ -15,12 +15,11 @@ type GridSuggestionToolbarProps = {
 
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
   const { table, ...boxProps } = props;
-  const { snapshot, currentViewId, viewDataAsAgent } = useSnapshotContext();
+  const { snapshot } = useSnapshotContext();
   const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
     useSnapshotTableRecords({
       snapshotId: snapshot?.id ?? '',
       tableId: table.id.wsId,
-      viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
     });
   const [saving, setSaving] = useState(false);
 

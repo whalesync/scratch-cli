@@ -65,7 +65,6 @@ class ScratchpadApi:
         table_id: str,
         cursor: Optional[str] = None,
         take: Optional[int] = None,
-        view_id: Optional[str] = None,
     ) -> ListRecordsResponse:
         """List records for a table in a snapshot for AI processing"""
         url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/active-view"
@@ -74,8 +73,6 @@ class ScratchpadApi:
             params["cursor"] = cursor
         # if take:
         #     params["take"] = str(take)
-        if view_id:
-            params["viewId"] = view_id
 
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), params=params
@@ -145,13 +142,11 @@ class ScratchpadApi:
         snapshot_id: str,
         table_id: str,
         operations: List[RecordOperation],
-        view_id: Optional[str] = None,
     ) -> None:
         """Bulk update records in a table"""
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
         params = {}
-        if view_id:
-            params["viewId"] = view_id
+
         payload = {
             "ops": [
                 {"op": op.op, "wsId": op.wsId, "data": op.data} for op in operations
@@ -269,14 +264,6 @@ class ScratchpadApi:
             url, headers=API_CONFIG.get_api_headers(user_id), json=payload
         )
         _handle_response(response, "Failed to track token usage")
-
-    @staticmethod
-    def get_column_view(user_id: str, view_id: str) -> ColumnView:
-        """Get a specific column view by ID"""
-        url = f"{API_CONFIG.get_api_url()}/views/{view_id}"
-        response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
-        data = _handle_response(response, "Failed to get column view")
-        return ColumnView(**data)
 
     @staticmethod
     def get_agent_session(user_id: str, session_id: str) -> Optional[Dict[str, Any]]:

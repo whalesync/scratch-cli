@@ -190,7 +190,6 @@ async def update_records_implementation(
             snapshot_id=chatRunContext.session.snapshot_id,
             table_id=table.id.wsId,
             operations=update_operations,
-            view_id=chatRunContext.view_id,
         )
 
         logger.info(

@@ -43,18 +43,17 @@ export const useSnapshotTableRecords = (args: {
   tableId: string;
   cursor?: string;
   take?: number;
-  viewId?: string;
   generateHash?: boolean;
 }): UseSnapshotRecordsReturn => {
-  const { snapshotId, tableId, cursor, take = 1000, viewId = undefined, generateHash = false } = args;
+  const { snapshotId, tableId, cursor, take = 1000, generateHash = false } = args;
   const { snapshot } = useSnapshot(snapshotId);
-  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take, viewId);
+  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
 
   const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(
     tableId ? swrKey : null,
-    () => snapshotApi.listRecords(snapshotId, tableId, cursor, take, viewId),
+    () => snapshotApi.listRecords(snapshotId, tableId, cursor, take),
     {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
@@ -223,15 +222,15 @@ export const useSnapshotTableRecords = (args: {
 
   const acceptAllSuggestions = useCallback(async () => {
     if (!tableId || !snapshotId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
-    const result = await snapshotApi.acceptAllSuggestions(snapshotId, tableId, viewId);
+    const result = await snapshotApi.acceptAllSuggestions(snapshotId, tableId);
     return result;
-  }, [tableId, snapshotId, viewId]);
+  }, [tableId, snapshotId]);
 
   const rejectAllSuggestions = useCallback(async () => {
     if (!tableId || !snapshotId) return { recordsRejected: 0, totalChangesRejected: 0 };
-    const result = await snapshotApi.rejectAllSuggestions(snapshotId, tableId, viewId);
+    const result = await snapshotApi.rejectAllSuggestions(snapshotId, tableId);
     return result;
-  }, [tableId, snapshotId, viewId]);
+  }, [tableId, snapshotId]);
 
   const createNewRecord = useCallback(async () => {
     if (!snapshot) return;

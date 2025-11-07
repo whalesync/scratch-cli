@@ -8,8 +8,6 @@ export type SnapshotTableContext = {
   // The id of the table in the snapshot.
   id: EntityId;
 
-  activeViewId: string | null;
-
   // Columns that should not be considered in the context for the AI agent
   ignoredColumns: string[];
 

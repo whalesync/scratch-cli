@@ -30,7 +30,6 @@ class TableSpecForAi(BaseModel):
 
 class TableContext(BaseModel):
     id: EntityId
-    activeViewId: Optional[str]
     ignoredColumns: List[str]
     readOnlyColumns: List[str]
 
@@ -59,7 +58,6 @@ class SnapshotForAi(BaseModel):
 def convert_scratchpad_snapshot_to_ai_snapshot(
     snapshot_data: ScratchpadSnapshot,
     chatSession: ChatSession,
-    column_view: Optional[ColumnView] = None,
 ) -> SnapshotForAi:
     """
     Convert a ScratchpadSnapshot to SnapshotForAi format.
@@ -105,29 +103,11 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
     # Create table contexts
     tableViews = {}
 
-    if column_view:
-        for table_id, table_config in column_view.config.items():
-            columns = {}
-            for column_config in table_config.get("columns", []):
-                column_id = column_config["wsId"]
-                columns[column_id] = ColumnViewConfig(
-                    hidden=column_config.get("hidden", False),
-                    protected=column_config.get("protected", False),
-                )
-
-            table_view = TableViewConfig(
-                hidden=table_config.get("hidden", False),
-                protected=table_config.get("protected", False),
-                columns=columns,
-            )
-            tableViews[table_id] = table_view
-
     converted_table_contexts = []
     for i, snapshotTable in enumerate[SnapshotTable](snapshot_data.snapshotTables):
         table_context = snapshotTable["tableContext"]  # type: ignore
         table_context_spec = TableContext(
             id=EntityId(wsId=table_context["id"]["wsId"], remoteId=table_context["id"]["remoteId"]),  # type: ignore
-            activeViewId=table_context["activeViewId"],  # type: ignore
             ignoredColumns=table_context["ignoredColumns"],  # type: ignore
             readOnlyColumns=table_context["readOnlyColumns"],  # type: ignore
         )

@@ -188,22 +188,13 @@ export const snapshotApi = {
     await checkForApiError(res, 'Failed to delete snapshot');
   },
 
-  async listRecords(
-    snapshotId: string,
-    tableId: string,
-    cursor?: string,
-    take?: number,
-    viewId?: string,
-  ): Promise<ListRecordsResponse> {
+  async listRecords(snapshotId: string, tableId: string, cursor?: string, take?: number): Promise<ListRecordsResponse> {
     const url = new URL(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`);
     if (cursor) {
       url.searchParams.append('cursor', cursor);
     }
     if (take) {
       url.searchParams.append('take', take.toString());
-    }
-    if (viewId) {
-      url.searchParams.append('viewId', viewId);
     }
     const res = await fetch(url.toString(), {
       method: 'GET',
@@ -322,11 +313,7 @@ export const snapshotApi = {
     await checkForApiError(res, 'Failed to reject cell values');
   },
 
-  async acceptAllSuggestions(
-    snapshotId: string,
-    tableId: string,
-    viewId?: string,
-  ): Promise<AcceptAllSuggestionsResult> {
+  async acceptAllSuggestions(snapshotId: string, tableId: string): Promise<AcceptAllSuggestionsResult> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`,
       {
@@ -334,18 +321,13 @@ export const snapshotApi = {
         headers: {
           ...API_CONFIG.getAuthHeaders(),
         },
-        body: JSON.stringify({ viewId }),
       },
     );
     await checkForApiError(res, 'Failed to accept all suggestions');
     return res.json();
   },
 
-  async rejectAllSuggestions(
-    snapshotId: string,
-    tableId: string,
-    viewId?: string,
-  ): Promise<RejectAllSuggestionsResult> {
+  async rejectAllSuggestions(snapshotId: string, tableId: string): Promise<RejectAllSuggestionsResult> {
     const res = await fetch(
       `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/reject-all-suggestions`,
       {
@@ -353,7 +335,6 @@ export const snapshotApi = {
         headers: {
           ...API_CONFIG.getAuthHeaders(),
         },
-        body: JSON.stringify({ viewId }),
       },
     );
     await checkForApiError(res, 'Failed to reject all suggestions');

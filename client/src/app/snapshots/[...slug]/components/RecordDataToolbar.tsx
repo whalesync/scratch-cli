@@ -34,7 +34,7 @@ interface RecordDataToolbarProps {
 
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
-  const { snapshot, currentViewId, viewDataAsAgent, clearActiveRecordFilter } = useSnapshotContext();
+  const { snapshot, clearActiveRecordFilter } = useSnapshotContext();
   const { activeModel } = useAgentChatContext();
   const { isDevToolsEnabled } = useDevTools();
   const { mutate: globalMutate } = useSWRConfig();
@@ -58,7 +58,6 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { count, filteredCount, records, createNewRecord } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: table.id.wsId,
-    viewId: viewDataAsAgent && currentViewId ? currentViewId : undefined,
   });
 
   // Local state

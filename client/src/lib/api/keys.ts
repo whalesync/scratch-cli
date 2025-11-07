@@ -28,14 +28,13 @@ export const SWR_KEYS = {
   snapshot: {
     list: () => ['snapshot', 'list', 'all'],
     detail: (id: string) => ['snapshot', 'detail', id],
-    records: (snapshotId: string, tableId: string, cursor?: string, take?: number, viewId?: string) => [
+    records: (snapshotId: string, tableId: string, cursor?: string, take?: number) => [
       'snapshot',
       'records',
       snapshotId,
       tableId,
       cursor,
       take,
-      viewId,
     ],
     // Matches all SWR keys for records for a given snapshot and table
     recordsKeyMatcher: (snapshotId: string, tableId: string) => (key: Arguments) =>

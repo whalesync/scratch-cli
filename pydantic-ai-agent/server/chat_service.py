@@ -53,7 +53,6 @@ class ChatService:
     def _log_processing_start(
         self,
         session: ChatSession,
-        view_id: Optional[str],
         capabilities: Optional[List[str]],
         style_guides: Dict[str, str],
         data_scope: Optional[str],
@@ -63,10 +62,6 @@ class ChatService:
             "Starting agent processing",
             extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
         )
-
-        # Log view ID if provided
-        if not view_id:
-            logger.info("No view ID provided")
 
         # Log capabilities if provided
         if capabilities:
@@ -176,7 +171,6 @@ class ChatService:
         self,
         session: ChatSession,
         user: AgentUser,
-        view_id: Optional[str],
         active_table_id: Optional[str],
         data_scope: Optional[str],
         record_id: Optional[str],
@@ -187,7 +181,6 @@ class ChatService:
             "Pre-loading snapshot data and records",
         )
         snapshot_data = None
-        column_view = None
         preloaded_records = {}
         filtered_counts = {}
 
@@ -200,22 +193,9 @@ class ChatService:
         try:
             # Fetch snapshot details
             snapshot_data = ScratchpadApi.get_snapshot(user.userId, session.snapshot_id)
-            try:
-                if view_id:
-                    logger.info(f"🔍 Getting column view {view_id}")
-                    column_view = ScratchpadApi.get_column_view(user.userId, view_id)
-                else:
-                    logger.info(
-                        f"🔍 No view ID provided, skipping column view",
-                    )
-            except Exception as e:
-                logger.exception(
-                    f"❌ Failed to get column view {view_id}",
-                )
-                column_view = None
 
             snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
-                snapshot_data, session, column_view
+                snapshot_data, session
             )
 
             # Pre-load records for each table
@@ -273,7 +253,6 @@ class ChatService:
                             user.userId,
                             session.snapshot_id,
                             table.id.wsId,
-                            view_id=view_id,
                         )
                         filtered_counts[table.name] = (
                             records_result.filteredRecordsCount
@@ -313,7 +292,6 @@ class ChatService:
                             user.userId,
                             session.snapshot_id,
                             table.id.wsId,
-                            view_id=view_id,
                             # take=1,  #we used to include a sample record from the non active tables, now we dump everything that the user sees
                         )
                         preloaded_records[table.name] = [
@@ -365,7 +343,6 @@ class ChatService:
         user: AgentUser,
         style_guides: Dict[str, str],
         model: Optional[str] = None,
-        view_id: Optional[str] = None,
         capabilities: Optional[List[str]] = None,
         active_table_id: Optional[str] = None,
         data_scope: Optional[str] = None,
@@ -386,9 +363,7 @@ class ChatService:
 
             progress_callback = noop_callback
 
-        self._log_processing_start(
-            session, view_id, capabilities, style_guides, data_scope
-        )
+        self._log_processing_start(session, capabilities, style_guides, data_scope)
 
         # Determine the API key to use for the agent
         api_key, user_open_router_credentials = self._get_openrouter_api_key(
@@ -417,7 +392,6 @@ class ChatService:
             snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
                 session,
                 user,
-                view_id,
                 active_table_id,
                 data_scope,
                 record_id,
@@ -430,7 +404,6 @@ class ChatService:
                 run_id=agent_run_id,
                 session=session,
                 user_id=user.userId,
-                view_id=view_id,
                 snapshot=snapshot,
                 preloaded_records=preloaded_records,
                 active_table_id=active_table_id,

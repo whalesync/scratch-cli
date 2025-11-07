@@ -2,27 +2,17 @@
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
-import { TableSpec } from '@/types/server-entities/snapshot';
-import { ColumnView } from '@/types/server-entities/view';
 import { Group, Text, Tooltip } from '@mantine/core';
 import { Icon } from '@phosphor-icons/react';
 import _ from 'lodash';
-import { Disc3Icon, RectangleEllipsisIcon, Table2Icon, ViewIcon } from 'lucide-react';
+import { Disc3Icon, RectangleEllipsisIcon, Table2Icon } from 'lucide-react';
 import styles from './ContextBadges.module.css';
 
-export const ContextBadges = ({
-  currentView,
-}: {
-  activeTable: TableSpec | null;
-  currentView: ColumnView | undefined;
-}) => {
+export const ContextBadges = () => {
   const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
 
   return (
     <Group gap="xs">
-      {/* {activeTable && (
-          <ContextBadge label={activeTable.name} tooltip="The current table being viewed" icon={Table2Icon} />
-        )} */}
       {dataScope === 'table' && (
         <ContextBadge
           label={_.capitalize(dataScope)}
@@ -42,13 +32,6 @@ export const ContextBadges = ({
           label={_.capitalize(activeColumnId || '')}
           icon={RectangleEllipsisIcon}
           tooltip="The agent is focusing on this field"
-        />
-      )}
-      {currentView && (
-        <ContextBadge
-          label={_.capitalize(currentView.name || currentView.id)}
-          icon={ViewIcon}
-          tooltip="The active column view used by the agent"
         />
       )}
     </Group>

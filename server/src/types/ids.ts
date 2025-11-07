@@ -149,17 +149,6 @@ export function createStyleGuideId(): StyleGuideId {
   return createId(IdPrefixes.STYLE_GUIDE) as StyleGuideId;
 }
 
-// ------- View -------
-export type ViewId = PrefixedId<IdPrefixes.VIEW>;
-
-export function isViewId(id: unknown): id is ViewId {
-  return isId(id, IdPrefixes.VIEW);
-}
-
-export function createViewId(): ViewId {
-  return createId(IdPrefixes.VIEW) as ViewId;
-}
-
 // ------- AiAgentCredential -------
 export type AiAgentCredentialId = PrefixedId<IdPrefixes.AI_AGENT_CREDENTIAL>;
 

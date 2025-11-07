@@ -3,7 +3,6 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { useCallback, useMemo, useState } from 'react';
-import { useSnapshotContext } from '../contexts/SnapshotContext';
 import { useTableContext } from '../contexts/table-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';
@@ -28,7 +27,6 @@ export const RecordDetails = ({
   onFocusOnField,
   onRecordUpdate,
 }: RecordDetailsProps) => {
-  const { currentView } = useSnapshotContext();
   const { addPendingChange, savingPendingChanges } = useTableContext();
   const [savingSuggestions, setSavingSuggestions] = useState(false);
 
@@ -128,7 +126,6 @@ export const RecordDetails = ({
           onAcceptSuggestion={handleAcceptSuggestion}
           onRejectSuggestion={handleRejectSuggestion}
           saving={saving}
-          currentView={currentView}
         />
       );
     },
@@ -140,7 +137,6 @@ export const RecordDetails = ({
       acceptCellValues,
       rejectCellValues,
       handleFocusOnField,
-      currentView,
     ],
   );
 
