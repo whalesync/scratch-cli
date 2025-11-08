@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { AiAgentCredentialSource, TokenType, UserRole } from '@prisma/client';
-import { nanoid } from 'nanoid';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
@@ -12,6 +11,9 @@ import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { createAiAgentCredentialId, createApiTokenId, createOrganizationId, createUserId } from 'src/types/ids';
 import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { generateApiToken, generateTokenExpirationDate, generateWebsocketTokenExpirationDate } from './tokens';
+import { UserSettings } from './types';
 
 @Injectable()
 export class UsersService {
@@ -55,8 +57,8 @@ export class UsersService {
           data: {
             id: createApiTokenId(),
             userId: user.id,
-            token: this.generateApiToken(),
-            expiresAt: this.generateWebsocketTokenExpirationDate(),
+            token: generateApiToken(),
+            expiresAt: generateWebsocketTokenExpirationDate(),
             type: TokenType.WEBSOCKET,
           },
         });
@@ -74,7 +76,7 @@ export class UsersService {
         if (existingWebsocketToken.expiresAt < new Date()) {
           const updatedToken = await this.db.client.aPIToken.update({
             where: { id: existingWebsocketToken.id },
-            data: { expiresAt: this.generateWebsocketTokenExpirationDate() },
+            data: { expiresAt: generateWebsocketTokenExpirationDate() },
           });
           user.apiTokens = user.apiTokens.map((token) =>
             token.id === existingWebsocketToken.id ? updatedToken : token,
@@ -85,8 +87,8 @@ export class UsersService {
           data: {
             id: createApiTokenId(),
             userId: user.id,
-            token: this.generateApiToken(),
-            expiresAt: this.generateWebsocketTokenExpirationDate(),
+            token: generateApiToken(),
+            expiresAt: generateWebsocketTokenExpirationDate(),
             type: TokenType.WEBSOCKET,
           },
         });
@@ -114,8 +116,8 @@ export class UsersService {
         apiTokens: {
           create: {
             id: createApiTokenId(),
-            token: this.generateApiToken(),
-            expiresAt: this.generateTokenExpirationDate(),
+            token: generateApiToken(),
+            expiresAt: generateTokenExpirationDate(),
             type: TokenType.WEBSOCKET,
           },
         },
@@ -207,18 +209,21 @@ export class UsersService {
     });
   }
 
-  private generateApiToken(): string {
-    // Generate a secure 32-character token using nanoid
-    return nanoid(32);
-  }
+  public async updateUserSettings(user: UserCluster.User, dto: UpdateSettingsDto): Promise<void> {
+    const existingSettings = (user.settings ?? {}) as UserSettings;
 
-  private generateTokenExpirationDate(): Date {
-    // set to 6 months from now
-    return new Date(Date.now() + 1000 * 60 * 60 * 24 * 180); // 6 months
-  }
+    let updatedSettings = {
+      ...existingSettings,
+      ...dto.updates,
+    };
 
-  private generateWebsocketTokenExpirationDate(): Date {
-    // set to 1 day from now
-    return new Date(Date.now() + 1000 * 60 * 60 * 24);
+    // filter out null values as those should remove the key from the settings object
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    updatedSettings = Object.fromEntries(Object.entries(updatedSettings).filter(([_, value]) => value !== null));
+
+    await this.db.client.user.update({
+      where: { id: user.id },
+      data: { settings: updatedSettings },
+    });
   }
 }

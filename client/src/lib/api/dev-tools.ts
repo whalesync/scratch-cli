@@ -1,5 +1,5 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
-import { User } from '@/types/server-entities/users';
+import { UpdateSettingsDto, User } from '@/types/server-entities/users';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -24,5 +24,16 @@ export const devToolsApi = {
     });
     await checkForApiError(res, 'Failed to get user info for user: ' + userId);
     return res.json();
+  },
+  updateUserSettings: async (userId: string, dto: UpdateSettingsDto): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/users/${userId}/settings`, {
+      method: 'PATCH',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dto),
+    });
+    await checkForApiError(res, 'Failed to update user settings for user: ' + userId);
   },
 };

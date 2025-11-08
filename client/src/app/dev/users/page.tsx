@@ -29,6 +29,10 @@ const UsersPage = () => {
     }
   };
 
+  const handleRefreshUserDetails = (userId: string) => {
+    retrieveUserDetails(userId);
+  };
+
   // sort newest first
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -127,7 +131,11 @@ const UsersPage = () => {
             )}
             {currentUserDetails && (
               <Stack miw="40%">
-                <UserDetailsCard details={currentUserDetails} onClose={clearCurrentUserDetails} />
+                <UserDetailsCard
+                  details={currentUserDetails}
+                  onClose={clearCurrentUserDetails}
+                  onRefreshUser={handleRefreshUserDetails}
+                />
               </Stack>
             )}
           </Group>

@@ -24,3 +24,7 @@ export function userToActor(user: UserCluster.User): Actor {
     organizationId: user.organizationId ?? '<empty org id>',
   };
 }
+
+export interface UserSettings {
+  [key: string]: string | number | boolean;
+}

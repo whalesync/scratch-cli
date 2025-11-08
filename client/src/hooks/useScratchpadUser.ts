@@ -1,42 +1,44 @@
-import { API_CONFIG } from "@/lib/api/config";
-import { SWR_KEYS } from "@/lib/api/keys";
-import { usersApi } from "@/lib/api/users";
-import { User } from "@/types/server-entities/users";
-import { RouteUrls } from "@/utils/route-urls";
-import { useAuth, useUser } from "@clerk/nextjs";
-import { UserResource } from "@clerk/types";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
-import useSWR from "swr";
+import { API_CONFIG } from '@/lib/api/config';
+import { SWR_KEYS } from '@/lib/api/keys';
+import { usersApi } from '@/lib/api/users';
+import { User, UserSetting } from '@/types/server-entities/users';
+import { RouteUrls } from '@/utils/route-urls';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { UserResource } from '@clerk/types';
+import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
+import useSWR from 'swr';
 
 export interface ScratchPadUser {
   isLoading: boolean;
   user: User | null;
   clerkUser: UserResource | null;
   signOut: () => void;
-  isSignedIn?: boolean; 
+  isSignedIn?: boolean;
   isAdmin?: boolean;
+  updateUserSetting: (key: UserSetting, value: string | number | boolean) => Promise<void>;
+  clearUserSetting: (key: UserSetting) => Promise<void>;
 }
 
 export const useScratchPadUser = (): ScratchPadUser => {
   const { signOut } = useAuth();
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { data: user, isLoading } = useSWR(
-    SWR_KEYS.users.activeUser(),
-    usersApi.activeUser,
-    {
-      refreshInterval: 1000 * 60 * 5, // 5 minutes - want to get updated agent JWT tokens
-      onSuccess: (data) => {
-        /// update our static config when the values change
-        if(data.websocketToken !== API_CONFIG.getSnapshotWebsocketToken()) {
-          API_CONFIG.setSnapshotWebsocketToken(data.websocketToken || '');
-        }
-        if(data.agentJwt !== API_CONFIG.getAgentJwt()) {
-          API_CONFIG.setAgentJwt(data.agentJwt || '');
-        }
+  const {
+    data: user,
+    isLoading,
+    mutate,
+  } = useSWR(SWR_KEYS.users.activeUser(), usersApi.activeUser, {
+    refreshInterval: 1000 * 60 * 5, // 5 minutes - want to get updated agent JWT tokens
+    onSuccess: (data) => {
+      /// update our static config when the values change
+      if (data.websocketToken !== API_CONFIG.getSnapshotWebsocketToken()) {
+        API_CONFIG.setSnapshotWebsocketToken(data.websocketToken || '');
       }
-    }
-  );
+      if (data.agentJwt !== API_CONFIG.getAgentJwt()) {
+        API_CONFIG.setAgentJwt(data.agentJwt || '');
+      }
+    },
+  });
 
   const router = useRouter();
 
@@ -55,12 +57,48 @@ export const useScratchPadUser = (): ScratchPadUser => {
     }
   }, [router, signOut]);
 
+  const updateUserSetting = useCallback(
+    async (key: UserSetting, value: string | number | boolean) => {
+      if (!user) {
+        return;
+      }
+
+      await usersApi.updateSettings({
+        updates: {
+          [key]: value,
+        },
+      });
+
+      mutate();
+    },
+    [user, mutate],
+  );
+
+  const clearUserSetting = useCallback(
+    async (key: UserSetting) => {
+      if (!user) {
+        return;
+      }
+
+      await usersApi.updateSettings({
+        updates: {
+          [key]: null,
+        },
+      });
+
+      mutate();
+    },
+    [user, mutate],
+  );
+
   return {
     isLoading: isLoading || !isLoaded,
     user: user || null,
     clerkUser: clerkUser || null,
     signOut: signOutClerk,
     isSignedIn,
-    isAdmin: user?.isAdmin
+    isAdmin: user?.isAdmin,
+    updateUserSetting,
+    clearUserSetting,
   };
 };

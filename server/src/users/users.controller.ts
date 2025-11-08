@@ -1,9 +1,19 @@
-import { Controller, Get, NotFoundException, Param, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Patch,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
-import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -34,20 +44,15 @@ export class UsersController {
   }
 
   @UseGuards(ScratchpadAuthGuard)
-  @Post(':id/debug/add-new-user-resources')
-  async debugAddNewUserResources(@Req() req: RequestWithUser, @Param('id') id: string): Promise<boolean> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can add new user resources');
-    }
-
-    const user = await this.usersService.findOne(id);
+  @Patch('current/settings')
+  @HttpCode(204)
+  async updateUserSettings(@Req() req: RequestWithUser, @Body() updateSettingsDto: UpdateSettingsDto): Promise<void> {
+    const user = await this.usersService.findOne(req.user.id);
 
     if (!user) {
-      throw new NotFoundException(`User ${id} not found`);
+      throw new NotFoundException(`User ${req.user.id} not found`);
     }
 
-    await this.usersService.addNewUserResources(user);
-
-    return true;
+    await this.usersService.updateUserSettings(user, updateSettingsDto);
   }
 }

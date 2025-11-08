@@ -2,14 +2,49 @@ import { BadgeBase, BadgeError, BadgeOK } from '@/app/components/base/badges';
 import { TextSmBook, TextTitle2, TextTitle3 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
+import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { getBuildFlavor } from '@/utils/build';
 import { Anchor, Card, CloseButton, Group, Stack, Table, Tooltip } from '@mantine/core';
-import { CreditCardIcon, HatGlassesIcon } from 'lucide-react';
+import { CreditCardIcon, HatGlassesIcon, Trash2Icon } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { clerkUserUrl, stripeCustomerUrl } from '../utils';
 
-export const UserDetailsCard = ({ details, onClose }: { details: UserDetails; onClose: () => void }) => {
+export const UserDetailsCard = ({
+  details,
+  onClose,
+  onRefreshUser,
+}: {
+  details: UserDetails;
+  onClose: () => void;
+  onRefreshUser: (userId: string) => void;
+}) => {
+  const [saving, setSaving] = useState(false);
+  const handleRemoveSetting = useCallback(
+    async (key: string) => {
+      try {
+        setSaving(true);
+        await devToolsApi.updateUserSettings(details.user.id, { updates: { [key]: null } });
+        ScratchpadNotifications.success({
+          title: 'Setting removed successfully',
+          message: 'The setting has been removed successfully',
+        });
+        onRefreshUser(details.user.id);
+      } catch (error) {
+        console.error('Failed to remove setting', key, error);
+        ScratchpadNotifications.error({
+          title: 'Failed to remove setting',
+          message: 'The setting has not been removed',
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [details, onRefreshUser],
+  );
   return (
     <Card withBorder shadow="sm" radius="xs">
       <Card.Section withBorder inheritPadding py="xs">
@@ -55,6 +90,28 @@ export const UserDetailsCard = ({ details, onClose }: { details: UserDetails; on
           <LabelValuePair label="ID" value={details.user.organization?.id} canCopy />
           <LabelValuePair label="Clerk ID" value={details.user.organization?.clerkId} canCopy />
           <LabelValuePair label="Name" value={details.user.organization?.name} />
+        </Stack>
+      </Card.Section>
+      <Card.Section p="xs" withBorder>
+        <Stack>
+          <TextTitle3>Settings</TextTitle3>
+          {Object.entries(details.user.settings ?? {}).map(([key, value]) => (
+            <LabelValuePair
+              key={key}
+              label={key}
+              value={
+                <Group justify="space-between" w="100%">
+                  <TextSmBook>{value}</TextSmBook>
+                  <ToolIconButton
+                    icon={Trash2Icon}
+                    onClick={() => handleRemoveSetting(key)}
+                    tooltip="Remove this setting"
+                    disabled={saving}
+                  />
+                </Group>
+              }
+            />
+          ))}
         </Stack>
       </Card.Section>
       <Card.Section p="xs" withBorder>

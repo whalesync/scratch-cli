@@ -14,6 +14,7 @@ export interface User {
   email?: string;
   stripeCustomerId?: string;
   organization?: Organization;
+  settings?: Record<string, string | number | boolean>;
 }
 
 export interface SubscriptionInfo {
@@ -44,4 +45,16 @@ export interface Organization {
   name: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export enum UserSetting {
+  DEFAULT_LLM_MODEL = 'default_llm_model',
+}
+
+export interface UpdateSettingsDto {
+  /**
+   * Only keys present in the map will be updated, other keys will be left unchanged.
+   * null values will remove the key from the settings object
+   */
+  updates: Record<string, string | number | boolean | null>;
 }

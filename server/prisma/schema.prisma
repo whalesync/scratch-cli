@@ -30,6 +30,7 @@ model User {
   stripeCustomerId        String?                  @unique
   organizationId          String?
   organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  settings                Json?                    @default("{}") // UserSettings object 
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
   customConnectors        CustomConnector[]

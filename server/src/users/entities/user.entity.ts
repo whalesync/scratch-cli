@@ -14,7 +14,6 @@ export interface SubscriptionInfo {
   canManageSubscription: boolean; // if the current user can manage the subscription
   ownerId: string; // the id of the user who created the subscription
 }
-
 export class User {
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +36,8 @@ export class User {
 
   organization?: Organization;
 
+  settings?: Record<string, string | number | boolean>;
+
   constructor(user: UserCluster.User, agentJwt?: string, experiments?: UserFlagValues) {
     this.id = user.id;
     this.createdAt = user.createdAt;
@@ -55,6 +56,7 @@ export class User {
     this.experimentalFlags = experiments;
     this.subscription = toSubscriptionInfo(user.id, user.organization?.subscriptions ?? []);
     this.organization = user.organization ? new Organization(user.organization) : undefined;
+    this.settings = user.settings as Record<string, string | number | boolean>;
   }
 }
 
