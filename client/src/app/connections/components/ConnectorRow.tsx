@@ -44,7 +44,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
       <Table.Tr key={connectorAccount.id}>
         <Table.Td>
           <Group gap="sm">
-            <ConnectorIcon size={24} connector={connectorAccount.service} />
+            <ConnectorIcon size={24} connector={connectorAccount.service} withBorder />
             <TextMdHeavier>{connectorAccount.displayName || serviceName(connectorAccount.service)}</TextMdHeavier>
           </Group>
         </Table.Td>

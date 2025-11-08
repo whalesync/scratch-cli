@@ -168,7 +168,7 @@ export const AddTableModal = ({ isOpen, onClose, snapshotId, onTableAdded }: Add
                       >
                         <Table.Td>
                           <Group gap="md" wrap="nowrap">
-                            <ConnectorIcon connector={connector.service} size={32} />
+                            <ConnectorIcon connector={connector.service} size={32} withBorder />
                             <div style={{ flex: 1 }}>
                               <Text size="sm" fw={500}>
                                 {connector.displayName}

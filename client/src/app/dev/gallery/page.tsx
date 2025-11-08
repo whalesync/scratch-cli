@@ -15,7 +15,7 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from '@mantine/core';
-import { Ambulance, Home, MoonStar, Plus, Settings, User } from 'lucide-react';
+import { Ambulance, CircleCheck, Home, MoonStar, Plus, Settings, User } from 'lucide-react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
@@ -32,6 +32,9 @@ import {
   ButtonSecondarySolid,
   ContentFooterButton,
   DevToolButton,
+  IconButtonGhost,
+  IconButtonInline,
+  IconButtonOutline,
   RejectSuggestionButton,
 } from '../../components/base/buttons';
 import {
@@ -51,6 +54,7 @@ import {
   TextXsHeavier,
   TextXsRegular,
 } from '../../components/base/text';
+import { CloseButtonInline } from '../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { DebouncedTextArea } from '../../components/DebouncedTextArea';
 import { DotSpacer } from '../../components/DotSpacer';
@@ -174,31 +178,31 @@ export default function DevComponentGalleryPage() {
           </TypeGalleryItem>
           <GallerySection id="body-text" title="Text: body" />
           <TextXsBook c="dimmed">All of these support c=&apos;dimmed&apos;</TextXsBook>
-          <TypeGalleryItem label="TextMdHeavier">
+          <TypeGalleryItem label="TextMdHeavier" notes="AKA text/16-medium">
             <TextMdHeavier>Brown fox is quick</TextMdHeavier>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMdRegular">
+          <TypeGalleryItem label="TextMdRegular" notes="AKA text/16-regular">
             <TextMdRegular>Brown fox is quick</TextMdRegular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMdBook">
+          <TypeGalleryItem label="TextMdBook" notes="AKA text/16-book">
             <TextMdBook>Brown fox is quick</TextMdBook>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmHeavier">
+          <TypeGalleryItem label="TextSmHeavier" notes="AKA text/13-medium">
             <TextSmHeavier>Brown fox is quick</TextSmHeavier>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmRegular">
+          <TypeGalleryItem label="TextSmRegular" notes="AKA text/13-regular">
             <TextSmRegular>Brown fox is quick</TextSmRegular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmBook">
+          <TypeGalleryItem label="TextSmBook" notes="AKA text/13-book">
             <TextSmBook>Brown fox is quick</TextSmBook>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsHeavier">
+          <TypeGalleryItem label="TextXsHeavier" notes="AKA text/12-medium">
             <TextXsHeavier>Brown fox is quick</TextXsHeavier>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsRegular">
+          <TypeGalleryItem label="TextXsRegular" notes="AKA text/12-regular">
             <TextXsRegular>Brown fox is quick</TextXsRegular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsBook">
+          <TypeGalleryItem label="TextXsBook" notes="AKA text/12-book">
             <TextXsBook>Brown fox is quick</TextXsBook>
           </TypeGalleryItem>
           <TypeGalleryItem label="TextXsBook c='dimmed'">
@@ -242,6 +246,24 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GalleryItem label="ButtonDangerLight">
             <ButtonDangerLight leftSection={<Plus />}>Click</ButtonDangerLight>
+          </GalleryItem>
+          <GalleryItem label="IconButtonOutline">
+            <IconButtonOutline>
+              <CircleCheck />
+            </IconButtonOutline>
+          </GalleryItem>
+          <GalleryItem label="IconButtonGhost">
+            <IconButtonGhost>
+              <CircleCheck />
+            </IconButtonGhost>
+          </GalleryItem>
+          <GalleryItem label="IconButtonInline">
+            <IconButtonInline>
+              <CircleCheck />
+            </IconButtonInline>
+          </GalleryItem>
+          <GalleryItem label="CloseButtonInline">
+            <CloseButtonInline />
           </GalleryItem>
           <GalleryItem label="DevToolButton">
             <DevToolButton>Click</DevToolButton>
@@ -313,7 +335,7 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="ConnectorIcon">
             <Group gap="sm">
               {Object.values(Service).map((service) => (
-                <ConnectorIcon key={service} connector={service} size={40} />
+                <ConnectorIcon key={service} connector={service} size={40} withBorder />
               ))}
             </Group>
           </GalleryItem>

@@ -29,9 +29,14 @@ export const ButtonSecondarySolid = Button.withProps({
 export const ButtonSecondaryOutline = Button.withProps({
   variant: 'outline',
   size: 'sm',
-  color: 'gray.9',
-  c: 'gray.9', // text
+  color: 'var(--fg-muted)',
+  c: 'var(--fg-muted)', // text
+  bg: 'var(--bg-base)',
   classNames: { root: customBordersClasses.cornerBorders },
+  styles: {
+    section: { color: 'var(--fg-muted)' },
+    inner: { color: 'var(--fg-primary)' },
+  },
 });
 
 export const ButtonSecondaryGhost = Button.withProps({
@@ -55,6 +60,42 @@ export const ButtonDangerLight = Button.withProps({
   color: 'red.6',
   c: 'red.8',
   classNames: { root: customBordersClasses.cornerBorders },
+});
+
+export const IconButtonOutline = Button.withProps({
+  variant: 'outline',
+  size: 'sm',
+  color: 'gray.9',
+  c: 'gray.6',
+  p: 0,
+  classNames: { root: customBordersClasses.cornerBorders },
+  styles: {
+    root: { aspectRatio: '1' },
+    inner: { color: 'var(--mantine-color-gray-9)' },
+  },
+});
+
+export const IconButtonGhost = Button.withProps({
+  variant: 'subtle',
+  size: 'sm',
+  color: 'var(--fg-muted)',
+  c: 'var(--fg-muted)',
+  p: 0,
+  styles: {
+    root: { aspectRatio: '1' },
+  },
+});
+
+export const IconButtonInline = Button.withProps({
+  variant: 'subtle',
+  w: 'min-content',
+  size: 'compact-sm',
+  color: 'redvar(--fg-muted)',
+  c: 'var(--fg-muted)',
+  p: 0,
+  styles: {
+    root: { aspectRatio: '1' },
+  },
 });
 
 export const DevToolButton = Button.withProps({

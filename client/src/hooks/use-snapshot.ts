@@ -15,6 +15,8 @@ export interface UseSnapshotReturn {
   updateSnapshot: (updateDto: UpdateSnapshotDto) => Promise<void>;
   updateColumnSettings: (tableId: string, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
+  hideTable: (tableId: string) => Promise<void>;
+  deleteTable: (tableId: string) => Promise<void>;
 }
 
 export const useSnapshot = (id: string | null): UseSnapshotReturn => {
@@ -111,6 +113,28 @@ export const useSnapshot = (id: string | null): UseSnapshotReturn => {
     [id, globalMutate],
   );
 
+  const hideTable = useCallback(
+    async (tableId: string) => {
+      if (!id) {
+        return;
+      }
+      await snapshotApi.hideTable(id, tableId, true);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
+  const deleteTable = useCallback(
+    async (tableId: string) => {
+      if (!id) {
+        return;
+      }
+      await snapshotApi.deleteTable(id, tableId);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
   return {
     snapshot: data,
     isLoading,
@@ -120,5 +144,7 @@ export const useSnapshot = (id: string | null): UseSnapshotReturn => {
     updateSnapshot,
     updateColumnSettings,
     clearActiveRecordFilter,
+    hideTable,
+    deleteTable,
   };
 };

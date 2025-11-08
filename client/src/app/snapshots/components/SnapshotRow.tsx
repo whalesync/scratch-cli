@@ -110,7 +110,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
                   bd="1px solid var(--mantine-color-body)"
                   bdrs="xs"
                 >
-                  <ConnectorIcon key={table.id} connector={table.connectorService} size={21} />
+                  <ConnectorIcon key={table.id} connector={table.connectorService} size={21} withBorder />
                 </Box>
               ))}
           </Box>

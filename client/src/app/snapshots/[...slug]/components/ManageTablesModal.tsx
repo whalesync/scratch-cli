@@ -75,7 +75,7 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables 
           {tables.map((table) => (
             <Group key={table.id} justify="space-between" wrap="nowrap" p="xs" style={{ borderRadius: 4 }}>
               <Group gap="xs" wrap="nowrap">
-                <ConnectorIcon connector={table.connectorService} size={16} />
+                <ConnectorIcon connector={table.connectorService} size={16} withBorder />
                 <Text size="sm">{table.tableSpec.name}</Text>
               </Group>
               <Checkbox

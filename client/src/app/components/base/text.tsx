@@ -27,19 +27,19 @@ export const TextTitle4 = Title.withProps({
 });
 
 export const TextMdHeavier = Text.withProps({
-  fz: '14px',
+  fz: '16px',
   fw: 500,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });
 
 export const TextMdRegular = Text.withProps({
-  fz: '14px',
+  fz: '16px',
   fw: 450,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });
 
 export const TextMdBook = Text.withProps({
-  fz: '14px',
+  fz: '16px',
   fw: 400,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });

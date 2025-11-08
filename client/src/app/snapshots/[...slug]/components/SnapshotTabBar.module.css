@@ -1,0 +1,37 @@
+.root {
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--mantine-color-gray-4);
+  border-bottom: 1px solid var(--mantine-color-gray-4);
+  height: 38;
+}
+
+.list {
+  flex-wrap: nowrap;
+  --tabs-list-gap: 0; /* Undocumented, override. */
+}
+
+.tab {
+  color: var(--fg-secondary);
+  border-bottom: none;
+  border-right: 1px solid var(--mantine-color-gray-4);
+  height: 36;
+
+  &:hover {
+    background-color: var(--bg-selected);
+  }
+}
+
+.tab[data-active] {
+  background-color: var(--bg-base);
+  color: var(--fg-primary);
+  border-bottom: none;
+
+  &:hover {
+    background-color: var(--bg-selected);
+  }
+}
+
+.addButton {
+  height: 36;
+  border-right: 1px solid var(--mantine-color-gray-4);
+}
