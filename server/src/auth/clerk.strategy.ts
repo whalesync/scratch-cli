@@ -5,6 +5,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
 import { AuthenticatedUser, ScratchpadJwtPayload } from './types';
@@ -31,28 +32,12 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       throw new UnauthorizedException('No token provided');
     }
 
+    let scratchpadPayload: ScratchpadJwtPayload;
     try {
       const jwtPayload = await verifyToken(token, {
         secretKey: this.configService.getClerkSecretKey(),
       });
-
-      const scratchpadPayload = jwtPayload as ScratchpadJwtPayload;
-
-      const user = await this.userService.getOrCreateUserFromClerk(
-        scratchpadPayload.sub,
-        scratchpadPayload.fullName,
-        scratchpadPayload.primaryEmail,
-      );
-
-      if (!user) {
-        throw new UnauthorizedException('No Scratch user found');
-      }
-
-      return {
-        ...user,
-        authType: 'jwt',
-        authSource: 'user',
-      };
+      scratchpadPayload = jwtPayload as ScratchpadJwtPayload;
     } catch (error) {
       if (error instanceof TokenVerificationError) {
         WSLogger.error({
@@ -71,5 +56,31 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
 
       throw new UnauthorizedException('Invalid JWT token');
     }
+
+    let user: UserCluster.User | null = null;
+    try {
+      user = await this.userService.getOrCreateUserFromClerk(
+        scratchpadPayload.sub,
+        scratchpadPayload.fullName,
+        scratchpadPayload.primaryEmail,
+      );
+    } catch (error) {
+      WSLogger.error({
+        source: 'ClerkStrategy',
+        message: 'Error querying database for user',
+        error,
+      });
+      throw new UnauthorizedException('Error loading user');
+    }
+
+    if (!user) {
+      throw new UnauthorizedException('No Scratch user found');
+    }
+
+    return {
+      ...user,
+      authType: 'jwt',
+      authSource: 'user',
+    };
   }
 }
