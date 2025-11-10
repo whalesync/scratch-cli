@@ -1,5 +1,6 @@
 import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { useSnapshotEditorUIStore } from '../stores/snapshot-editor-store';
+import { isSnapshotTableId } from '../types/server-entities/ids';
 import { useSnapshot, UseSnapshotReturn } from './use-snapshot';
 
 interface UseActiveSnapshotReturn extends UseSnapshotReturn {
@@ -14,10 +15,12 @@ interface UseActiveSnapshotReturn extends UseSnapshotReturn {
  */
 export const useActiveSnapshot = (): UseActiveSnapshotReturn => {
   const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
-  const activeTableId = useSnapshotEditorUIStore((state) => state.activeTableId);
+  const activeTab = useSnapshotEditorUIStore((state) => state.activeTab);
 
   const snapshot = useSnapshot(snapshotId);
-  const activeTable = snapshot?.snapshot?.snapshotTables?.find((table) => table.id === activeTableId);
+  const activeTable = isSnapshotTableId(activeTab)
+    ? snapshot?.snapshot?.snapshotTables?.find((table) => table.id === activeTab)
+    : undefined;
 
   return {
     ...snapshot,

@@ -6,18 +6,19 @@ import { ImageProps } from 'next/image';
 export function ConnectorIcon(
   props: { connector: string | null; size?: number } & Omit<ImageProps, 'src' | 'alt'> & { withBorder?: boolean },
 ) {
-  const iconUrl = getLogo(props.connector as Service);
+  const { connector, size, withBorder, ...rest } = props;
+  const iconUrl = getLogo(connector as Service);
 
   return (
     <Image
       src={iconUrl}
-      w={props.size ?? 40}
-      h={props.size ?? 40}
-      alt={props.connector || 'Connector icon'}
-      bd={props.withBorder ? '1px solid var(--mantine-color-gray-4)' : 'none'}
-      bg={props.withBorder ? 'var(--bg-base)' : 'transparent'}
+      w={size ?? 40}
+      h={size ?? 40}
+      alt={connector || 'Connector icon'}
+      bd={withBorder ? '1px solid var(--mantine-color-gray-4)' : 'none'}
+      bg={withBorder ? 'var(--bg-base)' : 'transparent'}
       radius="xs"
-      {...props}
+      {...rest}
     />
   );
 }

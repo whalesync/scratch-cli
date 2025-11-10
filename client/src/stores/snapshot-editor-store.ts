@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import { SnapshotTableId } from '../types/server-entities/ids';
 import { Snapshot } from '../types/server-entities/snapshot';
 
 export interface SnapshotEditorUIState {
   // The real entities are available with useActiveSnapshot() hook.
   snapshotId: string | null;
-  activeTableId: string | null;
+  activeTab: 'new-tab' | SnapshotTableId | null;
   activeCells: ActiveCells | null;
   recordDetailsVisible: boolean;
 
@@ -20,11 +21,16 @@ export interface ActiveCells {
 }
 
 type Actions = {
-  openSnapshot: (params: { snapshotId: string; tableId?: string; recordId?: string; columnId?: string }) => void;
+  openSnapshot: (params: {
+    snapshotId: string;
+    tableId?: SnapshotTableId;
+    recordId?: string;
+    columnId?: string;
+  }) => void;
   closeSnapshot: () => void;
   reconcileWithSnapshot: (snapshot: Snapshot) => void;
 
-  setActiveTableId: (activeTableId: string | null) => void;
+  setActiveTab: (activeTab: 'new-tab' | SnapshotTableId) => void;
   setActiveCells: (activeCells: ActiveCells | null) => void;
 };
 
@@ -32,7 +38,7 @@ type SnapshotEditorUIStore = SnapshotEditorUIState & Actions;
 
 const INITIAL_STATE: SnapshotEditorUIState = {
   snapshotId: null,
-  activeTableId: null,
+  activeTab: null, // Will pick an initial tab in reconcileWithSnapshot.
   activeCells: null,
   recordDetailsVisible: false,
   tabs: [],
@@ -40,14 +46,14 @@ const INITIAL_STATE: SnapshotEditorUIState = {
 
 export const useSnapshotEditorUIStore = create<SnapshotEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openSnapshot: (params: { snapshotId: string; tableId?: string; recordId?: string; columnId?: string }) =>
+  openSnapshot: (params: { snapshotId: string; tableId?: SnapshotTableId; recordId?: string; columnId?: string }) =>
     set({
       snapshotId: params.snapshotId,
-      activeTableId: params.tableId ?? null,
+      activeTab: params.tableId ?? null,
       activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
     }),
   closeSnapshot: () => set({ ...INITIAL_STATE }),
-  setActiveTableId: (activeTableId: string | null) => set({ activeTableId }),
+  setActiveTab: (activeTab: 'new-tab' | SnapshotTableId) => set({ activeTab }),
   setActiveCells: (activeCells: ActiveCells | null) =>
     set({ activeCells, recordDetailsVisible: !!activeCells?.recordId }),
 
@@ -57,7 +63,7 @@ export const useSnapshotEditorUIStore = create<SnapshotEditorUIStore>((set, get)
    */
   reconcileWithSnapshot: (snapshot: Snapshot) => {
     const current = get();
-    const result: Partial<SnapshotEditorUIState> = {};
+    const changes: Partial<SnapshotEditorUIState> = {};
 
     if (snapshot.id !== current.snapshotId) {
       return;
@@ -74,22 +80,20 @@ export const useSnapshotEditorUIStore = create<SnapshotEditorUIStore>((set, get)
       ?.filter((table) => table.hidden === false && !current.tabs.find((tab) => tab.tableId === table.id))
       .map((t) => t.id);
     if (tablesToRemoveFromTabs.length > 0 || tablesToAddToTabs.length > 0) {
-      result['tabs'] = [
+      changes['tabs'] = [
         ...current.tabs.filter((tab) => !tablesToRemoveFromTabs.includes(tab.tableId)),
         ...tablesToAddToTabs.map((tableId) => ({ type: 'table' as const, tableId })),
       ];
     }
 
-    // Ensure a table is selected.
-    if (!current.activeTableId) {
-      const firstTable = snapshot.snapshotTables?.find((table) => table.hidden === false)?.id;
-      if (firstTable) {
-        result['activeTableId'] = firstTable;
-      }
+    // Ensure a tab is selected.
+    if (!current.activeTab) {
+      const firstTab = snapshot.snapshotTables?.find((table) => table.hidden === false);
+      changes['activeTab'] = firstTab?.id ?? 'new-tab';
     }
 
-    if (Object.keys(result).length > 0) {
-      set(result);
+    if (Object.keys(changes).length > 0) {
+      set(changes);
     }
   },
 }));

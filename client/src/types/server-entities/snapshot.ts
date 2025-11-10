@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { Service } from './connector-accounts';
+import { SnapshotTableId } from './ids';
 import { EntityId } from './table-list';
 
 export type ColumnMetadata = {
@@ -60,7 +61,7 @@ export type SnapshotColumnSettings = {
 export type SnapshotColumnSettingsMap = { [columnWsId: string]: SnapshotColumnSettings };
 
 export interface SnapshotTable {
-  id: string;
+  id: SnapshotTableId;
   createdAt: string;
   updatedAt: string;
   snapshotId: string;

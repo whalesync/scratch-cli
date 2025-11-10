@@ -6,7 +6,7 @@ import { ScratchpadApiError } from '@/lib/api/error';
 import { Center, Divider, Loader, Table } from '@mantine/core';
 import { SWRConfig } from 'swr';
 import { ErrorInfo } from '../../components/InfoPanel';
-import { CreateSnapshotPanel } from './CreateSnapshotPanel';
+import { CreateSnapshotButton } from './CreateSnapshotButton';
 import { SnapshotRow } from './SnapshotRow';
 
 export const SnapshotsList = () => {
@@ -42,7 +42,7 @@ export const SnapshotsList = () => {
       }}
     >
       <MainContent>
-        <MainContent.BasicHeader title="Workbooks" />
+        <MainContent.BasicHeader title="Workbooks" actions={<CreateSnapshotButton />} />
         <MainContent.Body>
           <Divider />
           <Table highlightOnHover>
@@ -61,9 +61,6 @@ export const SnapshotsList = () => {
             </Table.Tbody>
           </Table>
         </MainContent.Body>
-        <MainContent.Footer>
-          <CreateSnapshotPanel />
-        </MainContent.Footer>
       </MainContent>
     </SWRConfig>
   );
