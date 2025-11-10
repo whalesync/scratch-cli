@@ -128,7 +128,11 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     Menu: Menu.extend({
       defaultProps: {
         shadow: 'md',
-        width: 200,
+        width: 250,
+      },
+      classNames: {
+        dropdown: classes.menuDropdown,
+        item: classes.menuItem,
       },
     }),
 

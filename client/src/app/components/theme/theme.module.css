@@ -22,3 +22,15 @@
 .tableTbody {
   color: var(--mantine-color-gray-9);
 }
+
+/** CUSTOM MENU STYLES */
+.menuDropdown {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--mantine-color-gray-4);
+}
+
+.menuItem {
+  &[data-disabled] {
+    color: var(--fg-secondary); /** Additional opacity applied by the widget */
+  }
+}

@@ -218,7 +218,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
             Add Row
           </ContentFooterButton>
           <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
-          <Menu shadow="md" width={250}>
+          <Menu>
             <Menu.Target>
               <ContentFooterButton leftSection={<FunnelSimpleIcon size={16} />}>Filter</ContentFooterButton>
             </Menu.Target>
@@ -233,7 +233,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
             </Menu.Dropdown>
           </Menu>
           <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
-          <Menu shadow="md" width={200}>
+          <Menu>
             <Menu.Target>
               <ContentFooterButton>
                 {currentPageSize === null ? 'All records' : `${currentPageSize} records`}

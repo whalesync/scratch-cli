@@ -1,8 +1,7 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-
   /* Semantic names for some custom colors */
+  /* Note: These reference Mantine color variables which automatically
+     switch between light/dark palettes via virtualColor */
 
   /* Backgrounds */
   --bg-base: var(--mantine-color-body);
@@ -32,9 +31,8 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  background-color: hsla(50, 25%, 96%);
+  background-color: var(--mantine-color-body);
+  color: var(--mantine-color-text);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -50,12 +48,6 @@ a {
   color: inherit;
   text-decoration: none;
 }
-
-/* @media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-} */
 
 #portal {
   position: fixed;

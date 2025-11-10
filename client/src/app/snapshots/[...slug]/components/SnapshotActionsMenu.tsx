@@ -293,7 +293,7 @@ export const SnapshotActionsMenu = () => {
           </Group>
         </Stack>
       </Modal>
-      <Menu shadow="md" width={250}>
+      <Menu>
         <Menu.Target>
           <ActionIconThreeDots />
         </Menu.Target>
