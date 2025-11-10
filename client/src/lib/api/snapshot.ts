@@ -404,4 +404,38 @@ export const snapshotApi = {
     );
     await checkForApiError(res, 'Failed to remove scratch column');
   },
+
+  async hideColumn(snapshotId: string, tableId: string, columnId: string): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/hide-column`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ columnId }),
+    });
+    await checkForApiError(res, 'Failed to hide column');
+  },
+
+  async unhideColumn(snapshotId: string, tableId: string, columnId: string): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/unhide-column`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ columnId }),
+    });
+    await checkForApiError(res, 'Failed to unhide column');
+  },
+
+  async clearHiddenColumns(snapshotId: string, tableId: string): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-hidden-columns`, {
+      method: 'POST',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+      },
+    });
+    await checkForApiError(res, 'Failed to clear hidden columns');
+  },
 };

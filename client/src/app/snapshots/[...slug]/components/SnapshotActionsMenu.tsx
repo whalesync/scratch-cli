@@ -18,7 +18,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
-import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, FileDownIcon, FileUpIcon } from 'lucide-react';
+import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, EyeIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useRef, useState } from 'react';
@@ -40,7 +40,7 @@ enum Modals {
 export const SnapshotActionsMenu = () => {
   const router = useRouter();
   const { user } = useScratchPadUser();
-  const { snapshot, activeTable, updateSnapshot, publish, isLoading } = useActiveSnapshot();
+  const { snapshot, activeTable, updateSnapshot, publish, isLoading, showAllColumns } = useActiveSnapshot();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
   const { isDevToolsEnabled } = useDevTools();
@@ -213,6 +213,8 @@ export const SnapshotActionsMenu = () => {
     const filter = getActiveRecordSqlFilterByWsId(snapshot, tableId);
     return filter && filter.trim() !== '';
   };
+
+  const hasHiddenColumns = activeTable?.hiddenColumns && activeTable.hiddenColumns.length > 0;
 
   return (
     <>
@@ -427,6 +429,15 @@ export const SnapshotActionsMenu = () => {
               <Menu.Item onClick={openCreateScratchColumnModal} leftSection={<BetweenVerticalEndIcon size={16} />}>
                 Add Scratch Column
               </Menu.Item>
+
+              {hasHiddenColumns && (
+                <Menu.Item
+                  onClick={() => showAllColumns(activeTable.tableSpec.id.wsId)}
+                  leftSection={<EyeIcon size={16} />}
+                >
+                  Show all hidden columns
+                </Menu.Item>
+              )}
               <Menu.Divider />
             </>
           )}

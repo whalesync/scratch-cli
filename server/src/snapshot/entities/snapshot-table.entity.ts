@@ -16,6 +16,7 @@ export class SnapshotTable {
   pageSize: number | null;
   hidden: boolean;
   syncInProgress: boolean;
+  hiddenColumns: string[];
 
   constructor(snapshotTable: SnapshotTableCluster.SnapshotTable) {
     this.id = snapshotTable.id;
@@ -31,5 +32,6 @@ export class SnapshotTable {
     this.pageSize = snapshotTable.pageSize ?? null;
     this.hidden = snapshotTable.hidden;
     this.syncInProgress = snapshotTable.syncInProgress;
+    this.hiddenColumns = snapshotTable.hiddenColumns ?? [];
   }
 }

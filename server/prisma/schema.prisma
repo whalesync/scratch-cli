@@ -184,6 +184,9 @@ model SnapshotTable {
   // Whether records are currently being synced/downloaded for this table
   syncInProgress Boolean @default(false)
 
+  // Columns that are hidden from the UI and agent, list of column wsIds
+  hiddenColumns String[] @default([])
+
   @@index([snapshotId])
   @@index([connectorAccountId])
 }

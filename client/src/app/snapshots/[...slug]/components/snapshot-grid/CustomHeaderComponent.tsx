@@ -6,8 +6,18 @@ import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
-import { AlertCircle, EyeOff, List, ListChecks, Lock, MoreVertical, Star, TrashIcon } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  EyeIcon,
+  EyeOff,
+  EyeOffIcon,
+  List,
+  ListChecks,
+  MoreVertical,
+  Star,
+  TrashIcon,
+} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
@@ -26,7 +36,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, updateColumnSettings } = useActiveSnapshot();
+  const { snapshot, updateColumnSettings, hideColumn, unhideColumn } = useActiveSnapshot();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
     tableId: props.tableId ?? '',
@@ -76,11 +86,15 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const hasDataConverterTypes = props.columnSpec?.dataConverterTypes && props.columnSpec.dataConverterTypes.length > 0;
 
   // Get current column configuration
-  const isColumnHidden = false;
-  const isColumnProtected = false;
-  const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
-  const currentTable = props.tableId ? snapshot?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
-  const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
+  const { currentTable, isColumnHidden, isScratchColumn, currentDataConverter } = useMemo(() => {
+    const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
+    const currentTable = props.tableId
+      ? snapshot?.snapshotTables?.find((t) => t.tableSpec.id.wsId === props.tableId)
+      : undefined;
+    const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
+    const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
+    return { isScratchColumn, currentTable, isColumnHidden, currentDataConverter };
+  }, [snapshot, props.tableId, columnId, props.columnSpec]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -212,19 +226,35 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     }
   };
 
-  /*
-  // NOTE(Chris): I am leaving this here for now as it will get reactivated with a new implementation in DEV-8768
-
   const handleToggleColumnVisibility = async () => {
-    // ColumnViews were deprecated
-    // TODO: Need a new place to store the hidden columns on the SnapshotTable
+    if (!snapshot || !props.tableId) {
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setIsMenuOpen(false);
+      if (currentTable?.hiddenColumns?.includes(columnId)) {
+        await unhideColumn(props.tableId, columnId);
+      } else {
+        await hideColumn(props.tableId, columnId);
+      }
+
+      ScratchpadNotifications.success({
+        title: 'Column Visibility Changed',
+        message: `Column "${columnName}" is now ${currentTable?.hiddenColumns?.includes(columnId) ? 'hidden from ' : 'visible to '} the agent`,
+      });
+    } catch (error) {
+      console.error('Error changing column visibility:', error);
+      ScratchpadNotifications.error({
+        title: 'Error changing column visibility',
+        message: error instanceof Error ? error.message : 'Failed to change column visibility',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleToggleColumnProtection = async () => {
-    // ColumnViews were deprecated
-    // TODO: Need a new place to store the protected columns on the SnapshotTable
-  };
- */
   const handleSetTitleColumn = async () => {
     try {
       setIsProcessing(true);
@@ -354,11 +384,6 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
           {isColumnHidden && (
             <span title="Column is hidden">
               <StyledLucideIcon Icon={EyeOff} size={12} c="#666" />
-            </span>
-          )}
-          {isColumnProtected && (
-            <span title="Column is protected">
-              <StyledLucideIcon Icon={Lock} size={12} c="#666" />
             </span>
           )}
           {props.enableSorting && (
@@ -557,8 +582,6 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
               <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>
                 Column View
               </div>
-              {/* 
-              // NOTE(Chris): I am leaving this here for now as it will get reactivated with a new implementation in DEV-8768
               <button
                 onClick={handleToggleColumnVisibility}
                 disabled={isProcessing}
@@ -585,45 +608,13 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
                 }}
               >
                 {isColumnHidden ? (
-                  <StyledLucideIcon Icon={Eye} size={14} c="#888" />
+                  <StyledLucideIcon Icon={EyeIcon} size={14} c="#888" />
                 ) : (
-                  <StyledLucideIcon Icon={EyeOff} size={14} c="#888" />
+                  <StyledLucideIcon Icon={EyeOffIcon} size={14} c="#888" />
                 )}
-                {isColumnHidden ? 'Unhide Column' : 'Hide Column'}
+                {isColumnHidden ? 'Show Column' : 'Hide Column'}
               </button>
-              <button
-                onClick={handleToggleColumnProtection}
-                disabled={isProcessing}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: isProcessing ? '#666' : '#ffffff',
-                  textAlign: 'left',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isProcessing) {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                {isColumnProtected ? (
-                  <StyledLucideIcon Icon={Square} size={14} c="#888" />
-                ) : (
-                  <StyledLucideIcon Icon={Lock} size={14} c="#888" />
-                )}
-                {isColumnProtected ? 'Unprotect Column' : 'Protect Column'}
-              </button>
-              */}
+
               <button
                 onClick={handleSetTitleColumn}
                 disabled={isProcessing}

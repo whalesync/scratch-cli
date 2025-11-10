@@ -17,6 +17,9 @@ export interface UseSnapshotReturn {
   clearActiveRecordFilter: (tableId: string) => Promise<void>;
   hideTable: (tableId: string) => Promise<void>;
   deleteTable: (tableId: string) => Promise<void>;
+  hideColumn: (tableId: string, columnId: string) => Promise<void>;
+  unhideColumn: (tableId: string, columnId: string) => Promise<void>;
+  showAllColumns: (tableId: string) => Promise<void>;
 }
 
 export const useSnapshot = (id: string | null): UseSnapshotReturn => {
@@ -135,6 +138,39 @@ export const useSnapshot = (id: string | null): UseSnapshotReturn => {
     [id, mutate],
   );
 
+  const hideColumn = useCallback(
+    async (tableId: string, columnId: string) => {
+      if (!id) {
+        return;
+      }
+      await snapshotApi.hideColumn(id, tableId, columnId);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
+  const unhideColumn = useCallback(
+    async (tableId: string, columnId: string) => {
+      if (!id) {
+        return;
+      }
+      await snapshotApi.unhideColumn(id, tableId, columnId);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
+  const showAllColumns = useCallback(
+    async (tableId: string) => {
+      if (!id) {
+        return;
+      }
+      await snapshotApi.clearHiddenColumns(id, tableId);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
   return {
     snapshot: data,
     isLoading,
@@ -146,5 +182,8 @@ export const useSnapshot = (id: string | null): UseSnapshotReturn => {
     clearActiveRecordFilter,
     hideTable,
     deleteTable,
+    hideColumn,
+    unhideColumn,
+    showAllColumns,
   };
 };

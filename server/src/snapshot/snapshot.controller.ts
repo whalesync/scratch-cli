@@ -548,4 +548,36 @@ export class SnapshotController {
   ): Promise<void> {
     await this.service.removeScratchColumn(snapshotId, tableId, removeScratchColumnDto.columnId, toActor(req.user));
   }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/hide-column')
+  async hideColumn(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() hideColumnDto: { columnId: string },
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.hideColumn(snapshotId, tableId, hideColumnDto.columnId, toActor(req.user));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/unhide-column')
+  async unhideColumn(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Body() unhideColumnDto: { columnId: string },
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.unhideColumn(snapshotId, tableId, unhideColumnDto.columnId, toActor(req.user));
+  }
+
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/tables/:tableId/clear-hidden-columns')
+  async clearHiddenColumns(
+    @Param('id') snapshotId: SnapshotId,
+    @Param('tableId') tableId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.service.clearHiddenColumns(snapshotId, tableId, toActor(req.user));
+  }
 }

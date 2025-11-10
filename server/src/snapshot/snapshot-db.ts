@@ -284,6 +284,18 @@ export class SnapshotDb {
     return result;
   }
 
+  private getSelectColumns(tableSpec?: AnyTableSpec, hiddenColumns?: string[]): string | string[] {
+    if (hiddenColumns && hiddenColumns.length > 0) {
+      // Remove hidden columns from the set of all columns
+      // Get all available columns from the table spec and subtract the hidden ones
+      const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
+      const visibleColumns = allColumns.filter((col) => !hiddenColumns.includes(col));
+      return [...DEFAULT_COLUMNS, ...visibleColumns];
+    } else {
+      return '*';
+    }
+  }
+
   async listRecords(
     snapshotId: SnapshotId,
     tableId: string,
@@ -307,17 +319,9 @@ export class SnapshotDb {
       query.whereRaw(activeRecordSqlFilter);
     }
 
-    if (hiddenColumns && hiddenColumns.length > 0) {
-      // Remove hidden columns from the set of all columns
-      // Get all available columns from the table spec and subtract the hidden ones
-      const allColumns = tableSpec ? tableSpec.columns.map((c) => c.id.wsId) : [];
-      const visibleColumns = allColumns.filter((col) => !hiddenColumns.includes(col));
-      query.select([...DEFAULT_COLUMNS, ...visibleColumns]);
-    } else {
-      query.select('*');
-    }
+    query.select(this.getSelectColumns(tableSpec, hiddenColumns));
 
-    const reqult = await query;
+    const result = await query;
 
     // Calculate counts
     let count: number;
@@ -343,7 +347,7 @@ export class SnapshotDb {
     }
 
     return {
-      records: reqult.map((r) => this.mapDbRecordToSnapshotRecord(r)),
+      records: result.map((r) => this.mapDbRecordToSnapshotRecord(r)),
       count,
       filteredCount,
     };
@@ -374,12 +378,22 @@ export class SnapshotDb {
     return this.mapDbRecordToSnapshotRecord(result);
   }
 
-  async getRecordsByIds(snapshotId: SnapshotId, tableId: string, wsIds: string[]): Promise<SnapshotRecord[]> {
+  async getRecordsByIds(
+    snapshotId: SnapshotId,
+    tableId: string,
+    wsIds: string[],
+    tableSpec?: AnyTableSpec,
+    hiddenColumns?: string[],
+  ): Promise<SnapshotRecord[]> {
     if (wsIds.length === 0) {
       return [];
     }
 
-    const results = await this.knex<DbRecord>(tableId).withSchema(snapshotId).whereIn('wsId', wsIds).select('*');
+    const query = this.knex<DbRecord>(tableId).withSchema(snapshotId).whereIn('wsId', wsIds);
+
+    query.select(this.getSelectColumns(tableSpec, hiddenColumns));
+
+    const results = await query;
 
     return results.map((result) => this.mapDbRecordToSnapshotRecord(result));
   }

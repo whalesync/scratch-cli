@@ -64,6 +64,15 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         # Convert columns for this table
         converted_columns = []
         for j, col in enumerate(table["columns"]):  # type: ignore
+            logger.debug(f"🔍 Checking column: {col['id']['wsId']}")
+            if (
+                snapshotTable["hiddenColumns"]
+                and len(snapshotTable["hiddenColumns"]) > 0
+                and col["id"]["wsId"] in snapshotTable["hiddenColumns"]
+            ):
+                logger.debug(f"🔍 Skipping hidden column: {col['id']['wsId']}")
+                continue
+
             column_spec = ColumnSpecForAi(
                 id=EntityId(wsId=col["id"]["wsId"], remoteId=col["id"]["remoteId"]),  # type: ignore
                 name=col["name"],  # type: ignore

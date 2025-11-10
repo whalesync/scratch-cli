@@ -558,6 +558,7 @@ export class SnapshotService {
       effectiveTake,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
+      snapshotTable.hiddenColumns,
     );
 
     // let nextCursor: string | undefined;
@@ -581,13 +582,25 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
+
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // Fetch the records by their IDs from the snapshot database
-    const records = await this.snapshotDbService.snapshotDb.getRecordsByIds(snapshotId, tableId, recordIds);
+    const records = await this.snapshotDbService.snapshotDb.getRecordsByIds(
+      snapshotId,
+      tableId,
+      recordIds,
+      tableSpec,
+      snapshotTable.hiddenColumns,
+    );
 
     return {
       records,
@@ -1893,6 +1906,88 @@ export class SnapshotService {
         tableId,
         columnId,
         columnName: column.name,
+      },
+    });
+  }
+
+  async hideColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    if (_.some(snapshotTable.hiddenColumns, (c) => c === columnId)) {
+      // no-op, just return
+      return;
+    }
+
+    // confirm the column exists in the table
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
+    const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!column) {
+      throw new NotFoundException(`Column ${columnId} not found in table ${tableSpec.name} with id: ${tableId}`);
+    }
+
+    const newHiddenColumns = [...(snapshotTable.hiddenColumns ?? []), columnId];
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
+      data: {
+        hiddenColumns: newHiddenColumns,
+      },
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+  }
+
+  async unhideColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    if (!snapshotTable.hiddenColumns || !_.some(snapshotTable.hiddenColumns, (c) => c === columnId)) {
+      // no-op, just return
+      return;
+    }
+
+    // confirm the column exists in the table
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
+    const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!column) {
+      throw new NotFoundException(`Column ${columnId} not found in table ${tableSpec.name} with id: ${tableId}`);
+    }
+
+    const newHiddenColumns = snapshotTable.hiddenColumns.filter((c) => c !== columnId);
+
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
+      data: {
+        hiddenColumns: newHiddenColumns,
+      },
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(snapshotId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+  }
+
+  async clearHiddenColumns(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
+    const snapshot = await this.findOneOrThrow(snapshotId, actor);
+    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
+      data: {
+        hiddenColumns: [],
       },
     });
   }

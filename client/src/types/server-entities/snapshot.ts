@@ -73,6 +73,7 @@ export interface SnapshotTable {
   pageSize: number | null;
   hidden: boolean;
   syncInProgress: boolean;
+  hiddenColumns: string[];
 }
 
 export interface Snapshot {
@@ -81,7 +82,6 @@ export interface Snapshot {
   createdAt: string;
   updatedAt: string;
   snapshotTables?: SnapshotTable[];
-
   userId: string;
 }
 
