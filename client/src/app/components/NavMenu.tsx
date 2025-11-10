@@ -16,18 +16,17 @@ import styles from './NavMenu.module.css';
 import customBorderStyles from './theme/custom-borders.module.css';
 
 type MenuItem = {
-  href: string;
   label: string;
-
   enabled: boolean;
   icon: LucideIcon;
   iconType: 'lucide';
 
   isDevTool?: boolean;
-};
+} & ({ type: 'link'; href: string } | { type: 'button'; onClick: () => void });
 
 const lowerLinks: MenuItem[] = [
   {
+    type: 'link',
     href: RouteUrls.devToolsPageUrl,
     label: 'Dev Tools',
     icon: Cpu,
@@ -36,6 +35,7 @@ const lowerLinks: MenuItem[] = [
     isDevTool: true,
   },
   {
+    type: 'link',
     href: RouteUrls.settingsPageUrl,
     label: 'Settings',
     icon: Settings,
@@ -46,6 +46,7 @@ const lowerLinks: MenuItem[] = [
 
 const upperLinks: MenuItem[] = [
   {
+    type: 'link',
     href: RouteUrls.snapshotsPageUrl,
     label: 'Workbooks',
     icon: Table2,
@@ -53,6 +54,7 @@ const upperLinks: MenuItem[] = [
     enabled: true,
   },
   {
+    type: 'link',
     href: RouteUrls.connectionsPageUrl,
     label: 'Connections',
     icon: Unplug,
@@ -60,6 +62,7 @@ const upperLinks: MenuItem[] = [
     enabled: true,
   },
   {
+    type: 'link',
     href: RouteUrls.uploadsPageUrl,
     label: 'Uploads',
     icon: Upload,
@@ -67,6 +70,7 @@ const upperLinks: MenuItem[] = [
     enabled: true,
   },
   {
+    type: 'link',
     href: RouteUrls.resourcesPageUrl,
     label: 'Resources',
     icon: BookOpen,
@@ -74,6 +78,7 @@ const upperLinks: MenuItem[] = [
     enabled: true,
   },
   {
+    type: 'link',
     href: RouteUrls.apiImportDemoPageUrl,
     label: 'AI Connector Builder',
     icon: Bot,
@@ -88,19 +93,30 @@ export function NavMenu() {
   const { isDevToolsEnabled } = useDevTools();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const createMenuItem = (link: MenuItem, isActive: boolean) => {
+    const icon = <StyledLucideIcon Icon={link.icon} size={16} />;
     return (
-      <Tooltip key={link.href} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
-        <UnstyledButton
-          h={28}
-          w={28}
-          component={Link}
-          href={link.href}
-          data-active={isActive || undefined}
-          data-dev-tool={link.isDevTool || undefined}
-          className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}
-        >
-          <StyledLucideIcon Icon={link.icon} size={16} />
-        </UnstyledButton>
+      <Tooltip key={link.label} label={link.label} position="right" withArrow transitionProps={{ duration: 0 }}>
+        {link.type === 'button' ? (
+          <UnstyledButton
+            component="button"
+            onClick={link.onClick}
+            data-active={isActive || undefined}
+            data-dev-tool={link.isDevTool || undefined}
+            className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}
+          >
+            {icon}
+          </UnstyledButton>
+        ) : (
+          <UnstyledButton
+            component={Link}
+            href={link.href}
+            data-active={isActive || undefined}
+            data-dev-tool={link.isDevTool || undefined}
+            className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}
+          >
+            {icon}
+          </UnstyledButton>
+        )}
       </Tooltip>
     );
   };
@@ -112,8 +128,6 @@ export function NavMenu() {
           <Image
             src="/logo-color.svg"
             alt={`${PROJECT_NAME}`}
-            w={28}
-            h={28}
             my="md"
             styles={{
               root: {
@@ -128,11 +142,11 @@ export function NavMenu() {
         {upperLinks
           .filter((link) => link.enabled && (isDevToolsEnabled || !link.isDevTool))
           .map((link) => {
-            const isActive = pathname.startsWith(link.href);
+            const isActive = link.type === 'link' && pathname.startsWith(link.href);
             return createMenuItem(link, isActive);
           })}
       </Stack>
-      <Stack justify="center" mt="auto" p="xs" gap="xs">
+      <Stack justify="center" mt="auto" p="xs" gap="md">
         <SignedOut>
           <SignUpButton />
         </SignedOut>
@@ -140,22 +154,24 @@ export function NavMenu() {
           {lowerLinks
             .filter((link) => link.enabled && (isDevToolsEnabled || !link.isDevTool))
             .map((link) => {
-              const isActive = pathname.startsWith(link.href);
+              const isActive = link.type === 'link' && pathname.startsWith(link.href);
               return createMenuItem(link, isActive);
             })}
-          <UnstyledButton
-            onClick={() => {
-              setColorScheme(colorScheme === 'light' ? 'dark' : 'light');
-              trackToggleDisplayMode(colorScheme === 'light' ? 'dark' : 'light');
-            }}
-            className={styles.navButton}
-          >
-            {colorScheme === 'light' ? (
-              <StyledLucideIcon Icon={MoonIcon} size={20} />
-            ) : (
-              <StyledLucideIcon Icon={SunIcon} size={20} />
-            )}
-          </UnstyledButton>
+          {createMenuItem(
+            {
+              type: 'button',
+              onClick: () => {
+                const newScheme = colorScheme === 'light' ? 'dark' : 'light';
+                setColorScheme(newScheme);
+                trackToggleDisplayMode(newScheme);
+              },
+              label: 'Toggle Display Mode',
+              icon: colorScheme === 'light' ? MoonIcon : SunIcon,
+              iconType: 'lucide',
+              enabled: true,
+            },
+            false,
+          )}
           <Center>
             <UserButton />
           </Center>

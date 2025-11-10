@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, createTheme, Menu, Table, Title, virtualColor } from '@mantine/core';
+import { ActionIcon, createTheme, Menu, Table, Title, Tooltip, virtualColor } from '@mantine/core';
 import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
 import {
   CUSTOM_BLUE,
@@ -134,6 +134,14 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
     Table: Table.extend({
       classNames: { table: classes.table, thead: classes.tableThead, th: classes.tableTh, tbody: classes.tableTbody },
+    }),
+
+    Tooltip: Tooltip.extend({
+      defaultProps: {
+        // BG and FG are reversed here because the tooltip is a popup.
+        color: 'var(--fg-primary)', // background.
+        c: 'var(--bg-panel)', // foreground.
+      },
     }),
 
     Title: Title.extend({

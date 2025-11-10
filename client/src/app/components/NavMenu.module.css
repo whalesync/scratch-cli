@@ -3,6 +3,8 @@
   align-items: center;
   justify-content: center;
   color: gray;
+  width: 28px;
+  height: 28px;
 
   &:hover {
     color: var(--mantine-color-primary-filled);
