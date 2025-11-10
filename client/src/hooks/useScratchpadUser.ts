@@ -1,7 +1,7 @@
 import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { usersApi } from '@/lib/api/users';
-import { User, UserSetting } from '@/types/server-entities/users';
+import { User, UserSetting, UserSettingValue } from '@/types/server-entities/users';
 import { RouteUrls } from '@/utils/route-urls';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { UserResource } from '@clerk/types';
@@ -16,8 +16,9 @@ export interface ScratchPadUser {
   signOut: () => void;
   isSignedIn?: boolean;
   isAdmin?: boolean;
-  updateUserSetting: (key: UserSetting, value: string | number | boolean) => Promise<void>;
+  updateUserSetting: (key: UserSetting, value: UserSettingValue) => Promise<void>;
   clearUserSetting: (key: UserSetting) => Promise<void>;
+  getUserSetting: (key: UserSetting, defaultValue?: UserSettingValue) => UserSettingValue | null;
 }
 
 export const useScratchPadUser = (): ScratchPadUser => {
@@ -69,7 +70,7 @@ export const useScratchPadUser = (): ScratchPadUser => {
         },
       });
 
-      mutate();
+      await mutate();
     },
     [user, mutate],
   );
@@ -91,6 +92,13 @@ export const useScratchPadUser = (): ScratchPadUser => {
     [user, mutate],
   );
 
+  const getUserSetting = useCallback(
+    (key: UserSetting, defaultValue?: UserSettingValue) => {
+      return user?.settings?.[key] ?? defaultValue ?? null;
+    },
+    [user],
+  );
+
   return {
     isLoading: isLoading || !isLoaded,
     user: user || null,
@@ -100,5 +108,6 @@ export const useScratchPadUser = (): ScratchPadUser => {
     isAdmin: user?.isAdmin,
     updateUserSetting,
     clearUserSetting,
+    getUserSetting,
   };
 };

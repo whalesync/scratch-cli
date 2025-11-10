@@ -47,6 +47,8 @@ export interface Organization {
   updatedAt: Date;
 }
 
+export type UserSettingValue = string | number | boolean;
+
 export enum UserSetting {
   DEFAULT_LLM_MODEL = 'default_llm_model',
 }

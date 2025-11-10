@@ -605,7 +605,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             </TextXsRegular>
           </Button>
           {/* Capabilities Selection */}
-          {/* {availableCapabilities.length > 0 && ( */}
           <CapabilitiesButton
             selectedCapabilities={selectedCapabilities}
             availableCapabilitiesCount={availableCapabilities.length}
@@ -640,13 +639,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       </SideBarContent.Bottom>
 
       {/* Model Selector Modal */}
-      <Modal
-        opened={showModelSelector}
-        onClose={() => setShowModelSelector(false)}
-        title="Select Model"
-        size="xl"
-        zIndex={1003}
-      >
+      <Modal opened={showModelSelector} onClose={() => setShowModelSelector(false)} title="Select Model" size="xl">
         <ModelPicker
           currentModelOption={activeModel}
           onChange={(value) => {

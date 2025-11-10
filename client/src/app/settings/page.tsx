@@ -1,7 +1,7 @@
 'use client';
 
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { Stack } from '@mantine/core';
+import { Button, Stack, Tooltip } from '@mantine/core';
 import MainContent from '../components/layouts/MainContent';
 import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
@@ -9,7 +9,7 @@ import { DevToolsPanel } from './components/DevToolPanel';
 import { SubscriptionCard } from './components/SubscriptionCard';
 
 const SettingsPage = () => {
-  const { isDevToolsEnabled } = useDevTools();
+  const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
 
   return (
     <MainContent>
@@ -20,6 +20,22 @@ const SettingsPage = () => {
           <AgentCredentials />
           <AgentUsageInfoCard />
           {isDevToolsEnabled && <DevToolsPanel />}
+          {showSecretButton && (
+            <Tooltip label={isDevToolsEnabled ? 'Hide dev tools' : 'Show dev tools'}>
+              <Button
+                size="xs"
+                variant="transparent"
+                onClick={() => {
+                  toggleDevToolsVisible();
+                  window.location.reload();
+                }}
+                w="fit-content"
+                color="white"
+              >
+                Toggle dev tools
+              </Button>
+            </Tooltip>
+          )}
         </Stack>
       </MainContent.Body>
     </MainContent>

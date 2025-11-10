@@ -1,6 +1,8 @@
 'use client';
 
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ModelOption, PersistedModelOption } from '@/types/common';
+import { UserSetting } from '@/types/server-entities/users';
 import {
   Alert,
   Badge,
@@ -14,9 +16,12 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { StarIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ToolIconButton } from './ToolIconButton';
 
 // Popular model keys - these will be sorted to the top
 const POPULAR_MODEL_KEYS = [
@@ -69,12 +74,14 @@ interface ModelPickerProps {
 }
 
 export default function ModelPicker({ currentModelOption, onChange }: ModelPickerProps) {
+  const { updateUserSetting, getUserSetting } = useScratchPadUser();
   const [allModels, setAllModels] = useState<ModelOption[]>([]);
   const [filteredModels, setFilteredModels] = useState<ModelOption[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch models from OpenRouter API
@@ -126,6 +133,25 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
 
     fetchModels();
   }, []);
+
+  const currentFavoriteModel = useMemo(() => {
+    return getUserSetting(UserSetting.DEFAULT_LLM_MODEL);
+  }, [getUserSetting]);
+
+  const handleSetDefaultModel = useCallback(
+    async (model: ModelOption) => {
+      try {
+        setSaving(true);
+        await updateUserSetting(UserSetting.DEFAULT_LLM_MODEL, model.value);
+        onChange(model);
+      } catch (error) {
+        console.error('Error setting default model:', error);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [updateUserSetting, onChange],
+  );
 
   // Get unique providers from all models, with popular ones first
   const popularProviders = [...new Set(allModels.filter((model) => model.isPopular).map((model) => model.provider))];
@@ -190,6 +216,7 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
         <Text size="sm" fw={500}>
           {model.label}
         </Text>
+
         <Text size="xs" c="dimmed">
           {model.provider}
         </Text>
@@ -204,6 +231,21 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
         </Text>
       </Box>
       <Stack gap="xs" align="flex-end">
+        {currentFavoriteModel === model.value ? (
+          <Tooltip label="Your default LLM">
+            <StarIcon size="14px" color="green" />
+          </Tooltip>
+        ) : (
+          <ToolIconButton
+            icon={StarIcon}
+            tooltip="Set as my default LLM"
+            loading={saving}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSetDefaultModel(model);
+            }}
+          />
+        )}
         {model.contextLength && (
           <Badge size="xs" variant="light">
             {model.contextLength.toLocaleString()} tokens

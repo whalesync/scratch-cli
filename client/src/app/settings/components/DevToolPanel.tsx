@@ -87,6 +87,12 @@ export const DevToolsPanel = () => {
             <Grid.Col span={8}>
               <FlagCheckboxOption flag={FLAGS.SKIP_PAYWALL_FOR_LOCALHOST} />
             </Grid.Col>
+            <Grid.Col span={4}>
+              <TextXsRegular>Dev tools visible</TextXsRegular>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <FlagCheckboxOption flag={FLAGS.DEV_TOOLS_VISIBLE} />
+            </Grid.Col>
             {user?.experimentalFlags &&
               Object.entries(user.experimentalFlags).map(([flag, value]) => (
                 <Fragment key={flag}>
