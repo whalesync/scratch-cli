@@ -1,8 +1,7 @@
+// AUTO-GENERATED - DO NOT EDIT. This file is copied from ../server/src/types/ids.ts by the build process.
+
 import _ from 'lodash';
 import { customAlphabet } from 'nanoid';
-
-// NOTE!! This file is copied to the client by `yarn run copy-server-files`.
-// Please run that command so the changes are included in your commit.
 
 /**
  * The prefix at the front of a database ID.
