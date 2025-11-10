@@ -2,105 +2,80 @@
 
 The NestJS backend for the Scratch application.
 
-## Available Yarn Commands
+---
 
-#### Run in development mode with watch
+## Setup & Development
 
-```bash
-yarn run start:dev
-```
-
-#### Builds an optimized version for production
-
-```bash
-yarn run build
-```
-
-#### Starts the optimized version built with `yarn run build`
-
-```bash
-yarn run start:prod
-```
-
-## Set up
-
-### Install node and dependencies
-
-To get your environment set up, from this directory, run:
+### Install Node and Dependencies
 
 ```console
 # Install and activate the right version of Node
 nvm install
 nvm use
 
-# Install all of the dependencies:
+# Install all dependencies
 yarn install
 ```
 
 ### Environment Variables
 
-Create a `.env` file in the root directory by copying `.env.example`.
+Create a `.env` file by copying `.env.example`:
 
-Tweak the following values as necessary:
-
+```bash
+cp .env.example .env
 ```
-# The port the server will run on
+
+Key variables to configure:
+
+```env
+# Server
 PORT=3010
 
-# The connection string for the PostgreSQL database
+# Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scratchpad?schema=public"
+
+# Service Type (FRONTEND, WORKER, CRON, or MONOLITH)
+SERVICE_TYPE=MONOLITH
 ```
 
-Some values will require reaching out to other team members or checking values in 1Password.
+Some values require reaching out to team members or checking 1Password.
 
-### Set up the database
+### Set Up the Database
 
-Our docker image has a postgres DB, redis, and MongoDB in it. You'll have to start it after every reboot:
+Start Docker services (PostgreSQL, Redis):
 
 ```console
 docker compose -f localdev/docker-compose.yml up -d
 ```
 
-First time only, you'll need to create a postgres database. For this you'll need to install the postgres tools:
+Install PostgreSQL tools (first time only):
 
 ```console
 brew install libpq
 brew link --force libpq
 ```
 
-Then you'll need an `.env` and conveniently you can just use the sample one: `cp .env.example .env`
-
 Then you can create a database called 'scratchpad':
 
 ```console
 createdb -h localhost -p 5432 -U postgres scratchpad
+# Password: postgres
 ```
 
-For the password, use `postgres`.
-
-To update the database's schema to match the code's current state:
+Run migrations:
 
 ```console
 yarn run migrate
 ```
 
-### Create an OpenRouter account
+### Create an OpenRouter Account
 
-The agent server uses OpenRouter to interact with the various LLMs. For running locally you will need an API key and a Provisioning key. The provisioning key is used to create new API keys for new users.
+The agent server uses OpenRouter for LLM access:
 
-1. Go to [OpenRouter.ai](https://openrouter.ai/) and create an account for your Whalesync email account
-
-2. Setup a provisioning key
-
-- Go to [Provisioning Keys](https://openrouter.ai/settings/provisioning-keys) and create a new key for your local environment.
-- Set that value into `OPENROUTER_PROVISIONING_KEY` variable in your `.env` file
-
-3. Create your own API key
-
-- Go to [API keys](https://openrouter.ai/settings/keys)
-- Create a new API key
-- This can be set into your `pydantic-ai-agent/.env` file
-- It can also be used by adding an Agent Credential on the Scratch settings screen
+1. Create account at [OpenRouter.ai](https://openrouter.ai/)
+2. Get provisioning key from [Provisioning Keys](https://openrouter.ai/settings/provisioning-keys)
+3. Set `OPENROUTER_PROVISIONING_KEY` in `.env`
+4. Create API key from [API keys](https://openrouter.ai/settings/keys)
 
 ### Start the Server
 
@@ -108,103 +83,219 @@ The agent server uses OpenRouter to interact with the various LLMs. For running 
 yarn run start:dev
 ```
 
-### Admin account
+### Create Admin Account
 
-Once you have started the client and server, go to http://localhost:3000 and create an account.
+1. Go to http://localhost:3000 and create an account
+2. Update your user's `role` in the database to `ADMIN` for dev tools access
 
-Once the account exists, go into your database and update the `role` of your new user record to `ADMIN` so that you have full access to dev tools locally.
+## Available Commands
+
+```bash
+# Development with watch mode
+yarn run start:dev
+
+# Build for production
+yarn run build
+
+# Run production build
+yarn run start:prod
+
+# Run database migrations
+yarn run migrate
+
+# Generate Prisma client
+yarn run prisma:generate
+```
 
 ## Production Hosting
 
 The Scratch API server is hosted on Render.
 
-[Public URL - https://api.scratch.md/](https://api.scratch.md/)
+- **Public URL**: [Public URL - https://api.scratch.md/](https://api.scratch.md/)
+- **Dashboard**: [Render Project](https://dashboard.render.com/web/srv-d347khidbo4c73bouaj0)
+- **Owner**: team@whalesync.com (Credentials in 1Password)
 
-[Manage Render Project](https://dashboard.render.com/web/srv-d347khidbo4c73bouaj0)
+## OpenRouter Management
 
-- Owned by team@whalesync.com (Credentials in 1Password)
+Scratch uses OpenRouter.ai for LLM access. Each user has a scoped API key (user-provided or auto-provisioned).
 
-## OpenRouter
+### Production
 
-Scratch utilizes OpenRouter.ai for interfacing with different LLMs. Every request through the agent utilizes an OpenRouter API key scoped to the user making the request. These keys can be provided by the user as Agent Credentials OR they can be provisioned by Scratch automatically at signup.
+1. Log in at [OpenRouter](https://openrouter.ai/) with Google SSO
+2. Switch to Whalesync organization
+3. View API keys and usage
 
-Each Scratch server has access to a Provisioning Key which allows it to create API keys for users inside our OpenRouter.ai account.
+### Test & Staging
 
-### Managing OpenRouter
-
-There are two management accounts for [OpenRouter](https://openrouter.ai/), one for Production use and one for dev/test use. OpenRouter.ai does not support environments natively so we need to access them separately.
-
-#### Production
-
-1. Go to [OpenRouter](https://openrouter.ai/)
-1. Log in with your Google SSO, e.g. chris@whalesync.com account
-1. Switch to the Whalesync organization to see API keys and usage
-
-NOTE: This is the official Whalesync account and has payments linked to it.
-
-#### Test & Staging
-
-1. Go to [OpenRouter](https://openrouter.ai/)
-1. Log in with your Google SSO, e.g. chris@whalesync.com account
-1. Switch to the Whalesync-Test organization
-   1. Ask Chris or Ryder for an invite if you don't see it
-
-This organization is owned by an account linked to the team@whalesync.com email address. Creds are in 1Password
+1. Log in with Google SSO
+2. Switch to Whalesync-Test organization
+3. Credentials in 1Password (team@whalesync.com)
 
 ## Feature Flags
 
-Feature flags are managed inside of the [ExperimentsService](./src/experiments/experiments.service.ts) and utilize [OpenFeature](https://openfeature.dev/), a vendor agnostic feature flag SDK.
+Feature flags are managed in [ExperimentsService](./src/experiments/experiments.service.ts) using [OpenFeature](https://openfeature.dev/) with PostHog as the provider.
 
-The feature flag configurations are provided via PostHog, using the same projects that are used for analytics:
+- **Test**: [Test Feature Flags](https://us.posthog.com/project/225935/feature_flags?tab=overview)
+- **Production**: [Production Feature Flags](https://us.posthog.com/project/214130/feature_flags?tab=overview)
 
-[Test Feature Flags](https://us.posthog.com/project/225935/feature_flags?tab=overview)
+**Important**: Do not set `Persist flag across authentication steps` on PostHog - this will cause FlagNotFoundError.
 
-[Production Feature Flags](https://us.posthog.com/project/214130/feature_flags?tab=overview)
+## Stripe Integration
 
-When creating new flags on Posthog **do not** set the `Persist flag across authentication steps` setting for flags. This setting depends on a Posthog feature we are not using and will cause your feature flag to return "FlagNotFoundError" in the system and subsequently return a default value if provided.
+Stripe handles payments via hosted portals and webhooks. See [PaymentModule](src/payment/) for implementation details.
 
-## Stripe
+### Testing Stripe Locally
 
-Scratch uses Stripe to handle payments and subscriptions via Stripe's hosted customer portals and webhooks. The code for this integration and subscriptions is in the [PaymentModule](src/payment/)
+1. **Start ngrok**: `ngrok http 3010`
 
-- StripePaymentService - handles all the integration with Stripe and processes webhook payloads
-- StripeController - contains the Rest API and the webhook endpoint
-- `plans.ts` - describes the products in the system
-  - The `ScratchpadPlanType` defines the internal unique identifiers for the different plans
-  - Each deployment environment has it's own set of plans, with specific stripe product and price IDs
+2. **Register webhook** in [Stripe Dashboard](https://dashboard.stripe.com/) (Test sandbox):
 
-### Testing
+   - Events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`
+   - Endpoint: `https://YOUR_NGROK.ngrok-free.app/payment/webhook`
+   - Copy signing secret
 
-To test stripe locally you need to do some additional setup
+3. **Update `.env`**:
 
-#### 1. Start `ngrok` for your server (or other tunnel service)
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   STRIPE_API_KEY=sk_test_...
+   ```
 
-```cmd
-ngrok http 3010
-```
+4. **Restart server**
 
-#### 2. Register a webhook in the **Scratch - Test** Sandbox
+## Additional Resources
 
-1. Got to the [Stripe Dashboard](https://dashboard.stripe.com/)
-1. enter sandbox
-1. Search for webhooks in the search box at the top and select the Webhooks option from the Workbench session
-1. Click on **+ Add destination** to create a new destination
-   1. Select "Your account"
-   1. Include the following events:
-      - checkout.session.completed
-      - customer.subscription.created
-      - customer.subscription.deleted
-      - customer.subscription.updated
-      - invoice.paid
-      - invoice.payment_failed
-   1. Set the endpoint to your ngrok host with the `/payment/webhook` path
-   - i.e. https://cafea40927f9.ngrok-free.app/payment/webhook
-   1. Copy the signing secret
+Each module contains its own README with detailed documentation:
 
-#### Update your `server/.env`
+- Architecture and design
+- API endpoints
+- Integration points
+- Configuration options
+- Use cases
 
-Set the `STRIPE_WEBHOOK_SECRET` and `STRIPE_API_KEY` with the secret from step 2 and the API key for the **Scratch - Test** Sandbox
+Explore the [src/](src/) directory to learn about specific modules.
 
-#### Restart your server
+---
 
-At this point your local environment can interact with the sandbox account and receive webhooks, you should be able to go through a full payment workflow.
+## Architecture Overview
+
+The Scratch server is a modular NestJS application built with a microservice-oriented architecture. It can run as a monolith for local development or as separate services (frontend API, worker, cron) in production.
+
+### Core Concepts
+
+**Snapshots**: Local workspaces that store copies of data from external services, allowing users to view, edit, and publish changes back to the source systems.
+
+**Connectors**: Integrations with external services (Airtable, Notion, Webflow, etc.) that enable bidirectional data synchronization.
+
+**AI-Powered**: Custom connector builder using AI to generate integration code, and AI agents that can operate on snapshot data.
+
+**Real-time**: WebSocket and SSE support for live updates, Redis pub/sub for multi-instance coordination.
+
+## Module Structure
+
+The server is organized into focused modules, each with its own README:
+
+### Foundation Modules
+
+- **[config](src/config/)**: Centralized configuration management with environment-specific settings
+- **[db](src/db/)**: Database abstraction layer with Prisma ORM and Knex query builder
+- **[types](src/types/)**: Core type definitions for IDs, error handling, and progress tracking
+- **[utils](src/utils/)**: Shared utility functions (encryption, CSV streaming, duration, validation)
+
+### Authentication & Authorization
+
+- **[auth](src/auth/)**: Multi-strategy authentication (Clerk JWT, API tokens, agent tokens)
+- **[clerk](src/clerk/)**: Clerk identity provider integration
+- **[agent-jwt](src/agent-jwt/)**: JWT generation for AI agents
+
+### User Management
+
+- **[users](src/users/)**: User lifecycle, API tokens, and session management
+- **[payment](src/payment/)**: Stripe integration for subscriptions and billing
+- **[audit](src/audit/)**: Comprehensive event tracking and audit logging
+
+### Data Management
+
+- **[snapshot](src/snapshot/)**: Core workspace module for data viewing and editing
+- **[uploads](src/uploads/)**: CSV and Markdown file ingestion and storage
+- **[style-guide](src/style-guide/)**: Reference document management
+
+### External Integrations
+
+- **[remote-service](src/remote-service/)**: Connector abstraction layer for external services
+- **[oauth](src/oauth/)**: OAuth 2.0 flow management for third-party services
+- **[custom-connector](src/custom-connector/)**: User-defined connector configurations
+- **[custom-connector-builder](src/custom-connector-builder/)**: AI-powered connector code generation
+
+### Background Processing
+
+- **[worker](src/worker/)**: Job queue and execution system with BullMQ and Piscina
+- **[worker-enqueuer](src/worker-enqueuer/)**: Job queueing service for background tasks
+- **[job](src/job/)**: Job lifecycle management and monitoring
+- **[cron](src/cron/)**: Scheduled task execution
+
+### AI & Analytics
+
+- **[ai](src/ai/)**: Google Gemini integration for AI-powered features
+- **[ai-agent-token-usage](src/ai-agent-token-usage/)**: AI token consumption tracking
+- **[agent-session](src/agent-session/)**: Persistent agent session management
+- **[openrouter](src/openrouter/)**: OpenRouter API key provisioning and management
+- **[posthog](src/posthog/)**: Product analytics and event tracking
+- **[experiments](src/experiments/)**: Feature flag management with OpenFeature
+
+### Infrastructure
+
+- **[redis](src/redis/)**: Pub/sub messaging for real-time events
+- **[slack](src/slack/)**: Developer notification system
+- **[admin](src/admin/)**: Health check and server info endpoints
+- **[dev-tools](src/dev-tools/)**: Administrative tools for support and debugging
+
+### Cross-Cutting Concerns
+
+- **[interceptors](src/interceptors/)**: Request logging and middleware
+- **[exception-filters](src/exception-filters/)**: Global error handling
+- **[wrappers](src/wrappers/)**: External library abstractions
+- **[mentions](src/mentions/)**: Search and autocomplete functionality
+
+## Data Flow
+
+### Typical Workflow
+
+1. **User Authentication**: User signs in via Clerk, receives JWT and API tokens
+2. **Connector Setup**: User configures connectors to external services (OAuth or API key)
+3. **Snapshot Creation**: User creates a snapshot with tables from one or more connectors
+4. **Data Download**: Background job fetches data from external services into snapshot schema
+5. **Local Editing**: User views and edits data locally, AI suggests improvements
+6. **Publishing**: User publishes changes back to external services
+
+### Real-time Updates
+
+- Changes broadcast via Redis pub/sub
+- WebSocket gateway pushes updates to connected clients
+- SSE provides progress updates for long-running operations
+- Multiple server instances coordinate through Redis
+
+## Microservice Architecture
+
+The application supports different service types via the `SERVICE_TYPE` environment variable:
+
+- **FRONTEND**: API server handling HTTP requests
+- **WORKER**: Background job processor
+- **CRON**: Scheduled task runner
+- **MONOLITH**: All services combined (for local development)
+
+This allows horizontal scaling of different concerns in production while maintaining simplicity in development.
+
+## Technology Stack
+
+- **Framework**: NestJS with TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Queue**: BullMQ with Redis
+- **Real-time**: Socket.io for WebSocket, Redis Pub/Sub
+- **Authentication**: Clerk for identity, Passport for strategies
+- **Payment**: Stripe for subscriptions
+- **AI**: Google Gemini and OpenRouter
+- **Analytics**: PostHog
+- **Feature Flags**: OpenFeature with PostHog provider
+
+---
