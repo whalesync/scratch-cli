@@ -25,7 +25,21 @@ export default function ConnectorAccountsPage() {
 
   const handleTest = async (id: string) => {
     setTestingId(id);
-    await testConnection(id);
+    const result = await testConnection(id);
+
+    if (result.health === 'error') {
+      ScratchpadNotifications.error({
+        title: 'Connection has problems.',
+        message: result.error,
+        autoClose: 5000,
+      });
+    } else {
+      ScratchpadNotifications.success({
+        title: 'Connection is healthy',
+        message: 'You can use it in your workbooks.',
+        autoClose: 5000,
+      });
+    }
     setTestingId(null);
   };
 
