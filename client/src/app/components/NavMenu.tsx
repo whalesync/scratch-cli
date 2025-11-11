@@ -128,12 +128,8 @@ export function NavMenu() {
           <Image
             src="/logo-color.svg"
             alt={`${PROJECT_NAME}`}
-            my="md"
-            styles={{
-              root: {
-                fill: 'var(--mantine-color-primary-5)',
-              },
-            }}
+            my="sm"
+            styles={{ root: { fill: 'var(--mantine-color-primary-5)', width: '30px', height: '30px' } }}
           />
         </Link>
       </Tooltip>
