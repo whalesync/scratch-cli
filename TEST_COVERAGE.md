@@ -2,23 +2,23 @@
 
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
-**Last Updated**: 2025-11-06
-**Overall Coverage**: <1% (Server: ~2.3%, Client: 0%, Python Agent: 0%)
+**Last Updated**: 2025-11-10
+**Overall Coverage**: <1% (Server: ~2.3%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 6 test files exist for 562+ source files across all codebases. Security-critical and revenue-generating features have zero test coverage.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 7 test files exist for 562+ source files across all codebases. Security-critical and revenue-generating features have zero test coverage.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage |
 | ------------ | ------------ | ---------- | -------- |
 | Server       | 258          | 6          | ~2.3%    |
-| Client       | 235          | 0          | 0%       |
+| Client       | 235          | 1          | ~0.4%    |
 | Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **6**      | **<1%**  |
+| **Total**    | **562**      | **7**      | **1.2%** |
 
 ---
 
@@ -35,6 +35,12 @@ These areas have excellent test coverage and should serve as models:
 - ✅ **Wix rich content conversion** - Comprehensive converter tests (`server/src/remote-service/connectors/library/wix/rich-content/rich-content.spec.ts`)
 
 - ✅ **HTML minification** - 70+ test cases (`server/src/wrappers/html-minify.spec.ts`)
+
+- ✅ **Client utility helpers** - 200+ lines covering 14 utility functions (`client/src/utils/__tests__/helpers.test.ts`)
+  - String manipulation (capitalization, comparison, hashing)
+  - Array operations (range, last element, type checking)
+  - Data formatting (bytes, URLs)
+  - Validation utilities
 
 ---
 
@@ -76,13 +82,14 @@ These areas handle critical functionality:
 
 Important for long-term maintainability:
 
-| Area                        | Files | Status      | Notes                                                                      |
-| --------------------------- | ----- | ----------- | -------------------------------------------------------------------------- |
-| **Client React Components** | 235   | ❌ No tests | Entire frontend untested                                                   |
-| **Python AI Agent**         | 69    | ❌ No tests | LLM integration, connector generation                                      |
-| **Data Connectors**         | ~100  | ⚠️ Partial  | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
-| **Utilities & Helpers**     | 7     | ❌ No tests | Shared functions                                                           |
-| **Error Handling**          | N/A   | ❌ No tests | Exception handling, logging                                                |
+| Area                        | Files | Status       | Notes                                                                      |
+| --------------------------- | ----- | ------------ | -------------------------------------------------------------------------- |
+| **Client React Components** | 235   | ❌ No tests  | React components and pages untested                                        |
+| **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                      |
+| **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                      |
+| **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
+| **Server Utilities**        | 7     | ⚠️ Partial   | HTML minification tested, other utilities untested                         |
+| **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                |
 
 **Risk Level**: Bugs may surface during feature changes or edge cases.
 
@@ -112,10 +119,13 @@ Valuable for comprehensive quality assurance:
 - E2E config: `server/test/jest-e2e.json`
 - CI: GitLab pipeline runs `yarn test`
 
-**Client**
+**Client (Jest + Testing Library)**
 
-- ❌ No framework configured
-- ❌ No test scripts
+- ✅ Framework configured: `client/jest.config.ts`
+- ✅ Test scripts: `yarn test`, `yarn test:watch`, `yarn test:coverage`
+- ✅ Testing Library with jsdom environment
+- Pattern: `**/__tests__/**/*.test.ts` and `*.spec.ts`
+- Current coverage: Utilities only (~0.4%)
 
 **Python Agent**
 
@@ -123,18 +133,6 @@ Valuable for comprehensive quality assurance:
 - Only manual test scripts exist
 
 ### Recommended Setup
-
-**Client**:
-
-```json
-{
-  "devDependencies": {
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/jest-dom": "^6.0.0",
-    "vitest": "^1.0.0"
-  }
-}
-```
 
 **Python Agent**:
 
@@ -167,6 +165,11 @@ pip install pytest pytest-asyncio pytest-cov
 - [ ] **Milestone 3**: Server overall at 50%+ coverage
 
 - [ ] **Milestone 4**: Client testing framework + 30%+ coverage
+  - [x] Set up Jest + Testing Library
+  - [x] Add utility helper tests
+  - [ ] Add React component tests
+  - [ ] Add hook tests
+  - [ ] Add API client tests
 
 - [ ] **Milestone 5**: Python agent at 60%+ coverage
 
@@ -188,17 +191,19 @@ pip install pytest pytest-asyncio pytest-cov
 ### Short-term (This Month)
 
 1. Achieve 50%+ coverage on P0 areas
-2. Add tests for all API controllers
-3. Implement database integration tests
-4. Add E2E tests for 5 critical user workflows
+2. Add tests for client React hooks (SWR data fetching)
+3. Add tests for client API layer (`client/src/lib/api/`)
+4. Implement database integration tests
+5. Add E2E tests for 5 critical user workflows
 
 ### Long-term (This Quarter)
 
-1. Set up client testing framework (Vitest + Testing Library)
-2. Add pytest to Python agent
-3. Achieve 80%+ coverage on server
-4. Implement coverage gates in CI (fail below 70%)
-5. Require tests for all new PRs
+1. ~~Set up client testing framework~~ ✅ **COMPLETED**
+2. Add tests for client React components (Mantine UI)
+3. Add pytest to Python agent
+4. Achieve 80%+ coverage on server
+5. Implement coverage gates in CI (fail below 70%)
+6. Require tests for all new PRs
 
 ---
 
@@ -278,6 +283,22 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - E2E test config: `server/test/jest-e2e.json`
 - Example tests: `server/src/remote-service/connectors/library/notion/conversion/__tests__/`
 - CI pipeline: `.gitlab-ci.yml`
+
+---
+
+## Recent Changes
+
+### 2025-11-10
+- ✅ **Client testing framework setup complete**
+  - Added Jest with Next.js integration (`jest.config.ts`)
+  - Configured Testing Library for React (`jest.setup.ts`)
+  - Added test scripts to `package.json`: `test`, `test:watch`, `test:coverage`
+  - Dependencies installed: `@testing-library/react@16.3.0`, `@testing-library/jest-dom@6.9.1`, `jest@30.2.0`
+- ✅ **First client tests written**
+  - Comprehensive utility helper tests (`client/src/utils/__tests__/helpers.test.ts`)
+  - 14 functions covered with ~200 lines of tests
+  - Includes edge cases and error scenarios
+- 📊 **Coverage updated**: Client went from 0% to ~0.4%, overall from <1% to ~1.2%
 
 ---
 

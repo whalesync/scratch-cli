@@ -13,6 +13,7 @@ build and test client:
     - cd client
     - yarn install --frozen-lockfile
     - yarn lint-strict
+    - yarn test
     - export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY_DEVELOPMENT
     - yarn build
   artifacts:
