@@ -18,7 +18,16 @@ export enum LogLevel {
 }
 
 const nodeEnv = process.env.NODE_ENV ?? 'production';
-const logFormat =
+const runningInCloud = process.env.RUNNING_IN_CLOUD === 'true';
+
+const logFormatGcp = winston.format.combine(
+  // By default Error objects do not spread properly into JSON, so we need to unpack them.
+  expandedErrorsFormat(),
+  // We need to manually add the severity field, using google's custom levels, to have it picked up in Logging.
+  withGCSSeverityFormat(),
+  winston.format.json(),
+);
+const logFormatPlain =
   nodeEnv === 'development'
     ? winston.format.combine(
         // By default Error objects do not spread properly into JSON, so we need to unpack them.
@@ -33,7 +42,7 @@ export class WSLogger {
     level: 'info',
     transports: [
       new winston.transports.Console({
-        format: logFormat,
+        format: runningInCloud ? logFormatGcp : logFormatPlain,
       }),
     ],
   });
@@ -156,4 +165,36 @@ function pickMessage(raw: any): string {
     return raw.message;
   }
   return 'unknown';
+}
+
+function withGCSSeverityFormat(): winston.Logform.Format {
+  return winston.format((info) => {
+    info['severity'] = toGCSSeverity(info.level);
+
+    // Tell GCP Error Reporting to bucket this as an error.
+    // https://cloud.google.com/error-reporting/docs/formatting-error-messages
+    if (info.level === 'error') {
+      info['@type'] = 'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent';
+    }
+    return info;
+  })();
+}
+
+function toGCSSeverity(level: string): string {
+  switch (level) {
+    case 'error':
+      return 'ERROR';
+    case 'warn':
+      return 'WARNING';
+    case 'info':
+      return 'INFO';
+    case 'http':
+      return 'INFO';
+    case 'verbose':
+    case 'debug':
+    case 'silly':
+      return 'DEBUG';
+    default:
+      return 'DEFAULT';
+  }
 }

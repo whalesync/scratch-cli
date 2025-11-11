@@ -47,6 +47,10 @@ resource "google_cloud_run_v2_service" "client_service" {
         value = var.gcp_project_number
       }
       env {
+        name  = "RUNNING_IN_CLOUD"
+        value = "true"
+      }
+      env {
         name = "CLERK_SECRET_KEY"
         value_source {
           secret_key_ref {
@@ -173,9 +177,9 @@ resource "google_cloud_run_v2_service" "api_service" {
           "POSTHOG_HOST" : "https://us.i.posthog.com",
           "REDIRECT_URI" : "https://${var.client_domain}/oauth/callback",
           "REDIS_HOST" : module.redis.host,
-          "REDIS_PASSWORD" : module.redis.password,
           "REDIS_PORT" : module.redis.port,
           "REQUIRE_SUBSCRIPTION" : "true",
+          "RUNNING_IN_CLOUD" : "true",
           "SCRATCHPAD_AGENT_JWT_EXPIRES_IN" : "6h",
           "SERVICE_TYPE" : "monolith",
           "SLACK_NOTIFICATION_ENABLED" : "true",
@@ -186,6 +190,11 @@ resource "google_cloud_run_v2_service" "api_service" {
           name  = env.key
           value = env.value
         }
+      }
+
+      env {
+        name  = "REDIS_PASSWORD"
+        value = module.redis.password
       }
 
       # Inject the following secrets into the container as env vars
@@ -329,6 +338,7 @@ resource "google_cloud_run_v2_service" "agent_service" {
           "LOGFIRE_ENVIRONMENT" : var.env_name,
           "MODEL_NAME" : "openai/gpt-4o-mini",
           "REQUIRE_USER_AGENT_CREDENTIALS" : "false",
+          "RUNNING_IN_CLOUD" : "true",
           "SCRATCHPAD_SERVER_URL" : "https://${var.api_domain}",
         }
         content {

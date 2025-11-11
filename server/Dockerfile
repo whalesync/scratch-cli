@@ -1,4 +1,4 @@
-FROM node:22.20.0-alpine as deps
+FROM node:22.20.0-alpine AS deps
 
 WORKDIR /app
 COPY ./package.json ./yarn.lock /app/
@@ -32,7 +32,7 @@ COPY --from=builder /app/node_modules /app/node_modules
 # Set up environment variables.
 # These platform-specific vars are passed in from the CI/CD builder.
 # Service and env-specific type vars (production/staging/test, frontend/data/jobqueue) are supplied at runtime.
-ENV RUNNING_IN_CLOUD=true
+ENV RUNNING_IN_CLOUD=false
 ENV PORT=8080
 
 # These should be passed in as env vars, not built into the image

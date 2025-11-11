@@ -20,6 +20,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules /app/node_modules
 COPY ./ /app/
 
+# Next.js automatically assigns this in next build, but set it just to be safe
+ENV NODE_ENV=production
+
 # Define a flavor we can set at docker build time. 
 # Valid values: 'production', 'staging', 'test', 'development'
 # A couple weird things here:
@@ -59,7 +62,7 @@ RUN yarn build
 FROM node:22.20.0-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -78,6 +81,8 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
+ENV RUNNING_IN_CLOUD=false
+ENV APP_ENV=test
 
 CMD ["node", "server.js"]
