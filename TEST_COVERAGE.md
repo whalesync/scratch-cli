@@ -2,23 +2,23 @@
 
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
-**Last Updated**: 2025-11-10
-**Overall Coverage**: <1% (Server: ~2.3%, Client: ~0.4%, Python Agent: 0%)
+**Last Updated**: 2025-11-11
+**Overall Coverage**: ~2% (Server: ~3.5%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 7 test files exist for 562+ source files across all codebases. Security-critical and revenue-generating features have zero test coverage.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 10 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage |
 | ------------ | ------------ | ---------- | -------- |
-| Server       | 258          | 6          | ~2.3%    |
+| Server       | 258          | 9          | ~3.5%    |
 | Client       | 235          | 1          | ~0.4%    |
 | Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **7**      | **1.2%** |
+| **Total**    | **562**      | **10**     | **~2%**  |
 
 ---
 
@@ -42,6 +42,21 @@ These areas have excellent test coverage and should serve as models:
   - Data formatting (bytes, URLs)
   - Validation utilities
 
+- ✅ **Server payment helpers** - 13 test cases covering subscription management (`server/src/payment/helpers.spec.ts`)
+  - Active subscription filtering
+  - Latest expiring subscription detection
+  - Subscription ownership validation
+
+- ✅ **Server ID utilities** - 20+ test cases for typed ID system (`server/src/types/ids.spec.ts`)
+  - ID generation with prefixes
+  - ID validation and type checking
+  - Type inference from ID strings
+
+- ✅ **Server utility helpers** - 12 test cases for enum utilities (`server/src/utils/helpers.spec.ts`)
+  - String-to-enum conversion
+  - Case-insensitive matching
+  - Default value handling
+
 ---
 
 ## Priority Areas for Improvement
@@ -50,13 +65,13 @@ These areas have excellent test coverage and should serve as models:
 
 These areas pose security, financial, or data integrity risks:
 
-| Area                               | Files | Status      | Notes                                                        |
-| ---------------------------------- | ----- | ----------- | ------------------------------------------------------------ |
-| **Authentication & Authorization** | 8     | ❌ No tests | Security-critical; includes Passport strategies, JWT, guards |
-| **Payment/Stripe Integration**     | 7     | ❌ No tests | Revenue-critical; billing, subscriptions, webhooks           |
-| **Snapshot Core Operations**       | 30    | ❌ No tests | Main feature; CRUD, AI integration, WebSocket events         |
-| **Database Layer**                 | 3     | ❌ No tests | Data integrity; migrations, queries, transactions            |
-| **User Management**                | 12    | ❌ No tests | User CRUD, profiles, permissions                             |
+| Area                               | Files | Status         | Notes                                                        |
+| ---------------------------------- | ----- | -------------- | ------------------------------------------------------------ |
+| **Authentication & Authorization** | 8     | ❌ No tests    | Security-critical; includes Passport strategies, JWT, guards |
+| **Payment/Stripe Integration**     | 7     | ⚠️ Minimal     | Helper functions tested; webhooks, service layer untested    |
+| **Snapshot Core Operations**       | 30    | ❌ No tests    | Main feature; CRUD, AI integration, WebSocket events         |
+| **Database Layer**                 | 3     | ❌ No tests    | Data integrity; migrations, queries, transactions            |
+| **User Management**                | 12    | ❌ No tests    | User CRUD, profiles, permissions                             |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -88,7 +103,7 @@ Important for long-term maintainability:
 | **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                      |
 | **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                      |
 | **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
-| **Server Utilities**        | 7     | ⚠️ Partial   | HTML minification tested, other utilities untested                         |
+| **Server Utilities**        | 7     | ✅ Good      | HTML minification, ID utilities, enum helpers, and core utilities tested   |
 | **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                |
 
 **Risk Level**: Bugs may surface during feature changes or edge cases.
@@ -287,6 +302,22 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-11
+- ✅ **Server utility tests added** (+3 test files)
+  - Payment helper tests (`server/src/payment/helpers.spec.ts`) - 13 test cases
+    - Active subscription filtering
+    - Latest expiring subscription detection
+    - Subscription ownership validation
+  - ID utility tests (`server/src/types/ids.spec.ts`) - 20+ test cases
+    - ID generation with typed prefixes
+    - ID validation and type checking
+    - Type inference from ID strings
+  - String/enum helper tests (`server/src/utils/helpers.spec.ts`) - 12 test cases
+    - String-to-enum conversion with case matching
+    - Default value handling
+- 📊 **Coverage updated**: Server went from ~2.3% to ~3.5%, overall from ~1.2% to ~2%
+- 🎯 **Progress**: 57 new test cases added across utility and helper functions
 
 ### 2025-11-10
 - ✅ **Client testing framework setup complete**
