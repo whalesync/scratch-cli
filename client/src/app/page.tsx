@@ -7,7 +7,6 @@ import { PageLayout } from './components/layouts/PageLayout';
 export default function HomePage() {
   return (
     <PageLayout>
-      {' '}
       <MainContent>
         <MainContent.BasicHeader title="Getting started" />
         <MainContent.Body>

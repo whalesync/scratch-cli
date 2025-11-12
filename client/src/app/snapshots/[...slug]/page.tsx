@@ -99,7 +99,7 @@ function SnapshotPageContent() {
     if (activeTable) {
       content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
       contentFooter = <RecordDataToolbar table={activeTable.tableSpec} />;
-    } else if (activeTab === 'new-tab') {
+    } else if (activeTab?.startsWith('new-tab')) {
       content = <AddTableTab />;
     }
   }
