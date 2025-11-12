@@ -1,3 +1,7 @@
+output "cloud_run_environment" {
+  value = module.test.cloud_run_environment
+}
+
 output "gitlab_oidc_service_account" {
   value = module.test.gitlab_oidc_service_account
 }

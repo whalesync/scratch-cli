@@ -216,3 +216,22 @@ build agent docker image:
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
+
+# =============================================================================
+# MISC
+# =============================================================================
+
+dummy job:
+  stage: build
+  interruptible: true
+  image:
+  script:
+    - echo "Gitlab won't merge a MR with changes only in these directories, since that doesn't trigger any pipelines"
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "master" && $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_PIPELINE_SOURCE != "schedule"'
+      changes:
+        - terraform/**/*
+        - .cursor/**/*
+        - gitlab-ci/**/*
+        - mcp/**/*
+        - .vscode/**/*

@@ -192,11 +192,6 @@ resource "google_cloud_run_v2_service" "api_service" {
         }
       }
 
-      env {
-        name  = "REDIS_PASSWORD"
-        value = module.redis.password
-      }
-
       # Inject the following secrets into the container as env vars
       dynamic "env" {
         for_each = [
@@ -212,6 +207,7 @@ resource "google_cloud_run_v2_service" "api_service" {
           "OPENROUTER_PROVISIONING_KEY",
           "POSTHOG_API_KEY",
           "POSTHOG_FEATURE_FLAG_API_KEY",
+          "REDIS_PASSWORD",
           "SCRATCHPAD_AGENT_AUTH_TOKEN",
           "SCRATCHPAD_AGENT_JWT_SECRET",
           "SLACK_NOTIFICATION_WEBHOOK_URL",
