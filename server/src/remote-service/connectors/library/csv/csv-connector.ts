@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Service, Upload } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
-import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
+import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { createCsvFileRecordId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';

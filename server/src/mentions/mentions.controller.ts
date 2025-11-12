@@ -1,9 +1,11 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from 'src/auth/types';
-import { SnapshotId } from 'src/types/ids';
+import type { RequestWithUser } from 'src/auth/types';
+import { toActor } from 'src/auth/types';
+import type { SnapshotId } from 'src/types/ids';
 import { MentionsService } from './mentions.service';
-import { MentionsSearchRequestDto, RecordMentionEntity, ResourceMentionEntity } from './types';
+import type { MentionsSearchRequestDto } from './types';
+import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
 @Controller('mentions')
 export class MentionsController {

@@ -11,7 +11,7 @@ import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
 import { WSLogger } from 'src/logger';
 import TurndownService from 'turndown';
-import { SnapshotColumnSettingsMap } from '../../../../snapshot/types';
+import type { SnapshotColumnSettingsMap } from '../../../../snapshot/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForWsId } from '../../ids';

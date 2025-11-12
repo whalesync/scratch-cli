@@ -3,7 +3,7 @@ import { DbService } from 'src/db/db.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
-import { SnapshotId } from 'src/types/ids';
+import type { SnapshotId } from 'src/types/ids';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';

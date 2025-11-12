@@ -1,4 +1,5 @@
-import { ClerkClient, verifyToken } from '@clerk/backend';
+import type { ClerkClient } from '@clerk/backend';
+import { verifyToken } from '@clerk/backend';
 import { TokenVerificationError } from '@clerk/backend/errors';
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';

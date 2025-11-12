@@ -17,10 +17,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from '../auth/types';
+import type { RequestWithUser } from '../auth/types';
+import { toActor } from '../auth/types';
 import {
   CreateScratchpaperFromCsvDto,
   CreateScratchpaperFromCsvResponseDto,

@@ -1,7 +1,7 @@
 import { Service } from '@prisma/client';
 import _ from 'lodash';
 import MarkdownIt from 'markdown-it';
-import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
+import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import TurndownService from 'turndown';
 import { Webflow, WebflowClient } from 'webflow-api';

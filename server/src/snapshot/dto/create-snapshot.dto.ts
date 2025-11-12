@@ -1,5 +1,5 @@
 import { IsArray, IsOptional, IsString } from 'class-validator';
-import { EntityId } from '../../remote-service/connectors/types';
+import type { EntityId } from '../../remote-service/connectors/types';
 import { ConnectorAccountId } from '../../types/ids';
 
 export class CreateSnapshotDto {

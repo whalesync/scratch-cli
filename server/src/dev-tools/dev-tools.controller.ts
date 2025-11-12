@@ -15,7 +15,7 @@ import {
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser } from 'src/auth/types';
+import type { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';

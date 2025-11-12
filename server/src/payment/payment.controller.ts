@@ -10,10 +10,10 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { isString } from 'lodash';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser } from 'src/auth/types';
+import type { RequestWithUser } from 'src/auth/types';
 import { ErrorCode, isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';

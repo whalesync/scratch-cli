@@ -1,14 +1,14 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
-import {
+import type { RequestWithUser } from '../auth/types';
+import type {
   GenerateCreateRecordFunctionRequest,
   GenerateDeleteRecordFunctionRequest,
   GenerateListTablesFunctionRequest,
   GeneratePollRecordsFunctionRequest,
   GenerateUpdateRecordFunctionRequest,
-  RestApiImportService,
 } from './custom-connector-builder.service';
+import { RestApiImportService } from './custom-connector-builder.service';
 
 // Add a DTO for the execute-poll-records endpoint
 export class ExecutePollRecordsDto {

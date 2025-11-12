@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import type { RequestWithUser } from '../auth/types';
 import { CustomConnectorService } from './custom-connector.service';
 import { CreateCustomConnectorDto } from './dto/create-custom-connector.dto';
 import { UpdateCustomConnectorDto } from './dto/update-custom-connector.dto';

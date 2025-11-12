@@ -11,7 +11,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../snapshot/snapshot-event.service';
-import { SnapshotColumnSettingsMap } from '../../../snapshot/types';
+import type { SnapshotColumnSettingsMap } from '../../../snapshot/types';
 
 export type DownloadRecordsPublicProgress = {
   totalRecords: number;

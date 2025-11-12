@@ -5,7 +5,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import { parse, Parser } from 'csv-parse';
-import { Response } from 'express';
+import type { Response } from 'express';
 import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';

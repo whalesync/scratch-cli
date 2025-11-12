@@ -1,5 +1,5 @@
 import { IsObject } from 'class-validator';
-import { SnapshotColumnSettingsMap } from '../types';
+import type { SnapshotColumnSettingsMap } from '../types';
 
 export class UpdateColumnSettingsDto {
   /** Only keys present in the map will be updated, other keys will be left unchanged. */

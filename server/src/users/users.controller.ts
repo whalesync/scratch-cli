@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import { RequestWithUser } from 'src/auth/types';
+import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';

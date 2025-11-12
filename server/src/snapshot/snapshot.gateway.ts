@@ -11,12 +11,13 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
-import { SocketWithUser, toActor } from 'src/auth/types';
+import type { SocketWithUser } from 'src/auth/types';
+import { toActor } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { SnapshotId } from 'src/types/ids';
+import type { SnapshotId } from 'src/types/ids';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
 

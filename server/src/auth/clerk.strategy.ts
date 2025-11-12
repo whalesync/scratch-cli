@@ -1,8 +1,9 @@
-import { ClerkClient, verifyToken } from '@clerk/backend';
+import type { ClerkClient } from '@clerk/backend';
+import { verifyToken } from '@clerk/backend';
 import { TokenVerificationError } from '@clerk/backend/errors';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { Strategy } from 'passport-custom';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';

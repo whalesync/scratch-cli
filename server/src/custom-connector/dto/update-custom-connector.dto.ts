@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
-import { MappingConfig } from '../types';
+import type { MappingConfig } from '../types';
 
 export class UpdateCustomConnectorDto {
   @IsString()

@@ -2,7 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
-import { Response } from 'express';
+import type { Response } from 'express';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
@@ -39,7 +39,7 @@ import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './ent
 import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
-import { SnapshotColumnSettingsMap } from './types';
+import type { SnapshotColumnSettingsMap } from './types';
 import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
 
 @Injectable()

@@ -1,7 +1,9 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from '../auth/types';
-import { OAuthCallbackRequest, OAuthInitiateResponse, OAuthService } from './oauth.service';
+import type { RequestWithUser } from '../auth/types';
+import { toActor } from '../auth/types';
+import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.service';
+import { OAuthService } from './oauth.service';
 
 @Controller('oauth')
 export class OAuthController {

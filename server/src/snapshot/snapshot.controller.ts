@@ -21,13 +21,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
-import { SnapshotId } from 'src/types/ids';
+import type { SnapshotId } from 'src/types/ids';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from '../auth/types';
+import type { RequestWithUser } from '../auth/types';
+import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
 import { AddTableToSnapshotDto } from './dto/add-table-to-snapshot.dto';

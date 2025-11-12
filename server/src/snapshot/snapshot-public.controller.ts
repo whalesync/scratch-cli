@@ -1,6 +1,6 @@
 import { Controller, Get, NotFoundException, Param, Query, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { SnapshotId } from 'src/types/ids';
+import type { Response } from 'express';
+import type { SnapshotId } from 'src/types/ids';
 import { SnapshotService } from './snapshot.service';
 
 /**

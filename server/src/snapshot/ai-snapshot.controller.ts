@@ -1,7 +1,8 @@
 import { Body, Controller, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { SnapshotId } from 'src/types/ids';
+import type { SnapshotId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser, toActor } from '../auth/types';
+import type { RequestWithUser } from '../auth/types';
+import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { SnapshotService } from './snapshot.service';
 

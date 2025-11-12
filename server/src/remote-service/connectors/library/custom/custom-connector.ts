@@ -1,7 +1,7 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import * as _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
+import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import {
   executeCreateRecord,

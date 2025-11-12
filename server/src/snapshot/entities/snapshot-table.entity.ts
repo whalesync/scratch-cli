@@ -1,6 +1,6 @@
 import { SnapshotTableCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { SnapshotColumnSettingsMap } from '../types';
+import type { SnapshotColumnSettingsMap } from '../types';
 
 export class SnapshotTable {
   id: string;

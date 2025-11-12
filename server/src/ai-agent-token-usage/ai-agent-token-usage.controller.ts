@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
-import { RequestWithUser } from '../auth/types';
+import type { RequestWithUser } from '../auth/types';
 import { AiAgentTokenUsageService } from './ai-agent-token-usage.service';
 import { CreateAiAgentTokenUsageEventDto } from './dto/create-ai-agent-token-usage-event.dto';
 

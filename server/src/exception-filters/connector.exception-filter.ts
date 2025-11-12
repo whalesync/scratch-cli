@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, InternalServerErrorException } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ConnectorInstantiationError } from '../remote-service/connectors/error';
 
 @Catch(ConnectorInstantiationError)

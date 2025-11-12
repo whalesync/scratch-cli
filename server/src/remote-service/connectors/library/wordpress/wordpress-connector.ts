@@ -1,6 +1,6 @@
 import { Service } from '@prisma/client';
 import MarkdownIt from 'markdown-it';
-import { SnapshotColumnSettingsMap } from 'src/snapshot/types';
+import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { sanitizeForWsId } from '../../ids';

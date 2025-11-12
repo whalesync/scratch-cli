@@ -1,6 +1,6 @@
 import { ConnectorAccount, Service } from '@prisma/client';
 import { JsonSafeObject } from 'src/utils/objects';
-import { SnapshotColumnSettingsMap } from '../../snapshot/types';
+import type { SnapshotColumnSettingsMap } from '../../snapshot/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
   ConnectorErrorDetails,

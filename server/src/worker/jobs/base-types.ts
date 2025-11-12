@@ -32,7 +32,7 @@ export type JobDefinitionBuilder<
 //     ? { data: TData; updateProgress: (progress: JsonSafeObject) => Promise<void> }
 //     : never;
 
-export { Progress };
+export type { Progress };
 
 export type JobHandlerBuilder<TDefinition extends JobDefinitionBuilder<any, any, any, any, any>> =
   TDefinition extends JobDefinitionBuilder<any, infer TData, infer TPublicProgress, infer TJobProgress, infer TResult>

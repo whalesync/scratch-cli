@@ -1,4 +1,4 @@
-import { ClerkClient, Organization, User } from '@clerk/backend';
+import type { ClerkClient, Organization, User } from '@clerk/backend';
 import { Inject, Injectable } from '@nestjs/common';
 
 /*
