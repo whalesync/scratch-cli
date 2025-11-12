@@ -420,8 +420,6 @@ module "agent_lb" {
   enable_cdn             = false
   enable_http_redirect   = true
   log_sample_rate        = 1.0
-  # Increase timeout to match CloudRun timeout for websocket connections
-  backend_timeout_sec = 3600
   # Use session affinity to maintain websocket connections on the same backend
   session_affinity    = "CLIENT_IP"
 }

@@ -36,11 +36,6 @@ variable "log_sample_rate" {
   description = "Sample rate for load balancer logs (0.0 to 1.0)"
 }
 
-variable "backend_timeout_sec" {
-  type        = number
-  default     = 30
-  description = "Timeout in seconds for backend service requests. Increase for long-lived connections like websockets."
-}
 
 variable "session_affinity" {
   type        = string
