@@ -164,9 +164,7 @@ def define_set_field_value_tool(
 
             column = find_column_by_id(table, chatRunContext.column_id)
             if not column:
-                return unable_to_identify_active_field_error(
-                    table, chatRunContext.column_id
-                )
+                return unable_to_identify_active_field_error(chatRunContext)
 
             wsId = chatRunContext.record_id
 
