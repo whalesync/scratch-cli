@@ -31,7 +31,7 @@ include:
   script:
     # To get nvm working.
     - . ~/.bashrc
-    - if [ ! -d node_modules ]; then nvm use && yarn install --immutable --cache-folder .yarn --prefer-offline; else echo "node_modules exists. Using cache."; fi
+    - nvm use && yarn install --frozen-lockfile --cache-folder .yarn --prefer-offline
 
 # Reusable snippet for including into rules to trigger jobs only on merge to master, not in MRs or scheduled pipelines
 .rules:

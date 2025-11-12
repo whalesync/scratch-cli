@@ -24,6 +24,7 @@ build and test client:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - client/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -115,7 +116,6 @@ build and test server:
   script:
     - cd server
     - !reference [.use_nvm, script]
-    - yarn install --frozen-lockfile
     - yarn lint
     - yarn test
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
@@ -131,6 +131,7 @@ build and test server:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - server/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
@@ -184,6 +185,7 @@ build and test agent:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - pydantic-ai-agent/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
