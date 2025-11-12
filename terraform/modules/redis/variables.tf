@@ -88,3 +88,10 @@ variable "labels" {
   description = "Labels to apply to the Redis instance."
   default     = {}
 }
+
+// NOTE: BULLMQ recommends using noeviction
+variable "eviction_policy" {
+  type        = string
+  description = "The eviction policy to use. See https://cloud.google.com/memorystore/docs/redis/reference/rest/v1/projects.locations.instances#Instance.EvictionPolicy for more information."
+  default     = "noeviction"
+}

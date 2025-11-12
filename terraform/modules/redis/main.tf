@@ -36,8 +36,7 @@ resource "google_redis_instance" "cache" {
   labels = var.labels
 
   redis_configs = {
-    # Evict keys with the expire field set to true that have the shortest remaining time-to-live (TTL) value.
-    "maxmemory-policy" = "volatile-ttl"
+    "maxmemory-policy" = var.eviction_policy
   }
 
   // Set config of RDB snapshots (ie cache backups). Adds no extra cost to instance billing.
