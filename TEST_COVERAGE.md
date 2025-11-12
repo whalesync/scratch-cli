@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~3.7% (Server: ~6.5%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~3.9% (Server: ~7.0%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 20 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 23 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 19         | ~6.5%     |
+| Server       | 258          | 22         | ~7.0%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **20**     | **~3.7%** |
+| **Total**    | **562**      | **23**     | **~3.9%** |
 
 ---
 
@@ -37,17 +37,20 @@ These areas have excellent test coverage and should serve as models:
 - ✅ **HTML minification** - 70+ test cases (`server/src/wrappers/html-minify.spec.ts`)
 
 - ✅ **Client utility helpers** - 200+ lines covering 14 utility functions (`client/src/utils/__tests__/helpers.test.ts`)
+
   - String manipulation (capitalization, comparison, hashing)
   - Array operations (range, last element, type checking)
   - Data formatting (bytes, URLs)
   - Validation utilities
 
 - ✅ **Server payment helpers** - 13 test cases covering subscription management (`server/src/payment/helpers.spec.ts`)
+
   - Active subscription filtering
   - Latest expiring subscription detection
   - Subscription ownership validation
 
 - ✅ **Server payment plans** - 20 test cases covering plan configuration (`server/src/payment/plans.spec.ts`)
+
   - Plan type string conversion and validation
   - Environment-specific plan retrieval (production, staging, test, local)
   - Plan lookup by product type
@@ -56,11 +59,13 @@ These areas have excellent test coverage and should serve as models:
   - Display name consistency across environments
 
 - ✅ **Server ID utilities** - 20+ test cases for typed ID system (`server/src/types/ids.spec.ts`)
+
   - ID generation with prefixes
   - ID validation and type checking
   - Type inference from ID strings
 
 - ✅ **Server utility helpers** - 143 test cases across utility functions
+
   - Enum utilities (`server/src/utils/helpers.spec.ts`) - 12 tests
   - Duration utilities (`server/src/utils/duration.spec.ts`) - 31 tests
     - Factory functions for time units (milliseconds, seconds, minutes, hours, days)
@@ -86,6 +91,7 @@ These areas have excellent test coverage and should serve as models:
   - Default value handling
 
 - ✅ **Server Result type utilities** - 68 test cases covering Result<T> monad pattern (`server/src/types/results.spec.ts`)
+
   - Success result creation (ok function)
   - Error result creation (errResult with all error code helpers)
   - Type guards (isOk, isErr, isResult, isAllOk)
@@ -95,6 +101,7 @@ These areas have excellent test coverage and should serve as models:
   - Error metadata (cause, context, isRetriable flags)
 
 - ✅ **Slack formatters** - 19 test cases covering Slack message formatting (`server/src/slack/slack-formatters.spec.ts`)
+
   - Link formatting in Slack markdown format
   - Special characters and Unicode handling
   - Query parameters and URL fragments
@@ -103,12 +110,14 @@ These areas have excellent test coverage and should serve as models:
   - Fallback handling for missing user data
 
 - ✅ **Snapshot utilities** - 9 test cases covering snapshot lookup functions (`server/src/snapshot/util.spec.ts`)
+
   - Finding snapshot tables by workspace ID (wsId)
   - Finding table specs by workspace ID
   - Handling missing tables and empty snapshots
   - Multiple table scenarios
 
 - ✅ **CSV parser** - 22 test cases covering CSV parsing logic (`server/src/remote-service/connectors/library/csv/csv-parser.spec.ts`)
+
   - Basic CSV parsing with headers and rows
   - Quoted fields with commas and escaped quotes
   - Empty fields and edge cases
@@ -118,11 +127,36 @@ These areas have excellent test coverage and should serve as models:
   - Real-world CSV formatting scenarios
 
 - ✅ **Auth permissions** - 16 test cases covering admin permission checks (`server/src/auth/permissions.spec.ts`)
+
   - Admin role with different auth types (jwt, api-token, agent-token)
   - User role permission denials
   - Edge cases (missing organization, clerk id, name/email)
   - Comprehensive auth type and role combinations
   - Auth source variations (user vs agent)
+
+- ✅ **User token utilities** - 13 test cases covering token generation (`server/src/users/tokens.spec.ts`)
+
+  - API token generation (32-character nanoid tokens)
+  - Token uniqueness validation
+  - Valid character validation (URL-safe)
+  - API token expiration (6 months)
+  - WebSocket token expiration (1 day)
+  - Date object validation and future date checks
+
+- ✅ **Auth type conversion** - 10 test cases covering AuthenticatedUser to Actor conversion (`server/src/auth/types.spec.ts`)
+
+  - toActor function with all auth types (jwt, api-token, agent-token)
+  - Auth source handling (user vs agent)
+  - Organization ID fallback handling (null/undefined → '<empty org id>')
+  - User and organization ID preservation
+  - Edge cases with missing organization data
+
+- ✅ **User type conversion** - 10 test cases covering User to Actor conversion (`server/src/users/types.spec.ts`)
+  - userToActor function with complete user data
+  - Organization ID fallback handling
+  - User metadata exclusion from Actor objects
+  - Field validation (only userId and organizationId)
+  - Edge cases (unboarded users, custom settings)
 
 ---
 
@@ -132,13 +166,13 @@ These areas have excellent test coverage and should serve as models:
 
 These areas pose security, financial, or data integrity risks:
 
-| Area                               | Files | Status         | Notes                                                        |
-| ---------------------------------- | ----- | -------------- | ------------------------------------------------------------ |
-| **Authentication & Authorization** | 8     | ⚠️ Minimal     | Permissions tested; Passport strategies, JWT, guards untested |
-| **Payment/Stripe Integration**     | 7     | ⚠️ Improving   | Helper functions and plans tested; webhooks, service layer untested |
-| **Snapshot Core Operations**       | 30    | ❌ No tests    | Main feature; CRUD, AI integration, WebSocket events         |
-| **Database Layer**                 | 3     | ❌ No tests    | Data integrity; migrations, queries, transactions            |
-| **User Management**                | 12    | ❌ No tests    | User CRUD, profiles, permissions                             |
+| Area                               | Files | Status       | Notes                                                                              |
+| ---------------------------------- | ----- | ------------ | ---------------------------------------------------------------------------------- |
+| **Authentication & Authorization** | 8     | ⚠️ Improving | Permissions and type conversions tested; Passport strategies, JWT, guards untested |
+| **Payment/Stripe Integration**     | 7     | ⚠️ Improving | Helper functions and plans tested; webhooks, service layer untested                |
+| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                               |
+| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                                  |
+| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested        |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -164,14 +198,14 @@ These areas handle critical functionality:
 
 Important for long-term maintainability:
 
-| Area                        | Files | Status       | Notes                                                                      |
-| --------------------------- | ----- | ------------ | -------------------------------------------------------------------------- |
-| **Client React Components** | 235   | ❌ No tests  | React components and pages untested                                        |
-| **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                      |
-| **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                      |
-| **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
+| Area                        | Files | Status       | Notes                                                                                                   |
+| --------------------------- | ----- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| **Client React Components** | 235   | ❌ No tests  | React components and pages untested                                                                     |
+| **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                                                   |
+| **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                                                   |
+| **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested                              |
 | **Server Utilities**        | 8     | ✅ Excellent | Duration, URL validation, asserts, encryption, HTML minification, ID utilities, enum helpers all tested |
-| **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                |
+| **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                                             |
 
 **Risk Level**: Bugs may surface during feature changes or edge cases.
 
@@ -247,6 +281,7 @@ pip install pytest pytest-asyncio pytest-cov
 - [ ] **Milestone 3**: Server overall at 50%+ coverage
 
 - [ ] **Milestone 4**: Client testing framework + 30%+ coverage
+
   - [x] Set up Jest + Testing Library
   - [x] Add utility helper tests
   - [ ] Add React component tests
@@ -370,7 +405,33 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 
 ## Recent Changes
 
+### 2025-11-12 (Late Night - Round 2)
+
+- ✅ **Auth and user management tests added** (+3 test files, +33 test cases)
+  - User token utilities (`server/src/users/tokens.spec.ts`) - 13 test cases
+    - API token generation with nanoid (32 characters, URL-safe)
+    - Token uniqueness validation
+    - API token expiration date (6 months)
+    - WebSocket token expiration date (1 day)
+  - Auth type conversion (`server/src/auth/types.spec.ts`) - 10 test cases
+    - toActor conversion for all auth types (jwt, api-token, agent-token)
+    - Auth source handling (user vs agent)
+    - Organization ID fallback for null/undefined values
+    - Edge case handling
+  - User type conversion (`server/src/users/types.spec.ts`) - 10 test cases
+    - userToActor conversion with complete user data
+    - Organization ID fallback handling
+    - Actor object field validation (only userId and organizationId)
+    - Metadata exclusion verification
+- 🛠️ **Jest configuration improved**
+  - Added transformIgnorePatterns to handle nanoid ES module
+- 📊 **Coverage updated**: Server went from ~6.5% to ~7.0%, overall from ~3.7% to ~3.9%
+- 🎯 **Progress**: P0 critical areas (Authentication & User Management) status improved from "Minimal/No tests" to "Improving"
+- 🔒 **Security impact**: Token generation and user/auth conversions are foundational security utilities now tested
+- 📈 **Cumulative progress**: 343 new test cases across 15 test files in last 2 days
+
 ### 2025-11-12 (After Midnight)
+
 - ✅ **Payment plans tests added** (+1 test file, +20 test cases)
   - Payment plans tests (`server/src/payment/plans.spec.ts`) - 20 test cases
     - Plan type string conversion (getPlanTypeFromString)
@@ -389,6 +450,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 310 new test cases across 13 test files in last 2 days
 
 ### 2025-11-12 (Late Night)
+
 - ✅ **Auth permissions tests added** (+1 test file, +16 test cases)
   - Permission utility tests (`server/src/auth/permissions.spec.ts`) - 16 test cases
     - Admin role permission checks with jwt, api-token, and agent-token auth types
@@ -402,6 +464,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 290 new test cases across 12 test files in last 2 days
 
 ### 2025-11-12 (Night)
+
 - ✅ **Encryption utility tests added** (+1 test file, +35 test cases)
   - Encryption utility tests (`server/src/utils/encryption.spec.ts`) - 35 test cases
     - Constructor validation for master key requirements
@@ -417,6 +480,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 274 new test cases across 11 test files in last 2 days
 
 ### 2025-11-12 (Late Evening)
+
 - ✅ **Snapshot utilities and CSV parser tests added** (+2 test files, +31 test cases)
   - Snapshot utilities tests (`server/src/snapshot/util.spec.ts`) - 9 test cases
     - Finding snapshot tables by workspace ID (wsId)
@@ -433,6 +497,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 239 new test cases across 10 test files in last 2 days
 
 ### 2025-11-12 (Evening)
+
 - ✅ **Slack formatter tests added** (+1 test file, +19 test cases)
   - Slack formatters tests (`server/src/slack/slack-formatters.spec.ts`) - 19 test cases
     - Link formatting in Slack markdown format
@@ -446,6 +511,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 208 new test cases across 8 test files in last 2 days
 
 ### 2025-11-12 (Afternoon)
+
 - ✅ **Server Result type utility tests added** (+1 test file, +68 test cases)
   - Result type tests (`server/src/types/results.spec.ts`) - 68 test cases
     - Success and error result creation
@@ -459,6 +525,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📈 **Cumulative progress**: 189 new test cases across 7 test files in last 2 days
 
 ### 2025-11-11 (Evening)
+
 - ✅ **Additional server utility tests added** (+3 test files, +64 test cases)
   - Duration utility tests (`server/src/utils/duration.spec.ts`) - 31 test cases
     - Factory functions (milliseconds, seconds, minutes, hours, days)
@@ -480,6 +547,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 🎉 **Total new tests today**: 121 test cases across 6 test files
 
 ### 2025-11-11 (Morning)
+
 - ✅ **Server utility tests added** (+3 test files)
   - Payment helper tests (`server/src/payment/helpers.spec.ts`) - 13 test cases
     - Active subscription filtering
@@ -496,6 +564,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 🎯 **Progress**: 57 new test cases added across utility and helper functions
 
 ### 2025-11-10
+
 - ✅ **Client testing framework setup complete**
   - Added Jest with Next.js integration (`jest.config.ts`)
   - Configured Testing Library for React (`jest.setup.ts`)
