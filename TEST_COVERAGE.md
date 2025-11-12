@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~4.0% (Server: ~7.3%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~4.2% (Server: ~7.8%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 24 test files exist for 562+ source files across all codebases. Progress is being made with new utility, helper function, and security tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 27 test files exist for 562+ source files across all codebases. Progress is being made with new utility, helper function, security, and authentication tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 23         | ~7.3%     |
+| Server       | 258          | 26         | ~7.8%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **24**     | **~4.0%** |
+| **Total**    | **562**      | **27**     | **~4.2%** |
 
 ---
 
@@ -167,6 +167,36 @@ These areas have excellent test coverage and should serve as models:
   - Token uniqueness validation
   - JWT service integration verification
 
+- ✅ **Passport authentication strategies** - 42 test cases covering all three auth strategies
+  - **API Token Strategy** (`server/src/auth/api-token.strategy.spec.ts`) - 11 test cases
+    - Valid API token validation and user lookup
+    - Multiple API tokens per user handling
+    - Invalid token rejection
+    - Edge cases (empty token array, mismatched tokens, expired tokens)
+    - Database error handling
+    - Special characters and long tokens
+    - User field preservation in authenticated response
+  - **Agent Token Strategy** (`server/src/auth/agent-token.strategy.spec.ts`) - 15 test cases
+    - Agent token format validation (key:userId)
+    - Invalid agent key rejection
+    - User lookup by ID
+    - Token format edge cases (no colon, multiple colons, empty parts)
+    - User without organization ID
+    - Database error handling
+    - Special characters and long user IDs
+    - Auth type and source validation
+  - **Clerk JWT Strategy** (`server/src/auth/clerk.strategy.spec.ts`) - 16 test cases
+    - Bearer token extraction from Authorization header
+    - JWT verification with Clerk
+    - User creation/retrieval from Clerk payload
+    - Missing/malformed authorization header handling
+    - Token verification error handling (TokenVerificationError, generic errors)
+    - Database error handling
+    - Missing user handling
+    - Optional JWT fields (fullName, primaryEmail)
+    - Case-sensitive Bearer prefix validation
+    - Long tokens and special characters in user data
+
 ---
 
 ## Priority Areas for Improvement
@@ -175,13 +205,13 @@ These areas have excellent test coverage and should serve as models:
 
 These areas pose security, financial, or data integrity risks:
 
-| Area                               | Files | Status       | Notes                                                                                 |
-| ---------------------------------- | ----- | ------------ | ------------------------------------------------------------------------------------- |
-| **Authentication & Authorization** | 8     | ⚠️ Improving | Permissions, type conversions, and JWT generation tested; Passport strategies untested |
-| **Payment/Stripe Integration**     | 7     | ⚠️ Improving | Helper functions and plans tested; webhooks, service layer untested                   |
-| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                                  |
-| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                                     |
-| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested           |
+| Area                               | Files | Status       | Notes                                                                          |
+| ---------------------------------- | ----- | ------------ | ------------------------------------------------------------------------------ |
+| **Authentication & Authorization** | 8     | ✅ Good      | All Passport strategies, permissions, type conversions, JWT generation tested  |
+| **Payment/Stripe Integration**     | 7     | ⚠️ Improving | Helper functions and plans tested; webhooks, service layer untested            |
+| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                           |
+| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                              |
+| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested    |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -413,6 +443,43 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (Post-Midnight - Round 4)
+
+- ✅ **Passport authentication strategy tests added** (+3 test files, +42 test cases)
+  - API Token Strategy tests (`server/src/auth/api-token.strategy.spec.ts`) - 11 test cases
+    - Valid API token validation and user lookup
+    - Multiple API tokens per user handling
+    - Invalid token rejection and null returns
+    - Edge cases (empty token array, mismatched tokens, expired tokens)
+    - Database error handling
+    - Special characters and long tokens
+    - User field preservation in authenticated response
+  - Agent Token Strategy tests (`server/src/auth/agent-token.strategy.spec.ts`) - 15 test cases
+    - Agent token format validation (key:userId colon-separated format)
+    - Invalid agent key rejection
+    - User lookup by ID
+    - Token format edge cases (no colon, multiple colons, empty parts, whitespace)
+    - User without organization ID handling
+    - Database error handling
+    - Special characters and long user IDs
+    - Auth type and source validation (agent-token, agent)
+  - Clerk JWT Strategy tests (`server/src/auth/clerk.strategy.spec.ts`) - 16 test cases
+    - Bearer token extraction from Authorization header
+    - JWT verification with Clerk using verifyToken
+    - User creation/retrieval from Clerk payload (sub, fullName, primaryEmail)
+    - Missing/malformed authorization header handling
+    - Token verification error handling (TokenVerificationError, generic errors)
+    - Database error handling during user lookup
+    - Missing user handling
+    - Optional JWT fields (fullName, primaryEmail can be undefined)
+    - Case-sensitive Bearer prefix validation
+    - Long tokens and special characters in user data
+- 📊 **Coverage updated**: Server went from ~7.3% to ~7.8%, overall from ~4.0% to ~4.2%
+- 🎯 **Progress**: P0 critical area (Authentication & Authorization) status improved from "Improving" to "Good" - all Passport strategies now fully tested
+- 🔒 **Security impact**: All three authentication strategies (Clerk JWT, API Token, Agent Token) are now comprehensively tested - critical for security
+- 📈 **Cumulative progress**: 396 new test cases across 19 test files in last 2 days
+- 🎉 **Milestone**: Authentication & Authorization is now the first P0 critical area to reach "Good" status!
 
 ### 2025-11-12 (Very Late Night - Round 3)
 

@@ -1,7 +1,17 @@
+import { WSLogger } from 'src/logger';
 import { AuthenticatedUser, toActor } from './types';
 
 describe('Auth Type Utilities', () => {
   describe('toActor', () => {
+    let loggerErrorSpy: jest.SpyInstance;
+
+    afterEach(() => {
+      // Restore WSLogger.error if it was spied on
+      if (loggerErrorSpy) {
+        loggerErrorSpy.mockRestore();
+      }
+    });
+
     it('should convert authenticated user to actor with organization id', () => {
       const user: AuthenticatedUser = {
         id: 'user_123',
@@ -93,6 +103,9 @@ describe('Auth Type Utilities', () => {
     });
 
     it('should handle user with null organization id with fallback', () => {
+      // Suppress expected error logs from WSLogger
+      loggerErrorSpy = jest.spyOn(WSLogger, 'error').mockImplementation();
+
       const user: AuthenticatedUser = {
         id: 'user_123',
         clerkId: 'clerk_456',
@@ -115,6 +128,9 @@ describe('Auth Type Utilities', () => {
     });
 
     it('should handle user with undefined organization id with fallback', () => {
+      // Suppress expected error logs from WSLogger
+      loggerErrorSpy = jest.spyOn(WSLogger, 'error').mockImplementation();
+
       const user: AuthenticatedUser = {
         id: 'user_123',
         clerkId: 'clerk_456',
