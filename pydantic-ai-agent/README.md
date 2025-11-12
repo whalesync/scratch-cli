@@ -23,9 +23,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set your `OPENROUTER_API_KEY` and `LOGFIRE_TOKEN` values
-
-The `OPENROUTER_API_KEY` will be used as a fallback for admin users that don't have credentials configured. You can create your own or use the `Scratch Devs - shared API key` that is in 1Password.
+Set your `LOGFIRE_TOKEN` and `LOGFIRE_ENVIRONMENT` values
 
 If you are doing a lot of iteration on the Agent, it is recommended you use the shared key as it has a higher token credit limit.
 

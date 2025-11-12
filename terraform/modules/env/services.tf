@@ -298,6 +298,9 @@ resource "google_cloud_run_v2_service" "agent_service" {
     # Use gen1 environment for faster cold starts.
     execution_environment = "EXECUTION_ENVIRONMENT_GEN1"
 
+    # Increase timeout for long-lived websocket connections (max 3600 seconds)
+    timeout = "3600s"
+
     scaling {
       min_instance_count = var.agent_service_min_instance_count
       max_instance_count = var.agent_service_max_instance_count
@@ -321,7 +324,8 @@ resource "google_cloud_run_v2_service" "agent_service" {
           cpu    = var.agent_service_cpu_limit
           memory = var.agent_service_memory_limit
         }
-        cpu_idle = true # This service responds to requests so it doesn't need CPU all the time.
+        # Keep CPU allocated for websocket connections to prevent disconnections
+        cpu_idle = false
       }
 
       dynamic "env" {
@@ -416,6 +420,10 @@ module "agent_lb" {
   enable_cdn             = false
   enable_http_redirect   = true
   log_sample_rate        = 1.0
+  # Increase timeout to match CloudRun timeout for websocket connections
+  backend_timeout_sec = 3600
+  # Use session affinity to maintain websocket connections on the same backend
+  session_affinity    = "CLIENT_IP"
 }
 
 #endregion

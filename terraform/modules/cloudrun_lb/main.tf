@@ -25,7 +25,8 @@ resource "google_compute_backend_service" "default" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTP"
   port_name             = "http"
-  timeout_sec           = 30
+  timeout_sec           = var.backend_timeout_sec
+  session_affinity      = var.session_affinity
 
   backend {
     group = google_compute_region_network_endpoint_group.cloudrun_neg.id
