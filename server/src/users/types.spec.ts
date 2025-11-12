@@ -1,8 +1,18 @@
 import { UserCluster } from 'src/db/cluster-types';
+import { WSLogger } from 'src/logger';
 import { userToActor } from './types';
 
 describe('User Type Utilities', () => {
   describe('userToActor', () => {
+    let loggerErrorSpy: jest.SpyInstance;
+
+    afterEach(() => {
+      // Restore WSLogger.error if it was spied on
+      if (loggerErrorSpy) {
+        loggerErrorSpy.mockRestore();
+      }
+    });
+
     it('should convert user to actor with organization id', () => {
       const user: UserCluster.User = {
         id: 'user_123',
@@ -26,6 +36,9 @@ describe('User Type Utilities', () => {
     });
 
     it('should handle user with null organization id with fallback', () => {
+      // Suppress expected error logs from WSLogger
+      loggerErrorSpy = jest.spyOn(WSLogger, 'error').mockImplementation();
+
       const user: UserCluster.User = {
         id: 'user_123',
         clerkId: 'clerk_456',
@@ -46,6 +59,9 @@ describe('User Type Utilities', () => {
     });
 
     it('should handle user with undefined organization id with fallback', () => {
+      // Suppress expected error logs from WSLogger
+      loggerErrorSpy = jest.spyOn(WSLogger, 'error').mockImplementation();
+
       const user: UserCluster.User = {
         id: 'user_123',
         clerkId: 'clerk_456',
