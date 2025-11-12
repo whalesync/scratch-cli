@@ -4,6 +4,7 @@ import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { oauthApi } from '@/lib/api/oauth';
 import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
+import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { CheckCircle, XCircle } from '@phosphor-icons/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -84,7 +85,7 @@ export default function OAuthCallbackPage() {
 
         // Redirect to connections page after a short delay
         setTimeout(() => {
-          router.push('/connections');
+          router.push(RouteUrls.dataSourcesPageUrl);
         }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -170,7 +171,7 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push('/connections')}>
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
                 Back to Connections
               </ButtonSecondaryOutline>
               {/* <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton> */}
