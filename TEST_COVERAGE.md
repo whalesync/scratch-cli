@@ -3,7 +3,7 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~3.5% (Server: ~6.2%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~3.6% (Server: ~6.3%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
@@ -15,10 +15,10 @@ The codebase has **critical test coverage gaps**. While existing tests demonstra
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 17         | ~6.2%     |
+| Server       | 258          | 18         | ~6.3%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **18**     | **~3.5%** |
+| **Total**    | **562**      | **19**     | **~3.6%** |
 
 ---
 
@@ -109,6 +109,13 @@ These areas have excellent test coverage and should serve as models:
   - Missing or extra fields handling
   - Real-world CSV formatting scenarios
 
+- ✅ **Auth permissions** - 16 test cases covering admin permission checks (`server/src/auth/permissions.spec.ts`)
+  - Admin role with different auth types (jwt, api-token, agent-token)
+  - User role permission denials
+  - Edge cases (missing organization, clerk id, name/email)
+  - Comprehensive auth type and role combinations
+  - Auth source variations (user vs agent)
+
 ---
 
 ## Priority Areas for Improvement
@@ -119,7 +126,7 @@ These areas pose security, financial, or data integrity risks:
 
 | Area                               | Files | Status         | Notes                                                        |
 | ---------------------------------- | ----- | -------------- | ------------------------------------------------------------ |
-| **Authentication & Authorization** | 8     | ❌ No tests    | Security-critical; includes Passport strategies, JWT, guards |
+| **Authentication & Authorization** | 8     | ⚠️ Minimal     | Permissions tested; Passport strategies, JWT, guards untested |
 | **Payment/Stripe Integration**     | 7     | ⚠️ Minimal     | Helper functions tested; webhooks, service layer untested    |
 | **Snapshot Core Operations**       | 30    | ❌ No tests    | Main feature; CRUD, AI integration, WebSocket events         |
 | **Database Layer**                 | 3     | ❌ No tests    | Data integrity; migrations, queries, transactions            |
@@ -354,6 +361,19 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (Late Night)
+- ✅ **Auth permissions tests added** (+1 test file, +16 test cases)
+  - Permission utility tests (`server/src/auth/permissions.spec.ts`) - 16 test cases
+    - Admin role permission checks with jwt, api-token, and agent-token auth types
+    - User role permission denials across all auth types
+    - Edge case handling (missing organization id, clerk id, name/email)
+    - Comprehensive testing of all role + auth type combinations
+    - Auth source variation testing (user vs agent)
+- 📊 **Coverage updated**: Server went from ~6.2% to ~6.3%, overall from ~3.5% to ~3.6%
+- 🎯 **Progress**: First P0 auth tests added - critical security permission logic now tested
+- 🔒 **Security impact**: hasAdminToolsPermission is used to gate admin-only endpoints
+- 📈 **Cumulative progress**: 290 new test cases across 12 test files in last 2 days
 
 ### 2025-11-12 (Night)
 - ✅ **Encryption utility tests added** (+1 test file, +35 test cases)

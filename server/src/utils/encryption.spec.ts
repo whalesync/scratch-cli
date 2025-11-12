@@ -93,6 +93,17 @@ describe('EncryptionService', () => {
   });
 
   describe('decrypt', () => {
+    // Suppress console.error for expected decryption failures
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
     it('should decrypt encrypted text back to original', async () => {
       const plaintext = 'Hello, World!';
       const encrypted = await encryptionService.encrypt(plaintext);
