@@ -181,7 +181,7 @@ export const ChatMessageElement = ({
     if (payload.progress_type === 'request_sent') {
       // The payload structure: payload.payload contains the data dict from the server
       const dataPayload = payload.payload || {};
-      console.debug('request_sent payload:', { payload, dataPayload, msgPayload: msg.payload });
+      // console.debug('request_sent payload:', { payload, dataPayload, msgPayload: msg.payload });
       const estimatedTokens = dataPayload['estimated_tokens'] as number | undefined;
       let displayMessage = showDetailedProgress ? msg.message : 'Request Sent';
 

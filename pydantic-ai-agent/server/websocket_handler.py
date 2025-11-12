@@ -34,18 +34,46 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections[session_id] = websocket
 
-    def disconnect(self, session_id: str):
+    def disconnect(self, session_id: str, websocket: Optional[WebSocket] = None):
+        """
+        Disconnect a session. If websocket is provided, only disconnect if it matches
+        the stored connection (to avoid disconnecting a reconnected connection).
+        """
         if session_id in self.active_connections:
-            del self.active_connections[session_id]
+            stored_websocket = self.active_connections[session_id]
+            # If a specific websocket is provided, only disconnect if it matches
+            # This prevents disconnecting a reconnected connection
+            if websocket is None or stored_websocket == websocket:
+                del self.active_connections[session_id]
+                logger.info(f"Connection removed for session {session_id}")
+            else:
+                logger.debug(
+                    f"Disconnect skipped for session {session_id}: connection was replaced"
+                )
 
     async def send_personal_message(self, message: str, session_id: str):
         if session_id in self.active_connections:
+            websocket = self.active_connections[session_id]
             try:
-                await self.active_connections[session_id].send_text(message)
+                await websocket.send_text(message)
             except Exception as e:
                 logger.error(f"Failed to send message to {session_id}: {e}")
-                # Remove the connection if it's broken
-                self.disconnect(session_id)
+                # Remove the connection if it's broken, but only if it's still the same websocket
+                self.disconnect(session_id, websocket)
+
+
+# Global connection manager instance (shared across all websocket connections)
+_connection_manager: Optional[ConnectionManager] = None
+
+
+def get_connection_manager(
+    chat_service: ChatService, session_service: SessionService
+) -> ConnectionManager:
+    """Get or create the shared connection manager instance"""
+    global _connection_manager
+    if _connection_manager is None:
+        _connection_manager = ConnectionManager(chat_service, session_service)
+    return _connection_manager
 
 
 async def websocket_endpoint(
@@ -56,7 +84,7 @@ async def websocket_endpoint(
     auth: Optional[str] = None,
 ):
     """WebSocket endpoint for real-time chat"""
-    manager = ConnectionManager(chat_service, session_service)
+    manager = get_connection_manager(chat_service, session_service)
     await manager.connect(websocket, session_id)
 
     if auth:
@@ -77,7 +105,7 @@ async def websocket_endpoint(
             ),
             session_id,
         )
-        manager.disconnect(session_id)
+        manager.disconnect(session_id, websocket)
         return
 
     ## lookup the existing session
@@ -95,7 +123,7 @@ async def websocket_endpoint(
             ),
             session_id,
         )
-        manager.disconnect(session_id)
+        manager.disconnect(session_id, websocket)
         return
 
     logger.info(
@@ -236,7 +264,7 @@ async def websocket_endpoint(
                         ),
                         session_id,
                     )
-                    manager.disconnect(session_id)
+                    manager.disconnect(session_id, websocket)
                     return
 
                 # TODO: check if the message user is the same as the connecting user
@@ -415,4 +443,4 @@ async def websocket_endpoint(
     except Exception as e:
         logger.exception(f"Unexpected error in WebSocket handler")
     finally:
-        manager.disconnect(session_id)
+        manager.disconnect(session_id, websocket)

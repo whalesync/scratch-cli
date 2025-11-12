@@ -1,8 +1,9 @@
 import { API_CONFIG } from '@/lib/api/config';
 import { ChatMessage, DataScope } from '@/types/server-entities/chat-session';
+import { WebSocketCloseCode } from '@/types/websocket';
 import { sleep } from '@/utils/helpers';
 import pluralize from 'pluralize';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ClientMessageType = 'message' | 'ping' | 'echo_error';
 type ServerMessageType = 'connection_confirmed' | 'pong' | 'agent_error' | 'message_progress' | 'message_response';
@@ -45,63 +46,77 @@ interface UseWebSocketReturn {
   sendPing: () => void;
   sendEchoError: () => void;
   clearChat: () => void;
+  isReconnecting: boolean;
 }
 
 export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): UseWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const shouldReconnectRef = useRef<boolean>(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const attemptReconnectRef = useRef<(() => void) | null>(null);
+  const isReconnectingRef = useRef<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<'offline' | 'connecting' | 'connected'>('offline');
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [connectedSessionId, setConnectedSessionId] = useState<string | null>(null);
   const [messageHistory, setMessageHistory] = useState<ChatMessage[]>([]);
 
-  const connect = useCallback(
-    async (sessionId: string) => {
-      console.log('Connecting WebSocket');
-      if (wsRef.current != null && (connectionStatus === 'connecting' || connectionStatus === 'connected')) return;
+  const MAX_RECONNECT_ATTEMPTS = 10;
+  const INITIAL_RECONNECT_DELAY = 1000; // 1 second
+  const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 
-      setConnectionStatus('connecting');
-      setConnectionError(null);
-      setMessageHistory([]);
+  // Helper function to create and setup WebSocket handlers
+  const createWebSocket = useCallback(
+    (sessionId: string, isReconnect: boolean = false) => {
+      const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
+      const ws = new WebSocket(wsUrl);
 
-      try {
-        // Assuming the WebSocket server is running on the same host but different port
-        // You may need to adjust this URL based on your setup
-        const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
-        const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        console.debug(isReconnect ? 'WebSocket reconnected' : 'WebSocket connected');
+        setConnectionStatus('connected');
+        setConnectionError(null);
+        reconnectAttemptsRef.current = 0; // Reset attempts on successful connection
+        isReconnectingRef.current = false; // Clear reconnecting flag on successful connection
+      };
 
-        ws.onopen = () => {
-          console.debug('WebSocket connected');
-          setConnectionStatus('connected');
-          setConnectionError(null);
-        };
+      ws.onmessage = (event) => {
+        try {
+          console.debug('Agent websocket event:', event);
+          const wsMessage: WebSocketMessage = JSON.parse(event.data);
+          const chatMessages = buildResponseChatMessages(wsMessage);
+          setMessageHistory((prev) => [...prev, ...chatMessages]);
+          onMessage?.(wsMessage).catch((error) => {
+            console.error('Error handling websocket message:', error);
+          });
+        } catch (error) {
+          console.log('Error parsing WebSocket message:', error);
+        }
+      };
 
-        ws.onmessage = (event) => {
-          try {
-            console.debug('Agent websocket event:', event);
-            const wsMessage: WebSocketMessage = JSON.parse(event.data);
-            const chatMessages = buildResponseChatMessages(wsMessage);
-            setMessageHistory((prev) => [...prev, ...chatMessages]);
-            onMessage?.(wsMessage).catch((error) => {
-              console.error('Error handling websocket message:', error);
-            });
-          } catch (error) {
-            console.log('Error parsing WebSocket message:', error);
-          }
-        };
+      ws.onclose = (event) => {
+        console.debug('WebSocket disconnected:', event.code, event.reason);
+        setConnectionStatus('offline');
+        wsRef.current = null;
 
-        ws.onclose = (event) => {
-          console.debug('WebSocket disconnected:', event.code, event.reason);
-          setConnectionStatus('offline');
-
-          // 1000 is normal closure, 1012 is connection closed by server due to restart
-          if (event.code !== 1000) {
-            if (event.code === 1012) {
-              setConnectionError('Connection closed: Server restarted');
-            } else {
-              setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
-            }
+        // NORMAL_CLOSURE is normal closure, don't reconnect for intentional disconnects
+        if (event.code !== WebSocketCloseCode.NORMAL_CLOSURE) {
+          if (event.code === WebSocketCloseCode.SERVICE_RESTART) {
+            setConnectionError('Connection closed: Server restarted');
+          } else {
+            setConnectionError(`Connection closed: ${event.reason || 'Unknown error'}`);
           }
 
+          // Attempt to reconnect if we should
+          if (shouldReconnectRef.current && attemptReconnectRef.current) {
+            console.debug('Turn on reconnect');
+            attemptReconnectRef.current();
+          }
+        }
+
+        if (event.code !== WebSocketCloseCode.ABNORMAL_CLOSURE) {
+          // ABNORMAL_CLOSURE is a special code for when the connection is closed by the server or we failed a connection attempt
+          // We don't want to add a message to the history in this case
           setMessageHistory((prev) => [
             ...prev,
             {
@@ -112,14 +127,97 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
               variant: 'admin',
             },
           ]);
-        };
+        }
+      };
 
-        ws.onerror = (error) => {
-          console.log('WebSocket error:', error);
-          setConnectionError('Failed to connect to WebSocket server');
-          setConnectionStatus('offline');
-        };
+      ws.onerror = (error) => {
+        console.log('WebSocket error:', error);
+        setConnectionError('Failed to connect to WebSocket server');
+        setConnectionStatus('offline');
+        if (shouldReconnectRef.current && attemptReconnectRef.current) {
+          attemptReconnectRef.current();
+        }
+      };
 
+      return ws;
+    },
+    [onMessage],
+  );
+
+  const attemptReconnect = useCallback(() => {
+    if (!shouldReconnectRef.current || !sessionIdRef.current) {
+      return;
+    }
+
+    // Prevent multiple concurrent reconnection attempts
+    if (isReconnectingRef.current) {
+      console.debug('Reconnection already in progress, skipping duplicate attempt');
+      return;
+    }
+
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.debug('Max reconnection attempts reached');
+      setConnectionError('Failed to reconnect after multiple attempts');
+      shouldReconnectRef.current = false;
+      isReconnectingRef.current = false;
+      return;
+    }
+
+    // Clear any existing reconnect timeout before scheduling a new one
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    const delay = Math.min(INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current), MAX_RECONNECT_DELAY);
+
+    console.debug(
+      `Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`,
+    );
+
+    isReconnectingRef.current = true;
+    reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectAttemptsRef.current += 1;
+      isReconnectingRef.current = false; // Clear flag when timeout fires
+      if (sessionIdRef.current && shouldReconnectRef.current) {
+        // Set status to connecting before attempting reconnection
+        setConnectionStatus('connecting');
+        // Directly create WebSocket for reconnection to avoid circular dependency
+        const ws = createWebSocket(sessionIdRef.current, true);
+        wsRef.current = ws;
+      }
+    }, delay);
+  }, [createWebSocket]);
+
+  // Store attemptReconnect in ref so createWebSocket can call it
+  attemptReconnectRef.current = attemptReconnect;
+
+  const connect = useCallback(
+    async (sessionId: string, isReconnect: boolean = false) => {
+      console.log(isReconnect ? 'Reconnecting WebSocket' : 'Connecting WebSocket');
+      if (wsRef.current != null && (connectionStatus === 'connecting' || connectionStatus === 'connected')) return;
+
+      // Clear any existing reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      sessionIdRef.current = sessionId;
+      shouldReconnectRef.current = true;
+      reconnectAttemptsRef.current = 0;
+      isReconnectingRef.current = false; // Clear reconnecting flag when manually connecting
+      setConnectedSessionId(sessionId);
+      setConnectionStatus('connecting');
+      setConnectionError(null);
+
+      // Only clear message history on initial connection, not on reconnection
+      if (!isReconnect) {
+        setMessageHistory([]);
+      }
+
+      try {
+        const ws = createWebSocket(sessionId, false);
         wsRef.current = ws;
       } catch (error) {
         console.log('Error creating WebSocket connection:', error);
@@ -127,13 +225,24 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
         setConnectionStatus('offline');
       }
     },
-    [connectionStatus, onMessage],
+    [connectionStatus, createWebSocket],
   );
 
   const disconnect = useCallback(async () => {
     console.log('Disconnecting WebSocket');
+
+    // Disable auto-reconnect
+    shouldReconnectRef.current = false;
+    isReconnectingRef.current = false;
+
+    // Clear any pending reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     if (wsRef.current) {
-      wsRef.current.close(1000, 'Client disconnected');
+      wsRef.current.close(WebSocketCloseCode.NORMAL_CLOSURE, 'Client disconnected');
       // give a chance for the server to close the connection and clean up
       await sleep(500);
 
@@ -141,7 +250,7 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
       setConnectedSessionId(null);
       setConnectionStatus('offline');
     }
-  }, [wsRef]);
+  }, []);
 
   const sendWebSocketMessage = useCallback(
     (message: WebSocketMessage) => {
@@ -217,6 +326,27 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
     setMessageHistory([]);
   }, []);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Disable auto-reconnect
+      shouldReconnectRef.current = false;
+      isReconnectingRef.current = false;
+
+      // Clear any pending reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      // Close WebSocket if still open
+      if (wsRef.current) {
+        wsRef.current.close(WebSocketCloseCode.NORMAL_CLOSURE, 'Component unmounted');
+        wsRef.current = null;
+      }
+    };
+  }, []);
+
   return {
     connectionStatus,
     connectionError,
@@ -228,6 +358,7 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
     sendPing,
     sendEchoError,
     clearChat,
+    isReconnecting: shouldReconnectRef.current,
   };
 }
 
