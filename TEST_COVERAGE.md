@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~3.9% (Server: ~7.0%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~4.0% (Server: ~7.3%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 23 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 24 test files exist for 562+ source files across all codebases. Progress is being made with new utility, helper function, and security tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 22         | ~7.0%     |
+| Server       | 258          | 23         | ~7.3%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **23**     | **~3.9%** |
+| **Total**    | **562**      | **24**     | **~4.0%** |
 
 ---
 
@@ -158,6 +158,15 @@ These areas have excellent test coverage and should serve as models:
   - Field validation (only userId and organizationId)
   - Edge cases (unboarded users, custom settings)
 
+- ✅ **Agent JWT generation** - 11 test cases covering JWT token generation (`server/src/agent-jwt/jwt-generator.service.spec.ts`)
+  - Token generation with valid user payloads
+  - Admin and user role handling
+  - Config service integration (secret and expiration retrieval)
+  - Custom config value usage in token signing
+  - Special character and long user ID handling
+  - Token uniqueness validation
+  - JWT service integration verification
+
 ---
 
 ## Priority Areas for Improvement
@@ -166,13 +175,13 @@ These areas have excellent test coverage and should serve as models:
 
 These areas pose security, financial, or data integrity risks:
 
-| Area                               | Files | Status       | Notes                                                                              |
-| ---------------------------------- | ----- | ------------ | ---------------------------------------------------------------------------------- |
-| **Authentication & Authorization** | 8     | ⚠️ Improving | Permissions and type conversions tested; Passport strategies, JWT, guards untested |
-| **Payment/Stripe Integration**     | 7     | ⚠️ Improving | Helper functions and plans tested; webhooks, service layer untested                |
-| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                               |
-| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                                  |
-| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested        |
+| Area                               | Files | Status       | Notes                                                                                 |
+| ---------------------------------- | ----- | ------------ | ------------------------------------------------------------------------------------- |
+| **Authentication & Authorization** | 8     | ⚠️ Improving | Permissions, type conversions, and JWT generation tested; Passport strategies untested |
+| **Payment/Stripe Integration**     | 7     | ⚠️ Improving | Helper functions and plans tested; webhooks, service layer untested                   |
+| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                                  |
+| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                                     |
+| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested           |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -404,6 +413,21 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (Very Late Night - Round 3)
+
+- ✅ **Agent JWT generation tests added** (+1 test file, +11 test cases)
+  - JWT generator service tests (`server/src/agent-jwt/jwt-generator.service.spec.ts`) - 11 test cases
+    - Token generation with valid user and admin role payloads
+    - Config service integration for secret and expiration retrieval
+    - Custom config value verification in token signing
+    - Special character and long user ID edge cases
+    - Token uniqueness validation
+    - JWT service integration verification
+- 📊 **Coverage updated**: Server went from ~7.0% to ~7.3%, overall from ~3.9% to ~4.0%
+- 🎯 **Progress**: P0 critical areas (Authentication) improved with JWT generation now fully tested
+- 🔒 **Security impact**: Agent JWT generation is a foundational security component for agent authentication
+- 📈 **Cumulative progress**: 354 new test cases across 16 test files in last 2 days
 
 ### 2025-11-12 (Late Night - Round 2)
 
