@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~3.3% (Server: ~5.8%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~3.5% (Server: ~6.2%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 15 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 18 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
 
 ### Coverage Statistics
 
-| Codebase     | Source Files | Test Files | Coverage |
-| ------------ | ------------ | ---------- | -------- |
-| Server       | 258          | 16         | ~5.8%    |
-| Client       | 235          | 1          | ~0.4%    |
-| Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **17**     | **~3.3%** |
+| Codebase     | Source Files | Test Files | Coverage  |
+| ------------ | ------------ | ---------- | --------- |
+| Server       | 258          | 17         | ~6.2%     |
+| Client       | 235          | 1          | ~0.4%     |
+| Python Agent | 69           | 0          | 0%        |
+| **Total**    | **562**      | **18**     | **~3.5%** |
 
 ---
 
@@ -52,7 +52,7 @@ These areas have excellent test coverage and should serve as models:
   - ID validation and type checking
   - Type inference from ID strings
 
-- ✅ **Server utility helpers** - 108 test cases across utility functions
+- ✅ **Server utility helpers** - 143 test cases across utility functions
   - Enum utilities (`server/src/utils/helpers.spec.ts`) - 12 tests
   - Duration utilities (`server/src/utils/duration.spec.ts`) - 31 tests
     - Factory functions for time units (milliseconds, seconds, minutes, hours, days)
@@ -67,6 +67,13 @@ These areas have excellent test coverage and should serve as models:
   - Assert utilities (`server/src/utils/asserts.spec.ts`) - 7 tests
     - Exhaustive type checking
     - Unreachable code detection
+  - Encryption utilities (`server/src/utils/encryption.spec.ts`) - 35 tests
+    - AES-256-GCM encryption/decryption
+    - String and object encryption
+    - Round-trip encryption tests
+    - Security properties (IV/salt randomness, key derivation)
+    - Error handling (tampered data, wrong keys, invalid inputs)
+    - Unicode and special character handling
   - String-to-enum conversion with case matching
   - Default value handling
 
@@ -148,7 +155,7 @@ Important for long-term maintainability:
 | **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                      |
 | **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                      |
 | **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
-| **Server Utilities**        | 7     | ✅ Excellent | Duration, URL validation, asserts, HTML minification, ID utilities, enum helpers all tested |
+| **Server Utilities**        | 8     | ✅ Excellent | Duration, URL validation, asserts, encryption, HTML minification, ID utilities, enum helpers all tested |
 | **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                |
 
 **Risk Level**: Bugs may surface during feature changes or edge cases.
@@ -347,6 +354,21 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (Night)
+- ✅ **Encryption utility tests added** (+1 test file, +35 test cases)
+  - Encryption utility tests (`server/src/utils/encryption.spec.ts`) - 35 test cases
+    - Constructor validation for master key requirements
+    - String encryption/decryption with AES-256-GCM
+    - Object encryption/decryption with JSON serialization
+    - Round-trip testing for various data types (strings, Unicode, special chars, JSON)
+    - Security properties verification (IV/salt randomness, correct lengths)
+    - Error handling (tampered data, wrong IV/salt, different master keys)
+    - Edge cases (empty inputs, long strings, nested objects)
+- 📊 **Coverage updated**: Server went from ~5.8% to ~6.2%, overall from ~3.3% to ~3.5%
+- 🎯 **Progress**: Critical security utility (encryption) now has comprehensive test coverage - addressing P0 security testing gap
+- 🔒 **Security impact**: Encryption is used for storing connector credentials, so this testing is critical for data security
+- 📈 **Cumulative progress**: 274 new test cases across 11 test files in last 2 days
 
 ### 2025-11-12 (Late Evening)
 - ✅ **Snapshot utilities and CSV parser tests added** (+2 test files, +31 test cases)
