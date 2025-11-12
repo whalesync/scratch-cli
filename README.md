@@ -31,7 +31,7 @@ Full [Documentation](/pydantic-ai-agent/README.md)
 
 # Deployments
 
-The client, server and agent are all automatically deployed to Vercel and Render from the `prod` branch.
+The client, server and agent are all automatically deployed to GCP from the `prod` branch.
 
 A scheduled pipeline in Gitlab triggers the deployment by merging the current state of `master` into `prod`. The deployment happens ever day at 9:30 am PST, but can also be triggered manually.
 

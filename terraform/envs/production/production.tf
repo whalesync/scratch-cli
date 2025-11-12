@@ -21,7 +21,7 @@ module "production" {
   # Monitoring
   enable_alerts                  = true
   enable_email_notifications     = true
-  enable_pagerduty_notifications = false
+  enable_pagerduty_notifications = true
 
   force_reload_services = var.force_reload_services
 }

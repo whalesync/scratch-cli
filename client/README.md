@@ -55,16 +55,6 @@ yarn run build
 yarn run start
 ```
 
-## Hosting
-
-The Scratch client is hosted on Vercel and is automatically deployed with every merge into master
-
-[Public URL - https://scratchpad-client.vercel.app/](https://scratchpad-client.vercel.app/)
-
-[Manage Vercel Project](https://vercel.com/whalesync-devs-projects/spinner)
-
-- Owned by team@whalesync.com (Credentials in 1password)
-
 ## Stack
 
 ### Next.js
