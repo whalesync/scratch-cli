@@ -335,12 +335,9 @@ resource "google_cloud_run_v2_service" "agent_service" {
         for_each = {
           "APP_ENV" : var.env_name,
           "GCP_PROJECT_NUMBER" : var.gcp_project_number,
-          "NODE_ENV" : "production",
-          "NODE_OPTIONS" : var.agent_service_node_options,
           "LOGFIRE_ENABLE_FULL_INSTRUMENTATION" : "false",
           "LOGFIRE_ENVIRONMENT" : var.env_name,
           "MODEL_NAME" : "openai/gpt-4o-mini",
-          "REQUIRE_USER_AGENT_CREDENTIALS" : "false",
           "RUNNING_IN_CLOUD" : "true",
           "SCRATCHPAD_SERVER_URL" : "https://${var.api_domain}",
         }
