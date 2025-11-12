@@ -186,8 +186,8 @@ export const CreateSnapshotModal = ({
               </Group>
 
               <Paper withBorder p="md" mt="sm">
-                <ScrollArea mah={400} flex={1}>
-                  <Stack mt="xs">
+                <ScrollArea h={350} type="auto">
+                  <Stack>
                     {tables
                       .sort((a, b) => a.displayName.localeCompare(b.displayName))
                       .map((table) => (
