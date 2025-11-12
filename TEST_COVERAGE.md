@@ -3,7 +3,7 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-11
-**Overall Coverage**: ~2% (Server: ~3.5%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~2.5% (Server: ~4.2%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
@@ -15,10 +15,10 @@ The codebase has **critical test coverage gaps**. While existing tests demonstra
 
 | Codebase     | Source Files | Test Files | Coverage |
 | ------------ | ------------ | ---------- | -------- |
-| Server       | 258          | 9          | ~3.5%    |
+| Server       | 258          | 12         | ~4.2%    |
 | Client       | 235          | 1          | ~0.4%    |
 | Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **10**     | **~2%**  |
+| **Total**    | **562**      | **13**     | **~2.5%** |
 
 ---
 
@@ -52,9 +52,22 @@ These areas have excellent test coverage and should serve as models:
   - ID validation and type checking
   - Type inference from ID strings
 
-- ✅ **Server utility helpers** - 12 test cases for enum utilities (`server/src/utils/helpers.spec.ts`)
-  - String-to-enum conversion
-  - Case-insensitive matching
+- ✅ **Server utility helpers** - 108 test cases across utility functions
+  - Enum utilities (`server/src/utils/helpers.spec.ts`) - 12 tests
+  - Duration utilities (`server/src/utils/duration.spec.ts`) - 31 tests
+    - Factory functions for time units (milliseconds, seconds, minutes, hours, days)
+    - Duration calculations and conversions
+    - Date manipulation (before, after, inPast, inFuture)
+    - Human-readable formatting
+  - URL validation (`server/src/utils/urls.spec.ts`) - 26 tests
+    - HTTP/HTTPS URL validation
+    - Domain, subdomain, and TLD handling
+    - Query strings, fragments, and ports
+    - Edge cases and invalid URLs
+  - Assert utilities (`server/src/utils/asserts.spec.ts`) - 7 tests
+    - Exhaustive type checking
+    - Unreachable code detection
+  - String-to-enum conversion with case matching
   - Default value handling
 
 ---
@@ -103,7 +116,7 @@ Important for long-term maintainability:
 | **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                      |
 | **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                      |
 | **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested |
-| **Server Utilities**        | 7     | ✅ Good      | HTML minification, ID utilities, enum helpers, and core utilities tested   |
+| **Server Utilities**        | 7     | ✅ Excellent | Duration, URL validation, asserts, HTML minification, ID utilities, enum helpers all tested |
 | **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                |
 
 **Risk Level**: Bugs may surface during feature changes or edge cases.
@@ -303,7 +316,28 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 
 ## Recent Changes
 
-### 2025-11-11
+### 2025-11-11 (Evening)
+- ✅ **Additional server utility tests added** (+3 test files, +64 test cases)
+  - Duration utility tests (`server/src/utils/duration.spec.ts`) - 31 test cases
+    - Factory functions (milliseconds, seconds, minutes, hours, days)
+    - Duration conversions and calculations
+    - Date manipulation methods (before, after, inPast, inFuture)
+    - Human-readable formatting with proper units
+    - Edge cases (zero, negative, fractional values)
+  - URL validation tests (`server/src/utils/urls.spec.ts`) - 26 test cases
+    - Valid URL patterns (HTTP/HTTPS, domains, subdomains, TLDs)
+    - Query strings, fragments, ports, and paths
+    - IP address validation
+    - Edge cases and invalid URL patterns
+  - Assert utility tests (`server/src/utils/asserts.spec.ts`) - 7 test cases
+    - Exhaustive type checking with assertUnreachable
+    - Error message formatting for different value types
+    - Usage in switch statement exhaustiveness checking
+- 📊 **Coverage updated**: Server went from ~3.5% to ~4.2%, overall from ~2% to ~2.5%
+- 🎯 **Progress**: Server utilities now have excellent coverage (6 utility files fully tested)
+- 🎉 **Total new tests today**: 121 test cases across 6 test files
+
+### 2025-11-11 (Morning)
 - ✅ **Server utility tests added** (+3 test files)
   - Payment helper tests (`server/src/payment/helpers.spec.ts`) - 13 test cases
     - Active subscription filtering
