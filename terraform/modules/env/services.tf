@@ -355,7 +355,6 @@ resource "google_cloud_run_v2_service" "agent_service" {
         for_each = [
           "GEMINI_API_KEY",
           "LOGFIRE_TOKEN",
-          "OPENROUTER_API_KEY",
           "SCRATCHPAD_AGENT_AUTH_TOKEN",
           "SCRATCHPAD_AGENT_JWT_SECRET",
         ]
