@@ -36,7 +36,13 @@ export const CreateConnectionModal = (props: ModalProps) => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
 
     // Services that use generic parameters
-    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
+    const genericParametersSupportedServices = [
+      Service.NOTION,
+      Service.AIRTABLE,
+      Service.CUSTOM,
+      Service.WORDPRESS,
+      Service.CSV,
+    ];
     if (oauthSupportedServices.includes(service)) {
       return 'oauth';
     } else if (genericParametersSupportedServices.includes(service)) {
