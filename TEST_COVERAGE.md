@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~3.6% (Server: ~6.3%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~3.7% (Server: ~6.5%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 18 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 20 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 18         | ~6.3%     |
+| Server       | 258          | 19         | ~6.5%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **19**     | **~3.6%** |
+| **Total**    | **562**      | **20**     | **~3.7%** |
 
 ---
 
@@ -46,6 +46,14 @@ These areas have excellent test coverage and should serve as models:
   - Active subscription filtering
   - Latest expiring subscription detection
   - Subscription ownership validation
+
+- ✅ **Server payment plans** - 20 test cases covering plan configuration (`server/src/payment/plans.spec.ts`)
+  - Plan type string conversion and validation
+  - Environment-specific plan retrieval (production, staging, test, local)
+  - Plan lookup by product type
+  - Plan structure validation across all environments
+  - Unique Stripe ID validation (product IDs and price IDs)
+  - Display name consistency across environments
 
 - ✅ **Server ID utilities** - 20+ test cases for typed ID system (`server/src/types/ids.spec.ts`)
   - ID generation with prefixes
@@ -127,7 +135,7 @@ These areas pose security, financial, or data integrity risks:
 | Area                               | Files | Status         | Notes                                                        |
 | ---------------------------------- | ----- | -------------- | ------------------------------------------------------------ |
 | **Authentication & Authorization** | 8     | ⚠️ Minimal     | Permissions tested; Passport strategies, JWT, guards untested |
-| **Payment/Stripe Integration**     | 7     | ⚠️ Minimal     | Helper functions tested; webhooks, service layer untested    |
+| **Payment/Stripe Integration**     | 7     | ⚠️ Improving   | Helper functions and plans tested; webhooks, service layer untested |
 | **Snapshot Core Operations**       | 30    | ❌ No tests    | Main feature; CRUD, AI integration, WebSocket events         |
 | **Database Layer**                 | 3     | ❌ No tests    | Data integrity; migrations, queries, transactions            |
 | **User Management**                | 12    | ❌ No tests    | User CRUD, profiles, permissions                             |
@@ -361,6 +369,24 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (After Midnight)
+- ✅ **Payment plans tests added** (+1 test file, +20 test cases)
+  - Payment plans tests (`server/src/payment/plans.spec.ts`) - 20 test cases
+    - Plan type string conversion (getPlanTypeFromString)
+    - Environment-specific plan retrieval for production, staging, test, and local
+    - Plan lookup by product type
+    - Plan structure validation (required fields)
+    - Unique Stripe product ID and price ID validation across environments
+    - Display name consistency validation
+    - Enum completeness checks
+- 🛠️ **Jest configuration improved**
+  - Added moduleNameMapper to support `src/` import aliases in tests
+  - Enables testing of files that use absolute imports from `src/`
+- 📊 **Coverage updated**: Server went from ~6.3% to ~6.5%, overall from ~3.6% to ~3.7%
+- 🎯 **Progress**: Payment area status improved from "Minimal" to "Improving" with plans module now fully tested
+- 💰 **Financial impact**: Plan configuration is critical for billing - these tests ensure correct Stripe IDs across environments
+- 📈 **Cumulative progress**: 310 new test cases across 13 test files in last 2 days
 
 ### 2025-11-12 (Late Night)
 - ✅ **Auth permissions tests added** (+1 test file, +16 test cases)
