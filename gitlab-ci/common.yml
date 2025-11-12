@@ -6,10 +6,15 @@ variables:
   # For GCP.
   GCP_REGION: "us-central1"
 
+# default image used by all jobs unless overridden
+image:
+  name: unawareguitar/leaning-basket:08dd8de0
+  #pull_policy: if-not-present
+
 .docker_builder_image:
   image:
-    name: unawareguitar/aws-dind:latest
-    pull_policy: always
+    name: unawareguitar/aws-dind:08dd8de0
+    #pull_policy: if-not-present
 
 # Any step can fetch GCP creds by extending from this rule.
 # It will automatically fetch creds via OIDC and make them available as Application Default Credentials (ADC).
@@ -70,3 +75,19 @@ include:
     - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
     - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/production"
     - !reference [.google-oidc:auth, before_script]
+
+.caches:
+  server:
+    key:
+      files:
+        - server/yarn.lock
+    paths:
+      - server/node_modules
+    unprotect: true
+  client:
+    key:
+      files:
+        - client/yarn.lock
+    paths:
+      - client/node_modules
+    unprotect: true

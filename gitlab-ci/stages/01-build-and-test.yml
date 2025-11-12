@@ -126,6 +126,7 @@ build and test server:
     paths:
       - server/dist
     expire_in: 1 hour
+  cache: !reference [.caches, server]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:

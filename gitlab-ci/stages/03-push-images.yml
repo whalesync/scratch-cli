@@ -27,6 +27,8 @@ push client image to test artifact registry:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
+      when: manual
+      allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
 push client image to production artifact registry:
@@ -49,9 +51,6 @@ push client image to production artifact registry:
     - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client-production:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-client-production:latest
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_prod]
 
 #endregion
@@ -81,6 +80,8 @@ push server image to test artifact registry:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
+      when: manual
+      allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
 push server image to production artifact registry:
@@ -103,9 +104,6 @@ push server image to production artifact registry:
     - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_prod]
 
 #endregion
@@ -135,6 +133,8 @@ push agent image to test artifact registry:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - gitlab-ci/stages/03-push-images.yml
+      when: manual
+      allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
 push agent image to production artifact registry:
@@ -157,8 +157,5 @@ push agent image to production artifact registry:
     - docker tag spinner/spinner-agent:latest ${GCP_REGISTRY_URL}/spinner-agent:latest
     - docker push ${GCP_REGISTRY_URL}/spinner-agent:latest
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_prod]
 #endregion
