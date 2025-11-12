@@ -35,7 +35,8 @@ resource "google_cloud_run_v2_service" "client_service" {
           cpu    = var.client_service_cpu_limit
           memory = var.client_service_memory_limit
         }
-        cpu_idle = true # This service responds to requests so it doesn't need CPU all the time.
+        cpu_idle          = true # This service responds to requests so it doesn't need CPU all the time.
+        startup_cpu_boost = true
       }
 
       env {
@@ -161,7 +162,8 @@ resource "google_cloud_run_v2_service" "api_service" {
           cpu    = var.api_service_cpu_limit
           memory = var.api_service_memory_limit
         }
-        cpu_idle = true # This service responds to requests so it doesn't need CPU all the time.
+        cpu_idle          = true # This service responds to requests so it doesn't need CPU all the time.
+        startup_cpu_boost = true
       }
 
       dynamic "env" {
@@ -325,7 +327,8 @@ resource "google_cloud_run_v2_service" "agent_service" {
           memory = var.agent_service_memory_limit
         }
         # Keep CPU allocated for websocket connections to prevent disconnections
-        cpu_idle = false
+        cpu_idle          = false
+        startup_cpu_boost = true
       }
 
       dynamic "env" {
@@ -421,7 +424,7 @@ module "agent_lb" {
   enable_http_redirect   = true
   log_sample_rate        = 1.0
   # Use session affinity to maintain websocket connections on the same backend
-  session_affinity    = "CLIENT_IP"
+  session_affinity = "CLIENT_IP"
 }
 
 #endregion
