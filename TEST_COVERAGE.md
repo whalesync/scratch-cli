@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~2.7% (Server: ~4.6%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~2.9% (Server: ~5.0%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 10 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 15 test files exist for 562+ source files across all codebases. Progress is being made with new utility and helper function tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage |
 | ------------ | ------------ | ---------- | -------- |
-| Server       | 258          | 13         | ~4.6%    |
+| Server       | 258          | 14         | ~5.0%    |
 | Client       | 235          | 1          | ~0.4%    |
 | Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **14**     | **~2.7%** |
+| **Total**    | **562**      | **15**     | **~2.9%** |
 
 ---
 
@@ -78,6 +78,14 @@ These areas have excellent test coverage and should serve as models:
   - Conversions (nullableToResult, nullableResultToResult, getValueOrThrow)
   - All 17 error helper functions (generalError, notFoundError, etc.)
   - Error metadata (cause, context, isRetriable flags)
+
+- ✅ **Slack formatters** - 19 test cases covering Slack message formatting (`server/src/slack/slack-formatters.spec.ts`)
+  - Link formatting in Slack markdown format
+  - Special characters and Unicode handling
+  - Query parameters and URL fragments
+  - New user signup message formatting
+  - Offer code handling
+  - Fallback handling for missing user data
 
 ---
 
@@ -325,7 +333,20 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 
 ## Recent Changes
 
-### 2025-11-12
+### 2025-11-12 (Evening)
+- ✅ **Slack formatter tests added** (+1 test file, +19 test cases)
+  - Slack formatters tests (`server/src/slack/slack-formatters.spec.ts`) - 19 test cases
+    - Link formatting in Slack markdown format
+    - Special characters and Unicode handling in labels
+    - Query parameters, fragments, and URL edge cases
+    - New user signup message formatting
+    - Offer code handling with various scenarios
+    - Fallback handling for missing user data (email/name)
+- 📊 **Coverage updated**: Server went from ~4.6% to ~5.0%, overall from ~2.7% to ~2.9%
+- 🎯 **Progress**: Slack notification utilities now have comprehensive test coverage
+- 📈 **Cumulative progress**: 208 new test cases across 8 test files in last 2 days
+
+### 2025-11-12 (Afternoon)
 - ✅ **Server Result type utility tests added** (+1 test file, +68 test cases)
   - Result type tests (`server/src/types/results.spec.ts`) - 68 test cases
     - Success and error result creation
