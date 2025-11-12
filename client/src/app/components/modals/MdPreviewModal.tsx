@@ -7,6 +7,7 @@ import { notifications } from '@mantine/notifications';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSWRConfig } from 'swr';
+import { RouteUrls } from '../../../utils/route-urls';
 
 interface MdPreviewModalProps {
   opened: boolean;
@@ -44,9 +45,9 @@ export const MdPreviewModal = ({ opened, onClose, data, fileName, file }: MdPrev
       // Close modal
       onClose();
 
-      // Navigate to uploads page only if not already there
-      if (pathname !== '/uploads') {
-        router.push('/uploads');
+      // Navigate to resoruces page only if not already there
+      if (pathname !== RouteUrls.resourcesPageUrl) {
+        router.push(RouteUrls.resourcesPageUrl);
       }
     } catch (error) {
       console.error('Upload failed:', error);

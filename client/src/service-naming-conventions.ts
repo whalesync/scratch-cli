@@ -111,7 +111,7 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     tables: 'files',
     records: 'rows',
     bases: null,
-    logo: 'csv-svgrepo-com.svg',
+    logo: 'csv.svg',
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },

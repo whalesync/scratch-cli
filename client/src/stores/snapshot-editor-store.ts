@@ -132,7 +132,13 @@ function reconcileOpenTabs(
     const newTab = newBlankTab();
     result = { tabs: [newTab], activeTab: newTab.id };
   }
-  return { tabs: result.tabs, activeTab: result.activeTab };
+
+  // Ensure there is a valid active tab.
+  if (!result.activeTab || !result.tabs.find((tab) => tab.id === result.activeTab)) {
+    result.activeTab = result.tabs[0]?.id ?? null;
+  }
+
+  return result;
 }
 
 function newBlankTab(): TabState {

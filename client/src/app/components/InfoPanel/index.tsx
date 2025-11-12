@@ -15,7 +15,7 @@ import {
   TextProps,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { ArrowsClockwiseIcon, ArrowUpRightIcon, InfoIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { CircleAlert, FileText, RotateCw, Search, SquareArrowOutUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { ButtonPrimaryLight } from '../base/buttons';
@@ -31,7 +31,7 @@ import styles from './Info.module.css';
 */
 export const Info = ({ children, ...props }: CenterProps): JSX.Element => {
   return (
-    <Center h="100%" w="100%" {...props}>
+    <Center {...props} m="xl">
       <Stack align="center" maw="300px" gap="0px" className={styles.container}>
         {children}
       </Stack>
@@ -46,7 +46,7 @@ const Icon = (props: ActionIconProps): JSX.Element => {
 const ErrorIcon = (): JSX.Element => {
   return (
     <ActionIcon color="red" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
-      <InfoIcon />
+      <CircleAlert />
     </ActionIcon>
   );
 };
@@ -54,7 +54,15 @@ const ErrorIcon = (): JSX.Element => {
 const NotFoundIcon = (): JSX.Element => {
   return (
     <ActionIcon color="gray" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
-      <MagnifyingGlassIcon />
+      <Search />
+    </ActionIcon>
+  );
+};
+
+const FileIcon = (): JSX.Element => {
+  return (
+    <ActionIcon color="gray" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
+      <FileText />
     </ActionIcon>
   );
 };
@@ -95,7 +103,7 @@ const ReadDocsButton = ({ link }: { link?: string }): JSX.Element => {
   return (
     <Button
       href={docsLink}
-      leftSection={<ArrowUpRightIcon />}
+      leftSection={<SquareArrowOutUpRight />}
       variant="outline"
       component="a"
       size="sm"
@@ -133,6 +141,7 @@ const DetailsDisclosure = ({ children }: { children: ReactNode }): JSX.Element =
 
 Info.Icon = Icon;
 Info.NotFoundIcon = NotFoundIcon;
+Info.FileIcon = FileIcon;
 Info.ErrorIcon = ErrorIcon;
 Info.Loader = LoaderWidget;
 Info.Title = Title;
@@ -161,7 +170,7 @@ export const ErrorInfo = ({
       {!!error && <Info.DetailsDisclosure>{`${error}`}</Info.DetailsDisclosure>}
       <Info.Actions>
         {retry && (
-          <ButtonPrimaryLight leftSection={<ArrowsClockwiseIcon />} onClick={retry}>
+          <ButtonPrimaryLight leftSection={<RotateCw />} onClick={retry}>
             Reload
           </ButtonPrimaryLight>
         )}

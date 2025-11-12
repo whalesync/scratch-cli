@@ -5,14 +5,14 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import { Alert, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
+import { Alert, Badge, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { BadgeBase } from '../components/base/badges';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextMdHeavier, TextSmRegular } from '../components/base/text';
+import { TextSmHeavier, TextSmRegular } from '../components/base/text';
+import { FileUploadDropzone } from '../components/dropzone/FileUploadDropzone';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
@@ -99,83 +99,85 @@ export default function StyleGuidesPage() {
         {isLoading ? (
           <Text>Loading...</Text>
         ) : (
-          <Table highlightOnHover>
-            <Table.Thead>
-              <Table.Tr h="30px">
-                <Table.Td w="60%">Name</Table.Td>
-                <Table.Td w="15%">Updated</Table.Td>
-                <Table.Td w="15%" align="right">
-                  Size
-                </Table.Td>
-                <Table.Td w="15%" align="right">
-                  Actions
-                </Table.Td>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {sortedResources.map((styleGuide) => (
-                <Table.Tr
-                  key={styleGuide.id}
-                  onClick={() => handleEditResource(styleGuide)}
-                  style={{ cursor: 'pointer' }}
-                  h="30px"
-                >
-                  <Table.Td h="30px">
-                    <Group gap="sm">
-                      {resourceIcon(styleGuide)}
-                      <TextMdHeavier>{styleGuide.name}</TextMdHeavier>
-                      {styleGuide.autoInclude ? <BadgeBase color="blue">Auto Include</BadgeBase> : null}
-                      {styleGuide.sourceUrl && <BadgeBase leftSection={<LinkIcon size={12} />}>External</BadgeBase>}
-                      {styleGuide.tags.map((tag) => (
-                        <BadgeBase key={tag}>{tag}</BadgeBase>
-                      ))}
-                    </Group>
+          <FileUploadDropzone allowedTypes={['md']}>
+            <Table highlightOnHover>
+              <Table.Thead>
+                <Table.Tr h="30px">
+                  <Table.Td w="60%">Name</Table.Td>
+                  <Table.Td w="15%">Updated</Table.Td>
+                  <Table.Td w="15%" align="right">
+                    Size
                   </Table.Td>
-                  <Table.Td>
-                    <TextSmRegular>{formatDate(styleGuide.updatedAt)}</TextSmRegular>
-                  </Table.Td>
-                  <Table.Td align="right">
-                    <TextSmRegular>{formatBytes(styleGuide.body.length)}</TextSmRegular>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs" justify="flex-end">
-                      {styleGuide.sourceUrl && (
-                        <ToolIconButton
-                          size="md"
-                          tooltip="Redownload external content"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUpdateExternalResource(styleGuide.id);
-                          }}
-                          loading={isExternalResourceUpdating}
-                          icon={DownloadIcon}
-                        />
-                      )}
-                      <ToolIconButton
-                        size="md"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setActiveResource(styleGuide);
-                          openCreateModal();
-                        }}
-                        icon={PencilLineIcon}
-                      />
-
-                      <ToolIconButton
-                        size="md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveResource(styleGuide);
-                          openDeleteModal();
-                        }}
-                        icon={Trash2Icon}
-                      />
-                    </Group>
+                  <Table.Td w="15%" align="right">
+                    Actions
                   </Table.Td>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {sortedResources.map((styleGuide) => (
+                  <Table.Tr
+                    key={styleGuide.id}
+                    onClick={() => handleEditResource(styleGuide)}
+                    style={{ cursor: 'pointer' }}
+                    h="30px"
+                  >
+                    <Table.Td h="30px">
+                      <Group gap="sm">
+                        {resourceIcon(styleGuide)}
+                        <TextSmHeavier>{styleGuide.name}</TextSmHeavier>
+                        {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
+                        {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
+                        {styleGuide.tags.map((tag) => (
+                          <Badge key={tag}>{tag}</Badge>
+                        ))}
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <TextSmRegular>{formatDate(styleGuide.updatedAt)}</TextSmRegular>
+                    </Table.Td>
+                    <Table.Td align="right">
+                      <TextSmRegular>{formatBytes(styleGuide.body.length)}</TextSmRegular>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs" justify="flex-end">
+                        {styleGuide.sourceUrl && (
+                          <ToolIconButton
+                            size="md"
+                            tooltip="Redownload external content"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateExternalResource(styleGuide.id);
+                            }}
+                            loading={isExternalResourceUpdating}
+                            icon={DownloadIcon}
+                          />
+                        )}
+                        <ToolIconButton
+                          size="md"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setActiveResource(styleGuide);
+                            openCreateModal();
+                          }}
+                          icon={PencilLineIcon}
+                        />
+
+                        <ToolIconButton
+                          size="md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveResource(styleGuide);
+                            openDeleteModal();
+                          }}
+                          icon={Trash2Icon}
+                        />
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </FileUploadDropzone>
         )}
 
         <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>

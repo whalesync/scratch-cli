@@ -8,7 +8,7 @@ export class RouteUrls {
 
   // Authenticated Routes & Route Generators
   static homePageUrl = '/';
-  static connectionsPageUrl = '/connections';
+  static dataSourcesPageUrl = '/data-sources';
   static apiImportDemoPageUrl = '/ai-connector-builder';
   static healthPageUrl = '/health';
   static snapshotPage = (id: string, tableId?: string, recordId?: string) => {
@@ -27,7 +27,6 @@ export class RouteUrls {
     `/snapshots/${id}/${tableId}/${recordId}/${columnId}`;
   static snapshotsPageUrl = '/snapshots';
   static resourcesPageUrl = '/resources';
-  static uploadsPageUrl = '/uploads';
   static settingsPageUrl = '/settings';
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
   static manageSubscriptionPage = '/subscription/manage';
@@ -52,13 +51,12 @@ export class RouteUrls {
 
   static subscriptionRoutePatterns = [
     `^\/$`, // root path
-    RouteUrls.connectionsPageUrl,
+    RouteUrls.dataSourcesPageUrl,
     RouteUrls.apiImportDemoPageUrl,
     RouteUrls.snapshotsPageUrl,
     RouteUrls.resourcesPageUrl,
     RouteUrls.snapshotsPageUrl,
     RouteUrls.resourcesPageUrl,
-    RouteUrls.uploadsPageUrl,
   ];
 
   /** Routes that require an active subscription or free trial to access*/

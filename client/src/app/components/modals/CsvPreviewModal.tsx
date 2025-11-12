@@ -22,6 +22,7 @@ import { X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { FC, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
+import { RouteUrls } from '../../../utils/route-urls';
 
 // Custom type for modal that includes IGNORE option
 type ModalColumnType = PostgresColumnType | 'IGNORE';
@@ -49,7 +50,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
   const [columnNames, setColumnNames] = useState<string[]>([]);
   const [columnTypes, setColumnTypes] = useState<ModalColumnType[]>([]);
   const [isImporting, setIsImporting] = useState(false);
-  const [workbookName, setWorkbookName] = useState('');
+  const [newFileName, setNewFileName] = useState('');
   const router = useRouter();
   const pathname = usePathname();
   const { mutate } = useSWRConfig();
@@ -76,10 +77,10 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
     }
   }, [data, firstRowIsHeader]); // Removed firstRowIsHeader from dependencies
 
-  // Initialize workbook name from filename
+  // Let the user override the filename.
   useEffect(() => {
     if (fileName) {
-      setWorkbookName(fileName);
+      setNewFileName(fileName);
     }
   }, [fileName]);
 
@@ -128,7 +129,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
 
       const result = await uploadsApi.uploadCsv({
         file,
-        uploadName: workbookName,
+        uploadName: newFileName,
         columnNames: filteredColumnNames,
         columnTypes: filteredColumnTypes,
         columnIndices: filteredColumnIndices,
@@ -144,8 +145,8 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
       onClose();
 
       // Navigate to uploads page only if not already there
-      if (pathname !== '/uploads') {
-        router.push('/uploads');
+      if (pathname !== RouteUrls.dataSourcesPageUrl) {
+        router.push(RouteUrls.dataSourcesPageUrl);
       }
     } catch (error) {
       console.error('Upload failed:', error);
@@ -173,13 +174,8 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
           width: 150px !important;
         }
       `}</style>
-      <Modal opened={opened} onClose={onClose} title="Preview: Create workbook from CSV" size="80%" centered>
+      <Modal opened={opened} onClose={onClose} title="Uploading CSV data source" size="80%" centered>
         <Stack gap="xl">
-          {/* Filename display */}
-          <Text size="sm" fw={500}>
-            File name: {fileName}
-          </Text>
-
           {/* Error summary */}
           {errorRows.length > 0 && (
             <div style={{ padding: '8px', border: '1px solid #ffeaa7' }}>
@@ -334,12 +330,12 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
           {/* Import section */}
           <Group align="center">
             <Text size="sm" fw={500} style={{ minWidth: '120px' }}>
-              Workbook name
+              Import as:
             </Text>
             <TextInput
-              value={workbookName}
-              onChange={(event) => setWorkbookName(event.currentTarget.value)}
-              placeholder="Enter workbook name"
+              value={newFileName}
+              onChange={(event) => setNewFileName(event.currentTarget.value)}
+              placeholder="Enter new name"
               style={{ flex: 1 }}
             />
             <Button onClick={handleImport} loading={isImporting} size="md">

@@ -1,11 +1,11 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextMdHeavier } from '@/app/components/base/text';
+import { TextSmHeavier } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshots } from '@/hooks/use-snapshots';
 import { Snapshot } from '@/types/server-entities/snapshot';
 import { RouteUrls } from '@/utils/route-urls';
-import { Box, Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -19,6 +19,10 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
   const [saving, setSaving] = useState(false);
   const [snapshotName, setSnapshotName] = useState(snapshot.name ?? undefined);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
+
+  const connectorList = [
+    ...new Set(snapshot.snapshotTables?.map((table) => table.connectorService).filter((service) => !!service)),
+  ];
 
   const handleAbandon = async () => {
     if (!snapshot) return;
@@ -91,29 +95,18 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>
-          <TextMdHeavier>
+          <TextSmHeavier>
             <StyledLucideIcon Icon={Table2} size={13} centerInText c="gray.7" mr="xs" />
             {snapshot.name}
-          </TextMdHeavier>
+          </TextSmHeavier>
         </Table.Td>
         <Table.Td>
           {/* Icons are stacked on top of each other with an offset */}
-          <Box pos="relative" h={21}>
-            {(snapshot.snapshotTables || [])
-              .filter((table) => !!table.connectorService)
-              .map((table, index) => (
-                <Box
-                  key={table.id}
-                  pos="absolute"
-                  top={0}
-                  left={index * 12}
-                  bd="1px solid var(--mantine-color-body)"
-                  bdrs="xs"
-                >
-                  <ConnectorIcon key={table.id} connector={table.connectorService} size={21} withBorder />
-                </Box>
-              ))}
-          </Box>
+          <Group gap={3}>
+            {connectorList.map((table, index) => (
+              <ConnectorIcon key={index} connector={table} size={21} withBorder />
+            ))}
+          </Group>
         </Table.Td>
         <Table.Td>
           <RelativeDate date={snapshot.createdAt} />

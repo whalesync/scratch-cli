@@ -53,7 +53,7 @@ const GetStartedContent = () => {
               <Text component="span" fw={600}>
                 Connect:
               </Text>{' '}
-              Click on <em>Connections</em> to link a live data source (Notion, YouTube, etc.).
+              Click on <em>Data sources</em> to link a live data source (Notion, YouTube, etc.).
             </List.Item>
             <List.Item>
               <Text component="span" fw={600}>

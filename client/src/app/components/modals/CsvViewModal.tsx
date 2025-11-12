@@ -2,6 +2,7 @@
 import { CsvDataResponse, uploadsApi } from '@/lib/api/uploads';
 import { Center, Group, Loader, Modal, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { FC, useEffect, useState } from 'react';
+import { formatNumber } from '../../../utils/helpers';
 
 interface CsvViewModalProps {
   opened: boolean;
@@ -41,15 +42,15 @@ export const CsvViewModal: FC<CsvViewModalProps> = ({ opened, onClose, uploadId,
 
   return (
     <Modal opened={opened} onClose={onClose} title={`Preview: ${uploadName || 'CSV Upload'}`} size="xl" centered>
-      <Stack gap="md">
+      <Stack gap="md" align="stretch" h={500} justify="center">
         {isLoading && (
-          <Center h={200}>
+          <Center>
             <Loader />
           </Center>
         )}
 
         {error && (
-          <Center h={200}>
+          <Center>
             <Text c="red">{error}</Text>
           </Center>
         )}
@@ -58,11 +59,12 @@ export const CsvViewModal: FC<CsvViewModalProps> = ({ opened, onClose, uploadId,
           <>
             <Group justify="space-between">
               <Text size="sm" c="dimmed">
-                Showing {data.rows.length} of {data.total} rows
+                Previewing {formatNumber(data.rows.length)} of {formatNumber(data.total)} rows.{' '}
+                {data.total > data.rows.length ? 'Download the full CSV to see all rows.' : ''}
               </Text>
             </Group>
 
-            <ScrollArea h={400}>
+            <ScrollArea>
               <Table highlightOnHover withTableBorder withColumnBorders>
                 <Table.Thead>
                   <Table.Tr>
@@ -90,12 +92,6 @@ export const CsvViewModal: FC<CsvViewModalProps> = ({ opened, onClose, uploadId,
                 </Table.Tbody>
               </Table>
             </ScrollArea>
-
-            {data.total > 100 && (
-              <Text size="xs" c="dimmed" ta="center">
-                Only showing first 100 rows. Download the full CSV to see all {data.total} rows.
-              </Text>
-            )}
           </>
         )}
       </Stack>

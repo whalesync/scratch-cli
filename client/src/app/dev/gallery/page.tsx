@@ -4,6 +4,7 @@ import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import {
   Anchor,
+  Badge,
   Box,
   Code,
   ColorSwatch,
@@ -20,7 +21,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
-import { BadgeBase, BadgeError, BadgeOK } from '../../components/base/badges';
+import { BadgeError, BadgeOK } from '../../components/base/badges';
 import {
   AcceptSuggestionButton,
   ButtonDangerLight,
@@ -216,10 +217,10 @@ export default function DevComponentGalleryPage() {
             </Group>
           </GalleryItem>
           <GallerySection id="mono-text" title="Text: monospace" />
-          <TypeGalleryItem label="TextMonoRegularSm">
+          <TypeGalleryItem label="TextMonoSmRegular" notes="AKA mono/13-regular">
             <TextMonoSmRegular>Brown fox is quick</TextMonoSmRegular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMonoRegularXs">
+          <TypeGalleryItem label="TextMonoRegularXs" notes="AKA mono/12-regular">
             <TextMonoXsRegular>Brown fox is quick</TextMonoXsRegular>
           </TypeGalleryItem>
           <TypeGalleryItem label="Code">
@@ -286,8 +287,8 @@ export default function DevComponentGalleryPage() {
             <ActionIconThreeDots />
           </GalleryItem>
           <GallerySection id="badges" title="Badges" />
-          <GalleryItem label="BadgeBase">
-            <BadgeBase>Neutral badge</BadgeBase>
+          <GalleryItem label="Badge">
+            <Badge>Neutral badge</Badge>
           </GalleryItem>
           <GalleryItem label="BadgeOK">
             <BadgeOK>Success</BadgeOK>
@@ -351,6 +352,13 @@ export default function DevComponentGalleryPage() {
               <Info.NotFoundIcon />
               <Info.Title>Not Found</Info.Title>
               <Info.Description>The item you are looking for was not found.</Info.Description>
+            </Info>
+          </GalleryItem>
+          <GalleryItem label="Info.EmptyStatus">
+            <Info>
+              <Info.FileIcon />
+              <Info.Title>No uploads yet</Info.Title>
+              <Info.Description>Drag and drop a CSV to get started</Info.Description>
             </Info>
           </GalleryItem>
           <GalleryItem label="Info.ErrorIcon">

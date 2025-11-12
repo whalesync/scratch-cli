@@ -45,7 +45,7 @@ export const SnapshotsList = () => {
         <MainContent.BasicHeader title="Workbooks" actions={<CreateSnapshotButton />} />
         <MainContent.Body>
           <Divider />
-          <Table highlightOnHover>
+          <Table>
             <Table.Thead>
               <Table.Tr>
                 <Table.Td w="40%">Name</Table.Td>

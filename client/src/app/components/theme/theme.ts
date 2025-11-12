@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, createTheme, Menu, Table, Title, Tooltip, virtualColor } from '@mantine/core';
+import { ActionIcon, Badge, createTheme, Menu, Table, Title, Tooltip, virtualColor } from '@mantine/core';
 import { Funnel_Display, Geist_Mono, Inter } from 'next/font/google';
 import {
   CUSTOM_BLUE,
@@ -122,6 +122,15 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
         variant: 'subtle',
         size: 'md',
         color: 'var(--fg-muted)',
+      },
+    }),
+
+    Badge: Badge.extend({
+      defaultProps: {
+        variant: 'light',
+        classNames: { root: classes.badgeRoot },
+        size: 'md',
+        color: 'surface',
       },
     }),
 
