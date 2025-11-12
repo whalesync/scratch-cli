@@ -1,5 +1,7 @@
 'use client';
 
+import { DiffText2 } from '@/app/components/DiffText2';
+import { DiffViewer } from '@/app/components/DiffViewer';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import {
@@ -389,6 +391,16 @@ export default function DevComponentGalleryPage() {
               minRows={3}
               onChange={(e) => console.debug('Debounced value:', e.target.value)}
             />
+          </GalleryItem>
+          <GalleryItem label="DiffViewer">
+            <DiffViewer
+              originalValue="Hello, world!"
+              suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!"
+              p="0"
+            />
+          </GalleryItem>
+          <GalleryItem label="DiffText2">
+            <DiffText2 originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
           </GalleryItem>
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
           <GalleryItem label="LabelValuePair">

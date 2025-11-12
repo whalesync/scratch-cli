@@ -14,7 +14,6 @@ import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/cont
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
-import '@glideapps/glide-data-grid/dist/index.css';
 import { Stack } from '@mantine/core';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';

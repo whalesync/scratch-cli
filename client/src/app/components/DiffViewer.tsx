@@ -1,6 +1,6 @@
 import { Box, Group, Textarea } from '@mantine/core';
 import { useToggle } from '@mantine/hooks';
-import { ArrowsMergeIcon, SquareSplitHorizontalIcon } from '@phosphor-icons/react';
+import { MergeIcon, SplitIcon } from 'lucide-react';
 import { FC } from 'react';
 import { DiffText } from './DiffText';
 import { ToolIconButton } from './ToolIconButton';
@@ -27,7 +27,7 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
   const switchButton = (
     <Box style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
       <ToolIconButton
-        icon={mode === 'split' ? ArrowsMergeIcon : SquareSplitHorizontalIcon}
+        icon={mode === 'split' ? MergeIcon : SplitIcon}
         onClick={() => toggleMode()}
         tooltip={mode === 'split' ? 'Show Diff' : 'Show Split'}
         size="lg"
