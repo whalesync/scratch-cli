@@ -3,7 +3,7 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-12
-**Overall Coverage**: ~2.9% (Server: ~5.0%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~3.3% (Server: ~5.8%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
@@ -15,10 +15,10 @@ The codebase has **critical test coverage gaps**. While existing tests demonstra
 
 | Codebase     | Source Files | Test Files | Coverage |
 | ------------ | ------------ | ---------- | -------- |
-| Server       | 258          | 14         | ~5.0%    |
+| Server       | 258          | 16         | ~5.8%    |
 | Client       | 235          | 1          | ~0.4%    |
 | Python Agent | 69           | 0          | 0%       |
-| **Total**    | **562**      | **15**     | **~2.9%** |
+| **Total**    | **562**      | **17**     | **~3.3%** |
 
 ---
 
@@ -86,6 +86,21 @@ These areas have excellent test coverage and should serve as models:
   - New user signup message formatting
   - Offer code handling
   - Fallback handling for missing user data
+
+- ✅ **Snapshot utilities** - 9 test cases covering snapshot lookup functions (`server/src/snapshot/util.spec.ts`)
+  - Finding snapshot tables by workspace ID (wsId)
+  - Finding table specs by workspace ID
+  - Handling missing tables and empty snapshots
+  - Multiple table scenarios
+
+- ✅ **CSV parser** - 22 test cases covering CSV parsing logic (`server/src/remote-service/connectors/library/csv/csv-parser.spec.ts`)
+  - Basic CSV parsing with headers and rows
+  - Quoted fields with commas and escaped quotes
+  - Empty fields and edge cases
+  - Unicode and special characters
+  - Row ID generation
+  - Missing or extra fields handling
+  - Real-world CSV formatting scenarios
 
 ---
 
@@ -332,6 +347,22 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-12 (Late Evening)
+- ✅ **Snapshot utilities and CSV parser tests added** (+2 test files, +31 test cases)
+  - Snapshot utilities tests (`server/src/snapshot/util.spec.ts`) - 9 test cases
+    - Finding snapshot tables by workspace ID (wsId)
+    - Finding table specs by workspace ID
+    - Handling missing tables, empty snapshots, and multiple table scenarios
+  - CSV parser tests (`server/src/remote-service/connectors/library/csv/csv-parser.spec.ts`) - 22 test cases
+    - Basic CSV parsing with headers and rows
+    - Quoted fields with commas and escaped quotes
+    - Empty fields, Unicode, and special characters
+    - Row ID generation and field handling
+    - Real-world CSV formatting scenarios
+- 📊 **Coverage updated**: Server went from ~5.0% to ~5.8%, overall from ~2.9% to ~3.3%
+- 🎯 **Progress**: Snapshot core utilities and CSV connector now have comprehensive test coverage
+- 📈 **Cumulative progress**: 239 new test cases across 10 test files in last 2 days
 
 ### 2025-11-12 (Evening)
 - ✅ **Slack formatter tests added** (+1 test file, +19 test cases)
