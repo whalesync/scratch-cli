@@ -21,7 +21,7 @@ import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from 
 import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, EyeIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
@@ -60,6 +60,15 @@ export const SnapshotActionsMenu = () => {
   });
   const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
     useDisclosure(false);
+
+  useEffect(() => {
+    if (activeTable) {
+      setTableSelection({
+        mode: 'current',
+        tableIds: [activeTable.id],
+      });
+    }
+  }, [activeTable, setTableSelection]);
 
   const handleRename = async () => {
     if (!snapshot) return;

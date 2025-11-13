@@ -25,9 +25,7 @@ export const TableSelectionComponent = ({
   initialSelection,
 }: TableSelectionComponentProps) => {
   const [mode, setMode] = useState<TableSelectionMode>(initialSelection?.mode || 'current');
-  const [selectedTableIds, setSelectedTableIds] = useState<string[]>(
-    initialSelection?.tableIds || [currentTableId]
-  );
+  const [selectedTableIds, setSelectedTableIds] = useState<string[]>(initialSelection?.tableIds || [currentTableId]);
 
   const handleModeChange = (newMode: TableSelectionMode) => {
     setMode(newMode);
@@ -93,9 +91,11 @@ export const TableSelectionComponent = ({
             <Text size="xs" c="red">
               Please select at least one table
             </Text>
-          ) :  <Text size="xs" c="gray">
+          ) : (
+            <Text size="xs" c="gray">
               {selectedTableIds.length} table(s) will be downloaded
-            </Text>}
+            </Text>
+          )}
         </Stack>
       )}
     </Stack>
