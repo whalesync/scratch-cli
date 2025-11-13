@@ -12,13 +12,26 @@ import {
   ColorSwatch,
   Divider,
   Group,
+  Kbd,
   List,
   Loader,
+  Menu,
   Stack,
   Tooltip,
   useComputedColorScheme,
 } from '@mantine/core';
-import { Ambulance, CircleCheck, Home, MoonStar, Plus, Settings, User } from 'lucide-react';
+import {
+  AlignEndHorizontal,
+  Ambulance,
+  Bird,
+  CircleCheck,
+  FigmaIcon,
+  Home,
+  MoonStar,
+  Plus,
+  Settings,
+  Trash2,
+} from 'lucide-react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
@@ -61,6 +74,7 @@ import { CloseButtonInline } from '../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { DebouncedTextArea } from '../../components/DebouncedTextArea';
 import { DotSpacer } from '../../components/DotSpacer';
+import { DecorativeBoxedIcon } from '../../components/Icons/DecorativeBoxedIcon';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
 import { ErrorInfo, Info } from '../../components/InfoPanel';
 import { LoaderWithMessage } from '../../components/LoaderWithMessage';
@@ -161,9 +175,45 @@ export default function DevComponentGalleryPage() {
             These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
             because Mantine only supports 10 shades. Mostly use the shades above instead.
           </TextXsBook>
-          <GalleryColor color="green" modeAware notes="AKA primary. Can be used in light or dark for emphasis" />
-          <GalleryColor color="gray" modeAware />
-          <GalleryColor color="red" modeAware />
+          <GalleryColor
+            color="green"
+            modeAware
+            notes="AKA primary. Can be used in light or dark for emphasis"
+            figmaNames={[
+              'green/1',
+              'green/2',
+              'green/3',
+              'green/4',
+              'green/6',
+              'green/7',
+              'green/9',
+              'green/10',
+              'green/11',
+              'green/12',
+            ]}
+          />
+
+          <GalleryColor
+            color="gray"
+            modeAware
+            figmaNames={[
+              'gray/1',
+              'gray/2',
+              'gray/3',
+              'gray/4',
+              'gray/6',
+              'gray/7',
+              'gray/9',
+              'gray/10',
+              'gray/11',
+              'gray/12',
+            ]}
+          />
+          <GalleryColor
+            color="red"
+            modeAware
+            figmaNames={['red/1', 'red/2', 'red/3', 'red/4', 'red/6', 'red/7', 'red/9', 'red/10', 'red/11', 'red/12']}
+          />
           <GalleryColor color="blue" />
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
           <GallerySection id="title-text" title="Text: title" />
@@ -310,27 +360,22 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="LoaderWithMessage">
             <LoaderWithMessage message="Customize me..." />
           </GalleryItem>
+
           <GallerySection id="icons" title="Icons" />
-          <GalleryItem label="StyledLucideIcon (sm)">
+          <GalleryItem label="StyledLucideIcon" notes="Adds standard mantine styling options to Lucide icons">
             <Group gap="sm">
-              <StyledLucideIcon Icon={Home} size="sm" />
-              <StyledLucideIcon Icon={Settings} size="sm" />
-              <StyledLucideIcon Icon={User} size="sm" />
+              <StyledLucideIcon Icon={Home} size="xs" />
+              <StyledLucideIcon Icon={Home} size="sm" c="gray" />
+              <StyledLucideIcon Icon={Home} size="md" c="green" />
+              <StyledLucideIcon Icon={Home} size="lg" c="red" />
+              <StyledLucideIcon Icon={Home} size="xl" c="devTool" />
             </Group>
           </GalleryItem>
-          <GalleryItem label="StyledLucideIcon (lg)">
-            <Group gap="sm">
-              <StyledLucideIcon Icon={Home} size="lg" />
-              <StyledLucideIcon Icon={Settings} size="lg" />
-              <StyledLucideIcon Icon={User} size="lg" />
-            </Group>
-          </GalleryItem>
-          <GalleryItem label="StyledLucideIcon (colored)">
-            <Group gap="sm">
-              <StyledLucideIcon Icon={Home} size="lg" c="blue.5" />
-              <StyledLucideIcon Icon={Settings} size="lg" c="green.5" />
-              <StyledLucideIcon Icon={User} size="lg" c="red.5" />
-            </Group>
+          <GalleryItem
+            label="DecorativeBoxedIcon"
+            notes="This isn't a Button, it's just a little box. Sometimes you want your icon in a little box? Decorative icons added to sections to provide delight."
+          >
+            <DecorativeBoxedIcon Icon={Home} />
           </GalleryItem>
           <GalleryItem label="AnimatedArrowsClockwise">
             <AnimatedArrowsClockwise size={32} weight="regular" />
@@ -385,6 +430,26 @@ export default function DevComponentGalleryPage() {
             />
           </GalleryItem>
           <GallerySection id="input-components" title="Input Components" />
+          <GalleryItem
+            label="Menu"
+            notes="Use standard Mantine Menu components. Use data-delete to style a delete item."
+          >
+            <Menu>
+              <Menu.Target>
+                <ActionIconThreeDots />
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<AlignEndHorizontal size={16} />}>Item 1</Menu.Item>
+                <Menu.Item leftSection={<Bird size={16} />} rightSection={<Kbd>⌘B</Kbd>}>
+                  Bird
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item data-delete leftSection={<Trash2 size={16} />}>
+                  Delete
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </GalleryItem>
           <GalleryItem label="DebouncedTextArea">
             <DebouncedTextArea
               placeholder="Type something... (debounced)"
@@ -500,23 +565,38 @@ function GalleryColor({
   color,
   notes,
   modeAware = false,
+  figmaNames,
 }: {
   color: string;
   notes?: string;
   modeAware?: boolean;
+  figmaNames?: string[];
 }): ReactNode {
   return (
     <GalleryItem label={color} notes={notes}>
       <Group gap={0}>
         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-          <ColorChip key={i} cssName={`--mantine-color-${color}-${i}`} modeAware={modeAware} />
+          <ColorChip
+            key={i}
+            cssName={`--mantine-color-${color}-${i}`}
+            modeAware={modeAware}
+            figmaName={figmaNames?.[i]}
+          />
         ))}
       </Group>
     </GalleryItem>
   );
 }
 
-function ColorChip({ cssName, modeAware = false }: { cssName: string; modeAware?: boolean }): ReactNode {
+function ColorChip({
+  cssName,
+  modeAware = false,
+  figmaName,
+}: {
+  cssName: string;
+  figmaName?: string;
+  modeAware?: boolean;
+}): ReactNode {
   const [colorValue, setColorValue] = useState('');
   const colorScheme = useComputedColorScheme();
 
@@ -535,8 +615,14 @@ function ColorChip({ cssName, modeAware = false }: { cssName: string; modeAware?
           </Tooltip>
         )}
         <Stack align="center" justify="flex-end" p={5}>
-          <Code opacity={0.6}>{cssName}</Code>
           <Code opacity={0.6}>{colorValue}</Code>
+          <Code opacity={0.6}>{cssName}</Code>
+          {figmaName && (
+            <Code opacity={0.6}>
+              <FigmaIcon size={12} />
+              {figmaName}
+            </Code>
+          )}
         </Stack>
       </ColorSwatch>
     </Stack>

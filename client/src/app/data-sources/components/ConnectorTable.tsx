@@ -22,9 +22,9 @@ export default function ConnectorTable() {
   const [isDeleting, setIsDeleting] = useState(false);
   const modalStack = useModalsStack(['create', 'update', 'confirm-delete']);
 
-  const handleTest = async (id: string) => {
-    setTestingId(id);
-    await testConnection(id);
+  const handleTest = async (con: ConnectorAccount) => {
+    setTestingId(con.id);
+    await testConnection(con);
     setTestingId(null);
   };
 

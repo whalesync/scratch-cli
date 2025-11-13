@@ -22,6 +22,11 @@
   text-transform: none; /** Override the all-caps default */
 }
 
+/** CUSTOM BUTTON STYLES */
+.buttonLabel {
+  font-weight: 425;
+}
+
 /** CUSTOM TABLE STYLES */
 .tableThead {
   font-weight: 425;
@@ -39,12 +44,30 @@
 
 /** CUSTOM MENU STYLES */
 .menuDropdown {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--mantine-color-gray-4);
+  background-color: var(--bg-base);
+  border: 1px solid var(--mantine-color-gray-5);
+}
+
+.menuDivider {
+  background-color: var(--mantine-color-gray-5);
+  margin-left: -4px;
+  margin-right: -4px;
 }
 
 .menuItem {
   &[data-disabled] {
-    color: var(--fg-secondary); /** Additional opacity applied by the widget */
+    color: var(--fg-secondary); /** Additional opacity applied by the widget? */
   }
+
+  &[data-delete] {
+    color: var(--mantine-color-red-8);
+
+    .menuItemSection {
+      color: var(--mantine-color-red-8);
+    }
+  }
+}
+
+.menuItemSection {
+  color: var(--fg-muted);
 }

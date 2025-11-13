@@ -2,9 +2,10 @@
 import { CsvPreviewResponse, MdPreviewResponse, uploadsApi } from '@/lib/api/uploads';
 import { Center, MantineStyleProps, Stack } from '@mantine/core';
 import { Dropzone, DropzoneProps } from '@mantine/dropzone';
-import { CloudAlert, CloudUpload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { TextMdHeavier, TextSmRegular } from '../base/text';
+import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 import { CsvPreviewModal } from '../modals/CsvPreviewModal';
 import { MdPreviewModal } from '../modals/MdPreviewModal';
 import { ScratchpadNotifications } from '../ScratchpadNotifications';
@@ -97,7 +98,7 @@ export const FileUploadDropzone = ({
   };
 
   return (
-    <>
+    <div>
       {allowedTypes.includes('csv') && (
         <CsvPreviewModal
           opened={csvModalOpened}
@@ -134,15 +135,15 @@ export const FileUploadDropzone = ({
         onReject={handleReject}
         accept={accept}
         multiple={false}
-        styles={{ root: { border: 'none', minHeight: '200px', padding: 0 } }}
+        classNames={{ root: styles.dropzoneRoot }}
         {...props}
       >
         {children}
         <Dropzone.Accept>
           <Center className={styles.dropzoneFeedbackOuter}>
             <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
-              <CloudUpload size={24} />
-              <TextMdHeavier>Drop your {allowedTypes.join(' or ')} file here to upload</TextMdHeavier>
+              <DecorativeBoxedIcon Icon={Upload} />
+              <TextMdHeavier>Drop {allowedTypes.join(' or ')} file here to upload</TextMdHeavier>
             </Stack>
           </Center>
         </Dropzone.Accept>
@@ -150,13 +151,13 @@ export const FileUploadDropzone = ({
         <Dropzone.Reject>
           <Center className={styles.dropzoneFeedbackOuter}>
             <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
-              <CloudAlert size={24} />
+              <DecorativeBoxedIcon Icon={X} c="var(--mantine-color-red-8)" bg="var(--mantine-color-red-2)" />
               <TextMdHeavier>Unsupported file</TextMdHeavier>
-              <TextSmRegular c="dimmed">Please drop a {allowedTypes.join(' or ')} file to upload</TextSmRegular>
+              <TextSmRegular c="dimmed">Only {allowedTypes.join(' or ')} files can be uploaded</TextSmRegular>
             </Stack>
           </Center>
         </Dropzone.Reject>
       </Dropzone>
-    </>
+    </div>
   );
 };

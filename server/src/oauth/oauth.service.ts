@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthType, Service } from '@prisma/client';
+import { capitalize } from 'lodash';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
@@ -247,9 +248,7 @@ export class OAuthService {
         service: serviceEnum,
         displayName:
           connectionInfo?.connectionName ??
-          `${service.charAt(0).toUpperCase() + service.slice(1)} (${
-            connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? 'Private OAuth' : 'OAuth'
-          })`,
+          `${capitalize(service)} (${connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? 'Private OAuth' : 'OAuth'})`,
         authType: AuthType.OAUTH,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
         healthStatus: 'OK', // assume healthy because this connection is created via a successful oauth flow

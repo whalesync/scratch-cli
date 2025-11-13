@@ -1,8 +1,4 @@
-export const getCapitalizedFirstLetters = (sentence: string): string => {
-  const words = sentence.split(/\W+/);
-  const firstLetterCapitalizedWords = words.map((e) => e.charAt(0).toUpperCase());
-  return firstLetterCapitalizedWords.join('');
-};
+import { capitalize } from 'lodash';
 
 /**
  * Return the enum value in string enum `T` named `strVal`, or `defaultValue` if it isn't recognized.
@@ -47,10 +43,6 @@ export function compareIgnoringPunctuationAndCase(str1: string, str2: string): b
 
 export function compareIgnoringCase(str1: string, str2: string): boolean {
   return str1.localeCompare(str2, undefined, { sensitivity: 'accent' }) === 0;
-}
-
-export function capitalizeFirstLetter(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export function intRange(start: number, length: number): number[] {
@@ -113,7 +105,7 @@ export async function sleep(ms: number): Promise<void> {
 /** In some cases we need to have a more user friendly message for oauth errors. */
 export function getErrorFromOAuth(error: string, connectorType: string): string {
   if (error === 'access_denied') {
-    return `${capitalizeFirstLetter(connectorType)} authorization was denied. Please try again.`;
+    return `${capitalize(connectorType)} authorization was denied. Please try again.`;
   }
   return error;
 }

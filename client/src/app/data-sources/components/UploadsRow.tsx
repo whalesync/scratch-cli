@@ -67,8 +67,8 @@ export default function UploadsRow({
               <ActionIconThreeDots />
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item leftSection={<Trash2 size={16} />} onClick={() => onDelete(upload)}>
-                Remove upload
+              <Menu.Item data-delete leftSection={<Trash2 size={16} />} onClick={() => onDelete(upload)}>
+                Delete
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>

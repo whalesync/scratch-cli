@@ -1,9 +1,25 @@
+.dropzoneRoot {
+  border: none;
+  min-height: 200px;
+  padding: 16px;
+  margin: -16px;
+
+  &[data-accept],
+  &[data-reject] {
+    background-color: transparent;
+  }
+}
+
 .dropzoneFeedbackOuter {
+  --dropzone-accept-bg: red;
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  border: 3px dashed #9747ff;
+  background-color: var(--mantine-color-gray-6);
+  border-radius: var(--mantine-radius-md);
 }
 
 .dropzoneFeedbackInner {

@@ -2,6 +2,8 @@
  * Data types for interfacing with the Agent API
  */
 
+import { capitalize } from 'lodash';
+
 export interface ChatSessionSummary {
   id: string;
   name: string;
@@ -155,7 +157,7 @@ export const AGENT_CAPABILITIES: Capability[] = [
 ];
 
 export function capabilityGroupDisplayName(group: CapabilityGroup): string {
-  return group.charAt(0).toUpperCase() + group.slice(1);
+  return capitalize(group);
 }
 
 export function capabilitiesForGroup(group: CapabilityGroup, availableCapabilities?: Capability[]): Capability[] {

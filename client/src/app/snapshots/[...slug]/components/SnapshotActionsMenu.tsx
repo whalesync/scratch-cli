@@ -451,7 +451,7 @@ export const SnapshotActionsMenu = () => {
             </>
           )}
           <Menu.Item
-            color="red"
+            data-delete
             disabled={menuItemsDisabled}
             leftSection={saving ? <Loader size="xs" /> : <TrashIcon />}
             onClick={() => modalStack.open(Modals.CONFIRM_DELETE)}

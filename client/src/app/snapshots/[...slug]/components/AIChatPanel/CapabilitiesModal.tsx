@@ -4,21 +4,17 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { TextTitle3 } from '@/app/components/base/text';
 import { capabilitiesForGroup, Capability } from '@/types/server-entities/agent';
 import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
+import { capitalize } from 'lodash';
 import { useEffect, useState } from 'react';
 
-interface CapabilitiesModalProps {
+interface ToolsModalProps {
   opened: boolean;
   onClose: () => void;
   selectedCapabilities: string[];
   onCapabilitiesChange: (capabilities: string[]) => void;
 }
 
-export default function CapabilitiesModal({
-  opened,
-  onClose,
-  selectedCapabilities,
-  onCapabilitiesChange,
-}: CapabilitiesModalProps) {
+export default function ToolsModal({ opened, onClose, selectedCapabilities, onCapabilitiesChange }: ToolsModalProps) {
   const [tempSelectedCapabilities, setTempSelectedCapabilities] = useState<string[]>([]);
 
   const handleSave = () => {
@@ -46,7 +42,7 @@ export default function CapabilitiesModal({
   const renderCapabilityGroup = (groupName: string, capabilities: Capability[]) => {
     return (
       <>
-        <TextTitle3 c="primary">{groupName.charAt(0).toUpperCase() + groupName.slice(1)}</TextTitle3>
+        <TextTitle3 c="primary">{capitalize(groupName)}</TextTitle3>
         <Stack gap="xs" key={groupName}>
           {capabilities.map((capability) => (
             <Checkbox
@@ -63,10 +59,10 @@ export default function CapabilitiesModal({
   };
 
   return (
-    <Modal opened={opened} onClose={handleCancel} title="Configure Capabilities" size="lg" zIndex={1003}>
+    <Modal opened={opened} onClose={handleCancel} title="Configure tools" size="lg" zIndex={1003}>
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Select which capabilities the AI agent should have access to:
+          Select which tools the AI agent should have access to:
         </Text>
         <Group gap="md" grow align="flex-start">
           <Stack>
@@ -79,7 +75,7 @@ export default function CapabilitiesModal({
 
         <Group justify="flex-end" gap="xs">
           <ButtonSecondaryOutline onClick={handleCancel}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleSave}>Save</ButtonPrimaryLight>
+          <ButtonPrimaryLight onClick={handleSave}>Save changes</ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

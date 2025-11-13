@@ -15,7 +15,7 @@ import { CreateSnapshotModal } from './CreateSnapshotModal';
 
 interface ConnectorRowProps {
   connectorAccount: ConnectorAccount;
-  onTest: (id: string) => void;
+  onTest: (con: ConnectorAccount) => void;
   onUpdate: (conn: ConnectorAccount) => void;
   onDelete: (id: string) => void;
   testingId: string | null;
@@ -57,10 +57,14 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
           <Group gap="xs" justify="flex-end">
             <ToolIconButton onClick={open} icon={Plus} tooltip="Create a workbook" />
             <ToolIconButton
-              onClick={() => onTest(connectorAccount.id)}
+              onClick={() => onTest(connectorAccount)}
               loading={testingId === connectorAccount.id}
               icon={RefreshCcwIcon}
-              tooltip="Verify connection"
+              tooltip={
+                testingId === connectorAccount.id
+                  ? `Contacting ${serviceName(connectorAccount.service)}...`
+                  : 'Test connection'
+              }
             />
             <Menu>
               <Menu.Target>
@@ -68,10 +72,11 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Item leftSection={<Edit3 size={16} />} onClick={() => onUpdate(connectorAccount)}>
-                  Rename connection
+                  Rename
                 </Menu.Item>
-                <Menu.Item leftSection={<Trash2 size={16} />} onClick={() => onDelete(connectorAccount.id)}>
-                  Remove connection
+                <Menu.Divider />
+                <Menu.Item data-delete leftSection={<Trash2 size={16} />} onClick={() => onDelete(connectorAccount.id)}>
+                  Delete
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>

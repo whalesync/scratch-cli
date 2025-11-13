@@ -41,7 +41,7 @@ import { TextTitle3, TextXsRegular } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
 import CapabilitiesButton from './CapabilitiesButton';
-import CapabilitiesModal from './CapabilitiesModal';
+import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
 import { ResourceSelector } from './ResourceSelector';
@@ -591,7 +591,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       </Modal>
 
       {/* Tools Modal */}
-      <CapabilitiesModal
+      <ToolsModal
         opened={showToolsModal}
         onClose={() => setShowToolsModal(false)}
         selectedCapabilities={selectedCapabilities}

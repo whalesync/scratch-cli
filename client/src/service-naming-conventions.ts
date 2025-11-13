@@ -1,4 +1,5 @@
 import { Service } from '@/types/server-entities/connector-accounts';
+import { capitalize } from 'lodash';
 type ServiceNamingConvention = {
   service: string;
   table: string;
@@ -118,7 +119,7 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
 };
 
 export const serviceName = (serviceCode: Service): string => {
-  return ServiceNamingConventions[serviceCode]?.service ?? serviceCode.charAt(0).toUpperCase() + serviceCode.slice(1);
+  return ServiceNamingConventions[serviceCode]?.service ?? capitalize(serviceCode);
 };
 
 export const tableName = (serviceCode: Service): string => {

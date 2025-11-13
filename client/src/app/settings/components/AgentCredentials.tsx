@@ -5,19 +5,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
-import {
-  Alert,
-  Badge,
-  Center,
-  Grid,
-  Group,
-  Loader,
-  Modal,
-  SemiCircleProgress,
-  Stack,
-  Text,
-  useModalsStack,
-} from '@mantine/core';
+import { Alert, Badge, Center, Grid, Group, Loader, Modal, Progress, Stack, Text, useModalsStack } from '@mantine/core';
 import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
@@ -91,16 +79,10 @@ export const AgentCredentials = () => {
     const value = credential.usage.usage === 0 ? 0 : (credential.usage.usage / max) * 100;
 
     return (
-      <Group gap="xs" align="center" justify="flex-start">
-        <SemiCircleProgress
-          value={value}
-          color={value > 90 ? 'red.9' : value > 80 ? 'yellow.9' : 'green.9'}
-          emptySegmentColor="gray.4"
-          size={30}
-          thickness={4}
-        />
+      <Stack gap="xs">
+        <Progress value={value} color={value > 90 ? 'red.6' : value > 80 ? 'yellow.6' : 'green.6'} />
         <TextXsRegular c="dimmed">{`${Number(credential.usage.usage).toFixed(3)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</TextXsRegular>
-      </Group>
+      </Stack>
     );
   };
 

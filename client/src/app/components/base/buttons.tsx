@@ -126,5 +126,7 @@ export const RejectSuggestionButton = Button.withProps({
 export const ContentFooterButton = Button.withProps({
   variant: 'subtle',
   size: 'xs',
-  c: 'gray',
+  c: 'var(--fg-primary)',
+  fz: 13,
+  fw: 425,
 });

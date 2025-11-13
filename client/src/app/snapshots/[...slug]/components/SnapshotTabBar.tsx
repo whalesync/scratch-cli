@@ -82,7 +82,7 @@ const TableTab = ({
           </Menu.Item>
           <Menu.Item
             leftSection={<Trash2 size={14} />}
-            color="red"
+            data-delete
             onClick={async (e) => {
               e.stopPropagation();
               deleteTable(tab.id);

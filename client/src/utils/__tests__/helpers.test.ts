@@ -1,9 +1,7 @@
 import {
-  capitalizeFirstLetter,
   compareIgnoringCase,
   compareIgnoringPunctuationAndCase,
   formatBytes,
-  getCapitalizedFirstLetters,
   getLastElement,
   hashString,
   hashStringList,
@@ -15,25 +13,6 @@ import {
 } from '../helpers';
 
 describe('helpers', () => {
-  describe('getCapitalizedFirstLetters', () => {
-    it('should return capitalized first letters of words', () => {
-      expect(getCapitalizedFirstLetters('hello world')).toBe('HW');
-      expect(getCapitalizedFirstLetters('test case example')).toBe('TCE');
-    });
-
-    it('should handle single word', () => {
-      expect(getCapitalizedFirstLetters('hello')).toBe('H');
-    });
-
-    it('should handle empty string', () => {
-      expect(getCapitalizedFirstLetters('')).toBe('');
-    });
-
-    it('should handle punctuation', () => {
-      expect(getCapitalizedFirstLetters('hello, world!')).toBe('HW');
-    });
-  });
-
   describe('isNotEmpty', () => {
     it('should return true for non-empty values', () => {
       expect(isNotEmpty('test')).toBe(true);
@@ -67,21 +46,6 @@ describe('helpers', () => {
 
     it('should return false for different strings', () => {
       expect(compareIgnoringCase('hello', 'world')).toBe(false);
-    });
-  });
-
-  describe('capitalizeFirstLetter', () => {
-    it('should capitalize first letter', () => {
-      expect(capitalizeFirstLetter('hello')).toBe('Hello');
-      expect(capitalizeFirstLetter('world')).toBe('World');
-    });
-
-    it('should handle already capitalized strings', () => {
-      expect(capitalizeFirstLetter('Hello')).toBe('Hello');
-    });
-
-    it('should handle empty string', () => {
-      expect(capitalizeFirstLetter('')).toBe('');
     });
   });
 

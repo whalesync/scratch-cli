@@ -1,34 +1,28 @@
-import { connectorAccountsApi } from "@/lib/api/connector-accounts";
-import { isUnauthorizedError } from "@/lib/api/error";
-import { SWR_KEYS } from "@/lib/api/keys";
+import { connectorAccountsApi } from '@/lib/api/connector-accounts';
+import { isUnauthorizedError } from '@/lib/api/error';
+import { SWR_KEYS } from '@/lib/api/keys';
 import {
   ConnectorAccount,
   CreateConnectorAccountDto,
   TestConnectionResponse,
   UpdateConnectorAccountDto,
-} from "@/types/server-entities/connector-accounts";
-import { useMemo } from "react";
-import useSWR, { useSWRConfig } from "swr";
+} from '@/types/server-entities/connector-accounts';
+import { useMemo } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
+import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
+import { serviceName } from '../service-naming-conventions';
 
 export const useConnectorAccounts = () => {
   const { mutate } = useSWRConfig();
-  const { data, error, isLoading } = useSWR(
-    SWR_KEYS.connectorAccounts.list(),
-    connectorAccountsApi.list
-  );
+  const { data, error, isLoading } = useSWR(SWR_KEYS.connectorAccounts.list(), connectorAccountsApi.list);
 
-  const createConnectorAccount = async (
-    dto: CreateConnectorAccountDto
-  ): Promise<ConnectorAccount> => {
+  const createConnectorAccount = async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
     const newAccount = await connectorAccountsApi.create(dto);
     mutate(SWR_KEYS.connectorAccounts.list());
     return newAccount;
   };
 
-  const updateConnectorAccount = async (
-    id: string,
-    dto: UpdateConnectorAccountDto
-  ) => {
+  const updateConnectorAccount = async (id: string, dto: UpdateConnectorAccountDto) => {
     await connectorAccountsApi.update(id, dto);
     mutate(SWR_KEYS.connectorAccounts.list());
   };
@@ -38,23 +32,40 @@ export const useConnectorAccounts = () => {
     mutate(SWR_KEYS.connectorAccounts.list());
   };
 
-  const testConnection = async (
-    id: string
-  ): Promise<TestConnectionResponse> => {
-    const r = await connectorAccountsApi.test(id);
-    mutate(SWR_KEYS.connectorAccounts.detail(id));
-    mutate(SWR_KEYS.connectorAccounts.list());
-    return r;
+  const testConnection = async (con: ConnectorAccount): Promise<TestConnectionResponse> => {
+    try {
+      const r = await connectorAccountsApi.test(con.id);
+      mutate(SWR_KEYS.connectorAccounts.detail(con.id));
+      mutate(SWR_KEYS.connectorAccounts.list());
+      if (r.health == 'ok') {
+        ScratchpadNotifications.success({
+          title: 'Connection healthy',
+          message: `Scratch can connect to ${serviceName(con.service)}`,
+        });
+      } else {
+        ScratchpadNotifications.error({
+          title: 'Connection error',
+          message: r.error,
+        });
+      }
+      return r;
+    } catch (e) {
+      ScratchpadNotifications.error({
+        title: 'Connection error',
+        message: e instanceof Error ? e.message : 'Unknown error',
+      });
+      return { health: 'error', error: e instanceof Error ? e.message : 'Unknown error' };
+    }
   };
 
   const displayError = useMemo(() => {
-    if(isUnauthorizedError(error)) {
+    if (isUnauthorizedError(error)) {
       // ignore this error as it will be fixed after the token is refreshed
       return undefined;
     }
     return error?.message;
   }, [error]);
-  
+
   return {
     connectorAccounts: data,
     isLoading,
@@ -67,9 +78,8 @@ export const useConnectorAccounts = () => {
 };
 
 export const useConnectorAccount = (id?: string) => {
-  const { data, error, isLoading } = useSWR(
-    id ? SWR_KEYS.connectorAccounts.detail(id) : null,
-    () => (id ? connectorAccountsApi.detail(id) : null)
+  const { data, error, isLoading } = useSWR(id ? SWR_KEYS.connectorAccounts.detail(id) : null, () =>
+    id ? connectorAccountsApi.detail(id) : null,
   );
 
   return {

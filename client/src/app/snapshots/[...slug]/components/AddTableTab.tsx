@@ -15,7 +15,7 @@ import { Center, Checkbox, Group, Loader, ScrollArea, Stack, Table, Text } from 
 import { PlusIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
-import customBordersClasses from '../../../components/theme/custom-borders.module.css';
+import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
 
 interface ConnectorOption {
   connectorAccountId: string | null;
@@ -147,9 +147,7 @@ export const AddTableTab = () => {
 
   return (
     <Stack gap="md" maw={500} mx="auto" align="center" py="xl">
-      <Center c="var(--fg-muted)" w={28} h={28} className={customBordersClasses.cornerBorders}>
-        <PlusIcon size={16} />
-      </Center>
+      <DecorativeBoxedIcon Icon={PlusIcon} />
       <TextSmHeavier ta="center">Import table into workbook</TextSmHeavier>
       <TextSmBook c="dimmed" ta="center">
         Select which table you want to import

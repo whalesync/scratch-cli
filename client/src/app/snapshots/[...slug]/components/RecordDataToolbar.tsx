@@ -215,7 +215,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
       <Group justify="flex-start" align="center" h="100%">
         <Group gap="2px">
           <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
-            Add Row
+            Row
           </ContentFooterButton>
           <StyledIcon Icon={LineVerticalIcon} c="gray.6" size="xs" />
           <Menu>
