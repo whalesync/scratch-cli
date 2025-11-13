@@ -121,7 +121,10 @@ export function NavMenu() {
             src="/logo-color.svg"
             alt={`${PROJECT_NAME}`}
             my="sm"
-            styles={{ root: { fill: 'var(--mantine-color-primary-5)', width: '30px', height: '30px' } }}
+            w={30}
+            h={30}
+            radius={15}
+            bg={colorScheme === 'dark' ? 'var(--mantine-color-green-6)' : ''}
           />
         </Link>
       </Tooltip>
