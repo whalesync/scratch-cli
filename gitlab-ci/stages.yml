@@ -4,3 +4,4 @@ stages:
   - push images
   - run migrations
   - deploy
+  - integration tests
