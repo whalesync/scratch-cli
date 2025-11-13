@@ -23,7 +23,7 @@ import {
   trackStartAgentSession,
 } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { Capability } from '@/types/server-entities/chat-session';
+import { AGENT_CAPABILITIES, Capability } from '@/types/server-entities/agent';
 import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -55,55 +55,6 @@ import { SessionHistorySelector } from './SessionHistorySelector';
 interface AIChatPanelProps {
   activeTable: SnapshotTable | null;
 }
-const availableCapabilities = [
-  {
-    code: 'data:create',
-    enabledByDefault: true,
-    description: 'Create new records for a table in the active snapshot using data provided by the LLM.',
-  },
-  {
-    code: 'data:update',
-    enabledByDefault: true,
-    description: 'Update existing records in a table in the active snapshot (creates suggestions, not direct changes).',
-  },
-  {
-    code: 'data:delete',
-    enabledByDefault: true,
-    description: 'Delete records from a table in the active snapshot by their IDs.',
-  },
-  { code: 'data:field-tools', enabledByDefault: true, description: 'Tools to edit specific fields' },
-
-  {
-    code: 'data:fetch-tools',
-    enabledByDefault: true,
-    description: 'Tools for loading additional records from different tables and views into the context.',
-  },
-  {
-    code: 'views:filtering',
-    enabledByDefault: true,
-    description: 'Set or clear SQL-based filters on tables to show/hide specific records.',
-  },
-  {
-    code: 'table:add-column',
-    enabledByDefault: false,
-    description: 'Add scratch columns to the active table.',
-  },
-  {
-    code: 'table:remove-column',
-    enabledByDefault: false,
-    description: 'Remove scratch columns from the active table.',
-  },
-  {
-    code: 'other:url-content-load',
-    enabledByDefault: false,
-    description: 'Allows the LLM to load content from a URL and use it in the conversation.',
-  },
-  {
-    code: 'other:upload-content',
-    enabledByDefault: false,
-    description: 'Allows the LLM to upload content to the active snapshot.',
-  },
-];
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const { snapshot, publish } = useActiveSnapshot();
@@ -188,16 +139,16 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       } catch (error) {
         console.warn('Failed to parse saved capabilities:', error);
         // Fall back to defaults
-        const defaultCapabilities = availableCapabilities
-          .filter((cap: Capability) => cap.enabledByDefault)
-          .map((cap: Capability) => cap.code);
+        const defaultCapabilities = AGENT_CAPABILITIES.filter((cap: Capability) => cap.enabledByDefault).map(
+          (cap: Capability) => cap.code,
+        );
         setSelectedCapabilities(defaultCapabilities);
       }
     } else {
       // No saved capabilities, use defaults
-      const defaultCapabilities = availableCapabilities
-        .filter((cap: Capability) => cap.enabledByDefault)
-        .map((cap: Capability) => cap.code);
+      const defaultCapabilities = AGENT_CAPABILITIES.filter((cap: Capability) => cap.enabledByDefault).map(
+        (cap: Capability) => cap.code,
+      );
       setSelectedCapabilities(defaultCapabilities);
     }
   }, []); // availableCapabilities is a constant, no need to include in dependencies
@@ -607,7 +558,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           {/* Capabilities Selection */}
           <CapabilitiesButton
             selectedCapabilities={selectedCapabilities}
-            availableCapabilitiesCount={availableCapabilities.length}
+            availableCapabilitiesCount={AGENT_CAPABILITIES.length}
             onClick={() => setShowToolsModal(true)}
           />
 
@@ -654,7 +605,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       <CapabilitiesModal
         opened={showToolsModal}
         onClose={() => setShowToolsModal(false)}
-        availableCapabilities={availableCapabilities}
         selectedCapabilities={selectedCapabilities}
         onCapabilitiesChange={(caps) => {
           setSelectedCapabilities(caps);

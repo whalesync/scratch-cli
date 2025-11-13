@@ -3,7 +3,7 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/hooks/use-agent-chat-websocket';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { ChatMessage } from '@/types/server-entities/chat-session';
+import { ChatMessage } from '@/types/server-entities/agent';
 import { timeAgo } from '@/utils/helpers';
 import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';

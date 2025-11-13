@@ -1,7 +1,7 @@
 import { TextXsRegular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import { ChatSessionSummary } from '@/types/server-entities/chat-session';
+import { ChatSessionSummary } from '@/types/server-entities/agent';
 import { timeAgo } from '@/utils/helpers';
 import { ActionIcon, Combobox, Group, Text, useCombobox } from '@mantine/core';
 import { HistoryIcon } from 'lucide-react';

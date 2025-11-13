@@ -5,7 +5,7 @@ import { MarkdownRenderer } from '@/app/components/markdown/MarkdownRenderer';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { API_CONFIG } from '@/lib/api/config';
-import { Capability, ChatSessionSummary } from '@/types/server-entities/chat-session';
+import { Capability, ChatSessionSummary } from '@/types/server-entities/agent';
 import {
   ActionIcon,
   Alert,

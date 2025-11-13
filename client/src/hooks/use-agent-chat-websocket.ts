@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/lib/api/config';
-import { ChatMessage, DataScope } from '@/types/server-entities/chat-session';
+import { ChatMessage, DataScope } from '@/types/server-entities/agent';
 import { WebSocketCloseCode } from '@/types/websocket';
 import { sleep } from '@/utils/helpers';
 import pluralize from 'pluralize';

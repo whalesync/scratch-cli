@@ -3,7 +3,7 @@
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ModelOption, PersistedModelOption } from '@/types/common';
-import { DataScope } from '@/types/server-entities/chat-session';
+import { DataScope } from '@/types/server-entities/agent';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
