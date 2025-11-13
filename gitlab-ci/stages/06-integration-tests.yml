@@ -14,7 +14,7 @@ integration tests for test env:
     INTEGRATION_TEST_CLIENT_DOMAIN: "test.scratch.md"
     INTEGRATION_TEST_API_DOMAIN: "test-api.scratch.md"
     INTEGRATION_TEST_AGENT_DOMAIN: "test-agent.scratch.md"
-    INTEGRATION_TEST_USER_ID: user_35ABccxgr1W3QQoWiQ3ZhSzJg6g
+    INTEGRATION_TEST_USER_ID: user_35RRk1ww8PJ4g0TfVfxbeU5iFJz
   script:
     - cd server
     - !reference [.use_nvm, script]
