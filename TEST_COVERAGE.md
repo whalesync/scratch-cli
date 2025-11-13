@@ -3,22 +3,22 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-13
-**Overall Coverage**: ~4.4% (Server: ~8.3%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~4.9% (Server: ~9.1%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
 ## Executive Summary
 
-The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 28 test files exist for 562+ source files across all codebases. Progress is being made with new utility, helper function, security, authentication, and payment tests.
+The codebase has **critical test coverage gaps**. While existing tests demonstrate high quality, only 30 test files exist for 562+ source files across all codebases. Progress is being made with new utility, helper function, security, authentication, payment, and user management tests.
 
 ### Coverage Statistics
 
 | Codebase     | Source Files | Test Files | Coverage  |
 | ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 27         | ~8.3%     |
+| Server       | 258          | 29         | ~9.1%     |
 | Client       | 235          | 1          | ~0.4%     |
 | Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **28**     | **~4.4%** |
+| **Total**    | **562**      | **30**     | **~4.9%** |
 
 ---
 
@@ -142,6 +142,26 @@ These areas have excellent test coverage and should serve as models:
   - API token expiration (6 months)
   - WebSocket token expiration (1 day)
   - Date object validation and future date checks
+
+- ✅ **Subscription service** - 11 test cases covering subscription management (`server/src/users/subscription.service.spec.ts`)
+
+  - Finding subscriptions by user ID
+  - Empty subscription array handling
+  - Subscription deletion with count return
+  - Database error handling (connection failures, constraint violations)
+  - Special character handling in IDs
+  - Multiple subscription status handling (active, canceled)
+  - deleteMany operation verification
+
+- ✅ **Organizations service** - 18 test cases covering organization management (`server/src/users/organizations.service.spec.ts`)
+  - Finding organizations by ID and Clerk ID
+  - Null return handling for non-existent organizations
+  - Pagination with cursor-based navigation
+  - Custom limit handling (1 to 1000+)
+  - Next cursor calculation for result sets
+  - Ascending ID ordering
+  - Database error handling (connection failures, timeouts)
+  - Special character handling in IDs
 
 - ✅ **Auth type conversion** - 10 test cases covering AuthenticatedUser to Actor conversion (`server/src/auth/types.spec.ts`)
 
@@ -500,7 +520,7 @@ These areas pose security, financial, or data integrity risks:
 | **Payment/Stripe Integration**     | 7     | ✅ Good      | Helper functions, plans, and core Stripe service fully tested                  |
 | **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                           |
 | **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                              |
-| **User Management**                | 12    | ⚠️ Improving | Token utilities and type conversions tested; services, controllers untested    |
+| **User Management**                | 12    | ✅ Good      | Token utilities, type conversions, and core services fully tested              |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -732,6 +752,30 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-13 (Afternoon)
+
+- ✅ **User management service tests added** (+2 test files, +29 test cases)
+  - Subscription service tests (`server/src/users/subscription.service.spec.ts`) - 11 test cases
+    - Finding subscriptions by user ID with multiple status types
+    - Empty subscription array handling
+    - Subscription deletion with count return (uses deleteMany)
+    - Database error handling (connection failures, constraint violations)
+    - Special character handling in user and subscription IDs
+    - Multiple subscription status handling (active, canceled)
+  - Organizations service tests (`server/src/users/organizations.service.spec.ts`) - 18 test cases
+    - Finding organizations by ID and Clerk ID
+    - Null return handling for non-existent organizations
+    - Cursor-based pagination with next cursor calculation
+    - Custom limit handling from 1 to 1000+ results
+    - Result set boundary conditions (exact limit vs limit+1)
+    - Ascending ID ordering verification
+    - Database error handling (connection failures, timeouts)
+    - Special character handling in organization and clerk IDs
+- 📊 **Coverage updated**: Server went from ~8.3% to ~9.1%, overall from ~4.4% to ~4.9%
+- 🎯 **Progress**: P0 critical area (User Management) status improved from "Improving" to "Good"
+- 📈 **Cumulative progress**: 453 new test cases across 22 test files
+- 🎉 **Milestone**: User Management is now the third P0 critical area to reach "Good" status!
 
 ### 2025-11-13 (Early Morning)
 
