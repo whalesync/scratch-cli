@@ -240,7 +240,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 
 | Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
 | ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
-| Notion     | ~10          | 3          | ~100+      | ~30%     | ⚠️ Partial   |
+| Notion     | ~10          | 4          | ~105+      | ~30%     | ⚠️ Partial   |
 | Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
 | CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
 | Webflow    | 3            | 1          | 9          | ~30%     | ⚠️ Partial   |
@@ -248,7 +248,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 | YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
 | WordPress  | 6            | 0          | 0          | 0%       | ❌ No tests  |
 | Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **6**      | **~161**   | **~15%** | **Critical** |
+| **Total**  | **~41**      | **7**      | **~166**   | **~15%** | **Critical** |
 
 ### Tested Areas ✅
 
@@ -258,20 +258,26 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - `conversion/__tests__/notion-block-diff.spec.ts` - Block diffing algorithm tests
 - `conversion/__tests__/notion-block-diff-executor.spec.ts` - Batch operations tests
 - `conversion/__tests__/round-trip-test.spec.ts` - Round-trip conversion tests
+- `notion-connector.spec.ts` - Connector implementation tests (5 test cases)
 
 **What's Tested**:
-- ✅ Rich text conversion logic
+- ✅ Rich text conversion logic (extensive coverage in conversion tests)
 - ✅ Block diffing algorithm
 - ✅ Batch operations
 - ✅ Round-trip conversions (content preservation)
 - ✅ Complex nested block structures
+- ✅ `downloadTableRecords` function - Core record download logic with minimal fields
+- ✅ Pagination handling (with next_cursor)
+- ✅ Helper methods (displayName, service, getBatchSize)
 
 **What's NOT Tested**:
-- ❌ `notion-connector.ts` - Main connector class
+- ❌ Page content column download (complex with blocks/children)
+- ❌ All Notion property type conversions (only title field tested)
 - ❌ `notion-schema-parser.ts` - Schema parsing logic
 - ❌ Error handling for API failures
 - ❌ Authentication flows
 - ❌ Table listing and preview
+- ❌ Record CRUD operations (create, update, delete)
 
 #### Wix Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/wix/`
@@ -816,6 +822,17 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 🎯 **Progress**: Webflow connector moved from "No tests" to "Partial Coverage" (30% coverage)
 - 🔌 **Connector impact**: Core downloadTableRecords functionality tested with proper API mocking
 - 📈 **Cumulative progress**: 9 new test cases for Webflow connector
+
+- ✅ **Notion connector tests added** (+1 test file, +5 test cases)
+  - Notion connector tests (`server/src/remote-service/connectors/library/notion/notion-connector.spec.ts`) - 5 test cases
+    - `downloadTableRecords` function - Basic record download and transformation (simplified with one field type)
+    - Pagination handling (with next_cursor)
+    - Helper methods (displayName, service type, getBatchSize)
+  - **Simplified approach**: Tests use minimal fields (only title property) to avoid memory issues with complex property types and page content
+  - **Existing coverage**: Notion already has ~100+ tests for rich text conversion (the most complex part)
+- 📊 **Coverage updated**: Connector tests went from 6 to 7 test files, test cases from ~161 to ~166
+- 🎯 **Progress**: Notion connector tests expanded from 3 to 4 test files
+- 📈 **Cumulative progress**: 14 new test cases for connectors (9 Webflow + 5 Notion)
 
 ### 2025-11-12 (Post-Midnight - Round 4)
 
