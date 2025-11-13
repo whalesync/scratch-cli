@@ -52,6 +52,42 @@ deploy agent service to Cloud Run test environment:
       allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
+notify slack on failure test environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run test environment",
+      "deploy client service to Cloud Run test environment",
+      "deploy agent service to Cloud Run test environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - Test\"}" \
+      ${TEST_SLACK_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_master]
+  when: on_failure
+  allow_failure: true
+
+notify slack on success test environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run test environment",
+      "deploy client service to Cloud Run test environment",
+      "deploy agent service to Cloud Run test environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"✅ Successfully deployed Scratch to GCP - Test \"}" \
+      ${TEST_SLACK_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_master]
+  when: on_success
+  allow_failure: true
+
 #endregion
 
 #region production env
@@ -88,4 +124,40 @@ deploy agent service to Cloud Run production environment:
     - gcloud run services update-traffic agent-service --to-latest
   rules:
     - !reference [.rules, on_merge_to_prod]
+
+notify slack on failure production environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run production environment",
+      "deploy client service to Cloud Run production environment",
+      "deploy agent service to Cloud Run production environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - Production\"}" \
+      ${SLACK_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+  when: on_failure
+  allow_failure: true
+
+notify slack on success production environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run production environment",
+      "deploy client service to Cloud Run production environment",
+      "deploy agent service to Cloud Run production environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"✅ Successfully deployed Scratch to GCP - Production \"}" \
+      ${SLACK_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+  when: on_success
+  allow_failure: true
 #endregion
