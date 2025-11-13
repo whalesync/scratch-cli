@@ -31,7 +31,8 @@ const IN_MEMORY_FLAGS = {
   },
   [UserFlag.CONNECTOR_LIST]: {
     variants: {
-      on: ['WEBFLOW'], // Just for testing flags locally.
+      // Just for testing flags locally.
+      on: ['AIRTABLE', 'NOTION', 'WORDPRESS', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG', 'CSV', 'CUSTOM'],
       off: [],
     },
     disabled: false,
