@@ -43,19 +43,25 @@ async def websocket_status():
     if connection_manager.active_connections:
         for key in connection_manager.active_connections.keys():
 
-            socket = connection_manager.active_connections[key]
+            stored_connection = connection_manager.active_connections[key]
 
             status = "n/a"
             client_info = "n/a"
-            if socket and isinstance(socket, WebSocket):
-                status = f"{socket.client_state}"
-                client_info = f"{socket.client}"
+            if (
+                stored_connection
+                and stored_connection.websocket
+                and isinstance(stored_connection.websocket, WebSocket)
+            ):
+                status = f"{stored_connection.websocket.client_state}"
+                client_info = f"{stored_connection.websocket.client}"
 
             connection_info.append(
                 {
                     "session_id": key,
                     "status": status,
                     "client_info": client_info,
+                    "last_activity_at": stored_connection.last_activity_at.isoformat(),
+                    "last_activity_type": stored_connection.last_activity_type,
                 }
             )
     else:

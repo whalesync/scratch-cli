@@ -24,15 +24,37 @@ from server.exception_mapping import exception_mapping
 logger = getLogger(__name__)
 
 
+class WebSocketConnection:
+    """
+    A class to track a websocket connection and its activity.
+    """
+
+    def __init__(self, websocket: WebSocket):
+        """
+        Initialize a new websocket connection.
+        """
+        self.websocket = websocket
+        self.created_at = datetime.now(timezone.utc)
+        self.last_activity_at = self.created_at
+        self.last_activity_type = "connect"
+
+    def track_last_activity(self, activity_type: str):
+        self.last_activity_at = datetime.now(timezone.utc)
+        self.last_activity_type = activity_type
+
+    def __str__(self):
+        return f"WebSocketConnection(created_at={self.created_at}, last_activity_at={self.last_activity_at}, last_activity_type={self.last_activity_type})"
+
+
 class ConnectionManager:
     def __init__(self, chat_service: ChatService, session_service: SessionService):
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.active_connections: Dict[str, WebSocketConnection] = {}
         self.chat_service = chat_service
         self.session_service = session_service
 
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
-        self.active_connections[session_id] = websocket
+        self.active_connections[session_id] = WebSocketConnection(websocket)
 
     def disconnect(self, session_id: str, websocket: Optional[WebSocket] = None):
         """
@@ -43,7 +65,7 @@ class ConnectionManager:
             stored_websocket = self.active_connections[session_id]
             # If a specific websocket is provided, only disconnect if it matches
             # This prevents disconnecting a reconnected connection
-            if websocket is None or stored_websocket == websocket:
+            if websocket is None or stored_websocket.websocket == websocket:
                 del self.active_connections[session_id]
                 logger.info(f"Connection removed for session {session_id}")
             else:
@@ -51,15 +73,24 @@ class ConnectionManager:
                     f"Disconnect skipped for session {session_id}: connection was replaced"
                 )
 
-    async def send_personal_message(self, message: str, session_id: str):
+    def track_activity(self, session_id: str, activity_type: str):
         if session_id in self.active_connections:
-            websocket = self.active_connections[session_id]
-            try:
-                await websocket.send_text(message)
-            except Exception as e:
-                logger.error(f"Failed to send message to {session_id}: {e}")
-                # Remove the connection if it's broken, but only if it's still the same websocket
-                self.disconnect(session_id, websocket)
+            stored_websocket = self.active_connections[session_id]
+            if stored_websocket and stored_websocket.websocket:
+                stored_websocket.track_last_activity(activity_type)
+
+    async def send_message(self, message: str, session_id: str):
+        if session_id in self.active_connections:
+            stored_websocket = self.active_connections[session_id]
+
+            if stored_websocket and stored_websocket.websocket:
+                try:
+                    await stored_websocket.websocket.send_text(message)
+                    stored_websocket.track_last_activity("send_message")
+                except Exception as e:
+                    logger.error(f"Failed to send message to {session_id}: {e}")
+                    # Remove the connection if it's broken, but only if it's still the same websocket
+                    self.disconnect(session_id, stored_websocket.websocket)
 
 
 # Global connection manager instance (shared across all websocket connections)
@@ -93,7 +124,7 @@ async def websocket_endpoint(
         connecting_user = None
 
     if not connecting_user:
-        await manager.send_personal_message(
+        await manager.send_message(
             json.dumps(
                 {
                     "type": "agent_error",
@@ -111,7 +142,7 @@ async def websocket_endpoint(
     ## lookup the existing session
     session = session_service.get_session(session_id, connecting_user.userId)
     if not session:
-        await manager.send_personal_message(
+        await manager.send_message(
             json.dumps(
                 {
                     "type": "agent_error",
@@ -130,7 +161,7 @@ async def websocket_endpoint(
         f"Connection established and session loaded for user: {connecting_user}"
     )
 
-    await manager.send_personal_message(
+    await manager.send_message(
         json.dumps(
             {
                 "type": "connection_confirmed",
@@ -153,7 +184,7 @@ async def websocket_endpoint(
                 message_data = json.loads(data)
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON received: {e}")
-                await manager.send_personal_message(
+                await manager.send_message(
                     json.dumps(
                         {
                             "type": "agent_error",
@@ -165,7 +196,7 @@ async def websocket_endpoint(
                 )
             except Exception as e:
                 logger.error(f"Invalid message received: {e}")
-                await manager.send_personal_message(
+                await manager.send_message(
                     json.dumps(
                         {
                             "type": "agent_error",
@@ -190,10 +221,11 @@ async def websocket_endpoint(
             logger.info(f"Received message: {message_data}")
 
             message_type = message_data.get("type")
+            manager.track_activity(session_id, f"process_message - {message_type}")
 
             if message_type == "ping":
                 # Send response back to client
-                await manager.send_personal_message(
+                await manager.send_message(
                     json.dumps(
                         {
                             "type": "pong",
@@ -208,7 +240,7 @@ async def websocket_endpoint(
 
             if message_type == "echo_error":
                 # Send response back to client
-                await manager.send_personal_message(
+                await manager.send_message(
                     json.dumps(
                         {
                             "type": "agent_error",
@@ -252,7 +284,7 @@ async def websocket_endpoint(
                     logger.error(
                         f"Unauthorized access. Missing or invalid JWT token: {request.agent_jwt}"
                     )
-                    await manager.send_personal_message(
+                    await manager.send_message(
                         json.dumps(
                             {
                                 "type": "agent_error",
@@ -322,7 +354,7 @@ async def websocket_endpoint(
                     async def progress_callback(
                         progress_type: str, message: str, payload: dict
                     ):
-                        await manager.send_personal_message(
+                        await manager.send_message(
                             json.dumps(
                                 {
                                     "type": "message_progress",
@@ -402,7 +434,7 @@ async def websocket_endpoint(
                         f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
                     )
 
-                    await manager.send_personal_message(
+                    await manager.send_message(
                         json.dumps(
                             {
                                 "type": "message_response",
@@ -425,7 +457,7 @@ async def websocket_endpoint(
                     )
                     # Don't update the session if there was an error
                     mapped_error = exception_mapping(e)
-                    await manager.send_personal_message(
+                    await manager.send_message(
                         json.dumps(
                             {
                                 "type": "agent_error",

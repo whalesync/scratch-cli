@@ -131,7 +131,7 @@ export function useAIAgentChatWebSocket({ onMessage }: UseWebSocketOptions): Use
       };
 
       ws.onerror = (error) => {
-        console.log('WebSocket error:', error);
+        console.log('WebSocket error event:', error);
         setConnectionError('Failed to connect to WebSocket server');
         setConnectionStatus('offline');
         if (shouldReconnectRef.current && attemptReconnectRef.current) {

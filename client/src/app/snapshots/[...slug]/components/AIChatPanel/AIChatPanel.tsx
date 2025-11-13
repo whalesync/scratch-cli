@@ -516,7 +516,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         )}
 
         {connectionError && (
-          <Alert color="red" mb="sm" p="xs" title="Websocket error">
+          <Alert color="red" mb="sm" p="xs">
             <Text size="xs" c="dimmed">
               {connectionError}
             </Text>
