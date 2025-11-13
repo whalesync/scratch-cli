@@ -212,6 +212,282 @@ These areas have excellent test coverage and should serve as models:
 
 ---
 
+## Connector Test Coverage
+
+This section tracks test coverage for all connectors in `remote-service/connectors/library/`.
+
+### Overview
+
+| Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
+| ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
+| Notion     | ~10          | 3          | ~100+      | ~30%     | ⚠️ Partial   |
+| Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
+| CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
+| Webflow    | 3            | 1          | 9          | ~30%     | ⚠️ Partial   |
+| Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
+| YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
+| WordPress  | 6            | 0          | 0          | 0%       | ❌ No tests  |
+| Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
+| **Total**  | **~41**      | **6**      | **~161**   | **~15%** | **Critical** |
+
+### Tested Areas ✅
+
+#### Notion Connector (⚠️ Partial Coverage)
+**Location**: `server/src/remote-service/connectors/library/notion/`
+**Test Files**:
+- `conversion/__tests__/notion-block-diff.spec.ts` - Block diffing algorithm tests
+- `conversion/__tests__/notion-block-diff-executor.spec.ts` - Batch operations tests
+- `conversion/__tests__/round-trip-test.spec.ts` - Round-trip conversion tests
+
+**What's Tested**:
+- ✅ Rich text conversion logic
+- ✅ Block diffing algorithm
+- ✅ Batch operations
+- ✅ Round-trip conversions (content preservation)
+- ✅ Complex nested block structures
+
+**What's NOT Tested**:
+- ❌ `notion-connector.ts` - Main connector class
+- ❌ `notion-schema-parser.ts` - Schema parsing logic
+- ❌ Error handling for API failures
+- ❌ Authentication flows
+- ❌ Table listing and preview
+
+#### Wix Connector (⚠️ Partial Coverage)
+**Location**: `server/src/remote-service/connectors/library/wix/`
+**Test Files**:
+- `rich-content/rich-content.spec.ts` - Rich content conversion tests
+
+**What's Tested**:
+- ✅ HTML to RICOS conversion
+- ✅ RICOS to HTML conversion
+- ✅ Rich text formatting preservation
+
+**What's NOT Tested**:
+- ❌ `wix-blog-connector.ts` - Main connector class
+- ❌ `wix-blog-schema-parser.ts` - Schema parsing
+- ❌ API integration
+- ❌ Error handling
+
+#### CSV Connector (⚠️ Partial Coverage)
+**Location**: `server/src/remote-service/connectors/library/csv/`
+**Test Files**:
+- `csv-parser.spec.ts` - CSV parsing logic (22 test cases)
+
+**What's Tested**:
+- ✅ Basic CSV parsing with headers and rows
+- ✅ Quoted fields with commas and escaped quotes
+- ✅ Empty fields and edge cases
+- ✅ Unicode and special characters
+- ✅ Row ID generation
+- ✅ Missing or extra fields handling
+- ✅ Real-world CSV formatting scenarios
+
+**What's NOT Tested**:
+- ❌ `csv-connector.ts` - Main connector class
+- ❌ `csv-schema-parser.ts` - Schema parsing
+- ❌ File upload handling
+- ❌ Error handling for malformed CSV
+
+#### Webflow Connector (⚠️ Partial Coverage)
+**Location**: `server/src/remote-service/connectors/library/webflow/`
+**Test Files**:
+- `webflow-connector.spec.ts` - Connector implementation tests (9 test cases)
+
+**What's Tested**:
+- ✅ `downloadTableRecords` function - Core record download logic
+- ✅ Record transformation from Webflow API format to ConnectorRecord format
+- ✅ Pagination handling (with pagination metadata)
+- ✅ Rich text conversion (HTML to Markdown with Turndown service)
+- ✅ Rich text HTML mode (when dataConverter is 'html')
+- ✅ Metadata columns (isDraft, isArchived, lastPublished, lastUpdated, createdOn)
+- ✅ Helper methods (displayName, getBatchSize, service type)
+
+**What's NOT Tested**:
+- ❌ `webflow-schema-parser.ts` - Schema parsing logic
+- ❌ Connection testing (`testConnection` method)
+- ❌ Table listing (`listTables` method)
+- ❌ Table spec fetching (`fetchTableSpec` method)
+- ❌ Record creation (`createRecords` method)
+- ❌ Record updates (`updateRecords` method)
+- ❌ Record deletion (`deleteRecords` method)
+- ❌ Error extraction (`extractConnectorErrorDetails` method)
+- ❌ Field conversion helper (`wsFieldsToWebflowFields` method)
+
+### Untested Connectors ❌
+
+#### Airtable Connector (❌ No Tests)
+**Location**: `server/src/remote-service/connectors/library/airtable/`
+**Source Files**:
+- `airtable-connector.ts` - Main connector implementation
+- `airtable-api-client.ts` - API client
+- `airtable-schema-parser.ts` - Schema parser
+- `airtable-spec-types.ts` - Type definitions
+- `airtable-types.ts` - Airtable-specific types
+
+**Priority Areas to Test**:
+1. API client methods (listBases, getBaseSchema, getRecords)
+2. Schema parsing (field type conversions)
+3. Record CRUD operations
+4. Error handling (API errors, rate limiting)
+5. Authentication validation
+
+#### YouTube Connector (❌ No Tests)
+**Location**: `server/src/remote-service/connectors/library/youtube/`
+**Source Files**:
+- `youtube-connector.ts` - Main connector implementation
+- `youtube-api-client.ts` - API client
+- `youtube-spec-types.ts` - Type definitions
+
+**Priority Areas to Test**:
+1. API authentication (OAuth flow)
+2. Video metadata retrieval
+3. Channel and playlist operations
+4. Error handling (quota limits, permissions)
+
+#### WordPress Connector (❌ No Tests)
+**Location**: `server/src/remote-service/connectors/library/wordpress/`
+**Source Files**:
+- `wordpress-connector.ts` - Main connector implementation
+- `wordpress-http-client.ts` - HTTP client
+- `wordpress-schema-parser.ts` - Schema parser
+- `wordpress-auth-parser.ts` - Auth parsing
+- `wordpress-constants.ts` - Constants
+- `wordpress-types.ts` - Type definitions
+
+**Priority Areas to Test**:
+1. REST API authentication parsing
+2. Post and page CRUD operations
+3. Media handling
+4. Schema parsing (custom post types)
+5. Error handling
+
+#### Custom Connector (❌ No Tests)
+**Location**: `server/src/remote-service/connectors/library/custom/`
+**Source Files**:
+- `custom-connector.ts` - Custom connector implementation
+- `custom-spec-types.ts` - Type definitions
+
+**Priority Areas to Test**:
+1. Custom connector execution
+2. User-defined logic validation
+3. Error handling
+4. Security validation (prevent code injection)
+
+### Core Connector Infrastructure
+
+**Location**: `server/src/remote-service/connectors/`
+**Source Files**:
+- `connector.ts` - Base connector class
+- `connectors.service.ts` - Connector service
+- `connectors.module.ts` - NestJS module
+- `error.ts` - Error handling utilities
+- `ids.ts` - ID utilities
+- `types.ts` - Shared types
+
+**Test Status**: ❌ No tests
+
+**Priority Areas to Test**:
+1. Base Connector class methods
+2. ConnectorService (connector instantiation, caching)
+3. Error extraction and formatting
+4. ID generation and parsing
+5. Type conversions
+
+### Connector Testing Priorities
+
+#### 🔴 P0 - Critical (Test First)
+These connectors are production-critical and handle user data:
+
+1. **Notion Connector** - Complete connector class tests (schema parser, API client)
+2. **Airtable Connector** - Full connector implementation tests
+3. **Core Connector Infrastructure** - Base class and service tests
+
+**Risk**: Data corruption, sync failures, API errors not handled properly
+
+#### 🟡 P1 - High (Test Soon)
+1. **WordPress Connector** - Authentication and CRUD operations
+2. **Wix Connector** - Complete connector class tests
+3. **CSV Connector** - Complete connector class tests
+4. **Webflow Connector** - Complete remaining methods (schema parser, CRUD operations)
+
+**Risk**: Common integrations may break
+
+#### 🟢 P2 - Medium (Nice to Have)
+1. **YouTube Connector** - Full implementation tests
+
+**Risk**: Less common integrations
+
+#### 🔵 P3 - Low (Future)
+1. **Custom Connector** - Security and validation tests
+
+### Recommended Test Patterns for Connectors
+
+Based on existing connector code structure, follow these patterns:
+
+#### 1. Connector Class Tests
+```typescript
+describe('AirtableConnector', () => {
+  describe('testConnection', () => {
+    it('should successfully connect with valid API key', async () => {
+      // Test successful connection
+    });
+
+    it('should throw error with invalid API key', async () => {
+      // Test auth failure
+    });
+  });
+
+  describe('listTables', () => {
+    it('should return all tables from all bases', async () => {
+      // Test table listing
+    });
+  });
+
+  describe('fetchTableSpec', () => {
+    it('should return table schema', async () => {
+      // Test schema fetching
+    });
+  });
+});
+```
+
+#### 2. API Client Tests
+```typescript
+describe('AirtableApiClient', () => {
+  it('should handle rate limiting', async () => {
+    // Test rate limit handling
+  });
+
+  it('should retry on transient errors', async () => {
+    // Test retry logic
+  });
+});
+```
+
+#### 3. Schema Parser Tests
+```typescript
+describe('AirtableSchemaParser', () => {
+  it('should convert Airtable field types to Postgres types', () => {
+    // Test type conversions
+  });
+
+  it('should handle unknown field types gracefully', () => {
+    // Test error handling
+  });
+});
+```
+
+### Next Steps for Connector Testing
+
+1. **Complete Notion connector tests** - Add tests for connector class, schema parser
+2. **Add Airtable connector tests** - Full test suite for all components
+3. **Add core connector infrastructure tests** - Base class and service
+4. **Add integration tests** - Test actual API calls with mocked responses
+5. **Add error handling tests** - Ensure all connectors handle errors gracefully
+
+---
+
 ## Priority Areas for Improvement
 
 ### 🔴 P0 - Critical (Must Fix Immediately)
@@ -481,6 +757,21 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 💰 **Financial impact**: Comprehensive testing of all Stripe payment workflows reduces risk of billing errors
 - 📈 **Cumulative progress**: 424 new test cases across 20 test files in last 3 days
 - 🎉 **Milestone**: Payment/Stripe Integration is now the second P0 critical area to reach "Good" status!
+
+- ✅ **Webflow connector tests added** (+1 test file, +9 test cases)
+  - Webflow connector tests (`server/src/remote-service/connectors/library/webflow/webflow-connector.spec.ts`) - 9 test cases
+    - `downloadTableRecords` function - Core record download and transformation logic
+    - Pagination handling with pagination metadata
+    - Rich text conversion (HTML to Markdown with Turndown service)
+    - Rich text HTML mode when dataConverter is 'html'
+    - Metadata columns handling (isDraft, isArchived, lastPublished, lastUpdated, createdOn)
+    - Helper methods (displayName, getBatchSize, service type)
+  - **Mock implementation**: Successfully mocked WebflowClient API for testing
+  - **Format validation**: Tests ensure correct transformation from Webflow API format to ConnectorRecord format
+- 📊 **Coverage updated**: Connector tests went from 5 to 6 test files, test cases from ~152 to ~161
+- 🎯 **Progress**: Webflow connector moved from "No tests" to "Partial Coverage" (30% coverage)
+- 🔌 **Connector impact**: Core downloadTableRecords functionality tested with proper API mocking
+- 📈 **Cumulative progress**: 9 new test cases for Webflow connector
 
 ### 2025-11-12 (Post-Midnight - Round 4)
 
