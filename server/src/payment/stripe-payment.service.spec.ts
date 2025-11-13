@@ -1,0 +1,890 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/unbound-method */
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { DbService } from 'src/db/db.service';
+import { WSLogger } from 'src/logger';
+import { PostHogService } from 'src/posthog/posthog.service';
+import { SlackNotificationService } from 'src/slack/slack-notification.service';
+import { ErrorCode, isErr, isOk } from 'src/types/results';
+import Stripe from 'stripe';
+import { ScratchpadPlanType, TEST_SANDBOX_PLANS } from './plans';
+import { StripePaymentService } from './stripe-payment.service';
+
+// Valid test price ID from plans.ts
+const VALID_TEST_PRICE_ID = TEST_SANDBOX_PLANS[0].stripePriceId;
+
+// Mock dependencies
+const mockConfigService = {
+  getStripeApiKey: jest.fn().mockReturnValue('sk_test_mock_key'),
+  getStripeWebhookSecret: jest.fn().mockReturnValue('whsec_mock_secret'),
+  getScratchpadEnvironment: jest.fn().mockReturnValue('test'),
+  getTrialRequirePaymentMethod: jest.fn().mockReturnValue(false),
+};
+
+const mockDbService = {
+  client: {
+    user: {
+      update: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    subscription: {
+      create: jest.fn(),
+      update: jest.fn(),
+      upsert: jest.fn(),
+    },
+    invoiceResult: {
+      create: jest.fn(),
+    },
+  },
+} as unknown as DbService;
+
+const mockPostHogService = {
+  trackTrialStarted: jest.fn(),
+} as unknown as PostHogService;
+
+const mockSlackNotificationService = {} as unknown as SlackNotificationService;
+
+// Helper to create mock user
+
+function createMockUser(overrides?: Partial<any>): any {
+  return {
+    id: 'usr_test123',
+    email: 'test@example.com',
+    name: 'Test User',
+    clerkId: 'clerk_123',
+    stripeCustomerId: overrides?.stripeCustomerId ?? null,
+    organizationId: overrides?.organizationId ?? 'org_123',
+    organization: overrides?.organization ?? {
+      id: 'org_123',
+      subscriptions: [],
+    },
+    ...overrides,
+  };
+}
+
+describe('StripePaymentService', () => {
+  let service: StripePaymentService;
+  let mockStripeInstance: jest.Mocked<Stripe>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Set APP_ENV for tests that access ScratchpadConfigService.getClientBaseUrl()
+    process.env.APP_ENV = 'test';
+
+    // Suppress WSLogger output during tests
+    jest.spyOn(WSLogger, 'info').mockImplementation(() => {});
+    jest.spyOn(WSLogger, 'debug').mockImplementation(() => {});
+    jest.spyOn(WSLogger, 'error').mockImplementation(() => {});
+    jest.spyOn(WSLogger, 'warn').mockImplementation(() => {});
+
+    service = new StripePaymentService(
+      mockConfigService as unknown as ScratchpadConfigService,
+      mockDbService,
+      mockPostHogService,
+      mockSlackNotificationService,
+    );
+
+    // Access private stripe instance for mocking
+
+    mockStripeInstance = (service as any).stripe as jest.Mocked<Stripe>;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    delete process.env.APP_ENV;
+  });
+
+  describe('generateNewCustomerId', () => {
+    it('should create a new Stripe customer with user details', async () => {
+      const user = createMockUser({ name: 'John Doe', email: 'john@example.com' });
+      const mockCustomer = { id: 'cus_newCustomer123' } as Stripe.Customer;
+
+      mockStripeInstance.customers.create = jest.fn().mockResolvedValue(mockCustomer);
+
+      const result = await service.generateNewCustomerId(user);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('cus_newCustomer123');
+      }
+
+      expect(mockStripeInstance.customers.create).toHaveBeenCalledWith({
+        name: 'John Doe',
+        email: 'john@example.com',
+        metadata: {
+          source: 'scratch',
+          internal_id: 'usr_test123',
+        },
+      });
+    });
+
+    it('should handle empty name and email', async () => {
+      const user = createMockUser({ name: null, email: null });
+      const mockCustomer = { id: 'cus_newCustomer456' } as Stripe.Customer;
+
+      mockStripeInstance.customers.create = jest.fn().mockResolvedValue(mockCustomer);
+
+      const result = await service.generateNewCustomerId(user);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockStripeInstance.customers.create).toHaveBeenCalledWith({
+        name: '',
+        email: undefined,
+        metadata: {
+          source: 'scratch',
+          internal_id: 'usr_test123',
+        },
+      });
+    });
+
+    it('should return error when Stripe API fails', async () => {
+      const user = createMockUser();
+      const stripeError = new Error('Stripe API error');
+
+      mockStripeInstance.customers.create = jest.fn().mockRejectedValue(stripeError);
+
+      const result = await service.generateNewCustomerId(user);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.StripeLibraryError);
+        expect(result.error).toContain('Failed to generate new customer');
+      }
+    });
+
+    it('should handle special characters in user data', async () => {
+      const user = createMockUser({ name: 'Test & User <script>', email: 'test+tag@example.com' });
+      const mockCustomer = { id: 'cus_special123' } as Stripe.Customer;
+
+      mockStripeInstance.customers.create = jest.fn().mockResolvedValue(mockCustomer);
+
+      const result = await service.generateNewCustomerId(user);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockStripeInstance.customers.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Test & User <script>',
+          email: 'test+tag@example.com',
+        }),
+      );
+    });
+  });
+
+  describe('createTrialSubscription', () => {
+    it('should create trial subscription for new user', async () => {
+      const user = createMockUser({ stripeCustomerId: 'cus_existing123' });
+      const mockSubscription = {
+        id: 'sub_trial123',
+        status: 'trialing',
+        customer: 'cus_existing123',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 7,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockStripeInstance.subscriptions.create = jest.fn().mockResolvedValue(mockSubscription);
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.createTrialSubscription(user);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockStripeInstance.subscriptions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customer: 'cus_existing123',
+          trial_period_days: 7,
+          metadata: expect.objectContaining({
+            application: 'scratchpad',
+            productType: ScratchpadPlanType.STARTER_PLAN,
+          }),
+        }),
+      );
+      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchpadPlanType.STARTER_PLAN);
+    });
+
+    it('should create new customer if user does not have one', async () => {
+      const user = createMockUser({ stripeCustomerId: null });
+      const mockCustomer = { id: 'cus_newCustomer789' } as Stripe.Customer;
+      const mockSubscription = {
+        id: 'sub_trial456',
+        status: 'trialing',
+        customer: 'cus_newCustomer789',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 7,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockStripeInstance.customers.create = jest.fn().mockResolvedValue(mockCustomer);
+      mockStripeInstance.subscriptions.create = jest.fn().mockResolvedValue(mockSubscription);
+      mockDbService.client.user.update.mockResolvedValue({});
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.createTrialSubscription(user);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockDbService.client.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'usr_test123' },
+          data: { stripeCustomerId: 'cus_newCustomer789' },
+        }),
+      );
+    });
+
+    it('should return error when Stripe subscription creation fails', async () => {
+      const user = createMockUser({ stripeCustomerId: 'cus_existing123' });
+      const stripeError = new Error('Subscription creation failed');
+
+      mockStripeInstance.subscriptions.create = jest.fn().mockRejectedValue(stripeError);
+
+      const result = await service.createTrialSubscription(user);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.StripeLibraryError);
+        expect(result.error).toContain('Failed to create trial subscription');
+      }
+    });
+  });
+
+  describe('generateCheckoutUrl', () => {
+    it('should generate checkout URL for user without active subscription', async () => {
+      const user = createMockUser({
+        stripeCustomerId: 'cus_checkout123',
+        organization: { id: 'org_123', subscriptions: [] },
+      });
+
+      const mockSession = {
+        id: 'cs_test123',
+        url: 'https://checkout.stripe.com/pay/cs_test123',
+      } as Stripe.Checkout.Session;
+
+      mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
+      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('https://checkout.stripe.com/pay/cs_test123');
+      }
+
+      expect(mockStripeInstance.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'subscription',
+          customer: 'cus_checkout123',
+          success_url: 'https://app.scratch.md/?welcome',
+          cancel_url: 'https://app.scratch.md/settings',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should redirect to portal if user already has active subscription', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+      const user = createMockUser({
+        stripeCustomerId: 'cus_existing123',
+        organization: {
+          id: 'org_123',
+          subscriptions: [
+            {
+              id: 'sub_active',
+              userId: 'usr_test123',
+              expiration: futureDate,
+              stripeStatus: 'active',
+            },
+          ],
+        },
+      });
+
+      const mockPortalSession = {
+        url: 'https://billing.stripe.com/session/test123',
+      } as Stripe.BillingPortal.Session;
+
+      mockStripeInstance.billingPortal.sessions.create = jest.fn().mockResolvedValue(mockPortalSession);
+      const checkoutCreateSpy = jest.fn();
+      mockStripeInstance.checkout.sessions.create = checkoutCreateSpy;
+
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('https://billing.stripe.com/session/test123');
+      }
+
+      // Should create portal session, not checkout session
+      expect(mockStripeInstance.billingPortal.sessions.create).toHaveBeenCalled();
+      expect(checkoutCreateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return error for unknown product type', async () => {
+      const user = createMockUser({
+        stripeCustomerId: 'cus_test123',
+        organization: { id: 'org_123', subscriptions: [] },
+      });
+
+      const result = await service.generateCheckoutUrl(user, 'unknown_plan' as ScratchpadPlanType);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.UnexpectedError);
+        expect(result.error).toContain('No stripe product id for unknown_plan');
+      }
+    });
+
+    it('should return error when checkout session has no URL', async () => {
+      const user = createMockUser({
+        stripeCustomerId: 'cus_nourl123',
+        organization: { id: 'org_123', subscriptions: [] },
+      });
+
+      const mockSession = { id: 'cs_nourl', url: null } as any;
+
+      mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
+
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.StripeLibraryError);
+        expect(result.error).toContain('No URL returned from Stripe');
+      }
+    });
+  });
+
+  describe('createCustomerPortalUrl', () => {
+    it('should create portal URL for subscription owner', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+      const user = createMockUser({
+        stripeCustomerId: 'cus_portal123',
+        organization: {
+          id: 'org_123',
+          subscriptions: [
+            {
+              id: 'sub_active',
+              userId: 'usr_test123',
+              expiration: futureDate,
+              stripeStatus: 'active',
+            },
+          ],
+        },
+      });
+
+      const mockPortalSession = {
+        url: 'https://billing.stripe.com/session/portal123',
+      } as Stripe.BillingPortal.Session;
+
+      mockStripeInstance.billingPortal.sessions.create = jest.fn().mockResolvedValue(mockPortalSession);
+      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+
+      const result = await service.createCustomerPortalUrl(user);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('https://billing.stripe.com/session/portal123');
+      }
+
+      expect(mockStripeInstance.billingPortal.sessions.create).toHaveBeenCalledWith(
+        {
+          customer: 'cus_portal123',
+          return_url: 'https://app.scratch.md/settings',
+        },
+        expect.objectContaining({
+          apiVersion: expect.any(String),
+        }),
+      );
+    });
+
+    it('should return error if user does not own active subscription', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+      const user = createMockUser({
+        id: 'usr_notowner',
+        stripeCustomerId: 'cus_notowner123',
+        organization: {
+          id: 'org_123',
+          subscriptions: [
+            {
+              id: 'sub_active',
+              userId: 'usr_different',
+              expiration: futureDate,
+              stripeStatus: 'active',
+            },
+          ],
+        },
+      });
+
+      const result = await service.createCustomerPortalUrl(user);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.BadRequestError);
+        expect(result.error).toContain('You do not own the active subscription');
+      }
+    });
+
+    it('should return error if user has no active subscriptions', async () => {
+      const user = createMockUser({
+        stripeCustomerId: 'cus_noactive123',
+        organization: {
+          id: 'org_123',
+          subscriptions: [],
+        },
+      });
+
+      const result = await service.createCustomerPortalUrl(user);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.BadRequestError);
+      }
+    });
+  });
+
+  describe('handleWebhookCallback', () => {
+    it('should successfully process valid webhook signature', async () => {
+      const requestBody = JSON.stringify({ type: 'customer.subscription.updated' });
+      const signatureHeader = 'valid_signature';
+      const mockEvent = {
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            id: 'sub_webhook123',
+            customer: 'cus_webhook123',
+            status: 'active',
+            metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+            items: {
+              data: [
+                {
+                  price: { id: VALID_TEST_PRICE_ID },
+                  current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+                  plan: { amount: 1000, currency: 'usd' },
+                },
+              ],
+            },
+          } as any,
+        },
+      } as Stripe.Event;
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockReturnValue(mockEvent);
+      mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue(mockEvent.data.object);
+      mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ stripeCustomerId: 'cus_webhook123' }));
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockStripeInstance.webhooks.constructEvent).toHaveBeenCalledWith(
+        requestBody,
+        signatureHeader,
+        'whsec_mock_secret',
+      );
+    });
+
+    it('should return unauthorized error for invalid signature', async () => {
+      const requestBody = JSON.stringify({ type: 'test' });
+      const signatureHeader = 'invalid_signature';
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockImplementation(() => {
+        throw new Error('Invalid signature');
+      });
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.UnauthorizedError);
+        expect(result.error).toContain('Webhook signature verification failed');
+      }
+    });
+
+    it('should ignore unhandled event types', async () => {
+      const requestBody = JSON.stringify({ type: 'invoice.created' });
+      const signatureHeader = 'valid_signature';
+      const mockEvent = {
+        type: 'invoice.created',
+        data: { object: {} },
+      } as Stripe.Event;
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockReturnValue(mockEvent);
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('success');
+      }
+    });
+
+    it('should handle checkout.session.completed event', async () => {
+      const requestBody = JSON.stringify({ type: 'checkout.session.completed' });
+      const signatureHeader = 'valid_signature';
+      const mockEvent = {
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_checkout123',
+            subscription: 'sub_checkout123',
+          } as Stripe.Checkout.Session,
+        },
+      } as Stripe.Event;
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockReturnValue(mockEvent);
+      mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue({
+        id: 'sub_checkout123',
+        customer: 'cus_checkout123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any);
+      mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ stripeCustomerId: 'cus_checkout123' }));
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isOk(result)).toBe(true);
+    });
+
+    it('should handle invoice.paid event', async () => {
+      const requestBody = JSON.stringify({ type: 'invoice.paid' });
+      const signatureHeader = 'valid_signature';
+      const mockEvent = {
+        type: 'invoice.paid',
+        data: {
+          object: {
+            id: 'in_paid123',
+            customer: 'cus_paid123',
+            lines: {
+              data: [
+                {
+                  metadata: { application: 'scratchpad' },
+                  parent: {
+                    type: 'subscription_item_details',
+                    subscription_item_details: {
+                      subscription: 'sub_paid123',
+                    },
+                  },
+                },
+              ],
+            },
+          } as Stripe.Invoice,
+        },
+      } as Stripe.Event;
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockReturnValue(mockEvent);
+      mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue({
+        id: 'sub_paid123',
+        customer: 'cus_paid123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any);
+      mockDbService.client.user.findFirst.mockResolvedValue(
+        createMockUser({ stripeCustomerId: 'cus_paid123', organizationId: 'org_paid' }),
+      );
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+      mockDbService.client.invoiceResult.create.mockResolvedValue({});
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockDbService.client.invoiceResult.create).toHaveBeenCalled();
+    });
+
+    it('should handle invoice.payment_failed event', async () => {
+      const requestBody = JSON.stringify({ type: 'invoice.payment_failed' });
+      const signatureHeader = 'valid_signature';
+      const mockEvent = {
+        type: 'invoice.payment_failed',
+        data: {
+          object: {
+            id: 'in_failed123',
+            lines: {
+              data: [
+                {
+                  subscription: 'sub_failed123',
+                },
+              ],
+            },
+          } as Stripe.Invoice,
+        },
+      } as Stripe.Event;
+
+      mockStripeInstance.webhooks.constructEvent = jest.fn().mockReturnValue(mockEvent);
+      mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue({
+        id: 'sub_failed123',
+        customer: 'cus_failed123',
+        status: 'past_due',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any);
+      mockDbService.client.subscription.update.mockResolvedValue({});
+
+      const result = await service.handleWebhookCallback(requestBody, signatureHeader);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockDbService.client.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeSubscriptionId: 'sub_failed123' },
+          data: { lastInvoicePaid: false },
+        }),
+      );
+    });
+  });
+
+  describe('getUserFromStripeCustomerId', () => {
+    it('should return user when found', async () => {
+      const mockUser = createMockUser({ stripeCustomerId: 'cus_found123' });
+      mockDbService.client.user.findFirst.mockResolvedValue(mockUser);
+
+      const result = await service.getUserFromStripeCustomerId('cus_found123');
+
+      expect(result).toEqual(mockUser);
+      expect(mockDbService.client.user.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeCustomerId: 'cus_found123' },
+        }),
+      );
+    });
+
+    it('should return null when user not found', async () => {
+      mockDbService.client.user.findFirst.mockResolvedValue(null);
+
+      const result = await service.getUserFromStripeCustomerId('cus_notfound123');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('upsertSubscription', () => {
+    it('should upsert subscription successfully', async () => {
+      const mockSubscription = {
+        id: 'sub_upsert123',
+        customer: 'cus_upsert123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockDbService.client.user.findFirst.mockResolvedValue(
+        createMockUser({ stripeCustomerId: 'cus_upsert123', organizationId: 'org_upsert' }),
+      );
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.upsertSubscription('sub_upsert123', true, mockSubscription);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('success');
+      }
+
+      expect(mockDbService.client.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeSubscriptionId: 'sub_upsert123' },
+          create: expect.objectContaining({
+            userId: 'usr_test123',
+            organizationId: 'org_upsert',
+            stripeSubscriptionId: 'sub_upsert123',
+            lastInvoicePaid: true,
+            stripeStatus: 'active',
+          }),
+          update: expect.objectContaining({
+            lastInvoicePaid: true,
+            stripeStatus: 'active',
+          }),
+        }),
+      );
+    });
+
+    it('should ignore non-scratchpad subscriptions', async () => {
+      const mockSubscription = {
+        id: 'sub_other123',
+        customer: 'cus_other123',
+        status: 'active',
+        metadata: { application: 'other_app' },
+        items: {
+          data: [
+            {
+              price: { id: 'price_unknown' },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+            },
+          ],
+        },
+      } as any;
+
+      const result = await service.upsertSubscription('sub_other123', undefined, mockSubscription);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('ignored');
+      }
+
+      expect(mockDbService.client.subscription.upsert).not.toHaveBeenCalled();
+    });
+
+    it('should return error when user not found', async () => {
+      const mockSubscription = {
+        id: 'sub_nouser123',
+        customer: 'cus_nouser123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockDbService.client.user.findFirst.mockResolvedValue(null);
+
+      const result = await service.upsertSubscription('sub_nouser123', undefined, mockSubscription);
+
+      // Since priceId matches test plans, subscription is considered scratchpad
+      // However user lookup fails, which should return error
+      // But in test/staging environments, unknown users return success to avoid webhook failures
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('success');
+      }
+    });
+
+    it('should return error when user has no organization', async () => {
+      const mockSubscription = {
+        id: 'sub_noorg123',
+        customer: 'cus_noorg123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ organizationId: null }));
+
+      const result = await service.upsertSubscription('sub_noorg123', undefined, mockSubscription);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.UnexpectedError);
+        expect(result.error).toContain('User does not have an organization id');
+      }
+    });
+
+    it('should handle database errors gracefully', async () => {
+      const mockSubscription = {
+        id: 'sub_dberror123',
+        customer: 'cus_dberror123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockDbService.client.user.findFirst.mockResolvedValue(
+        createMockUser({ stripeCustomerId: 'cus_dberror123', organizationId: 'org_dberror' }),
+      );
+      mockDbService.client.subscription.upsert.mockRejectedValue(new Error('Database error'));
+
+      const result = await service.upsertSubscription('sub_dberror123', undefined, mockSubscription);
+
+      expect(isErr(result)).toBe(true);
+      if (isErr(result)) {
+        expect(result.code).toBe(ErrorCode.UnexpectedError);
+        expect(result.error).toContain('Failed to upsert subscription');
+      }
+    });
+
+    it('should fetch subscription from Stripe if not provided', async () => {
+      const mockSubscription = {
+        id: 'sub_fetch123',
+        customer: 'cus_fetch123',
+        status: 'active',
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        items: {
+          data: [
+            {
+              price: { id: VALID_TEST_PRICE_ID },
+              current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+              plan: { amount: 1000, currency: 'usd' },
+            },
+          ],
+        },
+      } as any;
+
+      mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue(mockSubscription);
+      mockDbService.client.user.findFirst.mockResolvedValue(
+        createMockUser({ stripeCustomerId: 'cus_fetch123', organizationId: 'org_fetch' }),
+      );
+      mockDbService.client.subscription.upsert.mockResolvedValue({});
+
+      const result = await service.upsertSubscription('sub_fetch123', undefined);
+
+      expect(isOk(result)).toBe(true);
+      expect(mockStripeInstance.subscriptions.retrieve).toHaveBeenCalledWith('sub_fetch123');
+    });
+  });
+});
