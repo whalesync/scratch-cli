@@ -7,12 +7,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
 import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import {
-  AgentProgressMessageData,
-  SendMessageRequestDTO,
-  useAIAgentChatWebSocket,
-  WebSocketMessage,
-} from '@/hooks/use-agent-chat-websocket';
+import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import {
@@ -23,7 +18,7 @@ import {
   trackStartAgentSession,
 } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { AGENT_CAPABILITIES, Capability } from '@/types/server-entities/agent';
+import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
 import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -223,8 +218,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       await sleep(100);
       const { session } = await createSession(snapshot.id);
       connect(session.id);
-      // setAvailableCapabilities(available_capabilities);
-      // Preselect capabilities that have enabledByDefault=true
       trackStartAgentSession(snapshot);
       setError(null);
       setMessage('');
@@ -276,6 +269,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         message: message.trim(),
         model: activeModel.value,
         credential_id: activeOpenRouterCredentials?.id,
+        capabilities: selectedCapabilities,
       };
 
       // Include model context length if available
@@ -294,11 +288,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           name: sg.name,
           content: sg.body,
         }));
-      }
-
-      // Include capabilities if selected
-      if (selectedCapabilities.length > 0) {
-        messageData.capabilities = selectedCapabilities;
       }
 
       if (activeTable) {

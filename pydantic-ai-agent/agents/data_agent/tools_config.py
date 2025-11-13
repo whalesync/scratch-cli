@@ -27,6 +27,19 @@ from agents.data_agent.tools.update_records_tool import create_update_records_to
 from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
 from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
 from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
+from server.capabilities import (
+    DATA_CREATE,
+    DATA_DELETE,
+    DATA_FETCH_TOOLS,
+    DATA_FIELD_TOOLS,
+    DATA_UPDATE,
+    OTHER_UPLOAD_CONTENT,
+    OTHER_URL_CONTENT_LOAD,
+    TABLE_ADD_COLUMN,
+    TABLE_REMOVE_COLUMN,
+    VIEWS_FILTERING,
+    has_capability,
+)
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
@@ -47,13 +60,9 @@ def get_data_tools(
 ):
     tools = []
 
-    if (
-        capabilities is None or "data:update" in capabilities
-    ) and data_scope == "table":
+    if (capabilities is None or DATA_UPDATE in capabilities) and data_scope == "table":
         tools.append(create_update_records_tool(style_guides))
-    if (
-        capabilities is None or "data:create" in capabilities
-    ) and data_scope == "table":
+    if (capabilities is None or DATA_CREATE in capabilities) and data_scope == "table":
         tools.append(create_create_records_tool(style_guides))
     return tools
 
@@ -65,40 +74,34 @@ def configure_tools(
 ):
     """Configure the tools for the agent based on the capabilities"""
 
-    if capabilities is None or "data:field-tools" in capabilities:
+    if has_capability(DATA_FIELD_TOOLS, capabilities):
         define_append_field_value_tool(agent, data_scope)
         define_insert_value_tool(agent, data_scope)
         define_search_and_replace_field_value_tool(agent, data_scope)
         define_set_field_value_tool(agent, data_scope)
 
-    if (
-        capabilities is None or "data:delete" in capabilities
-    ) and data_scope == "table":
+    if has_capability(DATA_DELETE, capabilities) and data_scope == "table":
         define_delete_records_tool(agent)
 
-    if capabilities is None or "views:filtering" in capabilities:
+    if has_capability(VIEWS_FILTERING, capabilities):
         define_set_filter_tool(agent)
 
-    if (
-        capabilities is not None and "table:add-column" in capabilities
-    ) and data_scope == "table":
+    if has_capability(TABLE_ADD_COLUMN, capabilities) and data_scope == "table":
         define_add_column_tool(agent)
 
-    if (
-        capabilities is not None and "table:remove-column" in capabilities
-    ) and data_scope == "table":
+    if has_capability(TABLE_REMOVE_COLUMN, capabilities) and data_scope == "table":
         define_remove_column_tool(agent)
 
     # Common tools / utilities
-    if capabilities is not None and "other:url-content-load" in capabilities:
+    if has_capability(OTHER_URL_CONTENT_LOAD, capabilities):
         # must be manually enabled
         define_url_content_load_tool(agent)
 
-    if capabilities is not None and "other:upload-content" in capabilities:
+    if has_capability(OTHER_UPLOAD_CONTENT, capabilities):
         # must be manually enabled
         define_upload_content_tool(agent)
 
-    if capabilities is None or "data:fetch-tools" in capabilities:
+    if has_capability(DATA_FETCH_TOOLS, capabilities):
         # available by default
         define_fetch_additional_records_tool(agent)
         define_fetch_records_by_ids_tool(agent)

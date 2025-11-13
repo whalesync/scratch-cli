@@ -343,7 +343,7 @@ class ChatService:
         user: AgentUser,
         style_guides: Dict[str, str],
         model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
+        capabilities: List[str] = None,
         active_table_id: Optional[str] = None,
         data_scope: Optional[str] = None,
         record_id: Optional[str] = None,

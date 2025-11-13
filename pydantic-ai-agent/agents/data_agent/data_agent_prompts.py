@@ -1,5 +1,20 @@
 from utils.get_styleguide import get_styleguide
 from logging import getLogger
+from server.capabilities import (
+    DATA_CREATE,
+    DATA_DELETE,
+    DATA_FETCH_TOOLS,
+    DATA_FIELD_TOOLS,
+    DATA_UPDATE,
+    OTHER_UPLOAD_CONTENT,
+    OTHER_URL_CONTENT_LOAD,
+    TABLE_ADD_COLUMN,
+    TABLE_REMOVE_COLUMN,
+    VIEWS_FILTERING,
+    has_capability,
+    has_data_manipulation_capabilities,
+    has_one_of_capabilities,
+)
 
 logger = getLogger(__name__)
 
@@ -147,37 +162,69 @@ VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
 
 # TABLE and COLUMN VIEWS:
 - Tables and columns can be set as hidden (in which case you see no values at all in this table/column).
-- Tables and columns can be set as protected (in which case you should not update them, since updtes will be dropped).
 """
 
-# Instructions for data manipulation capabilities (create, update, delete)
-DATA_MANIPULATION_INSTRUCTIONS = """
-# DATA MANIPULATION:
-- Use create_records_tool to add new records with data you generate
-- Use update_records_tool to modify existing records (creates suggestions, not direct changes)
-- Use delete_records_tool to suggest removal of records by their IDs
-- Use set_field_value_tool to set a value in a specific field in a record.
-- Use append_field_value_tool to append a value to a specific field in a record.
-- Use insert_value_tool to insert a value into a specific field in a record.
-- Use search_and_replace_field_value_tool to search and replace a value in a specific field in a record.
 
+def construct_filtering_instructions(capabilities: list[str] | None = None) -> str:
+    if has_capability(VIEWS_FILTERING, capabilities):
+        return VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS
+    return ""
+
+
+# Instructions for data manipulation capabilities (create, update, delete)
+# Filters out tools where capabilites are not present
+def construct_data_manipulation_instructions_for_table_scope(
+    capabilities: list[str] | None = None,
+) -> str:
+    if not has_data_manipulation_capabilities(capabilities):
+        return ""
+
+    instructions = """
+# DATA MANIPULATION:
+"""
+
+    if has_capability(DATA_CREATE, capabilities):
+        instructions += (
+            "- Use create_records_tool to add new records with data you generate\n"
+        )
+    if has_capability(DATA_UPDATE, capabilities):
+        instructions += "- Use update_records_tool to modify existing records (creates suggestions, not direct changes)\n"
+    if has_capability(DATA_DELETE, capabilities):
+        instructions += (
+            "- Use delete_records_tool to suggest removal of records by their IDs\n"
+        )
+
+    if has_capability(DATA_FIELD_TOOLS, capabilities):
+        instructions += "- Use set_field_value_tool to set a value in a specific field in a record.\n"
+        instructions += "- Use append_field_value_tool to append a value to a specific field in a record.\n"
+        instructions += "- Use insert_value_tool to insert a value into a specific field in a record.\n"
+        instructions += "- Use search_and_replace_field_value_tool to search and replace a value in a specific field in a record.\n"
+
+    if has_capability(DATA_CREATE, capabilities):
+        instructions += """
 ## For creating records, you should:
 1. Generate appropriate data for each column based on the schema
 2. Call create_records_tool with the generated data
+"""
 
+    if has_capability(DATA_UPDATE, capabilities):
+        instructions += """
 ## For updating records, you should do the following actions:
 1. Identify the record IDs (wsId) that should be updated
 2. Generate the new data for each record
 3. Call the `update_records` tool with the parameters in it's schema/description
 4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+"""
 
-
+    if has_capability(DATA_DELETE, capabilities):
+        instructions += """
 ## For deleting records, you should:
 1. Identify the record IDs (wsId) that should be deleted
 2. Call delete_records_tool with the list of record IDs to delete
+"""
 
-## IMPORTANT
-- some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
+    instructions += """
+    ## IMPORTANT
 - do not call tools that are not available to you.
 - do not call more than 1 tool at a time
 - do not call the same tool multiple times at a time
@@ -185,6 +232,39 @@ DATA_MANIPULATION_INSTRUCTIONS = """
 - if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
 - if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
 """
+
+    return instructions
+
+
+DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED = """
+# DATA MANIPULATION:
+- Use set_field_value_tool to set a value in a record of the active table.
+- Use append_field_value_tool to append a value to a field in a record of the active table.
+- Use insert_value_tool to insert a value into a field in a record of the active table.
+- Use search_and_replace_field_value_tool to search and replace a value in a field in a record of the active table.
+
+## For updating records, you should do the following actions:
+1. Identify the field name that should be updated
+2. Generate the new data for the field you want to update
+3. Call the tool matching the operation you want to perform with the parameters in it's schema/description
+4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
+
+## IMPORTANT
+- do not call tools that are not available to you.
+- do not call more than 1 tool at a time
+- wait for the tool to succeed or fail before calling the next tool
+- do not call the same tool multiple times at a time for the same user prompt and parameters
+- if the tool succeeds do not call it again for the same user prompt and parameters
+- if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
+- if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
+"""
+
+
+def construct_data_manipulation_instructions_for_record_scope(
+    capabilities: list[str] | None = None,
+) -> str:
+    return DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED
+
 
 DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED = """
 # DATA MANIPULATION:
@@ -209,29 +289,11 @@ DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED = """
 - if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
 """
 
-DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED = """
-# DATA MANIPULATION:
-- Use set_field_value_tool to set a value in a record of the active table.
-- Use append_field_value_tool to append a value to a field in a record of the active table.
-- Use insert_value_tool to insert a value into a field in a record of the active table.
-- Use search_and_replace_field_value_tool to search and replace a value in a field in a record of the active table.
 
-## For updating records, you should do the following actions:
-1. Identify the field name that should be updated
-2. Generate the new data for the field you want to update
-3. Call the tool matching the operation you want to perform with the parameters in it's schema/description
-4. After the tool succeeds or fails call the `final_result` tool present the result to the user. 
-
-## IMPORTANT
-- some of these tools/capabilities can be disabled by the user so you can focus on specific tasks.
-- do not call tools that are not available to you.
-- do not call more than 1 tool at a time
-- wait for the tool to succeed or fail before calling the next tool
-- do not call the same tool multiple times at a time for the same user prompt and parameters
-- if the tool succeeds do not call it again for the same user prompt and parameters
-- if a tool call succeeds you should not try to verify the result; believe that it did; just call the final_result tool
-- if the tool fails retry it up to 2 more times for the same user prompt after fixing the error
-"""
+def construct_data_manipulation_instructions_for_column_scope(
+    capabilities: list[str] | None = None,
+) -> str:
+    return DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED
 
 
 FINAL_RESPONSE_INSTRUCTIONS = """
@@ -279,6 +341,45 @@ When you receive snapshot data, each record has this structure:
 - suggested_fields: {string: any} - Current suggestions for changes made by the agent, but not yet accepted by the user
 """
 
+
+SUPPORTING_TOOLS_INSTRUCTIONS = """
+# SUPPORTING TOOLS:
+You have access to the following tools:
+- url_content_load_tool - loads the content of a URL and returns it as a string
+"""
+
+
+def construct_supporting_tools_instructions(
+    capabilities: list[str] | None = None,
+) -> str:
+    if has_capability(OTHER_URL_CONTENT_LOAD, capabilities):
+        return SUPPORTING_TOOLS_INSTRUCTIONS
+    return ""
+
+
+TABLE_TOOLS_INSTRUCTIONS_BASE = """
+# TABLE TOOLS:
+You have access to the following tools that modify the table structure:
+"""
+
+
+def construct_table_tools_instructions(capabilities: list[str] | None = None) -> str:
+    if not has_one_of_capabilities(capabilities, TABLE_ADD_COLUMN, TABLE_REMOVE_COLUMN):
+        return ""
+
+    instructions = TABLE_TOOLS_INSTRUCTIONS_BASE
+
+    if has_capability(TABLE_ADD_COLUMN, capabilities):
+        instructions += (
+            "- add_column_tool - adds a new scratch column to the active table\n"
+        )
+    if has_capability(TABLE_REMOVE_COLUMN, capabilities):
+        instructions += (
+            "- remove_column_tool - removes a scratch column from the active table\n"
+        )
+    return instructions
+
+
 DATA_FETCH_TOOLS_INSTRUCTIONS = """
 # DATA FETCHING TOOLS:
 You have access to tools for fetching additional records beyond what's shown in the initial snapshot preview:
@@ -314,18 +415,13 @@ You: "Record 3: [makes up plausible data], Record 4: [makes up plausible data]" 
 
 """
 
-SUPPORTING_TOOLS_INSTRUCTIONS = """
-# SUPPORTING TOOLS:
-You have access to the following tools:
-- url_content_load_tool - loads the content of a URL and returns it as a string
-"""
 
-TABLE_TOOLS_INSTRUCTIONS = """
-# TABLE TOOLS:
-You have access to the following tools that modify the table structure:
-- add_column_tool - adds a new scratch column to the active table
-- remove_column_tool - removes a scratch column from the active table
-"""
+def construct_data_fetch_tools_instructions(
+    capabilities: list[str] | None = None,
+) -> str:
+    if has_capability(DATA_FETCH_TOOLS, capabilities):
+        return DATA_FETCH_TOOLS_INSTRUCTIONS
+    return ""
 
 
 def get_data_agent_instructions(
@@ -359,18 +455,28 @@ def get_data_agent_instructions(
         )
 
     base_instructions = BASE_INSTRUCTIONS
-    data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS
+    data_manipulation_instructions = (
+        construct_data_manipulation_instructions_for_table_scope(capabilities)
+    )
     if data_scope == "record":
         base_instructions = BASE_INSTRUCTIONS_RECORD_SCOPED
-        data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_RECORD_SCOPED
+        data_manipulation_instructions = (
+            construct_data_manipulation_instructions_for_record_scope(capabilities)
+        )
     elif data_scope == "column":
         base_instructions = BASE_INSTRUCTIONS_COLUMN_SCOPED
-        data_manipulation_instructions = DATA_MANIPULATION_INSTRUCTIONS_COLUMN_SCOPED
+        data_manipulation_instructions = (
+            construct_data_manipulation_instructions_for_column_scope(capabilities)
+        )
 
     # Get each section, potentially overridden by style guides
     base_instructions = get_section("BASE_INSTRUCTIONS", base_instructions)
+    mention_system_instructions = get_section(
+        "MENTION_SYSTEM_INSTRUCTIONS", MENTION_SYSTEM_INSTRUCTIONS
+    )
     views_filtering = get_section(
-        "VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS", VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS
+        "VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS",
+        construct_filtering_instructions(capabilities),
     )
     data_manipulation = get_section(
         "DATA_MANIPULATION_INSTRUCTIONS", data_manipulation_instructions
@@ -385,17 +491,22 @@ def get_data_agent_instructions(
         "DATA_STRUCTURE_INSTRUCTIONS", DATA_STRUCTURE_INSTRUCTIONS
     )
     data_fetch_tools = get_section(
-        "DATA_FETCH_TOOLS_INSTRUCTIONS", DATA_FETCH_TOOLS_INSTRUCTIONS
+        "DATA_FETCH_TOOLS_INSTRUCTIONS",
+        construct_data_fetch_tools_instructions(capabilities),
     )
     supporting_tools = get_section(
-        "SUPPORTING_TOOLS_INSTRUCTIONS", SUPPORTING_TOOLS_INSTRUCTIONS
+        "SUPPORTING_TOOLS_INSTRUCTIONS",
+        construct_supporting_tools_instructions(capabilities),
     )
-    table_tools = get_section("TABLE_TOOLS_INSTRUCTIONS", TABLE_TOOLS_INSTRUCTIONS)
+    table_tools = get_section(
+        "TABLE_TOOLS_INSTRUCTIONS",
+        construct_table_tools_instructions(capabilities),
+    )
 
     # Build the main prompt
     main_prompt = (
         base_instructions
-        + MENTION_SYSTEM_INSTRUCTIONS
+        + mention_system_instructions
         + views_filtering
         + data_manipulation
         + final_response

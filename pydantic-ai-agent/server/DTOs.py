@@ -53,7 +53,7 @@ class SendMessageRequestDTO(BaseModel):
         default=None,
         description="List of style guides with name and content to override system prompt sections",
     )
-    capabilities: Optional[List[str]] = Field(
+    capabilities: List[str] = Field(
         default=None, description="List of selected capabilities for this message"
     )
     model: Optional[str] = Field(

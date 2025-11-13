@@ -52,6 +52,23 @@ export interface CreateSessionResponse {
   available_capabilities: Capability[];
 }
 
+// The DTO for sending a message to the agent
+export interface SendMessageRequestDTO {
+  message: string;
+  agent_jwt?: string;
+  credential_id?: string;
+  style_guides?: { name: string; content: string }[];
+  capabilities: string[];
+  model?: string;
+  active_table_id?: string;
+  data_scope?: DataScope;
+  record_id?: string;
+  column_id?: string;
+  max_records_in_prompt?: number;
+  mentioned_table_ids?: string[];
+  model_context_length?: number;
+}
+
 export type SendMessageResponse = {
   type: 'message_success';
   response_message: string;
@@ -124,7 +141,7 @@ export const AGENT_CAPABILITIES: Capability[] = [
     description: 'Remove scratch columns from the active table.',
   },
   {
-    code: 'other:url-content-load',
+    code: 'other:load-url-content',
     displayName: 'Load content from URL',
     enabledByDefault: false,
     description: 'Allows the LLM to load content from a URL and use it in the conversation.',

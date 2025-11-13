@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/lib/api/config';
-import { ChatMessage, DataScope } from '@/types/server-entities/agent';
+import { ChatMessage, SendMessageRequestDTO } from '@/types/server-entities/agent';
 import { WebSocketCloseCode } from '@/types/websocket';
 import { sleep } from '@/utils/helpers';
 import pluralize from 'pluralize';
@@ -12,23 +12,6 @@ export interface WebSocketMessage {
   type: ClientMessageType | ServerMessageType;
   data?: object;
   timestamp?: string;
-}
-
-// The DTO for sending a message to the agent
-export interface SendMessageRequestDTO {
-  message: string;
-  agent_jwt?: string;
-  credential_id?: string;
-  style_guides?: { name: string; content: string }[];
-  capabilities?: string[];
-  model?: string;
-  active_table_id?: string;
-  data_scope?: DataScope;
-  record_id?: string;
-  column_id?: string;
-  max_records_in_prompt?: number;
-  mentioned_table_ids?: string[];
-  model_context_length?: number;
 }
 
 interface UseWebSocketOptions {

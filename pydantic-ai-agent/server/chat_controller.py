@@ -15,8 +15,8 @@ from server.DTOs import (
     SendMessageResponseDTO,
     ChatSessionSummary,
     CreateSessionResponseDTO,
-    Capability,
 )
+from server.capabilities import AVAILABLE_CAPABILITIES
 from server.chat_service import ChatService
 from server.session_service import SessionService
 from server.auth import AgentUser, get_current_user
@@ -33,45 +33,6 @@ router = APIRouter(tags=["chat"])
 # Initialize services
 session_service = SessionService()
 chat_service = ChatService(session_service)
-
-# Static list of available capabilities
-AVAILABLE_CAPABILITIES = [
-    Capability(
-        code="data:create",
-        enabledByDefault=True,
-        description="Create new records for a table in the active snapshot using data provided by the LLM.",
-    ),
-    Capability(
-        code="data:update",
-        enabledByDefault=True,
-        description="Update existing records in a table in the active snapshot (creates suggestions, not direct changes).",
-    ),
-    Capability(
-        code="data:delete",
-        enabledByDefault=True,
-        description="Delete records from a table in the active snapshot by their IDs.",
-    ),
-    Capability(
-        code="data:field-tools",
-        enabledByDefault=True,
-        description="Tools to edit specific fields",
-    ),
-    Capability(
-        code="views:filtering",
-        enabledByDefault=True,
-        description="Set or clear SQL-based filters on tables to show/hide specific records.",
-    ),
-    Capability(
-        code="data:add-column",
-        enabledByDefault=True,
-        description="Add a new column to the active table.",
-    ),
-    Capability(
-        code="data:remove-column",
-        enabledByDefault=True,
-        description="Remove a column from the active table.",
-    ),
-]
 
 
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
