@@ -29,15 +29,20 @@
 
 /** CUSTOM TABLE STYLES */
 .tableThead {
-  font-weight: 425;
   color: var(--fg-secondary);
+  font-family: var(--mantine-font-family-monospace);
+  text-transform: uppercase;
+  font-weight: 405;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.25px;
 }
 
 .tableTbody {
   color: var(--mantine-color-gray-9);
 
   font-size: 13px;
-  font-weight: 450;
+  font-weight: 425;
   line-height: 19px;
   letter-spacing: 0%;
 }

@@ -6,7 +6,7 @@ import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../../hooks/use-connector-account';
 import { ButtonPrimaryLight, ButtonPrimarySolid, ButtonSecondaryOutline } from '../../components/base/buttons';
-import { TextMonoSmRegular } from '../../components/base/text';
+import { TextMono13Regular } from '../../components/base/text';
 import { ErrorInfo } from '../../components/InfoPanel';
 import { ScratchpadNotifications } from '../../components/ScratchpadNotifications';
 import { ConnectorRow } from './ConnectorRow';
@@ -73,7 +73,7 @@ export default function ConnectorTable() {
         </Stack>
       </Modal>
       <Group justify="space-between" align="top" mt="md">
-        <TextMonoSmRegular c="dimmed">CONNECTED APPS</TextMonoSmRegular>
+        <TextMono13Regular c="dimmed">CONNECTED APPS</TextMono13Regular>
         <ButtonPrimarySolid leftSection={<PlusIcon />} onClick={() => modalStack.open('create')}>
           New connection
         </ButtonPrimarySolid>

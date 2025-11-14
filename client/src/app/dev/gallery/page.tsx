@@ -5,6 +5,7 @@ import { DiffViewer } from '@/app/components/DiffViewer';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import {
+  Alert,
   Anchor,
   Badge,
   Box,
@@ -21,17 +22,19 @@ import {
   useComputedColorScheme,
 } from '@mantine/core';
 import {
+  AlertTriangle,
   AlignEndHorizontal,
   Ambulance,
   Bird,
+  BookMarked,
   CircleCheck,
-  FigmaIcon,
   Home,
   MoonStar,
   Plus,
   Settings,
   Trash2,
 } from 'lucide-react';
+import Image from 'next/image';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
@@ -63,8 +66,8 @@ import {
   Text16Book,
   Text16Medium,
   Text16Regular,
-  TextMonoSmRegular,
-  TextMonoXsRegular,
+  TextMono12Regular,
+  TextMono13Regular,
   TextTitle1,
   TextTitle2,
   TextTitle3,
@@ -87,7 +90,11 @@ export default function DevComponentGalleryPage() {
       <MainContent.BasicHeader title="Dev tools - Component gallery" />
       <MainContent.Body>
         <Stack w="100%" p="md">
-          <Text13Regular>This is a gallery of components that are available in the application</Text13Regular>
+          <Alert color="orange" icon={<BookMarked size={24} />}>
+            For machine (and human) readable instructions on how to use these components, refer to{' '}
+            <Code>UI_SYSTEM.md</Code>
+          </Alert>
+          <Text13Regular>This is a gallery of components and patterns to use in the application</Text13Regular>
           {/* Table of contents */}
           <List>
             <List.Item>
@@ -131,6 +138,9 @@ export default function DevComponentGalleryPage() {
             </List.Item>
             <List.Item>
               <Anchor href="#dev-tool-components">Dev Tool Components</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#patterns">Complete Patterns & Examples</Anchor>
             </List.Item>
           </List>
           <GallerySection id="shades" title="Key shades" />
@@ -218,46 +228,46 @@ export default function DevComponentGalleryPage() {
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
 
           <GallerySection id="title-text" title="Text: title" />
-          <TypeGalleryItem label="TextTitle1" notes="AKA title/24">
+          <TypeGalleryItem label="TextTitle1" figmaName="title/24">
             <TextTitle1>Brown fox is quick</TextTitle1>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle2" notes="AKA title/18">
+          <TypeGalleryItem label="TextTitle2" figmaName="title/18">
             <TextTitle2>Brown fox is quick</TextTitle2>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle3" notes="AKA title/16">
+          <TypeGalleryItem label="TextTitle3" figmaName="title/16">
             <TextTitle3>Brown fox is quick</TextTitle3>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle4" notes="AKA title/14">
+          <TypeGalleryItem label="TextTitle4" figmaName="title/14">
             <TextTitle4>Brown fox is quick</TextTitle4>
           </TypeGalleryItem>
 
           <GallerySection id="body-text" title="Text: body" />
           <Text12Book c="dimmed">All of these support c=&apos;dimmed&apos;</Text12Book>
-          <TypeGalleryItem label="Text16Medium" notes="AKA text/16-medium">
+          <TypeGalleryItem label="Text16Medium" figmaName="text/16-medium">
             <Text16Medium>Brown fox is quick</Text16Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text16Regular" notes="AKA text/16-regular">
+          <TypeGalleryItem label="Text16Regular" figmaName="text/16-regular">
             <Text16Regular>Brown fox is quick</Text16Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text16Book" notes="AKA text/16-book">
+          <TypeGalleryItem label="Text16Book" figmaName="text/16-book">
             <Text16Book>Brown fox is quick</Text16Book>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text13Medium" notes="AKA text/13-medium">
+          <TypeGalleryItem label="Text13Medium" figmaName="text/13-medium">
             <Text13Medium>Brown fox is quick</Text13Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text13Regular" notes="AKA text/13-regular">
+          <TypeGalleryItem label="Text13Regular" figmaName="text/13-regular">
             <Text13Regular>Brown fox is quick</Text13Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text13Book" notes="AKA text/13-book">
+          <TypeGalleryItem label="Text13Book" figmaName="text/13-book">
             <Text13Book>Brown fox is quick</Text13Book>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text12Medium" notes="AKA text/12-medium">
+          <TypeGalleryItem label="Text12Medium" figmaName="text/12-medium">
             <Text12Medium>Brown fox is quick</Text12Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text12Regular" notes="AKA text/12-regular">
+          <TypeGalleryItem label="Text12Regular" figmaName="text/12-regular">
             <Text12Regular>Brown fox is quick</Text12Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="Text12Book" notes="AKA text/12-book">
+          <TypeGalleryItem label="Text12Book" figmaName="text/12-book">
             <Text12Book>Brown fox is quick</Text12Book>
           </TypeGalleryItem>
           <TypeGalleryItem label="Text12Book c='dimmed'">
@@ -271,11 +281,11 @@ export default function DevComponentGalleryPage() {
             </Group>
           </GalleryItem>
           <GallerySection id="mono-text" title="Text: monospace" />
-          <TypeGalleryItem label="TextMonoSmRegular" notes="AKA mono/13-regular">
-            <TextMonoSmRegular>Brown fox is quick</TextMonoSmRegular>
+          <TypeGalleryItem label="TextMono13Regular" figmaName="mono/13-regular">
+            <TextMono13Regular>Brown fox is quick</TextMono13Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMonoRegularXs" notes="AKA mono/12-regular">
-            <TextMonoXsRegular>Brown fox is quick</TextMonoXsRegular>
+          <TypeGalleryItem label="TextMono12Regular" figmaName="mono/12-regular">
+            <TextMono12Regular>Brown fox is quick</TextMono12Regular>
           </TypeGalleryItem>
           <TypeGalleryItem label="Code">
             <Code>Brown fox is quick</Code>
@@ -473,6 +483,234 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="LabelValuePair">
             <LabelValuePair label="Name" value="John Doe" canCopy />
           </GalleryItem>
+
+          <GallerySection id="patterns" title="Complete Patterns & Examples" />
+          <Text12Book c="dimmed" mb="md">
+            These examples show how to properly compose base components for common use cases. Use these as templates
+            when building new features.
+          </Text12Book>
+
+          <Box ml="md">
+            <TextTitle3 mb="md">Table Row Pattern</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Example of a table row with proper text hierarchy and actions
+            </Text12Book>
+            <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+              <Group justify="space-between" align="center">
+                <Stack gap={4}>
+                  <Text13Regular>Database Connection</Text13Regular>
+                  <Group gap="xs">
+                    <TextMono12Regular c="dimmed">conn_abc123</TextMono12Regular>
+                    <DotSpacer />
+                    <Text12Regular c="var(--fg-muted)">Created 2 days ago</Text12Regular>
+                  </Group>
+                </Stack>
+                <Group gap="xs">
+                  <BadgeOK />
+                  <IconButtonGhost>
+                    <StyledLucideIcon Icon={Settings} size="sm" />
+                  </IconButtonGhost>
+                  <ActionIconThreeDots />
+                </Group>
+              </Group>
+            </Box>
+          </Box>
+
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Empty State Pattern</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Centered content with icon, title, description, and action
+            </Text12Book>
+            <Box p="xl" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+              <Stack align="center" gap="md">
+                <StyledLucideIcon Icon={Plus} size="xl" c="var(--fg-muted)" />
+                <Stack gap={4} align="center">
+                  <Text16Medium>No items yet</Text16Medium>
+                  <Text13Regular c="dimmed">Get started by creating your first item</Text13Regular>
+                </Stack>
+                <ButtonPrimarySolid leftSection={<StyledLucideIcon Icon={Plus} size="sm" />}>
+                  Create Item
+                </ButtonPrimarySolid>
+              </Stack>
+            </Box>
+          </Box>
+
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Card with Header and Footer</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Standard card pattern with title, content, metadata, and actions
+            </Text12Book>
+            <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+              <Stack gap="md">
+                <Group justify="space-between" align="flex-start">
+                  <TextTitle4>Integration Settings</TextTitle4>
+                  <IconButtonGhost>
+                    <StyledLucideIcon Icon={Settings} size="sm" />
+                  </IconButtonGhost>
+                </Group>
+                <Text13Regular>Configure how data syncs between your applications and services.</Text13Regular>
+                <Group justify="space-between" align="center">
+                  <Text12Regular c="var(--fg-muted)">Last updated 5 minutes ago</Text12Regular>
+                  <Group gap="xs">
+                    <ButtonSecondaryGhost>Cancel</ButtonSecondaryGhost>
+                    <ButtonPrimarySolid>Save Changes</ButtonPrimarySolid>
+                  </Group>
+                </Group>
+              </Stack>
+            </Box>
+          </Box>
+
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Form Field Pattern</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Label above input with helper text
+            </Text12Book>
+            <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }} maw={400}>
+              <Stack gap="sm">
+                <div>
+                  <Text12Medium mb={4} c="var(--fg-secondary)">
+                    Connection Name
+                  </Text12Medium>
+                  <Text12Regular c="var(--fg-muted)" mb={8}>
+                    A friendly name to identify this connection
+                  </Text12Regular>
+                  {/* Note: Actual input would go here */}
+                  <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-4)', borderRadius: '4px' }}>
+                    <Text13Regular c="var(--fg-muted)">My Database Connection</Text13Regular>
+                  </Box>
+                </div>
+              </Stack>
+            </Box>
+          </Box>
+
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Status List Item</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              List item showing status with proper color usage
+            </Text12Book>
+            <Stack gap="xs">
+              <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
+                <Group justify="space-between">
+                  <Group gap="sm">
+                    <StyledLucideIcon Icon={CircleCheck} size="sm" c="var(--mantine-color-green-6)" />
+                    <Text13Regular>Sync completed successfully</Text13Regular>
+                  </Group>
+                  <Text12Regular c="dimmed">2 minutes ago</Text12Regular>
+                </Group>
+              </Box>
+              <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
+                <Group justify="space-between">
+                  <Group gap="sm">
+                    <Loader size="sm" />
+                    <Text13Regular>Syncing data...</Text13Regular>
+                  </Group>
+                  <Text12Regular c="dimmed">In progress</Text12Regular>
+                </Group>
+              </Box>
+              <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
+                <Group justify="space-between">
+                  <Group gap="sm">
+                    <StyledLucideIcon Icon={AlertTriangle} size="sm" c="var(--mantine-color-red-6)" />
+                    <Text13Regular>Connection failed</Text13Regular>
+                  </Group>
+                  <Text12Regular c="dimmed">5 minutes ago</Text12Regular>
+                </Group>
+              </Box>
+            </Stack>
+          </Box>
+
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Action Group Pattern</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Common button groupings for different scenarios
+            </Text12Book>
+            <Stack gap="md">
+              <div>
+                <Text12Medium mb="xs">Primary + Secondary Actions</Text12Medium>
+                <Group gap="xs">
+                  <ButtonPrimarySolid leftSection={<StyledLucideIcon Icon={Plus} size="sm" />}>
+                    Create New
+                  </ButtonPrimarySolid>
+                  <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Settings} size="sm" />}>
+                    Settings
+                  </ButtonSecondaryOutline>
+                </Group>
+              </div>
+              <div>
+                <Text12Medium mb="xs">Confirm/Cancel Dialog Actions</Text12Medium>
+                <Group gap="xs" justify="flex-end">
+                  <ButtonSecondaryGhost>Cancel</ButtonSecondaryGhost>
+                  <ButtonPrimarySolid>Confirm</ButtonPrimarySolid>
+                </Group>
+              </div>
+              <div>
+                <Text12Medium mb="xs">Destructive Action</Text12Medium>
+                <Group gap="xs" justify="flex-end">
+                  <ButtonSecondaryGhost>Cancel</ButtonSecondaryGhost>
+                  <ButtonDangerLight leftSection={<StyledLucideIcon Icon={Trash2} size="sm" />}>
+                    Delete
+                  </ButtonDangerLight>
+                </Group>
+              </div>
+            </Stack>
+          </Box>
+
+          <Box ml="md" mt="xl" mb="xl">
+            <TextTitle3 mb="md">&apos;⛔ Anti-Patterns (DON&apos;T DO THIS)&apos;</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              Common mistakes to avoid when using the UI system
+            </Text12Book>
+            <Stack gap="md">
+              <Box p="md" style={{ border: '2px solid var(--mantine-color-red-4)', borderRadius: '8px' }}>
+                <Text12Medium c="var(--mantine-color-red-6)" mb="xs">
+                  ❌ DON&apos;T: Use hardcoded colors or hex values
+                </Text12Medium>
+                <Code block>{`<Text style={{ color: '#666' }}>Gray text</Text>`}</Code>
+                <Text12Medium c="var(--mantine-color-green-6)" mt="sm" mb="xs">
+                  ✅ DO: Use semantic CSS variables
+                </Text12Medium>
+                <Code block>{`<Text13Regular c="var(--fg-secondary)">Gray text</Text13Regular>`}</Code>
+              </Box>
+
+              <Box p="md" style={{ border: '2px solid var(--mantine-color-red-4)', borderRadius: '8px' }}>
+                <Text12Medium c="var(--mantine-color-red-6)" mb="xs">
+                  ❌ DON&apos;T: Import raw Mantine Text/Title components
+                </Text12Medium>
+                <Code block>{`import { Text } from '@mantine/core'
+<Text size="sm" fw={500}>Hello</Text>`}</Code>
+                <Text12Medium c="var(--mantine-color-green-6)" mt="sm" mb="xs">
+                  ✅ DO: Use base text components
+                </Text12Medium>
+                <Code block>{`import { Text13Medium } from '@/components/base/text'
+<Text13Medium>Hello</Text13Medium>`}</Code>
+              </Box>
+
+              <Box p="md" style={{ border: '2px solid var(--mantine-color-red-4)', borderRadius: '8px' }}>
+                <Text12Medium c="var(--mantine-color-red-6)" mb="xs">
+                  ❌ DON&apos;T: Use raw Lucide icons
+                </Text12Medium>
+                <Code block>{`import { Settings } from 'lucide-react'
+<Settings size={16} />`}</Code>
+                <Text12Medium c="var(--mantine-color-green-6)" mt="sm" mb="xs">
+                  ✅ DO: Use StyledLucideIcon wrapper
+                </Text12Medium>
+                <Code block>{`import { StyledLucideIcon } from '@/components/Icons/StyledLucideIcon'
+import { Settings } from 'lucide-react'
+<StyledLucideIcon Icon={Settings} size="sm" />`}</Code>
+              </Box>
+
+              <Box p="md" style={{ border: '2px solid var(--mantine-color-red-4)', borderRadius: '8px' }}>
+                <Text12Medium c="var(--mantine-color-red-6)" mb="xs">
+                  ❌ DON&apos;T: Create custom button variants inline
+                </Text12Medium>
+                <Code block>{`<Button variant="filled" color="blue" size="sm">Click</Button>`}</Code>
+                <Text12Medium c="var(--mantine-color-green-6)" mt="sm" mb="xs">
+                  ✅ DO: Use existing button components
+                </Text12Medium>
+                <Code block>{`<ButtonPrimarySolid>Click</ButtonPrimarySolid>`}</Code>
+              </Box>
+            </Stack>
+          </Box>
         </Stack>
       </MainContent.Body>
       <MainContent.Footer></MainContent.Footer>
@@ -492,11 +730,13 @@ function GallerySection({ id, title }: { id: string; title: string }): ReactNode
 function GalleryItem({
   label,
   notes,
+  figmaName,
   children,
   deprecated = false,
 }: {
   label: string;
   notes?: string;
+  figmaName?: string;
   deprecated?: boolean;
   children: ReactNode;
 }): ReactNode {
@@ -509,6 +749,12 @@ function GalleryItem({
         {notes && (
           <Text13Book c="dimmed" maw={250}>
             {notes}
+          </Text13Book>
+        )}
+        {figmaName && (
+          <Text13Book maw={250}>
+            <Figma />
+            {figmaName}
           </Text13Book>
         )}
       </Stack>
@@ -524,11 +770,13 @@ function GalleryItem({
 function TypeGalleryItem({
   label,
   notes,
+  figmaName,
   children,
   deprecated = false,
 }: {
   label: string;
   notes?: string;
+  figmaName?: string;
   deprecated?: boolean;
   children: ReactNode;
 }): ReactNode {
@@ -552,7 +800,7 @@ function TypeGalleryItem({
   }, [children]); // This effect will re-run if the children change
 
   return (
-    <GalleryItem label={label} notes={notes} deprecated={deprecated}>
+    <GalleryItem label={label} notes={notes} figmaName={figmaName} deprecated={deprecated}>
       <Group align="baseline">
         {/* Wrap children in a div and attach the ref to it */}
         <div ref={wrapperRef}>{children}</div>
@@ -617,16 +865,22 @@ function ColorChip({
           </Tooltip>
         )}
         <Stack align="center" justify="flex-end" p={5}>
-          <Code opacity={0.6}>{colorValue}</Code>
-          <Code opacity={0.6}>{cssName}</Code>
+          <Code>{colorValue}</Code>
+          <Code>{cssName}</Code>
           {figmaName && (
-            <Code opacity={0.6}>
-              <FigmaIcon size={12} />
+            <Code>
+              <Figma />
               {figmaName}
             </Code>
           )}
         </Stack>
       </ColorSwatch>
     </Stack>
+  );
+}
+
+function Figma() {
+  return (
+    <Image src="/figma.svg" alt="Figma" width={10} height={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
   );
 }

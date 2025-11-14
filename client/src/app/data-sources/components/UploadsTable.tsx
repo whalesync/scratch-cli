@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextMonoSmRegular } from '@/app/components/base/text';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { useUploads } from '@/hooks/use-uploads';
 import { Upload, uploadsApi } from '@/lib/api/uploads';
@@ -10,6 +9,7 @@ import { notifications } from '@mantine/notifications';
 import { UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { TextMono13Regular } from '../../components/base/text';
 import { FileUploadDropzone } from '../../components/dropzone/FileUploadDropzone';
 import { CsvViewModal } from '../../components/modals/CsvViewModal';
 import { MdViewModal } from '../../components/modals/MdViewModal';
@@ -211,7 +211,7 @@ export default function UploadsTable() {
 
       <FileUploadDropzone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
         <Group justify="space-between" align="top">
-          <TextMonoSmRegular c="dimmed">UPLOADED FILES</TextMonoSmRegular>
+          <TextMono13Regular c="dimmed">UPLOADED FILES</TextMono13Regular>
           <ButtonSecondaryOutline leftSection={<UploadIcon />} onClick={() => openFileInputRef.current?.()}>
             Upload CSV file
           </ButtonSecondaryOutline>

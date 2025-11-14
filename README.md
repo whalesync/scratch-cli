@@ -20,6 +20,21 @@ Full [Documentation](/server/README.md)
 
 Full [Documentation](/client/README.md)
 
+**Client-Specific Rules**: See [`client/.clauderules`](/client/.clauderules) for mandatory UI coding standards
+
+### UI Component System
+
+The client uses a standardized UI component library built on Mantine. **All developers and AI agents must follow the UI system guidelines** to maintain design consistency.
+
+- 📚 **[UI System Guide](/client/src/app/components/UI_SYSTEM.md)** - Complete documentation for AI agents and developers
+- 🎨 **Component Gallery** - Visual reference at http://localhost:3000/dev/gallery
+
+**Key Rules:**
+- Use base components from `@/components/base/` instead of raw Mantine components
+- Use semantic CSS variables for colors (`var(--fg-primary)`, `var(--bg-base)`)
+- Always wrap Lucide icons with `StyledLucideIcon`
+- Never use inline styles or hardcoded colors
+
 ## 3. Pydantic AI Agent (`/pydantic-ai-agent`)
 
 - The agent server that powers Scratch chat

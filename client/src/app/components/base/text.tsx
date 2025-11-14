@@ -80,15 +80,16 @@ export const Text12Book = Text.withProps({
   style: { lineHeight: '18px', letterSpacing: '0%' },
 });
 
-export const TextMonoSmRegular = Text.withProps({
+export const TextMono13Regular = Text.withProps({
   ff: 'monospace',
   fz: '13px',
   fw: 400,
-  style: { lineHeight: '19px', letterSpacing: '0.25px' },
+  style: { lineHeight: '19px', letterSpacing: '0.25px', paragraphSpacing: '8px' },
 });
-export const TextMonoXsRegular = Text.withProps({
+
+export const TextMono12Regular = Text.withProps({
   ff: 'monospace',
   fz: '12px',
   fw: 400,
-  style: { lineHeight: '19px', letterSpacing: '0.25px' },
+  style: { lineHeight: '19px', letterSpacing: '0.25px', paragraphSpacing: '8px' },
 });
