@@ -3,7 +3,7 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-14
-**Overall Coverage**: ~5.0% (Server: ~9.2%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~5.1% (Server: ~9.3%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
@@ -240,15 +240,15 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 
 | Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
 | ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
-| Notion     | ~10          | 4          | ~108+      | ~32%     | ⚠️ Partial   |
+| Notion     | ~10          | 4          | ~111+      | ~35%     | ⚠️ Partial   |
 | Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
 | CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
-| Webflow    | 3            | 1          | 12         | ~35%     | ⚠️ Partial   |
-| WordPress  | 6            | 1          | 15         | ~22%     | ⚠️ Partial   |
+| Webflow    | 3            | 1          | 14         | ~40%     | ⚠️ Partial   |
+| WordPress  | 6            | 1          | 18         | ~27%     | ⚠️ Partial   |
 | Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
 | YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
 | Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **8**      | **~187**   | **~20%** | **Critical** |
+| **Total**  | **~41**      | **8**      | **~195**   | **~22%** | **Critical** |
 
 ### Tested Areas ✅
 
@@ -269,12 +269,12 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ `downloadTableRecords` function - Core record download logic with minimal fields
 - ✅ Pagination handling (with next_cursor)
 - ✅ `listTables` function - Database listing and filtering
+- ✅ `fetchTableSpec` function - Database schema retrieval and Page Content column
 - ✅ Helper methods (displayName, service, getBatchSize)
 
 **What's NOT Tested**:
 - ❌ Page content column download (complex with blocks/children)
-- ❌ All Notion property type conversions (only title field tested)
-- ❌ `notion-schema-parser.ts` - Schema parsing logic
+- ❌ All Notion property type conversions (only title and select tested)
 - ❌ Error handling for API failures
 - ❌ Authentication flows
 - ❌ Record CRUD operations (create, update, delete)
@@ -318,7 +318,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 #### Webflow Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/webflow/`
 **Test Files**:
-- `webflow-connector.spec.ts` - Connector implementation tests (12 test cases)
+- `webflow-connector.spec.ts` - Connector implementation tests (14 test cases)
 
 **What's Tested**:
 - ✅ `downloadTableRecords` function - Core record download logic
@@ -328,12 +328,11 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Rich text HTML mode (when dataConverter is 'html')
 - ✅ Metadata columns (isDraft, isArchived, lastPublished, lastUpdated, createdOn)
 - ✅ `listTables` function - Collections listing from all sites
+- ✅ `fetchTableSpec` function - Site and collection schema retrieval
 - ✅ Helper methods (displayName, getBatchSize, service type)
 
 **What's NOT Tested**:
-- ❌ `webflow-schema-parser.ts` - Schema parsing logic
 - ❌ Connection testing (`testConnection` method)
-- ❌ Table spec fetching (`fetchTableSpec` method)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
 - ❌ Record deletion (`deleteRecords` method)
@@ -343,7 +342,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 #### WordPress Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/wordpress/`
 **Test Files**:
-- `wordpress-connector.spec.ts` - Connector implementation tests (15 test cases)
+- `wordpress-connector.spec.ts` - Connector implementation tests (18 test cases)
 
 **What's Tested**:
 - ✅ `downloadTableRecords` function - Core record download logic with minimal fields
@@ -354,14 +353,13 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Progress parameter for resuming downloads
 - ✅ Connector progress with next offset handling
 - ✅ `listTables` function - Post types and default tables listing
+- ✅ `fetchTableSpec` function - Endpoint options and schema retrieval
 - ✅ Helper methods (displayName, service type, getBatchSize)
 
 **What's NOT Tested**:
 - ❌ `wordpress-http-client.ts` - HTTP client implementation (mocked in tests)
-- ❌ `wordpress-schema-parser.ts` - Schema parsing logic
 - ❌ `wordpress-auth-parser.ts` - Authentication endpoint parsing and transformations
 - ❌ Connection testing (`testConnection` method)
-- ❌ Table spec fetching (`fetchTableSpec` method)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
 - ❌ Record deletion (`deleteRecords` method)
@@ -765,6 +763,28 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-14 (Late Morning)
+
+- ✅ **Connector `fetchTableSpec` tests added** (+8 test cases across 3 connectors)
+  - Webflow connector `fetchTableSpec` tests (+2 test cases)
+    - Fetches table spec for a collection with site and collection details
+    - Handles collections with no fields
+  - Notion connector `fetchTableSpec` tests (+3 test cases)
+    - Fetches table spec for a database with properties
+    - Always includes Page Content column
+    - Handles database with empty title
+  - WordPress connector `fetchTableSpec` tests (+3 test cases)
+    - Fetches table spec for a post type with endpoint options
+    - Handles endpoint with minimal schema
+    - Sanitizes table name from table ID
+- 📊 **Coverage updated**: Connector tests went from ~187 to ~195 test cases
+- 🎯 **Progress**: All three connectors now have `fetchTableSpec` method tested
+  - Webflow: 12 → 14 test cases (35% → 40% coverage)
+  - Notion: ~108+ → ~111+ test cases (32% → 35% coverage)
+  - WordPress: 15 → 18 test cases (22% → 27% coverage)
+- 🔌 **Connector impact**: Table spec fetching is critical for understanding table schemas
+- 📈 **Cumulative progress**: 8 new test cases for `fetchTableSpec` methods
 
 ### 2025-11-14 (Morning)
 

@@ -46,6 +46,22 @@ jest.mock('webflow-api', () => ({
   }),
 }));
 
+// Shared test constants
+const TEST_SITE_ID = 'site123';
+const TEST_COLLECTION_ID = 'collection456';
+const TEST_COLLECTION_ID_2 = 'collection789';
+
+const MOCK_SITE = {
+  id: TEST_SITE_ID,
+  displayName: 'Test Site',
+  shortName: 'test-site',
+};
+
+const MOCK_ENTITY_ID = {
+  wsId: 'test-collection',
+  remoteId: [TEST_SITE_ID, TEST_COLLECTION_ID],
+};
+
 describe('WebflowConnector', () => {
   let connector: WebflowConnector;
   let mockClient: ReturnType<typeof createMockClient>;
@@ -61,10 +77,7 @@ describe('WebflowConnector', () => {
 
   describe('downloadTableRecords', () => {
     const mockTableSpec: WebflowTableSpec = {
-      id: {
-        wsId: 'test-collection',
-        remoteId: ['site123', 'collection456'],
-      },
+      id: MOCK_ENTITY_ID,
       name: 'Test Collection',
       columns: [
         {
@@ -151,7 +164,7 @@ describe('WebflowConnector', () => {
       await connector.downloadTableRecords(mockTableSpec, mockColumnSettingsMap, callback);
 
       expect(mockClient.collections.items.listItems).toHaveBeenCalledTimes(1);
-      expect(mockClient.collections.items.listItems).toHaveBeenCalledWith('collection456', {
+      expect(mockClient.collections.items.listItems).toHaveBeenCalledWith(TEST_COLLECTION_ID, {
         offset: 0,
         limit: WEBFLOW_DEFAULT_BATCH_SIZE,
       });
@@ -233,11 +246,11 @@ describe('WebflowConnector', () => {
 
       // Verify API was called twice for pagination
       expect(mockClient.collections.items.listItems).toHaveBeenCalledTimes(2);
-      expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(1, 'collection456', {
+      expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(1, TEST_COLLECTION_ID, {
         offset: 0,
         limit: WEBFLOW_DEFAULT_BATCH_SIZE,
       });
-      expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(2, 'collection456', {
+      expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(2, TEST_COLLECTION_ID, {
         offset: 100,
         limit: WEBFLOW_DEFAULT_BATCH_SIZE,
       });
@@ -360,6 +373,64 @@ describe('WebflowConnector', () => {
   describe('getBatchSize', () => {
     it('should return default batch size', () => {
       expect(connector.getBatchSize()).toBe(WEBFLOW_DEFAULT_BATCH_SIZE);
+    });
+  });
+
+  describe('fetchTableSpec', () => {
+    it('should fetch table spec for a collection', async () => {
+      // Mock site response
+      mockClient.sites.get.mockResolvedValue(MOCK_SITE);
+
+      // Mock collection response with schema
+      mockClient.collections.get.mockResolvedValue({
+        id: TEST_COLLECTION_ID,
+        displayName: 'Test Collection',
+        singularName: 'Item',
+        slug: 'test-collection',
+        fields: [
+          {
+            id: 'field1',
+            slug: 'name',
+            displayName: 'Name',
+            type: Webflow.FieldType.PlainText,
+            isRequired: true,
+          },
+          {
+            id: 'field2',
+            slug: 'description',
+            displayName: 'Description',
+            type: Webflow.FieldType.RichText,
+            isRequired: false,
+          },
+        ],
+      });
+
+      const tableSpec = await connector.fetchTableSpec(MOCK_ENTITY_ID);
+
+      expect(mockClient.sites.get).toHaveBeenCalledWith(TEST_SITE_ID);
+      expect(mockClient.collections.get).toHaveBeenCalledWith(TEST_COLLECTION_ID);
+      expect(tableSpec.id.remoteId).toEqual(MOCK_ENTITY_ID.remoteId);
+      expect(tableSpec.columns).toBeDefined();
+    });
+
+    it('should handle collection with no fields', async () => {
+      const entityId = {
+        wsId: 'empty-collection',
+        remoteId: [TEST_SITE_ID, TEST_COLLECTION_ID_2],
+      };
+
+      mockClient.sites.get.mockResolvedValue(MOCK_SITE);
+
+      mockClient.collections.get.mockResolvedValue({
+        id: TEST_COLLECTION_ID_2,
+        displayName: 'Empty Collection',
+        fields: [],
+      });
+
+      const tableSpec = await connector.fetchTableSpec(entityId);
+
+      expect(tableSpec.id.remoteId).toEqual(entityId.remoteId);
+      expect(tableSpec.columns).toBeDefined();
     });
   });
 

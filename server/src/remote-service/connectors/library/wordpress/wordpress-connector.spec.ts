@@ -39,6 +39,29 @@ type MockWordPressClient = {
   deleteRecord: jest.Mock;
 };
 
+// Shared test constants
+const TEST_ENDPOINT = 'posts';
+const TEST_ENDPOINT_TAGS = 'tags';
+
+const MOCK_ENTITY_ID = {
+  wsId: 'posts',
+  remoteId: [TEST_ENDPOINT],
+};
+
+const MOCK_TITLE_COLUMN = {
+  id: { wsId: 'title', remoteId: ['title'] },
+  name: 'Title',
+  pgType: PostgresColumnType.TEXT,
+  wordpressDataType: WordPressDataType.RENDERED,
+};
+
+const MOCK_CONTENT_COLUMN = {
+  id: { wsId: 'content', remoteId: ['content'] },
+  name: 'Content',
+  pgType: PostgresColumnType.TEXT,
+  wordpressDataType: WordPressDataType.RENDERED,
+};
+
 describe('WordPressConnector', () => {
   let connector: WordPressConnector;
   let mockClient: MockWordPressClient;
@@ -60,16 +83,9 @@ describe('WordPressConnector', () => {
     it('should download records and transform basic fields', async () => {
       // Minimal table spec with just title field
       const mockTableSpec: WordPressTableSpec = {
-        id: { wsId: 'posts', remoteId: ['posts'] },
+        id: MOCK_ENTITY_ID,
         name: 'Posts',
-        columns: [
-          {
-            id: { wsId: 'title', remoteId: ['title'] },
-            name: 'Title',
-            pgType: PostgresColumnType.TEXT,
-            wordpressDataType: WordPressDataType.RENDERED,
-          },
-        ],
+        columns: [MOCK_TITLE_COLUMN],
       };
 
       // Mock WordPress API response
@@ -93,7 +109,7 @@ describe('WordPressConnector', () => {
       await connector.downloadTableRecords(mockTableSpec, {}, callback);
 
       expect(mockClient.pollRecords).toHaveBeenCalledTimes(1);
-      expect(mockClient.pollRecords).toHaveBeenCalledWith('posts', 0, WORDPRESS_POLLING_PAGE_SIZE);
+      expect(mockClient.pollRecords).toHaveBeenCalledWith(TEST_ENDPOINT, 0, WORDPRESS_POLLING_PAGE_SIZE);
 
       expect(callback).toHaveBeenCalledTimes(1);
 
@@ -107,16 +123,9 @@ describe('WordPressConnector', () => {
 
     it('should handle pagination correctly', async () => {
       const mockTableSpec: WordPressTableSpec = {
-        id: { wsId: 'posts', remoteId: ['posts'] },
+        id: MOCK_ENTITY_ID,
         name: 'Posts',
-        columns: [
-          {
-            id: { wsId: 'title', remoteId: ['title'] },
-            name: 'Title',
-            pgType: PostgresColumnType.TEXT,
-            wordpressDataType: WordPressDataType.RENDERED,
-          },
-        ],
+        columns: [MOCK_TITLE_COLUMN],
       };
 
       // Note: WordPress pagination triggers when returned count < WORDPRESS_POLLING_PAGE_SIZE (100)
@@ -132,7 +141,7 @@ describe('WordPressConnector', () => {
 
       // Since we returned only 2 items (< 100), pagination stops after one call
       expect(mockClient.pollRecords).toHaveBeenCalledTimes(1);
-      expect(mockClient.pollRecords).toHaveBeenCalledWith('posts', 0, WORDPRESS_POLLING_PAGE_SIZE);
+      expect(mockClient.pollRecords).toHaveBeenCalledWith(TEST_ENDPOINT, 0, WORDPRESS_POLLING_PAGE_SIZE);
 
       // Verify callback was called once with all records
       expect(callback).toHaveBeenCalledTimes(1);
@@ -146,16 +155,9 @@ describe('WordPressConnector', () => {
 
     it('should handle rendered content conversion to markdown by default', async () => {
       const mockTableSpec: WordPressTableSpec = {
-        id: { wsId: 'posts', remoteId: ['posts'] },
+        id: MOCK_ENTITY_ID,
         name: 'Posts',
-        columns: [
-          {
-            id: { wsId: 'content', remoteId: ['content'] },
-            name: 'Content',
-            pgType: PostgresColumnType.TEXT,
-            wordpressDataType: WordPressDataType.RENDERED,
-          },
-        ],
+        columns: [MOCK_CONTENT_COLUMN],
       };
 
       mockClient.pollRecords.mockResolvedValue([
@@ -178,16 +180,9 @@ describe('WordPressConnector', () => {
 
     it('should keep rendered content as HTML when dataConverter is html', async () => {
       const mockTableSpec: WordPressTableSpec = {
-        id: { wsId: 'posts', remoteId: ['posts'] },
+        id: MOCK_ENTITY_ID,
         name: 'Posts',
-        columns: [
-          {
-            id: { wsId: 'content', remoteId: ['content'] },
-            name: 'Content',
-            pgType: PostgresColumnType.TEXT,
-            wordpressDataType: WordPressDataType.RENDERED,
-          },
-        ],
+        columns: [MOCK_CONTENT_COLUMN],
       };
 
       mockClient.pollRecords.mockResolvedValue([
@@ -253,16 +248,9 @@ describe('WordPressConnector', () => {
 
     it('should handle progress parameter for resuming downloads', async () => {
       const mockTableSpec: WordPressTableSpec = {
-        id: { wsId: 'posts', remoteId: ['posts'] },
+        id: MOCK_ENTITY_ID,
         name: 'Posts',
-        columns: [
-          {
-            id: { wsId: 'title', remoteId: ['title'] },
-            name: 'Title',
-            pgType: PostgresColumnType.TEXT,
-            wordpressDataType: WordPressDataType.RENDERED,
-          },
-        ],
+        columns: [MOCK_TITLE_COLUMN],
       };
 
       mockClient.pollRecords.mockResolvedValue([
@@ -328,6 +316,95 @@ describe('WordPressConnector', () => {
   describe('getBatchSize', () => {
     it('should return batch size of 1', () => {
       expect(connector.getBatchSize()).toBe(1);
+    });
+  });
+
+  describe('fetchTableSpec', () => {
+    it('should fetch table spec for a post type', async () => {
+      // Mock endpoint options response
+      mockClient.getEndpointOptions.mockResolvedValue({
+        schema: {
+          properties: {
+            id: {
+              type: 'integer',
+              context: ['view', 'edit'],
+            },
+            title: {
+              type: 'object',
+              properties: {
+                rendered: { type: 'string' },
+              },
+              context: ['view', 'edit'],
+            },
+            content: {
+              type: 'object',
+              properties: {
+                rendered: { type: 'string' },
+              },
+              context: ['view', 'edit'],
+            },
+            status: {
+              type: 'string',
+              context: ['view', 'edit'],
+            },
+          },
+        },
+      });
+
+      const tableSpec = await connector.fetchTableSpec(MOCK_ENTITY_ID);
+
+      expect(mockClient.getEndpointOptions).toHaveBeenCalledWith(TEST_ENDPOINT);
+      expect(tableSpec.id).toEqual(MOCK_ENTITY_ID);
+      expect(tableSpec.columns).toBeDefined();
+      expect(tableSpec.columns.length).toBeGreaterThan(0);
+    });
+
+    it('should handle endpoint with minimal schema', async () => {
+      const entityId = {
+        wsId: 'tags',
+        remoteId: [TEST_ENDPOINT_TAGS],
+      };
+
+      mockClient.getEndpointOptions.mockResolvedValue({
+        schema: {
+          properties: {
+            id: {
+              type: 'integer',
+              context: ['view'],
+            },
+            name: {
+              type: 'string',
+              context: ['view'],
+            },
+          },
+        },
+      });
+
+      const tableSpec = await connector.fetchTableSpec(entityId);
+
+      expect(mockClient.getEndpointOptions).toHaveBeenCalledWith(TEST_ENDPOINT_TAGS);
+      expect(tableSpec.id).toEqual(entityId);
+      expect(tableSpec.columns).toBeDefined();
+    });
+
+    it('should sanitize table name from table ID', async () => {
+      const entityId = {
+        wsId: 'custom_post_type',
+        remoteId: ['custom-post-type'],
+      };
+
+      mockClient.getEndpointOptions.mockResolvedValue({
+        schema: {
+          properties: {
+            id: { type: 'integer', context: ['view'] },
+          },
+        },
+      });
+
+      const tableSpec = await connector.fetchTableSpec(entityId);
+
+      expect(tableSpec.name).toBeDefined();
+      expect(tableSpec.id.remoteId[0]).toBe('custom-post-type');
     });
   });
 
