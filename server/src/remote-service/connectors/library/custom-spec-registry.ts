@@ -1,7 +1,6 @@
 import { BaseColumnSpec, BaseTableSpec } from '../types';
 import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/airtable-spec-types';
 import { CsvColumnSpecExtras, CsvTableSpecExtras } from './csv/csv-spec-types';
-import { CustomColumnSpecExtras, CustomTableSpecExtras } from './custom/custom-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
 import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
 import { WixBlogColumnSpecExtras, WixBlogTableSpecExtras } from './wix/wix-blog/wix-blog-spec-types';
@@ -15,9 +14,6 @@ export type AirtableColumnSpec = BaseColumnSpec & AirtableColumnSpecExtras;
 
 export type NotionTableSpec = BaseTableSpec<NotionColumnSpec> & NotionTableSpecExtras;
 export type NotionColumnSpec = BaseColumnSpec & NotionColumnSpecExtras;
-
-export type CustomoColumnSpec = BaseColumnSpec & CustomColumnSpecExtras;
-export type CustomTableSpec = BaseTableSpec<CustomoColumnSpec> & CustomTableSpecExtras;
 
 export type CsvColumnSpec = BaseColumnSpec & CsvColumnSpecExtras;
 export type CsvTableSpec = BaseTableSpec<CsvColumnSpec> & CsvTableSpecExtras;
@@ -38,7 +34,7 @@ export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSp
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
   NOTION: NotionTableSpec;
-  CUSTOM: CustomTableSpec;
+  CUSTOM: CsvTableSpec; // @deprecated - custom connector is being phased out
   CSV: CsvTableSpec;
   YOUTUBE: YouTubeTableSpec;
   WORDPRESS: WordPressTableSpec;
@@ -51,6 +47,7 @@ export type AnyColumnSpec = ColumnSpecs[keyof ColumnSpecs];
 export interface ColumnSpecs {
   AIRTABLE: AirtableColumnSpec;
   NOTION: NotionColumnSpec;
+  CUSTOM: CsvColumnSpec; // @deprecated - custom connector is being phased out
   CSV: CsvColumnSpec;
   YOUTUBE: YouTubeColumnSpec;
   WORDPRESS: WordPressColumnSpec;

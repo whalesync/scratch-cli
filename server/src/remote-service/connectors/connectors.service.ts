@@ -8,7 +8,6 @@ import { AuthParser, Connector } from './connector';
 import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
-import { CustomConnector } from './library/custom/custom-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -86,15 +85,7 @@ export class ConnectorsService {
           return new NotionConnector(decryptedCredentials.apiKey);
         }
       case Service.CUSTOM:
-        if (!connectorAccount || !decryptedCredentials?.apiKey) {
-          throw new Error('API key is required for Custom connector');
-        }
-        return new CustomConnector(
-          connectorAccount.userId ?? '',
-          this.db,
-          decryptedCredentials.apiKey,
-          connectorAccount,
-        );
+        throw new Error('Custom connector is no loner supported');
       case Service.CSV:
         return new CsvConnector(this.db, this.uploadsDbService, connectorAccount?.userId ?? userId);
       case Service.YOUTUBE:

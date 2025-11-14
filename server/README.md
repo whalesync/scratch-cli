@@ -149,7 +149,6 @@ Stripe handles payments via hosted portals and webhooks. See [PaymentModule](src
 1. **Start ngrok**: `ngrok http 3010`
 
 2. **Register webhook** in [Stripe Dashboard](https://dashboard.stripe.com/) (Test sandbox):
-
    - Events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`
    - Endpoint: `https://YOUR_NGROK.ngrok-free.app/payment/webhook`
    - Copy signing secret
@@ -224,8 +223,6 @@ The server is organized into focused modules, each with its own README:
 
 - **[remote-service](src/remote-service/)**: Connector abstraction layer for external services
 - **[oauth](src/oauth/)**: OAuth 2.0 flow management for third-party services
-- **[custom-connector](src/custom-connector/)**: User-defined connector configurations
-- **[custom-connector-builder](src/custom-connector-builder/)**: AI-powered connector code generation
 
 ### Background Processing
 

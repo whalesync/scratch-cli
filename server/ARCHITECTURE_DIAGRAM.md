@@ -79,10 +79,6 @@
 │  │  │  │(abstraction) │    │ Airtable│Notion│Webflow│Wix│YouTube  │  │  │ │
 │  │  │  └──────────────┘    │ WordPress│PostgreSQL│CSV ...         │  │  │ │
 │  │  │                      └──────────────────────────────────────┘  │  │ │
-│  │  │  ┌───────────────────┐   ┌─────────────────────────────────┐   │  │ │
-│  │  │  │custom-connector   │   │ custom-connector-builder        │   │  │ │
-│  │  │  │(user-defined)     │   │ (AI code generation)            │   │  │ │
-│  │  │  └───────────────────┘   └─────────────────────────────────┘   │  │ │
 │  │  │  ┌───────┐                                                     │  │ │
 │  │  │  │ oauth │ (OAuth 2.0 flow management)                         │  │ │
 │  │  │  └───────┘                                                     │  │ │
@@ -386,10 +382,6 @@ User   Client   Server   Agent   OpenRouter   PostgreSQL
 │  │  (abstraction)  │        │  Airtable │ Notion │ Webflow │ Wix       │   │
 │  └─────────────────┘        │  YouTube │ WordPress │ PostgreSQL │ CSV  │   │
 │                             └──────────────────────────────────────────┘   │
-│  ┌──────────────────┐       ┌─────────────────────────────────────────┐    │
-│  │ custom-connector │       │  custom-connector-builder               │    │
-│  │  (user-defined)  │       │     (AI code generation)                │    │
-│  └──────────────────┘       └─────────────────────────────────────────┘    │
 └────────────────────────────────────────────────────────────────────────────┘
             │
             │

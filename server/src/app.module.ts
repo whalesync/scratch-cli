@@ -10,8 +10,6 @@ import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
 import { CronModule } from './cron/cron.module';
 import { WebflowCustomActionsModule } from './custom-actions/webflow/webflow-custom-actions.module';
-import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
-import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { ExperimentsModule } from './experiments/experiments.module';
@@ -50,8 +48,6 @@ import { WorkerModule } from './worker/workers.module';
     ConnectorsModule,
     WebflowCustomActionsModule,
     SnapshotModule,
-    RestApiImportModule,
-    CustomConnectorModule,
     StyleGuideModule,
     UploadsModule,
     AiAgentTokenUsageModule,

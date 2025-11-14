@@ -13,6 +13,7 @@ This module abstracts away provider-specific details for AI interactions, provid
 ### AiService
 
 The main service handles:
+
 - Authentication with Google's GenAI API (supports both API key and default credentials)
 - Content generation via a unified `generate()` method
 - Support for multiple Gemini model versions (2.0 Flash, 2.5 Flash)
@@ -27,13 +28,7 @@ The main service handles:
 
 ## Primary Use Case
 
-The module's primary consumer is the `RestApiImportService` in the custom-connector-builder, which uses AI to auto-generate JavaScript functions for:
-- Listing tables from external APIs
-- Fetching schemas
-- Polling records
-- CRUD operations (create, read, update, delete)
-
-By passing detailed prompts with guidelines and examples, the service generates code that integrates third-party APIs into the application's data synchronization framework.
+The module's is currently unused but is available to support LLM based processing inside of the server
 
 ## Integration
 
@@ -42,6 +37,7 @@ The AI module represents a strategic abstraction layer that decouples AI capabil
 ## Configuration
 
 The service configuration is loaded from the `ScratchpadConfigService` and includes:
+
 - Google API credentials
 - Model selection
 - Generation parameters
