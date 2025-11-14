@@ -30,12 +30,3 @@ export function titleWithSort(column: ColumnSpec, sort: SortState | undefined) {
 }
 
 export const FAKE_LEFT_COLUMNS = 2; // Updated to account for the new record status column
-
-export const generatePendingId = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'ws_pending_';
-  for (let i = 0; i < 10; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};

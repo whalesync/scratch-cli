@@ -6,6 +6,8 @@ import {
   getOtherColumnSpecs,
   identifyRecordTitleColumn,
 } from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
+import { recordName } from '@/service-naming-conventions';
+import { Service } from '@/types/server-entities/connector-accounts';
 import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
@@ -207,6 +209,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
   const { cellRenderer } = useCellRenderer(table.tableSpec, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
+    entityName: recordName(table.connectorService as Service),
     onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: true,
     gridApi,

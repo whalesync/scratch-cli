@@ -29,7 +29,7 @@ import {
 import { ListUploadsResponseDto } from './dto/list-uploads.dto';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
 import { PreviewMdResponseDto } from './dto/preview-md.dto';
-import { UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
+import { CsvAdvancedSettings, UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
 import { UploadMdResponseDto } from './dto/upload-md.dto';
 import { UploadsService } from './uploads.service';
 
@@ -79,6 +79,18 @@ export class UploadsController {
 
     if (!file.mimetype.includes('csv') && !file.originalname.toLowerCase().endsWith('.csv')) {
       throw new Error('File must be a CSV');
+    }
+
+    // Parse advancedSettings if it's a JSON string
+    if (body.advancedSettings && typeof body.advancedSettings === 'string') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(body.advancedSettings);
+        body.advancedSettings = parsed as CsvAdvancedSettings;
+      } catch (error) {
+        // If parsing fails, ignore and use defaults
+        body.advancedSettings = {};
+      }
     }
 
     const result = await this.uploadsService.uploadCsv(file.buffer, toActor(req.user), body);

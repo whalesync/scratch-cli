@@ -1,57 +1,28 @@
-import { AG } from '@/app/snapshots/[...slug]/components/snapshot-grid/ag-grid-constants';
+import { AG, ID_COLUMN_FIELD } from '@/app/snapshots/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { CellStyleFunc, ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
+import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from './IdHeaderComponent';
 import { getCellClassFn } from './useCellClass';
 
 interface UseIdColDefProps {
+  entityName: string;
   onSettingsClick: () => void;
   resizable?: boolean;
   gridApi?: GridApi<SnapshotRecord> | null;
   recordDetailsVisible?: boolean;
 }
 
-export const useSpecialColDefs = ({
-  onSettingsClick,
-  resizable = true,
-  gridApi,
-  recordDetailsVisible,
-}: UseIdColDefProps) => {
+export const useSpecialColDefs = ({ entityName, onSettingsClick, resizable = true, gridApi }: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
-    const colors = isLightMode ? AG.colors.light : AG.colors.dark;
 
-    // Check if this cell is in the same column as the focused cell
-    const focusedCell = gridApi?.getFocusedCell();
-    const isInFocusedColumn = focusedCell && !recordDetailsVisible && focusedCell.column.getColId() === 'id';
-
-    const backgroundColor = isInFocusedColumn
-      ? isLightMode
-        ? 'var(--mantine-color-gray-4)'
-        : 'var(--mantine-color-gray-7)'
-      : 'transparent';
-
-    const baseStyles = {
-      backgroundColor,
-      color: colors.readOnlyText, // ID column is always read-only
-      fontWeight: '500',
-    };
-    return baseStyles;
-  };
-  // Create ID column as first locked column
   const idColumn: ColDef = {
-    field: 'id',
-    headerName: 'ID',
+    field: ID_COLUMN_FIELD,
+    headerName: entityName + 'ID',
     sortable: true,
     filter: false,
     resizable: resizable,
-    // cellClass: idCellClass,
-    // pinned: 'left',
-    // lockPosition: true,
-    // suppressMovable: true,
     width: 150,
     minWidth: 150,
     maxWidth: 150,
@@ -59,6 +30,7 @@ export const useSpecialColDefs = ({
     headerComponent: IdHeaderComponent,
     headerComponentParams: {
       onSettingsClick,
+      entityName,
     },
     valueGetter: (params) => {
       return params.data?.id?.wsId || '';
@@ -67,7 +39,7 @@ export const useSpecialColDefs = ({
       // const value = params.value;
       return (
         <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-          <Text className="cell-text">{String(params.data?.id?.wsId)}</Text>
+          <Text className="cell-text">{String(params.data?.id?.remoteId)}</Text>
         </Box>
       );
     },

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 interface IdHeaderComponentProps extends IHeaderParams {
   onSettingsClick: () => void;
+  entityName: string;
 }
 
 export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
@@ -57,7 +58,7 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
     >
       <Group gap="xs" style={{ flex: 1 }}>
         <Text size="sm" className="ag-header-cell-text" fw={600}>
-          ID
+          {`${props.entityName.charAt(0).toUpperCase()}${props.entityName.slice(1)} ID`}
         </Text>
 
         {/* Sort indicator */}

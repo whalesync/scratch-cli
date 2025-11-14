@@ -1,10 +1,14 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { BulkUpdateRecordsDto, ListRecordsResponse, RecordOperation } from '@/types/server-entities/records';
+import {
+  BulkUpdateRecordsDto,
+  EnqueueableRecordOperation,
+  ListRecordsResponse,
+  UpdateRecordOperation,
+} from '@/types/server-entities/records';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { SWR_KEYS } from '../../../../../lib/api/keys';
 import { snapshotApi } from '../../../../../lib/api/snapshot';
-import { SnapshotRecord } from '../../../../../types/server-entities/snapshot';
 
 // This context is used to buffer updates to records and flush them in batches.
 // As `addPendingChange(...)` is called, the edits edits are accumulated in memory and immediately applied to the cache.
@@ -13,7 +17,7 @@ import { SnapshotRecord } from '../../../../../types/server-entities/snapshot';
 export interface PendingRecordUpdate {
   snapshotId: string;
   tableId: string;
-  operation: RecordOperation;
+  operation: EnqueueableRecordOperation;
 }
 
 interface UpdateRecordsValue {
@@ -176,7 +180,8 @@ export const useUpdateRecordsContext = () => {
 
 // Generate a unique ID for a change to track which ones we've flushed
 function getChangeId(change: PendingRecordUpdate): string {
-  return `${change.snapshotId}:${change.tableId}:${change.operation.wsId}:${change.operation.op}:${JSON.stringify(change.operation.data)}`;
+  const dataStr = change.operation.op === 'update' ? JSON.stringify(change.operation.data) : '';
+  return `${change.snapshotId}:${change.tableId}:${change.operation.wsId}:${change.operation.op}:${dataStr}`;
 }
 
 // Coalesce operations by record - last write wins for the same field
@@ -188,33 +193,19 @@ function coalesceOperations(changes: PendingRecordUpdate[]): PendingRecordUpdate
     const recordKey = `${change.snapshotId}:${change.tableId}:${change.operation.wsId}`;
     const existing = recordMap.get(recordKey);
 
+    const changeOperation = change.operation;
     if (!existing) {
       // First operation for this record - deep clone to avoid mutation
-      recordMap.set(recordKey, {
-        snapshotId: change.snapshotId,
-        tableId: change.tableId,
-        operation: {
-          wsId: change.operation.wsId,
-          op: change.operation.op,
-          data: change.operation.data !== undefined ? { ...change.operation.data } : undefined,
-        },
-      });
+      recordMap.set(recordKey, change);
+    } else if (changeOperation.op === 'delete' || changeOperation.op === 'undelete') {
+      // Delete/undelete operations override everything
+      recordMap.set(recordKey, change);
     } else {
-      // Merge operations - last write wins for each field
-      if (change.operation.op === 'delete' || change.operation.op === 'undelete') {
-        // Delete/undelete operations override everything
-        existing.operation.op = change.operation.op;
-        existing.operation.data = change.operation.data !== undefined ? { ...change.operation.data } : undefined;
-      } else if (change.operation.op === 'update') {
-        // For updates, merge the data fields (last write wins)
-        if (change.operation.data !== undefined) {
-          existing.operation.data = { ...existing.operation.data, ...change.operation.data };
-        }
-      } else if (change.operation.op === 'create') {
-        // Create operations - merge data
-        if (change.operation.data !== undefined) {
-          existing.operation.data = { ...existing.operation.data, ...change.operation.data };
-        }
+      if (existing.operation.op === 'update' || existing.operation.op === 'undelete') {
+        const existingOperation = existing.operation as UpdateRecordOperation;
+        existingOperation.data = { ...existingOperation.data, ...changeOperation.data };
+      } else {
+        // Drop changes if adding on top of a delete
       }
     }
   }
@@ -246,9 +237,13 @@ function optimisticDataForBulkUpdateRecords(
     return undefined;
   }
 
-  let newRecords = [...existingData.records];
+  const newRecords = [...existingData.records];
 
   for (const op of dto.ops) {
+    if (op.op === 'create') {
+      console.error('Create operation not supported in optimistic data for bulk update records');
+      continue;
+    }
     const recordIndex = newRecords.findIndex((r) => r.id.wsId === op.wsId);
 
     if (op.op === 'update') {
@@ -290,21 +285,6 @@ function optimisticDataForBulkUpdateRecords(
       delete newEditedFields.__deleted;
       record.__edited_fields = newEditedFields;
       newRecords[recordIndex] = record;
-    } else if (op.op === 'create') {
-      if (recordIndex !== -1) {
-        // Already exists, this is an error condition but we'll ignore it for optimistic updates.
-        continue;
-      }
-      const newRecord: SnapshotRecord = {
-        id: {
-          wsId: op.wsId,
-          remoteId: null,
-        },
-        fields: op.data ?? {},
-        __edited_fields: { __created: 'NOW' },
-        __dirty: true,
-      };
-      newRecords = [...newRecords, newRecord];
     }
   }
 

@@ -1,4 +1,3 @@
-import { generatePendingId } from '@/app/snapshots/[...slug]/components/helpers';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
@@ -15,7 +14,6 @@ import {
 import { hashStringList } from '@/utils/helpers';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { useUpdateRecordsContext } from '../app/snapshots/[...slug]/components/contexts/update-records-context';
 import { useSnapshot } from './use-snapshot';
 
 export interface UseSnapshotRecordsReturn {
@@ -47,7 +45,6 @@ export const useSnapshotTableRecords = (args: {
   const { snapshotId, tableId, cursor, take = 1000, generateHash = false } = args;
   const { snapshot } = useSnapshot(snapshotId);
   const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
-  const { addPendingChange } = useUpdateRecordsContext();
 
   const { mutate } = useSWRConfig();
 
@@ -155,11 +152,8 @@ export const useSnapshotTableRecords = (args: {
     const table = getTableSpecByWsId(snapshot, tableId);
 
     if (!table) return;
-    const newRecordId = generatePendingId();
 
-    const newRecordData: Record<string, unknown> = {
-      id: newRecordId,
-    };
+    const newRecordData: Record<string, unknown> = {};
 
     table.columns.forEach((c) => {
       if (c.id.wsId !== 'id') {
@@ -167,16 +161,19 @@ export const useSnapshotTableRecords = (args: {
       }
     });
 
-    addPendingChange({
-      snapshotId: snapshot.id,
-      tableId: table.id.wsId,
-      operation: {
-        op: 'create',
-        wsId: newRecordId,
-        data: newRecordData,
-      },
+    // Create the record on the server - this will trigger a snapshot edited event
+    await snapshotApi.bulkUpdateRecords(snapshot.id, table.id.wsId, {
+      ops: [
+        {
+          op: 'create',
+          data: newRecordData,
+        },
+      ],
     });
-  }, [snapshot, tableId, addPendingChange]);
+
+    // Refresh records to get the newly created record
+    await mutate(swrKey);
+  }, [snapshot, tableId, swrKey, mutate]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {

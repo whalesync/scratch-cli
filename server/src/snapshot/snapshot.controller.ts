@@ -467,13 +467,13 @@ export class SnapshotController {
     }
 
     try {
-      // Get column names to exclude internal metadata fields
+      // Get column names to exclude internal metadata fields and wsId
       const columnQuery = `
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_schema = '${snapshotId}' 
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = '${snapshotId}'
         AND table_name = '${tableId}'
-        AND column_name NOT IN ('__edited_fields', '__suggested_values', '__metadata', '__dirty')
+        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty')
         ORDER BY ordinal_position
       `;
 

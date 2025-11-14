@@ -26,6 +26,10 @@ export interface MdPreviewResponse {
   PAGE_CONTENT: string; // Markdown content
 }
 
+export interface CsvAdvancedSettings {
+  relaxColumnCount?: boolean;
+}
+
 export interface CsvUploadRequest {
   file: File;
   uploadName: string;
@@ -33,6 +37,7 @@ export interface CsvUploadRequest {
   columnTypes: string[];
   columnIndices: number[]; // Original column indices in the CSV (for handling IGNORE columns)
   firstRowIsHeader: boolean;
+  advancedSettings?: CsvAdvancedSettings;
 }
 
 export interface CsvUploadResponse {
@@ -151,6 +156,10 @@ export const uploadsApi = {
     });
 
     formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
+
+    if (request.advancedSettings) {
+      formData.append('advancedSettings', JSON.stringify(request.advancedSettings));
+    }
 
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv`, {
       method: 'POST',

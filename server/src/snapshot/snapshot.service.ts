@@ -168,10 +168,14 @@ export class SnapshotService {
   ): Promise<SnapshotCluster.Snapshot> {
     const { service, connectorAccountId, tableId } = addTableDto;
 
-    // 1. Verify snapshot exists and user has permission
+    // 1. Verify snapshot exists, user has permission, and snapshot does not already include this table
     const snapshot = await this.findOne(snapshotId, actor);
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
+    }
+
+    if (await this.snapshotDbService.snapshotDb.tableExists(snapshotId, addTableDto.tableId.wsId)) {
+      throw new BadRequestException(`Table already exists in workbook.`);
     }
 
     // 2. Get connector account if provided (for services that need it)
@@ -199,7 +203,18 @@ export class SnapshotService {
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
     }
-    // 4. Create the snapshotTableId first so we can pass it to the download job
+
+    // 4. Check if table with this wsId already exists in the snapshot schema
+    const tableExists = await this.snapshotDbService.snapshotDb.knex.schema
+      .withSchema(snapshotId)
+      .hasTable(tableSpec.id.wsId);
+    if (tableExists) {
+      throw new BadRequestException(
+        `Table ${tableSpec.name} already exists in snapshot. Please use a different table or remove the existing one first.`,
+      );
+    }
+
+    // 5. Create the snapshotTableId first so we can pass it to the download job
     const snapshotTableId = createSnapshotTableId();
 
     // 5. Update snapshot record - add to legacy arrays for backward compatibility
@@ -1501,13 +1516,13 @@ export class SnapshotService {
     res: Response,
   ): Promise<void> {
     try {
-      // Get column names to exclude internal metadata fields
+      // Get column names to exclude internal metadata fields and wsId
       const columnQuery = `
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_schema = '${snapshot.id}' 
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = '${snapshot.id}'
         AND table_name = '${tableId}'
-        AND column_name NOT IN ('__edited_fields', '__suggested_values', '__metadata', '__dirty')
+        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty')
         ORDER BY ordinal_position
       `;
 
@@ -1610,14 +1625,14 @@ export class SnapshotService {
       parser.on('end', () => {
         void (async () => {
           try {
-            // Validate that wsId column exists
+            // Validate that id column exists
             if (records.length === 0) {
               throw new BadRequestException('CSV file is empty');
             }
 
             const firstRecord = records[0];
-            if (!firstRecord['wsId']) {
-              throw new BadRequestException('CSV must have a "wsId" column as the first column');
+            if (!firstRecord['id']) {
+              throw new BadRequestException('CSV must have an "id" column (remote ID) to match records');
             }
 
             // Create a map of column names to column IDs
@@ -1629,21 +1644,53 @@ export class SnapshotService {
             // Process records in chunks
             for (let i = 0; i < records.length; i += chunkSize) {
               const chunk = records.slice(i, i + chunkSize);
+
+              // Get all remote IDs from this chunk
+              const remoteIds = chunk.map((record) => record['id']).filter((id) => id);
+
+              // Look up wsIds for these remote IDs (wsId is the internal primary key)
+              const dbRecords = await this.snapshotDbService.snapshotDb
+                .knex(tableId)
+                .withSchema(snapshotId)
+                .whereIn('id', remoteIds)
+                .select<Array<{ id: string; wsId: string }>>('id', 'wsId');
+
+              // Create a map of remote ID (user-visible) to wsId (internal primary key)
+              // Currently bulkUpdateRecords expects wsIds but the user works with remoteIds
+              // so we do the mapping here. We could get bulkUpdateRecords to accept either id in the future
+              const remoteIdToWsId = new Map<string, string>();
+              for (const dbRecord of dbRecords) {
+                remoteIdToWsId.set(dbRecord.id, dbRecord.wsId);
+              }
+
               const operations: UpdateRecordOperation[] = [];
 
               for (const record of chunk) {
-                const wsId = record['wsId'];
+                const remoteId = record['id'];
+                if (!remoteId) {
+                  continue; // Skip records without id
+                }
+
+                // Look up the wsId for this remote ID
+                const wsId = remoteIdToWsId.get(remoteId);
                 if (!wsId) {
-                  continue; // Skip records without wsId
+                  WSLogger.warn({
+                    source: 'SnapshotService.importSuggestions',
+                    message: `Record with id "${remoteId}" not found in table`,
+                    snapshotId,
+                    tableId,
+                  });
+                  recordsProcessed++;
+                  continue;
                 }
 
                 const data: Record<string, unknown> = {};
                 let hasData = false;
 
-                // Process each column in the CSV (except wsId)
+                // Process each column in the CSV (except id)
                 for (const [columnName, value] of Object.entries(record)) {
-                  if (columnName === 'wsId') {
-                    continue; // Skip the wsId column
+                  if (columnName === 'id') {
+                    continue; // Skip the id column
                   }
 
                   // Only include non-empty values
@@ -1675,7 +1722,7 @@ export class SnapshotService {
                 recordsProcessed++;
               }
 
-              // Create suggestions for this chunk
+              // Create suggestions for this chunk using wsId-based operations
               if (operations.length > 0) {
                 await this.bulkUpdateRecords(snapshotId, tableId, { ops: operations }, actor, 'suggested');
               }

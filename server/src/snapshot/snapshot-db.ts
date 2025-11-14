@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Knex } from 'knex';
 import { types } from 'pg';
 import { WSLogger } from 'src/logger';
@@ -173,6 +174,14 @@ export class SnapshotDb {
   }
 
   /**
+   * Check if a table with the given wsId exists in the snapshot schema
+   */
+  async tableExists(snapshotName: SnapshotId, tableName: string): Promise<boolean> {
+    const exists = await this.knex.schema.withSchema(snapshotName).hasTable(tableName);
+    return exists;
+  }
+
+  /**
    * Add a single table to an existing snapshot's schema.
    * This is used when adding a new table to an existing snapshot.
    */
@@ -183,7 +192,7 @@ export class SnapshotDb {
     // Check if table already exists
     const tableExists = await this.knex.schema.withSchema(snapshotId).hasTable(table.id.wsId);
     if (tableExists) {
-      throw new Error(`Table ${table.id.wsId} already exists in snapshot ${snapshotId}`);
+      throw new BadRequestException(`Table ${table.name} already exists in snapshot ${snapshotId}`);
     }
 
     // Create the table
@@ -408,12 +417,15 @@ export class SnapshotDb {
     await this.knex.transaction(async (trx) => {
       for (const op of ops) {
         switch (op.op) {
-          case 'create':
+          case 'create': {
+            // Generate a temporary remote ID for new records until they're pushed
+            const snapshotRecordId = createSnapshotRecordId();
+            const tempRemoteId = `unpublished_${snapshotRecordId}`;
             await trx(tableId)
               .withSchema(snapshotId)
               .insert({
-                wsId: createSnapshotRecordId(),
-                id: null,
+                wsId: snapshotRecordId,
+                id: tempRemoteId,
                 ...(type === 'accepted'
                   ? // Set the fields that were edited.
                     // Set the dirty column to true.
@@ -433,6 +445,7 @@ export class SnapshotDb {
                     }),
               });
             break;
+          }
           case 'update': {
             if (type === 'accepted') {
               const newFields = Object.keys(op.data || {}).reduce(
@@ -470,26 +483,39 @@ export class SnapshotDb {
 
             break;
           }
-          case 'delete':
-            if (type === 'accepted') {
-              await trx(tableId)
-                .withSchema(snapshotId)
-                .where('wsId', op.wsId)
-                .update({
-                  [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
-                  [DIRTY_COLUMN]: true,
-                });
+          case 'delete': {
+            // First, check if the record has a temporary remote ID
+            const record = await trx(tableId)
+              .withSchema(snapshotId)
+              .where('wsId', op.wsId)
+              .first<{ id: string | null }>();
+
+            if (record?.id?.startsWith('unpublished_')) {
+              // Record hasn't been synced yet, delete it immediately
+              await trx(tableId).withSchema(snapshotId).where('wsId', op.wsId).delete();
             } else {
-              await trx(tableId)
-                .withSchema(snapshotId)
-                .where('wsId', op.wsId)
-                .update({
-                  [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
-                  [DIRTY_COLUMN]: true,
-                });
+              // Record has been synced, mark it for deletion on next publish
+              if (type === 'accepted') {
+                await trx(tableId)
+                  .withSchema(snapshotId)
+                  .where('wsId', op.wsId)
+                  .update({
+                    [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
+                    [DIRTY_COLUMN]: true,
+                  });
+              } else {
+                await trx(tableId)
+                  .withSchema(snapshotId)
+                  .where('wsId', op.wsId)
+                  .update({
+                    [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
+                    [DIRTY_COLUMN]: true,
+                  });
+              }
             }
 
             break;
+          }
           case 'undelete':
             if (type === 'accepted') {
               await trx(tableId)

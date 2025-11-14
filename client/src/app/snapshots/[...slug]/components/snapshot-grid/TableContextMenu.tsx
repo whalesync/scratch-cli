@@ -483,19 +483,14 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       setIsProcessing(true);
       onClose(); // Close menu immediately
 
-      // Add in a batch to speed up the invalidation of the cache.
-      addPendingChange(
-        ...selectedRows.map(
-          (record): PendingRecordUpdate => ({
-            snapshotId: snapshotId ?? '',
-            tableId: tableId,
-            operation: {
-              op: 'delete',
-              wsId: record.id.wsId,
-            },
-          }),
-        ),
-      );
+      // Delete records via API call
+      await snapshotApi.bulkUpdateRecords(snapshotId ?? '', tableId, {
+        ops: selectedRows.map((record) => ({
+          op: 'delete',
+          wsId: record.id.wsId,
+        })),
+      });
+
       ScratchpadNotifications.success({
         title: 'Records Deleted',
         message: `Deleted ${selectedRows.length} ${selectedRows.length === 1 ? 'record' : 'records'}`,
@@ -529,6 +524,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
             operation: {
               op: 'undelete',
               wsId: record.id.wsId,
+              data: {},
             },
           }),
         ),

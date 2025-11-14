@@ -6,14 +6,13 @@ export const AG = {
     light: {
       readOnlyText: '#6b7280',
       normalText: '#ffffff',
-      
     },
     dark: {
       readOnlyText: '#6b7280',
       normalText: '#ffffff',
     },
   },
-  
+
   // Grid configuration
   grid: {
     defaultMinWidth: 200,
@@ -21,5 +20,7 @@ export const AG = {
   },
   dotColumn: {
     width: 22,
-  }
+  },
 } as const;
+
+export const ID_COLUMN_FIELD = '__id__';

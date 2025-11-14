@@ -27,6 +27,7 @@ export const FileUploadDropzone = ({
   const [csvPreviewFileName, setCsvPreviewFileName] = useState<string>('');
   const [csvPreviewFile, setCsvPreviewFile] = useState<File | null>(null);
   const [csvModalOpened, setCsvModalOpened] = useState(false);
+  const [csvPreviewError, setCsvPreviewError] = useState<string | null>(null);
 
   // MD preview state
   const [mdPreviewData, setMdPreviewData] = useState<MdPreviewResponse | null>(null);
@@ -67,9 +68,16 @@ export const FileUploadDropzone = ({
         setCsvPreviewData(preview);
         setCsvPreviewFileName(file.name);
         setCsvPreviewFile(file);
+        setCsvPreviewError(null);
         setCsvModalOpened(true);
       } catch (error) {
         console.error('Failed to preview CSV:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to parse CSV file';
+        setCsvPreviewError(errorMessage);
+        ScratchpadNotifications.error({
+          title: 'CSV Preview Failed',
+          message: errorMessage,
+        });
       }
     }
     // Handle MD files
@@ -99,17 +107,19 @@ export const FileUploadDropzone = ({
 
   return (
     <div>
-      {allowedTypes.includes('csv') && (
+      {allowedTypes.includes('csv') && csvModalOpened && (
         <CsvPreviewModal
-          opened={csvModalOpened}
+          opened={true} // Unmount instead of hiding to reset state
           onClose={() => {
             setCsvModalOpened(false);
             setCsvPreviewData(null);
             setCsvPreviewFile(null);
+            setCsvPreviewError(null);
           }}
           data={csvPreviewData}
           fileName={csvPreviewFileName}
           file={csvPreviewFile}
+          previewError={csvPreviewError}
         />
       )}
 

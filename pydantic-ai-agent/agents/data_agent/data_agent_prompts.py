@@ -108,7 +108,14 @@ The user can limit your capabilities. Do not be surprised if in conversation his
 The user could have changed your capabilities between messages. 
 
 """
-
+IDENTIFYING_RECORDS = f"""
+# IDENTIFYING RECORDS BY ID:
+- Records have wsId and id fields.
+- The wsId is the unique identifier for the record managed by Scratch.
+- The id is the unique identifier for the record managed by the external service.
+- When a new record is created in scratch it temporarely receives an id in the format of "unpublished_<wsId>".
+- When a new record is published to the remote service, the wsId remains the same but the id is updated to the remote service's id.
+"""
 
 MENTION_SYSTEM_INSTRUCTIONS = f"""
 # MENTION SYSTEM:
@@ -508,6 +515,7 @@ def get_data_agent_instructions(
         base_instructions
         + mention_system_instructions
         + views_filtering
+        + IDENTIFYING_RECORDS
         + data_manipulation
         + final_response
         + data_formatting

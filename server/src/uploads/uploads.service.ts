@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import { parse, Parser } from 'csv-parse';
 import type { Response } from 'express';
@@ -12,19 +12,17 @@ import { WSLogger } from 'src/logger';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
-import {
-  createCsvFileRecordId,
-  createSnapshotId,
-  createSnapshotTableId,
-  createUploadId,
-  SnapshotId,
-} from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableId, createUploadId, SnapshotId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
-import { Readable, Transform } from 'stream';
+import { pipeline, Readable, Transform } from 'stream';
 import { DbService } from '../db/db.service';
+import { FormatterTransform } from './csvStreams/FormatterTransform';
+import { ParserTransform } from './csvStreams/ParserTransform';
+import { PgCopyFromWritableStream } from './csvStreams/PgCopyFromWritableStream';
+import { ProcessorTransform } from './csvStreams/ProcessorTransform';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
-import { UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
+import { CsvAdvancedSettings, UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
 import { UploadMdResponseDto } from './dto/upload-md.dto';
 import { MdUploadData, Upload, UploadType } from './types';
 import { UploadsDbService } from './uploads-db.service';
@@ -249,6 +247,29 @@ export class UploadsService {
   async uploadCsv(buffer: Buffer, actor: Actor, dto: UploadCsvDto): Promise<UploadCsvResponseDto & { upload: Upload }> {
     const uploadId = createUploadId();
 
+    // Validate column names - reject empty or whitespace-only names
+    const invalidColumns = dto.columnNames
+      .map((name, index) => ({ name, index }))
+      .filter(({ name }) => !name || name.trim().length === 0);
+
+    if (invalidColumns.length > 0) {
+      throw new BadRequestException(
+        `Invalid column names detected at positions: ${invalidColumns.map((c) => c.index + 1).join(', ')}. Column names cannot be empty.`,
+      );
+    }
+
+    // Validate column names - reject forbidden names
+    const forbiddenNames = ['wsId', 'remoteId'];
+    const forbiddenColumns = dto.columnNames
+      .map((name, index) => ({ name, index }))
+      .filter(({ name }) => forbiddenNames.includes(name));
+
+    if (forbiddenColumns.length > 0) {
+      throw new BadRequestException(
+        `Forbidden column names: ${forbiddenColumns.map((c) => c.name + ' (position: ' + (c.index + 1) + ')').join(', ')}`,
+      );
+    }
+
     // Create table ID: csv_timestamp_name
     const timestamp = Date.now();
     const sanitizedName = dto.uploadName
@@ -256,6 +277,9 @@ export class UploadsService {
       .toLowerCase()
       .substring(0, 50); // Limit length
     const tableId = `csv_${timestamp}_${sanitizedName}`;
+
+    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
+    const qualifiedTableName = `"${schemaName}"."${tableId}"`;
 
     try {
       // Ensure user's upload schema exists
@@ -272,17 +296,14 @@ export class UploadsService {
       );
 
       // Stream CSV data to the table
-      let rowCount = 0;
-      await this.streamCsvToUploadsTable(
+
+      const rowCount = await this.streamCsvToTable(
         buffer,
-        actor,
-        tableId,
+        qualifiedTableName,
         dto.columnNames,
         dto.columnIndices,
         dto.firstRowIsHeader,
-        (count) => {
-          rowCount = count;
-        },
+        dto.advancedSettings,
       );
 
       // Create Upload record in public schema
@@ -316,143 +337,66 @@ export class UploadsService {
         console.error('Error cleaning up CSV table:', cleanupError);
       }
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to upload CSV: ${errorMessage}`);
+      throw error;
     }
   }
 
   /**
    * Stream CSV data to a table in the user's upload schema
    */
-  private async streamCsvToUploadsTable(
+  private async streamCsvToTable(
     buffer: Buffer,
-    actor: Actor,
-    tableId: string,
+    qualifiedTableName: string,
     columnNames: string[],
     columnIndices: number[],
     firstRowIsHeader: boolean,
-    onComplete?: (recordCount: number) => void,
-  ): Promise<void> {
-    const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
+    advancedSettings: CsvAdvancedSettings,
+  ): Promise<number> {
+    const fileReadable = Readable.from(buffer.toString('utf-8'));
+    const parserTransform = new ParserTransform(advancedSettings);
+    const processorTransform = new ProcessorTransform(firstRowIsHeader, columnIndices);
+    const formatterTransform = new FormatterTransform();
 
+    const pgCopyWritable = new PgCopyFromWritableStream(
+      qualifiedTableName,
+      columnNames,
+      this.uploadsDbService.knex.client,
+    );
+
+    await pgCopyWritable.connect();
+
+    // Use Node.js pipeline utility for proper error propagation
     return new Promise((resolve, reject) => {
-      let recordCount = 0;
-      let isFirstRow = true;
-
-      // Create a Transform stream that listens to each record and passes it through
-      const recordProcessor = new Transform({
-        objectMode: true,
-        transform(chunk: string[], encoding, callback) {
-          try {
-            // Skip header row if firstRowIsHeader is true
-            if (firstRowIsHeader && isFirstRow) {
-              isFirstRow = false;
-              callback();
-              return;
+      pipeline(fileReadable, parserTransform, processorTransform, formatterTransform, pgCopyWritable, (error) => {
+        // Always cleanup, regardless of success or failure
+        pgCopyWritable
+          .kill()
+          .then(() => {
+            if (error) {
+              WSLogger.error({ message: `Pipeline error: ${error.message}`, source: 'uploads' });
+              const wrappedError = new InternalServerErrorException(error.message);
+              reject(wrappedError);
+            } else {
+              WSLogger.info({
+                message: `Pipeline completed successfully, record count: ${processorTransform.getRecordCount()}`,
+                source: 'uploads',
+              });
+              resolve(processorTransform.getRecordCount());
             }
-
-            // Extract only the columns we want to keep, using the original indices
-            // This handles IGNORE columns by skipping them at the correct positions
-            const filteredRecord = columnIndices.map((originalIndex) => {
-              return chunk[originalIndex] !== undefined ? chunk[originalIndex] : '';
+          })
+          .catch((disconnectError) => {
+            WSLogger.error({
+              message: `Error during disconnect: ${disconnectError.message}`,
+              source: 'uploads',
             });
-
-            // Generate a unique remoteId for this record (CSV upload table represents the remote source)
-            const remoteId = createCsvFileRecordId();
-
-            // Create the full record with remoteId as first column, then the filtered data columns
-            const fullRecord = [remoteId, ...filteredRecord];
-
-            recordCount++;
-
-            // Pass the processed record through to the next stream
-            callback(null, fullRecord);
-          } catch (error) {
-            callback(error instanceof Error ? error : new Error(String(error)));
-          }
-        },
-      });
-
-      // Create a Transform stream that converts records to CSV format
-      const csvFormatter = new Transform({
-        objectMode: true,
-        transform(chunk: string[], encoding, callback) {
-          try {
-            // Convert to CSV format for COPY
-            const csvRow = chunk
-              .map((field) => {
-                // Escape quotes and wrap in quotes if contains comma, quote, or newline
-                const escaped = String(field).replace(/"/g, '""');
-                if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) {
-                  return `"${escaped}"`;
-                }
-                return escaped;
-              })
-              .join(',');
-
-            callback(null, csvRow + '\n');
-          } catch (error) {
-            callback(error instanceof Error ? error : new Error(String(error)));
-          }
-        },
-      });
-
-      // Set up the streaming pipeline
-      const setupPipeline = async () => {
-        try {
-          // Get database connection
-          const knexClient = this.uploadsDbService.knex.client;
-          const conn = await knexClient.acquireConnection();
-
-          // Create the COPY stream
-          const copyStream = conn.query(
-            copyFrom(
-              `COPY "${schemaName}"."${tableId}" ("remoteId", ${columnNames.map((name) => `"${name}"`).join(', ')}) 
-              FROM STDIN 
-              WITH (FORMAT CSV)`,
-            ),
-          );
-
-          // Handle COPY stream events
-          copyStream.on('error', (error: Error) => {
-            console.error('COPY stream error:', error);
-            reject(new Error(`Failed to copy data to PostgreSQL: ${error.message}`));
-          });
-
-          copyStream.on('finish', () => {
-            console.log(`Successfully imported ${recordCount} rows to ${schemaName}.${tableId}`);
-            if (onComplete) {
-              onComplete(recordCount);
+            // If there was already an error, report that one; otherwise report disconnect error
+            if (error) {
+              reject(new InternalServerErrorException(error.message));
+            } else {
+              reject(new InternalServerErrorException(`Disconnect failed: ${disconnectError.message}`));
             }
-            void knexClient.releaseConnection(conn);
-            resolve();
           });
-
-          // Create the CSV parser
-          const parser = parse({
-            columns: false,
-            skip_empty_lines: true,
-            trim: true,
-          });
-
-          // Handle parser events
-          parser.on('error', (error: Error) => {
-            console.error('CSV parser error:', error);
-            reject(new Error(`Failed to parse CSV: ${error.message}`));
-          });
-
-          // Set up the complete pipeline
-          const csvStream = Readable.from(buffer.toString('utf-8'));
-
-          csvStream.pipe(parser).pipe(recordProcessor).pipe(csvFormatter).pipe(copyStream);
-        } catch (error) {
-          console.error('Error setting up streaming pipeline:', error);
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      };
-
-      // Start the pipeline
-      void setupPipeline();
+      });
     });
   }
 

@@ -33,6 +33,7 @@ interface CsvPreviewModalProps {
   data: CsvPreviewResponse | null;
   fileName: string | null;
   file: File | null;
+  previewError?: string | null;
 }
 
 // Function to get icon for modal column type (includes IGNORE)
@@ -43,14 +44,17 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
   return getColumnTypeIcon(type as PostgresColumnType);
 };
 
-export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, data, fileName, file }) => {
+export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, data, fileName, file, previewError }) => {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const [firstRowIsHeader, setFirstRowIsHeader] = useState(true);
   const [columnNames, setColumnNames] = useState<string[]>([]);
   const [columnTypes, setColumnTypes] = useState<ModalColumnType[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState('');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [relaxColumnCount, setRelaxColumnCount] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
   const { mutate } = useSWRConfig();
@@ -113,10 +117,11 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
     setColumnTypes(newColumnTypes);
   };
 
-  const handleImport = async () => {
+  const handleUpload = async () => {
     if (!file) return;
 
-    setIsImporting(true);
+    setIsUploading(true);
+    setUploadError(null);
     try {
       // Filter out IGNORE columns before sending to server
       const filteredData = columnNames
@@ -134,6 +139,9 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
         columnTypes: filteredColumnTypes,
         columnIndices: filteredColumnIndices,
         firstRowIsHeader,
+        advancedSettings: {
+          relaxColumnCount,
+        },
       });
 
       console.debug('CSV uploaded successfully:', result);
@@ -150,9 +158,10 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      // Error handling could be improved with notifications
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload CSV file';
+      setUploadError(errorMessage);
     } finally {
-      setIsImporting(false);
+      setIsUploading(false);
     }
   };
 
@@ -176,7 +185,35 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
       `}</style>
       <Modal opened={opened} onClose={onClose} title="Uploading CSV data source" size="80%" centered>
         <Stack gap="xl">
-          {/* Error summary */}
+          {/* Preview error - shows if CSV parsing failed */}
+          {previewError && (
+            <div
+              style={{ padding: '12px', border: '2px solid #d63031', backgroundColor: '#ffe5e5', borderRadius: '4px' }}
+            >
+              <Text size="sm" fw={600} c="#d63031">
+                ❌ CSV Parsing Error
+              </Text>
+              <Text size="sm" c="#d63031" mt={4}>
+                {previewError}
+              </Text>
+            </div>
+          )}
+
+          {/* Upload error - shows if upload/import failed */}
+          {uploadError && (
+            <div
+              style={{ padding: '12px', border: '2px solid #d63031', backgroundColor: '#ffe5e5', borderRadius: '4px' }}
+            >
+              <Text size="sm" fw={600} c="#d63031">
+                ❌ Upload Error
+              </Text>
+              <Text size="sm" c="#d63031" mt={4}>
+                {uploadError}
+              </Text>
+            </div>
+          )}
+
+          {/* Error summary for rows with parsing issues */}
           {errorRows.length > 0 && (
             <div style={{ padding: '8px', border: '1px solid #ffeaa7' }}>
               <Text size="sm" fw={500}>
@@ -185,12 +222,36 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
             </div>
           )}
 
-          {/* Header checkbox */}
-          <Checkbox
-            checked={firstRowIsHeader}
-            onChange={(event) => setFirstRowIsHeader(event.currentTarget.checked)}
-            label="First row is a header"
-          />
+          {/* Header checkbox and advanced settings toggle */}
+          <Group justify="space-between" align="center">
+            <Checkbox
+              checked={firstRowIsHeader}
+              onChange={(event) => setFirstRowIsHeader(event.currentTarget.checked)}
+              label="First row is a header"
+            />
+            <Text
+              size="sm"
+              c="blue"
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+            >
+              {showAdvancedSettings ? 'Hide' : 'Show'} advanced settings
+            </Text>
+          </Group>
+
+          {/* Advanced settings section */}
+          {showAdvancedSettings && (
+            <Stack gap="xs" p="md" style={{ border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+              <Text size="sm" fw={600}>
+                Advanced Settings
+              </Text>
+              <Checkbox
+                checked={relaxColumnCount}
+                onChange={(event) => setRelaxColumnCount(event.currentTarget.checked)}
+                label="Relax column count (allow rows with different number of columns)"
+              />
+            </Stack>
+          )}
 
           {/* Combined header table with column types and names */}
           <div
@@ -330,7 +391,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
           {/* Import section */}
           <Group align="center">
             <Text size="sm" fw={500} style={{ minWidth: '120px' }}>
-              Import as:
+              Upload as:
             </Text>
             <TextInput
               value={newFileName}
@@ -338,8 +399,8 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
               placeholder="Enter new name"
               style={{ flex: 1 }}
             />
-            <Button onClick={handleImport} loading={isImporting} size="md">
-              Import
+            <Button onClick={handleUpload} loading={isUploading} size="md">
+              Upload
             </Button>
           </Group>
         </Stack>
