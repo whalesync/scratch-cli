@@ -33,7 +33,6 @@ model User {
   settings                Json?                    @default("{}") // UserSettings object 
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
-  customConnectors        CustomConnector[]
   styleGuides             StyleGuide[]
   aiAgentCredentials      AiAgentCredential[]
   aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
@@ -189,45 +188,6 @@ model SnapshotTable {
 
   @@index([snapshotId])
   @@index([connectorAccountId])
-}
-
-model CustomConnector {
-  id        String   @id // type: CustomConnectorId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String
-  mapping   Json? // Store the field mapping JSON
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-
-  // AI generation prompt
-  prompt String?
-
-  // API key for external services
-  apiKey String?
-
-  // Table listing
-  listTables String? // Store the table listing function body as text
-  tables     String[] // Store the test table IDs we have fetched while building the connector
-
-  // Schema generation
-  fetchSchema String? // Store the schema generation function body as text
-  schema      Json? // Store the result of schema generation
-
-  // CRUD operation function bodies
-  pollRecords         String? // Store the function body as text
-  pollRecordsResponse Json?
-
-  getRecord         String? // Store the function body as text
-  getRecordResponse Json?
-
-  deleteRecord String? // Store the function body as text
-  createRecord String? // Store the function body as text
-  updateRecord String?
-
-  // Response schemas
-
-  @@index([userId])
 }
 
 model StyleGuide {
