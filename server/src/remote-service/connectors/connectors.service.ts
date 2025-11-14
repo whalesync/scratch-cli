@@ -84,8 +84,6 @@ export class ConnectorsService {
           }
           return new NotionConnector(decryptedCredentials.apiKey);
         }
-      case Service.CUSTOM:
-        throw new Error('Custom connector is no loner supported');
       case Service.CSV:
         return new CsvConnector(this.db, this.uploadsDbService, connectorAccount?.userId ?? userId);
       case Service.YOUTUBE:

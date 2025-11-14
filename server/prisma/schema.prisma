@@ -112,7 +112,6 @@ model ConnectorAccount {
 enum Service {
   NOTION
   AIRTABLE
-  CUSTOM
   CSV
   POSTGRES
   YOUTUBE
