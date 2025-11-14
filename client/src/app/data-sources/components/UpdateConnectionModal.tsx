@@ -1,8 +1,7 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
-import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { AuthType, ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
-import { Alert, Group, Modal, ModalProps, Select, Stack, TextInput } from '@mantine/core';
+import { Alert, Group, Modal, ModalProps, Stack, TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
 
 interface UpdateConnectionModalProps extends ModalProps {
@@ -21,7 +20,6 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const { updateConnectorAccount } = useConnectorAccounts();
-  const { data: customConnectors } = useCustomConnectors();
 
   useEffect(() => {
     if (connectorAccount) {
@@ -86,19 +84,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
               />
             </>
           )}
-        {connectorAccount?.service === Service.CUSTOM && customConnectors && (
-          <Select
-            label="Custom Connector"
-            placeholder="Select a custom connector (optional)"
-            data={customConnectors.map((connector) => ({
-              value: connector.id,
-              label: connector.name,
-            }))}
-            value={updatedModifier}
-            onChange={setUpdatedModifier}
-            clearable
-          />
-        )}
+
         <Group justify="flex-end">
           <ButtonSecondaryOutline variant="default" onClick={props.onClose}>
             Cancel

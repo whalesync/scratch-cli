@@ -92,18 +92,6 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
-  [Service.CUSTOM]: {
-    service: 'Custom',
-    table: 'table',
-    record: 'record',
-    base: null,
-    tables: 'tables',
-    records: 'records',
-    bases: null,
-    logo: 'gear-svgrepo-com.svg',
-    pushOperationName: 'Publish',
-    pullOperationName: 'Download',
-  },
   [Service.CSV]: {
     service: 'CSV',
     table: 'file',
@@ -150,7 +138,7 @@ export const getLogo = (serviceCode: Service | null | undefined): string => {
   if (!serviceCode) {
     return '/connector-icons/csv.svg';
   }
-  const logo = ServiceNamingConventions[serviceCode ?? Service.CUSTOM]?.logo;
+  const logo = ServiceNamingConventions[serviceCode]?.logo;
   if (logo) {
     return `/connector-icons/${logo}`;
   }

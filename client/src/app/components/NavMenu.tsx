@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { trackToggleDisplayMode } from '@/lib/posthog';
-import { BookOpen, Bot, Cpu, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
+import { BookOpen, Cpu, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
 import { useDevTools } from '../../hooks/use-dev-tools';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
@@ -68,15 +68,6 @@ const upperLinks: MenuItem[] = [
     icon: BookOpen,
     iconType: 'lucide',
     enabled: true,
-  },
-  {
-    type: 'link',
-    href: RouteUrls.apiImportDemoPageUrl,
-    label: 'AI Connector Builder',
-    icon: Bot,
-    iconType: 'lucide',
-    enabled: true,
-    isDevTool: true,
   },
 ];
 

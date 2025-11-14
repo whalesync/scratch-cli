@@ -1,7 +1,6 @@
 export enum Service {
   NOTION = 'NOTION',
   AIRTABLE = 'AIRTABLE',
-  CUSTOM = 'CUSTOM',
   CSV = 'CSV',
   YOUTUBE = 'YOUTUBE',
   WORDPRESS = 'WORDPRESS',

@@ -9,7 +9,6 @@ export class RouteUrls {
   // Authenticated Routes & Route Generators
   static homePageUrl = '/';
   static dataSourcesPageUrl = '/data-sources';
-  static apiImportDemoPageUrl = '/ai-connector-builder';
   static healthPageUrl = '/health';
   static snapshotPage = (id: string, tableId?: string, recordId?: string) => {
     if (tableId && recordId) {
@@ -52,7 +51,6 @@ export class RouteUrls {
   static subscriptionRoutePatterns = [
     `^\/$`, // root path
     RouteUrls.dataSourcesPageUrl,
-    RouteUrls.apiImportDemoPageUrl,
     RouteUrls.snapshotsPageUrl,
     RouteUrls.resourcesPageUrl,
     RouteUrls.snapshotsPageUrl,

@@ -1,6 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
-import { useCustomConnectors } from '@/hooks/use-custom-connector';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { getLogo, getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
@@ -29,20 +28,13 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const { user } = useScratchPadUser();
 
   const { createConnectorAccount } = useConnectorAccounts();
-  const { data: customConnectors } = useCustomConnectors();
 
   const getDefaultAuthMethod = (service: Service): AuthMethod => {
     // Services that support OAuth
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
 
     // Services that use generic parameters
-    const genericParametersSupportedServices = [
-      Service.NOTION,
-      Service.AIRTABLE,
-      Service.CUSTOM,
-      Service.WORDPRESS,
-      Service.CSV,
-    ];
+    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS, Service.CSV];
     if (oauthSupportedServices.includes(service)) {
       return 'oauth';
     } else if (genericParametersSupportedServices.includes(service)) {
@@ -54,7 +46,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
-    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.CUSTOM, Service.WORDPRESS];
+    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
       methods.push('oauth');
@@ -297,19 +289,6 @@ export const CreateConnectionModal = (props: ModalProps) => {
               onChange={(e) => setNewApiKey(e.currentTarget.value)}
             />
           )}
-        {newService === Service.CUSTOM && customConnectors && (
-          <Select
-            label="Custom Connector"
-            placeholder="Select a custom connector (optional)"
-            data={customConnectors.map((connector) => ({
-              value: connector.id,
-              label: connector.name,
-            }))}
-            value={newModifier}
-            onChange={setNewModifier}
-            clearable
-          />
-        )}
         <Group justify="flex-end">
           <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
           <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading}>
