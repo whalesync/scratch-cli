@@ -227,6 +227,28 @@ export const SnapshotActionsMenu = () => {
 
   const hasHiddenColumns = activeTable?.hiddenColumns && activeTable.hiddenColumns.length > 0;
 
+  const renderConnectorCustomActions = () => {
+    if (!snapshot || !activeTable) return null;
+
+    // Webflow-specific actions
+    if (activeTable.connectorService === Service.WEBFLOW) {
+      return (
+        <>
+          <Menu.Divider />
+          <Menu.Label>Webflow</Menu.Label>
+          <WebflowPublishSiteMenuItem
+            currentTable={activeTable}
+            disabled={menuItemsDisabled}
+            onPublishStart={() => setSaving(true)}
+            onPublishEnd={() => setSaving(false)}
+          />
+        </>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <>
       <Modal
@@ -451,19 +473,9 @@ export const SnapshotActionsMenu = () => {
               )}
             </>
           )}
-          {/* Webflow-specific actions */}
-          {snapshot && activeTable && activeTable.connectorService === Service.WEBFLOW && (
-            <>
-              <Menu.Divider />
-              <Menu.Label>Webflow</Menu.Label>
-              <WebflowPublishSiteMenuItem
-                currentTable={activeTable}
-                disabled={menuItemsDisabled}
-                onPublishStart={() => setSaving(true)}
-                onPublishEnd={() => setSaving(false)}
-              />
-            </>
-          )}
+
+          {/* Connector-custom actions */}
+          {renderConnectorCustomActions()}
 
           <Menu.Divider />
           <Menu.Item

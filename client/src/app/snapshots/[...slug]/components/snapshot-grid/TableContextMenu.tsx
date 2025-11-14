@@ -35,13 +35,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
-  const { addPendingChange } = useUpdateRecordsContext();
-
-  // Get the current table to check if it's a Webflow connector
   const { activeTable } = useActiveSnapshot();
-  const currentTable = activeTable;
-  const isWebflowTable = currentTable?.connectorService === Service.WEBFLOW;
-
+  const { addPendingChange } = useUpdateRecordsContext();
   const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshotId ?? '',
@@ -556,6 +551,29 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     }
   };
 
+  const renderConnectorCustomActions = () => {
+    // Get the current table to check if it's a Webflow connector
+    const currentTable = activeTable;
+
+    if (selectedRows.length === 0 || !currentTable) return null;
+    // Webflow-specific actions
+    if (currentTable.connectorService === Service.WEBFLOW) {
+      return (
+        <WebflowPublishMenuItem
+          selectedRows={selectedRows}
+          currentTable={currentTable}
+          isProcessing={isProcessing}
+          onClose={onClose}
+          setIsProcessing={setIsProcessing}
+        />
+      );
+    }
+
+    // Add more connector-custom actions here as needed
+
+    return null;
+  };
+
   return (
     <div
       ref={menuRef}
@@ -708,16 +726,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
             <span>Filter In Records</span>
           </div>
 
-          {/* Webflow publish action - only show for Webflow tables */}
-          {isWebflowTable && currentTable && (
-            <WebflowPublishMenuItem
-              selectedRows={selectedRows}
-              currentTable={currentTable}
-              isProcessing={isProcessing}
-              onClose={onClose}
-              setIsProcessing={setIsProcessing}
-            />
-          )}
+          {/* Connector-custom actions */}
+          {renderConnectorCustomActions()}
 
           {/* Record actions - only show for single row selection */}
           {selectedRows.length === 1 && (
