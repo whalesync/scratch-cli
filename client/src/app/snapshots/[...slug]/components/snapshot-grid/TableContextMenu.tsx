@@ -6,8 +6,11 @@ import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { GridApi } from 'ag-grid-community';
 import { Columns3, FileText, Filter, FilterX, List, ListChecks, Rows3, Square, Trash2, Undo2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
 import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-store';
+import { Service } from '../../../../../types/server-entities/connector-accounts';
 import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
+import { WebflowPublishMenuItem } from './custom-actions/webflow/WebflowPublishMenuItem';
 
 interface TableContextMenuProps {
   isOpen: boolean;
@@ -33,6 +36,11 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
   const { addPendingChange } = useUpdateRecordsContext();
+
+  // Get the current table to check if it's a Webflow connector
+  const { activeTable } = useActiveSnapshot();
+  const currentTable = activeTable;
+  const isWebflowTable = currentTable?.connectorService === Service.WEBFLOW;
 
   const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
@@ -699,6 +707,17 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
             <StyledLucideIcon Icon={Filter} size={16} c="#888" />
             <span>Filter In Records</span>
           </div>
+
+          {/* Webflow publish action - only show for Webflow tables */}
+          {isWebflowTable && currentTable && (
+            <WebflowPublishMenuItem
+              selectedRows={selectedRows}
+              currentTable={currentTable}
+              isProcessing={isProcessing}
+              onClose={onClose}
+              setIsProcessing={setIsProcessing}
+            />
+          )}
 
           {/* Record actions - only show for single row selection */}
           {selectedRows.length === 1 && (

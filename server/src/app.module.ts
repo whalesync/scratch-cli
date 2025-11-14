@@ -9,6 +9,7 @@ import { ClerkModule } from './clerk/clerk.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
 import { CronModule } from './cron/cron.module';
+import { WebflowCustomActionsModule } from './custom-actions/webflow/webflow-custom-actions.module';
 import { RestApiImportModule } from './custom-connector-builder/custom-connector-builder.module';
 import { CustomConnectorModule } from './custom-connector/custom-connector.module';
 import { DbModule } from './db/db.module';
@@ -47,6 +48,7 @@ import { WorkerModule } from './worker/workers.module';
     OAuthModule,
     ConnectorAccountModule,
     ConnectorsModule,
+    WebflowCustomActionsModule,
     SnapshotModule,
     RestApiImportModule,
     CustomConnectorModule,

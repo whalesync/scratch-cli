@@ -23,8 +23,10 @@ import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useEffect, useRef, useState } from 'react';
 import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
+import { Service } from '../../../../types/server-entities/connector-accounts';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
+import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
 import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
@@ -447,9 +449,23 @@ export const SnapshotActionsMenu = () => {
                   Show all hidden columns
                 </Menu.Item>
               )}
-              <Menu.Divider />
             </>
           )}
+          {/* Webflow-specific actions */}
+          {snapshot && activeTable && activeTable.connectorService === Service.WEBFLOW && (
+            <>
+              <Menu.Divider />
+              <Menu.Label>Webflow</Menu.Label>
+              <WebflowPublishSiteMenuItem
+                currentTable={activeTable}
+                disabled={menuItemsDisabled}
+                onPublishStart={() => setSaving(true)}
+                onPublishEnd={() => setSaving(false)}
+              />
+            </>
+          )}
+
+          <Menu.Divider />
           <Menu.Item
             data-delete
             disabled={menuItemsDisabled}
