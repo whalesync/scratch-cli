@@ -19,9 +19,7 @@ import uvicorn
 from server.chat_controller import router as chat_router, chat_service, session_service
 from server.admin_controller import router as admin_router
 from server.websocket_handler import websocket_endpoint
-from connector_builder.connector_builder_controller import (
-    router as connector_builder_router,
-)
+
 from config import get_settings
 from logging import getLogger
 
@@ -45,7 +43,6 @@ app.add_middleware(
 # Include the routers
 app.include_router(chat_router)
 app.include_router(admin_router)
-app.include_router(connector_builder_router, prefix="/connector-builder")
 
 
 # WebSocket endpoint
