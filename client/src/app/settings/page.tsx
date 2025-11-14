@@ -7,6 +7,7 @@ import { AgentCredentials } from './components/AgentCredentials';
 import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
 import { DevToolsPanel } from './components/DevToolPanel';
 import { SubscriptionCard } from './components/SubscriptionCard';
+import { UserPreferencesCard } from './components/UserPreferencesCard';
 
 const SettingsPage = () => {
   const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
@@ -17,6 +18,7 @@ const SettingsPage = () => {
       <MainContent.Body>
         <Stack gap={0} miw={800}>
           <SubscriptionCard />
+          <UserPreferencesCard />
           <AgentCredentials />
           <AgentUsageInfoCard />
           {isDevToolsEnabled && <DevToolsPanel />}

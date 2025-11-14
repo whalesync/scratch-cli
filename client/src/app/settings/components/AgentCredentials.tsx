@@ -97,7 +97,7 @@ export const AgentCredentials = () => {
     <>
       {sortedCredentials.map((credential) => (
         <Grid key={credential.id} align="flex-start">
-          <Grid.Col span={3}>
+          <Grid.Col span={2}>
             <Group gap="xs">
               <Text13Regular>{getServiceIcon(credential.service)}</Text13Regular>
               {credential.default && (
@@ -107,7 +107,7 @@ export const AgentCredentials = () => {
               )}
             </Group>
           </Grid.Col>
-          <Grid.Col span={6}>
+          <Grid.Col span={7}>
             <Stack gap="xs">
               <Text13Regular>{credential.label}</Text13Regular>
               <Text12Regular c="dimmed">{credential.description}</Text12Regular>

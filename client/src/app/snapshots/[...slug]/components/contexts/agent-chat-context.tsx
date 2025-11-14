@@ -2,7 +2,12 @@
 
 import { useStyleGuides } from '@/hooks/use-style-guide';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ModelOption, PersistedModelOption } from '@/types/common';
+import {
+  DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
+  DEFAULT_AGENT_MODEL_ID,
+  ModelOption,
+  PersistedModelOption,
+} from '@/types/common';
 import { DataScope } from '@/types/server-entities/agent';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
@@ -37,8 +42,6 @@ interface AgentChatContextProviderProps {
   snapshotId: string;
 }
 
-const DEFAULT_MODEL: PersistedModelOption = { value: 'openai/gpt-4o-mini', contextLength: 200000 };
-
 export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatContextProviderProps) => {
   const { getUserSetting } = useScratchPadUser();
   const [dataScope, setDataScope] = useState<DataScope>('table');
@@ -49,8 +52,8 @@ export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatCont
   const { styleGuides } = useStyleGuides();
 
   const defaultModelValue: PersistedModelOption = {
-    value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_MODEL.value) as string,
-    contextLength: DEFAULT_MODEL.contextLength,
+    value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
+    contextLength: DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
   };
 
   const [activeModel, setActiveModel] = useLocalStorage({
