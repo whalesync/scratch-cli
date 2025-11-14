@@ -2,8 +2,8 @@
 
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
-**Last Updated**: 2025-11-13
-**Overall Coverage**: ~4.9% (Server: ~9.1%, Client: ~0.4%, Python Agent: 0%)
+**Last Updated**: 2025-11-14
+**Overall Coverage**: ~5.0% (Server: ~9.2%, Client: ~0.4%, Python Agent: 0%)
 
 ---
 
@@ -240,15 +240,15 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 
 | Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
 | ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
-| Notion     | ~10          | 4          | ~105+      | ~30%     | ⚠️ Partial   |
+| Notion     | ~10          | 4          | ~108+      | ~32%     | ⚠️ Partial   |
 | Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
 | CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
-| Webflow    | 3            | 1          | 9          | ~30%     | ⚠️ Partial   |
-| WordPress  | 6            | 1          | 10         | ~17%     | ⚠️ Partial   |
+| Webflow    | 3            | 1          | 12         | ~35%     | ⚠️ Partial   |
+| WordPress  | 6            | 1          | 15         | ~22%     | ⚠️ Partial   |
 | Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
 | YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
 | Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **8**      | **~176**   | **~19%** | **Critical** |
+| **Total**  | **~41**      | **8**      | **~187**   | **~20%** | **Critical** |
 
 ### Tested Areas ✅
 
@@ -268,6 +268,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Complex nested block structures
 - ✅ `downloadTableRecords` function - Core record download logic with minimal fields
 - ✅ Pagination handling (with next_cursor)
+- ✅ `listTables` function - Database listing and filtering
 - ✅ Helper methods (displayName, service, getBatchSize)
 
 **What's NOT Tested**:
@@ -276,7 +277,6 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ `notion-schema-parser.ts` - Schema parsing logic
 - ❌ Error handling for API failures
 - ❌ Authentication flows
-- ❌ Table listing and preview
 - ❌ Record CRUD operations (create, update, delete)
 
 #### Wix Connector (⚠️ Partial Coverage)
@@ -318,7 +318,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 #### Webflow Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/webflow/`
 **Test Files**:
-- `webflow-connector.spec.ts` - Connector implementation tests (9 test cases)
+- `webflow-connector.spec.ts` - Connector implementation tests (12 test cases)
 
 **What's Tested**:
 - ✅ `downloadTableRecords` function - Core record download logic
@@ -327,12 +327,12 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Rich text conversion (HTML to Markdown with Turndown service)
 - ✅ Rich text HTML mode (when dataConverter is 'html')
 - ✅ Metadata columns (isDraft, isArchived, lastPublished, lastUpdated, createdOn)
+- ✅ `listTables` function - Collections listing from all sites
 - ✅ Helper methods (displayName, getBatchSize, service type)
 
 **What's NOT Tested**:
 - ❌ `webflow-schema-parser.ts` - Schema parsing logic
 - ❌ Connection testing (`testConnection` method)
-- ❌ Table listing (`listTables` method)
 - ❌ Table spec fetching (`fetchTableSpec` method)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
@@ -343,7 +343,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 #### WordPress Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/wordpress/`
 **Test Files**:
-- `wordpress-connector.spec.ts` - Connector implementation tests (10 test cases)
+- `wordpress-connector.spec.ts` - Connector implementation tests (15 test cases)
 
 **What's Tested**:
 - ✅ `downloadTableRecords` function - Core record download logic with minimal fields
@@ -353,6 +353,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Non-rendered fields (status, sticky, etc.)
 - ✅ Progress parameter for resuming downloads
 - ✅ Connector progress with next offset handling
+- ✅ `listTables` function - Post types and default tables listing
 - ✅ Helper methods (displayName, service type, getBatchSize)
 
 **What's NOT Tested**:
@@ -360,7 +361,6 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ `wordpress-schema-parser.ts` - Schema parsing logic
 - ❌ `wordpress-auth-parser.ts` - Authentication endpoint parsing and transformations
 - ❌ Connection testing (`testConnection` method)
-- ❌ Table listing (`listTables` method)
 - ❌ Table spec fetching (`fetchTableSpec` method)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
@@ -765,6 +765,32 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-14 (Morning)
+
+- ✅ **Connector `listTables` tests added** (+11 test cases across 3 connectors)
+  - Webflow connector `listTables` tests (+4 test cases)
+    - Lists all collections from all sites
+    - Handles sites with no collections
+    - Handles empty sites response
+    - Handles undefined collections array
+  - Notion connector `listTables` tests (+3 test cases)
+    - Lists all databases with search API
+    - Filters out non-database results (pages)
+    - Handles empty search results
+  - WordPress connector `listTables` tests (+5 test cases, including 1 additional test)
+    - Lists all post types and default tables
+    - Includes default tables for categories and tags
+    - Handles empty types response
+    - Formats table names correctly
+    - Filters out types without rest_base
+- 📊 **Coverage updated**: Connector tests went from ~176 to ~187 test cases
+- 🎯 **Progress**: All three connectors now have `listTables` method tested
+  - Webflow: 9 → 12 test cases (30% → 35% coverage)
+  - Notion: ~105+ → ~108+ test cases (30% → 32% coverage)
+  - WordPress: 10 → 15 test cases (17% → 22% coverage)
+- 🔌 **Connector impact**: Table listing is a core method for discovering available data sources
+- 📈 **Cumulative progress**: 11 new test cases for `listTables` methods
 
 ### 2025-11-13 (Afternoon)
 

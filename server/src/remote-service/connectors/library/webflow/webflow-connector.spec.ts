@@ -362,4 +362,83 @@ describe('WebflowConnector', () => {
       expect(connector.getBatchSize()).toBe(WEBFLOW_DEFAULT_BATCH_SIZE);
     });
   });
+
+  describe('listTables', () => {
+    it('should list all collections from all sites', async () => {
+      // Mock sites response
+      mockClient.sites.list.mockResolvedValue({
+        sites: [
+          { id: 'site1', displayName: 'Site 1' },
+          { id: 'site2', displayName: 'Site 2' },
+        ],
+      });
+
+      // Mock collections for each site
+      mockClient.collections.list
+        .mockResolvedValueOnce({
+          collections: [
+            { id: 'collection1', displayName: 'Collection 1' },
+            { id: 'collection2', displayName: 'Collection 2' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          collections: [{ id: 'collection3', displayName: 'Collection 3' }],
+        });
+
+      const tables = await connector.listTables();
+
+      // Verify sites were listed
+      expect(mockClient.sites.list).toHaveBeenCalledTimes(1);
+
+      // Verify collections were listed for each site
+      expect(mockClient.collections.list).toHaveBeenCalledTimes(2);
+      expect(mockClient.collections.list).toHaveBeenNthCalledWith(1, 'site1');
+      expect(mockClient.collections.list).toHaveBeenNthCalledWith(2, 'site2');
+
+      // Verify all collections are returned
+      expect(tables).toHaveLength(3);
+    });
+
+    it('should handle sites with no collections', async () => {
+      mockClient.sites.list.mockResolvedValue({
+        sites: [{ id: 'site1', displayName: 'Site 1' }],
+      });
+
+      mockClient.collections.list.mockResolvedValue({
+        collections: [],
+      });
+
+      const tables = await connector.listTables();
+
+      expect(mockClient.sites.list).toHaveBeenCalledTimes(1);
+      expect(mockClient.collections.list).toHaveBeenCalledTimes(1);
+      expect(tables).toHaveLength(0);
+    });
+
+    it('should handle empty sites response', async () => {
+      mockClient.sites.list.mockResolvedValue({
+        sites: [],
+      });
+
+      const tables = await connector.listTables();
+
+      expect(mockClient.sites.list).toHaveBeenCalledTimes(1);
+      expect(mockClient.collections.list).not.toHaveBeenCalled();
+      expect(tables).toHaveLength(0);
+    });
+
+    it('should handle undefined collections array', async () => {
+      mockClient.sites.list.mockResolvedValue({
+        sites: [{ id: 'site1', displayName: 'Site 1' }],
+      });
+
+      mockClient.collections.list.mockResolvedValue({
+        collections: undefined,
+      });
+
+      const tables = await connector.listTables();
+
+      expect(tables).toHaveLength(0);
+    });
+  });
 });

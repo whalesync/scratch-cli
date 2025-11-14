@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Service } from '@prisma/client';
 import { ConnectorRecord, PostgresColumnType } from '../../types';
@@ -329,6 +328,106 @@ describe('WordPressConnector', () => {
   describe('getBatchSize', () => {
     it('should return batch size of 1', () => {
       expect(connector.getBatchSize()).toBe(1);
+    });
+  });
+
+  describe('listTables', () => {
+    it('should list all post types and default tables', async () => {
+      // Mock WordPress types response with correct format
+      mockClient.getTypes.mockResolvedValue({
+        post: {
+          name: 'Posts',
+          slug: 'post',
+          rest_base: 'posts',
+        },
+        page: {
+          name: 'Pages',
+          slug: 'page',
+          rest_base: 'pages',
+        },
+      });
+
+      const tables = await connector.listTables();
+
+      expect(mockClient.getTypes).toHaveBeenCalledTimes(1);
+
+      // Should return post types + default tables (categories, tags)
+      expect(tables.length).toBeGreaterThan(0);
+
+      // Check that it includes custom post types (using rest_base)
+      const postTable = tables.find((t) => t.id.remoteId[0] === 'posts');
+      expect(postTable).toBeDefined();
+      expect(postTable?.displayName).toBe('Posts');
+    });
+
+    it('should include default tables for categories and tags', async () => {
+      mockClient.getTypes.mockResolvedValue({
+        post: {
+          name: 'Posts',
+          slug: 'post',
+          rest_base: 'posts',
+        },
+      });
+
+      const tables = await connector.listTables();
+
+      // Check for default tables
+      const categoryTable = tables.find((t) => t.id.remoteId[0] === 'categories');
+      const tagTable = tables.find((t) => t.id.remoteId[0] === 'tags');
+
+      expect(categoryTable).toBeDefined();
+      expect(tagTable).toBeDefined();
+    });
+
+    it('should handle empty types response', async () => {
+      mockClient.getTypes.mockResolvedValue({});
+
+      const tables = await connector.listTables();
+
+      expect(mockClient.getTypes).toHaveBeenCalledTimes(1);
+
+      // Should still return default tables even if no custom types
+      expect(tables.length).toBeGreaterThan(0);
+    });
+
+    it('should format table names correctly', async () => {
+      mockClient.getTypes.mockResolvedValue({
+        'custom-type': {
+          name: 'Custom Post Type',
+          slug: 'custom-post-type',
+          rest_base: 'custom-posts',
+        },
+      });
+
+      const tables = await connector.listTables();
+
+      const customTable = tables.find((t) => t.id.remoteId[0] === 'custom-posts');
+      expect(customTable).toBeDefined();
+      expect(customTable?.displayName).toBe('Custom Post Type');
+    });
+
+    it('should filter out types without rest_base', async () => {
+      mockClient.getTypes.mockResolvedValue({
+        post: {
+          name: 'Posts',
+          slug: 'post',
+          rest_base: 'posts',
+        },
+        invalid: {
+          name: 'Invalid Type',
+          slug: 'invalid',
+          // No rest_base
+        },
+      });
+
+      const tables = await connector.listTables();
+
+      // Should only include types with rest_base
+      const postTable = tables.find((t) => t.id.remoteId[0] === 'posts');
+      const invalidTable = tables.find((t) => t.id.remoteId[0] === 'invalid');
+
+      expect(postTable).toBeDefined();
+      expect(invalidTable).toBeUndefined();
     });
   });
 });

@@ -156,4 +156,74 @@ describe('NotionConnector', () => {
       expect(connector.getBatchSize()).toBe(1);
     });
   });
+
+  describe('listTables', () => {
+    it('should list all databases', async () => {
+      mockClient.databases = {
+        query: jest.fn(),
+      };
+
+      // Mock search to return databases
+      (mockClient as unknown as { search: jest.Mock }).search = jest.fn().mockResolvedValue({
+        results: [
+          {
+            object: 'database',
+            id: 'db1',
+            title: [{ plain_text: 'Database 1' }],
+          },
+          {
+            object: 'database',
+            id: 'db2',
+            title: [{ plain_text: 'Database 2' }],
+          },
+        ],
+      });
+
+      const tables = await connector.listTables();
+
+      expect((mockClient as unknown as { search: jest.Mock }).search).toHaveBeenCalledTimes(1);
+      expect((mockClient as unknown as { search: jest.Mock }).search).toHaveBeenCalledWith({
+        filter: { property: 'object', value: 'database' },
+      });
+
+      expect(tables).toHaveLength(2);
+    });
+
+    it('should filter out non-database results', async () => {
+      (mockClient as unknown as { search: jest.Mock }).search = jest.fn().mockResolvedValue({
+        results: [
+          {
+            object: 'database',
+            id: 'db1',
+            title: [{ plain_text: 'Database 1' }],
+          },
+          {
+            object: 'page',
+            id: 'page1',
+            title: [{ plain_text: 'Page 1' }],
+          },
+          {
+            object: 'database',
+            id: 'db2',
+            title: [{ plain_text: 'Database 2' }],
+          },
+        ],
+      });
+
+      const tables = await connector.listTables();
+
+      // Should only return databases, not pages
+      expect(tables).toHaveLength(2);
+    });
+
+    it('should handle empty search results', async () => {
+      (mockClient as unknown as { search: jest.Mock }).search = jest.fn().mockResolvedValue({
+        results: [],
+      });
+
+      const tables = await connector.listTables();
+
+      expect(tables).toHaveLength(0);
+    });
+  });
 });
