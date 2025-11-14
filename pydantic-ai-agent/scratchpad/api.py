@@ -147,11 +147,17 @@ class ScratchpadApi:
         url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
         params = {}
 
-        payload = {
-            "ops": [
-                {"op": op.op, "wsId": op.wsId, "data": op.data} for op in operations
-            ]
-        }
+        # Build operation payload - only include wsId if it exists (not needed for create operations)
+        ops_payload = []
+        for op in operations:
+            op_dict = {"op": op.op}
+            if op.wsId is not None:
+                op_dict["wsId"] = op.wsId
+            if op.data is not None:
+                op_dict["data"] = op.data
+            ops_payload.append(op_dict)
+
+        payload = {"ops": ops_payload}
         response = requests.post(
             url,
             headers=API_CONFIG.get_api_headers(user_id),

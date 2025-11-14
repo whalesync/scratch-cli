@@ -99,8 +99,10 @@ class CreateSnapshotDto:
 
 @dataclass
 class RecordOperation:
-    op: str  # "create" | "update" | "delete"
-    wsId: str
+    op: str  # "create" | "update" | "delete" | "undelete"
+    wsId: Optional[str] = (
+        None  # Required for update/delete/undelete, not used for create
+    )
     data: Optional[Dict[str, Any]] = None
 
 

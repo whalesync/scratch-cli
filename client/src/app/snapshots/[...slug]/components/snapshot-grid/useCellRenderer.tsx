@@ -126,27 +126,6 @@ export const useCellRenderer = (
         );
       };
 
-      // If there's no existing value, just show the suggested value
-      if (!formattedValue || formattedValue === '' || formattedValue === 'null' || formattedValue === 'undefined') {
-        return (
-          <Box
-            display="flex"
-            h="100%"
-            style={{
-              alignItems: 'center',
-              overflow: 'hidden',
-              textOverflow: 'clip',
-              whiteSpace: 'nowrap',
-              position: 'relative',
-            }}
-            className="cell-with-suggestion"
-          >
-            <Text className="cell-text">{String(suggestedValue)}</Text>
-            <SuggestionButtons />
-          </Box>
-        );
-      }
-
       // Use diff to show changes when there's both existing and suggested values
       return (
         <Box

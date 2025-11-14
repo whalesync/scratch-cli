@@ -162,7 +162,7 @@ async def create_records_implementation(
             create_operations.append(
                 RecordOperation(
                     op="create",
-                    wsId=f"temp_id_{index+1}",  # Temporary ID for create operations
+                    # wsId=f"temp_id_{index+1}",  # Temporary ID for create operations
                     data=data_payload,
                 ),
             )
