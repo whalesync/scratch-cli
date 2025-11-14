@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
-import { TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
@@ -109,24 +109,24 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
   if (saving) {
     suggestionLabel = (
       <>
-        <Loader size="xs" /> <TextXsRegular>Saving...</TextXsRegular>
+        <Loader size="xs" /> <Text12Regular>Saving...</Text12Regular>
       </>
     );
   } else if (suggestionContainsDelete) {
     suggestionLabel = (
-      <TextXsRegular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>{`//`} Pending delete</TextXsRegular>
+      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>{`//`} Pending delete</Text12Regular>
     );
   } else if (suggestions.length === 1 && columnId) {
     suggestionLabel = (
-      <TextXsRegular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
         {`//`} {suggestions.length} {pluralize('change', suggestions.length)} pending in cell
-      </TextXsRegular>
+      </Text12Regular>
     );
   } else {
     suggestionLabel = (
-      <TextXsRegular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
         {`//`} {suggestions.length} {pluralize('change', suggestions.length)} pending in record
-      </TextXsRegular>
+      </Text12Regular>
     );
   }
 

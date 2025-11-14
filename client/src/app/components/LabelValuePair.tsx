@@ -2,7 +2,7 @@ import { ActionIcon, Box, CopyButton, Group, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 
 import { JSX, ReactNode } from 'react';
-import { TextSmHeavier, TextSmRegular } from './base/text';
+import { Text13Medium, Text13Regular } from './base/text';
 
 export const LabelValuePair = ({
   label,
@@ -17,13 +17,13 @@ export const LabelValuePair = ({
 }): JSX.Element => {
   return (
     <Group wrap="nowrap" align="start" gap="sm">
-      <TextSmHeavier miw={minLabelWidth ?? '180px'}>{label}</TextSmHeavier>
+      <Text13Medium miw={minLabelWidth ?? '180px'}>{label}</Text13Medium>
 
       <Group gap={canCopy ? 'xs' : '0'}>
         {typeof value === 'string' ? (
-          <TextSmRegular style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+          <Text13Regular style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
             {value}
-          </TextSmRegular>
+          </Text13Regular>
         ) : (
           <Box>{value}</Box>
         )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight } from '@/app/components/base/buttons';
-import { TextMdRegular } from '@/app/components/base/text';
+import { Text16Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useUserDevTools } from '@/hooks/use-user-dev-tools';
@@ -46,7 +46,7 @@ const UsersPage = () => {
       <MainContent.BasicHeader title="User management" />
       <MainContent.Body>
         <Stack>
-          <TextMdRegular>Search for users by ID, email, name, or Clerk ID</TextMdRegular>
+          <Text16Regular>Search for users by ID, email, name, or Clerk ID</Text16Regular>
 
           <Group>
             <TextInput

@@ -11,7 +11,7 @@ import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextSmHeavier, TextSmRegular } from '../components/base/text';
+import { Text13Medium, Text13Regular } from '../components/base/text';
 import { FileUploadDropzone } from '../components/dropzone/FileUploadDropzone';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
@@ -124,7 +124,7 @@ export default function StyleGuidesPage() {
                     <Table.Td h="30px">
                       <Group gap="sm">
                         {resourceIcon(styleGuide)}
-                        <TextSmHeavier>{styleGuide.name}</TextSmHeavier>
+                        <Text13Medium>{styleGuide.name}</Text13Medium>
                         {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
                         {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
                         {styleGuide.tags.map((tag) => (
@@ -133,10 +133,10 @@ export default function StyleGuidesPage() {
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <TextSmRegular>{formatDate(styleGuide.updatedAt)}</TextSmRegular>
+                      <Text13Regular>{formatDate(styleGuide.updatedAt)}</Text13Regular>
                     </Table.Td>
                     <Table.Td align="right">
-                      <TextSmRegular>{formatBytes(styleGuide.body.length)}</TextSmRegular>
+                      <Text13Regular>{formatBytes(styleGuide.body.length)}</Text13Regular>
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs" justify="flex-end">

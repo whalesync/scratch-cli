@@ -1,6 +1,6 @@
 'use client';
 
-import { TextSmHeavier } from '@/app/components/base/text';
+import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { serviceName } from '@/service-naming-conventions';
@@ -43,7 +43,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
         <Table.Td>
           <Group gap="sm">
             <ConnectorIcon size={24} connector={connectorAccount.service} withBorder />
-            <TextSmHeavier>{connectorAccount.displayName || serviceName(connectorAccount.service)}</TextSmHeavier>
+            <Text13Medium>{connectorAccount.displayName || serviceName(connectorAccount.service)}</Text13Medium>
           </Group>
         </Table.Td>
         <Table.Td>App</Table.Td>

@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
-import { TextTitle3, TextXsRegular } from '../../../../components/base/text';
+import { Text12Regular, TextTitle3 } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
 import CapabilitiesButton from './CapabilitiesButton';
@@ -540,9 +540,9 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             p="0px"
             rightSection={<ChevronDownIcon size={12} color="gray" />}
           >
-            <TextXsRegular component="span" c="dimmed">
+            <Text12Regular component="span" c="dimmed">
               {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
-            </TextXsRegular>
+            </Text12Regular>
           </Button>
           {/* Capabilities Selection */}
           <CapabilitiesButton

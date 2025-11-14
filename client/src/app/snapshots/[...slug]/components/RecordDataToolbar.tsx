@@ -1,7 +1,7 @@
 'use client';
 
 import { ContentFooterButton } from '@/app/components/base/buttons';
-import { TextSmBook, TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular, Text13Book } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { KeyboardShortcutHelpModal } from '@/app/components/KeyboardShortcutHelpModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
@@ -127,27 +127,27 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
     return (
       <Box>
         <Box mb="xs">
-          <TextSmBook fw={600} component="span">
+          <Text13Book fw={600} component="span">
             method:
-          </TextSmBook>{' '}
-          <TextSmBook component="span">{methodLabel}</TextSmBook>
+          </Text13Book>{' '}
+          <Text13Book component="span">{methodLabel}</Text13Book>
         </Box>
         {avgTokensPerRecord !== null && (
           <Box mb={tokenPercentage !== null && tokenPercentage > 100 ? 'xs' : undefined}>
-            <TextSmBook fw={600} component="span">
+            <Text13Book fw={600} component="span">
               avg. per record:
-            </TextSmBook>{' '}
-            <TextSmBook component="span">{formatTokenCount(avgTokensPerRecord)} tokens</TextSmBook>
+            </Text13Book>{' '}
+            <Text13Book component="span">{formatTokenCount(avgTokensPerRecord)} tokens</Text13Book>
           </Box>
         )}
         {tokenPercentage !== null && tokenPercentage > 100 && maxRecordsFit !== null && (
           <Box>
-            <TextSmBook fw={600} component="span">
+            <Text13Book fw={600} component="span">
               100% ≈
-            </TextSmBook>{' '}
-            <TextSmBook component="span">
+            </Text13Book>{' '}
+            <Text13Book component="span">
               {maxRecordsFit} {pluralize('record', maxRecordsFit)}
-            </TextSmBook>
+            </Text13Book>
           </Box>
         )}
       </Box>
@@ -256,7 +256,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
         <Group ml="auto" gap="xs" align="center">
           {count !== undefined && (
             <>
-              <TextSmBook>
+              <Text13Book>
                 {`${visibleRecordCount} ${pluralize('record', visibleRecordCount)} `}=
                 {` ${formatTokenCount(tokenCalculation.charCount)} chars `}
                 {tokenCalculationSymbol(tokenCalculation)}{' '}
@@ -282,7 +282,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
                   }
                   return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
                 })()}
-              </TextSmBook>
+              </Text13Book>
             </>
           )}
           {isDevToolsEnabled && (
@@ -299,10 +299,10 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
       {/* SQL Filter Modal */}
       <Modal opened={sqlFilterModalOpen} onClose={() => setSqlFilterModalOpen(false)} title="Set SQL Filter" size="md">
         <Box>
-          <TextXsRegular>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</TextXsRegular>
-          <TextXsRegular size="xs" c="dimmed" mb="md">
+          <Text12Regular>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</Text12Regular>
+          <Text12Regular size="xs" c="dimmed" mb="md">
             Example: name = &apos;John&apos; AND age &gt; 25
-          </TextXsRegular>
+          </Text12Regular>
           <Textarea
             label="SQL WHERE Clause"
             value={sqlFilterText}

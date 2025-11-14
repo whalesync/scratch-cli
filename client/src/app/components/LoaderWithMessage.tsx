@@ -1,11 +1,11 @@
 import { Center, Group, Loader } from '@mantine/core';
-import { TextSmRegular } from './base/text';
+import { Text13Regular } from './base/text';
 
 export const LoaderWithMessage = ({ message, centered = false }: { message?: string; centered?: boolean }) => {
   const content = (
     <Group gap="xs" align="center">
       <Loader />
-      <TextSmRegular>{message ?? 'Loading...'}</TextSmRegular>
+      <Text13Regular>{message ?? 'Loading...'}</Text13Regular>
     </Group>
   );
   if (centered) {

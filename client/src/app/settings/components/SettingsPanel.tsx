@@ -1,5 +1,5 @@
 import { Box, Group, Stack } from '@mantine/core';
-import { TextSmBook, TextSmRegular } from '../../components/base/text';
+import { Text13Book, Text13Regular } from '../../components/base/text';
 import classes from './settings-panel.module.css';
 
 export const SettingsPanel = ({
@@ -14,8 +14,8 @@ export const SettingsPanel = ({
   return (
     <Group className={classes.settingsPanel}>
       <Stack className={classes.settingsPanelLeft}>
-        <TextSmRegular>{title}</TextSmRegular>
-        <TextSmBook c="dimmed">{subtitle}</TextSmBook>
+        <Text13Regular>{title}</Text13Regular>
+        <Text13Book c="dimmed">{subtitle}</Text13Book>
       </Stack>
       <Box className={classes.settingsPanelRight}>{children}</Box>
     </Group>

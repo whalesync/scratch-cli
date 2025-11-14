@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextSmHeavier } from '@/app/components/base/text';
+import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshots } from '@/hooks/use-snapshots';
@@ -95,10 +95,10 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>
-          <TextSmHeavier>
+          <Text13Medium>
             <StyledLucideIcon Icon={Table2} size={13} centerInText c="gray.7" mr="xs" />
             {snapshot.name}
-          </TextSmHeavier>
+          </Text13Medium>
         </Table.Td>
         <Table.Td>
           {/* Icons are stacked on top of each other with an offset */}

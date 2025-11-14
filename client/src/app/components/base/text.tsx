@@ -26,57 +26,57 @@ export const TextTitle4 = Title.withProps({
   style: { letterSpacing: '-0.07px', lineHeight: '22px' },
 });
 
-export const TextMdHeavier = Text.withProps({
+export const Text16Medium = Text.withProps({
   fz: '16px',
-  fw: 500,
+  fw: 475,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });
 
-export const TextMdRegular = Text.withProps({
+export const Text16Regular = Text.withProps({
   fz: '16px',
-  fw: 450,
+  fw: 425,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });
 
-export const TextMdBook = Text.withProps({
+export const Text16Book = Text.withProps({
   fz: '16px',
-  fw: 400,
+  fw: 375,
   style: { lineHeight: '20px', letterSpacing: '0%' },
 });
 
-export const TextSmHeavier = Text.withProps({
+export const Text13Medium = Text.withProps({
   fz: '13px',
-  fw: 500,
+  fw: 475,
   style: { lineHeight: '19px', letterSpacing: '0%' },
 });
 
-export const TextSmRegular = Text.withProps({
+export const Text13Regular = Text.withProps({
   fz: '13px',
-  fw: 450,
+  fw: 425,
   style: { lineHeight: '19px', letterSpacing: '0%' },
 });
 
-export const TextSmBook = Text.withProps({
+export const Text13Book = Text.withProps({
   fz: '13px',
-  fw: 400,
+  fw: 375,
   style: { lineHeight: '19px', letterSpacing: '0%' },
 });
 
-export const TextXsHeavier = Text.withProps({
+export const Text12Medium = Text.withProps({
   fz: '12px',
-  fw: 500,
+  fw: 475,
   style: { lineHeight: '18px', letterSpacing: '0%' },
 });
 
-export const TextXsRegular = Text.withProps({
+export const Text12Regular = Text.withProps({
   fz: '12px',
-  fw: 450,
+  fw: 425,
   style: { lineHeight: '18px', letterSpacing: '0%' },
 });
 
-export const TextXsBook = Text.withProps({
+export const Text12Book = Text.withProps({
   fz: '12px',
-  fw: 400,
+  fw: 375,
   style: { lineHeight: '18px', letterSpacing: '0%' },
 });
 

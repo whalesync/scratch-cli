@@ -19,7 +19,7 @@ import { CircleAlert, FileText, RotateCw, Search, SquareArrowOutUpRight } from '
 import Link from 'next/link';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { ButtonPrimaryLight } from '../base/buttons';
-import { TextMdHeavier, TextSmBook } from '../base/text';
+import { Text13Book, Text16Medium } from '../base/text';
 import styles from './Info.module.css';
 
 /*
@@ -73,14 +73,14 @@ const LoaderWidget = (): JSX.Element => {
 
 const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <TextMdHeavier mb="2px" {...props}>
+    <Text16Medium mb="2px" {...props}>
       {children}
-    </TextMdHeavier>
+    </Text16Medium>
   );
 };
 
 const Description = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
-  return <TextSmBook {...props}>{children}</TextSmBook>;
+  return <Text13Book {...props}>{children}</Text13Book>;
 };
 
 const StatusPageDescription = (): JSX.Element => {

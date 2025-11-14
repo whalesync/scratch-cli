@@ -5,7 +5,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Modal, Stack } from '@mantine/core';
 import Link from 'next/link';
 import { JSX } from 'react';
-import { TextSmRegular, TextTitle2 } from './base/text';
+import { Text13Regular, TextTitle2 } from './base/text';
 
 export const NoSubscriptionDetectedModal = (): JSX.Element => {
   const { signOut } = useScratchPadUser();
@@ -23,9 +23,9 @@ export const NoSubscriptionDetectedModal = (): JSX.Element => {
     >
       <Stack gap="xs" mb="md" align="center">
         <TextTitle2>Get started with Scratch</TextTitle2>
-        <TextSmRegular ta="center">
+        <Text13Regular ta="center">
           Sign up for your 7 day free trial and start editing your data with AI.
-        </TextSmRegular>
+        </Text13Regular>
       </Stack>
       <Stack gap="xs">
         <ButtonSecondaryOutline onClick={signOut}>Switch accounts</ButtonSecondaryOutline>

@@ -5,7 +5,7 @@ import { NewTabId, SnapshotEditorUIState, useSnapshotEditorUIStore } from '../..
 import { SnapshotTableId } from '../../../../types/server-entities/ids';
 import { Snapshot } from '../../../../types/server-entities/snapshot';
 import { IconButtonGhost } from '../../../components/base/buttons';
-import { TextSmHeavier } from '../../../components/base/text';
+import { Text13Medium } from '../../../components/base/text';
 import { CloseButtonInline } from '../../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../../components/ConnectorIcon';
 import classes from './SnapshotTabBar.module.css';
@@ -110,7 +110,7 @@ const TableTab = ({
     <Tabs.Tab component={Box} value={tab.id} key={tab.id} rightSection={rightSection}>
       <Group gap="3" wrap="nowrap" maw={250}>
         {table && <ConnectorIcon connector={table.connectorService} size={28} />}
-        <TextSmHeavier truncate="end">{tabName}</TextSmHeavier>
+        <Text13Medium truncate="end">{tabName}</Text13Medium>
       </Group>
     </Tabs.Tab>
   );

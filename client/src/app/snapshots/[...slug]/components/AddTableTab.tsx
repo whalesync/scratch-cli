@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextSmBook, TextSmHeavier, TextSmRegular, TextTitle3 } from '@/app/components/base/text';
+import { Text13Book, Text13Medium, Text13Regular, TextTitle3 } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
@@ -148,11 +148,11 @@ export const AddTableTab = () => {
   return (
     <Stack gap="md" maw={500} mx="auto" align="center" py="xl">
       <DecorativeBoxedIcon Icon={PlusIcon} />
-      <TextSmHeavier ta="center">Import table into workbook</TextSmHeavier>
-      <TextSmBook c="dimmed" ta="center">
+      <Text13Medium ta="center">Import table into workbook</Text13Medium>
+      <Text13Book c="dimmed" ta="center">
         Select which table you want to import
         <br /> into the workbook.
-      </TextSmBook>
+      </Text13Book>
 
       {step === 'select-connector' && (
         <>
@@ -201,9 +201,9 @@ export const AddTableTab = () => {
             </ButtonSecondaryOutline>
           </Group>
 
-          <TextSmRegular c="dimmed">
+          <Text13Regular c="dimmed">
             Choose a table to add to your snapshot. The table&apos;s data will be downloaded and added to your snapshot.
-          </TextSmRegular>
+          </Text13Regular>
 
           {loadingTables ? (
             <Center py="xl">

@@ -1,6 +1,6 @@
 'use client';
 
-import { TextSmHeavier } from '@/app/components/base/text';
+import { Text13Medium } from '@/app/components/base/text';
 import { Upload } from '@/lib/api/uploads';
 import { Badge, Group, Menu, Table } from '@mantine/core';
 import { Download, Plus, Trash2 } from 'lucide-react';
@@ -35,7 +35,7 @@ export default function UploadsRow({
         <Link href="#" onClick={() => onView(upload)}>
           <Group gap="sm">
             <ConnectorIcon size={24} connector="csv" withBorder />
-            <TextSmHeavier>{upload.name}</TextSmHeavier>
+            <Text13Medium>{upload.name}</Text13Medium>
           </Group>
         </Link>
       </Table.Td>

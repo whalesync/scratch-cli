@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextSmRegular, TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -81,7 +81,7 @@ export const AgentCredentials = () => {
     return (
       <Stack gap="xs">
         <Progress value={value} color={value > 90 ? 'red.6' : value > 80 ? 'yellow.6' : 'green.6'} />
-        <TextXsRegular c="dimmed">{`${Number(credential.usage.usage).toFixed(3)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</TextXsRegular>
+        <Text12Regular c="dimmed">{`${Number(credential.usage.usage).toFixed(3)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}</Text12Regular>
       </Stack>
     );
   };
@@ -99,7 +99,7 @@ export const AgentCredentials = () => {
         <Grid key={credential.id} align="flex-start">
           <Grid.Col span={3}>
             <Group gap="xs">
-              <TextSmRegular>{getServiceIcon(credential.service)}</TextSmRegular>
+              <Text13Regular>{getServiceIcon(credential.service)}</Text13Regular>
               {credential.default && (
                 <Badge color="primary" variant="light" size="xs">
                   Default
@@ -109,8 +109,8 @@ export const AgentCredentials = () => {
           </Grid.Col>
           <Grid.Col span={6}>
             <Stack gap="xs">
-              <TextSmRegular>{credential.label}</TextSmRegular>
-              <TextXsRegular c="dimmed">{credential.description}</TextXsRegular>
+              <Text13Regular>{credential.label}</Text13Regular>
+              <Text12Regular c="dimmed">{credential.description}</Text12Regular>
               {buildUsageElement(credential)}
             </Stack>
           </Grid.Col>

@@ -1,6 +1,6 @@
 import { Box, Code, Divider, Group, Kbd, Modal, ModalProps, Stack, Text } from '@mantine/core';
 import { ButtonSecondaryOutline } from './base/buttons';
-import { TextSmRegular, TextTitle3 } from './base/text';
+import { Text13Regular, TextTitle3 } from './base/text';
 
 export const KeyboardShortcutHelpModal = (props: ModalProps) => {
   const shortcutsContent = (
@@ -10,15 +10,15 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3 mb="xs">Grid Navigation</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextSmRegular>Open record details</TextSmRegular>
+            <Text13Regular>Open record details</Text13Regular>
             <Kbd>Enter</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Close record details</TextSmRegular>
+            <Text13Regular>Close record details</Text13Regular>
             <Kbd>Escape</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Copy cell value</TextSmRegular>
+            <Text13Regular>Copy cell value</Text13Regular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -26,7 +26,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Navigate between records</TextSmRegular>
+            <Text13Regular>Navigate between records</Text13Regular>
             <Group gap="xs">
               <Kbd>↑</Kbd>
               <Text size="xs" c="dimmed">
@@ -36,7 +36,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Navigate between columns</TextSmRegular>
+            <Text13Regular>Navigate between columns</Text13Regular>
             <Group gap="xs" wrap="nowrap">
               <Kbd>←</Kbd>
               <Text size="xs" c="dimmed">
@@ -47,7 +47,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
           </Group>
 
           <Group justify="space-between">
-            <TextSmRegular>Toggle max column width</TextSmRegular>
+            <Text13Regular>Toggle max column width</Text13Regular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -64,7 +64,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3>General</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextSmRegular mb="xs">Open this help modal</TextSmRegular>
+            <Text13Regular mb="xs">Open this help modal</Text13Regular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -81,11 +81,11 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
         <TextTitle3 mb="xs">Chat</TextTitle3>
         <Stack gap="xs">
           <Group justify="space-between">
-            <TextSmRegular>Send message</TextSmRegular>
+            <Text13Regular>Send message</Text13Regular>
             <Kbd>Enter</Kbd>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>New line in message</TextSmRegular>
+            <Text13Regular>New line in message</Text13Regular>
             <Group gap="xs">
               <Kbd>Shift</Kbd>
               <Text>+</Text>
@@ -93,7 +93,7 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Attach a resource to the session</TextSmRegular>
+            <Text13Regular>Attach a resource to the session</Text13Regular>
             <Group gap="xs">
               <Kbd>Ctrl</Kbd>
               <Text>+</Text>
@@ -101,14 +101,14 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>New session</TextSmRegular>
+            <Text13Regular>New session</Text13Regular>
             <Group gap="xs">
               <Text>type </Text>
               <Code>/new</Code>
             </Group>
           </Group>
           <Group justify="space-between">
-            <TextSmRegular>Clear local history</TextSmRegular>
+            <Text13Regular>Clear local history</Text13Regular>
             <Group gap="xs">
               <Text>type </Text>
               <Code>/clear</Code>

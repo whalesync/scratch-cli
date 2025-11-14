@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
-import { TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { TableSpec } from '@/types/server-entities/snapshot';
@@ -73,15 +73,15 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
         {saving ? (
           <>
             <Loader size="xs" />
-            <TextXsRegular>Saving...</TextXsRegular>
+            <Text12Regular>Saving...</Text12Regular>
           </>
         ) : (
-          <TextXsRegular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+          <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
             {`//`} {totalSuggestions} {pluralize('change', totalSuggestions)} pending{' '}
             {totalSuggestedDeletes > 0
               ? `(${totalSuggestedDeletes} ${pluralize('record', totalSuggestedDeletes)} to deleted)`
               : ''}
-          </TextXsRegular>
+          </Text12Regular>
         )}
         <Group ml="auto">
           <RejectSuggestionButton size="xs" onClick={handleRejectAllSuggestions} loading={saving}>

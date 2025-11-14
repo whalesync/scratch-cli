@@ -4,7 +4,7 @@ import { Center, MantineStyleProps, Stack } from '@mantine/core';
 import { Dropzone, DropzoneProps } from '@mantine/dropzone';
 import { Upload, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { TextMdHeavier, TextSmRegular } from '../base/text';
+import { Text13Regular, Text16Medium } from '../base/text';
 import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 import { CsvPreviewModal } from '../modals/CsvPreviewModal';
 import { MdPreviewModal } from '../modals/MdPreviewModal';
@@ -143,7 +143,7 @@ export const FileUploadDropzone = ({
           <Center className={styles.dropzoneFeedbackOuter}>
             <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
               <DecorativeBoxedIcon Icon={Upload} />
-              <TextMdHeavier>Drop {allowedTypes.join(' or ')} file here to upload</TextMdHeavier>
+              <Text16Medium>Drop {allowedTypes.join(' or ')} file here to upload</Text16Medium>
             </Stack>
           </Center>
         </Dropzone.Accept>
@@ -152,8 +152,8 @@ export const FileUploadDropzone = ({
           <Center className={styles.dropzoneFeedbackOuter}>
             <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
               <DecorativeBoxedIcon Icon={X} c="var(--mantine-color-red-8)" bg="var(--mantine-color-red-2)" />
-              <TextMdHeavier>Unsupported file</TextMdHeavier>
-              <TextSmRegular c="dimmed">Only {allowedTypes.join(' or ')} files can be uploaded</TextSmRegular>
+              <Text16Medium>Unsupported file</Text16Medium>
+              <Text13Regular c="dimmed">Only {allowedTypes.join(' or ')} files can be uploaded</Text13Regular>
             </Stack>
           </Center>
         </Dropzone.Reject>

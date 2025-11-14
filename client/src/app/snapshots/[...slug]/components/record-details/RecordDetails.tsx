@@ -1,4 +1,4 @@
-import { TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Group, Loader, Stack } from '@mantine/core';
@@ -168,7 +168,7 @@ export const RecordDetails = ({
           (savingPendingChanges && (
             <Group gap="xs">
               <Loader c="primary" size="xs" />
-              <TextXsRegular>Saving...</TextXsRegular>
+              <Text12Regular>Saving...</Text12Regular>
             </Group>
           ))}
       </Box>

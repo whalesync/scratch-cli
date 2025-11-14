@@ -2,7 +2,7 @@ import { ActionIcon, Center, Group } from '@mantine/core';
 import { PanelRightIcon, Table2 } from 'lucide-react';
 import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 import { useLayoutManagerStore } from '../../../../stores/layout-manager-store';
-import { TextSmRegular } from '../../../components/base/text';
+import { Text13Regular } from '../../../components/base/text';
 import { StyledLucideIcon } from '../../../components/Icons/StyledLucideIcon';
 import { SnapshotActionsMenu } from './SnapshotActionsMenu';
 
@@ -15,7 +15,7 @@ export const SnapshotHeader = () => {
       <Center pos="absolute" left={0} right={0}>
         <Group gap={6}>
           <StyledLucideIcon Icon={Table2} size={14} c="var(--fg-secondary)" />
-          <TextSmRegular>{snapshot?.name}</TextSmRegular>
+          <Text13Regular>{snapshot?.name}</Text13Regular>
         </Group>
       </Center>
       {/* TODO: Move the publish button here, after figuring out how it should behave */}

@@ -1,4 +1,4 @@
-import { TextSmRegular, TextXsRegular } from '@/app/components/base/text';
+import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
 import {
@@ -24,8 +24,8 @@ export const DevToolsPanel = () => {
     <SettingsPanel title="Dev Tools" subtitle="Developer tools and information.">
       <Stack gap="xs">
         <Group wrap="nowrap" gap="xs">
-          <TextSmRegular miw={200}>User ID</TextSmRegular>
-          <TextSmRegular>{user?.id || 'No user ID found'}</TextSmRegular>
+          <Text13Regular miw={200}>User ID</Text13Regular>
+          <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
           <CopyButton value={user?.id || ''} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
@@ -38,7 +38,7 @@ export const DevToolsPanel = () => {
           {isAdmin && <Badge size="xs">Admin</Badge>}
         </Group>
         <Group wrap="nowrap" gap="xs">
-          <TextSmRegular miw={200}>Agent Token</TextSmRegular>
+          <Text13Regular miw={200}>Agent Token</Text13Regular>
           <PasswordInput
             variant="unstyled"
             value={user?.agentJwt}
@@ -58,7 +58,7 @@ export const DevToolsPanel = () => {
           </CopyButton>
         </Group>
         <Group wrap="nowrap" gap="xs">
-          <TextSmRegular miw={200}>UI Websocket Key</TextSmRegular>
+          <Text13Regular miw={200}>UI Websocket Key</Text13Regular>
           <PasswordInput
             variant="unstyled"
             value={user?.websocketToken}
@@ -79,16 +79,16 @@ export const DevToolsPanel = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <TextSmRegular miw={200}>Flags</TextSmRegular>
+          <Text13Regular miw={200}>Flags</Text13Regular>
           <Grid w="100%">
             <Grid.Col span={4}>
-              <TextXsRegular>Skip paywall on localhost</TextXsRegular>
+              <Text12Regular>Skip paywall on localhost</Text12Regular>
             </Grid.Col>
             <Grid.Col span={8}>
               <FlagCheckboxOption flag={FLAGS.SKIP_PAYWALL_FOR_LOCALHOST} />
             </Grid.Col>
             <Grid.Col span={4}>
-              <TextXsRegular>Dev tools visible</TextXsRegular>
+              <Text12Regular>Dev tools visible</Text12Regular>
             </Grid.Col>
             <Grid.Col span={8}>
               <FlagCheckboxOption flag={FLAGS.DEV_TOOLS_VISIBLE} />
@@ -97,10 +97,10 @@ export const DevToolsPanel = () => {
               Object.entries(user.experimentalFlags).map(([flag, value]) => (
                 <Fragment key={flag}>
                   <Grid.Col span={4}>
-                    <TextXsRegular>{flag}</TextXsRegular>
+                    <Text12Regular>{flag}</Text12Regular>
                   </Grid.Col>
                   <Grid.Col span={8}>
-                    <TextXsRegular>{value.toString()}</TextXsRegular>
+                    <Text12Regular>{value.toString()}</Text12Regular>
                   </Grid.Col>
                 </Fragment>
               ))}
@@ -108,16 +108,16 @@ export const DevToolsPanel = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <TextSmRegular miw={200}>User Settings</TextSmRegular>
+          <Text13Regular miw={200}>User Settings</Text13Regular>
           <Grid w="100%">
             {user?.settings &&
               Object.entries(user.settings).map(([key, value]) => (
                 <Fragment key={key}>
                   <Grid.Col span={4}>
-                    <TextXsRegular>{key}</TextXsRegular>
+                    <Text12Regular>{key}</Text12Regular>
                   </Grid.Col>
                   <Grid.Col span={8}>
-                    <TextXsRegular>{value}</TextXsRegular>
+                    <Text12Regular>{value}</Text12Regular>
                   </Grid.Col>
                 </Fragment>
               ))}

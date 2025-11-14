@@ -54,21 +54,21 @@ import {
   RejectSuggestionButton,
 } from '../../components/base/buttons';
 import {
-  TextMdBook,
-  TextMdHeavier,
-  TextMdRegular,
+  Text12Book,
+  Text12Medium,
+  Text12Regular,
+  Text13Book,
+  Text13Medium,
+  Text13Regular,
+  Text16Book,
+  Text16Medium,
+  Text16Regular,
   TextMonoSmRegular,
   TextMonoXsRegular,
-  TextSmBook,
-  TextSmHeavier,
-  TextSmRegular,
   TextTitle1,
   TextTitle2,
   TextTitle3,
   TextTitle4,
-  TextXsBook,
-  TextXsHeavier,
-  TextXsRegular,
 } from '../../components/base/text';
 import { CloseButtonInline } from '../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
@@ -87,7 +87,7 @@ export default function DevComponentGalleryPage() {
       <MainContent.BasicHeader title="Dev tools - Component gallery" />
       <MainContent.Body>
         <Stack w="100%" p="md">
-          <TextSmRegular>This is a gallery of components that are available in the application</TextSmRegular>
+          <Text13Regular>This is a gallery of components that are available in the application</Text13Regular>
           {/* Table of contents */}
           <List>
             <List.Item>
@@ -134,9 +134,9 @@ export default function DevComponentGalleryPage() {
             </List.Item>
           </List>
           <GallerySection id="shades" title="Key shades" />
-          <TextXsBook c="dimmed">
+          <Text12Book c="dimmed">
             These are single-color shades that adjust for light/dark mode. Use these for all panels and text.
-          </TextXsBook>
+          </Text12Book>
           <GalleryItem label="Background: base" notes="Main body/page background color">
             <ColorChip cssName="--bg-base" modeAware />
           </GalleryItem>
@@ -171,10 +171,10 @@ export default function DevComponentGalleryPage() {
             <ColorChip cssName="--fg-muted" modeAware />
           </GalleryItem>
           <GallerySection id="colors" title="Colors" />
-          <TextXsBook c="dimmed">
+          <Text12Book c="dimmed">
             These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
             because Mantine only supports 10 shades. Mostly use the shades above instead.
-          </TextXsBook>
+          </Text12Book>
           <GalleryColor
             color="green"
             modeAware
@@ -216,56 +216,58 @@ export default function DevComponentGalleryPage() {
           />
           <GalleryColor color="blue" />
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
+
           <GallerySection id="title-text" title="Text: title" />
-          <TypeGalleryItem label="TextTitle1">
+          <TypeGalleryItem label="TextTitle1" notes="AKA title/24">
             <TextTitle1>Brown fox is quick</TextTitle1>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle2">
+          <TypeGalleryItem label="TextTitle2" notes="AKA title/18">
             <TextTitle2>Brown fox is quick</TextTitle2>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle3">
+          <TypeGalleryItem label="TextTitle3" notes="AKA title/16">
             <TextTitle3>Brown fox is quick</TextTitle3>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextTitle4">
+          <TypeGalleryItem label="TextTitle4" notes="AKA title/14">
             <TextTitle4>Brown fox is quick</TextTitle4>
           </TypeGalleryItem>
+
           <GallerySection id="body-text" title="Text: body" />
-          <TextXsBook c="dimmed">All of these support c=&apos;dimmed&apos;</TextXsBook>
-          <TypeGalleryItem label="TextMdHeavier" notes="AKA text/16-medium">
-            <TextMdHeavier>Brown fox is quick</TextMdHeavier>
+          <Text12Book c="dimmed">All of these support c=&apos;dimmed&apos;</Text12Book>
+          <TypeGalleryItem label="Text16Medium" notes="AKA text/16-medium">
+            <Text16Medium>Brown fox is quick</Text16Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMdRegular" notes="AKA text/16-regular">
-            <TextMdRegular>Brown fox is quick</TextMdRegular>
+          <TypeGalleryItem label="Text16Regular" notes="AKA text/16-regular">
+            <Text16Regular>Brown fox is quick</Text16Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextMdBook" notes="AKA text/16-book">
-            <TextMdBook>Brown fox is quick</TextMdBook>
+          <TypeGalleryItem label="Text16Book" notes="AKA text/16-book">
+            <Text16Book>Brown fox is quick</Text16Book>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmHeavier" notes="AKA text/13-medium">
-            <TextSmHeavier>Brown fox is quick</TextSmHeavier>
+          <TypeGalleryItem label="Text13Medium" notes="AKA text/13-medium">
+            <Text13Medium>Brown fox is quick</Text13Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmRegular" notes="AKA text/13-regular">
-            <TextSmRegular>Brown fox is quick</TextSmRegular>
+          <TypeGalleryItem label="Text13Regular" notes="AKA text/13-regular">
+            <Text13Regular>Brown fox is quick</Text13Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextSmBook" notes="AKA text/13-book">
-            <TextSmBook>Brown fox is quick</TextSmBook>
+          <TypeGalleryItem label="Text13Book" notes="AKA text/13-book">
+            <Text13Book>Brown fox is quick</Text13Book>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsHeavier" notes="AKA text/12-medium">
-            <TextXsHeavier>Brown fox is quick</TextXsHeavier>
+          <TypeGalleryItem label="Text12Medium" notes="AKA text/12-medium">
+            <Text12Medium>Brown fox is quick</Text12Medium>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsRegular" notes="AKA text/12-regular">
-            <TextXsRegular>Brown fox is quick</TextXsRegular>
+          <TypeGalleryItem label="Text12Regular" notes="AKA text/12-regular">
+            <Text12Regular>Brown fox is quick</Text12Regular>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsBook" notes="AKA text/12-book">
-            <TextXsBook>Brown fox is quick</TextXsBook>
+          <TypeGalleryItem label="Text12Book" notes="AKA text/12-book">
+            <Text12Book>Brown fox is quick</Text12Book>
           </TypeGalleryItem>
-          <TypeGalleryItem label="TextXsBook c='dimmed'">
-            <TextXsBook c="dimmed">Brown fox is quick</TextXsBook>
+          <TypeGalleryItem label="Text12Book c='dimmed'">
+            <Text12Book c="dimmed">Brown fox is quick</Text12Book>
           </TypeGalleryItem>
           <GalleryItem label="DotSpacer">
             <Group gap={0}>
-              <TextSmRegular>Item 1</TextSmRegular>
+              <Text13Regular>Item 1</Text13Regular>
               <DotSpacer />
-              <TextSmRegular>Item 2</TextSmRegular>
+              <Text13Regular>Item 2</Text13Regular>
             </Group>
           </GalleryItem>
           <GallerySection id="mono-text" title="Text: monospace" />
@@ -389,9 +391,9 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GallerySection id="formatting" title="Formatting" />
           <GalleryItem label="RelativeDate (with tooltip)">
-            <TextSmBook c="dimmed">
+            <Text13Book c="dimmed">
               <RelativeDate date={'2025-10-05T00:25:10.892Z'} />
-            </TextSmBook>
+            </Text13Book>
           </GalleryItem>
           <GallerySection id="info-panels" title="Info Panels" />
           <GalleryItem label="Info.NotFoundIcon">
@@ -501,13 +503,13 @@ function GalleryItem({
   return (
     <Group align="center" ml="md">
       <Stack>
-        <TextMdHeavier w={250} style={{ textDecoration: deprecated ? 'line-through' : 'none' }}>
+        <Text16Medium w={250} style={{ textDecoration: deprecated ? 'line-through' : 'none' }}>
           {label}
-        </TextMdHeavier>
+        </Text16Medium>
         {notes && (
-          <TextSmBook c="dimmed" maw={250}>
+          <Text13Book c="dimmed" maw={250}>
             {notes}
-          </TextSmBook>
+          </Text13Book>
         )}
       </Stack>
 

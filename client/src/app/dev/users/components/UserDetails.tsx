@@ -1,5 +1,5 @@
 import { BadgeError, BadgeOK } from '@/app/components/base/badges';
-import { TextSmBook, TextTitle2, TextTitle3 } from '@/app/components/base/text';
+import { Text13Book, TextTitle2, TextTitle3 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
@@ -101,7 +101,7 @@ export const UserDetailsCard = ({
               label={key}
               value={
                 <Group justify="space-between" w="100%">
-                  <TextSmBook>{value}</TextSmBook>
+                  <Text13Book>{value}</Text13Book>
                   <ToolIconButton
                     icon={Trash2Icon}
                     onClick={() => handleRemoveSetting(key)}
@@ -200,9 +200,9 @@ const SubscriptionInfo = ({ user }: { user: User }) => {
     <Group>
       {subscriptionBadge()}
       {user.subscription?.status === 'valid' && (
-        <TextSmBook>
+        <Text13Book>
           {user.subscription?.planDisplayName} - {user.subscription?.daysRemaining} days remaining
-        </TextSmBook>
+        </Text13Book>
       )}
     </Group>
   );

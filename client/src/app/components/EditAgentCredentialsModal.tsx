@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { TextSmRegular } from '@/app/components/base/text';
+import { Text13Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
@@ -88,11 +88,11 @@ export const EditAgentCredentialsModal = ({
             {error}
           </Alert>
         )}
-        <TextSmRegular c="dimmed">
+        <Text13Regular c="dimmed">
           {credentials
             ? `Edit the credentials here to enable the ${PROJECT_NAME} agent to use it.`
             : `Register an OpenRouter.ai API key here to enable the ${PROJECT_NAME} agent to use it.`}
-        </TextSmRegular>
+        </Text13Regular>
         <PasswordInput
           label="API Key"
           required
