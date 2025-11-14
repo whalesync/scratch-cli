@@ -244,11 +244,11 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 | Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
 | CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
 | Webflow    | 3            | 1          | 9          | ~30%     | ⚠️ Partial   |
+| WordPress  | 6            | 1          | 10         | ~17%     | ⚠️ Partial   |
 | Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
 | YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
-| WordPress  | 6            | 0          | 0          | 0%       | ❌ No tests  |
 | Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **7**      | **~166**   | **~15%** | **Critical** |
+| **Total**  | **~41**      | **8**      | **~176**   | **~19%** | **Critical** |
 
 ### Tested Areas ✅
 
@@ -340,6 +340,33 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ Error extraction (`extractConnectorErrorDetails` method)
 - ❌ Field conversion helper (`wsFieldsToWebflowFields` method)
 
+#### WordPress Connector (⚠️ Partial Coverage)
+**Location**: `server/src/remote-service/connectors/library/wordpress/`
+**Test Files**:
+- `wordpress-connector.spec.ts` - Connector implementation tests (10 test cases)
+
+**What's Tested**:
+- ✅ `downloadTableRecords` function - Core record download logic with minimal fields
+- ✅ Pagination handling (offset-based with `WORDPRESS_POLLING_PAGE_SIZE`)
+- ✅ Rendered content conversion (HTML to Markdown with Turndown service)
+- ✅ Rendered content HTML mode (when dataConverter is 'html')
+- ✅ Non-rendered fields (status, sticky, etc.)
+- ✅ Progress parameter for resuming downloads
+- ✅ Connector progress with next offset handling
+- ✅ Helper methods (displayName, service type, getBatchSize)
+
+**What's NOT Tested**:
+- ❌ `wordpress-http-client.ts` - HTTP client implementation (mocked in tests)
+- ❌ `wordpress-schema-parser.ts` - Schema parsing logic
+- ❌ `wordpress-auth-parser.ts` - Authentication endpoint parsing and transformations
+- ❌ Connection testing (`testConnection` method)
+- ❌ Table listing (`listTables` method)
+- ❌ Table spec fetching (`fetchTableSpec` method)
+- ❌ Record creation (`createRecords` method)
+- ❌ Record updates (`updateRecords` method)
+- ❌ Record deletion (`deleteRecords` method)
+- ❌ Error extraction (`extractConnectorErrorDetails` method)
+
 ### Untested Connectors ❌
 
 #### Airtable Connector (❌ No Tests)
@@ -370,23 +397,6 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 2. Video metadata retrieval
 3. Channel and playlist operations
 4. Error handling (quota limits, permissions)
-
-#### WordPress Connector (❌ No Tests)
-**Location**: `server/src/remote-service/connectors/library/wordpress/`
-**Source Files**:
-- `wordpress-connector.ts` - Main connector implementation
-- `wordpress-http-client.ts` - HTTP client
-- `wordpress-schema-parser.ts` - Schema parser
-- `wordpress-auth-parser.ts` - Auth parsing
-- `wordpress-constants.ts` - Constants
-- `wordpress-types.ts` - Type definitions
-
-**Priority Areas to Test**:
-1. REST API authentication parsing
-2. Post and page CRUD operations
-3. Media handling
-4. Schema parsing (custom post types)
-5. Error handling
 
 #### Custom Connector (❌ No Tests)
 **Location**: `server/src/remote-service/connectors/library/custom/`
@@ -432,10 +442,10 @@ These connectors are production-critical and handle user data:
 **Risk**: Data corruption, sync failures, API errors not handled properly
 
 #### 🟡 P1 - High (Test Soon)
-1. **WordPress Connector** - Authentication and CRUD operations
-2. **Wix Connector** - Complete connector class tests
-3. **CSV Connector** - Complete connector class tests
-4. **Webflow Connector** - Complete remaining methods (schema parser, CRUD operations)
+1. **Wix Connector** - Complete connector class tests
+2. **CSV Connector** - Complete connector class tests
+3. **Webflow Connector** - Complete remaining methods (schema parser, CRUD operations)
+4. **WordPress Connector** - Complete remaining methods (schema parser, auth parser, CRUD operations)
 
 **Risk**: Common integrations may break
 
@@ -447,62 +457,59 @@ These connectors are production-critical and handle user data:
 #### 🔵 P3 - Low (Future)
 1. **Custom Connector** - Security and validation tests
 
-### Recommended Test Patterns for Connectors
+### Connector Test Infrastructure
 
-Based on existing connector code structure, follow these patterns:
+All new connector tests should follow the standardized test pattern defined in the connector test infrastructure:
 
-#### 1. Connector Class Tests
+**Test Pattern Documentation**:
+- `server/src/remote-service/connectors/library/CONNECTOR_TEST_PATTERN.md` - Quick reference guide for connector testing standards
+- `server/src/remote-service/connectors/library/connector-test-example.md` - Detailed examples with patterns and anti-patterns
+
+**Required Tests** (All connectors MUST include):
+1. ✅ `downloadTableRecords` - basic download and transformation
+2. ✅ `downloadTableRecords` - pagination handling
+3. ✅ `displayName()` - returns correct connector name
+4. ✅ `service` - has correct Service enum value
+5. ✅ `getBatchSize()` - returns valid batch size
+
+**Key Testing Principles**:
+1. **Mock the API Client, Not Internals** - Mock the SDK/API client that your connector uses; don't test the HTTP client itself
+2. **Use Minimal Data** - 1-2 field types max in table specs, 2-3 records max in test data (prevents Node.js heap exhaustion)
+3. **Focus on Core Logic** - Test download mechanism, pagination, data transformation, connector-specific features
+4. **Follow Examples** - Reference `webflow/webflow-connector.spec.ts`, `notion/notion-connector.spec.ts`, `wordpress/wordpress-connector.spec.ts`
+
+**Example Pattern**:
 ```typescript
-describe('AirtableConnector', () => {
-  describe('testConnection', () => {
-    it('should successfully connect with valid API key', async () => {
-      // Test successful connection
+// Mock the API client
+const createMockClient = () => ({
+  getData: jest.fn(),
+  // Only methods your connector actually calls
+});
+
+jest.mock('your-api-library', () => ({
+  YourApiClient: jest.fn().mockImplementation(() => mockClient),
+}));
+
+describe('YourConnector', () => {
+  // Required: downloadTableRecords tests
+  describe('downloadTableRecords', () => {
+    it('should download records and transform basic fields', async () => {
+      // Use MINIMAL data (2-3 records, 1-2 fields)
     });
 
-    it('should throw error with invalid API key', async () => {
-      // Test auth failure
+    it('should handle pagination correctly', async () => {
+      // Test pagination logic
     });
   });
 
-  describe('listTables', () => {
-    it('should return all tables from all bases', async () => {
-      // Test table listing
-    });
-  });
-
-  describe('fetchTableSpec', () => {
-    it('should return table schema', async () => {
-      // Test schema fetching
-    });
-  });
+  // Required: metadata tests
+  describe('displayName', () => { /* ... */ });
+  describe('service', () => { /* ... */ });
+  describe('getBatchSize', () => { /* ... */ });
 });
 ```
 
-#### 2. API Client Tests
-```typescript
-describe('AirtableApiClient', () => {
-  it('should handle rate limiting', async () => {
-    // Test rate limit handling
-  });
-
-  it('should retry on transient errors', async () => {
-    // Test retry logic
-  });
-});
-```
-
-#### 3. Schema Parser Tests
-```typescript
-describe('AirtableSchemaParser', () => {
-  it('should convert Airtable field types to Postgres types', () => {
-    // Test type conversions
-  });
-
-  it('should handle unknown field types gracefully', () => {
-    // Test error handling
-  });
-});
-```
+See `server/src/remote-service/connectors/library/CONNECTOR_TEST_PATTERN.md` for full documentation.
 
 ### Next Steps for Connector Testing
 
@@ -833,6 +840,34 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 - 📊 **Coverage updated**: Connector tests went from 6 to 7 test files, test cases from ~161 to ~166
 - 🎯 **Progress**: Notion connector tests expanded from 3 to 4 test files
 - 📈 **Cumulative progress**: 14 new test cases for connectors (9 Webflow + 5 Notion)
+
+- ✅ **WordPress connector tests added** (+1 test file, +10 test cases)
+  - WordPress connector tests (`server/src/remote-service/connectors/library/wordpress/wordpress-connector.spec.ts`) - 10 test cases
+    - `downloadTableRecords` function - Core record download and transformation logic
+    - Pagination handling (offset-based with `WORDPRESS_POLLING_PAGE_SIZE`)
+    - Rendered content conversion (HTML to Markdown with Turndown service)
+    - Rendered content HTML mode when dataConverter is 'html'
+    - Non-rendered fields (status, sticky, etc.)
+    - Progress parameter for resuming downloads
+    - Connector progress with next offset handling
+    - Helper methods (displayName, service type, getBatchSize)
+  - **Mock implementation**: Successfully mocked `WordPressHttpClient` (custom HTTP client, not testing the client itself)
+  - **Format validation**: Tests ensure correct transformation from WordPress API format to ConnectorRecord format
+- 📊 **Coverage updated**: Connector tests went from 7 to 8 test files, test cases from ~166 to ~176
+- 🎯 **Progress**: WordPress connector moved from "No tests" to "Partial Coverage" (17% coverage)
+- 🔌 **Connector impact**: Core downloadTableRecords functionality tested with proper HTTP client mocking
+- 📈 **Cumulative progress**: 24 new test cases for connectors (9 Webflow + 5 Notion + 10 WordPress)
+
+- ✅ **Connector test infrastructure created** (+4 new files)
+  - Standardized test pattern documentation and utilities
+  - `library/CONNECTOR_TEST_PATTERN.md` - Quick reference guide with required tests, testing principles, and checklist
+  - `library/connector-test-example.md` - Comprehensive guide with examples, patterns, and anti-patterns
+  - `library/base-connector-test.ts` - Base class for extending to create standardized connector tests
+  - `library/connector-test-helpers.ts` - Utility functions and TypeScript interfaces for testing
+  - **Benefits**: Enforces consistent test structure, reduces boilerplate, ensures all connectors have required tests
+  - **Required tests**: downloadTableRecords (basic + pagination), displayName, service, getBatchSize
+  - **Key principles**: Mock API client (not internals), use minimal data (prevents heap exhaustion), focus on core logic
+  - 🎯 **Impact**: Future connector tests will be faster to write and more consistent across all connectors
 
 ### 2025-11-12 (Post-Midnight - Round 4)
 
