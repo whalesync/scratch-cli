@@ -23,6 +23,7 @@ module "production" {
   enable_email_notifications     = true
   enable_pagerduty_notifications = true
 
+  # Services
   force_reload_services = var.force_reload_services
 }
 

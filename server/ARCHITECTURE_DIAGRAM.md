@@ -15,7 +15,7 @@
        │           │           │          │                   │
 ┌──────▼───────────┼───────────┼──────────┼───────────────────┼─────────────┐
 │                  │           │          │                   │             │
-│                  CLIENT (Next.js - Vercel)                                │
+│                  CLIENT (Next.js )                                        │
 │                           http://localhost:3000                           │
 ├───────────────────────────────────────────────────────────────────────────┤
 │  UI Layer (React 19 + Mantine UI)                                         │
@@ -207,7 +207,7 @@
                           │ prod branch            │
                           │ • Build & Test         │
                           │ • Migrations           │
-                          │ • Deploy to Render     │
+                          │ • Deploy to CloudRun   │
                           │ • Deploy to Vercel     │
                           └────────────────────────┘
 ```
@@ -458,7 +458,6 @@ User   Client   Server   Agent   OpenRouter   PostgreSQL
 │                       INFRASTRUCTURE LAYER                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  Terraform • GCP (Cloud SQL, Memorystore, VPC)                  │
-│  Render (API/Agent hosting) • Vercel (Client hosting)           │
 │  GitLab CI (pipelines) • Docker                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -470,18 +469,18 @@ User   Client   Server   Agent   OpenRouter   PostgreSQL
 │                            PRODUCTION                                │
 └──────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────┐         ┌─────────────────┐         ┌──────────────┐
-│   Vercel CDN    │         │  Render (API)   │         │ Render (AI)  │
-│                 │         │                 │         │              │
-│  Next.js Client │────────▶│  NestJS Server  │────────▶│ FastAPI      │
-│  (Static + SSR) │         │  • FRONTEND     │         │ Agent        │
-│                 │         │  • WORKER       │         │              │
-│  Port: 443      │         │  • CRON         │         │ Port: 8000   │
-└─────────────────┘         │                 │         └──────────────┘
-         │                  │  Port: 3010     │                │
-         │                  └─────────────────┘                │
-         │                           │                         │
-         └───────────────────────────┼─────────────────────────┘
+┌───────────────────┐         ┌─────────────────┐         ┌──────────────┐
+│ CloudRun (Client) │         │ CloudRun (API)  │         │CloudRun (AI) │
+│                   │         │                 │         │              │
+│   Next.js Client  │────────▶│  NestJS Server  │────────▶│ FastAPI      │
+│   (Static + SSR)  │         │  • FRONTEND     │         │ Agent        │
+│                   │         │  • WORKER       │         │              │
+│   Port: 443       │         │  • CRON         │         │ Port: 8000   │
+└───────────────────┘         │                 │         └──────────────┘
+         │                    │  Port: 3010     │                │
+         │                    └─────────────────┘                │
+         │                           │                           │
+         └───────────────────────────┼───────────────────────────┘
                                      │
                  ┌───────────────────┼──────────────────┐
                  │                   │                  │
@@ -557,8 +556,8 @@ Notifications & Monitoring
 └─ Logfire: Request tracing and monitoring
 
 Infrastructure
-├─ Vercel: Client deployment (CD on master merge)
-├─ Render: API & Agent deployment (CD on prod push)
+├─ Vercel: Static site deployment (CD on master merge)
+├─ CloudRun: Client, API & Agent deployment (CD on prod push)
 ├─ GCP Cloud SQL: Managed PostgreSQL
 ├─ GCP Memorystore: Managed Redis
 └─ Terraform: Infrastructure as Code

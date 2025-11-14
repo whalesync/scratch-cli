@@ -107,14 +107,6 @@ yarn run migrate
 yarn run prisma:generate
 ```
 
-## Production Hosting
-
-The Scratch API server is hosted on Render.
-
-- **Public URL**: [Public URL - https://api.scratch.md/](https://api.scratch.md/)
-- **Dashboard**: [Render Project](https://dashboard.render.com/web/srv-d347khidbo4c73bouaj0)
-- **Owner**: team@whalesync.com (Credentials in 1Password)
-
 ## OpenRouter Management
 
 Scratch uses OpenRouter.ai for LLM access. Each user has a scoped API key (user-provided or auto-provisioned).

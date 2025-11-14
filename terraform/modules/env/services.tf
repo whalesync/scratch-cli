@@ -335,7 +335,7 @@ resource "google_cloud_run_v2_service" "agent_service" {
         for_each = {
           "APP_ENV" : var.env_name,
           "GCP_PROJECT_NUMBER" : var.gcp_project_number,
-          "LOGFIRE_ENABLE_FULL_INSTRUMENTATION" : "false",
+          "LOGFIRE_ENABLE_FULL_INSTRUMENTATION" : var.agent_enable_full_logfire_instrumentation ? "true" : "false",
           "LOGFIRE_ENVIRONMENT" : var.env_name,
           "MODEL_NAME" : "openai/gpt-4o-mini",
           "RUNNING_IN_CLOUD" : "true",

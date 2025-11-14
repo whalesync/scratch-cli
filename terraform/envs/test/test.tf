@@ -27,6 +27,7 @@ module "test" {
   enable_email_notifications     = false
   enable_pagerduty_notifications = false
 
+  # Services
   force_reload_services = var.force_reload_services
 }
 

@@ -249,3 +249,9 @@ variable "agent_domain" {
   type        = string
   description = "Domain name for the agent service (e.g., 'agent.scratch.md')."
 }
+
+variable "agent_enable_full_logfire_instrumentation" {
+  type        = bool
+  default     = true
+  description = "Whether to enable full Logfire instrumentation for the agent service."
+}
