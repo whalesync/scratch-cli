@@ -32,14 +32,27 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
     if (!connectorAccount) return;
     setIsSaving(true);
     try {
+      // Build userProvidedParams only if user has entered values
+      let userProvidedParams: Record<string, string> | undefined = undefined;
+
+      if (connectorAccount.service === Service.CSV) {
+        // CSV doesn't need params
+        userProvidedParams = undefined;
+      } else if (connectorAccount.service === Service.WORDPRESS) {
+        // Only include WordPress params if at least one field is filled
+        if (updatedUsername || updatedPassword || updatedEndpoint) {
+          userProvidedParams = { username: updatedUsername, password: updatedPassword, endpoint: updatedEndpoint };
+        }
+      } else {
+        // Only include API key if it's been entered
+        if (updatedApiKey) {
+          userProvidedParams = { apiKey: updatedApiKey };
+        }
+      }
+
       await updateConnectorAccount(connectorAccount.id, {
         displayName: updatedName,
-        userProvidedParams:
-          connectorAccount.service === Service.CSV
-            ? { apiKey: '' }
-            : connectorAccount.service === Service.WORDPRESS
-              ? { username: updatedUsername, password: updatedPassword, endpoint: updatedEndpoint }
-              : { apiKey: updatedApiKey },
+        ...(userProvidedParams && { userProvidedParams }),
         modifier: updatedModifier || undefined,
       });
       props.onClose?.();
