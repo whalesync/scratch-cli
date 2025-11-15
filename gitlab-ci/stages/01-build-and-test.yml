@@ -239,3 +239,4 @@ dummy job:
         - gitlab-ci/**/*
         - mcp/**/*
         - .vscode/**/*
+        - experimental/**/*
