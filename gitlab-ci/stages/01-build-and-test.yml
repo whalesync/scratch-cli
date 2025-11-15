@@ -240,3 +240,4 @@ dummy job:
         - mcp/**/*
         - .vscode/**/*
         - experimental/**/*
+        - "*"
