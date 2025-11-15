@@ -10,4 +10,4 @@ This is a monorepo with three main components:
 
 ## Subdirectory-Specific Rules
 
-When working in any component, look for a `.clauderules` in the directory for instructions specific to the project.
+Each component has its own CLAUDE.md with instructions specific to the project.
