@@ -1,4 +1,9 @@
-import { CreateStyleGuideDto, ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
+import {
+  CreateStyleGuideDto,
+  ExternalContent,
+  StyleGuide,
+  UpdateStyleGuideDto,
+} from '@/types/server-entities/style-guide';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -12,7 +17,7 @@ export const styleGuideApi = {
         'Content-Type': 'application/json',
       },
     });
-    await checkForApiError(res, "Failed to fetch resources");
+    await checkForApiError(res, 'Failed to fetch resources');
     return res.json();
   },
 
@@ -25,7 +30,7 @@ export const styleGuideApi = {
         'Content-Type': 'application/json',
       },
     });
-    await checkForApiError(res, "Failed to fetch resource");
+    await checkForApiError(res, 'Failed to fetch resource');
     return res.json();
   },
 
@@ -39,7 +44,7 @@ export const styleGuideApi = {
       },
       body: JSON.stringify(data),
     });
-    await checkForApiError(res, "Failed to create new resource");
+    await checkForApiError(res, 'Failed to create new prompt asset');
     return res.json();
   },
 
@@ -53,7 +58,7 @@ export const styleGuideApi = {
       },
       body: JSON.stringify(data),
     });
-    await checkForApiError(res, "Failed to update resource");
+    await checkForApiError(res, 'Failed to update resource');
     return res.json();
   },
 
@@ -66,7 +71,7 @@ export const styleGuideApi = {
         'Content-Type': 'application/json',
       },
     });
-    await checkForApiError(res, "Failed to delete resource");
+    await checkForApiError(res, 'Failed to delete resource');
   },
 
   // Update an external resource
@@ -76,9 +81,9 @@ export const styleGuideApi = {
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
-      },    
+      },
     });
-    await checkForApiError(res, "Failed to update external resource");
+    await checkForApiError(res, 'Failed to update external resource');
     return res.json();
   },
 
@@ -91,7 +96,7 @@ export const styleGuideApi = {
         'Content-Type': 'application/json',
       },
     });
-    await checkForApiError(res, "Failed to download resource");
+    await checkForApiError(res, 'Failed to download resource');
     return res.json();
   },
 };

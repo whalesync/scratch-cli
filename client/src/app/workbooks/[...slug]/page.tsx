@@ -9,8 +9,8 @@ import { ErrorInfo } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { AgentChatContextProvider } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
-import { SnapshotEventProvider } from '@/app/snapshots/[...slug]/components/contexts/snapshot-event-context';
+import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { SnapshotEventProvider } from '@/app/workbooks/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
@@ -81,7 +81,7 @@ function SnapshotPageContent() {
         title="Workbook not found."
         error="We were unable to find the workbook you are looking for."
         action={
-          <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.snapshotsPageUrl)}>
+          <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
             Return to workbooks
           </ButtonPrimaryLight>
         }

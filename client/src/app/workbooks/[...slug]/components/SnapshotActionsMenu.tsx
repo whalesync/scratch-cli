@@ -199,7 +199,7 @@ export const SnapshotActionsMenu = () => {
         message: 'The workbook and its data have been deleted.',
       });
 
-      router.push(RouteUrls.snapshotsPageUrl);
+      router.push(RouteUrls.workbooksPageUrl);
     } catch (e) {
       console.log(e);
       ScratchpadNotifications.error({

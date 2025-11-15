@@ -16,26 +16,26 @@ export function useSnapshotParams() {
   // this is used to update the current path without triggering a rerender of the page
   const updateSnapshotPath = (snapshotId: string, tableId?: string, recordId?: string, columnId?: string) => {
     if (tableId && recordId && columnId) {
-      window.history.replaceState(null, '', RouteUrls.snapshotColumnView(snapshotId, tableId, recordId, columnId));
+      window.history.replaceState(null, '', RouteUrls.workbookColumnView(snapshotId, tableId, recordId, columnId));
     } else if (tableId && recordId) {
-      window.history.replaceState(null, '', RouteUrls.snapshotRecordView(snapshotId, tableId, recordId));
+      window.history.replaceState(null, '', RouteUrls.workbookRecordView(snapshotId, tableId, recordId));
     } else if (tableId) {
-      window.history.replaceState(null, '', RouteUrls.snapshotTablePage(snapshotId, tableId));
+      window.history.replaceState(null, '', RouteUrls.workbookTablePage(snapshotId, tableId));
     } else {
-      window.history.replaceState(null, '', RouteUrls.snapshotPage(snapshotId));
+      window.history.replaceState(null, '', RouteUrls.workbookPageUrl(snapshotId));
     }
   };
 
   // this is used to push a new path to the history stack and triggers a rerender of the page
   const pushSnapshotPath = (snapshotId: string, tableId?: string, recordId?: string, columnId?: string) => {
     if (tableId && recordId && columnId) {
-      router.push(RouteUrls.snapshotColumnView(snapshotId, tableId, recordId, columnId));
+      router.push(RouteUrls.workbookColumnView(snapshotId, tableId, recordId, columnId));
     } else if (tableId && recordId) {
-      router.push(RouteUrls.snapshotRecordView(snapshotId, tableId, recordId));
+      router.push(RouteUrls.workbookRecordView(snapshotId, tableId, recordId));
     } else if (tableId) {
-      router.push(RouteUrls.snapshotTablePage(snapshotId, tableId));
+      router.push(RouteUrls.workbookTablePage(snapshotId, tableId));
     } else {
-      router.push(RouteUrls.snapshotPage(snapshotId));
+      router.push(RouteUrls.workbookPageUrl(snapshotId));
     }
   };
 

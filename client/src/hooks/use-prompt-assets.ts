@@ -3,18 +3,15 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { useMemo } from 'react';
 import useSWR from 'swr';
+import { StyleGuideId } from '../types/server-entities/ids';
 
-export function useStyleGuides() {
-  const { data, error, isLoading, mutate } = useSWR<StyleGuide[]>(
-    'style-guides',
-    () => styleGuideApi.getAll(),
-    {
-      revalidateOnFocus: false,
-    }
-  );
+export function usePromptAssets() {
+  const { data, error, isLoading, mutate } = useSWR<StyleGuide[]>('style-guides', () => styleGuideApi.getAll(), {
+    revalidateOnFocus: false,
+  });
 
   const displayError = useMemo(() => {
-    if(isUnauthorizedError(error)) {
+    if (isUnauthorizedError(error)) {
       // ignore this error as it will be fixed after the token is refreshed
       return undefined;
     }
@@ -22,24 +19,24 @@ export function useStyleGuides() {
   }, [error]);
 
   return {
-    styleGuides: data || [],
+    promptAssets: data || [],
     isLoading,
     error: displayError,
     mutate,
   };
 }
 
-export function useStyleGuide(id: string) {
+export function usePromptAsset(id: StyleGuideId) {
   const { data, error, isLoading, mutate } = useSWR<StyleGuide>(
     id ? `style-guide-${id}` : null,
     () => styleGuideApi.getById(id),
     {
       revalidateOnFocus: false,
-    }
+    },
   );
 
   const displayError = useMemo(() => {
-    if(isUnauthorizedError(error)) {
+    if (isUnauthorizedError(error)) {
       // ignore this error as it will be fixed after the token is refreshed
       return undefined;
     }
@@ -47,9 +44,9 @@ export function useStyleGuide(id: string) {
   }, [error]);
 
   return {
-    styleGuide: data,
+    promptAsset: data,
     isLoading,
     error: displayError,
     mutate,
   };
-} 
+}

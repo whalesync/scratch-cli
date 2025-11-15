@@ -46,8 +46,8 @@ export const MdPreviewModal = ({ opened, onClose, data, fileName, file }: MdPrev
       onClose();
 
       // Navigate to resoruces page only if not already there
-      if (pathname !== RouteUrls.resourcesPageUrl) {
-        router.push(RouteUrls.resourcesPageUrl);
+      if (pathname !== RouteUrls.promptAssetsPageUrl) {
+        router.push(RouteUrls.promptAssetsPageUrl);
       }
     } catch (error) {
       console.error('Upload failed:', error);

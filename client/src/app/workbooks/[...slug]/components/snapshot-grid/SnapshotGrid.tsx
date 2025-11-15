@@ -5,7 +5,7 @@ import {
   getHeaderColumnSpec,
   getOtherColumnSpecs,
   identifyRecordTitleColumn,
-} from '@/app/snapshots/[...slug]/components/snapshot-grid/header-column-utils';
+} from '@/app/workbooks/[...slug]/components/snapshot-grid/header-column-utils';
 import { recordName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';

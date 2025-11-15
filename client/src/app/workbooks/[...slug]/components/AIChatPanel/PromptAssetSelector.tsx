@@ -1,8 +1,8 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
-import { useStyleGuides } from '@/hooks/use-style-guide';
+import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import {
   trackAddResourceToChat,
   trackClickCreateResourceInChat,
@@ -16,9 +16,9 @@ import { FileIcon, PlusIcon } from '@phosphor-icons/react';
 import { AtSignIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
-import styles from './ResourceSelector.module.css';
+import styles from './PromptAssetSelector.module.css';
 
-export function ResourceSelector({
+export function PromptAssetSelector({
   disabled,
   snapshot,
   resetInputFocus,
@@ -27,7 +27,7 @@ export function ResourceSelector({
   snapshot?: Snapshot;
   resetInputFocus: () => void;
 }) {
-  const { styleGuides: resources, mutate: refreshResourceList } = useStyleGuides();
+  const { promptAssets, mutate: refreshResourceList } = usePromptAssets();
   const combobox = useCombobox({
     onDropdownClose: () => {
       combobox.resetSelectedOption();
@@ -52,14 +52,14 @@ export function ResourceSelector({
   }, [combobox, resetInputFocus]);
 
   const comboBoxOptions = useMemo(() => {
-    const list = resources
+    const list = promptAssets
       .filter((sg) => !activeResources.includes(sg.id))
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((styleGuide) => (
-        <Combobox.Option value={styleGuide.id} key={styleGuide.id}>
+      .map((promptAsset) => (
+        <Combobox.Option value={promptAsset.id} key={promptAsset.id}>
           <Group gap="4px">
             <StyledIcon Icon={FileIcon} size={14} />
-            <Text12Regular>{styleGuide.name}</Text12Regular>
+            <Text12Regular>{promptAsset.name}</Text12Regular>
           </Group>
         </Combobox.Option>
       ));
@@ -74,12 +74,12 @@ export function ResourceSelector({
       <Combobox.Option value="new" key="new">
         <Group gap="4px">
           <StyledIcon Icon={PlusIcon} size={14} />
-          <Text12Regular>New resource...</Text12Regular>
+          <Text12Regular>New prompt asset...</Text12Regular>
         </Group>
       </Combobox.Option>,
     );
     return list;
-  }, [resources, activeResources]);
+  }, [promptAssets, activeResources]);
 
   const handleRemove = useCallback(
     (resourceId: string) => {
@@ -105,7 +105,7 @@ export function ResourceSelector({
     [combobox, resetInputFocus, snapshot, setActiveResources, activeResources],
   );
 
-  const selectedResources = resources.filter((resource) => activeResources.includes(resource.id));
+  const selectedResources = promptAssets.filter((p) => activeResources.includes(p.id));
 
   return (
     <>

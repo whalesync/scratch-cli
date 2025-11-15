@@ -107,7 +107,7 @@ export const CreateSnapshotModal = ({
         ],
       });
       props.onClose?.();
-      router.push(RouteUrls.snapshotPage(snapshot.id));
+      router.push(RouteUrls.workbookPageUrl(snapshot.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {

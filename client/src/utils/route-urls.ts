@@ -10,22 +10,22 @@ export class RouteUrls {
   static homePageUrl = '/';
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
-  static snapshotPage = (id: string, tableId?: string, recordId?: string) => {
+  static workbookPageUrl = (id: string, tableId?: string, recordId?: string) => {
     if (tableId && recordId) {
-      return this.snapshotRecordView(id, tableId, recordId);
+      return this.workbookRecordView(id, tableId, recordId);
     }
     if (tableId) {
-      return this.snapshotTablePage(id, tableId);
+      return this.workbookTablePage(id, tableId);
     }
-    return `/snapshots/${id}`;
+    return `/workbooks/${id}`;
   };
-  static snapshotTablePage = (id: string, tableId: string) => `/snapshots/${id}/${tableId}`;
-  static snapshotRecordView = (id: string, tableId: string, recordId: string) =>
-    `/snapshots/${id}/${tableId}/${recordId}`;
-  static snapshotColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
-    `/snapshots/${id}/${tableId}/${recordId}/${columnId}`;
-  static snapshotsPageUrl = '/snapshots';
-  static resourcesPageUrl = '/resources';
+  static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
+  static workbookRecordView = (id: string, tableId: string, recordId: string) =>
+    `/workbooks/${id}/${tableId}/${recordId}`;
+  static workbookColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
+    `/workbooks/${id}/${tableId}/${recordId}/${columnId}`;
+  static workbooksPageUrl = '/workbooks';
+  static promptAssetsPageUrl = '/prompt-assets';
   static settingsPageUrl = '/settings';
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
   static manageSubscriptionPage = '/subscription/manage';
@@ -51,10 +51,10 @@ export class RouteUrls {
   static subscriptionRoutePatterns = [
     `^\/$`, // root path
     RouteUrls.dataSourcesPageUrl,
-    RouteUrls.snapshotsPageUrl,
-    RouteUrls.resourcesPageUrl,
-    RouteUrls.snapshotsPageUrl,
-    RouteUrls.resourcesPageUrl,
+    RouteUrls.workbooksPageUrl,
+    RouteUrls.promptAssetsPageUrl,
+    RouteUrls.workbooksPageUrl,
+    RouteUrls.promptAssetsPageUrl,
   ];
 
   /** Routes that require an active subscription or free trial to access*/

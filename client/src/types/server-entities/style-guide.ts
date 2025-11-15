@@ -1,8 +1,10 @@
+import { StyleGuideId } from './ids';
+
 export type ResourceContentType = 'markdown' | 'json' | 'text';
 export const DEFAULT_CONTENT_TYPE: ResourceContentType = 'markdown';
 
 export interface StyleGuide {
-  id: string;
+  id: StyleGuideId;
   createdAt: string;
   updatedAt: string;
   name: string;

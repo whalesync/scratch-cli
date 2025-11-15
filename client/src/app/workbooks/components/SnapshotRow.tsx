@@ -91,7 +91,7 @@ export const SnapshotRow = ({ snapshot }: { snapshot: Snapshot }) => {
       </Modal>
       <Table.Tr
         key={snapshot.id}
-        onClick={() => router.push(RouteUrls.snapshotPage(snapshot.id))}
+        onClick={() => router.push(RouteUrls.workbookPageUrl(snapshot.id))}
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>

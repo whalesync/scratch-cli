@@ -1,4 +1,4 @@
-import { AG, ID_COLUMN_FIELD } from '@/app/snapshots/[...slug]/components/snapshot-grid/ag-grid-constants';
+import { AG, ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { SnapshotRecord } from '@/types/server-entities/snapshot';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';

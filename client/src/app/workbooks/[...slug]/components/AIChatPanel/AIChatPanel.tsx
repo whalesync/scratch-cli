@@ -5,11 +5,11 @@ import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions'
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import SideBarContent from '@/app/components/layouts/SideBarContent';
-import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { useStyleGuides } from '@/hooks/use-style-guide';
+import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import {
   trackChangeAgentCapabilities,
   trackChangeAgentModel,
@@ -44,7 +44,7 @@ import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
-import { ResourceSelector } from './ResourceSelector';
+import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 
 interface AIChatPanelProps {
@@ -82,7 +82,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
-  const { styleGuides } = useStyleGuides();
+  const { promptAssets } = usePromptAssets();
 
   // // Calculate model display name with token limit
   // const modelDisplayName = useMemo(() => {
@@ -257,7 +257,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
     try {
       // Get selected style guide content
-      const selectedStyleGuides = styleGuides.filter((sg) => activeResources.includes(sg.id));
+      const selectedPromptAssets = promptAssets.filter((pa) => activeResources.includes(pa.id));
 
       // Extract table IDs from mentions in the message
       // Format: $[Table Name](tbl_tableId)
@@ -283,8 +283,8 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       }
 
       // Include style guide content if selected
-      if (selectedStyleGuides.length > 0) {
-        messageData.style_guides = selectedStyleGuides.map((sg) => ({
+      if (selectedPromptAssets.length > 0) {
+        messageData.style_guides = selectedPromptAssets.map((sg) => ({
           name: sg.name,
           content: sg.body,
         }));
@@ -300,7 +300,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         messageData.column_id = activeColumnId;
       }
 
-      trackSendMessage(message.length, selectedStyleGuides.length, dataScope, snapshot);
+      trackSendMessage(message.length, selectedPromptAssets.length, dataScope, snapshot);
       sendAiAgentMessage(messageData);
 
       // clear the current message
@@ -500,7 +500,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       </SideBarContent.Body>
       <SideBarContent.Bottom>
         <Stack gap="2xs" my="2xs">
-          <ResourceSelector
+          <PromptAssetSelector
             disabled={!aiAgentEnabled}
             snapshot={snapshot}
             resetInputFocus={() => textInputRef.current?.focus()}

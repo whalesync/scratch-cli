@@ -1,6 +1,6 @@
 'use client';
 
-import { useStyleGuides } from '@/hooks/use-style-guide';
+import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import {
   DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
@@ -49,7 +49,7 @@ export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatCont
   const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
   const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
 
-  const { styleGuides } = useStyleGuides();
+  const { promptAssets } = usePromptAssets();
 
   const defaultModelValue: PersistedModelOption = {
     value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
@@ -67,16 +67,16 @@ export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatCont
   });
 
   useEffect(() => {
-    if (!autoIncludedResourses && styleGuides.length > 0) {
-      const autoIncludeStyleGuides = styleGuides
-        .filter((sg) => sg.autoInclude && !activeResources.includes(sg.id))
-        .map((sg) => sg.id);
-      if (autoIncludeStyleGuides.length > 0) {
-        setActiveResources([...activeResources, ...autoIncludeStyleGuides]);
+    if (!autoIncludedResourses && promptAssets.length > 0) {
+      const autoIncludePromptAssets = promptAssets
+        .filter((p) => p.autoInclude && !activeResources.includes(p.id))
+        .map((p) => p.id);
+      if (autoIncludePromptAssets.length > 0) {
+        setActiveResources([...activeResources, ...autoIncludePromptAssets]);
         setAutoIncludedResourses(true);
       }
     }
-  }, [styleGuides, autoIncludedResourses, activeResources, setActiveResources]);
+  }, [promptAssets, autoIncludedResourses, activeResources, setActiveResources]);
 
   const setTableScope = useCallback(() => {
     setDataScope('table');

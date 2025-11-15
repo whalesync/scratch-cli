@@ -109,7 +109,7 @@ const GetStartedContent = () => {
           <List spacing="sm" size="md" mb="lg">
             <List.Item>
               <Text component="span" fw={600}>
-                Provide lasting context with resources.
+                Provide lasting context with prompt assets.
               </Text>{' '}
               Add reusable instructions, style guides, or content from URLs (.md, sitemaps, etc.) to the chat. The AI
               will use this context for its tasks, ensuring consistency and accuracy.

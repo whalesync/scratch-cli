@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { trackToggleDisplayMode } from '@/lib/posthog';
-import { BookOpen, Cpu, LucideIcon, MoonIcon, Settings, SunIcon, Table2, Unplug } from 'lucide-react';
+import { Blocks, Cpu, FileText, LucideIcon, MoonIcon, Settings, SunIcon, Table2 } from 'lucide-react';
 import { useDevTools } from '../../hooks/use-dev-tools';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
@@ -47,7 +47,7 @@ const lowerLinks: MenuItem[] = [
 const upperLinks: MenuItem[] = [
   {
     type: 'link',
-    href: RouteUrls.snapshotsPageUrl,
+    href: RouteUrls.workbooksPageUrl,
     label: 'Workbooks',
     icon: Table2,
     iconType: 'lucide',
@@ -57,15 +57,15 @@ const upperLinks: MenuItem[] = [
     type: 'link',
     href: RouteUrls.dataSourcesPageUrl,
     label: 'Data sources',
-    icon: Unplug,
+    icon: Blocks,
     iconType: 'lucide',
     enabled: true,
   },
   {
     type: 'link',
-    href: RouteUrls.resourcesPageUrl,
-    label: 'Resources',
-    icon: BookOpen,
+    href: RouteUrls.promptAssetsPageUrl,
+    label: 'Prompt assets',
+    icon: FileText,
     iconType: 'lucide',
     enabled: true,
   },

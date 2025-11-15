@@ -17,7 +17,7 @@ export const CreateSnapshotButton = () => {
     setIsLoading(true);
     try {
       const newSnapshot = await createSnapshot({});
-      router.push(RouteUrls.snapshotPage(newSnapshot.id));
+      router.push(RouteUrls.workbookPageUrl(newSnapshot.id));
     } catch (error) {
       ScratchpadNotifications.error({
         title: 'Error creating workbook',

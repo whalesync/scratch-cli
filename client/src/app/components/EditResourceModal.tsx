@@ -140,7 +140,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
 
   return (
     <Modal
-      title={resourceDocument ? `Edit ${resourceDocument.name}` : 'Create a new resource'}
+      title={resourceDocument ? `Edit ${resourceDocument.name}` : 'Create a new prompt asset'}
       size="xl"
       closeOnClickOutside={!isSaving}
       closeOnEscape={!isSaving}
@@ -172,7 +172,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
 
         {isNewResource && (
           <TextInput
-            placeholder="Enter resource name"
+            placeholder="Enter name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -197,7 +197,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
             disabled={isSaving}
-            description="Optional. If provided, the resource will be downloaded from the URL and used as the content."
+            description="Optional. If provided, the content will be downloaded from the URL"
             inputWrapperOrder={['label', 'input', 'description']}
             flex={1}
           />

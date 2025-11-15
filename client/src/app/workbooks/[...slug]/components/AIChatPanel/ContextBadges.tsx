@@ -1,7 +1,7 @@
 'use client';
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { useAgentChatContext } from '@/app/snapshots/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { Group, Text, Tooltip } from '@mantine/core';
 import { Icon } from '@phosphor-icons/react';
 import _ from 'lodash';

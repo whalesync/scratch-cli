@@ -211,7 +211,7 @@ export default function UploadsTable() {
 
       <FileUploadDropzone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
         <Group justify="space-between" align="top">
-          <TextMono13Regular c="dimmed">UPLOADED FILES</TextMono13Regular>
+          <TextMono13Regular c="dimmed">UPLOADED TABLES</TextMono13Regular>
           <ButtonSecondaryOutline leftSection={<UploadIcon />} onClick={() => openFileInputRef.current?.()}>
             Upload CSV file
           </ButtonSecondaryOutline>

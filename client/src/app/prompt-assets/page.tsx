@@ -1,6 +1,6 @@
 'use client';
 
-import { useStyleGuides } from '@/hooks/use-style-guide';
+import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
@@ -10,15 +10,17 @@ import { useDisclosure } from '@mantine/hooks';
 import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { StyleGuideId } from '../../types/server-entities/ids';
 import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { TextTitle3 } from '../components/base/text';
+import { Text13Medium, Text13Regular } from '../components/base/text';
+import { FileUploadDropzone } from '../components/dropzone/FileUploadDropzone';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
 import { ToolIconButton } from '../components/ToolIconButton';
 
-export default function StyleGuidesPage() {
-  const { styleGuides, isLoading, error, mutate } = useStyleGuides();
+export default function PromptAssetsPage() {
+  const { promptAssets, isLoading, error, mutate } = usePromptAssets();
   const [isCreateModalOpen, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [isDeleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [isExternalResourceUpdating, setIsExternalResourceUpdating] = useState(false);
@@ -29,12 +31,12 @@ export default function StyleGuidesPage() {
     openCreateModal();
   };
 
-  const handleNewStyleGuide = useCallback(async () => {
+  const handleNewAsset = useCallback(async () => {
     setActiveResource(null);
     openCreateModal();
   }, [openCreateModal]);
 
-  const handleDeleteStyleGuide = async (id: string) => {
+  const handleDeleteAsset = async (id: StyleGuideId) => {
     try {
       await styleGuideApi.delete(id);
       setActiveResource(null);
@@ -73,13 +75,13 @@ export default function StyleGuidesPage() {
     return (
       <Paper p="md">
         <Alert color="red" title="Error">
-          Failed to load resources
+          Failed to load Prompt assets
         </Alert>
       </Paper>
     );
   }
 
-  const sortedResources = styleGuides.sort((a, b) => a.name.localeCompare(b.name));
+  const sortedResources = promptAssets.sort((a, b) => a.name.localeCompare(b.name));
 
   const resourceIcon = (resource: StyleGuide) => {
     if (resource.contentType === 'markdown') {
@@ -93,94 +95,90 @@ export default function StyleGuidesPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Resources" />
+      <MainContent.BasicHeader title="Prompt assets" />
       <MainContent.Body>
         {isLoading ? (
           <Text>Loading...</Text>
         ) : (
-          <Table highlightOnHover>
-            <Table.Thead>
-              <Table.Tr h="30px">
-                <Table.Td w="60%">Name</Table.Td>
-                <Table.Td w="15%">Updated</Table.Td>
-                <Table.Td w="15%" align="right">
-                  Size
-                </Table.Td>
-                <Table.Td w="15%" align="right">
-                  Actions
-                </Table.Td>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {sortedResources.map((styleGuide) => (
-                <Table.Tr
-                  key={styleGuide.id}
-                  onClick={() => handleEditResource(styleGuide)}
-                  style={{ cursor: 'pointer' }}
-                  h="30px"
-                >
-                  <Table.Td h="30px">
-                    <Group gap="sm">
-                      {resourceIcon(styleGuide)}
-                      <TextTitle3>{styleGuide.name}</TextTitle3>
-                      {styleGuide.autoInclude ? (
-                        <Badge size="xs" color="blue" variant="light">
-                          Auto Include
-                        </Badge>
-                      ) : null}
-                      {styleGuide.sourceUrl && (
-                        <Badge size="xs" color="gray.6" variant="light" leftSection={<LinkIcon size={12} />}>
-                          External
-                        </Badge>
-                      )}
-                      {styleGuide.tags.map((tag) => (
-                        <Badge size="xs" color="gray.6" variant="light" key={tag}>
-                          {tag}
-                        </Badge>
-                      ))}
-                    </Group>
+          <FileUploadDropzone allowedTypes={['md']}>
+            <Table highlightOnHover>
+              <Table.Thead>
+                <Table.Tr h="30px">
+                  <Table.Td w="60%">Name</Table.Td>
+                  <Table.Td w="15%">Updated</Table.Td>
+                  <Table.Td w="15%" align="right">
+                    Size
                   </Table.Td>
-                  <Table.Td>{formatDate(styleGuide.updatedAt)}</Table.Td>
-                  <Table.Td align="right">{formatBytes(styleGuide.body.length)}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs" justify="flex-end">
-                      {styleGuide.sourceUrl && (
-                        <ToolIconButton
-                          size="md"
-                          tooltip="Redownload external content"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUpdateExternalResource(styleGuide.id);
-                          }}
-                          loading={isExternalResourceUpdating}
-                          icon={DownloadIcon}
-                        />
-                      )}
-                      <ToolIconButton
-                        size="md"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setActiveResource(styleGuide);
-                          openCreateModal();
-                        }}
-                        icon={PencilLineIcon}
-                      />
-
-                      <ToolIconButton
-                        size="md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveResource(styleGuide);
-                          openDeleteModal();
-                        }}
-                        icon={Trash2Icon}
-                      />
-                    </Group>
+                  <Table.Td w="15%" align="right">
+                    Actions
                   </Table.Td>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {sortedResources.map((styleGuide) => (
+                  <Table.Tr
+                    key={styleGuide.id}
+                    onClick={() => handleEditResource(styleGuide)}
+                    style={{ cursor: 'pointer' }}
+                    h="30px"
+                  >
+                    <Table.Td h="30px">
+                      <Group gap="sm">
+                        {resourceIcon(styleGuide)}
+                        <Text13Medium>{styleGuide.name}</Text13Medium>
+                        {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
+                        {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
+                        {styleGuide.tags.map((tag) => (
+                          <Badge key={tag}>{tag}</Badge>
+                        ))}
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text13Regular>{formatDate(styleGuide.updatedAt)}</Text13Regular>
+                    </Table.Td>
+                    <Table.Td align="right">
+                      <Text13Regular>{formatBytes(styleGuide.body.length)}</Text13Regular>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs" justify="flex-end">
+                        {styleGuide.sourceUrl && (
+                          <ToolIconButton
+                            size="md"
+                            tooltip="Redownload external content"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateExternalResource(styleGuide.id);
+                            }}
+                            loading={isExternalResourceUpdating}
+                            icon={DownloadIcon}
+                          />
+                        )}
+                        <ToolIconButton
+                          size="md"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setActiveResource(styleGuide);
+                            openCreateModal();
+                          }}
+                          icon={PencilLineIcon}
+                        />
+
+                        <ToolIconButton
+                          size="md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveResource(styleGuide);
+                            openDeleteModal();
+                          }}
+                          icon={Trash2Icon}
+                        />
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </FileUploadDropzone>
         )}
 
         <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
@@ -191,7 +189,7 @@ export default function StyleGuidesPage() {
               <ButtonPrimaryLight
                 onClick={() => {
                   if (activeResource) {
-                    handleDeleteStyleGuide(activeResource.id);
+                    handleDeleteAsset(activeResource.id);
                   }
                   closeDeleteModal();
                 }}
@@ -217,8 +215,8 @@ export default function StyleGuidesPage() {
         />
       </MainContent.Body>
       <MainContent.Footer>
-        <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={handleNewStyleGuide}>
-          New resource
+        <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={handleNewAsset}>
+          New prompt asset
         </ContentFooterButton>
       </MainContent.Footer>
     </MainContent>
