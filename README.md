@@ -1,3 +1,7 @@
+# Scratch
+
+Welcome to Scratch: an AI-powered editor for marketers. For more information regarding what the product is and who it's for, see the [one-pager](./one-pager.md).
+
 # Project Structure
 
 The Scratch project consists of 3 elements:
@@ -9,7 +13,7 @@ The Scratch project consists of 3 elements:
 - Modelled after the Whalesync Bottlenose server
 - Runs locally on port 3010
 
-Full [Documentation](/server/README.md)
+Full [Documentation](./server/README.md)
 
 ## 2. Data Studio Client (`/client`)
 
@@ -18,18 +22,19 @@ Full [Documentation](/server/README.md)
 - Thin client that mainly interacts with the server
 - Runs locally on port 3000
 
-Full [Documentation](/client/README.md)
+Full [Documentation](./client/README.md)
 
-**Client-Specific Rules**: See [`client/.clauderules`](/client/.clauderules) for mandatory UI coding standards
+**Client-Specific Rules**: See [`client/.clauderules`](./client/.clauderules) for mandatory UI coding standards
 
 ### UI Component System
 
 The client uses a standardized UI component library built on Mantine. **All developers and AI agents must follow the UI system guidelines** to maintain design consistency.
 
-- 📚 **[UI System Guide](/client/src/app/components/UI_SYSTEM.md)** - Complete documentation for AI agents and developers
-- 🎨 **Component Gallery** - Visual reference at http://localhost:3000/dev/gallery
+- 📚 **[UI System Guide](./client/src/app/components/UI_SYSTEM.md)** - Complete documentation for AI agents and developers
+- 🎨 [**Component Gallery**](https://test.scratch.md/dev/gallery) - Visual reference for UI components and patterns
 
 **Key Rules:**
+
 - Use base components from `@/components/base/` instead of raw Mantine components
 - Use semantic CSS variables for colors (`var(--fg-primary)`, `var(--bg-base)`)
 - Always wrap Lucide icons with `StyledLucideIcon`
@@ -42,7 +47,7 @@ The client uses a standardized UI component library built on Mantine. **All deve
 - FastAPI, Pydantic & Pydantic AI
 - Runs locally on port 8000
 
-Full [Documentation](/pydantic-ai-agent/README.md)
+Full [Documentation](./pydantic-ai-agent/README.md)
 
 # Deployments
 
