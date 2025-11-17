@@ -10,6 +10,7 @@ import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
 import { CronModule } from './cron/cron.module';
 import { WebflowCustomActionsModule } from './custom-actions/webflow/webflow-custom-actions.module';
+import { WixCustomActionsModule } from './custom-actions/wix/wix-custom-actions.module';
 import { DbModule } from './db/db.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { ExperimentsModule } from './experiments/experiments.module';
@@ -47,6 +48,7 @@ import { WorkerModule } from './worker/workers.module';
     ConnectorAccountModule,
     ConnectorsModule,
     WebflowCustomActionsModule,
+    WixCustomActionsModule,
     SnapshotModule,
     StyleGuideModule,
     UploadsModule,

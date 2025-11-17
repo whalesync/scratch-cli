@@ -11,6 +11,7 @@ import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-
 import { Service } from '../../../../../types/server-entities/connector-accounts';
 import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
 import { WebflowPublishMenuItem } from './custom-actions/webflow/WebflowPublishMenuItem';
+import { WixPublishMenuItem } from './custom-actions/wix/WixPublishMenuItem';
 
 interface TableContextMenuProps {
   isOpen: boolean;
@@ -548,14 +549,28 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   };
 
   const renderConnectorCustomActions = () => {
-    // Get the current table to check if it's a Webflow connector
+    // Get the current table to check connector type
     const currentTable = activeTable;
 
     if (selectedRows.length === 0 || !currentTable) return null;
+
     // Webflow-specific actions
     if (currentTable.connectorService === Service.WEBFLOW) {
       return (
         <WebflowPublishMenuItem
+          selectedRows={selectedRows}
+          currentTable={currentTable}
+          isProcessing={isProcessing}
+          onClose={onClose}
+          setIsProcessing={setIsProcessing}
+        />
+      );
+    }
+
+    // Wix Blog-specific actions
+    if (currentTable.connectorService === Service.WIX_BLOG) {
+      return (
+        <WixPublishMenuItem
           selectedRows={selectedRows}
           currentTable={currentTable}
           isProcessing={isProcessing}
