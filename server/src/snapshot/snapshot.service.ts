@@ -895,7 +895,7 @@ export class SnapshotService {
   ): Promise<void> {
     // Fetch snapshot once for both permission check AND getting existing columnContexts
     const currentSnapshot = await this.findOneOrThrow(snapshotId, actor);
-    const table = currentSnapshot.snapshotTables.find((t) => t.id === tableId);
+    const table = currentSnapshot.snapshotTables?.find((t) => (t.tableSpec as AnyTableSpec).id.wsId === tableId);
     if (!table) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -903,7 +903,7 @@ export class SnapshotService {
     const existingSettings = (table.columnSettings ?? {}) as SnapshotColumnSettingsMap;
 
     await this.db.client.snapshotTable.update({
-      where: { id: snapshotId },
+      where: { id: table.id },
       data: {
         columnSettings: {
           ...existingSettings,
