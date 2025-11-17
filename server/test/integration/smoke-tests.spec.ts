@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { agentDomain, apiDomain, getAuthToken, getProtocol } from './common';
+import { getAgentUrl, getAgentWebSocketUrl, getApiUrl, getAuthToken } from './common';
 import { waitForWebSocketMessage } from './websocket';
 
 interface Snapshot {
@@ -56,7 +56,7 @@ describe('Smoke Tests', () => {
   });
 
   it('should authenticate and return current user', async () => {
-    const response = await axios.get(`${getProtocol(apiDomain)}://${apiDomain}/users/current`, {
+    const response = await axios.get(`${getApiUrl()}/users/current`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -72,7 +72,7 @@ describe('Smoke Tests', () => {
   });
 
   it('should fetch snapshots and get the first snapshot ID', async () => {
-    const response = await axios.get(`${getProtocol(apiDomain)}://${apiDomain}/snapshot`, {
+    const response = await axios.get(`${getApiUrl()}/snapshot`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -110,7 +110,7 @@ describe('Smoke Tests', () => {
     const tableId = table?.id;
     expect(tableId).toBeDefined();
 
-    const url = `${getProtocol(apiDomain)}://${apiDomain}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
+    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
     console.log(`GET ${url}`);
 
     const response = await axios.get(url, {
@@ -129,7 +129,7 @@ describe('Smoke Tests', () => {
 
   it('should create a new session for the snapshot using agent JWT', async () => {
     const response = await axios.post(
-      `${getProtocol(agentDomain)}://${agentDomain}/sessions?snapshot_id=${snapshotId}`,
+      `${getAgentUrl()}/sessions?snapshot_id=${snapshotId}`,
       {},
       {
         headers: {
@@ -154,8 +154,7 @@ describe('Smoke Tests', () => {
   });
 
   it('should establish websocket connection and exchange messages', async () => {
-    const wsProtocol = getProtocol(agentDomain) === 'https' ? 'wss' : 'ws';
-    const url = new URL(`${wsProtocol}://${agentDomain}/ws/${sessionId}`);
+    const url = new URL(`${getAgentWebSocketUrl()}/ws/${sessionId}`);
     url.searchParams.set('auth', agentJwt);
 
     console.log(`Connecting to WebSocket: ${url.toString()}`);
@@ -184,7 +183,7 @@ describe('Smoke Tests', () => {
     const tableId = table?.id;
     expect(tableId).toBeDefined();
 
-    const url = `${getProtocol(apiDomain)}://${apiDomain}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`;
+    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`;
     console.log(`POST ${url}`);
     const response = await axios.post(
       url,
@@ -215,7 +214,7 @@ describe('Smoke Tests', () => {
     expect(tableId).toBeDefined();
     expect(recordsBeforeAccept).toBeDefined();
 
-    const url = `${getProtocol(apiDomain)}://${apiDomain}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
+    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
     console.log(`GET ${url}`);
 
     const response = await axios.get(url, {

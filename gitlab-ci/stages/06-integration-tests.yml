@@ -6,8 +6,8 @@ include:
 # INTEGRATION TESTS
 # =============================================================================
 
-integration tests for test env:
-  stage: integration tests
+integration tests for test env post-deploy:
+  stage: post-deploy integration tests
   interruptible: false
   variables:
     CLERK_SECRET_KEY: "${CLERK_SECRET_KEY_DEVELOPMENT}"
@@ -21,29 +21,47 @@ integration tests for test env:
     - yarn run test:integration --verbose
   cache: !reference [.caches, server]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - server/test/integration/**/*
-        - gitlab-ci/stages/06-integration-tests.yml
-      when: manual
-      allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
-notify slack on integration test failure test environment:
-  stage: integration tests
+integration tests for test env pre-deploy:
+  stage: pre-deploy integration tests
+  interruptible: false
+  variables:
+    CLERK_SECRET_KEY: "${CLERK_SECRET_KEY_DEVELOPMENT}"
+    INTEGRATION_TEST_CLIENT_DOMAIN: "test.scratch.md"
+    INTEGRATION_TEST_API_DOMAIN: "test-api.scratch.md"
+    INTEGRATION_TEST_AGENT_DOMAIN: "test-agent.scratch.md"
+    INTEGRATION_TEST_USER_ID: user_35RRk1ww8PJ4g0TfVfxbeU5iFJz
+  script:
+    - cd server
+    - !reference [.use_nvm, script]
+    - yarn run test:integration --verbose
+  cache: !reference [.caches, server]
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+notify slack on integration test failure test env post-deploy:
+  stage: post-deploy integration tests
   needs:
-    - integration tests for test env
+    - integration tests for test env post-deploy
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_JOB_URL}|View Job>\"}" \
-      ${TEST_SLACK_WEBHOOK_URL}
+      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+      ${SLACK_WEBHOOK_URL}
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - server/test/integration/**/*
-        - gitlab-ci/stages/06-integration-tests.yml
-      when: manual
     - !reference [.rules, on_merge_to_master]
   when: on_failure
-  allow_failure: true
+
+notify slack on integration test failure test env pre-deploy:
+  stage: pre-deploy integration tests
+  needs:
+    - integration tests for test env pre-deploy
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+      ${SLACK_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+  when: on_failure

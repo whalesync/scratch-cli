@@ -5,17 +5,28 @@
 import { createClerkClient } from '@clerk/backend';
 // import * as dotenv from 'dotenv';
 // dotenv.config();
-export const clientDomain = process.env.INTEGRATION_TEST_CLIENT_DOMAIN || 'test.scratch.md';
-export const apiDomain = process.env.INTEGRATION_TEST_API_DOMAIN || 'test-api.scratch.md';
-export const agentDomain = process.env.INTEGRATION_TEST_AGENT_DOMAIN || 'test-agent.scratch.md';
+const clientDomain = process.env.INTEGRATION_TEST_CLIENT_DOMAIN || 'test.scratch.md';
+const apiDomain = process.env.INTEGRATION_TEST_API_DOMAIN || 'test-api.scratch.md';
+const agentDomain = process.env.INTEGRATION_TEST_AGENT_DOMAIN || 'test-agent.scratch.md';
 
 export const getProtocol = (domain: string): string => {
-  return domain.includes('localhost') ? 'http' : 'https';
+  if (domain.includes('://')) {
+    return '';
+  }
+  return domain.includes('localhost') ? 'http://' : 'https://';
 };
 
-export const getClientUrl = () => `${getProtocol(clientDomain)}://${clientDomain}`;
-export const getApiUrl = () => `${getProtocol(apiDomain)}://${apiDomain}`;
-export const getAgentUrl = () => `${getProtocol(agentDomain)}://${agentDomain}`;
+export const getProtocolWebsocket = (domain: string): string => {
+  if (domain.includes('://')) {
+    return '';
+  }
+  return domain.includes('localhost') ? 'ws://' : 'wss://';
+};
+
+export const getClientUrl = () => `${getProtocol(clientDomain)}${clientDomain}`;
+export const getApiUrl = () => `${getProtocol(apiDomain)}${apiDomain}`;
+export const getAgentUrl = () => `${getProtocol(agentDomain)}${agentDomain}`;
+export const getAgentWebSocketUrl = () => `${getProtocolWebsocket(agentDomain)}${agentDomain}`;
 
 // Cache for auth token to avoid fetching it multiple times
 let cachedAuthToken: string | null = null;

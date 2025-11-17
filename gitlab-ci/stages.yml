@@ -2,7 +2,8 @@ stages:
   - build
   - external
   - push images
+  - pre-deploy integration tests
   - run migrations
   - deploy
+  - post-deploy integration tests
   - deployment notifications
-  - integration tests
