@@ -5,7 +5,7 @@ import { SnapshotId, SnapshotTableId } from '../../../../types/server-entities/i
 export function useSnapshotParams() {
   const params = useParams();
   // the path could have 0, 1, or 2 parts
-  // 3 parts: /snapshots/{snapshotId}/{tableId}/{recordId}/{columnId}
+  // 3 parts: /workbooks/{snapshotId}/{tableId}/{recordId}/{columnId}
 
   const snapshotId = params.slug?.[0] as SnapshotId;
   const tableId = params.slug?.[1] as SnapshotTableId | undefined;

@@ -4,6 +4,7 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { useUploads } from '@/hooks/use-uploads';
 import { Upload, uploadsApi } from '@/lib/api/uploads';
+import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { UploadIcon } from 'lucide-react';
@@ -83,7 +84,7 @@ export default function UploadsTable() {
         color: 'green',
       });
       // Navigate to the new workbook
-      router.push(`/snapshots/${result.snapshotId}`);
+      router.push(RouteUrls.workbookPageUrl(result.snapshotId));
     } catch (err) {
       console.error('Failed to create workbook:', err);
       notifications.show({
