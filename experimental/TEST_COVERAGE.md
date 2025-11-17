@@ -241,14 +241,14 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 | Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
 | ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
 | Notion     | ~10          | 4          | ~111+      | ~35%     | ⚠️ Partial   |
-| Wix        | ~8           | 1          | ~30+       | ~15%     | ⚠️ Partial   |
+| Wix Blog   | ~8           | 2          | ~47+       | ~30%     | ⚠️ Partial   |
 | CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
 | Webflow    | 3            | 1          | 14         | ~40%     | ⚠️ Partial   |
 | WordPress  | 6            | 1          | 18         | ~27%     | ⚠️ Partial   |
 | Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
 | YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
 | Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **8**      | **~195**   | **~22%** | **Critical** |
+| **Total**  | **~41**      | **9**      | **~212**   | **~25%** | **Critical** |
 
 ### Tested Areas ✅
 
@@ -279,21 +279,36 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ Authentication flows
 - ❌ Record CRUD operations (create, update, delete)
 
-#### Wix Connector (⚠️ Partial Coverage)
+#### Wix Blog Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/wix/`
 **Test Files**:
-- `rich-content/rich-content.spec.ts` - Rich content conversion tests
+- `rich-content/rich-content.spec.ts` - Rich content conversion tests (~30 test cases)
+- `wix-blog/wix-blog-connector.spec.ts` - Connector implementation tests (17 test cases)
 
 **What's Tested**:
-- ✅ HTML to RICOS conversion
-- ✅ RICOS to HTML conversion
+- ✅ HTML to RICOS conversion (rich-content tests)
+- ✅ RICOS to HTML conversion (rich-content tests)
 - ✅ Rich text formatting preservation
+- ✅ `downloadTableRecords` function - Core record download logic with rich content
+- ✅ Pagination handling (offset-based with batch size)
+- ✅ Rich text conversion modes (markdown, HTML, and native Wix format)
+- ✅ Data converter options (default to markdown, 'html' mode, 'wix' mode)
+- ✅ Empty posts array handling
+- ✅ Pagination without metaData
+- ✅ `listTables` function - Returns single Blog Posts table
+- ✅ `fetchTableSpec` function - Table spec with authors from members API
+- ✅ Author handling (with/without authors)
+- ✅ `testConnection` method - Connection validation
+- ✅ Connection error handling
+- ✅ Helper methods (displayName, getBatchSize, service type)
 
 **What's NOT Tested**:
-- ❌ `wix-blog-connector.ts` - Main connector class
-- ❌ `wix-blog-schema-parser.ts` - Schema parsing
-- ❌ API integration
-- ❌ Error handling
+- ❌ `wix-blog-schema-parser.ts` - Schema parsing (if exists)
+- ❌ Record creation (`createRecords` method)
+- ❌ Record updates (`updateRecords` method)
+- ❌ Record deletion (`deleteRecords` method)
+- ❌ Error extraction (`extractConnectorErrorDetails` method)
+- ❌ Advanced rich content edge cases
 
 #### CSV Connector (⚠️ Partial Coverage)
 **Location**: `server/src/remote-service/connectors/library/csv/`
@@ -440,7 +455,7 @@ These connectors are production-critical and handle user data:
 **Risk**: Data corruption, sync failures, API errors not handled properly
 
 #### 🟡 P1 - High (Test Soon)
-1. **Wix Connector** - Complete connector class tests
+1. **Wix Blog Connector** - Complete CRUD operations tests (create, update, delete records)
 2. **CSV Connector** - Complete connector class tests
 3. **Webflow Connector** - Complete remaining methods (schema parser, CRUD operations)
 4. **WordPress Connector** - Complete remaining methods (schema parser, auth parser, CRUD operations)
@@ -763,6 +778,30 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ---
 
 ## Recent Changes
+
+### 2025-11-17 (Afternoon)
+
+- ✅ **Wix Blog connector tests added** (+1 test file, +17 test cases)
+  - Wix Blog connector tests (`server/src/remote-service/connectors/library/wix/wix-blog/wix-blog-connector.spec.ts`) - 17 test cases
+    - `downloadTableRecords` function - Core record download logic with rich content handling
+    - Pagination handling (offset-based with `WIX_DEFAULT_BATCH_SIZE`)
+    - Rich text conversion modes (markdown by default, HTML mode, native Wix format)
+    - Data converter options (`dataConverter: 'html'` and `dataConverter: 'wix'`)
+    - Empty posts array handling
+    - Pagination without metaData (fallback pagination logic)
+    - `listTables` function - Returns single Blog Posts table
+    - `fetchTableSpec` function - Table spec with authors from Wix Members API
+    - Author handling (with authors and without authors)
+    - `testConnection` method - Connection validation with minimal API call
+    - Connection error handling
+    - Helper methods (displayName, getBatchSize, service type)
+  - **Mock implementation**: Successfully mocked Wix SDK (@wix/sdk, @wix/blog, @wix/members)
+  - **Format validation**: Tests ensure correct transformation from Wix API format to ConnectorRecord format
+  - **Rich content**: Comprehensive testing of all three data converter modes (markdown, html, wix)
+- 📊 **Coverage updated**: Connector tests went from 8 to 9 test files, test cases from ~195 to ~212
+- 🎯 **Progress**: Wix Blog connector moved from "Partial Coverage" (15%) to "Partial Coverage" (30%)
+- 🔌 **Connector impact**: Core methods now tested - downloadTableRecords, listTables, fetchTableSpec, testConnection
+- 📈 **Cumulative progress**: 17 new test cases for Wix Blog connector, bringing connector test total to ~212 test cases
 
 ### 2025-11-14 (Late Morning)
 
