@@ -129,7 +129,6 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       WSLogger.debug({
         source: 'DownloadRecordsJob',
         message: 'Downloading records for table',
-        tableId: tableSpec.id.wsId,
         snapshotId: snapshot.id,
         snapshotTableId: snapshotTable.id,
       });
@@ -157,7 +156,11 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       const callback = async (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => {
         const { records, connectorProgress } = params;
-        await this.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
+        await this.snapshotDb.upsertRecords(
+          snapshot.id as SnapshotId,
+          { spec: tableSpec, tableName: snapshotTable.tableName },
+          records,
+        );
 
         currentTable.records += records.length;
         totalRecords += records.length;
@@ -169,7 +172,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         this.snapshotEventService.sendSnapshotEvent(snapshot.id, {
           type: 'snapshot-updated',
           data: {
-            tableId: tableSpec.id.wsId,
+            tableId: snapshotTable.id,
             source: 'user',
           },
         });
@@ -205,7 +208,6 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         WSLogger.debug({
           source: 'DownloadRecordsJob',
           message: 'Download completed for table',
-          tableId: tableSpec.id.wsId,
           snapshotId: snapshot.id,
           snapshotTableId: snapshotTable.id,
         });
@@ -222,7 +224,6 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         WSLogger.error({
           source: 'DownloadRecordsJob',
           message: 'Failed to download records for table',
-          tableId: tableSpec.id.wsId,
           snapshotId: snapshot.id,
           snapshotTableId: snapshotTable.id,
           error: error instanceof Error ? error.message : 'Unknown error',

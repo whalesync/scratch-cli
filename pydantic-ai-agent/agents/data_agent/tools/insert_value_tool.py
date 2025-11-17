@@ -67,7 +67,7 @@ def insert_value_tool_implementation(
         log_info(
             "Injecting value into field in record",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             wsId=wsId,
             field_name=column.name,
             value=value,
@@ -83,7 +83,7 @@ def insert_value_tool_implementation(
         record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
@@ -111,29 +111,29 @@ def insert_value_tool_implementation(
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             operations=update_operations,
         )
 
         updated_record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
         if updated_record:
-            update_record_in_context(chatRunContext, table.id.wsId, updated_record)
+            update_record_in_context(chatRunContext, table.id, updated_record)
 
         logger.info(f"✅ Successfully inserted the suggested value into the record")
-        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"📋 Table ID: {table.id}")
         logger.info(f"✏️ wsId: {wsId}")
         logger.info(f"✏️ Field name: {column.name}")
 
         log_info(
             "Successfully inserted the suggested value into the record",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             wsId=wsId,
             field_name=column.name,
             value=value,

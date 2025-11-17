@@ -23,7 +23,8 @@ class ColumnSpecForAi(BaseModel):
 
 
 class TableSpecForAi(BaseModel):
-    id: EntityId
+    id: str  # SnapshotTable.id (e.g., "snt_abc123")
+    tableSpecId: EntityId  # tableSpec.id (e.g., {wsId: "my_table", remoteId: [...]})
     name: str
     columns: List[ColumnSpecForAi]
 
@@ -84,7 +85,8 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
 
         # Create table spec
         table_spec = TableSpecForAi(
-            id=EntityId(wsId=table["id"]["wsId"], remoteId=table["id"]["remoteId"]),  # type: ignore
+            id=snapshotTable["id"],  # type: ignore  # SnapshotTable.id
+            tableSpecId=EntityId(wsId=table["id"]["wsId"], remoteId=table["id"]["remoteId"]),  # type: ignore  # tableSpec.id
             name=table["name"],  # type: ignore
             columns=converted_columns,
         )

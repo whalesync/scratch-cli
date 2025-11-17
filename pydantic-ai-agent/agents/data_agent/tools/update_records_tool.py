@@ -178,7 +178,7 @@ async def update_records_implementation(
         log_info(
             "Updating records via bulk update",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_count=len(update_operations),
             snapshot_id=chatRunContext.session.snapshot_id,
         )
@@ -188,7 +188,7 @@ async def update_records_implementation(
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             operations=update_operations,
         )
 
@@ -205,7 +205,7 @@ async def update_records_implementation(
         log_info(
             "Successfully updated records",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_count=len(update_operations),
             snapshot_id=chatRunContext.session.snapshot_id,
         )

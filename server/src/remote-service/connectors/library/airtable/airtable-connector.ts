@@ -50,6 +50,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
     return {
       id,
+      slug: id.wsId,
       name: table.name,
       columns: table.fields.map((field) => this.schemaParser.parseColumn(field)),
     };

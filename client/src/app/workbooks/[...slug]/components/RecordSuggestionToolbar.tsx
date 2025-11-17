@@ -4,14 +4,14 @@ import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
-import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, SnapshotTable } from '@/types/server-entities/snapshot';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useMemo, useState } from 'react';
 import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 
 type RecordSuggestionToolbarProps = {
-  table: TableSpec;
+  table: SnapshotTable;
   record: SnapshotRecord;
   columnId?: string; // if provided, only work with suggestions for this column
 } & BoxProps;
@@ -28,7 +28,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
   const { snapshot } = useActiveSnapshot();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
-    tableId: table.id.wsId,
+    tableId: table.id,
   });
   const [saving, setSaving] = useState(false);
 
@@ -37,7 +37,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
       .filter(([colId]) => !columnId || columnId === colId) // if columnId is provided, only show suggestions for that column
       .map(([colId, suggestedValue]) => ({
         columnId: colId,
-        columnName: table.columns.find((c) => c.id.wsId === colId)?.name ?? '',
+        columnName: table.tableSpec.columns.find((c) => c.id.wsId === colId)?.name ?? '',
         currentValue: record.fields[colId] as string,
         suggestedValue: suggestedValue as string,
       }));

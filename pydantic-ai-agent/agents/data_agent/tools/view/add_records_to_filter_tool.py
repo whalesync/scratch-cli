@@ -74,7 +74,7 @@ def define_add_records_to_filter_tool(
             ScratchpadApi.add_records_to_active_filter(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 record_ids=record_ids,
             )
 

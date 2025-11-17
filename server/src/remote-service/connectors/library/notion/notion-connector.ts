@@ -129,6 +129,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     const tableTitle = database.title.map((t) => t.plain_text).join('');
     return {
       id,
+      slug: id.wsId,
       name: sanitizeForWsId(tableTitle),
       columns,
     };

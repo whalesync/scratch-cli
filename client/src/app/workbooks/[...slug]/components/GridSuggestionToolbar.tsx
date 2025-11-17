@@ -3,14 +3,14 @@ import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components
 import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/snapshot';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
 import { useSnapshotEditorUIStore } from '../../../../stores/snapshot-editor-store';
 
 type GridSuggestionToolbarProps = {
-  table: TableSpec;
+  table: SnapshotTable;
 } & BoxProps;
 
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
@@ -19,7 +19,7 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
   const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
     useSnapshotTableRecords({
       snapshotId: snapshotId ?? '',
-      tableId: table.id.wsId,
+      tableId: table.id,
     });
   const [saving, setSaving] = useState(false);
 

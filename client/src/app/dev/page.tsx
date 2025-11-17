@@ -5,7 +5,7 @@ import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
 import { Group, Stack } from '@mantine/core';
-import { GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
+import { DatabaseZap, GalleryVerticalIcon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
 import { Text13Book } from '../components/base/text';
@@ -42,6 +42,14 @@ export default function DevListPage() {
             leftSection={<StyledLucideIcon Icon={UsersIcon} size={16} />}
           >
             User Management
+          </DevToolButton>
+
+          <DevToolButton
+            component={Link}
+            href={RouteUrls.devToolsMigrationsPageUrl}
+            leftSection={<StyledLucideIcon Icon={DatabaseZap} size={16} />}
+          >
+            Migrations
           </DevToolButton>
         </Stack>
       </MainContent.Body>

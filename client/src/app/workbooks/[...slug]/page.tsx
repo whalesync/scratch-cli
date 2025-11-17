@@ -45,7 +45,7 @@ function SnapshotPageContent() {
       return;
     }
     // check to see if the content of the active table has changed and reset the object if it has, to trigger re-render of the grid
-    const updatedTable = getSnapshotTables(snapshot).find((t) => t.tableSpec.id.wsId === activeTable.tableSpec.id.wsId);
+    const updatedTable = getSnapshotTables(snapshot).find((t) => t.id === activeTable.id);
     if (
       updatedTable &&
       (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
@@ -97,7 +97,7 @@ function SnapshotPageContent() {
   if (snapshot) {
     if (activeTable) {
       content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
-      contentFooter = <RecordDataToolbar table={activeTable.tableSpec} />;
+      contentFooter = <RecordDataToolbar table={activeTable} />;
     } else if (activeTab?.startsWith('new-tab')) {
       content = <AddTableTab />;
     }

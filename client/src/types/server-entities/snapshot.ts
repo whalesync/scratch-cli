@@ -271,21 +271,31 @@ export function getSafeNumberValue(
  * help with migration from the old format where snapshots had data config objects
  * keyed by table id. */
 
-export function getSnapshotTableByWsId(snapshot: Snapshot, tableId: string): SnapshotTable | undefined {
-  return snapshot.snapshotTables?.find((t) => t.tableSpec.id.wsId === tableId);
+// function getSnapshotTableByWsId(snapshot: Snapshot, wsId: string): SnapshotTable | undefined {
+//   return snapshot.snapshotTables?.find((t) => === wsId);
+// }
+
+// export function getTableSpecByWsId(snapshot: Snapshot, wsId: string): TableSpec | undefined {
+//   const table = getSnapshotTableByWsId(snapshot, wsId);
+//   return table?.tableSpec;
+// }
+
+// export function getActiveRecordSqlFilterByWsId(snapshot: Snapshot, wsId: string): string | undefined {
+//   const table = getSnapshotTableByWsId(snapshot, wsId);
+//   return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
+// }
+
+// ------------------------------------------------------------
+export function getSnapshotTableById(snapshot: Snapshot, tableId: string): SnapshotTable | undefined {
+  return snapshot.snapshotTables?.find((t) => t.id === tableId);
 }
 
-export function getTableSpecByWsId(snapshot: Snapshot, tableId: string): TableSpec | undefined {
-  const table = getSnapshotTableByWsId(snapshot, tableId);
+export function getTableSpecById(snapshot: Snapshot, tableId: string): TableSpec | undefined {
+  const table = getSnapshotTableById(snapshot, tableId);
   return table?.tableSpec;
 }
 
-export function getActiveRecordSqlFilterByWsId(snapshot: Snapshot, tableId: string): string | undefined {
-  const table = getSnapshotTableByWsId(snapshot, tableId);
+export function getActiveRecordSqlFilterById(snapshot: Snapshot, tableId: string): string | undefined {
+  const table = getSnapshotTableById(snapshot, tableId);
   return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
-}
-
-export function getPageSizeByWsId(snapshot: Snapshot, tableId: string): number | null {
-  const table = getSnapshotTableByWsId(snapshot, tableId);
-  return table ? table.pageSize : null;
 }

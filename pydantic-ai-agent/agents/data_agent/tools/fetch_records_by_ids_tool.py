@@ -63,7 +63,7 @@ def fetch_records_by_ids_tool_implementation(
         log_info(
             "Fetching records by IDs",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_count=len(record_ids),
             snapshot_id=chatRunContext.session.snapshot_id,
         )
@@ -72,7 +72,7 @@ def fetch_records_by_ids_tool_implementation(
         fetched_snapshot_records = ScratchpadApi.get_records_by_ids(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_ids=record_ids,
         )
 
@@ -111,7 +111,7 @@ def fetch_records_by_ids_tool_implementation(
         logger.info(
             f"✅ Successfully fetched {len(fetched_records)} records from table '{table.name}'"
         )
-        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"📋 Table ID: {table.id}")
         logger.info(
             f"📊 Requested IDs: {len(record_ids)}, Found: {len(fetched_records)}"
         )
@@ -119,7 +119,7 @@ def fetch_records_by_ids_tool_implementation(
         log_info(
             "Successfully fetched records by IDs",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             requested_count=len(record_ids),
             found_count=len(fetched_records),
             new_records_added=len(new_records),

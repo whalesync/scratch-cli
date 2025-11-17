@@ -6,14 +6,14 @@ import type { Response } from 'express';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { SnapshotCluster } from 'src/db/cluster-types';
+import { SnapshotCluster, SnapshotTableCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
-import { createSnapshotId, createSnapshotTableId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableId, SnapshotId, SnapshotTableId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
@@ -40,7 +40,7 @@ import { CREATED_FIELD, DEFAULT_COLUMNS, DELETED_FIELD } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
-import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
+import { getSnapshotTableById, getTableSpecById } from './util';
 
 @Injectable()
 export class SnapshotService {
@@ -62,6 +62,7 @@ export class SnapshotService {
     const snapshotId = createSnapshotId();
     const tableSpecs: AnyTableSpec[] = [];
     const tableCreateInput: Prisma.SnapshotTableUncheckedCreateWithoutSnapshotInput[] = [];
+    const tableSpecToIdMap = new Map<AnyTableSpec, SnapshotTableId>();
 
     if (tables) {
       for (const { connectorAccountId, tableId } of tables) {
@@ -83,12 +84,20 @@ export class SnapshotService {
           const tableSpec = await connector.fetchTableSpec(tableId);
           tableSpecs.push(tableSpec);
 
+          const newTableId = createSnapshotTableId();
+          const wsId = sanitizeForWsId(tableSpec.name);
+          const tableName = `${newTableId}_${wsId}`;
+
+          tableSpecToIdMap.set(tableSpec, newTableId);
+
           tableCreateInput.push({
-            id: createSnapshotTableId(),
+            id: newTableId,
             connectorAccountId,
             connectorService: connectorAccount.service,
             tableSpec,
             columnSettings: {},
+            tableName,
+            version: 'v1',
           });
         } catch (error) {
           if (connector) {
@@ -125,7 +134,11 @@ export class SnapshotService {
     });
 
     // Make a new schema and create tables to store its data.
-    await this.snapshotDbService.snapshotDb.createForSnapshot(newSnapshot.id as SnapshotId, tableSpecs);
+    await this.snapshotDbService.snapshotDb.createForSnapshot(
+      newSnapshot.id as SnapshotId,
+      tableSpecs,
+      tableSpecToIdMap,
+    );
 
     if (this.configService.getUseJobs()) {
       await this.bullEnqueuerService.enqueueDownloadRecordsJob(newSnapshot.id, actor);
@@ -165,7 +178,7 @@ export class SnapshotService {
     snapshotId: SnapshotId,
     addTableDto: AddTableToSnapshotDto,
     actor: Actor,
-  ): Promise<SnapshotCluster.Snapshot> {
+  ): Promise<SnapshotTableCluster.SnapshotTable> {
     const { service, connectorAccountId, tableId } = addTableDto;
 
     // 1. Verify snapshot exists, user has permission, and snapshot does not already include this table
@@ -204,39 +217,52 @@ export class SnapshotService {
       throw exceptionForConnectorError(error, connector);
     }
 
-    // 4. Check if table with this wsId already exists in the snapshot schema
-    const tableExists = await this.snapshotDbService.snapshotDb.knex.schema
-      .withSchema(snapshotId)
-      .hasTable(tableSpec.id.wsId);
-    if (tableExists) {
-      throw new BadRequestException(
-        `Table ${tableSpec.name} already exists in snapshot. Please use a different table or remove the existing one first.`,
-      );
-    }
-
-    // 5. Create the snapshotTableId first so we can pass it to the download job
+    // 5. Create the snapshotTableId first
     const snapshotTableId = createSnapshotTableId();
+    const snapshotDataTableName = `${snapshotTableId}_${tableSpec.slug}`;
 
-    // 5. Update snapshot record - add to legacy arrays for backward compatibility
-    const updatedSnapshot = await this.db.client.snapshot.update({
-      where: { id: snapshotId },
+    // // 4. Check if table with this wsId already exists in the snapshot schema
+    // const tableExists = await this.snapshotDbService.snapshotDb.knex.schema
+    //   .withSchema(snapshotId)
+    //   .hasTable();
+    // if (tableExists) {
+    //   throw new BadRequestException(
+    //     `Table ${tableSpec.name} already exists in snapshot. Please use a different table or remove the existing one first.`,
+    //   );
+    // }
+
+    // // 5. Create the snapshotTableId first so we can pass it to the download job
+    // const snapshotTableId = createSnapshotTableId();
+    // const snapshotDataTableName = ``;
+
+    // 5. Create the new SnapshotTable record
+    const createdSnapshotTable = await this.db.client.snapshotTable.create({
       data: {
-        // Also create the new SnapshotTable record
-        snapshotTables: {
-          create: {
-            id: snapshotTableId,
-            connectorAccountId: connectorAccountId ?? null,
-            connectorService: service,
-            tableSpec: tableSpec,
-            columnSettings: {},
-          },
-        },
+        id: snapshotTableId,
+        snapshotId,
+        tableName: snapshotDataTableName,
+        connectorAccountId: connectorAccountId ?? null,
+        connectorService: service,
+        tableSpec: tableSpec,
+        columnSettings: {},
+        version: 'v1',
       },
-      include: SnapshotCluster._validator.include,
+      include: {
+        connectorAccount: true,
+      },
     });
 
+    // // Get updated snapshot for return value
+    // const updatedSnapshot = await this.db.client.snapshot.findUniqueOrThrow({
+    //   where: { id: snapshotId },
+    //   include: SnapshotCluster._validator.include,
+    // });
+
     // 6. Create database table in snapshot's schema
-    await this.snapshotDbService.snapshotDb.addTableToSnapshot(snapshotId, tableSpec);
+    await this.snapshotDbService.snapshotDb.addTableToSnapshot(snapshotId, {
+      spec: tableSpec,
+      tableName: snapshotDataTableName,
+    });
 
     // 7. Start downloading records in background for this specific table only
     try {
@@ -248,7 +274,6 @@ export class SnapshotService {
         message: 'Started downloading records for newly added table',
         snapshotId,
         snapshotTableId,
-        tableId: tableSpec.id.wsId,
       });
     } catch (error) {
       WSLogger.error({
@@ -257,7 +282,6 @@ export class SnapshotService {
         error,
         snapshotId,
         snapshotTableId,
-        tableId: tableSpec.id.wsId,
       });
       // Don't fail the addTable operation if download fails - table was still added successfully
     }
@@ -266,7 +290,8 @@ export class SnapshotService {
       source: 'SnapshotService.addTableToSnapshot',
       message: 'Added table to snapshot',
       snapshotId,
-      tableId: tableSpec.id.wsId,
+      tableName: snapshotDataTableName,
+      tableId: snapshotTableId,
       service,
     });
 
@@ -277,13 +302,13 @@ export class SnapshotService {
       message: `Added table ${tableSpec.name} to snapshot ${snapshot.name}`,
       entityId: snapshotId,
       context: {
-        tableId: tableSpec.id.wsId,
-        tableName: tableSpec.name,
+        tableId: snapshotTableId,
+        tableName: snapshotDataTableName,
         service,
       },
     });
 
-    return updatedSnapshot;
+    return createdSnapshotTable;
   }
 
   async setTableHidden(
@@ -353,19 +378,16 @@ export class SnapshotService {
       throw new NotFoundException('Table not found in snapshot');
     }
 
-    const tableSpec = snapshotTable.tableSpec as unknown as AnyTableSpec;
-    const tableName = tableSpec.name;
-
     // 3. Delete the database table from snapshot's schema
     try {
-      await this.snapshotDbService.snapshotDb.knex.schema.withSchema(snapshotId).dropTableIfExists(tableSpec.id.wsId);
+      await this.snapshotDbService.snapshotDb.dropTableIfExists(snapshotId, snapshotTable.tableName);
     } catch (error) {
       WSLogger.error({
         source: 'SnapshotService.deleteTable',
         message: 'Failed to drop table from database',
         error,
         snapshotId,
-        tableId: tableSpec.id.wsId,
+        tableName: snapshotTable.tableName,
       });
       // Continue with deletion even if DB table drop fails
     }
@@ -391,11 +413,11 @@ export class SnapshotService {
       userId: actor.userId,
       organizationId: actor.organizationId,
       eventType: 'delete',
-      message: `Deleted table ${tableName} from snapshot ${snapshot.name}`,
+      message: `Deleted table ${snapshotTable.tableName} from snapshot ${snapshot.name}`,
       entityId: snapshotId,
       context: {
         tableId,
-        tableName,
+        tableName: snapshotTable.tableName,
       },
     });
 
@@ -497,12 +519,12 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<SnapshotRecord | null> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
-    return this.snapshotDbService.snapshotDb.getRecord(snapshotId, tableId, recordId);
+    return this.snapshotDbService.snapshotDb.getRecord(snapshotId, snapshotTable.tableName, recordId);
   }
 
   async listRecords(
@@ -514,7 +536,7 @@ export class SnapshotService {
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -526,7 +548,7 @@ export class SnapshotService {
 
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
-      tableId,
+      snapshotTable.tableName,
       cursor,
       effectiveTake + 1,
       tableSpec,
@@ -554,7 +576,7 @@ export class SnapshotService {
     cursor: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -568,7 +590,7 @@ export class SnapshotService {
 
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
-      tableId,
+      snapshotTable.tableName,
       cursor,
       effectiveTake,
       tableSpec,
@@ -598,7 +620,7 @@ export class SnapshotService {
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -611,7 +633,7 @@ export class SnapshotService {
     // Fetch the records by their IDs from the snapshot database
     const records = await this.snapshotDbService.snapshotDb.getRecordsByIds(
       snapshotId,
-      tableId,
+      snapshotTable.tableName,
       recordIds,
       tableSpec,
       snapshotTable.hiddenColumns,
@@ -631,10 +653,11 @@ export class SnapshotService {
     type: 'accepted' | 'suggested',
   ): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
     this.validateBulkUpdateOps(dto.ops, tableSpec);
 
@@ -648,7 +671,7 @@ export class SnapshotService {
       },
     });
 
-    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(snapshotId, tableId, dto.ops, type);
+    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(snapshotId, snapshotTable.tableName, dto.ops, type);
   }
 
   async deepFetchRecords(
@@ -659,7 +682,7 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -682,7 +705,11 @@ export class SnapshotService {
     }
 
     // Fetch existing records from the database
-    const existingRecords = await this.snapshotDbService.snapshotDb.getRecordsByIds(snapshotId, tableId, recordIds);
+    const existingRecords = await this.snapshotDbService.snapshotDb.getRecordsByIds(
+      snapshotId,
+      snapshotTable.tableName,
+      recordIds,
+    );
 
     const records: SnapshotRecord[] = [];
     let totalCount = 0;
@@ -711,7 +738,7 @@ export class SnapshotService {
             // Upsert the records as they come back, similar to regular download
             await this.snapshotDbService.snapshotDb.upsertRecords(
               snapshot.id as SnapshotId,
-              tableSpec,
+              { spec: tableSpec, tableName: snapshotTable.tableName },
               connectorRecords,
             );
             totalCount += connectorRecords.length;
@@ -755,7 +782,11 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -772,7 +803,7 @@ export class SnapshotService {
       }
     }
 
-    await this.snapshotDbService.snapshotDb.acceptCellValues(snapshotId, tableId, items, tableSpec);
+    await this.snapshotDbService.snapshotDb.acceptCellValues(snapshotId, snapshotTable.tableName, items, tableSpec);
 
     // Count unique wsId values in the items list
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
@@ -796,8 +827,8 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
@@ -805,7 +836,7 @@ export class SnapshotService {
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
     const uniqueRecordCount = uniqueWsIds.size;
 
-    await this.snapshotDbService.snapshotDb.rejectValues(snapshotId, tableId, items);
+    await this.snapshotDbService.snapshotDb.rejectValues(snapshotId, snapshotTable.tableName, items);
 
     this.snapshotEventService.sendRecordEvent(snapshotId, tableId, {
       type: 'record-changes',
@@ -824,13 +855,18 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // get all of the records for the table with suggestions and build a list of items to accept
-    const records = await this.snapshotDbService.snapshotDb.listRecords(snapshotId, tableId, undefined, 10000);
+    const records = await this.snapshotDbService.snapshotDb.listRecords(
+      snapshotId,
+      snapshotTable.tableName,
+      undefined,
+      10000,
+    );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.acceptCellValues(snapshotId, tableId, allSuggestions, actor);
@@ -905,13 +941,18 @@ export class SnapshotService {
     actor: Actor,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
 
     // get all of the records for the table with suggestions and build a list of items to reject
-    const records = await this.snapshotDbService.snapshotDb.listRecords(snapshotId, tableId, undefined, 10000);
+    const records = await this.snapshotDbService.snapshotDb.listRecords(
+      snapshotId,
+      snapshotTable.tableName,
+      undefined,
+      10000,
+    );
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.rejectValues(snapshotId, tableId, allSuggestions, actor);
@@ -1030,7 +1071,8 @@ export class SnapshotService {
       WSLogger.debug({
         source: 'SnapshotService',
         message: 'Downloading records',
-        tableId: tableSpec.id.wsId,
+        tableName: table.tableName,
+        tableId: table.id,
         snapshotId: snapshot.id,
       });
 
@@ -1040,10 +1082,14 @@ export class SnapshotService {
           table.columnSettings as SnapshotColumnSettingsMap,
           async (params) => {
             const { records } = params;
-            await this.snapshotDbService.snapshotDb.upsertRecords(snapshot.id as SnapshotId, tableSpec, records);
+            await this.snapshotDbService.snapshotDb.upsertRecords(
+              snapshot.id as SnapshotId,
+              { spec: tableSpec, tableName: table.tableName },
+              records,
+            );
             totalCount += records.length;
             tableResults.push({
-              id: tableSpec.id.wsId,
+              id: table.id,
               name: tableSpec.name,
               records: records.length,
             });
@@ -1065,7 +1111,7 @@ export class SnapshotService {
         this.snapshotEventService.sendSnapshotEvent(snapshot.id, {
           type: 'snapshot-updated',
           data: {
-            tableId: tableSpec.id.wsId,
+            tableId: table.id,
             source: 'agent',
           },
         });
@@ -1122,7 +1168,7 @@ export class SnapshotService {
     //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
     // }
 
-    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
+    const tables = snapshot.snapshotTables ?? [];
 
     const summary: PublishSummaryDto = {
       deletes: [],
@@ -1130,12 +1176,18 @@ export class SnapshotService {
       creates: [],
     };
 
-    for (const tableSpec of tableSpecs) {
+    for (const table of tables) {
+      const tableSpec = table.tableSpec as AnyTableSpec;
       // Get records to be deleted
-      const deletedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'delete', false);
+      const deletedRecords = await this.getRecordsForOperation(
+        snapshot.id as SnapshotId,
+        table.tableName,
+        'delete',
+        false,
+      );
       if (deletedRecords.length > 0) {
         summary.deletes.push({
-          tableId: tableSpec.id.wsId,
+          tableId: table.id,
           tableName: tableSpec.name,
           records: deletedRecords.map((record) => ({
             wsId: record.id.wsId,
@@ -1145,10 +1197,15 @@ export class SnapshotService {
       }
 
       // Get records to be updated
-      const updatedRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'update', false);
+      const updatedRecords = await this.getRecordsForOperation(
+        snapshot.id as SnapshotId,
+        table.tableName,
+        'update',
+        false,
+      );
       if (updatedRecords.length > 0) {
         summary.updates.push({
-          tableId: tableSpec.id.wsId,
+          tableId: table.id,
           tableName: tableSpec.name,
           records: updatedRecords.map((record) => ({
             wsId: record.id.wsId,
@@ -1159,10 +1216,15 @@ export class SnapshotService {
       }
 
       // Get count of records to be created
-      const createdRecords = await this.getRecordsForOperation(snapshot.id as SnapshotId, tableSpec, 'create', false);
+      const createdRecords = await this.getRecordsForOperation(
+        snapshot.id as SnapshotId,
+        table.tableName,
+        'create',
+        false,
+      );
       if (createdRecords.length > 0) {
         summary.creates.push({
-          tableId: tableSpec.id.wsId,
+          tableId: table.id,
           tableName: tableSpec.name,
           count: createdRecords.length,
         });
@@ -1211,8 +1273,8 @@ export class SnapshotService {
     }
 
     // Finally the deletes since hopefully nothing references them any more.
-    for (const { tableSpec, connector } of tableAndConnector) {
-      await this.publishDeletesToTable(snapshot, connector, tableSpec);
+    for (const { table, tableSpec, connector } of tableAndConnector) {
+      await this.publishDeletesToTable(snapshot, connector, table, tableSpec);
     }
 
     WSLogger.debug({
@@ -1230,7 +1292,7 @@ export class SnapshotService {
   ): Promise<void> {
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
-      tableSpec.id.wsId,
+      table.tableName,
       'create',
       connector.getBatchSize('create'),
       async (records, trx) => {
@@ -1246,7 +1308,7 @@ export class SnapshotService {
         // Save the created IDs.
         await this.snapshotDbService.snapshotDb.updateRemoteIds(
           snapshot.id as SnapshotId,
-          tableSpec,
+          { spec: tableSpec, tableName: table.tableName },
           returnedRecords,
           trx,
         );
@@ -1265,7 +1327,7 @@ export class SnapshotService {
 
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
-      tableSpec.id.wsId,
+      table.tableName,
       'update',
       connector.getBatchSize('update'),
       async (records) => {
@@ -1281,13 +1343,14 @@ export class SnapshotService {
   private async publishDeletesToTable<S extends Service>(
     snapshot: SnapshotCluster.Snapshot,
     connector: Connector<S>,
+    table: SnapshotCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
   ): Promise<void> {
     // Finally the deletes since hopefully nothing references them.
 
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshot.id as SnapshotId,
-      tableSpec.id.wsId,
+      table.tableName,
       'delete',
       connector.getBatchSize('delete'),
       async (records, trx) => {
@@ -1300,7 +1363,7 @@ export class SnapshotService {
         // Remove them from the snapshot.
         await this.snapshotDbService.snapshotDb.deleteRecords(
           snapshot.id as SnapshotId,
-          tableSpec,
+          table.tableName,
           records.map((r) => r.id.wsId),
           trx,
         );
@@ -1316,7 +1379,7 @@ export class SnapshotService {
   ): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
 
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1325,7 +1388,7 @@ export class SnapshotService {
     if (dto.sqlWhereClause && dto.sqlWhereClause.trim() !== '') {
       const errorMessage = await this.snapshotDbService.snapshotDb.validateSqlFilter(
         snapshotId,
-        tableId,
+        snapshotTable.tableName,
         dto.sqlWhereClause,
       );
       if (errorMessage) {
@@ -1353,7 +1416,7 @@ export class SnapshotService {
 
   async clearActiveRecordFilter(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1376,7 +1439,7 @@ export class SnapshotService {
 
   async setPageSize(snapshotId: SnapshotId, tableId: string, pageSize: number | null, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1391,7 +1454,7 @@ export class SnapshotService {
 
   private async getRecordsForOperation(
     snapshotId: SnapshotId,
-    tableSpec: AnyTableSpec,
+    tableName: string,
     operation: 'create' | 'update' | 'delete',
     markAsClean: boolean,
   ): Promise<SnapshotRecord[]> {
@@ -1399,7 +1462,7 @@ export class SnapshotService {
 
     await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       snapshotId,
-      tableSpec.id.wsId,
+      tableName,
       operation,
       1000, // batch size
       async (batchRecords: SnapshotRecord[]) => {
@@ -1497,7 +1560,7 @@ export class SnapshotService {
       throw new NotFoundException('Snapshot not found');
     }
 
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1590,7 +1653,7 @@ export class SnapshotService {
     }
 
     // Find the table specification
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
+    const tableSpec = getTableSpecById(snapshot, tableId);
     if (!tableSpec) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1751,7 +1814,7 @@ export class SnapshotService {
 
   async setTitleColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1811,7 +1874,7 @@ export class SnapshotService {
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1853,7 +1916,7 @@ export class SnapshotService {
       },
     });
 
-    await this.snapshotDbService.snapshotDb.addColumn(snapshotId, tableSpec.id.wsId, {
+    await this.snapshotDbService.snapshotDb.addColumn(snapshotId, snapshotTable.tableName, {
       columnId,
       columnType: dataType,
     });
@@ -1887,7 +1950,7 @@ export class SnapshotService {
     if (!snapshot) {
       throw new NotFoundException('Snapshot not found');
     }
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1905,7 +1968,7 @@ export class SnapshotService {
     // Need to remove any suggestions that use this column before we remove the column, otherwise it will block future accept/reject suggestion operations
     const records = await this.snapshotDbService.snapshotDb.listRecords(
       snapshotId,
-      tableId,
+      snapshotTable.tableName,
       undefined,
       10000,
       tableSpec,
@@ -1936,7 +1999,7 @@ export class SnapshotService {
       },
     });
 
-    await this.snapshotDbService.snapshotDb.removeColumn(snapshotId, tableSpec.id.wsId, columnId);
+    await this.snapshotDbService.snapshotDb.removeColumn(snapshotId, snapshotTable.tableName, columnId);
 
     this.snapshotEventService.sendSnapshotEvent(snapshotId, {
       type: 'snapshot-updated',
@@ -1959,7 +2022,7 @@ export class SnapshotService {
 
   async hideColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -1992,7 +2055,7 @@ export class SnapshotService {
 
   async unhideColumn(snapshotId: SnapshotId, tableId: string, columnId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }
@@ -2026,7 +2089,7 @@ export class SnapshotService {
 
   async clearHiddenColumns(snapshotId: SnapshotId, tableId: string, actor: Actor): Promise<void> {
     const snapshot = await this.findOneOrThrow(snapshotId, actor);
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${snapshotId}`);
     }

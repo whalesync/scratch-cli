@@ -35,6 +35,7 @@ export class RouteUrls {
   static devToolsGalleryPageUrl = '/dev/gallery';
   static devToolsJobsPageUrl = '/dev/jobs';
   static devToolsUsersPageUrl = '/dev/users';
+  static devToolsMigrationsPageUrl = '/dev/migrations';
 
   /** Utils */
 

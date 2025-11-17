@@ -65,7 +65,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 "Adding scratch column to table",
                 data_type=data_type,
                 table_name=table.name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_name=column_name,
                 snapshot_id=chatRunContext.session.snapshot_id,
             )
@@ -76,7 +76,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             ScratchpadApi.add_scratch_column(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_name=column_name,
                 data_type=data_type,
             )
@@ -91,7 +91,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             log_error(
                 error_msg,
                 table_name=table.name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_name=column_name,
                 data_type=data_type,
                 snapshot_id=chatRunContext.session.snapshot_id,

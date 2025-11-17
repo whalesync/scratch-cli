@@ -66,7 +66,7 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             log_info(
                 "Deleting records via bulk update",
                 table_name=table_name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 record_count=len(delete_operations),
                 snapshot_id=chatRunContext.session.snapshot_id,
             )
@@ -75,7 +75,7 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             ScratchpadApi.bulk_update_records(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 operations=delete_operations,
             )
 
@@ -86,7 +86,7 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             log_info(
                 "Successfully deleted records",
                 table_name=table_name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 record_count=len(delete_operations),
                 snapshot_id=chatRunContext.session.snapshot_id,
             )

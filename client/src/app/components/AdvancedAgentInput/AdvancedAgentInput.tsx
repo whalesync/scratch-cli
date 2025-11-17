@@ -263,23 +263,26 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
             return;
           }
 
-          const tableSpecs = snapshot.snapshotTables.map((t) => t.tableSpec as TableSpec);
           // Get all tables
-          const allTables = tableSpecs.map((table) => ({
-            id: `tbl_${table.id.wsId}`,
-            display: table.name,
-            type: 'table',
-            tableId: table.id.wsId,
-          }));
+          const allTables = snapshot.snapshotTables.map((snapshotTable) => {
+            const table = snapshotTable.tableSpec as TableSpec;
+            return {
+              id: `tbl_${snapshotTable.id}`,
+              display: table.name,
+              type: 'table',
+              tableId: snapshotTable.id,
+            };
+          });
 
           // Get all fields
-          const allFields = tableSpecs.flatMap((table) => {
+          const allFields = snapshot.snapshotTables.flatMap((snapshotTable) => {
+            const table = snapshotTable.tableSpec as TableSpec;
             console.debug(`Processing table ${table.name} with ${table.columns.length} columns`);
             return table.columns.map((column) => ({
-              id: `fld_${table.id.wsId}_${column.id.wsId}`,
+              id: `fld_${snapshotTable.id}_${column.id.wsId}`,
               display: `${table.name}.${column.name}`,
               type: 'field',
-              tableId: table.id.wsId,
+              tableId: snapshotTable.id,
               fieldId: column.id.wsId,
               tableName: table.name,
               fieldName: column.name,

@@ -50,7 +50,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
   const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash } = useSnapshotTableRecords({
     snapshotId: snapshot.id,
-    tableId: table.tableSpec.id.wsId, // TODO: Check if table.id is the same
+    tableId: table.id,
     generateHash: true,
   });
   const activeCells = useSnapshotEditorUIStore((state) => state.activeCells);
@@ -176,7 +176,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
   // Storage key for this specific snapshot and table
   const { columnState, mounted, onColumnStateChanged, clearColumnState } = useStoreColumnState(
     snapshot.id,
-    table.tableSpec.id.wsId,
+    table.id,
     gridApi,
   );
 
@@ -578,7 +578,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       // Use custom header component
       headerComponent: CustomHeaderComponent,
       headerComponentParams: {
-        tableId: table.tableSpec.id.wsId,
+        tableId: table.id,
         records: records,
         columnSpec: column,
         showDataTypeInHeader: showDataTypeInHeader,
@@ -757,7 +757,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
       {showSuggestionToolbar && (
         <GridSuggestionToolbar
-          table={table.tableSpec}
+          table={table}
           style={{
             position: 'absolute',
             bottom: 0,
@@ -775,7 +775,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
           snapshotId={snapshot.id}
           selectedRecord={selectedRecord}
           activeCells={activeCells}
-          table={table.tableSpec}
+          table={table}
           handleFieldFocus={handleFieldFocus}
           handleCloseRecordDetails={handleCloseRecordDetails}
           acceptCellValues={acceptCellValues}
@@ -798,7 +798,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
         onClose={handleCloseContextMenu}
         gridApi={gridApi}
         tableColumns={table.tableSpec.columns}
-        tableId={table.tableSpec.id.wsId} // TODO: check if table.id is the same
+        tableId={table.id}
         onShowRecordJson={handleShowRecordJson}
       />
 

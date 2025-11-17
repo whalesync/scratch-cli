@@ -52,7 +52,7 @@ def define_clear_record_filter_tool(
             ScratchpadApi.clear_active_record_filter(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
             )
 
             return f"Successfully cleared the record filter for table '{table_name}'."

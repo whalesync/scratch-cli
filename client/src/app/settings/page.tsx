@@ -21,6 +21,7 @@ const SettingsPage = () => {
           <UserPreferencesCard />
           <AgentCredentials />
           <AgentUsageInfoCard />
+
           {isDevToolsEnabled && <DevToolsPanel />}
           {showSecretButton && (
             <Tooltip label={isDevToolsEnabled ? 'Hide dev tools' : 'Show dev tools'}>

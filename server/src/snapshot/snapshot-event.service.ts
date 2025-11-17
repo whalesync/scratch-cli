@@ -3,7 +3,6 @@ import { Snapshot } from '@prisma/client';
 import { Observable } from 'rxjs';
 import { WSLogger } from 'src/logger';
 import { RedisPubSubService } from 'src/redis/redis-pubsub.service';
-import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 
 export interface SnapshotRecordEvent {
   type: 'record-changes';
@@ -27,8 +26,8 @@ export interface SnapshotEvent {
 export class SnapshotEventService {
   constructor(private readonly redisPubSub: RedisPubSubService) {}
 
-  getRecordEvents(snapshot: Snapshot, tableSpec: AnyTableSpec): Observable<SnapshotRecordEvent> {
-    const channel = this.createKey('records', snapshot.id, tableSpec.id.wsId);
+  getRecordEvents(snapshot: Snapshot, tableId: string): Observable<SnapshotRecordEvent> {
+    const channel = this.createKey('records', snapshot.id, tableId);
     return this.redisPubSub.subscribe<SnapshotRecordEvent>(channel);
   }
 

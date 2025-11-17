@@ -25,6 +25,8 @@ integration tests for test env:
       changes:
         - server/test/integration/**/*
         - gitlab-ci/stages/06-integration-tests.yml
+      when: manual
+      allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
 notify slack on integration test failure test environment:

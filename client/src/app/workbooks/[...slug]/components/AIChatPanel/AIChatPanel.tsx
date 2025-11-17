@@ -291,7 +291,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       }
 
       if (activeTable) {
-        messageData.active_table_id = activeTable.tableSpec.id.wsId;
+        messageData.active_table_id = activeTable.id;
       }
 
       if (dataScope) {
@@ -510,7 +510,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         {/* User Input for Chat */}
         <AdvancedAgentInput
           snapshotId={snapshot?.id || ''}
-          tableId={activeTable?.tableSpec.id.wsId || ''}
+          tableId={activeTable?.id || ''}
           snapshot={snapshot}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}

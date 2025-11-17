@@ -185,8 +185,19 @@ model SnapshotTable {
   // Columns that are hidden from the UI and agent, list of column wsIds
   hiddenColumns String[] @default([])
 
+  // Dynamic table name in the snapshot schema (e.g., "snt_abc123_my_table")
+  // v0: tableName = wsId from tableSpec.id.wsId
+  // v1: tableName = {id}_{sanitized_name}
+  tableName String @default("")
+
+  // Version of the table naming scheme
+  // v0: uses wsId from connector as table name
+  // v1: uses {id}_{wsId} format
+  version String @default("v0")
+
   @@index([snapshotId])
   @@index([connectorAccountId])
+  @@index([version])
 }
 
 model StyleGuide {

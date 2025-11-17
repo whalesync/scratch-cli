@@ -83,7 +83,7 @@ def search_and_replace_field_value_tool_implementation(
         record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
@@ -118,19 +118,19 @@ def search_and_replace_field_value_tool_implementation(
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             operations=update_operations,
         )
 
         updated_record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
         if updated_record:
-            update_record_in_context(chatRunContext, table.id.wsId, updated_record)
+            update_record_in_context(chatRunContext, table.id, updated_record)
 
         return (
             f"Successfully replaced {replace_count} occurrences of {search_value} with {new_value} in the {column.name} field. Record {wsId} now contains an updated suggested value containing the changes.",

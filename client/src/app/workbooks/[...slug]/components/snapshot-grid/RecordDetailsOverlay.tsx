@@ -1,6 +1,6 @@
 'use client';
 
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/snapshot';
 import { Box, Paper, ScrollArea } from '@mantine/core';
 import { FC, useEffect } from 'react';
 import { ActiveCells } from '../../../../../stores/snapshot-editor-store';
@@ -13,7 +13,7 @@ type Props = {
   snapshotId: string;
   selectedRecord: SnapshotRecord;
   activeCells: ActiveCells;
-  table: TableSpec;
+  table: SnapshotTable;
   handleFieldFocus: (columnId: string | undefined) => void;
   handleCloseRecordDetails: () => void;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
@@ -85,7 +85,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
         <Box>
           <RecordDetailsHeader
             h={HEADER_HEIGHT}
-            table={table}
+            table={table.tableSpec}
             columnId={activeCells.columnId}
             onSwitchColumn={handleFieldFocus}
             v2

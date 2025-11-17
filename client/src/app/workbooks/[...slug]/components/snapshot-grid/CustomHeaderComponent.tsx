@@ -88,9 +88,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   // Get current column configuration
   const { currentTable, isColumnHidden, isScratchColumn, currentDataConverter } = useMemo(() => {
     const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
-    const currentTable = props.tableId
-      ? snapshot?.snapshotTables?.find((t) => t.tableSpec.id.wsId === props.tableId)
-      : undefined;
+    const currentTable = props.tableId ? snapshot?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
     const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
     const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
     return { isScratchColumn, currentTable, isColumnHidden, currentDataConverter };

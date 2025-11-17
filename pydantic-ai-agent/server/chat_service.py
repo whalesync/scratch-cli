@@ -201,13 +201,11 @@ class ChatService:
             # Pre-load records for each table
             for table in snapshot.tables:
                 # Determine if this is the active table
-                is_active_table = (not active_table_id) or (
-                    active_table_id == table.id.wsId
-                )
+                is_active_table = (not active_table_id) or (active_table_id == table.id)
 
                 # Determine if this table is mentioned
                 is_mentioned_table = (
-                    mentioned_table_ids and table.id.wsId in mentioned_table_ids
+                    mentioned_table_ids and table.id in mentioned_table_ids
                 )
 
                 # Load records for active or mentioned tables
@@ -223,7 +221,7 @@ class ChatService:
                         record = ScratchpadApi.get_record(
                             user.userId,
                             session.snapshot_id,
-                            table.id.wsId,
+                            table.id,
                             record_id,
                         )
                         preloaded_records[table.name] = [
@@ -252,7 +250,7 @@ class ChatService:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
                             session.snapshot_id,
-                            table.id.wsId,
+                            table.id,
                         )
                         filtered_counts[table.name] = (
                             records_result.filteredRecordsCount
@@ -291,7 +289,7 @@ class ChatService:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
                             session.snapshot_id,
-                            table.id.wsId,
+                            table.id,
                             # take=1,  #we used to include a sample record from the non active tables, now we dump everything that the user sees
                         )
                         preloaded_records[table.name] = [

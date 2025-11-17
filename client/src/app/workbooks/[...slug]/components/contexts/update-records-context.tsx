@@ -96,7 +96,6 @@ export const UpdateRecordsProvider = ({ children }: { children: ReactNode }) => 
 
     // Snapshot the current pending changes to flush
     const changesToFlush = [...pendingChanges];
-    console.debug('savePendingChanges', changesToFlush.length, 'changes');
 
     try {
       // Step 1: Coalesce operations by record (last write wins for same field)

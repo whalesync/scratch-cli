@@ -82,6 +82,7 @@ export class WixBlogSchemaParser {
 
     return {
       id,
+      slug: id.wsId,
       name: 'Blog Posts',
       columns,
       titleColumnRemoteId: ['title'],

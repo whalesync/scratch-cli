@@ -10,6 +10,7 @@ import type {
   RemoveScratchColumnDto,
   Snapshot,
   SnapshotRecord,
+  SnapshotTable,
   UpdateColumnSettingsDto,
   UpdateSnapshotDto,
 } from '@/types/server-entities/snapshot';
@@ -71,7 +72,7 @@ export const snapshotApi = {
     return res.json();
   },
 
-  addTable: async (id: string, dto: AddTableToSnapshotDto): Promise<Snapshot> => {
+  addTable: async (id: string, dto: AddTableToSnapshotDto): Promise<SnapshotTable> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}/add-table`, {
       method: 'POST',
       headers: {
@@ -258,6 +259,7 @@ export const snapshotApi = {
   },
 
   async bulkUpdateRecords(snapshotId: string, tableId: string, dto: BulkUpdateRecordsDto): Promise<void> {
+    debugger;
     const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/bulk`, {
       method: 'POST',
       headers: {

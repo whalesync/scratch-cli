@@ -5,7 +5,7 @@ import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
 
 import {
   AcceptAllSuggestionsResult,
-  getTableSpecByWsId,
+  getSnapshotTableById,
   RejectAllSuggestionsResult,
   SNAPSHOT_RECORD_CREATED_FIELD,
   SNAPSHOT_RECORD_DELETED_FIELD,
@@ -149,20 +149,24 @@ export const useSnapshotTableRecords = (args: {
 
   const createNewRecord = useCallback(async () => {
     if (!snapshot) return;
-    const table = getTableSpecByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
+      throw new Error(`Table ${tableId} not found in snapshot ${snapshotId}`);
+    }
+    const tableSpec = snapshotTable.tableSpec;
 
-    if (!table) return;
+    if (!tableSpec) return;
 
     const newRecordData: Record<string, unknown> = {};
 
-    table.columns.forEach((c) => {
+    tableSpec.columns.forEach((c) => {
       if (c.id.wsId !== 'id') {
         newRecordData[c.id.wsId] = null;
       }
     });
 
     // Create the record on the server - this will trigger a snapshot edited event
-    await snapshotApi.bulkUpdateRecords(snapshot.id, table.id.wsId, {
+    await snapshotApi.bulkUpdateRecords(snapshot.id, snapshotTable.id, {
       ops: [
         {
           op: 'create',
@@ -173,7 +177,7 @@ export const useSnapshotTableRecords = (args: {
 
     // Refresh records to get the newly created record
     await mutate(swrKey);
-  }, [snapshot, tableId, swrKey, mutate]);
+  }, [snapshot, tableId, mutate, swrKey, snapshotId]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {

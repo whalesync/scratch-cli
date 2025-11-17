@@ -6,6 +6,7 @@ import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-u
 import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
+import { CodeMigrationsModule } from './code-migrations/code-migrations.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
 import { CronModule } from './cron/cron.module';
@@ -58,6 +59,7 @@ import { WorkerModule } from './worker/workers.module';
     SlackNotificationModule,
     MentionsModule,
     WorkerEnqueuerModule,
+    CodeMigrationsModule,
     ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
     ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),
     DevToolsModule,

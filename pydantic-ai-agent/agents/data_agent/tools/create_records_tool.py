@@ -176,7 +176,7 @@ async def create_records_implementation(
         log_info(
             "Creating records via bulk update",
             table_name=table_name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_count=len(create_operations),
             snapshot_id=chatRunContext.session.snapshot_id,
         )
@@ -185,14 +185,14 @@ async def create_records_implementation(
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             operations=create_operations,
         )
 
         logger.info(
             f"✅ Successfully created {len(create_operations)} records in table '{table_name}'"
         )
-        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"📋 Table ID: {table.id}")
         logger.info(f"📊 Created records:")
         for i, operation in enumerate(create_operations):
             logger.info(f"  Record {i+1}: {operation.data}")
@@ -203,7 +203,7 @@ async def create_records_implementation(
         log_info(
             "Successfully created records",
             table_name=table_name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_count=len(create_operations),
             snapshot_id=chatRunContext.session.snapshot_id,
         )

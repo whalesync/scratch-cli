@@ -108,10 +108,11 @@ export class MentionsService {
     const snapshot = await this.snapshotService.findOne(snapshotId, actor);
     if (!snapshot) return [];
 
-    // Find the table by tableId using tableSpecs
-    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
-    const table = tableSpecs.find((t) => t.id.wsId === tableId);
-    if (!table) return [];
+    // Find the table by tableId
+    const snapshotTable = snapshot.snapshotTables?.find((t) => t.id === tableId);
+    if (!snapshotTable) return [];
+
+    const table = snapshotTable.tableSpec as AnyTableSpec;
 
     // Check if table has a title column
     const titleColWsId = table.titleColumnRemoteId?.[0];
@@ -120,7 +121,7 @@ export class MentionsService {
     try {
       // Search records in the table using the title column
       const rows = await this.snapshotDbService.snapshotDb
-        .knex(`${snapshotId}.${table.id.wsId}`)
+        .knex(`${snapshotId}.${snapshotTable.tableName}`)
         .select({ id: 'wsId' })
         .select(titleColWsId)
         .whereILike(titleColWsId, `${queryText}%`)
@@ -133,7 +134,7 @@ export class MentionsService {
           results.push({
             id: row.id,
             title,
-            tableId: table.id.wsId,
+            tableId: snapshotTable.id,
           });
         }
       }

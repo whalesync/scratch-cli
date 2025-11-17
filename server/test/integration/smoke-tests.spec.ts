@@ -103,11 +103,11 @@ describe('Smoke Tests', () => {
 
     table = snapshot.snapshotTables[0];
     console.log(`Selected table ${table.id} (${table.tableSpec.name}) for further testing`);
-    expect(table.tableSpec.id.wsId).toBeDefined();
+    expect(table.id).toBeDefined();
   });
 
   it('should fetch table records', async () => {
-    const tableId = table?.tableSpec.id.wsId;
+    const tableId = table?.id;
     expect(tableId).toBeDefined();
 
     const url = `${getProtocol(apiDomain)}://${apiDomain}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
@@ -181,8 +181,7 @@ describe('Smoke Tests', () => {
   });
 
   it('should accept all suggestions for the table', async () => {
-    // NOTE: This ID will change soon
-    const tableId = table?.tableSpec.id.wsId;
+    const tableId = table?.id;
     expect(tableId).toBeDefined();
 
     const url = `${getProtocol(apiDomain)}://${apiDomain}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`;

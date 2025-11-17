@@ -1,8 +1,8 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, SnapshotTable, TableSpec } from '@/types/server-entities/snapshot';
 import { Box, Group, Loader, Stack } from '@mantine/core';
-import { useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';
@@ -10,7 +10,7 @@ import { DisplayField } from './DisplayField';
 interface RecordDetailsProps {
   snapshotId: string;
   currentRecord: SnapshotRecord;
-  table: TableSpec;
+  table: SnapshotTable;
   currentColumnId: string | undefined;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
@@ -18,23 +18,27 @@ interface RecordDetailsProps {
   onRecordUpdate?: (recordId: string, field: string, value: string | number | boolean) => void;
 }
 
-export const RecordDetails = ({
-  snapshotId,
-  currentRecord,
-  table,
-  currentColumnId,
-  acceptCellValues,
-  rejectCellValues,
-  onFocusOnField,
-  onRecordUpdate,
-}: RecordDetailsProps) => {
+export const RecordDetails: FC<RecordDetailsProps> = (props) => {
+  const {
+    snapshotId,
+    currentRecord,
+    table,
+    currentColumnId,
+    acceptCellValues,
+    rejectCellValues,
+    onFocusOnField,
+    onRecordUpdate,
+  } = props;
   const { addPendingChange, savingPendingChanges } = useUpdateRecordsContext();
   const [savingSuggestions, setSavingSuggestions] = useState(false);
 
-  const currentColumn = table.columns.find((c) => c.id.wsId === currentColumnId);
+  const tableSpec = table.tableSpec as TableSpec;
+  const tableId = table.id;
+
+  const currentColumn = tableSpec.columns.find((c) => c.id.wsId === currentColumnId);
   const orderedColumns = useMemo(() => {
-    return getGridOrderedColumnSpecs(table);
-  }, [table]);
+    return getGridOrderedColumnSpecs(tableSpec);
+  }, [tableSpec]);
 
   const updateField = useCallback(
     async (field: string, value: string | number | boolean) => {
@@ -47,7 +51,7 @@ export const RecordDetails = ({
       // Add the change to the context to be flushed later, also updates the cache optimistically.
       addPendingChange({
         snapshotId,
-        tableId: table.id.wsId,
+        tableId: tableId,
         operation: {
           op: 'update',
           wsId: currentRecord.id.wsId,
@@ -55,7 +59,7 @@ export const RecordDetails = ({
         },
       });
     },
-    [currentRecord, onRecordUpdate, addPendingChange, snapshotId, table.id.wsId],
+    [currentRecord, onRecordUpdate, addPendingChange, snapshotId, tableId],
   );
   const handleFocusOnField = useCallback(
     (columnId: string | undefined) => {
@@ -151,12 +155,12 @@ export const RecordDetails = ({
 
   if (currentRecord && currentColumn) {
     // just show the current active column
-    content = fieldToInputAndSuggestion(currentColumn.id.wsId, table, true);
+    content = fieldToInputAndSuggestion(currentColumn.id.wsId, tableSpec, true);
   } else if (currentRecord) {
     const fieldsToShow = orderedColumns.map((column) => column.id.wsId);
     content = (
       <Stack p="3rem" gap="sm">
-        {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, table, false))}
+        {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, tableSpec, false))}
       </Stack>
     );
   }

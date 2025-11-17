@@ -3,7 +3,8 @@
  */
 
 import { createClerkClient } from '@clerk/backend';
-
+// import * as dotenv from 'dotenv';
+// dotenv.config();
 export const clientDomain = process.env.INTEGRATION_TEST_CLIENT_DOMAIN || 'test.scratch.md';
 export const apiDomain = process.env.INTEGRATION_TEST_API_DOMAIN || 'test-api.scratch.md';
 export const agentDomain = process.env.INTEGRATION_TEST_AGENT_DOMAIN || 'test-agent.scratch.md';

@@ -61,7 +61,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             log_info(
                 "Removing scratch column from table",
                 table_name=table.name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_id=column_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
             )
@@ -76,7 +76,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             ScratchpadApi.remove_scratch_column(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_id=column_id,
             )
 
@@ -88,7 +88,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             log_error(
                 error_msg,
                 table_name=table.name,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 column_id=column_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
                 error=str(e),

@@ -65,7 +65,7 @@ def append_field_value_tool_implementation(
         log_info(
             "Attempt to append value to field in record",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             wsId=wsId,
             field_name=column.name,
             value=value,
@@ -81,7 +81,7 @@ def append_field_value_tool_implementation(
         record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
@@ -104,24 +104,24 @@ def append_field_value_tool_implementation(
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             operations=update_operations,
         )
 
         updated_record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             record_id=wsId,
         )
 
         if updated_record:
-            update_record_in_context(chatRunContext, table.id.wsId, updated_record)
+            update_record_in_context(chatRunContext, table.id, updated_record)
 
         log_info(
             "Successfully appended value to field in record",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             wsId=wsId,
             field_name=column.name,
             value=value,

@@ -9,10 +9,11 @@ import type { Response } from 'express';
 import matter from 'gray-matter';
 import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';
+import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
-import { createSnapshotId, createSnapshotTableId, createUploadId, SnapshotId } from 'src/types/ids';
+import { createSnapshotId, createSnapshotTableId, createUploadId, SnapshotId, SnapshotTableId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { pipeline, Readable, Transform } from 'stream';
@@ -785,7 +786,7 @@ export class UploadsService {
     }
 
     const snapshotId = createSnapshotId();
-    const tableId = uploadId; // Use uploadId as tableId so we can track it back to the upload
+    const tableSlug = uploadId; // Use uploadId as tableId so we can track it back to the upload
     const uploadSchemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const uploadTableName = upload.typeId;
 
@@ -816,12 +817,18 @@ export class UploadsService {
 
       const tableSpecs = [
         {
-          id: { wsId: tableId, remoteId: [uploadId] }, // Store uploadId in remoteId so we can find it
+          id: { wsId: tableSlug, remoteId: [uploadId] }, // Store uploadId in remoteId so we can find it
+          slug: tableSlug,
           name: snapshotName,
           columns,
           titleColumnRemoteId,
         },
       ] satisfies AnyTableSpec[];
+
+      // Create table ID and name for v1 naming scheme
+      const newTableId = createSnapshotTableId();
+      const wsId = sanitizeForWsId(tableSpecs[0].name);
+      const tableName = `${newTableId}_${wsId}`;
 
       // Create the snapshot in the database
       await this.db.client.snapshot.create({
@@ -834,11 +841,13 @@ export class UploadsService {
           snapshotTables: {
             create: [
               {
-                id: createSnapshotTableId(),
+                id: newTableId,
                 connectorAccountId: null,
                 connectorService: Service.CSV,
                 tableSpec: tableSpecs[0] as any,
                 columnSettings: {},
+                tableName,
+                version: 'v1',
               },
             ],
           },
@@ -846,14 +855,15 @@ export class UploadsService {
       });
 
       // Create the snapshot schema and table
-      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs);
+      const tableSpecToIdMap = new Map<AnyTableSpec, SnapshotTableId>([[tableSpecs[0], newTableId]]);
+      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs, tableSpecToIdMap);
 
       // Copy data from upload table to snapshot table
       // Generate csr_ prefixed IDs (CSV Snapshot Record) for wsId column
       // Copy remoteId from upload table to id column in snapshot
       const copyQuery = `
-        INSERT INTO "${snapshotId}"."${tableId}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
-        SELECT 
+        INSERT INTO "${snapshotId}"."${tableName}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
+        SELECT
           'csr_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) as "wsId",
           "remoteId" as "id",
           ${columnNames.map((c) => `"${c}"`).join(', ')}
@@ -864,7 +874,7 @@ export class UploadsService {
 
       console.log(`Successfully created snapshot ${snapshotId} from CSV upload ${uploadId}`);
 
-      return { snapshotId, tableId };
+      return { snapshotId, tableId: newTableId };
     } catch (error) {
       // Clean up snapshot if creation failed
       try {

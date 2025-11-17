@@ -26,6 +26,18 @@ export type EntityId = {
 
 export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   id: EntityId;
+  /**
+   * Connector suggested, pg-table-name compatible identifier of the table.
+   * This was pereviously confusingly called wsId.
+   * The reason for the cconfussion is that for records the wsId is actually generated
+   * by the core code, not the connector, but for tables it is the opposite.
+   * This field is probably not necessery - we can use sanitized(name) as the slug,
+   * however it is also possible that connectors, having better knowledge of the table name
+   * conventions of the service, will be better at generating slugs.
+   * This field is currently just set parallel to the wsId but not used.
+   * We will start using it after the migration that drops
+   */
+  slug: string;
   name: string;
   columns: ColumnType[];
   // The remoteId of the column that should be used as the title/header column for visualizing records

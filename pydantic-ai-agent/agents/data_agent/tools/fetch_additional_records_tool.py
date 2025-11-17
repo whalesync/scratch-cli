@@ -60,17 +60,17 @@ def fetch_additional_records_tool_implementation(
         # Find the table by ID
         table = None
         for t in chatRunContext.snapshot.tables:
-            if t.id.wsId == table_id:
+            if t.id == table_id:
                 table = t
                 break
 
         if not table:
-            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id.wsId for t in chatRunContext.snapshot.tables])}"
+            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id for t in chatRunContext.snapshot.tables])}"
 
         log_info(
             "Fetching additional records",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             limit=limit,
             cursor=cursor,
             snapshot_id=chatRunContext.session.snapshot_id,
@@ -80,7 +80,7 @@ def fetch_additional_records_tool_implementation(
         records_result = ScratchpadApi.list_records_for_ai(
             user_id=chatRunContext.user_id,
             snapshot_id=chatRunContext.session.snapshot_id,
-            table_id=table.id.wsId,
+            table_id=table.id,
             cursor=cursor,
             take=limit,
         )
@@ -120,13 +120,13 @@ def fetch_additional_records_tool_implementation(
         logger.info(
             f"✅ Successfully fetched {len(fetched_records)} records from table '{table.name}'"
         )
-        logger.info(f"📋 Table ID: {table.id.wsId}")
+        logger.info(f"📋 Table ID: {table.id}")
         logger.info(f"📊 Limit: {limit}, Cursor: {cursor}")
 
         log_info(
             "Successfully fetched additional records",
             table_name=table.name,
-            table_id=table.id.wsId,
+            table_id=table.id,
             records_fetched=len(fetched_records),
             new_records_added=len(new_records),
             next_cursor=records_result.nextCursor,

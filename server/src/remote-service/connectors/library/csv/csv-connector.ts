@@ -104,6 +104,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
         wsId: upload.typeId, // Use typeId as the table identifier for consistency
         remoteId: id.remoteId,
       },
+      slug: upload.typeId,
       name: upload.name,
       columns,
     };

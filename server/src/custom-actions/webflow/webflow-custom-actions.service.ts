@@ -44,7 +44,7 @@ export class WebflowCustomActionsService {
     // Query the actual records from the snapshot database
     const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
       snapshotTable.snapshotId as SnapshotId,
-      tableSpec.id.wsId,
+      snapshotTable.id,
       dto.recordIds,
       actor,
     );

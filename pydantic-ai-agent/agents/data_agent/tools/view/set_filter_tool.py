@@ -84,7 +84,7 @@ def define_set_filter_tool(
             ScratchpadApi.set_active_records_filter(
                 user_id=chatRunContext.user_id,
                 snapshot_id=chatRunContext.session.snapshot_id,
-                table_id=table.id.wsId,
+                table_id=table.id,
                 sql_where_clause=sql_where_clause,
             )
 

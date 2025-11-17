@@ -16,7 +16,6 @@ import { toActor } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
-import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import type { SnapshotId } from 'src/types/ids';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
@@ -129,10 +128,10 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       message: 'subscribed to snapshot events',
     });
 
-    const tableSpecs = snapshot.snapshotTables?.map((t) => t.tableSpec as AnyTableSpec) ?? [];
+    const snapshotTables = snapshot.snapshotTables ?? [];
 
-    tableSpecs.forEach((tableSpec) => {
-      const tableObservable = this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
+    snapshotTables.forEach((snapshotTable) => {
+      const tableObservable = this.snapshotEventService.getRecordEvents(snapshot, snapshotTable.id);
       if (tableObservable) {
         tableObservable.subscribe((event) => {
           // send a confirmation message to the client
@@ -140,7 +139,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
         });
         client.emit('record-event-subscription-confirmed', {
           snapshotId,
-          tableId: tableSpec.id.wsId,
+          tableId: snapshotTable.id,
           message: 'subscribed to record events',
         });
       }

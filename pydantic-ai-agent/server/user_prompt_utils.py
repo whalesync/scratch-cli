@@ -40,12 +40,10 @@ def build_snapshot_context(
 
     for table in snapshot.tables:
         # Determine if this is the active table
-        is_active_table = (not active_table_id) or (active_table_id == table.id.wsId)
+        is_active_table = (not active_table_id) or (active_table_id == table.id)
 
         # Determine if this table is mentioned in the user message
-        is_mentioned_table = (
-            mentioned_table_ids and table.id.wsId in mentioned_table_ids
-        )
+        is_mentioned_table = mentioned_table_ids and table.id in mentioned_table_ids
 
         # Include full records for active or mentioned tables
         include_records = is_active_table or is_mentioned_table
@@ -59,9 +57,7 @@ def build_snapshot_context(
 
         # Mark active table in the output
         table_marker = " [ACTIVE TABLE]" if is_active_table else ""
-        snapshot_context += (
-            f"\nTABLE: {table.name} (ID: {table.id.wsId}){table_marker}\n"
-        )
+        snapshot_context += f"\nTABLE: {table.name} (ID: {table.id}){table_marker}\n"
         snapshot_context += "COLUMNS:\n"
 
         for col in table.columns:

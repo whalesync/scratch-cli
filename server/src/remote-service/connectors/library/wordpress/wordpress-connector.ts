@@ -60,6 +60,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
 
     return {
       id,
+      slug: id.wsId,
       name: sanitizeForWsId(tableId),
       columns,
     };

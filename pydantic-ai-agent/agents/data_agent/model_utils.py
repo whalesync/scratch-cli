@@ -14,7 +14,7 @@ def find_table_by_name(
     for table in chatRunContext.snapshot.tables:
         if table.name.lower() == table_name.lower():
             return table
-        elif table.id.wsId == table_name:
+        elif table.tableSpecId.wsId == table_name:
             return table
     return None
 
@@ -94,7 +94,7 @@ def get_active_table(chatRunContext: ChatRunContext) -> TableSpec | None:
 
     if chatRunContext.active_table_id:
         for table in chatRunContext.snapshot.tables:
-            if table.id.wsId == chatRunContext.active_table_id:
+            if table.id == chatRunContext.active_table_id:
                 return table
 
     return chatRunContext.snapshot.tables[0]

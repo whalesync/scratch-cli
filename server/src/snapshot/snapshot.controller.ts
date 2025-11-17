@@ -46,11 +46,12 @@ import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto
 import { UpdateColumnSettingsDto } from './dto/update-column-settings.dto';
 import { UpdateSnapshotDto } from './dto/update-snapshot.dto';
 import { DownloadSnapshotResult, DownloadSnapshotWithouotJobResult } from './entities/download-results.entity';
+import { SnapshotTable } from './entities/snapshot-table.entity';
 import { Snapshot } from './entities/snapshot.entity';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { SnapshotService } from './snapshot.service';
-import { getSnapshotTableByWsId, getTableSpecByWsId } from './util';
+import { getSnapshotTableById } from './util';
 
 @Controller('snapshot')
 export class SnapshotController {
@@ -107,8 +108,17 @@ export class SnapshotController {
     @Param('id') id: SnapshotId,
     @Body() addTableDto: AddTableToSnapshotDto,
     @Req() req: RequestWithUser,
-  ): Promise<Snapshot> {
-    return new Snapshot(await this.service.addTableToSnapshot(id, addTableDto, toActor(req.user)));
+  ): Promise<SnapshotTable> {
+    const actor = toActor(req.user);
+
+    // Verify the user is an admin or owner of the snapshot
+    const snapshot = await this.service.findOne(id, actor);
+    if (!snapshot) {
+      throw new NotFoundException('Snapshot not found');
+    }
+
+    const createdTable = await this.service.addTableToSnapshot(id, addTableDto, actor);
+    return new SnapshotTable(createdTable);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -387,12 +397,12 @@ export class SnapshotController {
       throw new NotFoundException('Snapshot not found');
     }
 
-    const tableSpec = getTableSpecByWsId(snapshot, tableId);
-    if (!tableSpec) {
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot`);
     }
 
-    return this.snapshotEventService.getRecordEvents(snapshot, tableSpec);
+    return this.snapshotEventService.getRecordEvents(snapshot, snapshotTable.id);
   }
 
   /**
@@ -461,7 +471,7 @@ export class SnapshotController {
       throw new NotFoundException('Snapshot not found');
     }
 
-    const snapshotTable = getSnapshotTableByWsId(snapshot, tableId);
+    const snapshotTable = getSnapshotTableById(snapshot, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot`);
     }

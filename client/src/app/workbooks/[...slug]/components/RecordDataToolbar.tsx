@@ -10,7 +10,7 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { snapshotApi } from '@/lib/api/snapshot';
-import { getActiveRecordSqlFilterByWsId, getPageSizeByWsId, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/snapshot';
 import {
   calculateTokensForRecords,
   formatTokenCount,
@@ -29,7 +29,7 @@ import { useAgentChatContext } from './contexts/agent-chat-context';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
 interface RecordDataToolbarProps {
-  table: TableSpec;
+  table: SnapshotTable;
 }
 
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
@@ -57,7 +57,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
 
   const { count, filteredCount, records, createNewRecord } = useSnapshotTableRecords({
     snapshotId: snapshot?.id ?? '',
-    tableId: table.id.wsId,
+    tableId: table.id,
   });
 
   // Local state
@@ -66,18 +66,12 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const [sqlFilterError, setSqlFilterError] = useState<string | null>(null);
 
   const currentTableFilter = useMemo(() => {
-    if (!snapshot) return undefined;
-    if (!table.id.wsId) return undefined;
-
-    return getActiveRecordSqlFilterByWsId(snapshot, table.id.wsId);
-  }, [snapshot, table.id.wsId]);
+    return table.activeRecordSqlFilter || undefined;
+  }, [table.activeRecordSqlFilter]);
 
   const currentPageSize = useMemo(() => {
-    if (!snapshot) return 10; // default
-    if (!table.id.wsId) return 10;
-
-    return getPageSizeByWsId(snapshot, table.id.wsId);
-  }, [snapshot, table.id.wsId]);
+    return table.pageSize ?? 10; // default to 10 if not set
+  }, [table.pageSize]);
 
   const tokenCalculation: TokenCalculation = useMemo(() => {
     if (!records || records.length === 0)
@@ -162,12 +156,12 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   }, [sqlFilterModalOpen, currentTableFilter]);
 
   const handleSetSqlFilter = useCallback(async () => {
-    if (!table.id.wsId || !snapshot) return;
+    if (!table.id || !snapshot) return;
 
     setSqlFilterError(null); // Clear any previous errors
 
     try {
-      await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id.wsId, sqlFilterText || undefined);
+      await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id, sqlFilterText || undefined);
       ScratchpadNotifications.success({
         title: 'Filter Updated',
         message: 'SQL filter has been applied',
@@ -179,19 +173,19 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to set SQL filter';
       setSqlFilterError(errorMessage);
     }
-  }, [table.id.wsId, snapshot, sqlFilterText]);
+  }, [table.id, snapshot, sqlFilterText]);
 
   const handleSetPageSize = useCallback(
     async (pageSize: number | null) => {
-      if (!table.id.wsId || !snapshot) return;
+      if (!table.id || !snapshot) return;
 
       try {
-        await snapshotApi.setPageSize(snapshot.id, table.id.wsId, pageSize);
+        await snapshotApi.setPageSize(snapshot.id, table.id, pageSize);
 
         // Invalidate caches to refetch data with new page size
         globalMutate(SWR_KEYS.snapshot.detail(snapshot.id));
         globalMutate(SWR_KEYS.snapshot.list());
-        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, table.id.wsId), undefined, {
+        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, table.id), undefined, {
           revalidate: true,
         });
 
@@ -207,7 +201,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
         });
       }
     },
-    [table.id.wsId, snapshot, globalMutate],
+    [table.id, snapshot, globalMutate],
   );
 
   return (
@@ -226,7 +220,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
               <Menu.Item onClick={() => setSqlFilterModalOpen(true)}>Set SQL Filter</Menu.Item>
               <Menu.Item
                 disabled={!currentTableFilter}
-                onClick={() => table.id.wsId && clearActiveRecordFilter(table.id.wsId)}
+                onClick={() => table.id && clearActiveRecordFilter(table.id)}
               >
                 Clear Filter
               </Menu.Item>

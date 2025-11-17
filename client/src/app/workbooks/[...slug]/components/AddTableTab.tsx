@@ -114,7 +114,7 @@ export const AddTableTab = () => {
 
       ScratchpadNotifications.success({
         title: `${selectedTableIds.length} table${selectedTableIds.length > 1 ? 's' : ''} added`,
-        message: 'The tables have been added to your snapshot.',
+        message: `The tables have been added to your snapshot.`,
       });
       handleClose();
     } catch (error) {

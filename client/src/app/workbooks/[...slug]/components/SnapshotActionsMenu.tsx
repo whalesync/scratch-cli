@@ -11,7 +11,7 @@ import { getPullOperationName, getPushOperationName, serviceName } from '@/servi
 import {
   DownloadSnapshotResult,
   DownloadSnapshotWithouotJobResult,
-  getActiveRecordSqlFilterByWsId,
+  getActiveRecordSqlFilterById,
 } from '@/types/server-entities/snapshot';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -221,7 +221,7 @@ export const SnapshotActionsMenu = () => {
   const hasActiveRecordSqlFilter = (tableId: string) => {
     if (!snapshot) return false;
     if (!tableId) return false;
-    const filter = getActiveRecordSqlFilterByWsId(snapshot, tableId);
+    const filter = getActiveRecordSqlFilterById(snapshot, tableId);
     return filter && filter.trim() !== '';
   };
 
@@ -385,41 +385,29 @@ export const SnapshotActionsMenu = () => {
               <Menu.Label>CSV</Menu.Label>
 
               <Menu.Item
-                disabled={menuItemsDisabled || downloadingCsv === activeTable.tableSpec.id.wsId}
+                disabled={menuItemsDisabled || downloadingCsv === activeTable.id}
                 onClick={() => {
-                  handleDownloadCsv(
-                    snapshot,
-                    activeTable.tableSpec.id.wsId,
-                    activeTable.tableSpec.name,
-                    setDownloadingCsv,
-                    false,
-                  );
+                  handleDownloadCsv(snapshot, activeTable.id, activeTable.tableSpec.name, setDownloadingCsv, false);
                 }}
-                leftSection={
-                  downloadingCsv === activeTable.tableSpec.id.wsId ? <Loader size="xs" /> : <FileDownIcon size={16} />
-                }
+                leftSection={downloadingCsv === activeTable.id ? <Loader size="xs" /> : <FileDownIcon size={16} />}
               >
                 Export all {activeTable.tableSpec.name} as CSV
               </Menu.Item>
 
               <Menu.Item
                 disabled={
-                  menuItemsDisabled ||
-                  downloadingCsv === activeTable.tableSpec.id.wsId ||
-                  !hasActiveRecordSqlFilter(activeTable.tableSpec.id.wsId)
+                  menuItemsDisabled || downloadingCsv === activeTable.id || !hasActiveRecordSqlFilter(activeTable.id)
                 }
                 onClick={() => {
                   handleDownloadCsv(
                     snapshot,
-                    activeTable.tableSpec.id.wsId,
+                    activeTable.id,
                     activeTable.tableSpec.name + ' (filtered)',
                     setDownloadingCsv,
                     true,
                   );
                 }}
-                leftSection={
-                  downloadingCsv === activeTable.tableSpec.id.wsId ? <Loader size="xs" /> : <FileDownIcon size={16} />
-                }
+                leftSection={downloadingCsv === activeTable.id ? <Loader size="xs" /> : <FileDownIcon size={16} />}
               >
                 Export filtered {activeTable.tableSpec.name} as CSV
               </Menu.Item>
@@ -454,7 +442,7 @@ export const SnapshotActionsMenu = () => {
                   const file = e.target.files?.[0];
                   if (file) {
                     console.debug('File selected:', file.name);
-                    handleImportSuggestions(file, activeTable?.tableSpec.id.wsId);
+                    handleImportSuggestions(file, activeTable?.id);
                     e.target.value = ''; // Reset input
                   }
                 }}
@@ -464,10 +452,7 @@ export const SnapshotActionsMenu = () => {
               </Menu.Item>
 
               {hasHiddenColumns && (
-                <Menu.Item
-                  onClick={() => showAllColumns(activeTable.tableSpec.id.wsId)}
-                  leftSection={<EyeIcon size={16} />}
-                >
+                <Menu.Item onClick={() => showAllColumns(activeTable.id)} leftSection={<EyeIcon size={16} />}>
                   Show all hidden columns
                 </Menu.Item>
               )}
@@ -507,12 +492,12 @@ export const SnapshotActionsMenu = () => {
           onClose={() => setDownloadInProgress(null)}
         />
       )}
-      {snapshot && activeTable && activeTable.tableSpec.id.wsId && (
+      {snapshot && activeTable && activeTable.id && (
         <CreateScratchColumnModal
           opened={createScratchColumnModal}
           onClose={closeCreateScratchColumnModal}
           snapshotId={snapshot.id}
-          tableId={activeTable.tableSpec.id.wsId}
+          tableId={activeTable.id}
         />
       )}
     </>
