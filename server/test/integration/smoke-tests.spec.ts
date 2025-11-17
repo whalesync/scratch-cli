@@ -210,7 +210,7 @@ describe('Smoke Tests', () => {
 
   it('should fetch table records after accepting suggestions and confirm that changes were made', async () => {
     // NOTE: This ID will change soon
-    const tableId = table?.tableSpec.id.wsId;
+    const tableId = table?.id;
     expect(tableId).toBeDefined();
     expect(recordsBeforeAccept).toBeDefined();
 
