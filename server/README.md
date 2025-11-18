@@ -132,6 +132,24 @@ Feature flags are managed in [ExperimentsService](./src/experiments/experiments.
 
 **Important**: Do not set `Persist flag across authentication steps` on PostHog - this will cause FlagNotFoundError.
 
+### Integration Tests
+
+The integration tests run against the test environment by default at https://test.scratch.md. You need a Clerk user ID to run them. The tests will expect the account to have at least one snapshot with at least one table existing already, and will fail if they aren't found.
+
+```
+INTEGRATION_TEST_USER_ID=user_xxx yarn run test:integration --verbose
+```
+
+You can run them against your local dev stack by setting the hostnames for the services in environment variables. You can create a .env.integration file by copying `.env.integration.example` and adding your local user's clerkId.
+
+```
+cp .env.integration.example .env.integration
+# edit .env.integration
+yarn run test:integration --verbose
+```
+
+NOTE: These tests rely on Jest running the cases inside a single describe block in order. When debugging via VS Code, sometimes they seem to execute out of order, regardless of how Jest is configured.
+
 ## Stripe Integration
 
 Stripe handles payments via hosted portals and webhooks. See [PaymentModule](src/payment/) for implementation details.

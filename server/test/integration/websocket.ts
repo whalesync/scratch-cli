@@ -62,8 +62,8 @@ export async function waitForWebSocketMessage(
       }
     };
 
-    const onError = (evt: Event) => {
-      return handleError(`WebSocket error occurred: ${evt.type}`);
+    const onError = (evt: ErrorEvent) => {
+      return handleError(`WebSocket error occurred: ${evt.error}`);
     };
 
     const onClose = () => {

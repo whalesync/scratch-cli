@@ -10,5 +10,7 @@
         "tsconfig": "<rootDir>/tsconfig.integration.json"
       }
     ]
-  }
+  },
+  "globalSetup": "<rootDir>/jest-setup.ts",
+  "maxWorkers": 1
 }

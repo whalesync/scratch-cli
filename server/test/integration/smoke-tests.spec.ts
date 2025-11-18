@@ -167,7 +167,7 @@ describe('Smoke Tests', () => {
         JSON.stringify({
           type: 'message',
           data: {
-            message: 'Reverse the words in the title column',
+            message: 'Reverse the words in the first string column',
             agent_jwt: agentJwt,
           },
         }),
