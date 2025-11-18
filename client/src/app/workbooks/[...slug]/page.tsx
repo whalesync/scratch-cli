@@ -12,6 +12,7 @@ import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { SnapshotEventProvider } from '@/app/workbooks/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Stack } from '@mantine/core';
@@ -22,6 +23,7 @@ import { useWorkbook } from '../../../hooks/use-workbook';
 import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { AddTableTab } from './components/AddTableTab';
 import { UpdateRecordsProvider } from './components/contexts/update-records-context';
+import { WorkbookInspector } from './components/devtool/WorkbookInspector';
 import { ManageTablesModal } from './components/ManageTablesModal';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
@@ -30,11 +32,13 @@ import { WorkbookTabBar } from './components/WorkbookTabBar';
 import { useWorkbookParams } from './hooks/use-workbook-params';
 
 function SnapshotPageContent() {
+  const { isDevToolsEnabled } = useDevTools();
   const { tableId, updateSnapshotPath } = useWorkbookParams();
   const { activeTable } = useActiveWorkbook();
   const activeTab = useWorkbookEditorUIStore((state) => state.activeTab);
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
-
+  const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
+  const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
   const router = useRouter();
   const { workbook, isLoading, refreshWorkbook } = useActiveWorkbook();
 
@@ -124,6 +128,7 @@ function SnapshotPageContent() {
         workbookId={workbook.id}
         tables={allTables}
       />
+      {isDevToolsEnabled && <WorkbookInspector opened={devToolsOpen} onClose={closeDevTools} />}
     </PageLayout>
   );
 }

@@ -3,12 +3,12 @@ import { timeAgo } from '@/utils/helpers';
 import { Dialog, DialogProps, ScrollArea, Stack, Text } from '@mantine/core';
 import { useSnapshotEventContext } from '../contexts/snapshot-event-context';
 
-export const SnapshotEventDebugDialog = (props: DialogProps) => {
+export const WorkbookWebsocketEventDebugDialog = (props: DialogProps) => {
   const { messageLog } = useSnapshotEventContext();
   return (
     <Dialog
       {...props}
-      title="Snapshot Event Log"
+      title="Workbook Websocket Event Log"
       withBorder
       shadow="sm"
       radius="sm"
@@ -16,7 +16,7 @@ export const SnapshotEventDebugDialog = (props: DialogProps) => {
     >
       <ScrollArea h={500}>
         <Stack gap="xs">
-          <TextTitle4>Snapshot Event Log</TextTitle4>
+          <TextTitle4>Workbook Websocket Event Log</TextTitle4>
           {messageLog.map((item, index) => (
             <Stack key={index} gap="2px" w="100%">
               <Text size="xs">{item.message}</Text>

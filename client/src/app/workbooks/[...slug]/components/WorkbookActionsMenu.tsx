@@ -8,6 +8,7 @@ import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { workbookApi } from '@/lib/api/workbook';
 import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   DownloadWorkbookResult,
   DownloadWorkbookWithoutJobResult,
@@ -18,7 +19,16 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
-import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, EyeIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
+import {
+  ArrowUp,
+  BetweenVerticalEndIcon,
+  Bot,
+  Command,
+  EyeIcon,
+  FileDownIcon,
+  FileUpIcon,
+  SearchCodeIcon,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useEffect, useRef, useState } from 'react';
@@ -63,6 +73,7 @@ export const WorkbookActionsMenu = () => {
   });
   const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
     useDisclosure(false);
+  const openDevTools = useWorkbookEditorUIStore((state) => state.openDevTools);
 
   useEffect(() => {
     if (activeTable) {
@@ -248,6 +259,20 @@ export const WorkbookActionsMenu = () => {
     }
 
     return null;
+  };
+
+  const renderDevToolsMenuItems = () => {
+    if (!isDevToolsEnabled) return null;
+
+    return (
+      <>
+        <Menu.Divider />
+        <Menu.Label>Dev Tools</Menu.Label>
+        <Menu.Item onClick={openDevTools} leftSection={<SearchCodeIcon size={16} />}>
+          Workbook Inpsector
+        </Menu.Item>
+      </>
+    );
   };
 
   return (
@@ -462,6 +487,8 @@ export const WorkbookActionsMenu = () => {
 
           {/* Connector-custom actions */}
           {renderConnectorCustomActions()}
+
+          {renderDevToolsMenuItems()}
 
           <Menu.Divider />
           <Menu.Item

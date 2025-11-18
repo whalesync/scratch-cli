@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { useAgentChatContext } from './contexts/agent-chat-context';
-import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
+import { WorkbookWebsocketEventDebugDialog } from './devtool/WorkbookWebsocketEventDebugDialog';
 
 interface RecordDataToolbarProps {
   table: SnapshotTable;
@@ -39,10 +39,8 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { isDevToolsEnabled } = useDevTools();
   const { mutate: globalMutate } = useSWRConfig();
   const [helpOverlayOpen, { open: openHelpOverlay, close: closeHelpOverlay }] = useDisclosure(false);
-  const [
-    snapshotEventDebugDialogOpen,
-    { toggle: toggleSnapshotEventDebugDialog, close: closeSnapshotEventDebugDialog },
-  ] = useDisclosure(false);
+  const [workbookWSEventModalOpen, { open: openWorkbookWSEventModal, close: closeWorkbookWSEventModal }] =
+    useDisclosure(false);
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'h') {
@@ -279,7 +277,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
           {isDevToolsEnabled && (
             <ToolIconButton
               icon={BugIcon}
-              onClick={toggleSnapshotEventDebugDialog}
+              onClick={openWorkbookWSEventModal}
               size="md"
               tooltip="Dev Tool: Toggle workbook event log"
             />
@@ -318,7 +316,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
           </Group>
         </Box>
       </Modal>
-      <SnapshotEventDebugDialog opened={snapshotEventDebugDialogOpen} onClose={closeSnapshotEventDebugDialog} />
+      <WorkbookWebsocketEventDebugDialog opened={workbookWSEventModalOpen} onClose={closeWorkbookWSEventModal} />
       <KeyboardShortcutHelpModal opened={helpOverlayOpen} onClose={closeHelpOverlay} />
     </>
   );
