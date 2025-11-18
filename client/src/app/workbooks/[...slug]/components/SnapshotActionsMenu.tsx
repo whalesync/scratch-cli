@@ -18,7 +18,16 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
-import { ArrowUp, BetweenVerticalEndIcon, Bot, Command, EyeIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
+import {
+  ArrowUp,
+  BetweenVerticalEndIcon,
+  Bot,
+  Command,
+  EyeIcon,
+  FileDownIcon,
+  FileUpIcon,
+  SearchCodeIcon,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useEffect, useRef, useState } from 'react';
@@ -26,6 +35,7 @@ import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
 import { Service } from '../../../../types/server-entities/connector-accounts';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
+import { WorkbookDebugTools } from './devtool/WorkbookDebugTools';
 import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
 import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
@@ -37,6 +47,7 @@ enum Modals {
   RENAME = 'rename',
   CONFIRM_DELETE = 'confirm-delete',
   CONFIRM_DOWNLOAD = 'confirm-download',
+  WORKBOOK_DEBUG_TOOLS = 'workbook-debug-tools',
 }
 
 export const SnapshotActionsMenu = () => {
@@ -226,6 +237,23 @@ export const SnapshotActionsMenu = () => {
   };
 
   const hasHiddenColumns = activeTable?.hiddenColumns && activeTable.hiddenColumns.length > 0;
+
+  const renderDevToolsMenuItems = () => {
+    if (!isDevToolsEnabled) return null;
+
+    return (
+      <>
+        <Menu.Divider />
+        <Menu.Label>Dev Tools</Menu.Label>
+        <Menu.Item
+          onClick={() => modalStack.open(Modals.WORKBOOK_DEBUG_TOOLS)}
+          leftSection={<SearchCodeIcon size={16} />}
+        >
+          Workbook Debug Tools
+        </Menu.Item>
+      </>
+    );
+  };
 
   const renderConnectorCustomActions = () => {
     if (!snapshot || !activeTable) return null;
@@ -462,6 +490,8 @@ export const SnapshotActionsMenu = () => {
           {/* Connector-custom actions */}
           {renderConnectorCustomActions()}
 
+          {renderDevToolsMenuItems()}
+
           <Menu.Divider />
           <Menu.Item
             data-delete
@@ -499,6 +529,11 @@ export const SnapshotActionsMenu = () => {
           snapshotId={snapshot.id}
           tableId={activeTable.id}
         />
+      )}
+      {isDevToolsEnabled && (
+        <Modal {...modalStack.register(Modals.WORKBOOK_DEBUG_TOOLS)} title="Workbook Debug Tools" centered size="xl">
+          <WorkbookDebugTools />
+        </Modal>
       )}
     </>
   );
