@@ -11,7 +11,7 @@
   left: 0;
   top: 0;
   bottom: 0; /* Spans full height of the viewport */
-  width: 50px;
+  width: 200px;
   border-right: 1px solid var(--mantine-color-gray-4);
   transition: width 0.2s ease-in-out;
   z-index: 100;
@@ -76,7 +76,7 @@
 }
 
 .contentAreaWrapper[data-navbar-visible='true'] {
-  left: 50px;
+  left: 200px;
   transition: left 0.2s ease-in-out;
 }
 

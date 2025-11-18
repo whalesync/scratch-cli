@@ -20,6 +20,7 @@ import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
 import { useWorkbook } from '../../../hooks/use-workbook';
+import { useLayoutManagerStore } from '../../../stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { AddTableTab } from './components/AddTableTab';
 import { UpdateRecordsProvider } from './components/contexts/update-records-context';
@@ -31,7 +32,7 @@ import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
 import { useWorkbookParams } from './hooks/use-workbook-params';
 
-function SnapshotPageContent() {
+function WorkbookPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId, updateSnapshotPath } = useWorkbookParams();
   const { activeTable } = useActiveWorkbook();
@@ -106,7 +107,7 @@ function SnapshotPageContent() {
     }
   }
   return (
-    <PageLayout pageTitle={workbook.name ?? 'Workbook'} rightPanel={aiChatPanel}>
+    <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer" rightPanel={aiChatPanel}>
       <MainContent>
         <Stack gap="0">
           <WorkbookHeader />
@@ -139,11 +140,15 @@ export default function WorkbookPage() {
   const openWorkbook = useWorkbookEditorUIStore((state) => state.openWorkbook);
   const closeWorkbook = useWorkbookEditorUIStore((state) => state.closeWorkbook);
   const reconcileWithWorkbook = useWorkbookEditorUIStore((state) => state.reconcileWithWorkbook);
+  const closeNavDrawer = useLayoutManagerStore((state) => state.closeNavDrawer);
 
   useEffect(() => {
     openWorkbook(params);
-    return () => closeWorkbook();
-  }, [params, openWorkbook, closeWorkbook]);
+    return () => {
+      closeWorkbook();
+      closeNavDrawer();
+    };
+  }, [params, openWorkbook, closeWorkbook, closeNavDrawer]);
 
   const { workbook } = useWorkbook(params.workbookId);
   useEffect(() => {
@@ -157,7 +162,7 @@ export default function WorkbookPage() {
       <SnapshotEventProvider workbookId={params.workbookId}>
         <AIAgentSessionManagerProvider workbookId={params.workbookId}>
           <UpdateRecordsProvider>
-            <SnapshotPageContent />
+            <WorkbookPageContent />
           </UpdateRecordsProvider>
         </AIAgentSessionManagerProvider>
       </SnapshotEventProvider>

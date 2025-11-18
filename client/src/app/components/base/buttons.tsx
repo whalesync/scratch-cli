@@ -106,6 +106,14 @@ export const DevToolButton = Button.withProps({
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
+export const DevToolButtonGhost = Button.withProps({
+  variant: 'subtle',
+  size: 'sm',
+  c: 'devTool',
+  color: 'devTool',
+  leftSection: <StyledLucideIcon Icon={Cpu} />,
+});
+
 /** @deprecated */
 export const AcceptSuggestionButton = Button.withProps({
   size: 'xs',

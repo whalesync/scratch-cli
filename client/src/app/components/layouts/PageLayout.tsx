@@ -2,7 +2,7 @@
 
 import { trackPageView } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { Box } from '@mantine/core';
+import { Box, Drawer } from '@mantine/core';
 import Head from 'next/head';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -12,14 +12,21 @@ import classes from './PageLayout.module.css';
 
 export type PageLayoutProps = {
   children: React.ReactNode; // the main content of the page
+  navVariant?: 'fixed' | 'drawer';
   footer?: React.ReactNode;
   rightPanel?: React.ReactNode;
   pageTitle?: string;
 };
 
-export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayoutProps) => {
+export const PageLayout = ({
+  children,
+  footer,
+  rightPanel,
+  pageTitle,
+  navVariant: navMode = 'fixed',
+}: PageLayoutProps) => {
   const pathname = usePathname();
-  const { rightPanelOpened } = useLayoutManagerStore();
+  const { rightPanelOpened, navDrawerOpened, closeNavDrawer } = useLayoutManagerStore();
 
   useEffect(() => {
     // Track page views in PostHog
@@ -29,7 +36,7 @@ export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayo
   // Set the visibility for each element
   // these data props control the visibility and positioning of the fixed elements
   const visibilityProps = {
-    'data-navbar-visible': true,
+    'data-navbar-visible': navMode === 'fixed' ? true : false,
     'data-footer-visible': footer ? true : false,
     'data-right-panel-visible': rightPanel && rightPanelOpened ? true : false,
   };
@@ -41,9 +48,27 @@ export const PageLayout = ({ children, footer, rightPanel, pageTitle }: PageLayo
           <title>{pageTitle}</title>
         </Head>
       )}
-      <div className={classes.navBar} {...visibilityProps}>
-        <NavMenu />
-      </div>
+      {navMode === 'fixed' && (
+        <div className={classes.navBar} {...visibilityProps}>
+          <NavMenu />
+        </div>
+      )}
+      {navMode === 'drawer' && (
+        <Drawer
+          opened={navDrawerOpened}
+          onClose={closeNavDrawer}
+          withCloseButton={false}
+          position="left"
+          size="200px"
+          bg="var(--bg-panel)"
+          padding={0}
+        >
+          <Box h="100vh">
+            {/* Need this box because the inner container from Drawer does not fill the height */}
+            <NavMenu />
+          </Box>
+        </Drawer>
+      )}
       {footer && (
         <div className={classes.mainFooter} {...visibilityProps}>
           {footer}
