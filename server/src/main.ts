@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConnectorInstantiationErrorExceptionFilter } from './exception-filters/connector.exception-filter';
@@ -27,6 +28,9 @@ async function bootstrap(): Promise<void> {
   Error.stackTraceLimit = STACK_TRACE_LIMIT;
 
   const app = await NestFactory.create(AppModule, { bodyParser: false, bufferLogs: true });
+
+  // Turn on class validation for body and URL params (DTOs).
+  app.useGlobalPipes(new ValidationPipe());
 
   // Enable CORS
   app.enableCors({
