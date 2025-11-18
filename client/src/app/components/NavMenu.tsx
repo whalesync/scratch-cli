@@ -9,8 +9,19 @@ import { usePathname } from 'next/navigation';
 
 import { PROJECT_NAME } from '@/constants';
 import { trackToggleDisplayMode } from '@/lib/posthog';
-import { Blocks, Cpu, FileText, LucideIcon, MoonIcon, Settings, SunIcon, Table2 } from 'lucide-react';
+import {
+  Blocks,
+  CircleQuestionMarkIcon,
+  Cpu,
+  FileText,
+  LucideIcon,
+  MoonIcon,
+  Settings,
+  SunIcon,
+  Table2,
+} from 'lucide-react';
 import { useDevTools } from '../../hooks/use-dev-tools';
+import { DocsUrls } from '../../utils/docs-urls';
 import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 import styles from './NavMenu.module.css';
 import customBorderStyles from './theme/custom-borders.module.css';
@@ -22,7 +33,7 @@ type MenuItem = {
   iconType: 'lucide';
 
   isDevTool?: boolean;
-} & ({ type: 'link'; href: string } | { type: 'button'; onClick: () => void });
+} & ({ type: 'link'; href: string; newTab?: boolean } | { type: 'button'; onClick: () => void });
 
 const lowerLinks: MenuItem[] = [
   {
@@ -33,6 +44,15 @@ const lowerLinks: MenuItem[] = [
     iconType: 'lucide',
     enabled: true,
     isDevTool: true,
+  },
+  {
+    type: 'link',
+    href: DocsUrls.root,
+    newTab: true,
+    label: 'Docs',
+    icon: CircleQuestionMarkIcon,
+    iconType: 'lucide',
+    enabled: true,
   },
   {
     type: 'link',
@@ -93,6 +113,8 @@ export function NavMenu() {
           <UnstyledButton
             component={Link}
             href={link.href}
+            target={link.newTab ? '_blank' : undefined}
+            rel={link.newTab ? 'noopener noreferrer' : undefined}
             data-active={isActive || undefined}
             data-dev-tool={link.isDevTool || undefined}
             className={`${styles.navButton} ${isActive ? customBorderStyles.cornerBorders : ''}`}

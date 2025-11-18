@@ -7,7 +7,7 @@ export class RouteUrls {
   static signUpPageWithRedirect = (redirect_url: string) => `${this.signUpPageUrl}?redirect_url=${redirect_url}`;
 
   // Authenticated Routes & Route Generators
-  static homePageUrl = '/';
+  static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
   static workbookPageUrl = (id: string, tableId?: string, recordId?: string) => {
