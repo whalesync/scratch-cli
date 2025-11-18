@@ -7,15 +7,18 @@ import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
 import { createConnectorAccountId } from '../types/ids';
 import { EncryptedData, getEncryptionService } from '../utils/encryption';
+import { OAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
+/**
+ * Response from the request to get the OAuth authorization redirect URL for a connector.
+ */
 export interface OAuthInitiateResponse {
   authUrl: string;
-  state: string;
 }
 
 export interface OAuthCallbackRequest {
@@ -79,16 +82,7 @@ export class OAuthService {
   /**
    * Initiate OAuth flow for any supported service
    */
-  initiateOAuth(
-    service: string,
-    actor: Actor,
-    options?: {
-      connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
-      customClientId?: string;
-      customClientSecret?: string;
-      connectionName?: string;
-    },
-  ): OAuthInitiateResponse {
+  initiateOAuth(service: string, actor: Actor, options: OAuthInitiateOptionsDto): OAuthInitiateResponse {
     const provider = this.providers.get(service);
     if (!provider) {
       throw new BadRequestException(`Unsupported OAuth service: ${service}`);
@@ -99,22 +93,19 @@ export class OAuthService {
       userId: actor.userId,
       organizationId: actor.organizationId,
       service,
-      connectionMethod: options?.connectionMethod ?? 'OAUTH_SYSTEM',
-      customClientId: options?.customClientId,
-      customClientSecret: options?.customClientSecret,
-      connectionName: options?.connectionName,
+      connectionMethod: options.connectionMethod ?? 'OAUTH_SYSTEM',
+      customClientId: options.customClientId,
+      customClientSecret: options.customClientSecret,
+      connectionName: options.connectionName,
       ts: Date.now(),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
 
     const authUrl = provider.generateAuthUrl(actor.userId, state, {
-      clientId: options?.connectionMethod === 'OAUTH_CUSTOM' ? options?.customClientId : undefined,
+      clientId: options.connectionMethod === 'OAUTH_CUSTOM' ? options.customClientId : undefined,
     });
 
-    return {
-      authUrl,
-      state,
-    };
+    return { authUrl };
   }
 
   /**

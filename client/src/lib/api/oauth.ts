@@ -1,4 +1,4 @@
-import { OAuthInitiateOptions } from '@/types/server-entities/oauth';
+import { OAuthInitiateOptionsDto } from '@/types/server-entities/oauth';
 import { API_CONFIG } from './config';
 
 export interface OAuthInitiateResponse {
@@ -19,22 +19,11 @@ export const oauthApi = {
   /**
    * Initiate OAuth flow for a service
    */
-  initiate: async (
-    service: string,
-    options?: OAuthInitiateOptions,
-  ): Promise<OAuthInitiateResponse> => {
+  initiate: async (service: string, options?: OAuthInitiateOptionsDto): Promise<OAuthInitiateResponse> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/${service}/initiate`, {
       method: 'POST',
-      headers: {
-      ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        connectionMethod: options?.connectionMethod,
-        customClientId: options?.customClientId,
-        customClientSecret: options?.customClientSecret,
-        connectionName: options?.connectionName,
-      }),
+      headers: { ...API_CONFIG.getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
     });
 
     if (!res.ok) {

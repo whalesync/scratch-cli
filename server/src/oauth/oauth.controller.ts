@@ -11,6 +11,7 @@ import {
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
+import { OAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.service';
 import { OAuthService } from './oauth.service';
 
@@ -20,24 +21,16 @@ import { OAuthService } from './oauth.service';
 export class OAuthController {
   constructor(private readonly oauthService: OAuthService) {}
 
+  /**
+   * Gets the OAuth authorization request redirect URL for a connector (service).
+   */
   @Post(':service/initiate')
   initiateOAuth(
     @Param('service') service: string,
     @Req() req: RequestWithUser,
-    @Body()
-    body: {
-      connectionMethod?: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
-      customClientId?: string;
-      customClientSecret?: string;
-      connectionName?: string;
-    },
+    @Body() body: OAuthInitiateOptionsDto,
   ): OAuthInitiateResponse {
-    return this.oauthService.initiateOAuth(service, toActor(req.user), {
-      connectionMethod: body.connectionMethod,
-      customClientId: body.customClientId,
-      customClientSecret: body.customClientSecret,
-      connectionName: body.connectionName,
-    });
+    return this.oauthService.initiateOAuth(service, toActor(req.user), body);
   }
 
   @Post(':service/callback')
