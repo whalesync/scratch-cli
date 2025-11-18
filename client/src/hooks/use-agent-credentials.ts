@@ -57,7 +57,6 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     createCredentials,
     updateCredentials,
     deleteCredentials,
-    aiAgentEnabled: !!activeOpenRouterCredentials,
     toggleDefaultCredential,
     activeOpenRouterCredentials,
   };

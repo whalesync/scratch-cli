@@ -3,9 +3,9 @@ import { JSX, PropsWithChildren } from 'react';
 import { TextTitle2 } from '../../base/text';
 import classes from './MainContent.module.css';
 
-const MainContent = ({ children }: { children: React.ReactNode }): JSX.Element => {
+const MainContent = ({ children, ...styleProps }: PropsWithChildren & MantineStyleProps): JSX.Element => {
   return (
-    <Stack p={0} gap={0} w="100%" h="100%">
+    <Stack p={0} gap={0} w="100%" h="100%" {...styleProps}>
       {children}
     </Stack>
   );

@@ -1,10 +1,10 @@
-.sideBarHeader {
-  border-bottom: 1px solid var(--mantine-color-gray-2);
+.chatPanelHeader {
+  border-bottom: 1px solid var(--mantine-color-gray-4);
   padding: 2px 6px 2px 6px;
   flex-shrink: 0; /* Prevents it from shrinking */
 }
 
-.sideBarBody {
+.chatPanelBody {
   padding: 2px 6px 2px 6px;
   flex-grow: 1; /* Takes up all available space between header and footer */
   overflow-y: auto; /* Enables vertical scrolling if content overflows */
@@ -13,8 +13,8 @@
   flex-direction: column; /* Stack paragraphs vertically */
 }
 
-.sideBarFooter {
-  border-top: 1px solid var(--mantine-color-gray-2);
+.chatPanelFooter {
+  border-top: 1px solid var(--mantine-color-gray-4);
   flex-shrink: 0; /* Prevents it from shrinking */
   flex-grow: 1;
   padding: 2px 6px 2px 6px;

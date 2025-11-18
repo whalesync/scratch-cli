@@ -36,6 +36,8 @@ export interface WorkbookEditorUIState {
   tabs: (TableTabState | NewTabState)[];
 
   devToolsOpen: boolean;
+
+  chatOpen: boolean;
 }
 
 type Actions = {
@@ -56,6 +58,10 @@ type Actions = {
 
   openDevTools: () => void;
   closeDevTools: () => void;
+
+  openChat: () => void;
+  closeChat: () => void;
+  toggleChat: () => void;
 };
 
 type WorkbookEditorUIStore = WorkbookEditorUIState & Actions;
@@ -67,6 +73,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   recordDetailsVisible: false,
   tabs: [],
   devToolsOpen: false,
+  chatOpen: true,
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
@@ -90,6 +97,9 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   },
   openDevTools: () => set({ devToolsOpen: true }),
   closeDevTools: () => set({ devToolsOpen: false }),
+  openChat: () => set({ chatOpen: true }),
+  closeChat: () => set({ chatOpen: false }),
+  toggleChat: () => set({ chatOpen: !get().chatOpen }),
   /**
    * This is called every time the workbook is updated from the server.
    * Any state that has a dependency on the workbook's data should be updated here, to clean up any stale state.

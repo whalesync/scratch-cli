@@ -15,9 +15,9 @@ import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manag
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
-import { Stack } from '@mantine/core';
+import { Box, Group, Stack } from '@mantine/core';
 import _ from 'lodash';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
 import { useWorkbook } from '../../../hooks/use-workbook';
 import { useLayoutManagerStore } from '../../../stores/layout-manager-store';
@@ -32,6 +32,9 @@ import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
 import { useWorkbookParams } from './hooks/use-workbook-params';
 
+const CONTENT_CHAT_SPACING = '6px';
+const DEFAULT_CHAT_WIDTH = '500px';
+
 function WorkbookPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId, updateSnapshotPath } = useWorkbookParams();
@@ -40,6 +43,7 @@ function WorkbookPageContent() {
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
+  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   const router = useRouter();
   const { workbook, isLoading, refreshWorkbook } = useActiveWorkbook();
 
@@ -74,6 +78,14 @@ function WorkbookPageContent() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [contentWidth, chatWidth] = useMemo(() => {
+    if (activeTable && chatOpen) {
+      return [`calc(100vw - ${DEFAULT_CHAT_WIDTH} - ${CONTENT_CHAT_SPACING})`, DEFAULT_CHAT_WIDTH];
+    }
+    // set width to 0px instead of unmounting so it still renders and can run AI tasks in the background
+    return ['100%', '0px'];
+  }, [activeTable, chatOpen]);
+
   // Only show loader on initial load, not during revalidation
   if (isLoading && !workbook) {
     return <LoaderWithMessage centered message="Loading workbook..." />;
@@ -94,7 +106,11 @@ function WorkbookPageContent() {
   }
 
   const allTables = getSnapshotTables(workbook, true); // Include hidden tables
-  const aiChatPanel = activeTable ? <AIChatPanel activeTable={activeTable} /> : null;
+  const aiChatPanel = activeTable ? (
+    <Box w={chatWidth} h="100%">
+      <AIChatPanel activeTable={activeTable} />
+    </Box>
+  ) : null;
 
   let content = null;
   let contentFooter = null;
@@ -106,15 +122,25 @@ function WorkbookPageContent() {
       content = <AddTableTab />;
     }
   }
+  /*
+   * NOTE:
+   *   The height of the content is calculated as 100vh - 36px to account for the header
+   *   Without using this calculation (i.e. using h="100%"), scrollable divs inside the content
+   *   will push the bounds of the content area out of the viewport
+   */
+
   return (
-    <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer" rightPanel={aiChatPanel}>
-      <MainContent>
-        <Stack gap="0">
-          <WorkbookHeader />
-          <WorkbookTabBar />
-        </Stack>
-        <MainContent.Body p="0">{content}</MainContent.Body>
-        {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
+    <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer">
+      <MainContent bg="var(--bg-panel)">
+        <WorkbookHeader />
+        <Group p="0 6 6 6" gap={CONTENT_CHAT_SPACING} w="100%" h="calc(100vh - 36px)" wrap="nowrap" align="flex-start">
+          <Stack gap="0" w={contentWidth} h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
+            <WorkbookTabBar />
+            <MainContent.Body p="0">{content}</MainContent.Body>
+            {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
+          </Stack>
+          {aiChatPanel}
+        </Group>
       </MainContent>
 
       <ManageTablesModal

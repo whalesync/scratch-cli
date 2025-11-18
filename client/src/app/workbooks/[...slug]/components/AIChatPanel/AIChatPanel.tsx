@@ -4,7 +4,7 @@ import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/Advanced
 import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import SideBarContent from '@/app/components/layouts/SideBarContent';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
@@ -17,19 +17,19 @@ import {
   trackSendMessage,
   trackStartAgentSession,
 } from '@/lib/posthog';
-import { useLayoutManagerStore } from '@/stores/layout-manager-store';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import _ from 'lodash';
 import {
   ChevronDownIcon,
   LucideFileKey,
+  MessagesSquareIcon,
   OctagonMinusIcon,
-  PanelRightIcon,
   Plus,
   SendIcon,
   SparklesIcon,
@@ -40,6 +40,7 @@ import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { Text12Regular, TextTitle3 } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
+import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
@@ -53,9 +54,8 @@ interface AIChatPanelProps {
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const { workbook, publish } = useActiveWorkbook();
-  const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { activeOpenRouterCredentials } = useAgentCredentials();
-
+  const { closeChat } = useWorkbookEditorUIStore();
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -110,8 +110,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
   // const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
-
-  const { aiAgentEnabled } = useAgentCredentials();
 
   // Load selected capabilities from localStorage on mount, or use defaults
   useEffect(() => {
@@ -194,7 +192,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   }, [resetInputFocus, connectionStatus]);
 
   const createNewSession = async () => {
-    if (!aiAgentEnabled) {
+    if (!activeOpenRouterCredentials) {
       setError('You must configure your OpenRouter credentials to use the AI agent');
       return;
     }
@@ -330,8 +328,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     }
   };
 
-  if (!rightPanelOpened) return null;
-
   // combine the historical session data and the current websocket message history
   const chatHistory = [...(messageHistory || [])];
 
@@ -343,7 +339,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
     );
     chatHistory.unshift(...pastMsgs);
   }
-  // fake messages to test scrolling -- uncomment to if you want to test scrolling behavior, or div boundaries
+  // NOTE(chris): fake messages to test scrolling -- uncomment to if you want to test scrolling behavior, or div boundaries
   // for (let i = 0; i < 30; i++) {
   //   chatHistory.push({
   //     id: Date.now().toString(),
@@ -353,28 +349,28 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   //     variant: 'message',
   //   });
   // }
-  const chatInputEnabled = aiAgentEnabled && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
+  const chatInputEnabled =
+    activeOpenRouterCredentials && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 
   return (
-    <SideBarContent>
-      <SideBarContent.Header>
-        <Group align="center" wrap="nowrap" h="100%">
+    <Paper
+      h="100%"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      p={0}
+      bd="1px solid var(--mantine-color-gray-4)"
+    >
+      <Box h="40px" className={classes.chatPanelHeader}>
+        <Group align="center" wrap="nowrap" h="100%" gap="2px">
+          <ToolIconButton icon={MessagesSquareIcon} onClick={closeChat} size="sm" />
           <Group
             gap="2px"
             flex={1}
             onMouseEnter={() => setShowDeleteSessionButton(true)}
             onMouseLeave={() => setShowDeleteSessionButton(false)}
           >
-            <ActionIcon
-              onClick={toggleRightPanel}
-              size="sm"
-              variant="transparent-hover"
-              color="gray"
-              title="Close chat"
-            >
-              <StyledLucideIcon Icon={PanelRightIcon} size={14} />
-            </ActionIcon>
-
             <TextTitle3>
               {activeSession ? _.truncate(activeSession.name, { length: 30, omission: '...' }) : 'Chat'}
             </TextTitle3>
@@ -403,12 +399,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
               variant="transparent-hover"
               color="gray"
               title="New chat"
-              disabled={!aiAgentEnabled}
+              disabled={!activeOpenRouterCredentials}
             >
               <StyledLucideIcon Icon={Plus} size={14} />
             </ActionIcon>
             <SessionHistorySelector
-              disabled={!aiAgentEnabled}
+              disabled={!activeOpenRouterCredentials}
               onSelect={async (sessionId: string) => {
                 if (sessionId) {
                   await disconnect();
@@ -426,15 +422,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                   clearActiveSession();
                   await disconnect();
                 }
-                // Reset capabilities when switching sessions
-                // setAvailableCapabilities([]);
-                // setSelectedCapabilities([]);
               }}
             />
           </Group>
         </Group>
-      </SideBarContent.Header>
-      <SideBarContent.Body scrollRef={scrollAreaRef}>
+      </Box>
+      <Box w="100%" h="100%" className={classes.chatPanelBody} ref={scrollAreaRef}>
         {/* Error Alert */}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
@@ -464,7 +457,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           </Stack>
         ) : (
           <Center h="100%">
-            {aiAgentEnabled ? (
+            {activeOpenRouterCredentials ? (
               <Button
                 variant="transparent"
                 leftSection={<SparklesIcon size={16} />}
@@ -488,11 +481,11 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             )}
           </Center>
         )}
-      </SideBarContent.Body>
-      <SideBarContent.Bottom>
+      </Box>
+      <Box mih="150px" className={classes.chatPanelFooter}>
         <Stack gap="2xs" my="2xs">
           <PromptAssetSelector
-            disabled={!aiAgentEnabled}
+            disabled={!activeOpenRouterCredentials}
             workbook={workbook}
             resetInputFocus={() => textInputRef.current?.focus()}
           />
@@ -504,7 +497,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           workbook={workbook}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}
-          disabled={agentTaskRunning || !aiAgentEnabled}
+          disabled={agentTaskRunning || !activeOpenRouterCredentials}
           onFocus={handleTextInputFocus}
           commands={commands}
         />
@@ -524,7 +517,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           <Button
             variant="transparent"
             onClick={() => setShowModelSelector(true)}
-            disabled={!aiAgentEnabled}
+            disabled={!activeOpenRouterCredentials}
             c="gray"
             size="xs"
             p="0px"
@@ -566,8 +559,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
             </ActionIcon>
           </Group>
         </Group>
-      </SideBarContent.Bottom>
-
+      </Box>
       {/* Model Selector Modal */}
       <Modal opened={showModelSelector} onClose={() => setShowModelSelector(false)} title="Select Model" size="xl">
         <ModelPicker
@@ -603,6 +595,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         serviceName={activeTable?.connectorService ?? undefined}
         isPublishing={false}
       />
-    </SideBarContent>
+    </Paper>
   );
 }
