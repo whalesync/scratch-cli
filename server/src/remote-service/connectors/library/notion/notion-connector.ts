@@ -388,7 +388,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       if (hasPageContentUpdate && pageContentValue) {
         // Check if the data converter for this column is markdown
         const dataConverter = columnSettingsMap[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
-        const isMarkdown = dataConverter === 'markdown';
+        // default to markdown if no data converter is set
+        const isMarkdown = !dataConverter || dataConverter === 'markdown';
         await this.updatePageContent(record.id.remoteId, pageContentValue, isMarkdown);
       }
     }
