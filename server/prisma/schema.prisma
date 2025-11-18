@@ -39,7 +39,7 @@ model User {
   subscriptions           Subscription[]
   invoiceResults          InvoiceResult[]
   jobs                    DbJob[]
-  snapshots               Snapshot[]
+  workbooks               Workbook[]
   uploads                 Upload[]
 }
 
@@ -131,8 +131,8 @@ enum ConnectorHealthStatus {
   FAILED
 }
 
-model Snapshot {
-  id        String   @id // type: SnapshotId
+model Workbook {
+  id        String   @id // type: WorkbookId
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -153,8 +153,8 @@ model SnapshotTable {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  snapshotId String
+  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  workbookId String
 
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
   connectorAccountId String?
@@ -195,7 +195,7 @@ model SnapshotTable {
   // v1: uses {id}_{wsId} format
   version String @default("v0")
 
-  @@index([snapshotId])
+  @@index([workbookId])
   @@index([connectorAccountId])
   @@index([version])
 }
@@ -285,14 +285,14 @@ model InvoiceResult {
 model AgentSession {
   id         String   @id // The session ID used by the pydantic agent
   userId     String // User ID for the session
-  snapshotId String // Snapshot ID for the session
+  workbookId String // Workbook ID for the session
   data       Json // JSON data containing the session state
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([userId])
-  @@index([snapshotId])
-  @@index([userId, snapshotId])
+  @@index([workbookId])
+  @@index([userId, workbookId])
 }
 
 model DbJob {
@@ -343,7 +343,7 @@ model AuditLogEvent {
   organizationId String? // organization that owns the entity that was affected by this event, don't use FK for this field
   message        String // message describing the event
   eventType      String // create, update, delete, publish, etc.
-  entityId       String // ID of the entity that was affected by this event like a snapshot or connection
+  entityId       String // ID of the entity that was affected by this event like a workbook or connection
   context        Json? // Additional details about the event that can be used to to show what changed or store additional context
 
   @@index([userId])
@@ -361,7 +361,7 @@ model Organization {
   users             User[]
   styleGuides       StyleGuide[]
   connectorAccounts ConnectorAccount[]
-  snapshots         Snapshot[]
+  workbooks         Workbook[]
   uploads           Upload[]
   subscriptions     Subscription[]
   invoiceResults    InvoiceResult[]

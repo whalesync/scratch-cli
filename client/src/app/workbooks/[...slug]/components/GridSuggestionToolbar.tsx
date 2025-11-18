@@ -3,11 +3,11 @@ import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components
 import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
-import { useSnapshotEditorUIStore } from '../../../../stores/snapshot-editor-store';
+import { useWorkbookEditorUIStore } from '../../../../stores/workbook-editor-store';
 
 type GridSuggestionToolbarProps = {
   table: SnapshotTable;
@@ -15,12 +15,9 @@ type GridSuggestionToolbarProps = {
 
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
   const { table, ...boxProps } = props;
-  const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
+  const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
   const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
-    useSnapshotTableRecords({
-      snapshotId: snapshotId ?? '',
-      tableId: table.id,
-    });
+    useSnapshotTableRecords({ workbookId, tableId: table.id });
   const [saving, setSaving] = useState(false);
 
   const handleAcceptAllSuggestions = async () => {

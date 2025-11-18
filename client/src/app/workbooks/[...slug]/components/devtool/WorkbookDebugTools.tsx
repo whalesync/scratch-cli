@@ -1,15 +1,15 @@
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { Text13Regular, TextTitle3 } from '@/app/components/base/text';
-import { useActiveSnapshot } from '@/hooks/use-active-snapshot';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { ColumnSpec, SnapshotTable, TableSpec } from '@/types/server-entities/snapshot';
+import { ColumnSpec, SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
 import { formatDate } from '@/utils/helpers';
 import { Badge, Card, Center, Code, Divider, Group, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
 
 export const WorkbookDebugTools = () => {
   const { isDevToolsEnabled } = useDevTools();
-  const { snapshot, isLoading } = useActiveSnapshot();
+  const { workbook, isLoading } = useActiveWorkbook();
 
   if (!isDevToolsEnabled) {
     return (
@@ -23,7 +23,7 @@ export const WorkbookDebugTools = () => {
     return <LoaderWithMessage message="Loading workbook..." centered />;
   }
 
-  if (!snapshot) {
+  if (!workbook) {
     return (
       <Center h="100%">
         <Text c="dimmed">No workbook found</Text>
@@ -31,7 +31,7 @@ export const WorkbookDebugTools = () => {
     );
   }
 
-  const snapshotTables = snapshot.snapshotTables || [];
+  const snapshotTables = workbook.snapshotTables || [];
   const defaultTab = snapshotTables.length > 0 ? snapshotTables[0].id : null;
 
   return (
@@ -39,10 +39,10 @@ export const WorkbookDebugTools = () => {
       {/* General Settings Section */}
       <Stack gap="sm">
         <Stack gap="xs">
-          <LabelValuePair label="Workbook ID" value={snapshot.id} canCopy />
-          <LabelValuePair label="Name" value={snapshot.name || 'N/A'} />
-          <LabelValuePair label="Created At" value={formatDate(snapshot.createdAt)} />
-          <LabelValuePair label="Updated At" value={formatDate(snapshot.updatedAt)} />
+          <LabelValuePair label="Workbook ID" value={workbook.id} canCopy />
+          <LabelValuePair label="Name" value={workbook.name || 'N/A'} />
+          <LabelValuePair label="Created At" value={formatDate(workbook.createdAt)} />
+          <LabelValuePair label="Updated At" value={formatDate(workbook.updatedAt)} />
         </Stack>
       </Stack>
       <Divider />

@@ -2,16 +2,16 @@ import type { PrismaClient } from '@prisma/client';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
-import type { SnapshotDb } from '../../../snapshot/snapshot-db';
-import type { SnapshotId } from '../../../types/ids';
+import type { WorkbookId } from '../../../types/ids';
 import type { JsonSafeObject } from '../../../utils/objects';
+import type { SnapshotDb } from '../../../workbook/snapshot-db';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { WSLogger } from '../../../logger';
-import { SnapshotEventService } from '../../../snapshot/snapshot-event.service';
-import type { SnapshotColumnSettingsMap } from '../../../snapshot/types';
+import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import type { SnapshotColumnSettingsMap } from '../../../workbook/types';
 
 export type DownloadRecordsPublicProgress = {
   totalRecords: number;
@@ -24,7 +24,7 @@ export type DownloadRecordsPublicProgress = {
 export type DownloadRecordsJobDefinition = JobDefinitionBuilder<
   'download-records',
   {
-    snapshotId: string;
+    workbookId: WorkbookId;
     snapshotTableIds?: string[]; // Optional: if provided, only download these tables
     userId: string;
     organizationId: string;
@@ -59,8 +59,8 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     ) => Promise<void>;
   }) {
     const { data, checkpoint, progress } = params;
-    const snapshot = await this.prisma.snapshot.findUnique({
-      where: { id: data.snapshotId },
+    const workbook = await this.prisma.workbook.findUnique({
+      where: { id: data.workbookId },
       include: {
         snapshotTables: {
           include: {
@@ -70,16 +70,16 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       },
     });
 
-    if (!snapshot) {
-      throw new Error(`Snapshot with id ${data.snapshotId} not found`);
+    if (!workbook) {
+      throw new Error(`Workbook with id ${data.workbookId} not found`);
     }
 
     // Filter snapshot tables if specific tables are requested
-    let snapshotTablesToProcess = snapshot.snapshotTables || [];
+    let snapshotTablesToProcess = workbook.snapshotTables || [];
     if (data.snapshotTableIds && data.snapshotTableIds.length > 0) {
       snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => data.snapshotTableIds!.includes(st.id));
       if (snapshotTablesToProcess.length === 0) {
-        throw new Error(`No SnapshotTables found with the provided IDs in snapshot ${data.snapshotId}`);
+        throw new Error(`No SnapshotTables found with the provided IDs in workbook ${data.workbookId}`);
       }
     }
 
@@ -96,7 +96,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     WSLogger.debug({
       source: 'DownloadRecordsJob',
       message: 'Set syncInProgress=true for tables',
-      snapshotId: snapshot.id,
+      workbookId: workbook.id,
       tableCount: snapshotTablesToProcess.length,
     });
 
@@ -129,7 +129,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       WSLogger.debug({
         source: 'DownloadRecordsJob',
         message: 'Downloading records for table',
-        snapshotId: snapshot.id,
+        workbookId: workbook.id,
         snapshotTableId: snapshotTable.id,
       });
 
@@ -157,7 +157,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       const callback = async (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => {
         const { records, connectorProgress } = params;
         await this.snapshotDb.upsertRecords(
-          snapshot.id as SnapshotId,
+          workbook.id as WorkbookId,
           { spec: tableSpec, tableName: snapshotTable.tableName },
           records,
         );
@@ -169,7 +169,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         // Probably in the processor there the callback is being handeled.
         // That way we don't have to inject the event service in the job handler
         // and handling will be more uniform across all jobs.
-        this.snapshotEventService.sendSnapshotEvent(snapshot.id, {
+        this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
           type: 'snapshot-updated',
           data: {
             tableId: snapshotTable.id,
@@ -208,7 +208,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         WSLogger.debug({
           source: 'DownloadRecordsJob',
           message: 'Download completed for table',
-          snapshotId: snapshot.id,
+          workbookId: workbook.id,
           snapshotTableId: snapshotTable.id,
         });
       } catch (error) {
@@ -224,7 +224,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         WSLogger.error({
           source: 'DownloadRecordsJob',
           message: 'Failed to download records for table',
-          snapshotId: snapshot.id,
+          workbookId: workbook.id,
           snapshotTableId: snapshotTable.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });

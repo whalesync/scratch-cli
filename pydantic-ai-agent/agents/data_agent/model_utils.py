@@ -8,10 +8,10 @@ from agents.data_agent.data_agent_utils import TableSpecForAi, ColumnSpecForAi
 def find_table_by_name(
     chatRunContext: ChatRunContext, table_name: str
 ) -> TableSpec | None:
-    if not chatRunContext.snapshot:
+    if not chatRunContext.workbook:
         return None
 
-    for table in chatRunContext.snapshot.tables:
+    for table in chatRunContext.workbook.tables:
         if table.name.lower() == table_name.lower():
             return table
         elif table.tableSpecId.wsId == table_name:
@@ -86,23 +86,23 @@ def update_record_in_context(
 
 def get_active_table(chatRunContext: ChatRunContext) -> TableSpec | None:
     if (
-        not chatRunContext.snapshot
-        or not chatRunContext.snapshot.tables
-        or len(chatRunContext.snapshot.tables) == 0
+        not chatRunContext.workbook
+        or not chatRunContext.workbook.tables
+        or len(chatRunContext.workbook.tables) == 0
     ):
         return None
 
     if chatRunContext.active_table_id:
-        for table in chatRunContext.snapshot.tables:
+        for table in chatRunContext.workbook.tables:
             if table.id == chatRunContext.active_table_id:
                 return table
 
-    return chatRunContext.snapshot.tables[0]
+    return chatRunContext.workbook.tables[0]
 
 
 # Error Generators
 def missing_table_error(chatRunContext: ChatRunContext, missing_table_name: str) -> str:
-    available_tables = [t.name for t in chatRunContext.snapshot.tables]
+    available_tables = [t.name for t in chatRunContext.workbook.tables]
     return f"Error: Table '{missing_table_name}' not found. Available tables: {available_tables}"
 
 
@@ -124,7 +124,7 @@ def unable_to_identify_active_record_error(chatRunContext: ChatRunContext) -> st
 
 
 def unable_to_identify_active_snapshot_error(chatRunContext: ChatRunContext) -> str:
-    return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+    return "Error: No active snapshot. Please connect to a snapshot first using connect_workbook."
 
 
 def record_not_in_context_error(chatRunContext: ChatRunContext, rec_id: str) -> str:

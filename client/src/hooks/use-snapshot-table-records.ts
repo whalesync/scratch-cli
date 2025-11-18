@@ -1,6 +1,6 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { snapshotApi } from '@/lib/api/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
 
 import {
@@ -10,11 +10,12 @@ import {
   SNAPSHOT_RECORD_CREATED_FIELD,
   SNAPSHOT_RECORD_DELETED_FIELD,
   SnapshotRecord,
-} from '@/types/server-entities/snapshot';
+} from '@/types/server-entities/workbook';
 import { hashStringList } from '@/utils/helpers';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { useSnapshot } from './use-snapshot';
+import { SnapshotTableId, WorkbookId } from '../types/server-entities/ids';
+import { useWorkbook } from './use-workbook';
 
 export interface UseSnapshotRecordsReturn {
   records: SnapshotRecord[] | undefined;
@@ -36,21 +37,21 @@ export interface UseSnapshotRecordsReturn {
 }
 
 export const useSnapshotTableRecords = (args: {
-  snapshotId: string;
-  tableId: string;
+  workbookId: WorkbookId | null;
+  tableId: SnapshotTableId | null;
   cursor?: string;
   take?: number;
   generateHash?: boolean;
 }): UseSnapshotRecordsReturn => {
-  const { snapshotId, tableId, cursor, take = 1000, generateHash = false } = args;
-  const { snapshot } = useSnapshot(snapshotId);
-  const swrKey = SWR_KEYS.snapshot.records(snapshotId, tableId, cursor, take);
+  const { workbookId, tableId, cursor, take = 1000, generateHash = false } = args;
+  const { workbook } = useWorkbook(workbookId);
+  const swrKey = workbookId && tableId ? SWR_KEYS.workbook.records(workbookId, tableId, cursor, take) : null;
 
   const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(
     tableId ? swrKey : null,
-    () => snapshotApi.listRecords(snapshotId, tableId, cursor, take),
+    () => (workbookId && tableId ? workbookApi.listRecords(workbookId, tableId, cursor, take) : undefined),
     {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
@@ -71,9 +72,10 @@ export const useSnapshotTableRecords = (args: {
 
   const acceptCellValues = useCallback(
     async (items: { wsId: string; columnId: string }[]) => {
+      if (!workbookId || !tableId) return;
       try {
-        await snapshotApi.acceptCellValues(snapshotId, tableId, items);
-        trackAcceptChanges(items, snapshot);
+        await workbookApi.acceptCellValues(workbookId, tableId, items);
+        trackAcceptChanges(items, workbook);
       } catch (e) {
         // Re-throw the error so the calling component can handle it.
         throw e;
@@ -82,14 +84,15 @@ export const useSnapshotTableRecords = (args: {
         await mutate(swrKey);
       }
     },
-    [snapshotId, tableId, mutate, swrKey, snapshot],
+    [workbookId, tableId, mutate, swrKey, workbook],
   );
 
   const rejectCellValues = useCallback(
     async (items: { wsId: string; columnId: string }[]) => {
+      if (!workbookId || !tableId) return;
       try {
-        await snapshotApi.rejectCellValues(snapshotId, tableId, items);
-        trackRejectChanges(items, snapshot);
+        await workbookApi.rejectCellValues(workbookId, tableId, items);
+        trackRejectChanges(items, workbook);
       } catch (e) {
         // Re-throw the error so the calling component can handle it.
         throw e;
@@ -98,7 +101,7 @@ export const useSnapshotTableRecords = (args: {
         await mutate(swrKey);
       }
     },
-    [snapshotId, tableId, mutate, swrKey, snapshot],
+    [workbookId, tableId, mutate, swrKey, workbook],
   );
 
   const { recordsWithSuggestions, totalSuggestions, totalSuggestedDeletes, totalSuggestedCreates } = useMemo(() => {
@@ -136,22 +139,22 @@ export const useSnapshotTableRecords = (args: {
   }, [data]);
 
   const acceptAllSuggestions = useCallback(async () => {
-    if (!tableId || !snapshotId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
-    const result = await snapshotApi.acceptAllSuggestions(snapshotId, tableId);
+    if (!tableId || !workbookId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
+    const result = await workbookApi.acceptAllSuggestions(workbookId, tableId);
     return result;
-  }, [tableId, snapshotId]);
+  }, [tableId, workbookId]);
 
   const rejectAllSuggestions = useCallback(async () => {
-    if (!tableId || !snapshotId) return { recordsRejected: 0, totalChangesRejected: 0 };
-    const result = await snapshotApi.rejectAllSuggestions(snapshotId, tableId);
+    if (!tableId || !workbookId) return { recordsRejected: 0, totalChangesRejected: 0 };
+    const result = await workbookApi.rejectAllSuggestions(workbookId, tableId);
     return result;
-  }, [tableId, snapshotId]);
+  }, [tableId, workbookId]);
 
   const createNewRecord = useCallback(async () => {
-    if (!snapshot) return;
-    const snapshotTable = getSnapshotTableById(snapshot, tableId);
+    if (!workbook || !tableId) return;
+    const snapshotTable = getSnapshotTableById(workbook, tableId);
     if (!snapshotTable) {
-      throw new Error(`Table ${tableId} not found in snapshot ${snapshotId}`);
+      throw new Error(`Table ${tableId} not found in workbook ${workbookId}`);
     }
     const tableSpec = snapshotTable.tableSpec;
 
@@ -165,8 +168,8 @@ export const useSnapshotTableRecords = (args: {
       }
     });
 
-    // Create the record on the server - this will trigger a snapshot edited event
-    await snapshotApi.bulkUpdateRecords(snapshot.id, snapshotTable.id, {
+    // Create the record on the server - this will trigger a workbook edited event
+    await workbookApi.bulkUpdateRecords(workbook.id, snapshotTable.id, {
       ops: [
         {
           op: 'create',
@@ -177,7 +180,7 @@ export const useSnapshotTableRecords = (args: {
 
     // Refresh records to get the newly created record
     await mutate(swrKey);
-  }, [snapshot, tableId, mutate, swrKey, snapshotId]);
+  }, [workbook, tableId, mutate, swrKey, workbookId]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {

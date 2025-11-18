@@ -6,8 +6,8 @@ import {
   IdPrefixes,
   isConnectorAccountId,
   isId,
-  isSnapshotId,
   isUserId,
+  isWorkbookId,
   typeForId,
 } from './ids';
 
@@ -25,7 +25,7 @@ describe('ID Utilities', () => {
     });
 
     it('should create IDs with correct length', () => {
-      const id = createId(IdPrefixes.SNAPSHOT);
+      const id = createId(IdPrefixes.WORKBOOK);
 
       expect(id.length).toBe(14); // 4 chars prefix + 10 chars random
     });
@@ -41,11 +41,11 @@ describe('ID Utilities', () => {
 
     it('should work with different prefixes', () => {
       const userId = createId(IdPrefixes.USER);
-      const snapshotId = createId(IdPrefixes.SNAPSHOT);
+      const workbookId = createId(IdPrefixes.WORKBOOK);
       const connectorId = createId(IdPrefixes.CONNECTOR_ACCOUNT);
 
       expect(userId).toMatch(/^usr_/);
-      expect(snapshotId).toMatch(/^sna_/);
+      expect(workbookId).toMatch(/^wkb_/);
       expect(connectorId).toMatch(/^coa_/);
     });
   });
@@ -83,7 +83,7 @@ describe('ID Utilities', () => {
     it('should return false for IDs with wrong prefix', () => {
       const id = 'usr_1234567890';
 
-      expect(isId(id, IdPrefixes.SNAPSHOT)).toBe(false);
+      expect(isId(id, IdPrefixes.WORKBOOK)).toBe(false);
     });
 
     it('should return false for IDs with incorrect length', () => {
@@ -121,16 +121,22 @@ describe('ID Utilities', () => {
       });
     });
 
-    describe('isSnapshotId', () => {
-      it('should return true for valid snapshot IDs', () => {
-        const id = 'sna_1234567890';
+    describe('isWorkbookId', () => {
+      it('should return true for valid workbook IDs', () => {
+        const id = 'wkb_1234567890';
 
-        expect(isSnapshotId(id)).toBe(true);
+        expect(isWorkbookId(id)).toBe(true);
       });
 
-      it('should return false for non-snapshot IDs', () => {
-        expect(isSnapshotId('usr_1234567890')).toBe(false);
-        expect(isSnapshotId('invalid')).toBe(false);
+      it('should return true for legacy workbook IDs', () => {
+        const id = 'sna_1234567890';
+
+        expect(isWorkbookId(id)).toBe(true);
+      });
+
+      it('should return false for non-workbook IDs', () => {
+        expect(isWorkbookId('usr_1234567890')).toBe(false);
+        expect(isWorkbookId('invalid')).toBe(false);
       });
     });
 
@@ -155,10 +161,10 @@ describe('ID Utilities', () => {
       expect(typeForId(userId)).toBe('USER');
     });
 
-    it('should return correct type for snapshot ID', () => {
-      const snapshotId = 'sna_1234567890' as AnyId;
+    it('should return correct type for workbook ID', () => {
+      const workbookId = 'wkb_1234567890' as AnyId;
 
-      expect(typeForId(snapshotId)).toBe('SNAPSHOT');
+      expect(typeForId(workbookId)).toBe('WORKBOOK');
     });
 
     it('should return correct type for connector account ID', () => {
@@ -245,14 +251,14 @@ describe('ID Utilities', () => {
 
     it('should create IDs with different prefixes', () => {
       const userId = createUserId();
-      const snapshotId = createId(IdPrefixes.SNAPSHOT);
+      const workbookId = createId(IdPrefixes.WORKBOOK);
       const connectorId = createId(IdPrefixes.CONNECTOR_ACCOUNT);
       const tokenId = createId(IdPrefixes.API_TOKEN);
       const subId = createId(IdPrefixes.SUBSCRIPTION);
 
       // All have different prefixes even though random part is the same (mocked)
       expect(userId).toBe('usr_abcd123456');
-      expect(snapshotId).toBe('sna_abcd123456');
+      expect(workbookId).toBe('wkb_abcd123456');
       expect(connectorId).toBe('coa_abcd123456');
       expect(tokenId).toBe('atk_abcd123456');
       expect(subId).toBe('sub_abcd123456');

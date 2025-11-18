@@ -30,22 +30,22 @@ In this example:
 
 ### Backend
 
-1. **Controller** (`server/src/snapshot/snapshot.controller.ts`):
+1. **Controller** (`server/src/workbook/snapshot.controller.ts`):
 
-   - New endpoint: `POST /snapshot/:id/tables/:tableId/import-suggestions`
+   - New endpoint: `POST /workbook/:id/tables/:tableId/import-suggestions`
    - Accepts file upload via multipart/form-data
    - Returns: `{ recordsProcessed: number, suggestionsCreated: number }`
 
-2. **Service** (`server/src/snapshot/snapshot.service.ts`):
+2. **Service** (`server/src/workbook/snapshot.service.ts`):
 
-   - Method: `importSuggestions(snapshotId, tableId, buffer, userId)`
+   - Method: `importSuggestions(workbookId, tableId, buffer, userId)`
    - Uses `csv-parse` library to parse CSV
    - Validates that `wsId` column exists
    - Maps column names to column IDs
    - Processes records in chunks of 5
    - Creates suggestions using existing `bulkUpdateRecords` method with type='suggested'
 
-3. **DTO** (`server/src/snapshot/dto/import-suggestions.dto.ts`):
+3. **DTO** (`server/src/workbook/dto/import-suggestions.dto.ts`):
 
    - `ImportSuggestionsDto`: Request DTO (currently minimal)
    - `ImportSuggestionsResponseDto`: Response with counts
@@ -57,7 +57,7 @@ In this example:
 
 1. **API Client** (`client/src/lib/api/snapshot.ts`):
 
-   - New method: `importSuggestions(snapshotId, tableId, file)`
+   - New method: `importSuggestions(workbookId, tableId, file)`
    - Uses FormData to upload file
 
 2. **UI** (`client/src/app/snapshots/[...slug]/components/SnapshotActionsMenu.tsx`):
@@ -104,7 +104,7 @@ Replace:
 
 ## Configuration
 
-The chunk size is currently hardcoded to 5 records in `server/src/snapshot/snapshot.service.ts` at line ~1511:
+The chunk size is currently hardcoded to 5 records in `server/src/workbook/snapshot.service.ts` at line ~1511:
 
 ```typescript
 const chunkSize = 5;

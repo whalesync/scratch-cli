@@ -1,6 +1,6 @@
 import { AuditLogEvent } from '@prisma/client';
 import { AuditLogEventEntity } from 'src/audit/entities/audit-log-event.entity';
-import { SnapshotCluster, UserCluster } from 'src/db/cluster-types';
+import { UserCluster, WorkbookCluster } from 'src/db/cluster-types';
 import { ConnectorAccount } from 'src/remote-service/connector-account/entities/connector-account.entity';
 import { User } from 'src/users/entities/user.entity';
 
@@ -9,7 +9,7 @@ export class WorkbookSummary {
   name: string;
   numTables: number;
 
-  constructor(snapshot: SnapshotCluster.Snapshot) {
+  constructor(snapshot: WorkbookCluster.Workbook) {
     this.id = snapshot.id;
     this.name = snapshot.name ?? 'Unnamed snapshot';
     this.numTables = snapshot.snapshotTables.length;
@@ -39,7 +39,7 @@ export class UserDetail {
 
   constructor(
     user: UserCluster.User,
-    snapshots: SnapshotCluster.Snapshot[],
+    snapshots: WorkbookCluster.Workbook[],
     connectors: ConnectorAccount[],
     auditLogs: AuditLogEvent[],
   ) {

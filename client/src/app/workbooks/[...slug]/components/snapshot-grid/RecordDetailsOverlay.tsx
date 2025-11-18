@@ -1,16 +1,17 @@
 'use client';
 
-import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Paper, ScrollArea } from '@mantine/core';
 import { FC, useEffect } from 'react';
-import { ActiveCells } from '../../../../../stores/snapshot-editor-store';
+import { ActiveCells } from '../../../../../stores/workbook-editor-store';
+import { WorkbookId } from '../../../../../types/server-entities/ids';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
 
 type Props = {
   width: string;
-  snapshotId: string;
+  workbookId: WorkbookId;
   selectedRecord: SnapshotRecord;
   activeCells: ActiveCells;
   table: SnapshotTable;
@@ -33,7 +34,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
     acceptCellValues,
     rejectCellValues,
     handleRecordUpdate,
-    snapshotId,
+    workbookId,
     handleRowNavigation,
   } = props;
   const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
@@ -94,7 +95,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
           <Box p="sm" style={{ position: 'relative', height: '100%' }}>
             <ScrollArea h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`} type="hover" scrollbars="y">
               <RecordDetails
-                snapshotId={snapshotId}
+                workbookId={workbookId}
                 currentRecord={selectedRecord}
                 table={table}
                 currentColumnId={activeCells.columnId}

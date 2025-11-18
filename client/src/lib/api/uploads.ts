@@ -1,4 +1,5 @@
-import { ColumnSpec } from '@/types/server-entities/snapshot';
+import { ColumnSpec } from '@/types/server-entities/workbook';
+import { SnapshotTableId, WorkbookId } from '../../types/server-entities/ids';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -89,8 +90,8 @@ export interface CsvImportRequest {
 }
 
 export interface CsvImportResponse {
-  snapshotId: string;
-  tableId: string;
+  workbookId: WorkbookId;
+  tableId: SnapshotTableId;
 }
 
 export interface TemplateCreateRequest {
@@ -98,8 +99,8 @@ export interface TemplateCreateRequest {
 }
 
 export interface TemplateCreateResponse {
-  snapshotId: string;
-  tableId: string;
+  workbookId: WorkbookId;
+  tableId: SnapshotTableId;
 }
 
 export const uploadsApi = {
@@ -273,7 +274,7 @@ export const uploadsApi = {
     uploadId: string,
     name: string,
     titleColumnRemoteId?: string[],
-  ): Promise<{ snapshotId: string; tableId: string }> => {
+  ): Promise<{ workbookId: WorkbookId; tableId: SnapshotTableId }> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
       method: 'POST',
       headers: {
@@ -288,7 +289,7 @@ export const uploadsApi = {
   },
 
   createTemplate: async (request: TemplateCreateRequest): Promise<TemplateCreateResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/create-template`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/create-template`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),

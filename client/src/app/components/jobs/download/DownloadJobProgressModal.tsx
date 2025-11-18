@@ -5,7 +5,6 @@ import { DownloadProgress } from './DownloadJobProgress';
 import { DownloadJobProgressDisplay } from './DownloadJobProgressDisplay';
 
 type Props = {
-  snapshotId?: string;
   jobId: string;
   onClose: () => void;
 };

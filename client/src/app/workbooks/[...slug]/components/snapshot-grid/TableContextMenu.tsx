@@ -1,14 +1,15 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { snapshotApi } from '@/lib/api/snapshot';
-import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { GridApi } from 'ag-grid-community';
 import { Columns3, FileText, Filter, FilterX, List, ListChecks, Rows3, Square, Trash2, Undo2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
-import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-store';
+import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
+import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { Service } from '../../../../../types/server-entities/connector-accounts';
+import { SnapshotTableId } from '../../../../../types/server-entities/ids';
 import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
 import { WebflowPublishMenuItem } from './custom-actions/webflow/WebflowPublishMenuItem';
 import { WixPublishMenuItem } from './custom-actions/wix/WixPublishMenuItem';
@@ -19,7 +20,7 @@ interface TableContextMenuProps {
   onClose: () => void;
   gridApi: GridApi<SnapshotRecord> | null;
   tableColumns: Array<{ id: { wsId: string }; name: string }>;
-  tableId: string;
+  tableId: SnapshotTableId;
   onShowRecordJson?: (record: SnapshotRecord) => void;
 }
 
@@ -36,13 +37,10 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isPositionCalculated, setIsPositionCalculated] = useState(false);
-  const { activeTable } = useActiveSnapshot();
+  const { activeTable } = useActiveWorkbook();
   const { addPendingChange } = useUpdateRecordsContext();
-  const snapshotId = useSnapshotEditorUIStore((state) => state.snapshotId);
-  const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
-    snapshotId: snapshotId ?? '',
-    tableId: tableId,
-  });
+  const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
+  const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({ workbookId, tableId });
 
   // Calculate smart position to keep menu visible
   const calculateMenuPosition = (x: number, y: number) => {
@@ -309,7 +307,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   };
 
   const handleFilterOutRecords = async () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.length === 0 || !workbookId) return;
 
     try {
       setIsProcessing(true);
@@ -322,7 +320,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" NOT IN (${recordIdsList})`;
 
-      await snapshotApi.setActiveRecordsFilter(snapshotId || '', tableId, sqlWhereClause);
+      await workbookApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -438,7 +436,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   };
 
   const handleFilterInRecords = async () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.length === 0 || !workbookId) return;
 
     try {
       setIsProcessing(true);
@@ -451,7 +449,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" IN (${recordIdsList})`;
 
-      await snapshotApi.setActiveRecordsFilter(snapshotId || '', tableId, sqlWhereClause);
+      await workbookApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -478,14 +476,14 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   };
 
   const handleDeleteRecords = async () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.length === 0 || !workbookId) return;
 
     try {
       setIsProcessing(true);
       onClose(); // Close menu immediately
 
       // Delete records via API call
-      await snapshotApi.bulkUpdateRecords(snapshotId ?? '', tableId, {
+      await workbookApi.bulkUpdateRecords(workbookId, tableId, {
         ops: selectedRows.map((record) => ({
           op: 'delete',
           wsId: record.id.wsId,
@@ -510,7 +508,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   };
 
   const handleUndeleteRecords = async () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.length === 0 || !workbookId) return;
 
     try {
       setIsProcessing(true);
@@ -520,7 +518,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       addPendingChange(
         ...selectedRows.map(
           (record): PendingRecordUpdate => ({
-            snapshotId: snapshotId ?? '',
+            workbookId,
             tableId: tableId,
             operation: {
               op: 'undelete',

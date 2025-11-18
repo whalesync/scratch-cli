@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { AiAgentCredential, StyleGuide, User } from '@prisma/client';
 import { PostHog } from 'posthog-node';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { SnapshotCluster } from 'src/db/cluster-types';
+import { WorkbookCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { ScratchpadPlanType } from 'src/payment/plans';
 
@@ -103,27 +103,27 @@ export class PostHogService implements OnModuleDestroy {
     }
   }
 
-  trackCreateSnapshot(userId: string, snapshot: SnapshotCluster.Snapshot): void {
-    this.captureEvent(PostHogEventName.SNAPSHOT_CREATED, userId, {
-      snapshotId: snapshot.id,
-      numTables: snapshot.snapshotTables.length,
-      connectors: snapshot.snapshotTables.map((t) => t.connectorAccount?.service),
+  trackCreateWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
+    this.captureEvent(PostHogEventName.WORKBOOK_CREATED, userId, {
+      workbookId: workbook.id,
+      numTables: workbook.snapshotTables.length,
+      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
     });
   }
 
-  trackRemoveSnapshot(userId: string, snapshot: SnapshotCluster.Snapshot): void {
-    this.captureEvent(PostHogEventName.SNAPSHOT_REMOVED, userId, {
-      snapshotId: snapshot.id,
-      numTables: snapshot.snapshotTables.length,
-      connectors: snapshot.snapshotTables.map((t) => t.connectorAccount?.service),
+  trackRemoveWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
+    this.captureEvent(PostHogEventName.WORKBOOK_REMOVED, userId, {
+      workbookId: workbook.id,
+      numTables: workbook.snapshotTables.length,
+      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
     });
   }
 
-  trackPublishSnapshot(userId: string, snapshot: SnapshotCluster.Snapshot): void {
-    this.captureEvent(PostHogEventName.SNAPSHOT_PUBLISHED, userId, {
-      snapshotId: snapshot.id,
-      numTables: snapshot.snapshotTables.length,
-      connectors: snapshot.snapshotTables.map((t) => t.connectorAccount?.service),
+  trackPublishWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
+    this.captureEvent(PostHogEventName.WORKBOOK_PUBLISHED, userId, {
+      workbookId: workbook.id,
+      numTables: workbook.snapshotTables.length,
+      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
     });
   }
 
@@ -170,9 +170,9 @@ export enum PostHogEventName {
   ACCOUNT_USER_CREATED = 'account_user_created',
   CONNECTOR_ACCOUNT_CREATED = 'connector_created',
   CONNECTOR_ACCOUNT_REMOVED = 'connector_deleted',
-  SNAPSHOT_CREATED = 'snapshot_created',
-  SNAPSHOT_REMOVED = 'snapshot_deleted',
-  SNAPSHOT_PUBLISHED = 'snapshot_published',
+  WORKBOOK_CREATED = 'workbook_created',
+  WORKBOOK_REMOVED = 'workbook_deleted',
+  WORKBOOK_PUBLISHED = 'workbook_published',
   RESOURCE_CREATED = 'resource_created',
   RESOURCE_REMOVED = 'resource_deleted',
   AGENT_CREDENTIAL_CREATED = 'agent_credential_created',

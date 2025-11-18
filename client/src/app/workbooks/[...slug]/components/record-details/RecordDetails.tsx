@@ -1,14 +1,15 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, SnapshotTable, TableSpec } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { FC, useCallback, useMemo, useState } from 'react';
+import { WorkbookId } from '../../../../../types/server-entities/ids';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {
-  snapshotId: string;
+  workbookId: WorkbookId;
   currentRecord: SnapshotRecord;
   table: SnapshotTable;
   currentColumnId: string | undefined;
@@ -20,7 +21,7 @@ interface RecordDetailsProps {
 
 export const RecordDetails: FC<RecordDetailsProps> = (props) => {
   const {
-    snapshotId,
+    workbookId,
     currentRecord,
     table,
     currentColumnId,
@@ -50,7 +51,7 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
       }
       // Add the change to the context to be flushed later, also updates the cache optimistically.
       addPendingChange({
-        snapshotId,
+        workbookId,
         tableId: tableId,
         operation: {
           op: 'update',
@@ -59,7 +60,7 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
         },
       });
     },
-    [currentRecord, onRecordUpdate, addPendingChange, snapshotId, tableId],
+    [currentRecord, onRecordUpdate, addPendingChange, workbookId, tableId],
   );
   const handleFocusOnField = useCallback(
     (columnId: string | undefined) => {

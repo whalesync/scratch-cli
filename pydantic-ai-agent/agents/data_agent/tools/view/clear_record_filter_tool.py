@@ -37,8 +37,8 @@ def define_clear_record_filter_tool(
             chatRunContext: ChatRunContext = ctx.deps
             chatSession: ChatSession = chatRunContext.session
 
-            if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            if not chatRunContext.workbook:
+                return "Error: No active snapshot. Please connect to a snapshot first using connect_workbook."
 
             # Find the table by name
             table = get_active_table(chatRunContext)
@@ -51,7 +51,7 @@ def define_clear_record_filter_tool(
             # Call the clear_active_record_filter API
             ScratchpadApi.clear_active_record_filter(
                 user_id=chatRunContext.user_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
             )
 

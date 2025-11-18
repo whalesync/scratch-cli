@@ -1,28 +1,28 @@
-import { useState, useCallback } from 'react';
-import { snapshotApi } from '@/lib/api/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
 import { PublishSummary } from '@/types/server-entities/publish-summary';
+import { useCallback, useState } from 'react';
+import { WorkbookId } from '../types/server-entities/ids';
 
-export const usePublishSummary = (snapshotId: string) => {
+export const usePublishSummary = (workbookId: WorkbookId | null) => {
   const [publishSummary, setPublishSummary] = useState<PublishSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   // const [hasLoaded, setHasLoaded] = useState(false);
 
   const fetchSummary = useCallback(async () => {
-    
+    if (!workbookId) return;
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const data = await snapshotApi.getPublishSummary(snapshotId);
+      const data = await workbookApi.getPublishSummary(workbookId);
       setPublishSummary(data);
     } catch (err) {
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
-  }, [snapshotId]);
-
+  }, [workbookId]);
 
   return {
     publishSummary,

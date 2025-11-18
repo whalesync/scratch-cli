@@ -65,7 +65,7 @@ class SnapshotTable:
     id: str
     createdAt: str
     updatedAt: str
-    snapshotId: str
+    workbookId: str
     connectorAccountId: Optional[str]
     connectorDisplayName: Optional[str]
     connectorService: Optional[str]
@@ -81,7 +81,7 @@ class SnapshotTable:
 
 
 @dataclass
-class ScratchpadSnapshot:
+class ScratchpadWorkbook:
     id: str
     name: Optional[str]
     createdAt: str
@@ -92,7 +92,7 @@ class ScratchpadSnapshot:
 
 
 @dataclass
-class CreateSnapshotDto:
+class CreateWorkbookDto:
     connectorAccountId: str
     tableIds: List[EntityId]
 
@@ -166,7 +166,7 @@ class ViewTableConfig:
 class ColumnView:
     id: str
     name: Optional[str]
-    snapshotId: str
+    workbookId: str
     config: Dict[str, ViewTableConfig]  # ViewConfig type from TypeScript
     createdAt: str
     updatedAt: str

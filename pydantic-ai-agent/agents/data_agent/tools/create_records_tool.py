@@ -133,7 +133,7 @@ async def create_records_implementation(
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps
 
-        if not chatRunContext.snapshot:
+        if not chatRunContext.workbook:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         table = get_active_table(chatRunContext)
@@ -178,13 +178,13 @@ async def create_records_implementation(
             table_name=table_name,
             table_id=table.id,
             record_count=len(create_operations),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         # Call the bulk update endpoint
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             operations=create_operations,
         )
@@ -205,7 +205,7 @@ async def create_records_implementation(
             table_name=table_name,
             table_id=table.id,
             record_count=len(create_operations),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         return f"Successfully created {len(create_operations)} records in table '{table_name}'."

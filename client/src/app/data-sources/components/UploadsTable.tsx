@@ -84,7 +84,7 @@ export default function UploadsTable() {
         color: 'green',
       });
       // Navigate to the new workbook
-      router.push(RouteUrls.workbookPageUrl(result.snapshotId));
+      router.push(RouteUrls.workbookPageUrl(result.workbookId));
     } catch (err) {
       console.error('Failed to create workbook:', err);
       notifications.show({

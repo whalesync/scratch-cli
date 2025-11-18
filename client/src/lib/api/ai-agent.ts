@@ -7,6 +7,7 @@ import {
   SendMessageResponse,
   SessionListResponse,
 } from '@/types/server-entities/agent';
+import { WorkbookId } from '../../types/server-entities/ids';
 import { API_CONFIG } from './config';
 import { ScratchpadApiError } from './error';
 
@@ -14,7 +15,7 @@ import { ScratchpadApiError } from './error';
  * SDK for interacting with the Scratch Agent server (not the Scratch API) via rest endpoints
  */
 export const aiAgentApi = {
-  listSessions: async (snapshotId: string): Promise<SessionListResponse> => {
+  listSessions: async (workbookId: WorkbookId): Promise<SessionListResponse> => {
     // Return empty array if JWT not set (no 401 error)
     // If we reload the snapshot page we fetch sessions right away,
     // so we need to return empty array if JWT not set and then force a reload
@@ -22,7 +23,7 @@ export const aiAgentApi = {
       return { sessions: [] };
     }
 
-    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions/snapshot/${snapshotId}`, {
+    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions/workbook/${workbookId}`, {
       method: 'GET',
       headers: {
         ...API_CONFIG.getAiAgentAuthHeaders(),
@@ -39,8 +40,8 @@ export const aiAgentApi = {
     return res.json();
   },
 
-  createSession: async (snapshotId: string): Promise<CreateSessionResponse> => {
-    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions?snapshot_id=${snapshotId}`, {
+  createSession: async (workbookId: WorkbookId): Promise<CreateSessionResponse> => {
+    const res = await fetch(`${API_CONFIG.getAiAgentApiUrl()}/sessions?workbook_id=${workbookId}`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAiAgentAuthHeaders(),

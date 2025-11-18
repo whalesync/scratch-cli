@@ -25,10 +25,10 @@ import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SlackNotificationModule } from './slack/slack-notification.module';
-import { SnapshotModule } from './snapshot/snapshot.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/users.module';
+import { WorkbookModule } from './workbook/workbook.module';
 import { WorkerEnqueuerModule } from './worker-enqueuer/worker-enqueuer.module';
 import { WorkerModule } from './worker/workers.module';
 
@@ -50,7 +50,7 @@ import { WorkerModule } from './worker/workers.module';
     ConnectorsModule,
     WebflowCustomActionsModule,
     WixCustomActionsModule,
-    SnapshotModule,
+    WorkbookModule,
     StyleGuideModule,
     UploadsModule,
     AiAgentTokenUsageModule,
@@ -84,14 +84,14 @@ export class AppModule implements NestModule {
       .exclude(
         // Legacy snapshot CSV upload endpoints (deprecated)
         { path: '/uploads/preview-csv', method: RequestMethod.POST },
-        { path: '/snapshot/import-csv', method: RequestMethod.POST },
+        { path: '/workbook/import-csv', method: RequestMethod.POST },
         // New uploads endpoints
         { path: '/uploads/csv/preview', method: RequestMethod.POST },
         { path: '/uploads/csv', method: RequestMethod.POST },
         { path: '/uploads/md/preview', method: RequestMethod.POST },
         { path: '/uploads/md', method: RequestMethod.POST },
         // Import suggestions endpoint
-        { path: '/snapshot/*/tables/*/import-suggestions', method: RequestMethod.POST },
+        { path: '/workbook/*/tables/*/import-suggestions', method: RequestMethod.POST },
         // Payment webhook
         { path: '/payment/webhook', method: RequestMethod.POST },
       )

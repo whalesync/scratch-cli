@@ -9,11 +9,11 @@ export namespace UserCluster {
   });
 }
 
-export namespace SnapshotCluster {
-  export type Snapshot = Prisma.SnapshotGetPayload<typeof _validator>;
-  export type SnapshotTable = Snapshot['snapshotTables'][number];
+export namespace WorkbookCluster {
+  export type Workbook = Prisma.WorkbookGetPayload<typeof _validator>;
+  export type SnapshotTable = Workbook['snapshotTables'][number];
 
-  export const _validator = Prisma.validator<Prisma.SnapshotDefaultArgs>()({
+  export const _validator = Prisma.validator<Prisma.WorkbookDefaultArgs>()({
     include: {
       snapshotTables: {
         include: {

@@ -1,6 +1,6 @@
-import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { CellClassFunc, GridApi } from 'ag-grid-community';
-import { ActiveCells } from '../../../../../stores/snapshot-editor-store';
+import { ActiveCells } from '../../../../../stores/workbook-editor-store';
 
 export const getCellClassFn = (params: {
   gridApi: GridApi<SnapshotRecord> | null | undefined;

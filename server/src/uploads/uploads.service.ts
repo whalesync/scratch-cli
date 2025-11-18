@@ -1,23 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
 import { parse, Parser } from 'csv-parse';
 import type { Response } from 'express';
 import matter from 'gray-matter';
-import { from as copyFrom } from 'pg-copy-streams';
 import { WSLogger } from 'src/logger';
 import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
-import { createSnapshotId, createSnapshotTableId, createUploadId, SnapshotId, SnapshotTableId } from 'src/types/ids';
+import { createSnapshotTableId, createUploadId, createWorkbookId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
-import { pipeline, Readable, Transform } from 'stream';
+import { pipeline, Readable } from 'stream';
 import { DbService } from '../db/db.service';
+import { SnapshotDbService } from '../workbook/snapshot-db.service';
 import { FormatterTransform } from './csvStreams/FormatterTransform';
 import { ParserTransform } from './csvStreams/ParserTransform';
 import { PgCopyFromWritableStream } from './csvStreams/PgCopyFromWritableStream';
@@ -107,138 +105,6 @@ export class UploadsService {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         reject(new Error(`Failed to setup CSV parsing: ${errorMessage}`));
       }
-    });
-  }
-
-  /**
-   * @deprecated - Use uploadCsv instead
-   * Legacy method for snapshot CSV imports
-   */
-  async streamCsvToPostgres(
-    buffer: Buffer,
-    snapshotId: SnapshotId,
-    tableId: string,
-    columnNames: string[],
-    firstRowIsHeader: boolean,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      let recordCount = 0;
-      let isFirstRow = true;
-
-      // Create a Transform stream that listens to each record and passes it through
-      const recordProcessor = new Transform({
-        objectMode: true,
-        transform(chunk: string[], encoding, callback) {
-          try {
-            // Skip header row if firstRowIsHeader is true
-            if (firstRowIsHeader && isFirstRow) {
-              isFirstRow = false;
-              callback();
-              return;
-            }
-
-            // Ensure we have the right number of columns
-            const paddedRecord = [...chunk];
-            while (paddedRecord.length < columnNames.length) {
-              paddedRecord.push('');
-            }
-            if (paddedRecord.length > columnNames.length) {
-              paddedRecord.splice(columnNames.length);
-            }
-
-            // Generate a unique wsId for this record
-            const wsId = `csv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            // Create the full record with wsId as first column, then the data columns
-            const fullRecord = [wsId, ...paddedRecord];
-
-            recordCount++;
-
-            // Pass the processed record through to the next stream
-            callback(null, fullRecord);
-          } catch (error) {
-            callback(error instanceof Error ? error : new Error(String(error)));
-          }
-        },
-      });
-
-      // Create a Transform stream that converts records to CSV format
-      const csvFormatter = new Transform({
-        objectMode: true,
-        transform(chunk: string[], encoding, callback) {
-          try {
-            // Convert to CSV format for COPY
-            const csvRow = chunk
-              .map((field) => {
-                // Escape quotes and wrap in quotes if contains comma, quote, or newline
-                const escaped = String(field).replace(/"/g, '""');
-                if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) {
-                  return `"${escaped}"`;
-                }
-                return escaped;
-              })
-              .join(',');
-
-            callback(null, csvRow + '\n');
-          } catch (error) {
-            callback(error instanceof Error ? error : new Error(String(error)));
-          }
-        },
-      });
-
-      // Set up the streaming pipeline
-      const setupPipeline = async () => {
-        try {
-          // Get database connection
-          const knexClient = this.snapshotDbService.snapshotDb.knex.client;
-          const conn = await knexClient.acquireConnection();
-
-          // Create the COPY stream
-          const copyStream = conn.query(
-            copyFrom(
-              `COPY "${snapshotId}"."${tableId}" ("wsId", ${columnNames.map((name) => `"${name}"`).join(', ')}) 
-              FROM STDIN 
-              WITH (FORMAT CSV)`,
-            ),
-          );
-
-          // Handle COPY stream events
-          copyStream.on('error', (error: Error) => {
-            console.error('COPY stream error:', error);
-            reject(new Error(`Failed to copy data to PostgreSQL: ${error.message}`));
-          });
-
-          copyStream.on('finish', () => {
-            console.log(`Successfully imported ${recordCount} rows to ${snapshotId}.${tableId}`);
-            void knexClient.releaseConnection(conn);
-            resolve();
-          });
-
-          // Create the CSV parser
-          const parser = parse({
-            columns: false,
-            skip_empty_lines: true,
-            trim: true,
-          });
-
-          // Handle parser events
-          parser.on('error', (error: Error) => {
-            console.error('CSV parser error:', error);
-            reject(new Error(`Failed to parse CSV: ${error.message}`));
-          });
-
-          // Set up the complete pipeline
-          const csvStream = Readable.from(buffer.toString('utf-8'));
-
-          csvStream.pipe(parser).pipe(recordProcessor).pipe(csvFormatter).pipe(copyStream);
-        } catch (error) {
-          console.error('Error setting up streaming pipeline:', error);
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      };
-
-      // Start the pipeline
-      void setupPipeline();
     });
   }
 
@@ -770,14 +636,14 @@ export class UploadsService {
   }
 
   /**
-   * Create a snapshot from a CSV upload
+   * Create a Workbook from a CSV upload
    */
-  async createSnapshotFromCsvUpload(
+  async createWorkbookFromCsvUpload(
     uploadId: string,
     actor: Actor,
-    snapshotName: string,
+    workbookName: string,
     titleColumnRemoteId?: string[],
-  ): Promise<{ snapshotId: string; tableId: string }> {
+  ): Promise<{ workbookId: WorkbookId; tableId: string }> {
     // Get the upload
     const upload = await this.getUpload(uploadId, actor);
 
@@ -785,7 +651,7 @@ export class UploadsService {
       throw new Error('Upload is not a CSV file');
     }
 
-    const snapshotId = createSnapshotId();
+    const workbookId = createWorkbookId();
     const tableSlug = uploadId; // Use uploadId as tableId so we can track it back to the upload
     const uploadSchemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const uploadTableName = upload.typeId;
@@ -819,7 +685,7 @@ export class UploadsService {
         {
           id: { wsId: tableSlug, remoteId: [uploadId] }, // Store uploadId in remoteId so we can find it
           slug: tableSlug,
-          name: snapshotName,
+          name: workbookName,
           columns,
           titleColumnRemoteId,
         },
@@ -830,13 +696,13 @@ export class UploadsService {
       const wsId = sanitizeForWsId(tableSpecs[0].name);
       const tableName = `${newTableId}_${wsId}`;
 
-      // Create the snapshot in the database
-      await this.db.client.snapshot.create({
+      // Create the workbook in the database
+      await this.db.client.workbook.create({
         data: {
-          id: snapshotId,
+          id: workbookId,
           userId: actor.userId,
           organizationId: actor.organizationId,
-          name: snapshotName,
+          name: workbookName,
 
           snapshotTables: {
             create: [
@@ -854,15 +720,15 @@ export class UploadsService {
         },
       });
 
-      // Create the snapshot schema and table
+      // Create the workbook schema and table
       const tableSpecToIdMap = new Map<AnyTableSpec, SnapshotTableId>([[tableSpecs[0], newTableId]]);
-      await this.snapshotDbService.snapshotDb.createForSnapshot(snapshotId, tableSpecs, tableSpecToIdMap);
+      await this.snapshotDbService.snapshotDb.createForWorkbook(workbookId, tableSpecs, tableSpecToIdMap);
 
       // Copy data from upload table to snapshot table
       // Generate csr_ prefixed IDs (CSV Snapshot Record) for wsId column
       // Copy remoteId from upload table to id column in snapshot
       const copyQuery = `
-        INSERT INTO "${snapshotId}"."${tableName}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
+        INSERT INTO "${workbookId}"."${tableName}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
         SELECT
           'csr_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) as "wsId",
           "remoteId" as "id",
@@ -872,21 +738,21 @@ export class UploadsService {
 
       await this.uploadsDbService.knex.raw(copyQuery);
 
-      console.log(`Successfully created snapshot ${snapshotId} from CSV upload ${uploadId}`);
+      console.log(`Successfully created snapshot ${workbookId} from CSV upload ${uploadId}`);
 
-      return { snapshotId, tableId: newTableId };
+      return { workbookId, tableId: newTableId };
     } catch (error) {
-      // Clean up snapshot if creation failed
+      // Clean up workbook if creation failed
       try {
-        await this.snapshotDbService.snapshotDb.cleanUpSnapshot(snapshotId);
-        await this.db.client.snapshot.delete({ where: { id: snapshotId } });
+        await this.snapshotDbService.snapshotDb.cleanUpSnapshots(workbookId);
+        await this.db.client.workbook.delete({ where: { id: workbookId } });
       } catch (cleanupError) {
-        console.error('Error cleaning up failed snapshot:', cleanupError);
+        console.error('Error cleaning up failed workbook:', cleanupError);
       }
 
-      console.error('Error creating snapshot from CSV upload:', error);
+      console.error('Error creating workbook from CSV upload:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to create snapshot from CSV upload: ${errorMessage}`);
+      throw new Error(`Failed to create workbook from CSV upload: ${errorMessage}`);
     }
   }
 }

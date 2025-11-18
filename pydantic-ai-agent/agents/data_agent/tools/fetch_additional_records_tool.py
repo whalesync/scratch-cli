@@ -48,7 +48,7 @@ def fetch_additional_records_tool_implementation(
     try:
         chatRunContext: ChatRunContext = ctx.deps
 
-        if not chatRunContext.snapshot:
+        if not chatRunContext.workbook:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         # Validate limit
@@ -59,13 +59,13 @@ def fetch_additional_records_tool_implementation(
 
         # Find the table by ID
         table = None
-        for t in chatRunContext.snapshot.tables:
+        for t in chatRunContext.workbook.tables:
             if t.id == table_id:
                 table = t
                 break
 
         if not table:
-            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id for t in chatRunContext.snapshot.tables])}"
+            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id for t in chatRunContext.workbook.tables])}"
 
         log_info(
             "Fetching additional records",
@@ -73,13 +73,13 @@ def fetch_additional_records_tool_implementation(
             table_id=table.id,
             limit=limit,
             cursor=cursor,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         # Fetch records using the API
         records_result = ScratchpadApi.list_records_for_ai(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             cursor=cursor,
             take=limit,
@@ -130,7 +130,7 @@ def fetch_additional_records_tool_implementation(
             records_fetched=len(fetched_records),
             new_records_added=len(new_records),
             next_cursor=records_result.nextCursor,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         if len(fetched_records) == 0:

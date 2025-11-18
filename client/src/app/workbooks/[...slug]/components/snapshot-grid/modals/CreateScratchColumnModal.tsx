@@ -1,15 +1,16 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { snapshotApi } from '@/lib/api/snapshot';
-import { PostgresColumnType } from '@/types/server-entities/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
+import { PostgresColumnType } from '@/types/server-entities/workbook';
 import { Group, Modal, Select, Stack, TextInput } from '@mantine/core';
 import { useState } from 'react';
+import { SnapshotTableId, WorkbookId } from '../../../../../../types/server-entities/ids';
 
 interface CreateScratchColumnModalProps {
   opened: boolean;
   onClose: () => void;
-  snapshotId: string;
-  tableId: string;
+  workbookId: WorkbookId;
+  tableId: SnapshotTableId;
 }
 
 const DATA_TYPE_OPTIONS = [
@@ -19,7 +20,7 @@ const DATA_TYPE_OPTIONS = [
   { value: PostgresColumnType.TIMESTAMP, label: 'Date' },
 ] as const;
 
-export const CreateScratchColumnModal = ({ opened, onClose, snapshotId, tableId }: CreateScratchColumnModalProps) => {
+export const CreateScratchColumnModal = ({ opened, onClose, workbookId, tableId }: CreateScratchColumnModalProps) => {
   const [columnName, setColumnName] = useState('');
   const [dataType, setDataType] = useState<PostgresColumnType>(PostgresColumnType.TEXT);
   const [isCreating, setIsCreating] = useState(false);
@@ -39,7 +40,7 @@ export const CreateScratchColumnModal = ({ opened, onClose, snapshotId, tableId 
 
     setIsCreating(true);
     try {
-      await snapshotApi.addScratchColumn(snapshotId, tableId, {
+      await workbookApi.addScratchColumn(workbookId, tableId, {
         columnName: columnName.trim(),
         dataType,
       });

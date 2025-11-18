@@ -1,0 +1,161 @@
+import { create } from 'zustand';
+import { SnapshotTableId, WorkbookId } from '../types/server-entities/ids';
+import { SnapshotTable, Workbook } from '../types/server-entities/workbook';
+
+// Transient ID for a tab that doesn't have a table yet.
+// This isn't persisted or saved between sessions.
+export type NewTabId = `new-tab-${string}`;
+
+export type NewTabState = {
+  type: 'new-tab';
+  id: NewTabId;
+  // TODO Add the current state of the UI in the tab.
+};
+
+export type TableTabState = {
+  type: 'table';
+  id: SnapshotTableId;
+  // TODO Add all current state of the UI in the tab that's not stored in the workbook.
+};
+
+export type TabId = NewTabId | SnapshotTableId;
+export type TabState = NewTabState | TableTabState;
+
+export type ActiveCells = {
+  recordId: string | undefined;
+  columnId: string | undefined;
+};
+
+export interface WorkbookEditorUIState {
+  // The real entities are available with useActiveWorkbook() hook.
+  workbookId: WorkbookId | null;
+  activeTab: TabId | null;
+  activeCells: ActiveCells | null;
+  recordDetailsVisible: boolean;
+
+  tabs: (TableTabState | NewTabState)[];
+}
+
+type Actions = {
+  openWorkbook: (params: {
+    workbookId: WorkbookId;
+    tableId?: SnapshotTableId;
+    recordId?: string;
+    columnId?: string;
+  }) => void;
+  closeWorkbook: () => void;
+  reconcileWithWorkbook: (workbook: Workbook) => void;
+
+  setActiveTab: (activeTab: TabId) => void;
+  setActiveCells: (activeCells: ActiveCells | null) => void;
+
+  openNewBlankTab: () => void;
+  closeTab: (id: TabId) => void;
+};
+
+type WorkbookEditorUIStore = WorkbookEditorUIState & Actions;
+
+const INITIAL_STATE: WorkbookEditorUIState = {
+  workbookId: null,
+  activeTab: null, // Will pick an initial tab in reconcileWithWorkbook.
+  activeCells: null,
+  recordDetailsVisible: false,
+  tabs: [],
+};
+
+export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
+  ...INITIAL_STATE,
+  openWorkbook: (params: { workbookId: WorkbookId; tableId?: SnapshotTableId; recordId?: string; columnId?: string }) =>
+    set({
+      workbookId: params.workbookId,
+      activeTab: params.tableId ?? null,
+      activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
+    }),
+  closeWorkbook: () => set({ ...INITIAL_STATE }),
+  setActiveTab: (activeTab: TabId) => set({ activeTab }),
+  setActiveCells: (activeCells: ActiveCells | null) =>
+    set({ activeCells, recordDetailsVisible: !!activeCells?.recordId }),
+  openNewBlankTab: () => {
+    const newTab = newBlankTab();
+    set({ tabs: [...get().tabs, newTab], activeTab: newTab.id });
+  },
+  closeTab: (id: TabId) => {
+    set({ ...closeTabAndFixActiveTab(id, get().tabs, get().activeTab) });
+  },
+
+  /**
+   * This is called every time the workbook is updated from the server.
+   * Any state that has a dependency on the workbook's data should be updated here, to clean up any stale state.
+   */
+  reconcileWithWorkbook: (workbook: Workbook) => {
+    const current = get();
+
+    if (workbook.id !== current.workbookId) {
+      return;
+    }
+
+    const changes: Partial<WorkbookEditorUIState> = reconcileOpenTabs(
+      current.tabs,
+      workbook.snapshotTables ?? [],
+      current.activeTab,
+    );
+
+    set(changes);
+  },
+}));
+
+function reconcileOpenTabs(
+  tabs: TabState[],
+  snapshotTables: SnapshotTable[],
+  activeTab: TabId | null,
+): { tabs: TabState[]; activeTab: TabId | null } {
+  let result = { tabs: [...tabs], activeTab };
+
+  // Close tabs that no longer exist in the workbook.
+  for (const existingTab of result.tabs) {
+    if (
+      existingTab.type === 'table' &&
+      !snapshotTables.find((table) => table.id === existingTab.id && table.hidden === false)
+    ) {
+      result = closeTabAndFixActiveTab(existingTab.id, result.tabs, result.activeTab);
+    }
+  }
+
+  // Add tabs that exist in the workbook but not in the current tabs.
+  const missingTables = snapshotTables.filter(
+    (table) => table.hidden === false && !result.tabs.find((tab) => tab.id === table.id),
+  );
+  result.tabs = result.tabs.concat(missingTables.map((table) => ({ type: 'table' as const, id: table.id })));
+
+  // Add a new blank tab if there are no tables open.
+  if (result.tabs.length === 0) {
+    const newTab = newBlankTab();
+    result = { tabs: [newTab], activeTab: newTab.id };
+  }
+
+  // Ensure there is a valid active tab.
+  if (!result.activeTab || !result.tabs.find((tab) => tab.id === result.activeTab)) {
+    result.activeTab = result.tabs[0]?.id ?? null;
+  }
+
+  return result;
+}
+
+function newBlankTab(): TabState {
+  return { type: 'new-tab', id: `new-tab-${Date.now()}` };
+}
+
+function closeTabAndFixActiveTab(
+  id: TabId,
+  tabs: TabState[],
+  activeTab: TabId | null,
+): { tabs: TabState[]; activeTab: TabId | null } {
+  let newActiveTab = activeTab;
+  if (activeTab === id) {
+    const index = tabs.findIndex((tab) => tab.id === id);
+    if (index !== -1) {
+      newActiveTab = tabs[index + 1]?.id ?? tabs[index - 1]?.id ?? null;
+    }
+  }
+  return { tabs: tabs.filter((tab) => tab.id !== id), activeTab: newActiveTab };
+}

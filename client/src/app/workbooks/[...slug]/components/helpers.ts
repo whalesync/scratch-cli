@@ -1,4 +1,4 @@
-import { ColumnSpec } from '@/types/server-entities/snapshot';
+import { ColumnSpec } from '@/types/server-entities/workbook';
 export const isActionsColumn = (col: number, colLength: number) => {
   return col === colLength + 2;
 };

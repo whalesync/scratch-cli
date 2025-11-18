@@ -38,7 +38,7 @@ export interface SnapshotTable {
   id: string;
   createdAt: string;
   updatedAt: string;
-  snapshotId: string;
+  workbookId: string;
   connectorAccountId: string | null;
   connectorDisplayName: string | null;
   connectorService: string | null;
@@ -48,7 +48,7 @@ export interface SnapshotTable {
   activeRecordSqlFilter: string | null;
 }
 
-export interface Snapshot {
+export interface Workbook {
   id: string;
   name: string | null;
   createdAt: string;
@@ -59,7 +59,7 @@ export interface Snapshot {
   snapshotTables?: SnapshotTable[];
 }
 
-export interface CreateSnapshotDto {
+export interface CreateWorkbookDto {
   connectorAccountId: string;
   tableIds: EntityId[];
 }
@@ -84,7 +84,6 @@ export type EditedFieldsMetadata = {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
 };
-
 
 export type SnapshotTableView = {
   id: string;

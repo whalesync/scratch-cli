@@ -156,11 +156,11 @@ VIEWS_FILTERING_AND_FOCUS_INSTRUCTIONS = """
 
 ## SQL Filter Syntax:
 - Use standard SQL WHERE clause syntax without the "WHERE" keyword. You can only provide the content of the `WHERE` clause.
-- **You cannot use `ORDER BY`, `LIMIT`, or other clauses that are not part of a `WHERE` clause.** However, you can use these within a subquery. For example: `id IN (SELECT id FROM "{snapshot_id}"."{wsId}" ORDER BY age DESC LIMIT 2)`.
+- **You cannot use `ORDER BY`, `LIMIT`, or other clauses that are not part of a `WHERE` clause.** However, you can use these within a subquery. For example: `id IN (SELECT id FROM "{workbook_id}"."{wsId}" ORDER BY age DESC LIMIT 2)`.
 - When filtering by record identifiers, you **must** use the `"wsId"` column (e.g., `"wsId" IN ('sre_AJqpyocH4L', 'sre_00d4vQEF9u')`). Do not use `id`.
 - The SQL clause is applied directly to the **current active table**. Therefore, you **must not** include the table name (e.g., `FROM "Table 1"`) in the SQL clause itself for direct column references.
 - Refer to columns by their names directly (e.g., `age > 25`, not `"Table 1".age > 25`).
-- **IMPORTANT for Subqueries**: If you need to refer to a table within a subquery (e.g., `(SELECT MAX(age) FROM ...)`), you **must** use the fully qualified table name in the format: `"{snapshot_id}"."{wsId}"` (e.g., `"sna_FUxZJOTmRL"."table_1"`). Do not use the display name (e.g., "Table 1"). The `snapshot_id` and `wsId` can be found in the current context.
+- **IMPORTANT for Subqueries**: If you need to refer to a table within a subquery (e.g., `(SELECT MAX(age) FROM ...)`), you **must** use the fully qualified table name in the format: `"{workbook_id}"."{wsId}"` (e.g., `"sna_FUxZJOTmRL"."table_1"`). Do not use the display name (e.g., "Table 1"). The `workbook_id` and `wsId` can be found in the current context.
 - Support operators: =, !=, >, <, >=, <=, LIKE, IN, IS NULL, IS NOT NULL, AND, OR
 - String values should be quoted: `status = 'active'`
 - Multiple conditions use AND/OR: `age > 25 AND department = 'engineering'`

@@ -18,7 +18,7 @@ from utils.helpers import mask_string
 from agents.data_agent.tools_config import configure_tools, get_data_tools
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
 from scratchpad.entities import AgentCredential
-from server.user_prompt_utils import build_snapshot_context
+from server.user_prompt_utils import build_workbook_context
 from logging import getLogger
 from config import get_settings
 
@@ -73,10 +73,11 @@ def create_agent(
             )
 
             # Build snapshot context from the run context
-            snapshot_context = ""
-            if ctx.deps.snapshot:
-                snapshot_context = build_snapshot_context(
-                    snapshot=ctx.deps.snapshot,
+            workbook_context = ""
+            print(f"\n\n\n\n\n\n\n\n\nRYDOR: ctx.deps: {ctx.deps}")
+            if ctx.deps.workbook:
+                workbook_context = build_workbook_context(
+                    workbook=ctx.deps.workbook,
                     preloaded_records=ctx.deps.preloaded_records,
                     filtered_counts=filtered_counts,
                     data_scope=ctx.deps.data_scope,
@@ -87,7 +88,7 @@ def create_agent(
                 )
 
             # Combine all instructions
-            full_instructions = f"{base_instructions}\n\n{snapshot_context}"
+            full_instructions = f"{base_instructions}\n\n{workbook_context}"
 
             return full_instructions
 

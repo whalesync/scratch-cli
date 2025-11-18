@@ -49,11 +49,11 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             if data_type not in ["text", "numeric", "boolean"]:
                 return "Error: data_type must be one of the following values: text, numeric, boolean, timestamp"
 
-            # Get the active snapshot
+            # Get the active workbook
             chatRunContext: ChatRunContext = ctx.deps
 
-            if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            if not chatRunContext.workbook:
+                return "Error: No active snapshot. Please connect to a snapshot first using connect_workbook."
 
             # Find the active table
             table = get_active_table(chatRunContext)
@@ -67,7 +67,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 table_name=table.name,
                 table_id=table.id,
                 column_name=column_name,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
             )
 
             if column_name in [c.name for c in table.columns]:
@@ -75,7 +75,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
 
             ScratchpadApi.add_scratch_column(
                 user_id=chatRunContext.user_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
                 column_name=column_name,
                 data_type=data_type,
@@ -94,7 +94,7 @@ def define_add_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 table_id=table.id,
                 column_name=column_name,
                 data_type=data_type,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 error=str(e),
             )
             logger.exception(error_msg)

@@ -35,8 +35,8 @@ export class AddThreeNumbersJobHandler implements JobHandlerBuilder<AddThreeNumb
     try {
       // Create a new Prisma client for this worker
 
-      // Fake API call - count snapshots
-      const snapshotCount = await this.prisma.snapshot.count();
+      // Fake API call - count workbooks
+      const workbookCount = await this.prisma.workbook.count();
 
       // Perform the actual job
       const result = data.a + data.b + data.c;
@@ -50,7 +50,7 @@ export class AddThreeNumbersJobHandler implements JobHandlerBuilder<AddThreeNumb
         success: true,
         result,
         executionTime,
-        snapshotCount,
+        workbookCount,
       };
     } catch (error) {
       const executionTime = Date.now() - startTime;

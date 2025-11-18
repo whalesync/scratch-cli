@@ -3,15 +3,14 @@
 import { Box, Group, Loader, Paper, Select, Stack, Text } from '@mantine/core';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useActiveSnapshot } from '../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
 import { AdvancedAgentInput } from './AdvancedAgentInput';
 
 export default function AdvancedAgentInputWrapper() {
   const params = useParams();
-  const snapshotId = params?.slug?.[0] as string;
   const defaultTableId = params?.slug?.[1] as string;
 
-  const { snapshot, isLoading, error } = useActiveSnapshot();
+  const { workbook, isLoading, error } = useActiveWorkbook();
   // TODO: State move this into the SnapshotEditorUIStore.
   const [selectedTableId, setSelectedTableId] = useState<string>(defaultTableId || '');
   const [inputValue, setInputValue] = useState<string>('');
@@ -30,38 +29,38 @@ export default function AdvancedAgentInputWrapper() {
   };
 
   useEffect(() => {
-    if (snapshot && !selectedTableId) {
+    if (workbook && !selectedTableId) {
       // Set default table if provided in URL, otherwise use first table
-      if (defaultTableId && snapshot.snapshotTables?.some((table) => table.id === defaultTableId)) {
+      if (defaultTableId && workbook.snapshotTables?.some((table) => table.id === defaultTableId)) {
         setSelectedTableId(defaultTableId);
-      } else if (snapshot.snapshotTables && snapshot.snapshotTables.length > 0) {
-        setSelectedTableId(snapshot.snapshotTables[0].id);
+      } else if (workbook.snapshotTables && workbook.snapshotTables.length > 0) {
+        setSelectedTableId(workbook.snapshotTables[0].id);
       }
     }
-  }, [snapshot, defaultTableId, selectedTableId]);
+  }, [workbook, defaultTableId, selectedTableId]);
 
   if (isLoading) {
     return (
       <Box p="xl" style={{ maxWidth: 800, margin: '0 auto' }}>
         <Group justify="center" p="xl">
           <Loader size="md" />
-          <Text>Loading snapshot...</Text>
+          <Text>Loading workbook...</Text>
         </Group>
       </Box>
     );
   }
 
-  if (error || !snapshot) {
+  if (error || !workbook) {
     return (
       <Box p="xl" style={{ maxWidth: 800, margin: '0 auto' }}>
         <Text c="red" fw={600}>
-          Error: {error?.message || 'Snapshot not found'}
+          Error: {error?.message || 'Workbook not found'}
         </Text>
       </Box>
     );
   }
 
-  const tableOptions = snapshot.snapshotTables?.map((table) => ({
+  const tableOptions = workbook.snapshotTables?.map((table) => ({
     value: table.id,
     label: table.tableSpec.name,
   }));
@@ -69,15 +68,15 @@ export default function AdvancedAgentInputWrapper() {
   return (
     <Box p="xl" style={{ maxWidth: 800, margin: '0 auto' }}>
       <Stack gap="xl">
-        {/* Header with snapshot info and table picker */}
+        {/* Header with workbook info and table picker */}
         <Box>
           <Group justify="space-between" align="center" mb="md">
             <Box>
               <Text size="lg" fw={600}>
-                {snapshot.name}
+                {workbook.name}
               </Text>
               <Text size="sm" c="dimmed">
-                Snapshot ID: {snapshot.id}
+                Workbook ID: {workbook.id}
               </Text>
             </Box>
             <Select
@@ -93,12 +92,7 @@ export default function AdvancedAgentInputWrapper() {
 
         {/* Advanced Agent Input */}
         {selectedTableId && (
-          <AdvancedAgentInput
-            snapshotId={snapshotId}
-            tableId={selectedTableId}
-            snapshot={snapshot}
-            onMessageChange={setInputValue}
-          />
+          <AdvancedAgentInput tableId={selectedTableId} workbook={workbook} onMessageChange={setInputValue} />
         )}
 
         {/* Rendered Text Display */}

@@ -4,11 +4,11 @@ import { Text12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
-import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, SnapshotTable } from '@/types/server-entities/snapshot';
+import { SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
 import { BoxProps, Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useMemo, useState } from 'react';
-import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 
 type RecordSuggestionToolbarProps = {
   table: SnapshotTable;
@@ -25,9 +25,9 @@ interface SuggestionItem {
 
 export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JSX.Element | null => {
   const { table, record, columnId, ...boxProps } = props;
-  const { snapshot } = useActiveSnapshot();
+  const { workbook } = useActiveWorkbook();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
-    snapshotId: snapshot?.id ?? '',
+    workbookId: workbook?.id ?? null,
     tableId: table.id,
   });
   const [saving, setSaving] = useState(false);
@@ -54,7 +54,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
       }));
 
       await acceptCellValues(itemsToAccept);
-      trackAcceptChanges(itemsToAccept, snapshot);
+      trackAcceptChanges(itemsToAccept, workbook);
       ScratchpadNotifications.success({
         title: 'Suggestions Accepted',
         message: `Accepted ${itemsToAccept.length} ${pluralize('change', itemsToAccept.length)}`,
@@ -80,7 +80,7 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
         columnId: suggestion.columnId,
       }));
       await rejectCellValues(itemsToReject);
-      trackRejectChanges(itemsToReject, snapshot);
+      trackRejectChanges(itemsToReject, workbook);
       ScratchpadNotifications.success({
         title: 'Suggestions Rejected',
         message: `Rejected ${itemsToReject.length} ${pluralize('change', itemsToReject.length)}`,

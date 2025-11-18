@@ -17,12 +17,12 @@ import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
-import { SnapshotService } from 'src/snapshot/snapshot.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { UpdateSettingsDto } from 'src/users/dto/update-settings.dto';
 import { User } from 'src/users/entities/user.entity';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
 
@@ -33,7 +33,7 @@ import { UserDetail } from './entities/user-detail.entity';
 export class DevToolsController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly snapshotService: SnapshotService,
+    private readonly snapshotService: WorkbookService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,

@@ -17,8 +17,8 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
 import { sanitizeForWsId } from '../remote-service/connectors/ids';
-import { SnapshotDbService } from '../snapshot/snapshot-db.service';
 import type { SnapshotTableId } from '../types/ids';
+import { SnapshotDbService } from '../workbook/snapshot-db.service';
 
 const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1'];
 
@@ -165,7 +165,7 @@ export class CodeMigrationsController {
 
   private async migrateTableV0ToV1(table: SnapshotTable) {
     const tableId = table.id as SnapshotTableId;
-    const snapshotId = table.snapshotId;
+    const workbookId = table.workbookId;
     const oldTableName = table.tableName;
 
     // Extract wsId from tableSpec for backwards compatibility
@@ -181,27 +181,27 @@ export class CodeMigrationsController {
 
     // Check if old table exists in the snapshot schema
     const oldTableExists = await this.snapshotDbService.snapshotDb.knex.schema
-      .withSchema(snapshotId)
+      .withSchema(workbookId)
       .hasTable(oldTableName);
 
     if (!oldTableExists) {
-      this.logger.warn(`Table ${oldTableName} does not exist in schema ${snapshotId}. Skipping rename.`);
+      this.logger.warn(`Table ${oldTableName} does not exist in schema ${workbookId}. Skipping rename.`);
     } else {
       // Check if new table name already exists (to avoid conflicts)
       const newTableExists = await this.snapshotDbService.snapshotDb.knex.schema
-        .withSchema(snapshotId)
+        .withSchema(workbookId)
         .hasTable(newTableName);
 
       if (newTableExists) {
-        throw new Error(`Target table ${newTableName} already exists in schema ${snapshotId}. Cannot migrate.`);
+        throw new Error(`Target table ${newTableName} already exists in schema ${workbookId}. Cannot migrate.`);
       }
 
       // Rename the table in PostgreSQL
       await this.snapshotDbService.snapshotDb.knex.raw(
-        `ALTER TABLE "${snapshotId}"."${oldTableName}" RENAME TO "${newTableName}"`,
+        `ALTER TABLE "${workbookId}"."${oldTableName}" RENAME TO "${newTableName}"`,
       );
 
-      this.logger.log(`Renamed table in schema ${snapshotId}: ${oldTableName} -> ${newTableName}`);
+      this.logger.log(`Renamed table in schema ${workbookId}: ${oldTableName} -> ${newTableName}`);
     }
 
     // Update the SnapshotTable record

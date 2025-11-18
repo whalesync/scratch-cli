@@ -9,8 +9,8 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { snapshotApi } from '@/lib/api/snapshot';
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import {
   calculateTokensForRecords,
   formatTokenCount,
@@ -24,7 +24,7 @@ import { BugIcon, HelpCircleIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { useAgentChatContext } from './contexts/agent-chat-context';
 import { SnapshotEventDebugDialog } from './devtool/SnapshotEventDebugDialog';
 
@@ -34,7 +34,7 @@ interface RecordDataToolbarProps {
 
 export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   const { table } = props;
-  const { snapshot, clearActiveRecordFilter } = useActiveSnapshot();
+  const { workbook, clearActiveRecordFilter } = useActiveWorkbook();
   const { activeModel } = useAgentChatContext();
   const { isDevToolsEnabled } = useDevTools();
   const { mutate: globalMutate } = useSWRConfig();
@@ -56,7 +56,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   }, [openHelpOverlay]);
 
   const { count, filteredCount, records, createNewRecord } = useSnapshotTableRecords({
-    snapshotId: snapshot?.id ?? '',
+    workbookId: workbook?.id ?? null,
     tableId: table.id,
   });
 
@@ -156,12 +156,12 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
   }, [sqlFilterModalOpen, currentTableFilter]);
 
   const handleSetSqlFilter = useCallback(async () => {
-    if (!table.id || !snapshot) return;
+    if (!table.id || !workbook) return;
 
     setSqlFilterError(null); // Clear any previous errors
 
     try {
-      await snapshotApi.setActiveRecordsFilter(snapshot.id, table.id, sqlFilterText || undefined);
+      await workbookApi.setActiveRecordsFilter(workbook.id, table.id, sqlFilterText || undefined);
       ScratchpadNotifications.success({
         title: 'Filter Updated',
         message: 'SQL filter has been applied',
@@ -173,19 +173,19 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to set SQL filter';
       setSqlFilterError(errorMessage);
     }
-  }, [table.id, snapshot, sqlFilterText]);
+  }, [table.id, workbook, sqlFilterText]);
 
   const handleSetPageSize = useCallback(
     async (pageSize: number | null) => {
-      if (!table.id || !snapshot) return;
+      if (!table.id || !workbook) return;
 
       try {
-        await snapshotApi.setPageSize(snapshot.id, table.id, pageSize);
+        await workbookApi.setPageSize(workbook.id, table.id, pageSize);
 
         // Invalidate caches to refetch data with new page size
-        globalMutate(SWR_KEYS.snapshot.detail(snapshot.id));
-        globalMutate(SWR_KEYS.snapshot.list());
-        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, table.id), undefined, {
+        globalMutate(SWR_KEYS.workbook.detail(workbook.id));
+        globalMutate(SWR_KEYS.workbook.list());
+        globalMutate(SWR_KEYS.workbook.recordsKeyMatcher(workbook.id, table.id), undefined, {
           revalidate: true,
         });
 
@@ -201,7 +201,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
         });
       }
     },
-    [table.id, snapshot, globalMutate],
+    [table.id, workbook, globalMutate],
   );
 
   return (
@@ -218,10 +218,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Item onClick={() => setSqlFilterModalOpen(true)}>Set SQL Filter</Menu.Item>
-              <Menu.Item
-                disabled={!currentTableFilter}
-                onClick={() => table.id && clearActiveRecordFilter(table.id)}
-              >
+              <Menu.Item disabled={!currentTableFilter} onClick={() => table.id && clearActiveRecordFilter(table.id)}>
                 Clear Filter
               </Menu.Item>
             </Menu.Dropdown>
@@ -284,7 +281,7 @@ export const RecordDataToolbar = (props: RecordDataToolbarProps) => {
               icon={BugIcon}
               onClick={toggleSnapshotEventDebugDialog}
               size="md"
-              tooltip="Dev Tool: Toggle snapshot event log"
+              tooltip="Dev Tool: Toggle workbook event log"
             />
           )}
           <ToolIconButton icon={HelpCircleIcon} onClick={openHelpOverlay} size="md" />

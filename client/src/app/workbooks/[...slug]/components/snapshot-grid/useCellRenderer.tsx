@@ -1,6 +1,6 @@
 import { DiffText2 } from '@/app/components/DiffText2';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, TableSpec, formatFieldValue } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, TableSpec, formatFieldValue } from '@/types/server-entities/workbook';
 import { ActionIcon, Box, Group, Text, useMantineColorScheme } from '@mantine/core';
 import { ICellRendererParams } from 'ag-grid-community';
 import { Check, X } from 'lucide-react';

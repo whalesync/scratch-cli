@@ -71,7 +71,7 @@ def search_and_replace_field_value_tool_implementation(
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps
 
-        if not chatRunContext.snapshot:
+        if not chatRunContext.workbook:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         # Get the record from the preloaded records
@@ -82,7 +82,7 @@ def search_and_replace_field_value_tool_implementation(
         # since our tool is replacing a value - modifying part of the data field
         record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             record_id=wsId,
         )
@@ -117,14 +117,14 @@ def search_and_replace_field_value_tool_implementation(
         # Call the bulk update endpoint
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             operations=update_operations,
         )
 
         updated_record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             record_id=wsId,
         )
@@ -267,7 +267,7 @@ def define_search_and_replace_field_value_tool(
             # Get the active snapshot
             chatRunContext: ChatRunContext = ctx.deps
 
-            if not chatRunContext.snapshot:
+            if not chatRunContext.workbook:
                 return unable_to_identify_active_snapshot_error(chatRunContext)
 
             # Find the active table

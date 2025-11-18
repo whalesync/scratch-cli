@@ -47,13 +47,13 @@ def define_set_filter_tool(
         The sql_where_clause should be a valid SQL WHERE clause **without** the "WHERE" keyword.
         You can only provide the content for a `WHERE` clause. You **cannot** use `ORDER BY` or `LIMIT` at the top level of the clause.
         However, you **can** use `ORDER BY` and `LIMIT` within a subquery.
-        When referring to the current active table in subqueries, use the fully qualified format `"{snapshot_id}"."{wsId}"`. Do not use the display name of the table.
+        When referring to the current active table in subqueries, use the fully qualified format `"{workbook_id}"."{wsId}"`. Do not use the display name of the table.
         When filtering by record identifiers, use the `"wsId"` column, not `id`.
         Examples:
         - "status = 'active'"
         - "\"wsId\" IN ('sre_AJqpyocH4L', 'sre_00d4vQEF9u')"
-        - "age > (SELECT MAX(age) FROM \"{snapshot_id}\".\"{wsId}\")"
-        - "id IN (SELECT id FROM \"{snapshot_id}\".\"{wsId}\" ORDER BY age DESC LIMIT 2)"
+        - "age > (SELECT MAX(age) FROM \"{workbook_id}\".\"{wsId}\")"
+        - "id IN (SELECT id FROM \"{workbook_id}\".\"{wsId}\" ORDER BY age DESC LIMIT 2)"
         - "name LIKE '%john%'"
         - "priority IN ('high', 'critical')"
 
@@ -69,8 +69,8 @@ def define_set_filter_tool(
 
             # Get the active snapshot
             chatRunContext: ChatRunContext = ctx.deps
-            if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            if not chatRunContext.workbook:
+                return "Error: No active snapshot. Please connect to a snapshot first using connect_workbook."
 
             # Find the table by name
             table = get_active_table(chatRunContext)
@@ -83,7 +83,7 @@ def define_set_filter_tool(
             # Call the set_active_records_filter API
             ScratchpadApi.set_active_records_filter(
                 user_id=chatRunContext.user_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
                 sql_where_clause=sql_where_clause,
             )

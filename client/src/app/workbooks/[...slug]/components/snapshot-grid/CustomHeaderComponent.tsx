@@ -1,8 +1,8 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { snapshotApi } from '@/lib/api/snapshot';
-import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
+import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
@@ -18,10 +18,11 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
+import { SnapshotTableId } from '../../../../../types/server-entities/ids';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
-  tableId?: string;
+  tableId?: SnapshotTableId;
   records?: SnapshotRecord[];
   columnSpec?: ColumnSpec;
   showDataTypeInHeader?: boolean;
@@ -36,10 +37,10 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { snapshot, updateColumnSettings, hideColumn, unhideColumn } = useActiveSnapshot();
+  const { workbook, updateColumnSettings, hideColumn, unhideColumn } = useActiveWorkbook();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
-    snapshotId: snapshot?.id ?? '',
-    tableId: props.tableId ?? '',
+    workbookId: workbook?.id ?? null,
+    tableId: props.tableId ?? null,
   });
 
   // Monitor sort changes and update local state
@@ -88,11 +89,11 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   // Get current column configuration
   const { currentTable, isColumnHidden, isScratchColumn, currentDataConverter } = useMemo(() => {
     const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
-    const currentTable = props.tableId ? snapshot?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
+    const currentTable = props.tableId ? workbook?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
     const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
     const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
     return { isScratchColumn, currentTable, isColumnHidden, currentDataConverter };
-  }, [snapshot, props.tableId, columnId, props.columnSpec]);
+  }, [workbook, props.tableId, columnId, props.columnSpec]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -200,7 +201,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   };
 
   const handleDataConverterChange = async (value: string) => {
-    if (!snapshot || !props.tableId) {
+    if (!workbook || !props.tableId) {
       return;
     }
 
@@ -225,7 +226,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   };
 
   const handleToggleColumnVisibility = async () => {
-    if (!snapshot || !props.tableId) {
+    if (!workbook || !props.tableId) {
       return;
     }
 
@@ -258,16 +259,16 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       setIsProcessing(true);
       setIsMenuOpen(false);
 
-      if (!snapshot || !props.tableId) {
+      if (!workbook || !props.tableId) {
         ScratchpadNotifications.error({
           title: 'Error',
-          message: 'Missing snapshot or table information',
+          message: 'Missing workbook or table information',
         });
         return;
       }
 
       // Call the API to set the title column
-      await snapshotApi.setTitleColumn(snapshot.id, props.tableId, columnId);
+      await workbookApi.setTitleColumn(workbook.id, props.tableId, columnId);
 
       ScratchpadNotifications.success({
         title: 'Title Column Set',
@@ -289,15 +290,15 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       setIsProcessing(true);
       setIsMenuOpen(false);
 
-      if (!snapshot || !props.tableId) {
+      if (!workbook || !props.tableId) {
         ScratchpadNotifications.error({
           title: 'Error',
-          message: 'Missing snapshot or table information',
+          message: 'Missing workbook or table information',
         });
         return;
       }
 
-      await snapshotApi.removeScratchColumn(snapshot.id, props.tableId, {
+      await workbookApi.removeScratchColumn(workbook.id, props.tableId, {
         columnId,
       });
 

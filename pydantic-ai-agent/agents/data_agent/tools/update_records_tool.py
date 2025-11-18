@@ -86,7 +86,7 @@ json_schema = {
 }
 
 description = """
-    Update existing records in a table in the active snapshot.
+    Update existing records in a table in the active workbook.
 
     IMPORTANT: This tool creates SUGGESTIONS, not direct changes. Your updates are stored in the suggested_fields field and require user approval before being applied to the actual record data.
 
@@ -137,7 +137,7 @@ async def update_records_implementation(
                 if "value" not in field_update:
                     return f"Error: Each field update must include a 'value' property for update {update.get('wsId')}"
 
-        # Get the active snapshot
+        # Get the active workbook
         chatRunContext: ChatRunContext = ctx.deps
 
         table = get_active_table(chatRunContext)
@@ -180,14 +180,14 @@ async def update_records_implementation(
             table_name=table.name,
             table_id=table.id,
             record_count=len(update_operations),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         # Import the bulk update function
         # Call the bulk update endpoint
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             operations=update_operations,
         )
@@ -207,7 +207,7 @@ async def update_records_implementation(
             table_name=table.name,
             table_id=table.id,
             record_count=len(update_operations),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         return f"Successfully updated {len(update_operations)} records in table '{table.name}'. Updated record IDs: {[op.wsId for op in update_operations]}"

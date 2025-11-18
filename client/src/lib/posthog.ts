@@ -1,5 +1,5 @@
 import { ScratchPadUser } from '@/hooks/useScratchpadUser';
-import { Snapshot } from '@/types/server-entities/snapshot';
+import { Workbook } from '@/types/server-entities/workbook';
 import _ from 'lodash';
 import posthog from 'posthog-js';
 
@@ -47,7 +47,7 @@ export function trackPageView(url: string): void {
   captureEvent(PostHogEvents.PAGE_VIEW, { url });
 }
 
-export function trackAcceptChanges(items: { wsId: string; columnId: string }[], snapshot: Snapshot | undefined): void {
+export function trackAcceptChanges(items: { wsId: string; columnId: string }[], snapshot: Workbook | undefined): void {
   const changeCount = items.length;
   const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
   captureEvent(PostHogEvents.ACCEPT_SUGGESTIONS, {
@@ -57,7 +57,7 @@ export function trackAcceptChanges(items: { wsId: string; columnId: string }[], 
   });
 }
 
-export function trackRejectChanges(items: { wsId: string; columnId: string }[], snapshot: Snapshot | undefined): void {
+export function trackRejectChanges(items: { wsId: string; columnId: string }[], snapshot: Workbook | undefined): void {
   const changeCount = items.length;
   const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
   captureEvent(PostHogEvents.REJECT_SUGGESTIONS, {
@@ -68,15 +68,15 @@ export function trackRejectChanges(items: { wsId: string; columnId: string }[], 
 }
 
 /** Agent / Chat events  */
-export function trackStartAgentSession(snapshot: Snapshot | undefined): void {
+export function trackStartAgentSession(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.START_AGENT_SESSION, { ...snapshotProperties(snapshot) });
 }
 
-export function trackChangeAgentModel(model: string, snapshot: Snapshot | undefined): void {
+export function trackChangeAgentModel(model: string, snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.CHANGE_AGENT_MODEL, { model, ...snapshotProperties(snapshot) });
 }
 
-export function trackChangeAgentCapabilities(capabilities: string[], snapshot: Snapshot | undefined): void {
+export function trackChangeAgentCapabilities(capabilities: string[], snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.CHANGE_AGENT_CAPABILITIES, { capabilities, ...snapshotProperties(snapshot) });
 }
 
@@ -84,7 +84,7 @@ export function trackSendMessage(
   messageLength: number,
   numAttachments: number,
   dataScope: string,
-  snapshot: Snapshot | undefined,
+  snapshot: Workbook | undefined,
 ): void {
   captureEvent(PostHogEvents.SEND_AGENT_MESSAGE, {
     messageLength,
@@ -94,23 +94,23 @@ export function trackSendMessage(
   });
 }
 
-export function trackOpenOldChatSession(snapshot: Snapshot | undefined): void {
+export function trackOpenOldChatSession(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.OPEN_OLD_CHAT_SESSION, { ...snapshotProperties(snapshot) });
 }
 
-export function trackAddResourceToChat(snapshot: Snapshot | undefined): void {
+export function trackAddResourceToChat(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.ADD_RESOURCE_TO_CHAT, { ...snapshotProperties(snapshot) });
 }
 
-export function trackClickCreateResourceInChat(snapshot: Snapshot | undefined): void {
+export function trackClickCreateResourceInChat(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.CLICK_CREATE_RESOURCE_IN_CHAT, { ...snapshotProperties(snapshot) });
 }
 
-export function trackClickViewResourceFromChat(snapshot: Snapshot | undefined): void {
+export function trackClickViewResourceFromChat(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.CLICK_VIEW_RESOURCE_FROM_CHAT, { ...snapshotProperties(snapshot) });
 }
 
-export function trackRemoveResourceFromChat(snapshot: Snapshot | undefined): void {
+export function trackRemoveResourceFromChat(snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.REMOVE_RESOURCE_FROM_CHAT, { ...snapshotProperties(snapshot) });
 }
 
@@ -142,14 +142,14 @@ export function trackUserSignIn(user: ScratchPadUser): void {
   }
 }
 
-function snapshotProperties(snapshot: Snapshot | undefined | null): Record<string, unknown> {
-  if (!snapshot) {
+function snapshotProperties(workbook: Workbook | undefined | null): Record<string, unknown> {
+  if (!workbook) {
     return {};
   }
 
   return {
-    snapshotId: snapshot.id,
-    snapshotName: snapshot.name,
-    connector: snapshot.snapshotTables?.[0]?.connectorService,
+    workbookId: workbook.id,
+    workbookName: workbook.name,
+    connector: workbook.snapshotTables?.[0]?.connectorService,
   };
 }

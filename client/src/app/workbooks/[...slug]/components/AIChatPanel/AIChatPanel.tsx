@@ -19,7 +19,7 @@ import {
 } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
@@ -36,7 +36,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useActiveSnapshot } from '../../../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { Text12Regular, TextTitle3 } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
 import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
@@ -52,7 +52,7 @@ interface AIChatPanelProps {
 }
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { snapshot, publish } = useActiveSnapshot();
+  const { workbook, publish } = useActiveWorkbook();
   const { rightPanelOpened, toggleRightPanel } = useLayoutManagerStore();
   const { activeOpenRouterCredentials } = useAgentCredentials();
 
@@ -208,17 +208,17 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       return;
     }
 
-    if (!snapshot) {
-      setError('Snapshot ID is required to create a session');
+    if (!workbook) {
+      setError('Workbook ID is required to create a session');
       return;
     }
 
     try {
       await disconnect();
       await sleep(100);
-      const { session } = await createSession(snapshot.id);
+      const { session } = await createSession(workbook.id);
       connect(session.id);
-      trackStartAgentSession(snapshot);
+      trackStartAgentSession(workbook);
       setError(null);
       setMessage('');
       setResetInputFocus(true);
@@ -300,7 +300,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         messageData.column_id = activeColumnId;
       }
 
-      trackSendMessage(message.length, selectedPromptAssets.length, dataScope, snapshot);
+      trackSendMessage(message.length, selectedPromptAssets.length, dataScope, workbook);
       sendAiAgentMessage(messageData);
 
       // clear the current message
@@ -314,12 +314,12 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   };
 
   const handlePublish = () => {
-    if (!snapshot) return;
+    if (!workbook) return;
     setShowPublishConfirmation(true);
   };
 
   const handleConfirmPublish = async () => {
-    if (!snapshot) return;
+    if (!workbook) return;
     try {
       setShowPublishConfirmation(false);
       await publish?.();
@@ -424,7 +424,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
                   try {
                     await activateSession(sessionId);
                     await connect(sessionId);
-                    trackOpenOldChatSession(snapshot);
+                    trackOpenOldChatSession(workbook);
                     setMessage('');
                     setResetInputFocus(true);
                     scrollToBottom();
@@ -502,16 +502,15 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         <Stack gap="2xs" my="2xs">
           <PromptAssetSelector
             disabled={!aiAgentEnabled}
-            snapshot={snapshot}
+            workbook={workbook}
             resetInputFocus={() => textInputRef.current?.focus()}
           />
           <ContextBadges />
         </Stack>
         {/* User Input for Chat */}
         <AdvancedAgentInput
-          snapshotId={snapshot?.id || ''}
           tableId={activeTable?.id || ''}
-          snapshot={snapshot}
+          workbook={workbook}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}
           disabled={agentTaskRunning || !aiAgentEnabled}
@@ -584,7 +583,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           currentModelOption={activeModel}
           onChange={(value) => {
             setActiveModel(value);
-            trackChangeAgentModel(activeModel.value, snapshot);
+            trackChangeAgentModel(activeModel.value, workbook);
             setShowModelSelector(false);
           }}
         />
@@ -599,7 +598,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           setSelectedCapabilities(caps);
           const STORAGE_KEY = 'ai-chat-selected-capabilities';
           localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
-          trackChangeAgentCapabilities(caps, snapshot);
+          trackChangeAgentCapabilities(caps, workbook);
           setShowToolsModal(false);
         }}
       />
@@ -609,7 +608,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         isOpen={showPublishConfirmation}
         onClose={() => setShowPublishConfirmation(false)}
         onConfirm={handleConfirmPublish}
-        snapshotId={snapshot?.id ?? ''}
+        workbookId={workbook?.id ?? null}
         serviceName={activeTable?.connectorService ?? undefined}
         isPublishing={false}
       />

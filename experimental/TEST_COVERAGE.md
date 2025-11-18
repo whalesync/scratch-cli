@@ -109,7 +109,7 @@ These areas have excellent test coverage and should serve as models:
   - Offer code handling
   - Fallback handling for missing user data
 
-- ✅ **Snapshot utilities** - 9 test cases covering snapshot lookup functions (`server/src/snapshot/util.spec.ts`)
+- ✅ **Snapshot utilities** - 9 test cases covering snapshot lookup functions (`server/src/workbook/util.spec.ts`)
 
   - Finding snapshot tables by workspace ID (wsId)
   - Finding table specs by workspace ID
@@ -154,6 +154,7 @@ These areas have excellent test coverage and should serve as models:
   - deleteMany operation verification
 
 - ✅ **Organizations service** - 18 test cases covering organization management (`server/src/users/organizations.service.spec.ts`)
+
   - Finding organizations by ID and Clerk ID
   - Null return handling for non-existent organizations
   - Pagination with cursor-based navigation
@@ -172,6 +173,7 @@ These areas have excellent test coverage and should serve as models:
   - Edge cases with missing organization data
 
 - ✅ **User type conversion** - 10 test cases covering User to Actor conversion (`server/src/users/types.spec.ts`)
+
   - userToActor function with complete user data
   - Organization ID fallback handling
   - User metadata exclusion from Actor objects
@@ -179,6 +181,7 @@ These areas have excellent test coverage and should serve as models:
   - Edge cases (unboarded users, custom settings)
 
 - ✅ **Agent JWT generation** - 11 test cases covering JWT token generation (`server/src/agent-jwt/jwt-generator.service.spec.ts`)
+
   - Token generation with valid user payloads
   - Admin and user role handling
   - Config service integration (secret and expiration retrieval)
@@ -238,29 +241,32 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 
 ### Overview
 
-| Connector  | Source Files | Test Files | Test Cases | Coverage | Status       |
-| ---------- | ------------ | ---------- | ---------- | -------- | ------------ |
-| Notion     | ~10          | 4          | ~111+      | ~35%     | ⚠️ Partial   |
-| Wix Blog   | ~8           | 2          | ~47+       | ~30%     | ⚠️ Partial   |
-| CSV        | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
-| Webflow    | 3            | 1          | 14         | ~40%     | ⚠️ Partial   |
-| WordPress  | 6            | 1          | 18         | ~27%     | ⚠️ Partial   |
-| Airtable   | 5            | 0          | 0          | 0%       | ❌ No tests  |
-| YouTube    | 3            | 0          | 0          | 0%       | ❌ No tests  |
-| Custom     | 2            | 0          | 0          | 0%       | ❌ No tests  |
-| **Total**  | **~41**      | **9**      | **~212**   | **~25%** | **Critical** |
+| Connector | Source Files | Test Files | Test Cases | Coverage | Status       |
+| --------- | ------------ | ---------- | ---------- | -------- | ------------ |
+| Notion    | ~10          | 4          | ~111+      | ~35%     | ⚠️ Partial   |
+| Wix Blog  | ~8           | 2          | ~47+       | ~30%     | ⚠️ Partial   |
+| CSV       | 4            | 1          | 22         | ~25%     | ⚠️ Partial   |
+| Webflow   | 3            | 1          | 14         | ~40%     | ⚠️ Partial   |
+| WordPress | 6            | 1          | 18         | ~27%     | ⚠️ Partial   |
+| Airtable  | 5            | 0          | 0          | 0%       | ❌ No tests  |
+| YouTube   | 3            | 0          | 0          | 0%       | ❌ No tests  |
+| Custom    | 2            | 0          | 0          | 0%       | ❌ No tests  |
+| **Total** | **~41**      | **9**      | **~212**   | **~25%** | **Critical** |
 
 ### Tested Areas ✅
 
 #### Notion Connector (⚠️ Partial Coverage)
+
 **Location**: `server/src/remote-service/connectors/library/notion/`
 **Test Files**:
+
 - `conversion/__tests__/notion-block-diff.spec.ts` - Block diffing algorithm tests
 - `conversion/__tests__/notion-block-diff-executor.spec.ts` - Batch operations tests
 - `conversion/__tests__/round-trip-test.spec.ts` - Round-trip conversion tests
 - `notion-connector.spec.ts` - Connector implementation tests (5 test cases)
 
 **What's Tested**:
+
 - ✅ Rich text conversion logic (extensive coverage in conversion tests)
 - ✅ Block diffing algorithm
 - ✅ Batch operations
@@ -273,6 +279,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Helper methods (displayName, service, getBatchSize)
 
 **What's NOT Tested**:
+
 - ❌ Page content column download (complex with blocks/children)
 - ❌ All Notion property type conversions (only title and select tested)
 - ❌ Error handling for API failures
@@ -280,12 +287,15 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ Record CRUD operations (create, update, delete)
 
 #### Wix Blog Connector (⚠️ Partial Coverage)
+
 **Location**: `server/src/remote-service/connectors/library/wix/`
 **Test Files**:
+
 - `rich-content/rich-content.spec.ts` - Rich content conversion tests (~30 test cases)
 - `wix-blog/wix-blog-connector.spec.ts` - Connector implementation tests (17 test cases)
 
 **What's Tested**:
+
 - ✅ HTML to RICOS conversion (rich-content tests)
 - ✅ RICOS to HTML conversion (rich-content tests)
 - ✅ Rich text formatting preservation
@@ -303,6 +313,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Helper methods (displayName, getBatchSize, service type)
 
 **What's NOT Tested**:
+
 - ❌ `wix-blog-schema-parser.ts` - Schema parsing (if exists)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
@@ -311,11 +322,14 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ Advanced rich content edge cases
 
 #### CSV Connector (⚠️ Partial Coverage)
+
 **Location**: `server/src/remote-service/connectors/library/csv/`
 **Test Files**:
+
 - `csv-parser.spec.ts` - CSV parsing logic (22 test cases)
 
 **What's Tested**:
+
 - ✅ Basic CSV parsing with headers and rows
 - ✅ Quoted fields with commas and escaped quotes
 - ✅ Empty fields and edge cases
@@ -325,17 +339,21 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Real-world CSV formatting scenarios
 
 **What's NOT Tested**:
+
 - ❌ `csv-connector.ts` - Main connector class
 - ❌ `csv-schema-parser.ts` - Schema parsing
 - ❌ File upload handling
 - ❌ Error handling for malformed CSV
 
 #### Webflow Connector (⚠️ Partial Coverage)
+
 **Location**: `server/src/remote-service/connectors/library/webflow/`
 **Test Files**:
+
 - `webflow-connector.spec.ts` - Connector implementation tests (14 test cases)
 
 **What's Tested**:
+
 - ✅ `downloadTableRecords` function - Core record download logic
 - ✅ Record transformation from Webflow API format to ConnectorRecord format
 - ✅ Pagination handling (with pagination metadata)
@@ -347,6 +365,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Helper methods (displayName, getBatchSize, service type)
 
 **What's NOT Tested**:
+
 - ❌ Connection testing (`testConnection` method)
 - ❌ Record creation (`createRecords` method)
 - ❌ Record updates (`updateRecords` method)
@@ -355,11 +374,14 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ❌ Field conversion helper (`wsFieldsToWebflowFields` method)
 
 #### WordPress Connector (⚠️ Partial Coverage)
+
 **Location**: `server/src/remote-service/connectors/library/wordpress/`
 **Test Files**:
+
 - `wordpress-connector.spec.ts` - Connector implementation tests (18 test cases)
 
 **What's Tested**:
+
 - ✅ `downloadTableRecords` function - Core record download logic with minimal fields
 - ✅ Pagination handling (offset-based with `WORDPRESS_POLLING_PAGE_SIZE`)
 - ✅ Rendered content conversion (HTML to Markdown with Turndown service)
@@ -372,6 +394,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - ✅ Helper methods (displayName, service type, getBatchSize)
 
 **What's NOT Tested**:
+
 - ❌ `wordpress-http-client.ts` - HTTP client implementation (mocked in tests)
 - ❌ `wordpress-auth-parser.ts` - Authentication endpoint parsing and transformations
 - ❌ Connection testing (`testConnection` method)
@@ -383,8 +406,10 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 ### Untested Connectors ❌
 
 #### Airtable Connector (❌ No Tests)
+
 **Location**: `server/src/remote-service/connectors/library/airtable/`
 **Source Files**:
+
 - `airtable-connector.ts` - Main connector implementation
 - `airtable-api-client.ts` - API client
 - `airtable-schema-parser.ts` - Schema parser
@@ -392,6 +417,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 - `airtable-types.ts` - Airtable-specific types
 
 **Priority Areas to Test**:
+
 1. API client methods (listBases, getBaseSchema, getRecords)
 2. Schema parsing (field type conversions)
 3. Record CRUD operations
@@ -399,25 +425,31 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 5. Authentication validation
 
 #### YouTube Connector (❌ No Tests)
+
 **Location**: `server/src/remote-service/connectors/library/youtube/`
 **Source Files**:
+
 - `youtube-connector.ts` - Main connector implementation
 - `youtube-api-client.ts` - API client
 - `youtube-spec-types.ts` - Type definitions
 
 **Priority Areas to Test**:
+
 1. API authentication (OAuth flow)
 2. Video metadata retrieval
 3. Channel and playlist operations
 4. Error handling (quota limits, permissions)
 
 #### Custom Connector (❌ No Tests)
+
 **Location**: `server/src/remote-service/connectors/library/custom/`
 **Source Files**:
+
 - `custom-connector.ts` - Custom connector implementation
 - `custom-spec-types.ts` - Type definitions
 
 **Priority Areas to Test**:
+
 1. Custom connector execution
 2. User-defined logic validation
 3. Error handling
@@ -427,6 +459,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 
 **Location**: `server/src/remote-service/connectors/`
 **Source Files**:
+
 - `connector.ts` - Base connector class
 - `connectors.service.ts` - Connector service
 - `connectors.module.ts` - NestJS module
@@ -437,6 +470,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 **Test Status**: ❌ No tests
 
 **Priority Areas to Test**:
+
 1. Base Connector class methods
 2. ConnectorService (connector instantiation, caching)
 3. Error extraction and formatting
@@ -446,6 +480,7 @@ This section tracks test coverage for all connectors in `remote-service/connecto
 ### Connector Testing Priorities
 
 #### 🔴 P0 - Critical (Test First)
+
 These connectors are production-critical and handle user data:
 
 1. **Notion Connector** - Complete connector class tests (schema parser, API client)
@@ -455,6 +490,7 @@ These connectors are production-critical and handle user data:
 **Risk**: Data corruption, sync failures, API errors not handled properly
 
 #### 🟡 P1 - High (Test Soon)
+
 1. **Wix Blog Connector** - Complete CRUD operations tests (create, update, delete records)
 2. **CSV Connector** - Complete connector class tests
 3. **Webflow Connector** - Complete remaining methods (schema parser, CRUD operations)
@@ -463,11 +499,13 @@ These connectors are production-critical and handle user data:
 **Risk**: Common integrations may break
 
 #### 🟢 P2 - Medium (Nice to Have)
+
 1. **YouTube Connector** - Full implementation tests
 
 **Risk**: Less common integrations
 
 #### 🔵 P3 - Low (Future)
+
 1. **Custom Connector** - Security and validation tests
 
 ### Connector Test Infrastructure
@@ -475,10 +513,12 @@ These connectors are production-critical and handle user data:
 All new connector tests should follow the standardized test pattern defined in the connector test infrastructure:
 
 **Test Pattern Documentation**:
+
 - `server/src/remote-service/connectors/library/CONNECTOR_TEST_PATTERN.md` - Quick reference guide for connector testing standards
 - `server/src/remote-service/connectors/library/connector-test-example.md` - Detailed examples with patterns and anti-patterns
 
 **Required Tests** (All connectors MUST include):
+
 1. ✅ `downloadTableRecords` - basic download and transformation
 2. ✅ `downloadTableRecords` - pagination handling
 3. ✅ `displayName()` - returns correct connector name
@@ -486,12 +526,14 @@ All new connector tests should follow the standardized test pattern defined in t
 5. ✅ `getBatchSize()` - returns valid batch size
 
 **Key Testing Principles**:
+
 1. **Mock the API Client, Not Internals** - Mock the SDK/API client that your connector uses; don't test the HTTP client itself
 2. **Use Minimal Data** - 1-2 field types max in table specs, 2-3 records max in test data (prevents Node.js heap exhaustion)
 3. **Focus on Core Logic** - Test download mechanism, pagination, data transformation, connector-specific features
 4. **Follow Examples** - Reference `webflow/webflow-connector.spec.ts`, `notion/notion-connector.spec.ts`, `wordpress/wordpress-connector.spec.ts`
 
 **Example Pattern**:
+
 ```typescript
 // Mock the API client
 const createMockClient = () => ({
@@ -499,26 +541,32 @@ const createMockClient = () => ({
   // Only methods your connector actually calls
 });
 
-jest.mock('your-api-library', () => ({
+jest.mock("your-api-library", () => ({
   YourApiClient: jest.fn().mockImplementation(() => mockClient),
 }));
 
-describe('YourConnector', () => {
+describe("YourConnector", () => {
   // Required: downloadTableRecords tests
-  describe('downloadTableRecords', () => {
-    it('should download records and transform basic fields', async () => {
+  describe("downloadTableRecords", () => {
+    it("should download records and transform basic fields", async () => {
       // Use MINIMAL data (2-3 records, 1-2 fields)
     });
 
-    it('should handle pagination correctly', async () => {
+    it("should handle pagination correctly", async () => {
       // Test pagination logic
     });
   });
 
   // Required: metadata tests
-  describe('displayName', () => { /* ... */ });
-  describe('service', () => { /* ... */ });
-  describe('getBatchSize', () => { /* ... */ });
+  describe("displayName", () => {
+    /* ... */
+  });
+  describe("service", () => {
+    /* ... */
+  });
+  describe("getBatchSize", () => {
+    /* ... */
+  });
 });
 ```
 
@@ -540,13 +588,13 @@ See `server/src/remote-service/connectors/library/CONNECTOR_TEST_PATTERN.md` for
 
 These areas pose security, financial, or data integrity risks:
 
-| Area                               | Files | Status       | Notes                                                                          |
-| ---------------------------------- | ----- | ------------ | ------------------------------------------------------------------------------ |
-| **Authentication & Authorization** | 8     | ✅ Good      | All Passport strategies, permissions, type conversions, JWT generation tested  |
-| **Payment/Stripe Integration**     | 7     | ✅ Good      | Helper functions, plans, and core Stripe service fully tested                  |
-| **Snapshot Core Operations**       | 30    | ❌ No tests  | Main feature; CRUD, AI integration, WebSocket events                           |
-| **Database Layer**                 | 3     | ❌ No tests  | Data integrity; migrations, queries, transactions                              |
-| **User Management**                | 12    | ✅ Good      | Token utilities, type conversions, and core services fully tested              |
+| Area                               | Files | Status      | Notes                                                                         |
+| ---------------------------------- | ----- | ----------- | ----------------------------------------------------------------------------- |
+| **Authentication & Authorization** | 8     | ✅ Good     | All Passport strategies, permissions, type conversions, JWT generation tested |
+| **Payment/Stripe Integration**     | 7     | ✅ Good     | Helper functions, plans, and core Stripe service fully tested                 |
+| **Snapshot Core Operations**       | 30    | ❌ No tests | Main feature; CRUD, AI integration, WebSocket events                          |
+| **Database Layer**                 | 3     | ❌ No tests | Data integrity; migrations, queries, transactions                             |
+| **User Management**                | 12    | ✅ Good     | Token utilities, type conversions, and core services fully tested             |
 
 **Risk Level**: Production bugs could compromise security, lose revenue, or corrupt user data.
 
@@ -1083,7 +1131,7 @@ See `wix/rich-content/rich-content.spec.ts` for examples.
 ### 2025-11-12 (Late Evening)
 
 - ✅ **Snapshot utilities and CSV parser tests added** (+2 test files, +31 test cases)
-  - Snapshot utilities tests (`server/src/snapshot/util.spec.ts`) - 9 test cases
+  - Snapshot utilities tests (`server/src/workbook/util.spec.ts`) - 9 test cases
     - Finding snapshot tables by workspace ID (wsId)
     - Finding table specs by workspace ID
     - Handling missing tables, empty snapshots, and multiple table scenarios

@@ -36,7 +36,7 @@ export const AddTwoNumbersJobHandler: JobHandlerBuilder<AddTwoNumbersJobDefiniti
       });
 
       // Fake API call - count snapshots
-      const snapshotCount = await prisma.snapshot.count();
+      const workbookCount = await prisma.workbook.count();
 
       // Perform the actual job
       const result = data.a + data.b;
@@ -50,7 +50,7 @@ export const AddTwoNumbersJobHandler: JobHandlerBuilder<AddTwoNumbersJobDefiniti
         success: true,
         result,
         executionTime,
-        snapshotCount,
+        workbookCount,
       };
     } catch (error) {
       const executionTime = Date.now() - startTime;

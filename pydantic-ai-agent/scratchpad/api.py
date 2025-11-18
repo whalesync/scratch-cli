@@ -7,7 +7,7 @@ from scratchpad.entities import (
     AgentCredential,
     ColumnView,
     RecordOperation,
-    ScratchpadSnapshot,
+    ScratchpadWorkbook,
     ListRecordsResponse,
     RecordId,
     SnapshotRecord,
@@ -48,26 +48,26 @@ def _handle_response(response: requests.Response, error_message: str) -> Any:
 
 class ScratchpadApi:
     @staticmethod
-    def get_snapshot(user_id: str, snapshot_id: str) -> ScratchpadSnapshot:
-        """Get snapshot details"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}"
+    def get_workbook(user_id: str, workbook_id: str) -> ScratchpadWorkbook:
+        """Get workbook details"""
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}"
         response = requests.get(
             url,
             headers=API_CONFIG.get_api_headers(user_id),
         )
-        data = _handle_response(response, "Failed to fetch snapshot")
-        return ScratchpadSnapshot(**data)
+        data = _handle_response(response, "Failed to fetch workbook")
+        return ScratchpadWorkbook(**data)
 
     @staticmethod
     def list_records_for_ai(
         user_id: str,
-        snapshot_id: str,
+        workbook_id: str,
         table_id: str,
         cursor: Optional[str] = None,
         take: Optional[int] = None,
     ) -> ListRecordsResponse:
         """List records for a table in a snapshot for AI processing"""
-        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/active-view"
+        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{workbook_id}/tables/{table_id}/records/active-view"
         params = {}
         if cursor:
             params["cursor"] = cursor
@@ -109,20 +109,20 @@ class ScratchpadApi:
 
     @staticmethod
     def get_record(
-        user_id: str, snapshot_id: str, table_id: str, record_id: str
+        user_id: str, workbook_id: str, table_id: str, record_id: str
     ) -> SnapshotRecord:
         """Get a single record from a table in a snapshot"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/{record_id}"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/records/{record_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
         data = _handle_response(response, "Failed to get record")
         return build_snapshot_record(data)
 
     @staticmethod
     def get_records_by_ids(
-        user_id: str, snapshot_id: str, table_id: str, record_ids: List[str]
+        user_id: str, workbook_id: str, table_id: str, record_ids: List[str]
     ) -> List[SnapshotRecord]:
         """Get multiple records by their IDs from a table in a snapshot"""
-        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{snapshot_id}/tables/{table_id}/records/by-ids"
+        url = f"{API_CONFIG.get_api_url()}/ai-snapshot/{workbook_id}/tables/{table_id}/records/by-ids"
         body = {"recordIds": record_ids}
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), json=body
@@ -139,12 +139,12 @@ class ScratchpadApi:
     @staticmethod
     def bulk_update_records(
         user_id: str,
-        snapshot_id: str,
+        workbook_id: str,
         table_id: str,
         operations: List[RecordOperation],
     ) -> None:
         """Bulk update records in a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/records/bulk-suggest"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/records/bulk-suggest"
         params = {}
 
         # Build operation payload - only include wsId if it exists (not needed for create operations)
@@ -172,10 +172,10 @@ class ScratchpadApi:
 
     @staticmethod
     def add_records_to_active_filter(
-        user_id: str, snapshot_id: str, table_id: str, record_ids: List[str]
+        user_id: str, workbook_id: str, table_id: str, record_ids: List[str]
     ) -> None:
         """Add records to the active record filter for a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-records-to-active-filter"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/add-records-to-active-filter"
         payload = {"recordIds": record_ids}
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), json=payload
@@ -187,10 +187,10 @@ class ScratchpadApi:
 
     @staticmethod
     def set_active_records_filter(
-        user_id: str, snapshot_id: str, table_id: str, sql_where_clause: Optional[str]
+        user_id: str, workbook_id: str, table_id: str, sql_where_clause: Optional[str]
     ) -> None:
         """Set the active records filter for a table using SQL WHERE clause (replaces existing filter)"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/set-active-records-filter"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/set-active-records-filter"
         payload = {"sqlWhereClause": sql_where_clause}
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), json=payload
@@ -202,10 +202,10 @@ class ScratchpadApi:
 
     @staticmethod
     def clear_active_record_filter(
-        user_id: str, snapshot_id: str, table_id: str
+        user_id: str, workbook_id: str, table_id: str
     ) -> None:
         """Clear the active record filter for a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/clear-active-record-filter"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/clear-active-record-filter"
         response = requests.post(url, headers=API_CONFIG.get_api_headers(user_id))
         if not response.ok:
             raise ScratchpadApiError(
@@ -314,10 +314,10 @@ class ScratchpadApi:
 
     @staticmethod
     def list_agent_sessions_by_snapshot(
-        user_id: str, snapshot_id: str
+        user_id: str, workbook_id: str
     ) -> List[Dict[str, Any]]:
         """List all agent sessions for a snapshot"""
-        url = f"{API_CONFIG.get_api_url()}/agent-sessions/snapshot/{snapshot_id}"
+        url = f"{API_CONFIG.get_api_url()}/agent-sessions/workbook/{workbook_id}"
         response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
         data = _handle_response(response, "Failed to list agent sessions by snapshot")
         return data
@@ -332,10 +332,10 @@ class ScratchpadApi:
 
     @staticmethod
     def add_scratch_column(
-        user_id: str, snapshot_id: str, table_id: str, column_name: str, data_type: str
+        user_id: str, workbook_id: str, table_id: str, column_name: str, data_type: str
     ) -> None:
         """Add a scratch column to a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/add-scratch-column"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/add-scratch-column"
         payload = {"columnName": column_name, "dataType": data_type}
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), json=payload
@@ -347,10 +347,10 @@ class ScratchpadApi:
 
     @staticmethod
     def remove_scratch_column(
-        user_id: str, snapshot_id: str, table_id: str, column_id: str
+        user_id: str, workbook_id: str, table_id: str, column_id: str
     ) -> None:
         """Remove a scratch column from a table"""
-        url = f"{API_CONFIG.get_api_url()}/snapshot/{snapshot_id}/tables/{table_id}/remove-scratch-column"
+        url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/remove-scratch-column"
         payload = {"columnId": column_id}
         response = requests.post(
             url, headers=API_CONFIG.get_api_headers(user_id), json=payload

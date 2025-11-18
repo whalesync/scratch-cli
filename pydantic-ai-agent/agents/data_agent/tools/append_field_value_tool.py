@@ -59,7 +59,7 @@ def append_field_value_tool_implementation(
         # Get the active snapshot
         chatRunContext: ChatRunContext = ctx.deps
 
-        if not chatRunContext.snapshot:
+        if not chatRunContext.workbook:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         log_info(
@@ -69,7 +69,7 @@ def append_field_value_tool_implementation(
             wsId=wsId,
             field_name=column.name,
             value=value,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         # Get the record from the preloaded records
@@ -80,7 +80,7 @@ def append_field_value_tool_implementation(
         # since our tool is just appending a value.
         record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             record_id=wsId,
         )
@@ -103,14 +103,14 @@ def append_field_value_tool_implementation(
 
         ScratchpadApi.bulk_update_records(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             operations=update_operations,
         )
 
         updated_record = ScratchpadApi.get_record(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             record_id=wsId,
         )
@@ -125,7 +125,7 @@ def append_field_value_tool_implementation(
             wsId=wsId,
             field_name=column.name,
             value=value,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         return f"Successfully appended the value to the {column.name} field in record {wsId} in table {table.name}"
@@ -262,7 +262,7 @@ def define_append_field_value_tool(
             # Get the active snapshot
             chatRunContext: ChatRunContext = ctx.deps
 
-            if not chatRunContext.snapshot:
+            if not chatRunContext.workbook:
                 return unable_to_identify_active_snapshot_error(chatRunContext)
 
             table = get_active_table(chatRunContext)

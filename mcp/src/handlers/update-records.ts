@@ -1,5 +1,5 @@
 import { snapshotManager } from "../state/snapshots.js";
-import { snapshotApi } from "../lib/api/snapshot.js";
+import { workbookApi } from "../lib/api/snapshot.js";
 import { RecordOperation } from "../lib/api/types/records.js";
 
 export const BULK_UPDATE_RECORDS_MCP_TOOL_DEFINITION = {
@@ -119,7 +119,7 @@ export const bulkUpdateRecords = async (
   }
 
   try {
-    await snapshotApi.bulkUpdateRecords(snapshot.id, tableId, { ops });
+    await workbookApi.bulkUpdateRecords(snapshot.id, tableId, { ops });
     return {
       content: [
         {

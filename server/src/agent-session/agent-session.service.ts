@@ -49,7 +49,7 @@ export class AgentSessionService {
       create: {
         id: sessionId,
         userId: data.user_id,
-        snapshotId: data.snapshot_id,
+        workbookId: data.workbook_id,
         data,
       },
     });
@@ -70,10 +70,10 @@ export class AgentSessionService {
     return agentSessions;
   }
 
-  async findBySnapshotId(snapshotId: string): Promise<AgentSessionEntity[]> {
+  async findByWorkbookId(workbookId: string): Promise<AgentSessionEntity[]> {
     const agentSessions = await this.db.client.agentSession.findMany({
       where: {
-        snapshotId,
+        workbookId,
       },
       orderBy: {
         updatedAt: 'desc',

@@ -8,7 +8,7 @@ export class CreateAgentSessionDto {
   userId: string;
 
   @IsString()
-  snapshotId: string;
+  workbookId: string;
 
   @IsObject()
   data: any;

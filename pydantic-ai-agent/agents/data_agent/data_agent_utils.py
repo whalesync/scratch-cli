@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
-from scratchpad.entities import ColumnView, ScratchpadSnapshot, SnapshotTable
+from scratchpad.entities import ColumnView, ScratchpadWorkbook, SnapshotTable
 from session import ChatSession
 from logging import getLogger
 
@@ -29,7 +29,7 @@ class TableSpecForAi(BaseModel):
     columns: List[ColumnSpecForAi]
 
 
-class SnapshotForAi(BaseModel):
+class WorkbookForAi(BaseModel):
     id: str
     name: Optional[str]
     createdAt: str
@@ -37,28 +37,28 @@ class SnapshotForAi(BaseModel):
     tables: List[TableSpecForAi]
 
 
-def convert_scratchpad_snapshot_to_ai_snapshot(
-    snapshot_data: ScratchpadSnapshot,
+def convert_scratchpad_workbook_to_ai_workbook(
+    workbook_data: ScratchpadWorkbook,
     chatSession: ChatSession,
-) -> SnapshotForAi:
+) -> WorkbookForAi:
     """
-    Convert a ScratchpadSnapshot to SnapshotForAi format.
+    Convert a ScratchpadSnapshot to WorkbookForAi format.
 
     Args:
-        snapshot_data: The raw snapshot data from the API
+        workbook_data: The raw snapshot data from the API
         chatSession: The chat session object containing metadata
 
     Returns:
-        SnapshotForAi: The converted snapshot object
+        WorkbookForAi: The converted snapshot object
     """
     logger.debug(f"🔍 Converting snapshot data...")
-    logger.debug(f"📊 Snapshot ID: {snapshot_data.id}")
+    logger.debug(f"📊 Snapshot ID: {workbook_data.id}")
     logger.debug(f"📅 Created: {chatSession.created_at}")
     logger.debug(f"📅 Updated: {chatSession.last_activity}")
 
     # Convert tables one by one
     converted_tables = []
-    for i, snapshotTable in enumerate[SnapshotTable](snapshot_data.snapshotTables):
+    for i, snapshotTable in enumerate[SnapshotTable](workbook_data.snapshotTables):
         logger.debug(f"🔍 Converting table: {snapshotTable}")
         table = snapshotTable["tableSpec"]  # type: ignore
 
@@ -92,18 +92,18 @@ def convert_scratchpad_snapshot_to_ai_snapshot(
         )
         converted_tables.append(table_spec)
 
-    # Create the snapshot
-    logger.debug(f"🔍 Creating Snapshot object...")
-    snapshot = SnapshotForAi(
-        id=snapshot_data.id,
-        name=snapshot_data.name,
-        createdAt=snapshot_data.createdAt,
-        updatedAt=snapshot_data.updatedAt,
+    # Create the workbook
+    logger.debug(f"🔍 Creating Workbook object...")
+    workbook = WorkbookForAi(
+        id=workbook_data.id,
+        name=workbook_data.name,
+        createdAt=workbook_data.createdAt,
+        updatedAt=workbook_data.updatedAt,
         tables=converted_tables,
     )
-    logger.debug(f"✅ Snapshot object created successfully")
+    logger.debug(f"✅ Workbook object created successfully")
 
-    return snapshot
+    return workbook
 
 
 def format_records_for_prompt(

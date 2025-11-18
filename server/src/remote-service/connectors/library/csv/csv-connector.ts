@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Service, Upload } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
-import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { createCsvFileRecordId } from 'src/types/ids';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { JsonSafeObject } from 'src/utils/objects';
+import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { CsvTableSpec } from '../custom-spec-registry';

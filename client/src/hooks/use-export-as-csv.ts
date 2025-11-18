@@ -1,28 +1,29 @@
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { Snapshot } from '@/types/server-entities/snapshot';
-import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { Workbook } from '@/types/server-entities/workbook';
 import { useSWRConfig } from 'swr';
+import { SnapshotTableId } from '../types/server-entities/ids';
 
 export const useExportAsCsv = () => {
   const { mutate: globalMutate } = useSWRConfig();
-  
+
   const handleDownloadCsv = async (
-    snapshot: Snapshot,
-    tableId: string,
+    workbook: Workbook,
+    tableId: SnapshotTableId,
     tableName: string,
     setDownloading: (value: string | null) => void,
     filteredOnly: boolean = false,
   ) => {
-    if (!snapshot) return;
+    if (!workbook) return;
     try {
       setDownloading(tableId);
-      
+
       // Use public endpoint that doesn't require authentication
       // Security relies on snapshot IDs being unguessable
-      const url = `${API_CONFIG.getApiUrl()}/snapshot/public/${snapshot.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
-      const filename = `${snapshot.name || 'snapshot'}_${tableName}.csv`;
-      
+      const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbook.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
+      const filename = `${workbook.name || 'snapshot'}_${tableName}.csv`;
+
       // Create a hidden anchor element and click it to trigger download
       // This allows the browser to handle streaming natively
       const a = document.createElement('a');
@@ -38,7 +39,7 @@ export const useExportAsCsv = () => {
 
       // Refresh the records cache for "Export All" to show the clean state (same as websocket pattern)
       if (!filteredOnly) {
-        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshot.id, tableId), undefined, {
+        globalMutate(SWR_KEYS.workbook.recordsKeyMatcher(workbook.id, tableId), undefined, {
           revalidate: true,
         });
       }

@@ -11,7 +11,7 @@ import { Badge, Edit3, Plus, RefreshCcwIcon, Trash2 } from 'lucide-react';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { BadgeError, BadgeOK } from '../../components/base/badges';
 import { RelativeDate } from '../../components/RelativeDate';
-import { CreateSnapshotModal } from './CreateSnapshotModal';
+import { CreateWorkbookModal } from './CreateWorkbookModal';
 
 interface ConnectorRowProps {
   connectorAccount: ConnectorAccount;
@@ -38,7 +38,7 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
 
   return (
     <>
-      <CreateSnapshotModal connectorAccount={connectorAccount} opened={opened} onClose={close} />
+      <CreateWorkbookModal connectorAccount={connectorAccount} opened={opened} onClose={close} />
       <Table.Tr key={connectorAccount.id}>
         <Table.Td>
           <Group gap="sm">

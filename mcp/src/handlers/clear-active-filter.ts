@@ -1,5 +1,5 @@
 import { snapshotManager } from "../state/snapshots.js";
-import { snapshotApi } from "../lib/api/snapshot.js";
+import { workbookApi } from "../lib/api/snapshot.js";
 
 export const CLEAR_FILTERED_VIEW_MCP_TOOL_DEFINITION = {
   name: "clear_record_filter",
@@ -16,7 +16,9 @@ export const CLEAR_FILTERED_VIEW_MCP_TOOL_DEFINITION = {
   },
 };
 
-export const clearFilteredView = async (args: Record<string, unknown> | undefined) => {
+export const clearFilteredView = async (
+  args: Record<string, unknown> | undefined
+) => {
   const snapshot = snapshotManager.getActiveSnapshot();
   const tableId = args?.tableId as string;
 
@@ -42,10 +44,7 @@ export const clearFilteredView = async (args: Record<string, unknown> | undefine
   }
 
   try {
-    const viewId = await snapshotApi.clearActiveView(
-      snapshot.id,
-      tableId,
-    );
+    const viewId = await workbookApi.clearActiveView(snapshot.id, tableId);
     return {
       content: [
         {

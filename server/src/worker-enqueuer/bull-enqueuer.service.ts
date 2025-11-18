@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { createPlainId } from 'src/types/ids';
+import { createPlainId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
 import { JobData } from 'src/worker/jobs/union-types';
@@ -49,11 +49,11 @@ export class BullEnqueuerService implements OnModuleDestroy {
     return await this.queue.add(data.type, data);
   }
 
-  async enqueueDownloadRecordsJob(snapshotId: string, actor: Actor, snapshotTableIds?: string[]): Promise<Job> {
+  async enqueueDownloadRecordsJob(workbookId: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<Job> {
     // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `download-records-${actor.userId}-${snapshotId}-${createPlainId()}`;
+    const id = `download-records-${actor.userId}-${workbookId}-${createPlainId()}`;
     const data: DownloadRecordsJobDefinition['data'] = {
-      snapshotId,
+      workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
       snapshotTableIds,

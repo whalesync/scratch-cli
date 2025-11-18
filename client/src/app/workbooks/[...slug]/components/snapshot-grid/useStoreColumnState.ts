@@ -1,11 +1,11 @@
-import { SnapshotRecord } from "@/types/server-entities/snapshot";
-import { ColumnState, GridApi } from "ag-grid-community";
-import {useState, useEffect, useCallback} from 'react';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { ColumnState, GridApi } from 'ag-grid-community';
+import { useCallback, useEffect, useState } from 'react';
 
-export const useStoreColumnState = (snapshotId: string, tableId: string, gridApi: GridApi<SnapshotRecord> | null) => {
+export const useStoreColumnState = (workbookId: string, tableId: string, gridApi: GridApi<SnapshotRecord> | null) => {
   const [columnState, setColumnState] = useState<ColumnState[]>([]);
   const [mounted, setMounted] = useState(false);
-  const storageKey = `ag-grid-column-state-${snapshotId}-${tableId}`;
+  const storageKey = `ag-grid-column-state-${workbookId}-${tableId}`;
 
   useEffect(() => {
     setMounted(true);
@@ -22,22 +22,22 @@ export const useStoreColumnState = (snapshotId: string, tableId: string, gridApi
     }
   }, [storageKey]);
 
-    // Save column state to localStorage when it changes
-    const onColumnStateChanged = useCallback(() => {
-        if (gridApi) {
-          const newState = gridApi.getColumnState();
-          localStorage.setItem(storageKey, JSON.stringify(newState));
-        }
-      }, [gridApi, storageKey]);
+  // Save column state to localStorage when it changes
+  const onColumnStateChanged = useCallback(() => {
+    if (gridApi) {
+      const newState = gridApi.getColumnState();
+      localStorage.setItem(storageKey, JSON.stringify(newState));
+    }
+  }, [gridApi, storageKey]);
 
-    // Clear column state from localStorage and reset grid
-    const clearColumnState = useCallback(() => {
-      localStorage.removeItem(storageKey);
-      setColumnState([]);
-      if (gridApi) {
-        gridApi.resetColumnState();
-      }
-    }, [gridApi, storageKey]);
+  // Clear column state from localStorage and reset grid
+  const clearColumnState = useCallback(() => {
+    localStorage.removeItem(storageKey);
+    setColumnState([]);
+    if (gridApi) {
+      gridApi.resetColumnState();
+    }
+  }, [gridApi, storageKey]);
 
   return { columnState, setColumnState, mounted, onColumnStateChanged, clearColumnState };
 };

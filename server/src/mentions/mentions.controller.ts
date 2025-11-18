@@ -2,7 +2,7 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { toActor } from 'src/auth/types';
-import type { SnapshotId } from 'src/types/ids';
+import type { WorkbookId } from 'src/types/ids';
 import { MentionsService } from './mentions.service';
 import type { MentionsSearchRequestDto } from './types';
 import { RecordMentionEntity, ResourceMentionEntity } from './types';
@@ -27,9 +27,9 @@ export class MentionsController {
     @Body() body: MentionsSearchRequestDto,
     @Req() req: RequestWithUser,
   ): Promise<RecordMentionEntity[]> {
-    const { text, snapshotId, tableId } = body;
+    const { text, workbookId, tableId } = body;
     return await this.mentionsService.searchRecords({
-      snapshotId: snapshotId as SnapshotId,
+      workbookId: workbookId as WorkbookId,
       actor: toActor(req.user),
       queryText: text,
       tableId,

@@ -12,6 +12,7 @@ import { DataScope } from '@/types/server-entities/agent';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { WorkbookId } from '../../../../../types/server-entities/ids';
 
 /**
  * Manages all of the extra context state for the Agent chat, allowing it to be managed from different parts of the UI and the chat itself
@@ -39,10 +40,10 @@ export const AgentChatContext = createContext<AgentChatContextValue | undefined>
 
 interface AgentChatContextProviderProps {
   children: ReactNode;
-  snapshotId: string;
+  workbookId: WorkbookId;
 }
 
-export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatContextProviderProps) => {
+export const AgentChatContextProvider = ({ children, workbookId }: AgentChatContextProviderProps) => {
   const { getUserSetting } = useScratchPadUser();
   const [dataScope, setDataScope] = useState<DataScope>('table');
   const [activeRecordId, setActiveRecordId] = useState<string | undefined>(undefined);
@@ -57,12 +58,12 @@ export const AgentChatContextProvider = ({ children, snapshotId }: AgentChatCont
   };
 
   const [activeModel, setActiveModel] = useLocalStorage({
-    key: `agent-chat-context-model-v2-${snapshotId}`,
+    key: `agent-chat-context-model-v2-${workbookId}`,
     defaultValue: defaultModelValue,
   });
 
   const [activeResources, setActiveResources] = useLocalStorage<string[]>({
-    key: `agent-chat-context-${snapshotId}`,
+    key: `agent-chat-context-${workbookId}`,
     defaultValue: [],
   });
 

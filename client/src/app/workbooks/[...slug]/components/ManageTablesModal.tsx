@@ -2,20 +2,21 @@
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
-import { snapshotApi } from '@/lib/api/snapshot';
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { WorkbookId } from '../../../../types/server-entities/ids';
 
 interface ManageTablesModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: () => void | Promise<void>;
-  snapshotId: string;
+  workbookId: WorkbookId;
   tables: SnapshotTable[];
 }
 
-export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables }: ManageTablesModalProps) => {
+export const ManageTablesModal = ({ isOpen, onClose, onSave, workbookId, tables }: ManageTablesModalProps) => {
   const [hiddenStates, setHiddenStates] = useState<Record<string, boolean>>(
     tables.reduce((acc, table) => ({ ...acc, [table.id]: table.hidden }), {}),
   );
@@ -41,7 +42,7 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables 
       // Update all tables that have changed
       const updates = tables
         .filter((table) => hiddenStates[table.id] !== table.hidden)
-        .map((table) => snapshotApi.hideTable(snapshotId, table.id, hiddenStates[table.id]));
+        .map((table) => workbookApi.hideTable(workbookId, table.id, hiddenStates[table.id]));
 
       await Promise.all(updates);
 
@@ -67,7 +68,7 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, snapshotId, tables 
     <Modal opened={isOpen} onClose={handleClose} title="Manage Tables" size="md" centered>
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Toggle which tables are visible in the snapshot. Hidden tables are not deleted and can be unhidden at any
+          Toggle which tables are visible in the workbook. Hidden tables are not deleted and can be unhidden at any
           time.
         </Text>
 

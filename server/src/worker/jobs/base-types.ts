@@ -6,7 +6,7 @@ export interface JobResult {
   result?: number;
   error?: string;
   executionTime: number;
-  snapshotCount?: number;
+  workbookCount?: number;
 }
 
 export type JobDefinitionBuilder<

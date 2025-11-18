@@ -17,26 +17,26 @@ import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Stack } from '@mantine/core';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-import { useActiveSnapshot } from '../../../hooks/use-active-snapshot';
-import { useSnapshot } from '../../../hooks/use-snapshot';
-import { useSnapshotEditorUIStore } from '../../../stores/snapshot-editor-store';
+import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
+import { useWorkbook } from '../../../hooks/use-workbook';
+import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { AddTableTab } from './components/AddTableTab';
 import { UpdateRecordsProvider } from './components/contexts/update-records-context';
 import { ManageTablesModal } from './components/ManageTablesModal';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
-import { SnapshotHeader } from './components/SnapshotHeader';
-import { SnapshotTabBar } from './components/SnapshotTabBar';
-import { useSnapshotParams } from './hooks/use-snapshot-params';
+import { WorkbookHeader } from './components/WorkbookHeader';
+import { WorkbookTabBar } from './components/WorkbookTabBar';
+import { useWorkbookParams } from './hooks/use-workbook-params';
 
 function SnapshotPageContent() {
-  const { tableId, updateSnapshotPath } = useSnapshotParams();
-  const { activeTable } = useActiveSnapshot();
-  const activeTab = useSnapshotEditorUIStore((state) => state.activeTab);
-  const setActiveTab = useSnapshotEditorUIStore((state) => state.setActiveTab);
+  const { tableId, updateSnapshotPath } = useWorkbookParams();
+  const { activeTable } = useActiveWorkbook();
+  const activeTab = useWorkbookEditorUIStore((state) => state.activeTab);
+  const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
 
   const router = useRouter();
-  const { snapshot, isLoading, refreshSnapshot } = useActiveSnapshot();
+  const { workbook, isLoading, refreshWorkbook } = useActiveWorkbook();
 
   const [showManageTablesModal, setShowManageTablesModal] = useState(false);
 
@@ -45,7 +45,7 @@ function SnapshotPageContent() {
       return;
     }
     // check to see if the content of the active table has changed and reset the object if it has, to trigger re-render of the grid
-    const updatedTable = getSnapshotTables(snapshot).find((t) => t.id === activeTable.id);
+    const updatedTable = getSnapshotTables(workbook).find((t) => t.id === activeTable.id);
     if (
       updatedTable &&
       (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
@@ -54,7 +54,7 @@ function SnapshotPageContent() {
       // update the active table and table context with the newer version
       setActiveTab(updatedTable.id);
     }
-  }, [snapshot, activeTable, tableId, updateSnapshotPath, setActiveTab]);
+  }, [workbook, activeTable, tableId, updateSnapshotPath, setActiveTab]);
 
   // Temp place untill we have a better handling of hotkeys, commands,
   useEffect(() => {
@@ -71,11 +71,11 @@ function SnapshotPageContent() {
   }, []);
 
   // Only show loader on initial load, not during revalidation
-  if (isLoading && !snapshot) {
-    return <LoaderWithMessage centered message="Loading snapshot..." />;
+  if (isLoading && !workbook) {
+    return <LoaderWithMessage centered message="Loading workbook..." />;
   }
 
-  if (!snapshot) {
+  if (!workbook) {
     return (
       <ErrorInfo
         title="Workbook not found."
@@ -89,25 +89,25 @@ function SnapshotPageContent() {
     );
   }
 
-  const allTables = getSnapshotTables(snapshot, true); // Include hidden tables
+  const allTables = getSnapshotTables(workbook, true); // Include hidden tables
   const aiChatPanel = activeTable ? <AIChatPanel activeTable={activeTable} /> : null;
 
   let content = null;
   let contentFooter = null;
-  if (snapshot) {
+  if (workbook) {
     if (activeTable) {
-      content = <SnapshotGrid snapshot={snapshot} table={activeTable} />;
+      content = <SnapshotGrid workbook={workbook} table={activeTable} />;
       contentFooter = <RecordDataToolbar table={activeTable} />;
     } else if (activeTab?.startsWith('new-tab')) {
       content = <AddTableTab />;
     }
   }
   return (
-    <PageLayout pageTitle={snapshot.name ?? 'Workbook'} rightPanel={aiChatPanel}>
+    <PageLayout pageTitle={workbook.name ?? 'Workbook'} rightPanel={aiChatPanel}>
       <MainContent>
         <Stack gap="0">
-          <SnapshotHeader />
-          <SnapshotTabBar />
+          <WorkbookHeader />
+          <WorkbookTabBar />
         </Stack>
         <MainContent.Body p="0">{content}</MainContent.Body>
         {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
@@ -117,41 +117,41 @@ function SnapshotPageContent() {
         isOpen={showManageTablesModal}
         onClose={() => setShowManageTablesModal(false)}
         onSave={async () => {
-          if (refreshSnapshot) {
-            await refreshSnapshot();
+          if (refreshWorkbook) {
+            await refreshWorkbook();
           }
         }}
-        snapshotId={snapshot.id}
+        workbookId={workbook.id}
         tables={allTables}
       />
     </PageLayout>
   );
 }
 
-export default function SnapshotPage() {
-  const params = useSnapshotParams();
+export default function WorkbookPage() {
+  const params = useWorkbookParams();
 
-  // Top level logic for managing the snapshot editor UI state.
-  const openSnapshot = useSnapshotEditorUIStore((state) => state.openSnapshot);
-  const closeSnapshot = useSnapshotEditorUIStore((state) => state.closeSnapshot);
-  const reconcileWithSnapshot = useSnapshotEditorUIStore((state) => state.reconcileWithSnapshot);
+  // Top level logic for managing the workbook editor UI state.
+  const openWorkbook = useWorkbookEditorUIStore((state) => state.openWorkbook);
+  const closeWorkbook = useWorkbookEditorUIStore((state) => state.closeWorkbook);
+  const reconcileWithWorkbook = useWorkbookEditorUIStore((state) => state.reconcileWithWorkbook);
 
   useEffect(() => {
-    openSnapshot(params);
-    return () => closeSnapshot();
-  }, [params, openSnapshot, closeSnapshot]);
+    openWorkbook(params);
+    return () => closeWorkbook();
+  }, [params, openWorkbook, closeWorkbook]);
 
-  const { snapshot } = useSnapshot(params.snapshotId);
+  const { workbook } = useWorkbook(params.workbookId);
   useEffect(() => {
-    if (snapshot) {
-      reconcileWithSnapshot(snapshot);
+    if (workbook) {
+      reconcileWithWorkbook(workbook);
     }
-  }, [snapshot, reconcileWithSnapshot]);
+  }, [workbook, reconcileWithWorkbook]);
 
   return (
-    <AgentChatContextProvider snapshotId={params.snapshotId}>
-      <SnapshotEventProvider snapshotId={params.snapshotId}>
-        <AIAgentSessionManagerProvider snapshotId={params.snapshotId}>
+    <AgentChatContextProvider workbookId={params.workbookId}>
+      <SnapshotEventProvider workbookId={params.workbookId}>
+        <AIAgentSessionManagerProvider workbookId={params.workbookId}>
           <UpdateRecordsProvider>
             <SnapshotPageContent />
           </UpdateRecordsProvider>

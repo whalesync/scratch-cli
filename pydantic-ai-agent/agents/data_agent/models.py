@@ -9,7 +9,7 @@ from datetime import datetime
 from scratchpad.entities import ColumnSpec, SnapshotRecord, RecordId, TableSpec
 from typing import List, Optional, Dict, Any
 from session import ChatSession
-from agents.data_agent.data_agent_utils import SnapshotForAi
+from agents.data_agent.data_agent_utils import WorkbookForAi
 
 
 class UsageStats(BaseModel):
@@ -42,8 +42,8 @@ class ChatRunContext(BaseModel):
     run_id: str = Field(description="ID of the chat run")
     session: ChatSession
     user_id: str
-    snapshot: Optional[SnapshotForAi] = Field(
-        default=None, description="Associated snapshot"
+    workbook: Optional[WorkbookForAi] = Field(
+        default=None, description="Associated workbook"
     )
     preloaded_records: Optional[Dict[str, Any]] = Field(
         default=None, description="Preloaded records for the session"

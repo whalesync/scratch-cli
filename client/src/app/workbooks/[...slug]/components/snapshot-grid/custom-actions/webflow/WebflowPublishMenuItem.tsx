@@ -1,6 +1,6 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
 import { Upload } from 'lucide-react';
 import React from 'react';
 import { customWebflowActionsApi } from '../../../../../../../lib/api/custom-actions/webflow';

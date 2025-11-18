@@ -6,6 +6,7 @@ import { useSetState } from '@mantine/hooks';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSWRConfig } from 'swr';
+import { SnapshotTableId, WorkbookId } from '../../../../../types/server-entities/ids';
 
 interface SnapshotEventContextValue {
   isConnected: boolean;
@@ -26,7 +27,7 @@ const MESSAGE_LOG_MAX_LENGTH = 30;
 
 interface SnapshotEventProviderProps {
   children: ReactNode;
-  snapshotId: string;
+  workbookId: WorkbookId;
 }
 
 const SnapshotEventContext = createContext<SnapshotEventContextValue | null>(null);
@@ -39,7 +40,7 @@ export const useSnapshotEventContext = () => {
   return context;
 };
 
-export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventProviderProps) => {
+export const SnapshotEventProvider = ({ children, workbookId }: SnapshotEventProviderProps) => {
   const { mutate: globalMutate } = useSWRConfig();
 
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -64,17 +65,17 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
       if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
         addToMessageLog('Mutate snapshot SWR keys');
         // Invalidate snapshot detail cache
-        globalMutate(SWR_KEYS.snapshot.detail(snapshotId));
-        globalMutate(SWR_KEYS.snapshot.list());
+        globalMutate(SWR_KEYS.workbook.detail(workbookId));
+        globalMutate(SWR_KEYS.workbook.list());
 
         if (event.data.tableId) {
-          globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {
+          globalMutate(SWR_KEYS.workbook.recordsKeyMatcher(workbookId, event.data.tableId), undefined, {
             revalidate: true,
           });
         }
       }
     },
-    [snapshotId, globalMutate],
+    [workbookId, globalMutate],
   );
 
   // Handle record events (record-changes)
@@ -84,12 +85,12 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
       if (event.type === 'record-changes' && event.data.tableId) {
         addToMessageLog('Mutate record SWR keys');
-        globalMutate(SWR_KEYS.snapshot.recordsKeyMatcher(snapshotId, event.data.tableId), undefined, {
+        globalMutate(SWR_KEYS.workbook.recordsKeyMatcher(workbookId, event.data.tableId), undefined, {
           revalidate: true,
         });
       }
     },
-    [snapshotId, globalMutate],
+    [workbookId, globalMutate],
   );
 
   useEffect(() => {
@@ -170,9 +171,9 @@ export const SnapshotEventProvider = ({ children, snapshotId }: SnapshotEventPro
 
   useEffect(() => {
     if (socket && isConnected) {
-      socket.emit('subscribe', { snapshotId });
+      socket.emit('subscribe', { workbookId });
     }
-  }, [socket, isConnected, snapshotId]);
+  }, [socket, isConnected, workbookId]);
 
   const sendPing = () => {
     if (socket && isConnected) {
@@ -206,7 +207,7 @@ const log = (message: string, data?: unknown) => {
 export interface SnapshotEvent {
   type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed';
   data: {
-    tableId?: string;
+    tableId?: SnapshotTableId;
     source: 'user' | 'agent';
   };
 }
@@ -214,7 +215,7 @@ export interface SnapshotEvent {
 export interface SnapshotRecordEvent {
   type: 'record-changes';
   data: {
-    tableId: string;
+    tableId: SnapshotTableId;
     numRecords: number;
     changeType: 'suggested' | 'accepted' | 'rejected';
     source: 'user' | 'agent';
@@ -222,7 +223,7 @@ export interface SnapshotRecordEvent {
 }
 
 export interface SubscriptionConfirmedEvent {
-  snapshotId: string;
-  tableId?: string;
+  workbookId: WorkbookId;
+  tableId?: SnapshotTableId;
   message: string;
 }

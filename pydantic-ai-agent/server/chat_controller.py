@@ -37,13 +37,13 @@ chat_service = ChatService(session_service)
 
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
 async def create_session(
-    snapshot_id: str, current_user: AgentUser = Depends(get_current_user)
+    workbook_id: str, current_user: AgentUser = Depends(get_current_user)
 ):
     """Create a new chat session"""
     session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
 
     session = session_service.create_session(
-        current_user.userId, session_id, snapshot_id
+        current_user.userId, session_id, workbook_id
     )
 
     # Create summary for client response
@@ -55,7 +55,7 @@ async def create_session(
     )
 
     myLogger.info(
-        f"Session created successfully for snapshot {snapshot_id} by user {current_user.userId}",
+        f"Session created successfully for snapshot {workbook_id} by user {current_user.userId}",
     )
 
     return CreateSessionResponseDTO(
@@ -153,8 +153,8 @@ async def send_message(
 
     session = session_service.get_session(session_id)
     myLogger.info(f"✅ Found session: {session_id}")
-    if session.snapshot_id:
-        myLogger.info(f"📊 Session associated with snapshot: {session.snapshot_id}")
+    if session.workbook_id:
+        myLogger.info(f"📊 Session associated with snapshot: {session.workbook_id}")
     myLogger.info(f"📊 Session chat history length: {len(session.chat_history)}")
     myLogger.info(f"📋 Session summary history length: {len(session.summary_history)}")
 
@@ -179,7 +179,7 @@ async def send_message(
             user_id=current_user.userId,
             chat_history_length=len(session.chat_history),
             summary_history_length=len(session.summary_history),
-            snapshot_id=session.snapshot_id,
+            workbook_id=session.workbook_id,
         )
 
         # Convert style guides to dict format if provided
@@ -216,7 +216,7 @@ async def send_message(
             session_id=session_id,
             user_id=current_user.userId,
             response_length=len(agent_response.response_message),
-            snapshot_id=session.snapshot_id,
+            workbook_id=session.workbook_id,
         )
 
         # Add assistant response to chat history
@@ -256,7 +256,7 @@ async def send_message(
             session_id=session_id,
             user_id=current_user.userId,
             error=str(e),
-            snapshot_id=session.snapshot_id,
+            workbook_id=session.workbook_id,
         )
         myLogger.info(f"❌ Error processing message: {e}")
         myLogger.info(
@@ -298,15 +298,15 @@ async def list_sessions(current_user: AgentUser = Depends(get_current_user)):
     return {"sessions": session_summaries}
 
 
-@router.get("/sessions/snapshot/{snapshot_id}")
+@router.get("/sessions/workbook/{workbook_id}")
 async def list_sessions_for_snapshot(
-    snapshot_id: str, current_user: AgentUser = Depends(get_current_user)
+    workbook_id: str, current_user: AgentUser = Depends(get_current_user)
 ):
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
     session_summaries = []
     for session in session_service.get_sessions_for_snapshot(
-        snapshot_id, current_user.userId
+        workbook_id, current_user.userId
     ):
         summary = ChatSessionSummary(
             id=session.id,
@@ -317,7 +317,7 @@ async def list_sessions_for_snapshot(
         session_summaries.append(summary)
 
     myLogger.info(
-        f"📋 Listed sessions for snapshot {snapshot_id} by user {current_user.userId}"
+        f"📋 Listed sessions for snapshot {workbook_id} by user {current_user.userId}"
     )
     return {"sessions": session_summaries}
 

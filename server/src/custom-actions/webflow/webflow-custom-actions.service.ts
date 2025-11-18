@@ -5,9 +5,9 @@ import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { WebflowTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { WebflowCustomActions } from 'src/remote-service/connectors/library/webflow/custom-actions';
-import { SnapshotService } from 'src/snapshot/snapshot.service';
-import { SnapshotId } from 'src/types/ids';
+import { WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { WebflowPublishItemsDto } from './dto/publish-items.dto';
 import { WebflowPublishSiteDto } from './dto/publish-site.dto';
 
@@ -17,7 +17,7 @@ export class WebflowCustomActionsService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly oauthService: OAuthService,
     private readonly db: DbService,
-    private readonly snapshotService: SnapshotService,
+    private readonly snapshotService: WorkbookService,
   ) {}
 
   /**
@@ -43,7 +43,7 @@ export class WebflowCustomActionsService {
 
     // Query the actual records from the snapshot database
     const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
-      snapshotTable.snapshotId as SnapshotId,
+      snapshotTable.workbookId as WorkbookId,
       snapshotTable.id,
       dto.recordIds,
       actor,
@@ -136,21 +136,21 @@ export class WebflowCustomActionsService {
    * Gets a snapshot table and verifies the user has access through the parent snapshot
    */
   private async getSnapshotTableWithAccess(snapshotTableId: string, actor: Actor) {
-    // First get the snapshot table to find its parent snapshot
+    // First get the snapshot table to find its parent Workbook
     const snapshotTable = await this.db.client.snapshotTable.findUniqueOrThrow({
       where: { id: snapshotTableId },
     });
 
     // Verify the user has access to the parent snapshot (this enforces organization-level access control)
-    const snapshot = await this.snapshotService.findOne(snapshotTable.snapshotId as SnapshotId, actor);
-    if (!snapshot) {
-      throw new NotFoundException('Snapshot not found or access denied');
+    const workbook = await this.snapshotService.findOne(snapshotTable.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found or access denied');
     }
 
     // Verify the snapshot table is still part of the snapshot
-    const foundTable = snapshot.snapshotTables?.find((t) => t.id === snapshotTableId);
+    const foundTable = workbook.snapshotTables?.find((t) => t.id === snapshotTableId);
     if (!foundTable) {
-      throw new NotFoundException('Snapshot table not found in snapshot');
+      throw new NotFoundException('Snapshot table not found in Workbook');
     }
 
     return foundTable;

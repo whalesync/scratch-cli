@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount, Service } from '@prisma/client';
-import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
+import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
 import {

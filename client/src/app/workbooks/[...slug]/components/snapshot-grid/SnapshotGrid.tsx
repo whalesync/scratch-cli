@@ -8,7 +8,7 @@ import {
 } from '@/app/workbooks/[...slug]/components/snapshot-grid/header-column-utils';
 import { recordName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
+import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
@@ -26,7 +26,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
-import { useSnapshotEditorUIStore } from '../../../../../stores/snapshot-editor-store';
+import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
@@ -47,14 +47,14 @@ import { useStoreColumnState } from './useStoreColumnState';
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTableGridProps) => {
+export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTableGridProps) => {
   const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash } = useSnapshotTableRecords({
-    snapshotId: snapshot.id,
+    workbookId: workbook.id,
     tableId: table.id,
     generateHash: true,
   });
-  const activeCells = useSnapshotEditorUIStore((state) => state.activeCells);
-  const setActiveCells = useSnapshotEditorUIStore((state) => state.setActiveCells);
+  const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
+  const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
   const { savePendingChanges } = useUpdateRecordsContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
@@ -175,7 +175,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
 
   // Storage key for this specific snapshot and table
   const { columnState, mounted, onColumnStateChanged, clearColumnState } = useStoreColumnState(
-    snapshot.id,
+    workbook.id,
     table.id,
     gridApi,
   );
@@ -772,7 +772,7 @@ export const SnapshotGrid = ({ snapshot, table, limited = false }: SnapshotTable
       {activeCells?.recordId && selectedRecord && (
         <RecordDetailsOverlay
           width={overlayWidth}
-          snapshotId={snapshot.id}
+          workbookId={workbook.id}
           selectedRecord={selectedRecord}
           activeCells={activeCells}
           table={table}

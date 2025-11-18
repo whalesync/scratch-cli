@@ -13,32 +13,40 @@ This module functions as a session persistence layer, allowing users to store ag
 All endpoints are protected by `ScratchpadAuthGuard`:
 
 ### `POST /agent-sessions`
+
 Creates a new agent session with user ID, snapshot ID, and session data.
 
 ### `GET /agent-sessions/:sessionId`
+
 Retrieves a specific session by ID.
 
 ### `PUT /agent-sessions/:sessionId`
+
 Updates an existing session's data.
 
 ### `DELETE /agent-sessions/:sessionId`
+
 Deletes a session.
 
 ### `POST /agent-sessions/:sessionId/upsert`
+
 Upserts (creates or updates) a session for idempotent operations.
 
 ### `GET /agent-sessions/user/:userId`
+
 Finds all sessions for a specific user.
 
-### `GET /agent-sessions/snapshot/:snapshotId`
+### `GET /agent-sessions/workbook/:workbookId`
+
 Finds all sessions associated with a specific snapshot.
 
 ## Data Model
 
 Each session stores:
+
 - `id`: Unique session identifier
 - `userId`: Associated user ID
-- `snapshotId`: Associated snapshot ID
+- `workbookId`: Associated workbook ID
 - `data`: Flexible JSON payload for agent state
 - `createdAt`: Creation timestamp
 - `updatedAt`: Last update timestamp

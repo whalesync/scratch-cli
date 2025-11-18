@@ -6,15 +6,15 @@ import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
-import { snapshotApi } from '@/lib/api/snapshot';
+import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { AddTableToSnapshotDto } from '@/types/server-entities/snapshot';
 import { EntityId, TableList, TablePreview } from '@/types/server-entities/table-list';
+import { AddTableToWorkbookDto } from '@/types/server-entities/workbook';
 import { Center, Checkbox, Group, Loader, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { PlusIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useActiveSnapshot } from '../../../../hooks/use-active-snapshot';
+import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
 
 interface ConnectorOption {
@@ -25,7 +25,7 @@ interface ConnectorOption {
 }
 
 export const AddTableTab = () => {
-  const { snapshot } = useActiveSnapshot();
+  const { workbook } = useActiveWorkbook();
 
   const [step, setStep] = useState<'select-connector' | 'select-table'>('select-connector');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -96,7 +96,7 @@ export const AddTableTab = () => {
   };
 
   const handleAddTables = async () => {
-    if (!snapshot || selectedTableIds.length === 0 || !selectedService) {
+    if (!workbook || selectedTableIds.length === 0 || !selectedService) {
       return;
     }
 
@@ -104,17 +104,17 @@ export const AddTableTab = () => {
     try {
       // Add all selected tables
       for (const tableId of selectedTableIds) {
-        const dto: AddTableToSnapshotDto = {
+        const dto: AddTableToWorkbookDto = {
           service: selectedService,
           connectorAccountId: selectedConnectorAccountId || undefined,
           tableId: tableId,
         };
-        await snapshotApi.addTable(snapshot.id, dto);
+        await workbookApi.addTable(workbook.id, dto);
       }
 
       ScratchpadNotifications.success({
         title: `${selectedTableIds.length} table${selectedTableIds.length > 1 ? 's' : ''} added`,
-        message: `The tables have been added to your snapshot.`,
+        message: `The tables have been added to your workbook.`,
       });
       handleClose();
     } catch (error) {
@@ -141,7 +141,7 @@ export const AddTableTab = () => {
     setSelectedTableIds([]);
   };
 
-  if (!snapshot) {
+  if (!workbook) {
     return <Loader />;
   }
 
@@ -202,7 +202,7 @@ export const AddTableTab = () => {
           </Group>
 
           <Text13Regular c="dimmed">
-            Choose a table to add to your snapshot. The table&apos;s data will be downloaded and added to your snapshot.
+            Choose a table to add to your workbook. The table&apos;s data will be downloaded and added to your workbook.
           </Text13Regular>
 
           {loadingTables ? (

@@ -1,4 +1,4 @@
-import { SnapshotRecord } from './snapshot';
+import { SnapshotRecord } from './workbook';
 
 export type CreateRecordOperation = {
   op: 'create';

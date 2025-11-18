@@ -10,7 +10,7 @@ import {
   PostgresColumnType,
   SnapshotRecord,
   TableSpec,
-} from '@/types/server-entities/snapshot';
+} from '@/types/server-entities/workbook';
 import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { CircleArrowRightIcon } from 'lucide-react';

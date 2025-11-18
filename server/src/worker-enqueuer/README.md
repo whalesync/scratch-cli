@@ -13,6 +13,7 @@ This module provides a wrapper around BullMQ queue management, offering a simple
 ### BullEnqueuerService
 
 Core service that abstracts BullMQ operations:
+
 - Job enqueueing
 - Retry logic configuration
 - Job persistence settings
@@ -20,9 +21,10 @@ Core service that abstracts BullMQ operations:
 
 ## Primary Use Case
 
-### Snapshot Data Downloads
+### Workbook Data Downloads
 
-When snapshots are created with multiple tables:
+When workbooks are created with multiple tables:
+
 1. User requests snapshot creation
 2. Instead of blocking the request
 3. Service enqueues "download-records" job
@@ -32,31 +34,38 @@ When snapshots are created with multiple tables:
 ## Job Configuration
 
 ### Retry Logic
+
 - **Attempts**: Up to 3 retries
 - **Backoff**: Exponential backoff strategy
 - **Delay**: Increasing delays between retries
 
 ### Job Persistence
+
 - **Completed Jobs**: Kept for 10 attempts
 - **Failed Jobs**: Kept for 5 attempts
 - Automatic cleanup after threshold
 
 ### Redis Integration
+
 - Distributed queue management
 - Cross-instance coordination
 - Persistent job storage
 
 ## Integration
 
-### SnapshotService
+### WorkbookService
+
 Primary consumer of the enqueuer:
+
 - Calls `enqueueDownloadRecordsJob()`
-- Passes snapshot ID
+- Passes workbook ID
 - Includes actor information
 - Optional table ID filtering
 
 ### Configuration-Based Activation
+
 Conditionally activates via `ScratchpadConfigService.getUseJobs()`:
+
 - **Enabled**: Uses job queue for async processing
 - **Disabled**: Falls back to synchronous processing
 - Allows environments without Redis/job infrastructure
@@ -64,7 +73,8 @@ Conditionally activates via `ScratchpadConfigService.getUseJobs()`:
 ## Job Parameters
 
 ### Download Records Job
-- **snapshotId**: Target snapshot
+
+- **workbookId**: Target workbook
 - **actor**: User/organization context
 - **tableIds**: Optional table filtering
 - **metadata**: Additional context
@@ -72,6 +82,7 @@ Conditionally activates via `ScratchpadConfigService.getUseJobs()`:
 ## Fallback Strategy
 
 When jobs are disabled:
+
 - Synchronous processing
 - Backward compatibility
 - No Redis requirement
@@ -88,11 +99,13 @@ When jobs are disabled:
 ## Architecture
 
 ### Separation of Concerns
+
 - **Enqueuer**: Adds jobs to queue
 - **Worker**: Processes jobs
 - **Queue**: Manages job distribution
 
 ### Queue as Interface
+
 - Decouples API from processing
 - Enables horizontal scaling
 - Supports multiple worker instances
@@ -100,13 +113,16 @@ When jobs are disabled:
 ## Configuration
 
 ### Environment Variables
+
 - Redis connection details
 - Use jobs flag
 - Retry configuration
 - Job retention settings
 
 ### Service Type
+
 Works with:
+
 - **Frontend**: Enqueues jobs
 - **Worker**: Processes jobs
 - **Monolith**: Does both
@@ -114,11 +130,13 @@ Works with:
 ## Error Handling
 
 ### Enqueueing Errors
+
 - Redis connection failures
 - Invalid job parameters
 - Queue full scenarios
 
 ### Job Failures
+
 - Automatic retry with backoff
 - Failure persistence
 - Error logging
@@ -126,12 +144,14 @@ Works with:
 ## Monitoring
 
 ### Job Metrics
+
 - Enqueued count
 - Processing time
 - Success/failure rates
 - Queue depth
 
 ### Visibility
+
 - Job status tracking
 - Progress updates
 - Completion notifications
@@ -157,7 +177,7 @@ async createSnapshot() {
 
   // Enqueue background download
   await this.enqueuer.enqueueDownloadRecordsJob({
-    snapshotId: snapshot.id,
+    workbookId: workbook.id,
     actor: currentUser,
   });
 
@@ -169,11 +189,13 @@ async createSnapshot() {
 ## Deployment Flexibility
 
 ### With Job Queue
+
 - Best for production
 - Scalable architecture
 - Multiple workers
 
 ### Without Job Queue
+
 - Simple deployments
 - Single server setups
 - Development/testing
@@ -181,6 +203,7 @@ async createSnapshot() {
 ## Future Extensions
 
 Easy to add new job types:
+
 1. Define job interface
 2. Add enqueue method
 3. Create job handler
@@ -189,12 +212,14 @@ Easy to add new job types:
 ## Best Practices
 
 ### When to Use Jobs
+
 - Operations taking > 2 seconds
 - External API calls
 - Bulk data processing
 - User-initiated async tasks
 
 ### When to Skip Jobs
+
 - Simple operations
 - Critical path logic
 - Real-time requirements

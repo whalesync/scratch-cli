@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from '../db/db.module';
-import { SnapshotDbService } from '../snapshot/snapshot-db.service';
+import { SnapshotDbService } from '../workbook/snapshot-db.service';
 import { CodeMigrationsController } from './code-migrations.controller';
 
 @Module({

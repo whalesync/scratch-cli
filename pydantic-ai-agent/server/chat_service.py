@@ -23,7 +23,7 @@ from logging import getLogger
 
 from scratchpad.api import ScratchpadApi
 
-from server.user_prompt_utils import build_snapshot_context
+from server.user_prompt_utils import build_workbook_context
 from server.agent_stream_processor import (
     process_agent_stream,
     CancelledAgentRunResult,
@@ -31,7 +31,7 @@ from server.agent_stream_processor import (
 from server.exceptions import TokenLimitExceededException
 
 from agents.data_agent.data_agent_utils import (
-    convert_scratchpad_snapshot_to_ai_snapshot,
+    convert_scratchpad_workbook_to_ai_workbook,
 )
 from agents.data_agent.data_agent_history_processor import (
     data_agent_history_processor,
@@ -60,7 +60,7 @@ class ChatService:
         """Log the start of agent processing with relevant context"""
         logger.info(
             "Starting agent processing",
-            extra={"session_id": session.id, "snapshot_id": session.snapshot_id},
+            extra={"session_id": session.id, "workbook_id": session.workbook_id},
         )
 
         # Log capabilities if provided
@@ -69,7 +69,7 @@ class ChatService:
                 "Capabilities provided",
                 session_id=session.id,
                 capabilities=capabilities,
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
 
         # Log style guides if provided
@@ -79,7 +79,7 @@ class ChatService:
                 session_id=session.id,
                 style_guides_count=len(style_guides),
                 style_guide_names=list(style_guides.keys()),
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
 
         if data_scope:
@@ -87,7 +87,7 @@ class ChatService:
                 "Data scope provided for session",
                 session_id=session.id,
                 data_scope=data_scope,
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
 
     def _get_openrouter_api_key(
@@ -167,7 +167,7 @@ class ChatService:
 
         return api_key, user_open_router_credentials
 
-    def _load_snapshot_data(
+    def _load_workbook_data(
         self,
         session: ChatSession,
         user: AgentUser,
@@ -180,11 +180,11 @@ class ChatService:
         logger.info(
             "Pre-loading snapshot data and records",
         )
-        snapshot_data = None
+        workbook_data = None
         preloaded_records = {}
         filtered_counts = {}
 
-        if not session.snapshot_id:
+        if not session.workbook_id:
             raise HTTPException(
                 status_code=500,
                 detail="Snapshot ID must be provided to process the agent message.",
@@ -192,14 +192,14 @@ class ChatService:
 
         try:
             # Fetch snapshot details
-            snapshot_data = ScratchpadApi.get_snapshot(user.userId, session.snapshot_id)
+            workbook_data = ScratchpadApi.get_workbook(user.userId, session.workbook_id)
 
-            snapshot = convert_scratchpad_snapshot_to_ai_snapshot(
-                snapshot_data, session
+            workbook = convert_scratchpad_workbook_to_ai_workbook(
+                workbook_data, session
             )
 
             # Pre-load records for each table
-            for table in snapshot.tables:
+            for table in workbook.tables:
                 # Determine if this is the active table
                 is_active_table = (not active_table_id) or (active_table_id == table.id)
 
@@ -220,7 +220,7 @@ class ChatService:
                     try:
                         record = ScratchpadApi.get_record(
                             user.userId,
-                            session.snapshot_id,
+                            session.workbook_id,
                             table.id,
                             record_id,
                         )
@@ -249,7 +249,7 @@ class ChatService:
                     try:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
-                            session.snapshot_id,
+                            session.workbook_id,
                             table.id,
                         )
                         filtered_counts[table.name] = (
@@ -288,7 +288,7 @@ class ChatService:
                     try:
                         records_result = ScratchpadApi.list_records_for_ai(
                             user.userId,
-                            session.snapshot_id,
+                            session.workbook_id,
                             table.id,
                             # take=1,  #we used to include a sample record from the non active tables, now we dump everything that the user sees
                         )
@@ -319,20 +319,20 @@ class ChatService:
             )
         except Exception as e:
             log_error(
-                "Failed to pre-load snapshot data",
+                "Failed to pre-load workbook data",
                 session_id=session.id,
                 error=str(e),
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
             logger.exception(
-                f"❌ Failed to pre-load snapshot data",
+                f"❌ Failed to pre-load workbook data",
             )
             raise HTTPException(
                 status_code=500,
-                detail="Error preloading snapshot data for agent",
+                detail="Error preloading workbook data for agent",
             )
 
-        return snapshot, preloaded_records, filtered_counts
+        return workbook, preloaded_records, filtered_counts
 
     async def process_message_with_agent(
         self,
@@ -379,7 +379,7 @@ class ChatService:
             # full_prompt_length=len(full_prompt),
             user_message=user_message,
             user_id=user.userId,
-            snapshot_id=session.snapshot_id,
+            workbook_id=session.workbook_id,
         )
 
         agent_run_id = str(uuid.uuid4())
@@ -387,7 +387,7 @@ class ChatService:
         # PRE-RUN
         try:
             # Pre-load snapshot data and records for efficiency
-            snapshot, preloaded_records, filtered_counts = self._load_snapshot_data(
+            workbook, preloaded_records, filtered_counts = self._load_workbook_data(
                 session,
                 user,
                 active_table_id,
@@ -402,7 +402,7 @@ class ChatService:
                 run_id=agent_run_id,
                 session=session,
                 user_id=user.userId,
-                snapshot=snapshot,
+                workbook=workbook,
                 preloaded_records=preloaded_records,
                 active_table_id=active_table_id,
                 data_scope=data_scope,
@@ -481,7 +481,7 @@ class ChatService:
                 "Agent processing timeout",
                 session_id=session.id,
                 timeout_seconds=timeout_seconds,
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
             logger.info(f"❌ Agent.run() timed out after {timeout_seconds} seconds")
             raise HTTPException(status_code=408, detail="Agent response timeout")
@@ -491,7 +491,7 @@ class ChatService:
                 session_id=session.id,
                 requested_tokens=e.requested_tokens,
                 max_tokens=e.max_tokens,
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
             logger.info(
                 f"❌ Token limit exceeded: {e.requested_tokens} requested, {e.max_tokens} max"
@@ -521,7 +521,7 @@ class ChatService:
                         cancelled_result.usage_stats.total_tokens,
                         usage_context={
                             "session_id": session.id,
-                            "snapshot_id": session.snapshot_id,
+                            "workbook_id": session.workbook_id,
                             "active_table_id": active_table_id,
                             "data_scope": data_scope,
                             "record_id": record_id,
@@ -555,7 +555,7 @@ class ChatService:
             log_error(
                 "No response from agent",
                 session_id=session.id,
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
             logger.info(f"❌ No response from agent")
             raise HTTPException(
@@ -585,7 +585,7 @@ class ChatService:
                 response_length=len(response_message),  # type: ignore
                 response_summary_length=len(response_summary),  # type: ignore
                 request_summary_length=len(request_summary),  # type: ignore
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
 
             usage: RunUsage = result.usage()
@@ -607,7 +607,7 @@ class ChatService:
                     usage.input_tokens + usage.output_tokens,
                     usage_context={
                         "session_id": session.id,
-                        "snapshot_id": session.snapshot_id,
+                        "workbook_id": session.workbook_id,
                         "active_table_id": active_table_id,
                         "data_scope": data_scope,
                         "record_id": record_id,
@@ -626,7 +626,7 @@ class ChatService:
                 "Invalid agent response",
                 session_id=session.id,
                 response_type=type(result),
-                snapshot_id=session.snapshot_id,
+                workbook_id=session.workbook_id,
             )
             logger.info(f"❌ Invalid response from agent: {result}")
             raise HTTPException(

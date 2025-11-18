@@ -9,8 +9,8 @@ import {
   trackClickViewResourceFromChat,
   trackRemoveResourceFromChat,
 } from '@/lib/posthog';
-import { Snapshot } from '@/types/server-entities/snapshot';
 import { StyleGuide } from '@/types/server-entities/style-guide';
+import { Workbook } from '@/types/server-entities/workbook';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
 import { FileIcon, PlusIcon } from '@phosphor-icons/react';
 import { AtSignIcon } from 'lucide-react';
@@ -20,11 +20,11 @@ import styles from './PromptAssetSelector.module.css';
 
 export function PromptAssetSelector({
   disabled,
-  snapshot,
+  workbook,
   resetInputFocus,
 }: {
   disabled: boolean;
-  snapshot?: Snapshot;
+  workbook?: Workbook;
   resetInputFocus: () => void;
 }) {
   const { promptAssets, mutate: refreshResourceList } = usePromptAssets();
@@ -83,26 +83,26 @@ export function PromptAssetSelector({
 
   const handleRemove = useCallback(
     (resourceId: string) => {
-      trackRemoveResourceFromChat(snapshot);
+      trackRemoveResourceFromChat(workbook);
       setActiveResources(activeResources.filter((id) => id !== resourceId));
     },
-    [activeResources, setActiveResources, snapshot],
+    [activeResources, setActiveResources, workbook],
   );
 
   const handleAdd = useCallback(
     (resourceId: string) => {
       if (resourceId === 'new') {
-        trackClickCreateResourceInChat(snapshot);
+        trackClickCreateResourceInChat(workbook);
         setIsEditResourceModalOpen(true);
         setResourceToEdit(null);
       } else {
-        trackAddResourceToChat(snapshot);
+        trackAddResourceToChat(workbook);
         setActiveResources([...activeResources, resourceId]);
       }
       combobox.closeDropdown();
       resetInputFocus();
     },
-    [combobox, resetInputFocus, snapshot, setActiveResources, activeResources],
+    [combobox, resetInputFocus, workbook, setActiveResources, activeResources],
   );
 
   const selectedResources = promptAssets.filter((p) => activeResources.includes(p.id));
@@ -160,7 +160,7 @@ export function PromptAssetSelector({
               resource={sg}
               onRemove={() => handleRemove(sg.id)}
               onClick={() => {
-                trackClickViewResourceFromChat(snapshot);
+                trackClickViewResourceFromChat(workbook);
                 setResourceToEdit(sg);
                 setIsEditResourceModalOpen(true);
               }}

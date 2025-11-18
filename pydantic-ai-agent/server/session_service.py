@@ -29,7 +29,7 @@ class SessionService:
         self._api = ScratchpadApi()
 
     def create_session(
-        self, user_id: str, session_id: str, snapshot_id: str
+        self, user_id: str, session_id: str, workbook_id: str
     ) -> ChatSession:
         """Create a new chat session and set session data in tools"""
         now = datetime.now(timezone.utc)
@@ -39,12 +39,12 @@ class SessionService:
             user_id=user_id,
             last_activity=now,
             created_at=now,
-            snapshot_id=snapshot_id,
+            workbook_id=workbook_id,
         )
 
         logger.info(
             "Session created",
-            extra={"session_id": session_id, "snapshot_id": snapshot_id},
+            extra={"session_id": session_id, "workbook_id": workbook_id},
         )
 
         # Store in memory cache
@@ -120,15 +120,15 @@ class SessionService:
         return session_id in self._sessions
 
     def get_sessions_for_snapshot(
-        self, snapshot_id: Optional[str] = None, user_id: Optional[str] = None
+        self, workbook_id: Optional[str] = None, user_id: Optional[str] = None
     ) -> List[ChatSession]:
         """Get all sessions, loading from API if needed"""
         # First, get sessions from memory cache
-        if snapshot_id:
+        if workbook_id:
             cached_sessions = [
                 session
                 for session in self._sessions.values()
-                if session.snapshot_id == snapshot_id
+                if session.workbook_id == workbook_id
             ]
         else:
             cached_sessions = list(self._sessions.values())
@@ -137,14 +137,14 @@ class SessionService:
         if cached_sessions:
             return cached_sessions
 
-        # If no cached sessions and we have both snapshot_id and user_id, try to load from API
-        if snapshot_id and user_id:
+        # If no cached sessions and we have both workbook_id and user_id, try to load from API
+        if workbook_id and user_id:
             try:
                 logger.info(
-                    f"No cached sessions found for snapshot {snapshot_id}, loading from API"
+                    f"No cached sessions found for snapshot {workbook_id}, loading from API"
                 )
                 persisted_sessions = self._api.list_agent_sessions_by_snapshot(
-                    user_id, snapshot_id
+                    user_id, workbook_id
                 )
 
                 # Convert persisted sessions to ChatSession objects and cache them
@@ -157,13 +157,13 @@ class SessionService:
                         loaded_sessions.append(session)
 
                 logger.info(
-                    f"Loaded {len(loaded_sessions)} sessions from API for snapshot {snapshot_id}"
+                    f"Loaded {len(loaded_sessions)} sessions from API for snapshot {workbook_id}"
                 )
                 return loaded_sessions
 
             except Exception as e:
                 logger.warning(
-                    f"Failed to load sessions from API for snapshot {snapshot_id}: {e}"
+                    f"Failed to load sessions from API for snapshot {workbook_id}: {e}"
                 )
                 return []
 
@@ -195,7 +195,7 @@ class SessionService:
             "user_id": session.user_id,
             "last_activity": session.last_activity.isoformat(),
             "created_at": session.created_at.isoformat(),
-            "snapshot_id": session.snapshot_id,
+            "workbook_id": session.workbook_id,
             "chat_history": [
                 {
                     "message": msg.message,
@@ -246,7 +246,7 @@ class SessionService:
             user_id=data["user_id"],
             last_activity=datetime.fromisoformat(data["last_activity"]),
             created_at=datetime.fromisoformat(data["created_at"]),
-            snapshot_id=data["snapshot_id"],
+            workbook_id=data["workbook_id"],
             chat_history=chat_history,
             summary_history=summary_history,
         )

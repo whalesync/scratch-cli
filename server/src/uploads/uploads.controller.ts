@@ -22,10 +22,7 @@ import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
-import {
-  CreateScratchpaperFromCsvDto,
-  CreateScratchpaperFromCsvResponseDto,
-} from './dto/create-scratchpaper-from-csv.dto';
+import { CreateWorkbookFromCsvDto, CreateWorkbookFromCsvResponseDto } from './dto/create-workbook-from-csv.dto';
 import { ListUploadsResponseDto } from './dto/list-uploads.dto';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
 import { PreviewMdResponseDto } from './dto/preview-md.dto';
@@ -165,10 +162,10 @@ export class UploadsController {
   @Post('csv/:id/create-scratchpaper')
   async createScratchpaperFromCsv(
     @Param('id') uploadId: string,
-    @Body() body: CreateScratchpaperFromCsvDto,
+    @Body() body: CreateWorkbookFromCsvDto,
     @Req() req: RequestWithUser,
-  ): Promise<CreateScratchpaperFromCsvResponseDto> {
-    return await this.uploadsService.createSnapshotFromCsvUpload(
+  ): Promise<CreateWorkbookFromCsvResponseDto> {
+    return await this.uploadsService.createWorkbookFromCsvUpload(
       uploadId,
       toActor(req.user),
       body.name,

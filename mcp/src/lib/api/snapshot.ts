@@ -1,11 +1,17 @@
-import { CreateSnapshotDto, Snapshot, SnapshotTableView } from "./types/snapshot.js";
+import {
+  CreateWorkbookDto,
+  Workbook,
+  SnapshotTableView,
+} from "./types/snapshot.js";
 import { API_CONFIG } from "./config.js";
 import { BulkUpdateRecordsDto, ListRecordsResponse } from "./types/records.js";
 
-export const snapshotApi = {
-  list: async (connectorAccountId?: string): Promise<Snapshot[]> => {
+export const workbookApi = {
+  list: async (connectorAccountId?: string): Promise<Workbook[]> => {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot${connectorAccountId ? `?connectorAccountId=${connectorAccountId}` : ""}`,
+      `${API_CONFIG.getApiUrl()}/workbook${
+        connectorAccountId ? `?connectorAccountId=${connectorAccountId}` : ""
+      }`,
       {
         method: "GET",
         headers: {
@@ -15,13 +21,13 @@ export const snapshotApi = {
       }
     );
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch snapshots");
+      throw new Error(res.statusText ?? "Failed to fetch workbooks");
     }
     return res.json();
   },
 
-  detail: async (id: string): Promise<Snapshot> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+  detail: async (id: string): Promise<Workbook> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}`, {
       method: "GET",
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -29,13 +35,13 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to fetch snapshot");
+      throw new Error(res.statusText ?? "Failed to fetch workbook");
     }
     return res.json();
   },
 
-  async create(dto: CreateSnapshotDto): Promise<Snapshot> {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot`, {
+  async create(dto: CreateWorkbookDto): Promise<Workbook> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,13 +50,13 @@ export const snapshotApi = {
       body: JSON.stringify(dto),
     });
     if (!res.ok) {
-      throw new Error("Failed to create snapshot");
+      throw new Error("Failed to create workbook");
     }
     return res.json();
   },
 
-  update: async (id: string): Promise<Snapshot> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+  update: async (id: string): Promise<Workbook> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}`, {
       method: "PATCH",
       headers: {
         ...API_CONFIG.getAuthHeaders(),
@@ -58,14 +64,14 @@ export const snapshotApi = {
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to update snapshot");
+      throw new Error(res.statusText ?? "Failed to update workbook");
     }
     return res.json();
   },
 
   async download(id: string): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${id}/download`,
+      `${API_CONFIG.getApiUrl()}/workbook/${id}/download`,
       {
         method: "POST",
         headers: {
@@ -79,26 +85,26 @@ export const snapshotApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/snapshot/${id}`, {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}`, {
       method: "DELETE",
       headers: {
         ...API_CONFIG.getAuthHeaders(),
       },
     });
     if (!res.ok) {
-      throw new Error(res.statusText ?? "Failed to delete snapshot");
+      throw new Error(res.statusText ?? "Failed to delete workbook");
     }
   },
 
   async listRecords(
-    snapshotId: string,
+    workbookId: string,
     tableId: string,
     cursor?: string,
     take?: number,
     viewId?: string
   ): Promise<ListRecordsResponse> {
     const url = new URL(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records`
     );
     if (cursor) {
       url.searchParams.append("cursor", cursor);
@@ -121,18 +127,17 @@ export const snapshotApi = {
     return res.json();
   },
 
-
   /**
    * List records for the active view of a table.
    */
   async listActiveViewRecords(
-    snapshotId: string,
+    workbookId: string,
     tableId: string,
     cursor?: string,
-    take?: number,
+    take?: number
   ): Promise<ListRecordsResponse> {
     const url = new URL(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records`
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records`
     );
     if (cursor) {
       url.searchParams.append("cursor", cursor);
@@ -153,12 +158,12 @@ export const snapshotApi = {
   },
 
   async bulkUpdateRecords(
-    snapshotId: string,
+    workbookId: string,
     tableId: string,
     dto: BulkUpdateRecordsDto
   ): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records/bulk`,
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records/bulk`,
       {
         method: "POST",
         headers: {
@@ -185,12 +190,9 @@ export const snapshotApi = {
     }
   },
 
-  async clearActiveView(
-    snapshotId: string,
-    tableId: string,
-  ): Promise<void> {
+  async clearActiveView(workbookId: string, tableId: string): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/clear-activate-view`,
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/clear-activate-view`,
       {
         method: "POST",
         headers: {
@@ -199,19 +201,18 @@ export const snapshotApi = {
         },
       }
     );
-    
+
     if (!res.ok) {
       throw new Error(res.statusText ?? "Failed to clear filter view");
     }
-
   },
 
   async listViews(
-    snapshotId: string,
+    workbookId: string,
     tableId: string
   ): Promise<SnapshotTableView[]> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views`,
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/views`,
       {
         method: "POST",
         headers: {
@@ -227,12 +228,12 @@ export const snapshotApi = {
   },
 
   async deleteView(
-    snapshotId: string,
+    workbookId: string,
     tableId: string,
     viewId: string
   ): Promise<void> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/views/${viewId}`,
       {
         method: "DELETE",
         headers: {
@@ -246,12 +247,12 @@ export const snapshotApi = {
   },
 
   async getView(
-    snapshotId: string,
+    workbookId: string,
     tableId: string,
     viewId: string
   ): Promise<SnapshotTableView> {
     const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/views/${viewId}`,
+      `${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/views/${viewId}`,
       {
         method: "GET",
         headers: {

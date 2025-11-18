@@ -106,7 +106,7 @@ class CreateSessionRequestDTO(BaseModel):
     """Request to create a new session"""
 
     name: str
-    snapshot_id: Optional[str] = Field(
+    workbook_id: Optional[str] = Field(
         default=None, description="Associated snapshot ID"
     )
 

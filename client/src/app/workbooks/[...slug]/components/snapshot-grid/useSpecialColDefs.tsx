@@ -1,5 +1,5 @@
 import { AG, ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
-import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from './IdHeaderComponent';

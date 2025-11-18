@@ -1,5 +1,5 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Loader, Menu } from '@mantine/core';
 import { Globe } from 'lucide-react';
 import React from 'react';

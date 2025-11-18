@@ -1,4 +1,5 @@
 import { Arguments } from 'swr';
+import { SnapshotTableId, WorkbookId } from '../../types/server-entities/ids';
 
 export const SWR_KEYS = {
   agentCredentials: {
@@ -12,28 +13,28 @@ export const SWR_KEYS = {
     list: () => ['connector-accounts'],
     detail: (id: string) => ['connector-accounts', 'detail', id],
   },
-  snapshot: {
-    list: () => ['snapshot', 'list', 'all'],
-    detail: (id: string) => ['snapshot', 'detail', id],
-    records: (snapshotId: string, tableId: string, cursor?: string, take?: number) => [
-      'snapshot',
+  workbook: {
+    list: () => ['workbook', 'list', 'all'],
+    detail: (id: WorkbookId) => ['workbook', 'detail', id],
+    records: (workbookId: WorkbookId, tableId: SnapshotTableId, cursor?: string, take?: number) => [
+      'workbook',
       'records',
-      snapshotId,
+      workbookId,
       tableId,
       cursor,
       take,
     ],
-    // Matches all SWR keys for records for a given snapshot and table
-    recordsKeyMatcher: (snapshotId: string, tableId: string) => (key: Arguments) =>
+    // Matches all SWR keys for records for a given workbook and table
+    recordsKeyMatcher: (workbookId: WorkbookId, tableId: SnapshotTableId) => (key: Arguments) =>
       Array.isArray(key) &&
-      key[0] === 'snapshot' &&
+      key[0] === 'workbook' &&
       key[1] === 'records' &&
-      key[2] === snapshotId &&
+      key[2] === workbookId &&
       key[3] === tableId,
-    publishSummary: (id: string) => ['snapshot', 'publish-summary', id],
+    publishSummary: (id: WorkbookId) => ['workbook', 'publish-summary', id],
   },
   view: {
-    list: (snapshotId: string) => ['view', 'list', snapshotId],
+    list: (workbookId: WorkbookId) => ['view', 'list', workbookId],
     upsert: () => ['view', 'upsert'],
   },
   users: {
@@ -44,7 +45,7 @@ export const SWR_KEYS = {
     summary: () => ['agent-usage', 'summary'],
   },
   agentSessions: {
-    list: (snapshotId: string) => ['agent-sessions', 'list', snapshotId],
+    list: (workbookId: WorkbookId) => ['agent-sessions', 'list', workbookId],
     detail: (id: string) => ['agent-sessions', 'detail', id],
   },
   uploads: {

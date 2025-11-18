@@ -1,6 +1,6 @@
 'use client';
 
-import { SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Checkbox, Group, Radio, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 

@@ -1,9 +1,10 @@
 import { snapshotManager } from "../state/snapshots.js";
-import { snapshotApi } from "../lib/api/snapshot.js";
+import { workbookApi } from "../lib/api/snapshot.js";
 
 export const GET_RECORDS_MCP_TOOL_DEFINITION = {
   name: "get_records",
-  description: "Get the current records for a table. If there is an active view or filter only those records will be returned.",
+  description:
+    "Get the current records for a table. If there is an active view or filter only those records will be returned.",
   inputSchema: {
     type: "object",
     properties: {
@@ -49,12 +50,12 @@ export const getRecords = async (args: Record<string, unknown> | undefined) => {
   }
 
   try {
-    const result = await snapshotApi.listRecords(
+    const result = await workbookApi.listRecords(
       snapshot.id,
       tableId,
       undefined,
       limit,
-      undefined, // MCP doesn't have access to current view context
+      undefined // MCP doesn't have access to current view context
     );
     return {
       content: [

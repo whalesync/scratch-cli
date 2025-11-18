@@ -16,7 +16,7 @@ export enum IdPrefixes {
   USER = 'usr_',
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
-  SNAPSHOT = 'sna_',
+  WORKBOOK = 'wkb_',
   SNAPSHOT_TABLE = 'snt_',
   SNAPSHOT_RECORD = 'sre_',
   CUSTOM_CONNECTOR = 'cuc_',
@@ -97,15 +97,15 @@ export function createConnectorAccountId(): ConnectorAccountId {
   return createId(IdPrefixes.CONNECTOR_ACCOUNT) as ConnectorAccountId;
 }
 
-// ------- Snapshot -------
-export type SnapshotId = PrefixedId<IdPrefixes.SNAPSHOT>;
+// ------- Workbook -------
+export type WorkbookId = PrefixedId<IdPrefixes.WORKBOOK>;
 
-export function isSnapshotId(id: unknown): id is SnapshotId {
-  return isId(id, IdPrefixes.SNAPSHOT);
+export function isWorkbookId(id: unknown): id is WorkbookId {
+  return isId(id, IdPrefixes.WORKBOOK) || isId(id, 'sna_' as IdPrefixes /* Legacy migration */);
 }
 
-export function createSnapshotId(): SnapshotId {
-  return createId(IdPrefixes.SNAPSHOT) as SnapshotId;
+export function createWorkbookId(): WorkbookId {
+  return createId(IdPrefixes.WORKBOOK) as WorkbookId;
 }
 
 // ------- SnapshotTable -------

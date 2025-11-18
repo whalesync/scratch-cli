@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAgentUrl, getAgentWebSocketUrl, getApiUrl, getAuthToken } from './common';
 import { waitForWebSocketMessage } from './websocket';
 
-interface Snapshot {
+interface Workbook {
   id: string;
   name: string;
   snapshotTables: Table[];
@@ -42,7 +42,7 @@ interface RecordsResponse {
 describe('Smoke Tests', () => {
   let authToken: string;
   let agentJwt: string;
-  let snapshotId: string;
+  let workbookId: string;
   let table: Table | undefined;
   let sessionId: string | undefined;
   let recordsBeforeAccept: RecordsResponse | undefined;
@@ -71,8 +71,8 @@ describe('Smoke Tests', () => {
     agentJwt = (response.data as { agentJwt: string }).agentJwt;
   });
 
-  it('should fetch snapshots and get the first snapshot ID', async () => {
-    const response = await axios.get(`${getApiUrl()}/snapshot`, {
+  it('should fetch workbooks and get the first workbook ID', async () => {
+    const response = await axios.get(`${getApiUrl()}/workbook`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -82,26 +82,26 @@ describe('Smoke Tests', () => {
     expect(response.status).toBe(200);
     expect(Array.isArray(response.data)).toBe(true);
 
-    const snapshots = response.data as Snapshot[];
-    if (snapshots.length === 0) {
+    const workbooks = response.data as Workbook[];
+    if (workbooks.length === 0) {
       throw new Error(
-        'No snapshots found in the account. Please create at least one snapshot before running smoke tests. ',
+        'No workbooks found in the account. Please create at least one workbook before running smoke tests. ',
       );
     }
 
-    const snapshot = snapshots[0];
-    console.log(`Selected snapshot ${snapshot.id} (${snapshot.name}) for further testing`);
-    snapshotId = snapshot.id;
-    expect(snapshotId).toBeDefined();
+    const workbook = workbooks[0];
+    console.log(`Selected workbook ${workbook.id} (${workbook.name}) for further testing`);
+    workbookId = workbook.id;
+    expect(workbookId).toBeDefined();
 
     // Select the first table from the snapshot
-    if (!snapshot.snapshotTables || snapshot.snapshotTables.length === 0) {
+    if (!workbook.snapshotTables || workbook.snapshotTables.length === 0) {
       throw new Error(
-        `No tables found in snapshot ${snapshot.id} (${snapshot.name}). Please create at least one table before running smoke tests.`,
+        `No tables found in workbook ${workbook.id} (${workbook.name}). Please create at least one table before running smoke tests.`,
       );
     }
 
-    table = snapshot.snapshotTables[0];
+    table = workbook.snapshotTables[0];
     console.log(`Selected table ${table.id} (${table.tableSpec.name}) for further testing`);
     expect(table.id).toBeDefined();
   });
@@ -110,7 +110,7 @@ describe('Smoke Tests', () => {
     const tableId = table?.id;
     expect(tableId).toBeDefined();
 
-    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
+    const url = `${getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records?take=1000`;
     console.log(`GET ${url}`);
 
     const response = await axios.get(url, {
@@ -127,9 +127,9 @@ describe('Smoke Tests', () => {
     recordsBeforeAccept = response.data as RecordsResponse;
   });
 
-  it('should create a new session for the snapshot using agent JWT', async () => {
+  it('should create a new session for the workbook using agent JWT', async () => {
     const response = await axios.post(
-      `${getAgentUrl()}/sessions?snapshot_id=${snapshotId}`,
+      `${getAgentUrl()}/sessions?workbook_id=${workbookId}`,
       {},
       {
         headers: {
@@ -183,7 +183,7 @@ describe('Smoke Tests', () => {
     const tableId = table?.id;
     expect(tableId).toBeDefined();
 
-    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/accept-all-suggestions`;
+    const url = `${getApiUrl()}/workbook/${workbookId}/tables/${tableId}/accept-all-suggestions`;
     console.log(`POST ${url}`);
     const response = await axios.post(
       url,
@@ -214,7 +214,7 @@ describe('Smoke Tests', () => {
     expect(tableId).toBeDefined();
     expect(recordsBeforeAccept).toBeDefined();
 
-    const url = `${getApiUrl()}/snapshot/${snapshotId}/tables/${tableId}/records?take=1000`;
+    const url = `${getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records?take=1000`;
     console.log(`GET ${url}`);
 
     const response = await axios.get(url, {

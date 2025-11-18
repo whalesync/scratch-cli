@@ -2,7 +2,7 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
-import { PostgresColumnType } from '@/types/server-entities/snapshot';
+import { PostgresColumnType } from '@/types/server-entities/workbook';
 import { getColumnTypeIcon } from '@/utils/columns';
 import {
   Button,

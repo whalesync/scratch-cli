@@ -1,6 +1,6 @@
 export type MentionsSearchRequestDto = {
   text: string;
-  snapshotId: string;
+  workbookId: string;
   tableId?: string; // optional; demo may hardcode on client
 };
 

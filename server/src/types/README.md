@@ -15,7 +15,9 @@ This module establishes consistent patterns for ID generation, error handling, a
 Defines a prefixed ID system for globally unique, type-safe identifiers.
 
 #### IdPrefixes Enum
+
 20 different entity types with three-letter prefixes:
+
 - `usr_` - Users
 - `sna_` - Snapshots
 - `org_` - Organizations
@@ -26,17 +28,20 @@ Defines a prefixed ID system for globally unique, type-safe identifiers.
 - And more...
 
 #### For Each ID Type
+
 - **Branded TypeScript Type**: Type-safe ID handling
-- **Validation Function**: `isUserId()`, `isSnapshotId()`, etc.
+- **Validation Function**: `isUserId()`, `isWorkbookId()`, etc.
 - **Creation Function**: Generate new IDs with nanoid
 
 #### ID Format
+
 - 3-letter prefix
 - Underscore separator
 - 10-character random string using nanoid
 - Total: 14 characters (e.g., `usr_abc1234567`)
 
 #### Benefits
+
 - Type-safe ID handling throughout codebase
 - Visually distinctive IDs
 - Easily selectable in text editors
@@ -48,12 +53,16 @@ Defines a prefixed ID system for globally unique, type-safe identifiers.
 Implements functional error handling with discriminated unions.
 
 #### Result<T> Type
+
 Represents either:
+
 - **OkResult**: Successful operation with data
 - **ErrResult**: Failed operation with error details
 
 #### ErrorCode Enum
+
 15+ error categories:
+
 - GENERAL
 - NOT_FOUND
 - UNAUTHORIZED
@@ -63,6 +72,7 @@ Represents either:
 - And more...
 
 #### Utility Functions
+
 - **isOk()**: Check for success
 - **isErr()**: Check for error
 - **coalesceResults()**: Combine array of results
@@ -70,7 +80,9 @@ Represents either:
 - **fromNullable()**: Convert nullable to Result
 
 #### Error Details
+
 Each error captures:
+
 - Error code
 - Error message
 - Underlying cause
@@ -78,6 +90,7 @@ Each error captures:
 - Retriability flag for job scheduling
 
 #### Benefits
+
 - Explicit error handling (replaces try-catch)
 - Type-safe error propagation
 - Rich error context
@@ -89,19 +102,23 @@ Each error captures:
 Defines structures for tracking multi-layered operation progress.
 
 #### Progress<T> Type
+
 Three independent progress objects:
+
 - **publicProgress**: User-facing progress info
 - **jobProgress**: Internal job system progress
 - **connectorProgress**: Service-specific progress
 - **timestamp**: Progress update time
 
 #### Use Cases
+
 - Long-running operations monitoring
 - User progress updates
 - Internal job tracking
 - Connector synchronization status
 
 #### Benefits
+
 - Granular progress visibility
 - Separation of concerns
 - Public vs. internal progress
@@ -112,18 +129,21 @@ Three independent progress objects:
 The types module is used throughout the application:
 
 ### ID System
+
 - Database models
 - API responses
 - URL parameters
 - Service methods
 
 ### Result Type
+
 - Service layer error handling
 - API response wrapping
 - Job execution results
 - Connector operations
 
 ### Progress Type
+
 - Job processing
 - Upload operations
 - Connector synchronization
@@ -140,12 +160,15 @@ The types module is used throughout the application:
 ## Design Patterns
 
 ### Branded Types
+
 IDs are branded to prevent mixing different ID types.
 
 ### Discriminated Unions
+
 Result types use discriminators for type narrowing.
 
 ### Generic Types
+
 Progress and Result work with any data type.
 
 ## Best Practices

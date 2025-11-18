@@ -36,7 +36,7 @@ export interface ChatSession {
   }>;
   created_at: string;
   last_activity: string;
-  snapshot_id?: string;
+  workbook_id?: string;
 }
 
 /**

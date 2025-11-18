@@ -3,12 +3,13 @@ import { usePublishSummary } from '@/hooks/use-publish-summary';
 import { Anchor, Collapse, Group, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import pluralize from 'pluralize';
 import { useState } from 'react';
+import { WorkbookId } from '../../../../../../types/server-entities/ids';
 
 interface PublishConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
-  snapshotId: string;
+  workbookId: WorkbookId | null;
   serviceName?: string;
   isPublishing: boolean;
 }
@@ -17,12 +18,12 @@ export const PublishConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
-  snapshotId,
+  workbookId,
   serviceName,
   isPublishing,
 }: PublishConfirmationModalProps) => {
   const [showChanges, setShowChanges] = useState(false);
-  const { publishSummary, isLoading: isLoadingSummary, fetchSummary } = usePublishSummary(snapshotId);
+  const { publishSummary, isLoading: isLoadingSummary, fetchSummary } = usePublishSummary(workbookId);
 
   const handleClose = () => {
     setShowChanges(false);

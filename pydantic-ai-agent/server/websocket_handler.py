@@ -340,7 +340,7 @@ async def websocket_endpoint(
                         session_id=session_id,
                         chat_history_length=len(session.chat_history),
                         summary_history_length=len(session.summary_history),
-                        snapshot_id=session.snapshot_id,
+                        workbook_id=session.workbook_id,
                     )
 
                     # Convert style guides to dict format if provided
@@ -391,7 +391,7 @@ async def websocket_endpoint(
                         "Agent response received",
                         session_id=session_id,
                         response_length=len(agent_response.response_message),
-                        snapshot_id=session.snapshot_id,
+                        workbook_id=session.workbook_id,
                     )
 
                     # Add assistant response to chat history
@@ -449,7 +449,7 @@ async def websocket_endpoint(
                         "Message processing failed",
                         session_id=session_id,
                         error=str(e),
-                        snapshot_id=session.snapshot_id,
+                        workbook_id=session.workbook_id,
                     )
                     logger.info(f"❌ Error processing message: {e}")
                     logger.info(

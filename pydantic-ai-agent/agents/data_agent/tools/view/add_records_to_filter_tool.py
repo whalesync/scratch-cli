@@ -31,12 +31,12 @@ def define_add_records_to_filter_tool(
     agent: Agent[ChatRunContext, ResponseFromAgent],
     capabilities: Optional[List[str]] = None,
 ):
-    """Add records to the current record filter for the active table in the current snapshot."""
+    """Add records to the current record filter for the active table in the current workbook."""
 
     @agent.tool
     async def add_records_to_filter_tool(ctx: RunContext[ChatRunContext], input_data: AddRecordsToFilterInput) -> str:  # type: ignore
         """
-        Add records to the current record filter for the active table in the current snapshot.
+        Add records to the current record filter for the active table in the current workbook.
 
         Use this tool when the user asks to filter out specific records from a table or hide records from view.
         The record_ids should be a list of record IDs (wsId) to add to the filter.
@@ -53,10 +53,10 @@ def define_add_records_to_filter_tool(
             # Extract data from input
             record_ids = input_data.record_ids
 
-            # Get the active snapshot
+            # Get the active workbook
             chatRunContext: ChatRunContext = ctx.deps
-            if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            if not chatRunContext.workbook:
+                return "Error: No active workbook. Please connect to a workbook first using connect_workbook."
 
             # Find the table by name
             table = get_active_table(chatRunContext)
@@ -73,7 +73,7 @@ def define_add_records_to_filter_tool(
             # Call the add_records_to_active_filter API
             ScratchpadApi.add_records_to_active_filter(
                 user_id=chatRunContext.user_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
                 record_ids=record_ids,
             )

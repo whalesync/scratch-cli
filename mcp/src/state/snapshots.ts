@@ -1,13 +1,13 @@
-import { Snapshot } from "../lib/api/types/snapshot.js";
+import { Workbook } from "../lib/api/types/snapshot.js";
 
 class SnapshotManager {
-  private snapshot: Snapshot | null;
+  private snapshot: Workbook | null;
 
   constructor() {
     this.snapshot = null;
   }
 
-  public setActiveSnapshot(newSnapshot: Snapshot) {
+  public setActiveSnapshot(newSnapshot: Workbook) {
     this.snapshot = newSnapshot;
   }
 
@@ -15,7 +15,7 @@ class SnapshotManager {
     this.snapshot = null;
   }
 
-  public getActiveSnapshot(): Snapshot | null {
+  public getActiveSnapshot(): Workbook | null {
     return this.snapshot;
   }
 }

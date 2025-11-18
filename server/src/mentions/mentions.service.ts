@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { SnapshotDbService } from 'src/snapshot/snapshot-db.service';
-import { SnapshotService } from 'src/snapshot/snapshot.service';
-import type { SnapshotId } from 'src/types/ids';
+import type { WorkbookId } from 'src/types/ids';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';
+import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
-type SearchInput = { text: string; snapshotId: SnapshotId; actor: Actor; tableId?: string };
+type SearchInput = { text: string; workbookId: WorkbookId; actor: Actor; tableId?: string };
 
 @Injectable()
 export class MentionsService {
   constructor(
     private readonly uploadsDbService: UploadsDbService,
     private readonly db: DbService,
-    private readonly snapshotService: SnapshotService,
+    private readonly snapshotService: WorkbookService,
     private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
@@ -24,12 +24,12 @@ export class MentionsService {
     resources: { id: string; title: string; preview: string }[];
     records: { id: string; title: string; tableId: string }[];
   }> {
-    const { text, snapshotId, actor, tableId } = input;
+    const { text, workbookId, actor, tableId } = input;
     const queryText = (text || '').trim();
 
     const [resources, records] = await Promise.all([
       this.searchResources({ actor, queryText }),
-      this.searchRecords({ snapshotId, actor, queryText, tableId }),
+      this.searchRecords({ workbookId, actor, queryText, tableId }),
     ]);
 
     return { resources, records };
@@ -91,12 +91,12 @@ export class MentionsService {
   }
 
   async searchRecords({
-    snapshotId,
+    workbookId,
     actor,
     queryText,
     tableId,
   }: {
-    snapshotId: SnapshotId;
+    workbookId: WorkbookId;
     actor: Actor;
     queryText: string;
     tableId?: string;
@@ -105,7 +105,7 @@ export class MentionsService {
       return [];
     }
 
-    const snapshot = await this.snapshotService.findOne(snapshotId, actor);
+    const snapshot = await this.snapshotService.findOne(workbookId, actor);
     if (!snapshot) return [];
 
     // Find the table by tableId
@@ -121,7 +121,7 @@ export class MentionsService {
     try {
       // Search records in the table using the title column
       const rows = await this.snapshotDbService.snapshotDb
-        .knex(`${snapshotId}.${snapshotTable.tableName}`)
+        .knex(`${workbookId}.${snapshotTable.tableName}`)
         .select({ id: 'wsId' })
         .select(titleColWsId)
         .whereILike(titleColWsId, `${queryText}%`)

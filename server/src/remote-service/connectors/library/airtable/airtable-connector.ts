@@ -1,8 +1,8 @@
 import { Service } from '@prisma/client';
 import { isAxiosError } from 'axios';
 import _ from 'lodash';
-import type { SnapshotColumnSettingsMap } from 'src/snapshot/types';
 import { JsonSafeObject } from 'src/utils/objects';
+import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';

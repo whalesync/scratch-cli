@@ -1,4 +1,4 @@
-import { EditedFieldsMetadata } from 'src/snapshot/snapshot-db';
+import { EditedFieldsMetadata } from 'src/workbook/snapshot-db';
 import { SnapshotRecordId } from '../../types/ids';
 
 export type TablePreview = {

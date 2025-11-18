@@ -1,6 +1,6 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { TableSpec } from '@/types/server-entities/snapshot';
+import { TableSpec } from '@/types/server-entities/workbook';
 import { ActionIcon, Group, StyleProp } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { XIcon } from '@phosphor-icons/react';

@@ -2,7 +2,7 @@
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi, RecordMentionEntity, ResourceMentionEntity } from '@/lib/api/mentions';
-import { Snapshot, TableSpec } from '@/types/server-entities/snapshot';
+import { TableSpec, Workbook } from '@/types/server-entities/workbook';
 import { FC, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
@@ -11,9 +11,8 @@ import { SuggestionItem } from './SuggestionItem';
 import { TypesafeMention } from './TypesafeMention';
 
 interface AdvancedAgentInputProps {
-  snapshotId: string;
   tableId: string;
-  snapshot?: Snapshot;
+  workbook?: Workbook;
   onMessageChange?: (message: string) => void;
   onSendMessage?: () => void;
   disabled?: boolean;
@@ -56,9 +55,8 @@ const renderFieldSuggestion = (suggestion: any) => {
 };
 
 export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
-  snapshotId,
   tableId,
-  snapshot,
+  workbook,
   onMessageChange,
   onSendMessage,
   disabled = false,
@@ -187,10 +185,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           callback: (results: { id: string; display: string; title: string; preview: string }[]) => void,
         ) => {
           try {
-            const resources = await mentionsApi.searchResources({
-              text: query,
-              snapshotId: snapshotId,
-            });
+            const resources = await mentionsApi.searchResources({ text: query });
             const items = resources.map((r) => ({
               id: r.id,
               display: r.title,
@@ -217,11 +212,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         }}
         data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
           try {
-            const records = await mentionsApi.searchRecords({
-              text: query,
-              snapshotId: snapshotId,
-              tableId: tableId,
-            });
+            const records = await mentionsApi.searchRecords({ text: query, tableId: tableId });
             const items = records.map((r) => ({
               id: r.id,
               display: r.title,
@@ -258,13 +249,13 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           color: '#00bb00',
         }}
         data={(query, callback) => {
-          if (!snapshot?.snapshotTables) {
+          if (!workbook?.snapshotTables) {
             callback([]);
             return;
           }
 
           // Get all tables
-          const allTables = snapshot.snapshotTables.map((snapshotTable) => {
+          const allTables = workbook.snapshotTables.map((snapshotTable) => {
             const table = snapshotTable.tableSpec as TableSpec;
             return {
               id: `tbl_${snapshotTable.id}`,
@@ -275,7 +266,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
           });
 
           // Get all fields
-          const allFields = snapshot.snapshotTables.flatMap((snapshotTable) => {
+          const allFields = workbook.snapshotTables.flatMap((snapshotTable) => {
             const table = snapshotTable.tableSpec as TableSpec;
             console.debug(`Processing table ${table.name} with ${table.columns.length} columns`);
             return table.columns.map((column) => ({

@@ -6,6 +6,7 @@ import { SWR_KEYS } from '@/lib/api/keys';
 import { ChatMessage, ChatSession, ChatSessionSummary, CreateSessionResponse } from '@/types/server-entities/agent';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import useSWR from 'swr';
+import { WorkbookId } from '../types/server-entities/ids';
 
 interface AIAgentSessionManagerContextValue {
   sessions: ChatSessionSummary[];
@@ -16,7 +17,7 @@ interface AIAgentSessionManagerContextValue {
   activateSession: (sessionId: string) => Promise<void>;
   clearActiveSession: () => void;
   addToActiveChatHistory: (message: ChatMessage) => void;
-  createSession: (snapshotId: string) => Promise<CreateSessionResponse>;
+  createSession: (workbookId: WorkbookId) => Promise<CreateSessionResponse>;
   deleteSession: (sessionId: string) => Promise<void>;
   refreshActiveSession: () => Promise<void>;
   cancelAgentRun: (runId: string) => Promise<string | undefined>;
@@ -25,7 +26,7 @@ interface AIAgentSessionManagerContextValue {
 
 interface AIAgentSessionManagerProviderProps {
   children: ReactNode;
-  snapshotId: string;
+  workbookId: WorkbookId;
 }
 
 const AIAgentSessionManagerContext = createContext<AIAgentSessionManagerContextValue | null>(null);
@@ -38,7 +39,7 @@ export const useAIAgentSessionManagerContext = () => {
   return context;
 };
 
-export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentSessionManagerProviderProps) => {
+export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentSessionManagerProviderProps) => {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
 
@@ -50,7 +51,7 @@ export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentS
     error: loadSessionListError,
     isLoading: isLoadingSessions,
     mutate: refreshSessions,
-  } = useSWR(SWR_KEYS.agentSessions.list(snapshotId), () => aiAgentApi.listSessions(snapshotId), {
+  } = useSWR(SWR_KEYS.agentSessions.list(workbookId), () => aiAgentApi.listSessions(workbookId), {
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   });
@@ -76,8 +77,8 @@ export const AIAgentSessionManagerProvider = ({ snapshotId, children }: AIAgentS
   }, [activeSessionId, sessionListResponse]);
 
   const createSession = useCallback(
-    async (snapshotId: string) => {
-      const { session: newSession, available_capabilities } = await aiAgentApi.createSession(snapshotId);
+    async (workbookId: WorkbookId) => {
+      const { session: newSession, available_capabilities } = await aiAgentApi.createSession(workbookId);
       await refreshSessions();
 
       setActiveSessionId(newSession.id);

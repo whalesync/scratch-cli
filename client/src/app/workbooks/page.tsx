@@ -1,12 +1,12 @@
 'use client';
 
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import { SnapshotsList } from './components/SnapshotList';
+import { WorkbooksList } from './components/WorkbooksList';
 
 export default function SnapshotsListPage() {
   return (
     <PageLayout>
-      <SnapshotsList />
+      <WorkbooksList />
     </PageLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { snapshotManager } from "../state/snapshots.js";
-import { snapshotApi } from "../lib/api/snapshot.js";
+import { workbookApi } from "../lib/api/snapshot.js";
 
 export const LIST_FILTERED_VIEWS_MCP_TOOL_DEFINITION = {
   name: "list_filtered_views",
@@ -16,7 +16,9 @@ export const LIST_FILTERED_VIEWS_MCP_TOOL_DEFINITION = {
   },
 };
 
-export const listFilteredViews = async (args: Record<string, unknown> | undefined) => {
+export const listFilteredViews = async (
+  args: Record<string, unknown> | undefined
+) => {
   const snapshot = snapshotManager.getActiveSnapshot();
   const tableId = args?.tableId as string;
 
@@ -42,7 +44,7 @@ export const listFilteredViews = async (args: Record<string, unknown> | undefine
   }
 
   try {
-    const views = await snapshotApi.listViews(snapshot.id, tableId);
+    const views = await workbookApi.listViews(snapshot.id, tableId);
     return {
       content: [
         {
@@ -65,4 +67,4 @@ export const listFilteredViews = async (args: Record<string, unknown> | undefine
       ],
     };
   }
-}; 
+};

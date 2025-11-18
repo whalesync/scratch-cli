@@ -1,6 +1,6 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { SnapshotRecord } from '@/types/server-entities/snapshot';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { ActionIcon, Code, Group, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { Copy } from 'lucide-react';

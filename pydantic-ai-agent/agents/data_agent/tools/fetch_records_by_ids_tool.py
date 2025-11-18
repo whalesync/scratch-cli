@@ -40,7 +40,7 @@ def fetch_records_by_ids_tool_implementation(
     try:
         chatRunContext: ChatRunContext = ctx.deps
 
-        if not chatRunContext.snapshot:
+        if not chatRunContext.workbook:
             return unable_to_identify_active_snapshot_error(chatRunContext)
 
         # Validate record_ids
@@ -52,26 +52,26 @@ def fetch_records_by_ids_tool_implementation(
 
         # Find the table by ID
         table = None
-        for t in chatRunContext.snapshot.tables:
+        for t in chatRunContext.workbook.tables:
             if t.id.wsId == table_id:
                 table = t
                 break
 
         if not table:
-            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id.wsId for t in chatRunContext.snapshot.tables])}"
+            return f"Error: Table with ID '{table_id}' not found in the current snapshot. Available tables: {', '.join([t.id.wsId for t in chatRunContext.workbook.tables])}"
 
         log_info(
             "Fetching records by IDs",
             table_name=table.name,
             table_id=table.id,
             record_count=len(record_ids),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         # Fetch records using the API
         fetched_snapshot_records = ScratchpadApi.get_records_by_ids(
             user_id=chatRunContext.user_id,
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,
             record_ids=record_ids,
         )
@@ -123,7 +123,7 @@ def fetch_records_by_ids_tool_implementation(
             requested_count=len(record_ids),
             found_count=len(fetched_records),
             new_records_added=len(new_records),
-            snapshot_id=chatRunContext.session.snapshot_id,
+            workbook_id=chatRunContext.session.workbook_id,
         )
 
         if len(fetched_records) == 0:

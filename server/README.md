@@ -207,7 +207,7 @@ The server is organized into focused modules, each with its own README:
 
 ### Data Management
 
-- **[snapshot](src/snapshot/)**: Core workspace module for data viewing and editing
+- **[snapshot](src/workbook/)**: Core workspace module for data viewing and editing
 - **[uploads](src/uploads/)**: CSV and Markdown file ingestion and storage
 - **[style-guide](src/style-guide/)**: Reference document management
 

@@ -42,8 +42,8 @@ export class AgentSessionController {
     return this.agentSessionService.findByUserId(userId);
   }
 
-  @Get('snapshot/:snapshotId')
-  async findBySnapshotId(@Param('snapshotId') snapshotId: string): Promise<AgentSessionEntity[]> {
-    return this.agentSessionService.findBySnapshotId(snapshotId);
+  @Get('workbook/:workbookId')
+  async findByWorkbookId(@Param('workbookId') workbookId: string): Promise<AgentSessionEntity[]> {
+    return this.agentSessionService.findByWorkbookId(workbookId);
   }
 }

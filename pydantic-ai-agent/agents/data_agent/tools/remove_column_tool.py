@@ -49,8 +49,8 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             # Get the active snapshot
             chatRunContext: ChatRunContext = ctx.deps
 
-            if not chatRunContext.snapshot:
-                return "Error: No active snapshot. Please connect to a snapshot first using connect_snapshot."
+            if not chatRunContext.workbook:
+                return "Error: No active snapshot. Please connect to a snapshot first using connect_workbook."
 
             # Find the active table
             table = get_active_table(chatRunContext)
@@ -63,7 +63,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 table_name=table.name,
                 table_id=table.id,
                 column_id=column_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
             )
 
             column = find_column_by_id(table, column_id)
@@ -75,7 +75,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
 
             ScratchpadApi.remove_scratch_column(
                 user_id=chatRunContext.user_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
                 column_id=column_id,
             )
@@ -90,7 +90,7 @@ def define_remove_column_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
                 table_name=table.name,
                 table_id=table.id,
                 column_id=column_id,
-                snapshot_id=chatRunContext.session.snapshot_id,
+                workbook_id=chatRunContext.session.workbook_id,
                 error=str(e),
             )
             logger.exception(error_msg)

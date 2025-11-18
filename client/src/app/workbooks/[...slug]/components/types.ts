@@ -1,19 +1,21 @@
-import { Snapshot, SnapshotTable } from '@/types/server-entities/snapshot';
+import { SnapshotTable, Workbook } from '@/types/server-entities/workbook';
 
 export interface SnapshotTableGridProps {
-  snapshot: Snapshot;
+  workbook: Workbook;
   table: SnapshotTable;
   limited?: boolean;
   // onSingleRowSelected?: (recordId: string | null) => void;
   // onCellDoubleClickTransition?: (recordId: string, columnId: string) => void;
 }
 
-type MenuItemHandlerProps = {
-  disabled: true;
-} | {
-  disabled: boolean;
-  handler: () => Promise<unknown>;
-};
+type MenuItemHandlerProps =
+  | {
+      disabled: true;
+    }
+  | {
+      disabled: boolean;
+      handler: () => Promise<unknown>;
+    };
 
 export type MenuItem = MenuItemHandlerProps & {
   label: string;

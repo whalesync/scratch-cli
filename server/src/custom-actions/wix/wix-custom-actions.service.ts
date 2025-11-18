@@ -5,9 +5,9 @@ import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { WixBlogTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { WixCustomActions } from 'src/remote-service/connectors/library/wix/custom-actions';
-import { SnapshotService } from 'src/snapshot/snapshot.service';
-import { SnapshotId } from 'src/types/ids';
+import { WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class WixCustomActionsService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly oauthService: OAuthService,
     private readonly db: DbService,
-    private readonly snapshotService: SnapshotService,
+    private readonly snapshotService: WorkbookService,
   ) {}
 
   /**
@@ -42,7 +42,7 @@ export class WixCustomActionsService {
 
     // Query the actual records from the snapshot database
     const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
-      snapshotTable.snapshotId as SnapshotId,
+      snapshotTable.workbookId as WorkbookId,
       tableSpec.id.wsId,
       dto.recordIds,
       actor,
@@ -97,7 +97,7 @@ export class WixCustomActionsService {
   }
 
   /**
-   * Gets a snapshot table and verifies the user has access through the parent snapshot
+   * Gets a snapshot table and verifies the user has access through the parent Workbook
    */
   private async getSnapshotTableWithAccess(snapshotTableId: string, actor: Actor) {
     // First get the snapshot table to find its parent snapshot
@@ -105,16 +105,16 @@ export class WixCustomActionsService {
       where: { id: snapshotTableId },
     });
 
-    // Verify the user has access to the parent snapshot (this enforces organization-level access control)
-    const snapshot = await this.snapshotService.findOne(snapshotTable.snapshotId as SnapshotId, actor);
-    if (!snapshot) {
-      throw new NotFoundException('Snapshot not found or access denied');
+    // Verify the user has access to the parent Workbook (this enforces organization-level access control)
+    const workbook = await this.snapshotService.findOne(snapshotTable.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found or access denied');
     }
 
-    // Verify the snapshot table is still part of the snapshot
-    const foundTable = snapshot.snapshotTables?.find((t) => t.id === snapshotTableId);
+    // Verify the snapshot table is still part of the Workbook
+    const foundTable = workbook.snapshotTables?.find((t) => t.id === snapshotTableId);
     if (!foundTable) {
-      throw new NotFoundException('Snapshot table not found in snapshot');
+      throw new NotFoundException('Snapshot table not found in Workbook');
     }
 
     return foundTable;

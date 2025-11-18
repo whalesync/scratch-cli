@@ -1,4 +1,4 @@
-import { snapshotApi } from "../lib/api/snapshot.js";
+import { workbookApi } from "../lib/api/snapshot.js";
 import { snapshotManager } from "../state/snapshots.js";
 
 export const CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION = {
@@ -19,14 +19,14 @@ export const CONNECT_SNAPSHOT_MCP_TOOL_DEFINITION = {
 export const connectSnapshot = async (
   args: Record<string, unknown> | undefined
 ) => {
-  const snapshotId = args?.id as string;
+  const workbookId = args?.id as string;
 
-  if (!snapshotId) {
+  if (!workbookId) {
     return {
       content: [
         {
           type: "text",
-          text: "Snapshot ID is required",
+          text: "Workbook ID is required",
         },
       ],
     };
@@ -34,14 +34,14 @@ export const connectSnapshot = async (
 
   try {
     // Verify snapshot exists on the server
-    const snapshot = await snapshotApi.detail(snapshotId);
+    const snapshot = await workbookApi.detail(workbookId);
     snapshotManager.setActiveSnapshot(snapshot);
   } catch (error) {
     return {
       content: [
         {
           type: "text",
-          text: `Failed to connect to snapshot ${snapshotId}: ${error}`,
+          text: `Failed to connect to snapshot ${workbookId}: ${error}`,
         },
       ],
     };
@@ -51,7 +51,7 @@ export const connectSnapshot = async (
     content: [
       {
         type: "text",
-        text: `Successfully connected to snapshot ${snapshotId}: ${
+        text: `Successfully connected to snapshot ${workbookId}: ${
           snapshotManager.getActiveSnapshot()?.tables.length
         } table(s) found`,
       },

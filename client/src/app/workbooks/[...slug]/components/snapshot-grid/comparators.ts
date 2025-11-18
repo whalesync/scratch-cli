@@ -1,4 +1,4 @@
-import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/snapshot';
+import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
 import { IRowNode } from 'ag-grid-community';
 import _ from 'lodash';
 
