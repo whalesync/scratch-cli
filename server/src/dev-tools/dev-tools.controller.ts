@@ -30,6 +30,7 @@ import { UserDetail } from './entities/user-detail.entity';
  * Controller for special case dev tools
  */
 @Controller('dev-tools')
+@UseGuards(ScratchpadAuthGuard)
 export class DevToolsController {
   constructor(
     private readonly usersService: UsersService,
@@ -40,7 +41,6 @@ export class DevToolsController {
     private readonly uploadsDbService: UploadsDbService,
   ) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get('users/search')
   async searchUsers(@Query('query') query: string, @Req() req: RequestWithUser): Promise<User[]> {
     if (!hasAdminToolsPermission(req.user)) {
@@ -52,7 +52,6 @@ export class DevToolsController {
     return results.map((result) => new User(result));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get('users/:id/details')
   async getUserDetails(@Param('id') id: string, @Req() req: RequestWithUser): Promise<UserDetail> {
     if (!hasAdminToolsPermission(req.user)) {
@@ -72,7 +71,6 @@ export class DevToolsController {
   }
 
   /* Admin tool to set user settings for a target user */
-  @UseGuards(ScratchpadAuthGuard)
   @Patch('users/:id/settings')
   @HttpCode(204)
   async updateUserSettings(
@@ -93,7 +91,6 @@ export class DevToolsController {
   }
 
   /* Admin tool to add "new user" resources to the target user like a trial subscription and openrouter key */
-  @UseGuards(ScratchpadAuthGuard)
   @Post('users/:id/add-new-user-resources')
   async addNewUserResources(@Req() req: RequestWithUser, @Param('id') id: string): Promise<boolean> {
     if (!hasAdminToolsPermission(req.user)) {

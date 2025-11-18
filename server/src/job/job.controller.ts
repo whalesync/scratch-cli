@@ -5,10 +5,10 @@ import { dbJobToJobEntity, JobEntity } from './entities/job.entity';
 import { JobService } from './job.service';
 
 @Controller('jobs')
+@UseGuards(ScratchpadAuthGuard)
 export class JobController {
   constructor(private readonly jobService: JobService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get()
   async getJobs(
     @Req() req: RequestWithUser,
@@ -23,13 +23,11 @@ export class JobController {
     return dbJobs.map(dbJobToJobEntity);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':jobId/progress')
   async getJobProgress(@Param('jobId') jobId: string): Promise<JobEntity> {
     return this.jobService.getJobProgress(jobId);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':jobId/cancel')
   async cancelJob(@Param('jobId') jobId: string): Promise<{ success: boolean; message: string }> {
     return await this.jobService.cancelJob(jobId);

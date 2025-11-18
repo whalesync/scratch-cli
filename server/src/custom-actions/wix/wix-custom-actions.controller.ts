@@ -6,10 +6,10 @@ import { WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 import { WixCustomActionsService } from './wix-custom-actions.service';
 
 @Controller('custom-actions/wix')
+@UseGuards(ScratchpadAuthGuard)
 export class WixCustomActionsController {
   constructor(private readonly service: WixCustomActionsService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('publish-draft-posts')
   async publishDraftPosts(@Body() dto: WixPublishDraftPostsDto, @Req() req: RequestWithUser) {
     return this.service.publishDraftPosts(dto, toActor(req.user));

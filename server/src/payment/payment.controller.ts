@@ -23,8 +23,11 @@ import { StripePaymentService } from './stripe-payment.service';
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
   'There was a problem navigating to the payment page. Please contact support.';
 
-@UseInterceptors(ClassSerializerInterceptor)
+// TODO: Once the webhook callback is in its own public API controller, put @UseGuards(ScratchpadAuthGuard)
+// on this entire controller.
+
 @Controller('payment')
+@UseInterceptors(ClassSerializerInterceptor)
 export class StripePaymentController {
   constructor(private readonly stripePaymentService: StripePaymentService) {}
 

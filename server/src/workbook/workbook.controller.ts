@@ -54,6 +54,7 @@ import { getSnapshotTableById } from './util';
 import { WorkbookService } from './workbook.service';
 
 @Controller('workbook')
+@UseGuards(ScratchpadAuthGuard)
 export class WorkbookController {
   constructor(
     private readonly service: WorkbookService,
@@ -61,13 +62,11 @@ export class WorkbookController {
     private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post()
   async create(@Body() createWorkbookDto: CreateWorkbookDto, @Req() req: RequestWithUser): Promise<Workbook> {
     return new Workbook(await this.service.create(createWorkbookDto, toActor(req.user)));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get()
   async findAll(
     @Query('connectorAccountId') connectorAccountId: string | undefined,
@@ -82,7 +81,6 @@ export class WorkbookController {
     return (await this.service.findAllForUser(toActor(req.user))).map((s) => new Workbook(s));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<Workbook | null> {
     const workbook = await this.service.findOne(id, toActor(req.user));
@@ -92,7 +90,6 @@ export class WorkbookController {
     return new Workbook(workbook);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id')
   async update(
     @Param('id') id: WorkbookId,
@@ -102,7 +99,6 @@ export class WorkbookController {
     return new Workbook(await this.service.update(id, updateWorkbookDto, toActor(req.user)));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/add-table')
   async addTable(
     @Param('id') id: WorkbookId,
@@ -121,7 +117,6 @@ export class WorkbookController {
     return new SnapshotTable(createdTable);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':workbookId/tables/:tableId/hide')
   async hideTable(
     @Param('workbookId') workbookId: WorkbookId,
@@ -132,7 +127,6 @@ export class WorkbookController {
     return new Workbook(await this.service.setTableHidden(workbookId, tableId, hidden, toActor(req.user)));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Delete(':workbookId/tables/:tableId')
   async deleteTable(
     @Param('workbookId') workbookId: WorkbookId,
@@ -142,19 +136,16 @@ export class WorkbookController {
     return new Workbook(await this.service.deleteTable(workbookId, tableId, toActor(req.user)));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/publish')
   async publish(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
     return this.service.publish(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id/publish-summary')
   async getPublishSummary(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<PublishSummaryDto> {
     return await this.service.getPublishSummary(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/download-without-job')
   async downloadWithoutJob(
     @Param('id') id: WorkbookId,
@@ -163,7 +154,6 @@ export class WorkbookController {
     return this.service.downloadWithoutJob(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/download')
   async download(
     @Param('id') id: WorkbookId,
@@ -173,14 +163,12 @@ export class WorkbookController {
     return this.service.download(id, toActor(req.user), downloadDto.snapshotTableIds);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
     await this.service.delete(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id/tables/:tableId/records')
   async listRecords(
     @Param('id') workbookId: WorkbookId,
@@ -192,7 +180,6 @@ export class WorkbookController {
     return this.service.listRecords(workbookId, tableId, toActor(req.user), cursor, take);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id/tables/:tableId/records/:recordId')
   async getRecord(
     @Param('id') workbookId: WorkbookId,
@@ -207,7 +194,6 @@ export class WorkbookController {
     return record;
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/bulk')
   @HttpCode(204)
   async bulkUpdateRecords(
@@ -219,7 +205,6 @@ export class WorkbookController {
     await this.service.bulkUpdateRecords(workbookId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'accepted');
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/bulk-suggest')
   @HttpCode(204)
   async bulkUpdateRecordsSuggest(
@@ -231,7 +216,6 @@ export class WorkbookController {
     await this.service.bulkUpdateRecords(workbookId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'suggested');
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/import-suggestions')
   @UseInterceptors(FileInterceptor('file'))
   async importSuggestions(
@@ -252,7 +236,6 @@ export class WorkbookController {
     return await this.service.importSuggestions(workbookId, tableId, file.buffer, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/deep-fetch')
   async deepFetchRecords(
     @Param('id') workbookId: WorkbookId,
@@ -269,7 +252,6 @@ export class WorkbookController {
     );
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/accept-cell-values')
   @HttpCode(204)
   async acceptCellValues(
@@ -281,7 +263,6 @@ export class WorkbookController {
     await this.service.acceptCellValues(workbookId, tableId, acceptCellValueDto.items, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/accept-all-suggestions')
   async acceptAllSuggestions(
     @Param('id') workbookId: WorkbookId,
@@ -291,7 +272,6 @@ export class WorkbookController {
     return await this.service.acceptAllSuggestions(workbookId, tableId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id/tables/:tableId/column-settings')
   @HttpCode(204)
   async updateColumnSettings(
@@ -308,7 +288,6 @@ export class WorkbookController {
     );
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id/tables/:tableId/title-column')
   @HttpCode(204)
   async setTitleColumn(
@@ -320,7 +299,6 @@ export class WorkbookController {
     await this.service.setTitleColumn(workbookId, tableId, setTitleColumnDto.columnId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/reject-values')
   @HttpCode(204)
   async rejectValues(
@@ -332,7 +310,6 @@ export class WorkbookController {
     await this.service.rejectValues(workbookId, tableId, rejectCellValueDto.items, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/reject-all-suggestions')
   async rejectAllSuggestions(
     @Param('id') workbookId: WorkbookId,
@@ -342,7 +319,6 @@ export class WorkbookController {
     return await this.service.rejectAllSuggestions(workbookId, tableId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/set-active-records-filter')
   @HttpCode(204)
   async setActiveRecordsFilter(
@@ -354,7 +330,6 @@ export class WorkbookController {
     await this.service.setActiveRecordsFilter(workbookId, tableId, setActiveRecordsFilterDto, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/clear-active-record-filter')
   @HttpCode(204)
   async clearActiveRecordFilter(
@@ -365,7 +340,6 @@ export class WorkbookController {
     await this.service.clearActiveRecordFilter(workbookId, tableId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id/tables/:tableId/page-size')
   @HttpCode(204)
   async setPageSize(
@@ -381,7 +355,7 @@ export class WorkbookController {
    * SSE endpoint to stream record changes for a snapshot table.
    * GET /workbook/:id/tables/:tableId/records/events
    */
-  @UseGuards(ScratchpadAuthGuard)
+
   @Sse(':id/tables/:tableId/records/events')
   @Header('Content-Type', 'text/event-stream')
   @Header('Cache-Control', 'no-cache')
@@ -409,7 +383,7 @@ export class WorkbookController {
    * SSE endpoint to stream record changes for a snapshot table.
    * GET /workbook/:id/tables/:tableId/records/events
    */
-  @UseGuards(ScratchpadAuthGuard)
+
   @Sse(':id/events')
   @Header('Content-Type', 'text/event-stream')
   @Header('Cache-Control', 'no-cache')
@@ -428,7 +402,7 @@ export class WorkbookController {
   }
 
   // TODO: move this endpoint to some kind of debug controller.
-  @UseGuards(ScratchpadAuthGuard)
+
   @Post(':id/tables/:tableId/records/events/test')
   async sendTestRecordEvent(
     @Param('id') workbookId: WorkbookId,
@@ -456,7 +430,6 @@ export class WorkbookController {
     return 'event sent at ' + new Date().toISOString();
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id/export-as-csv')
   async exportAsCsv(
     @Param('id') workbookId: WorkbookId,
@@ -538,7 +511,6 @@ export class WorkbookController {
     }
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/add-scratch-column')
   async addScratchColumn(
     @Param('id') workbookId: WorkbookId,
@@ -549,7 +521,6 @@ export class WorkbookController {
     await this.service.addScratchColumn(workbookId, tableId, addScratchColumnDto, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/remove-scratch-column')
   async removeScratchColumn(
     @Param('id') workbookId: WorkbookId,
@@ -560,7 +531,6 @@ export class WorkbookController {
     await this.service.removeScratchColumn(workbookId, tableId, removeScratchColumnDto.columnId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/hide-column')
   async hideColumn(
     @Param('id') workbookId: WorkbookId,
@@ -571,7 +541,6 @@ export class WorkbookController {
     await this.service.hideColumn(workbookId, tableId, hideColumnDto.columnId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/unhide-column')
   async unhideColumn(
     @Param('id') workbookId: WorkbookId,
@@ -582,7 +551,6 @@ export class WorkbookController {
     await this.service.unhideColumn(workbookId, tableId, unhideColumnDto.columnId, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/clear-hidden-columns')
   async clearHiddenColumns(
     @Param('id') workbookId: WorkbookId,

@@ -2,6 +2,11 @@ import { Controller, Get } from '@nestjs/common';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { BUILD_VERSION } from 'src/version';
 
+/**
+ * Root of the Scratch API.
+ *
+ * NOTE: It is *not* auth guarded because it only returns basic helpful info.
+ */
 @Controller()
 export class AdminController {
   @Get()

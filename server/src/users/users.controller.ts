@@ -18,6 +18,7 @@ import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
+@UseGuards(ScratchpadAuthGuard)
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
@@ -25,7 +26,6 @@ export class UsersController {
     private readonly experimentsService: ExperimentsService,
   ) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get('current')
   async currentUser(@Req() req: RequestWithUser): Promise<User> {
     if (!req.user) {
@@ -43,7 +43,6 @@ export class UsersController {
     return new User(req.user, agentJwt, flagValues);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch('current/settings')
   @HttpCode(204)
   async updateUserSettings(@Req() req: RequestWithUser, @Body() updateSettingsDto: UpdateSettingsDto): Promise<void> {

@@ -11,41 +11,36 @@ import { TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('connector-accounts')
+@UseGuards(ScratchpadAuthGuard)
 export class ConnectorAccountController {
   constructor(private readonly service: ConnectorAccountService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post()
   async create(@Body() createDto: CreateConnectorAccountDto, @Req() req: RequestWithUser): Promise<ConnectorAccount> {
     return this.service.create(createDto, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get()
   async findAll(@Req() req: RequestWithUser): Promise<ConnectorAccount[]> {
     return this.service.findAll(toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<ConnectorAccount> {
     return this.service.findOne(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('tables')
   async listTables(@Body() dto: ListTablesDto, @Req() req: RequestWithUser): Promise<TableList> {
     const tables = await this.service.listTables(dto.service, dto.connectorAccountId ?? null, toActor(req.user));
     return { tables };
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/test')
   async testConnection(@Param('id') id: string, @Req() req: RequestWithUser): Promise<TestConnectionResponse> {
     return this.service.testConnection(id, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -55,7 +50,6 @@ export class ConnectorAccountController {
     return this.service.update(id, updateDto, toActor(req.user));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {

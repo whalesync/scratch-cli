@@ -6,10 +6,10 @@ import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.servic
 import { OAuthService } from './oauth.service';
 
 @Controller('oauth')
+@UseGuards(ScratchpadAuthGuard)
 export class OAuthController {
   constructor(private readonly oauthService: OAuthService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':service/initiate')
   initiateOAuth(
     @Param('service') service: string,
@@ -30,7 +30,6 @@ export class OAuthController {
     });
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':service/callback')
   async handleOAuthCallback(
     @Param('service') service: string,
@@ -40,7 +39,6 @@ export class OAuthController {
     return this.oauthService.handleOAuthCallback(service, toActor(req.user), callbackData);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('refresh')
   async refreshOAuthTokens(@Body() body: { connectorAccountId: string }): Promise<{ success: boolean }> {
     await this.oauthService.refreshOAuthTokens(body.connectorAccountId);

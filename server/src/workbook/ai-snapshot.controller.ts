@@ -7,10 +7,10 @@ import { SnapshotRecord } from '../remote-service/connectors/types';
 import { WorkbookService } from './workbook.service';
 
 @Controller('ai-snapshot')
+@UseGuards(ScratchpadAuthGuard)
 export class AiSnapshotController {
   constructor(private readonly service: WorkbookService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/active-view')
   async listActiveViewRecords(
     @Param('id') workbookId: WorkbookId,
@@ -26,7 +26,6 @@ export class AiSnapshotController {
     };
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/tables/:tableId/records/by-ids')
   async getRecordsByIds(
     @Param('id') workbookId: WorkbookId,

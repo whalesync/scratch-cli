@@ -8,10 +8,10 @@ import type { MentionsSearchRequestDto } from './types';
 import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
 @Controller('mentions')
+@UseGuards(ScratchpadAuthGuard)
 export class MentionsController {
   constructor(private readonly mentionsService: MentionsService) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('search/resources')
   async searchResources(
     @Body() body: MentionsSearchRequestDto,
@@ -21,7 +21,6 @@ export class MentionsController {
     return await this.mentionsService.searchResources({ actor: toActor(req.user), queryText: text });
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('search/records')
   async searchRecords(
     @Body() body: MentionsSearchRequestDto,

@@ -23,13 +23,13 @@ import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from './dto/create
 import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
 
 @Controller('user/credentials')
+@UseGuards(ScratchpadAuthGuard)
 export class AgentCredentialsController {
   constructor(
     private readonly service: AgentCredentialsService,
     private readonly openRouterService: OpenRouterService,
   ) {}
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get()
   async findAll(
     @Query('includeUsage') includeUsage: boolean = false,
@@ -67,7 +67,6 @@ export class AgentCredentialsController {
     return results;
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get('active/:service')
   async findActive(@Param('service') service: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
     const result = await this.service.findActiveServiceCredentials(req.user.id, service);
@@ -81,7 +80,6 @@ export class AgentCredentialsController {
     return new AiAgentCredential(result, true);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential | null> {
     const credential = await this.service.findOne(id);
@@ -99,7 +97,6 @@ export class AgentCredentialsController {
     return new AiAgentCredential(credential, includeApiKey);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post('new')
   async create(
     @Body() createAgentCredentialDto: CreateAgentCredentialDto,
@@ -108,7 +105,6 @@ export class AgentCredentialsController {
     return new AiAgentCredential(await this.service.create({ ...createAgentCredentialDto, userId: req.user.id }));
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id')
   async update(
     @Param('id') id: string,
@@ -144,7 +140,6 @@ export class AgentCredentialsController {
     return new AiAgentCredential(updatedCredential);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
@@ -161,7 +156,6 @@ export class AgentCredentialsController {
     await this.service.delete(id, req.user.id);
   }
 
-  @UseGuards(ScratchpadAuthGuard)
   @Post(':id/set-default')
   async setDefaultKey(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
     return new AiAgentCredential(await this.service.setDefaultKey(id, req.user.id));
