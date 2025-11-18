@@ -84,15 +84,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
   const { promptAssets } = usePromptAssets();
 
-  // // Calculate model display name with token limit
-  // const modelDisplayName = useMemo(() => {
-  //   const tokenLimit = getModelTokenLimit(activeModel);
-  //   if (tokenLimit) {
-  //     return `${activeModel} (${formatTokenCount(tokenLimit)})`;
-  //   }
-  //   return activeModel;
-  // }, [activeModel]);
-
   // Commands for the AdvancedAgentInput
   const commands: Command[] = [
     {
@@ -112,7 +103,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
       display: '/',
       description: 'Revert last action',
       execute: () => {
-        alert('TODO: Revert last action');
+        console.debug('TODO: Implement revert last action logic');
       },
     },
   ];

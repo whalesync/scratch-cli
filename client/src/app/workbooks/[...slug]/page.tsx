@@ -66,7 +66,6 @@ function SnapshotPageContent() {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'p') {
         event.preventDefault();
         event.stopPropagation();
-        alert('Hot key not implemented yet, use the publish button instead');
       }
     };
 

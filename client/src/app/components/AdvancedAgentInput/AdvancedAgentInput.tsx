@@ -21,7 +21,7 @@ interface AdvancedAgentInputProps {
 }
 
 const revert = () => {
-  alert('TODO: Revert last action'); // TODO: Implement actual revert logic here
+  console.log('Revert last action');
 };
 
 // Custom render functions for suggestions

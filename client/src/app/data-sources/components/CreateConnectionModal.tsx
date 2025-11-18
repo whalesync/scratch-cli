@@ -12,6 +12,7 @@ import { useState } from 'react';
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
 export const CreateConnectionModal = (props: ModalProps) => {
+  const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
   const [endpoint, setEndpoint] = useState('');
@@ -22,6 +23,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
 
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
   const [showOAuthCustom, setShowOAuthCustom] = useState(false);
@@ -70,11 +72,12 @@ export const CreateConnectionModal = (props: ModalProps) => {
     setNewModifier(null);
     setNewDisplayName(null);
     setAuthMethod('oauth'); // Reset to default
+    setError(null);
   };
 
   const handleOAuthInitiate = async () => {
     if (!newService) {
-      alert('Please select a service first.');
+      setError('Please select a service first.');
       return;
     }
 
@@ -92,14 +95,14 @@ export const CreateConnectionModal = (props: ModalProps) => {
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
       console.error('OAuth initiation failed:', error);
-      alert('Failed to start OAuth flow. Please try again.');
+      setError('Failed to start OAuth flow. Please try again.');
       setIsOAuthLoading(false);
     }
   };
 
   const handleCreate = async () => {
     if (!newService) {
-      alert('Service is required.');
+      setError('Service is required.');
       return;
     }
     if (
@@ -108,7 +111,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
       newService !== Service.WORDPRESS &&
       !newApiKey
     ) {
-      alert('API key is required for this service.');
+      setError('API key is required for this service.');
       return;
     }
     if (
@@ -118,28 +121,36 @@ export const CreateConnectionModal = (props: ModalProps) => {
       !password &&
       !endpoint
     ) {
-      alert('Username, password, and endpoint are required for this service.');
+      setError('Username, password, and endpoint are required for this service.');
       return;
     }
-    // For OAuth, the connection will be created in the callback page
-    if (authMethod === 'oauth' || authMethod === 'oauth_custom') {
-      await handleOAuthInitiate();
-      return;
-    }
+    try {
+      setIsCreating(true);
+      // For OAuth, the connection will be created in the callback page
+      if (authMethod === 'oauth' || authMethod === 'oauth_custom') {
+        await handleOAuthInitiate();
+        return;
+      }
 
-    await createConnectorAccount({
-      service: newService,
-      userProvidedParams:
-        newService === Service.CSV
-          ? { apiKey: newApiKey }
-          : newService === Service.WORDPRESS
-            ? { username, password, endpoint }
-            : { apiKey: newApiKey },
-      modifier: newModifier || undefined,
-      displayName: newDisplayName || undefined,
-    });
-    handleClearForm();
-    props.onClose?.();
+      await createConnectorAccount({
+        service: newService,
+        userProvidedParams:
+          newService === Service.CSV
+            ? { apiKey: newApiKey }
+            : newService === Service.WORDPRESS
+              ? { username, password, endpoint }
+              : { apiKey: newApiKey },
+        modifier: newModifier || undefined,
+        displayName: newDisplayName || undefined,
+      });
+      handleClearForm();
+      props.onClose?.();
+    } catch (error) {
+      console.error('Failed to create connection:', error);
+      setError('Failed to create connection. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const availableServices = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
@@ -156,9 +167,11 @@ export const CreateConnectionModal = (props: ModalProps) => {
       }}
     >
       <Stack>
+        {error && <Alert color="red">{error}</Alert>}
         <Select
           label="Service"
           placeholder="Pick a service"
+          required
           data={availableServices.map((service) => {
             return {
               value: service,
@@ -291,7 +304,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
           )}
         <Group justify="flex-end">
           <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading}>
+          <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading || isCreating}>
             {authMethod === 'oauth' && newService ? 'Connect with ' + serviceName(newService) : 'Create'}
           </ButtonPrimaryLight>
         </Group>
