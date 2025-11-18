@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { ClassSerializerInterceptor, Controller, Get, UseInterceptors } from '@nestjs/common';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { BUILD_VERSION } from 'src/version';
 
@@ -8,6 +8,7 @@ import { BUILD_VERSION } from 'src/version';
  * NOTE: It is *not* auth guarded because it only returns basic helpful info.
  */
 @Controller()
+@UseInterceptors(ClassSerializerInterceptor)
 export class AdminController {
   @Get()
   getRoot() {

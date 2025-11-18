@@ -1,4 +1,13 @@
-import { Controller, Get, NotFoundException, Param, Query, Res } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  Res,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import type { WorkbookId } from 'src/types/ids';
 import { WorkbookService } from './workbook.service';
@@ -8,6 +17,7 @@ import { WorkbookService } from './workbook.service';
  * Security relies on snapshot IDs being unguessable.
  */
 @Controller('snapshot/public')
+@UseInterceptors(ClassSerializerInterceptor)
 export class SnapshotPublicController {
   constructor(private readonly snapshotService: WorkbookService) {}
 

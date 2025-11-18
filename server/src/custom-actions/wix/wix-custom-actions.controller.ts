@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
@@ -7,6 +7,7 @@ import { WixCustomActionsService } from './wix-custom-actions.service';
 
 @Controller('custom-actions/wix')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class WixCustomActionsController {
   constructor(private readonly service: WixCustomActionsService) {}
 

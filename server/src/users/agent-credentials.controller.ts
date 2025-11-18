@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   ForbiddenException,
@@ -12,6 +13,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
@@ -24,6 +26,7 @@ import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
 
 @Controller('user/credentials')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class AgentCredentialsController {
   constructor(
     private readonly service: AgentCredentialsService,

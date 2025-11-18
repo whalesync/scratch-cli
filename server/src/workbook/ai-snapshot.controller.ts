@@ -1,4 +1,14 @@
-import { Body, Controller, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { WorkbookId } from 'src/types/ids';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
@@ -8,6 +18,7 @@ import { WorkbookService } from './workbook.service';
 
 @Controller('ai-snapshot')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class AiSnapshotController {
   constructor(private readonly service: WorkbookService) {}
 

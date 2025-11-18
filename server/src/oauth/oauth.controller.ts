@@ -1,4 +1,13 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
@@ -7,6 +16,7 @@ import { OAuthService } from './oauth.service';
 
 @Controller('oauth')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class OAuthController {
   constructor(private readonly oauthService: OAuthService) {}
 

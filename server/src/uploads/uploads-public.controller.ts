@@ -1,4 +1,12 @@
-import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Res,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { UploadsService } from './uploads.service';
 
@@ -7,6 +15,7 @@ import { UploadsService } from './uploads.service';
  * Security relies on upload IDs being unguessable.
  */
 @Controller('uploads/public')
+@UseInterceptors(ClassSerializerInterceptor)
 export class UploadsPublicController {
   constructor(private readonly uploadsService: UploadsService) {}
 

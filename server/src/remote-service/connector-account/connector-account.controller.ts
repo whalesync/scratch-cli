@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
@@ -12,6 +25,7 @@ import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('connector-accounts')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class ConnectorAccountController {
   constructor(private readonly service: ConnectorAccountService) {}
 

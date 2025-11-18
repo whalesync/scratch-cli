@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
@@ -8,6 +8,7 @@ import { WebflowCustomActionsService } from './webflow-custom-actions.service';
 
 @Controller('custom-actions/webflow')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class WebflowCustomActionsController {
   constructor(private readonly service: WebflowCustomActionsService) {}
 

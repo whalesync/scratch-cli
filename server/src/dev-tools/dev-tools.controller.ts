@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   HttpCode,
@@ -11,6 +12,7 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
@@ -31,6 +33,7 @@ import { UserDetail } from './entities/user-detail.entity';
  */
 @Controller('dev-tools')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class DevToolsController {
   constructor(
     private readonly usersService: UsersService,

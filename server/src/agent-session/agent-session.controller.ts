@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { AgentSessionService } from './agent-session.service';
 import { CreateAgentSessionDto } from './dto/create-agent-session.dto';
@@ -7,6 +20,7 @@ import { AgentSessionEntity } from './entities/agent-session.entity';
 
 @Controller('agent-sessions')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class AgentSessionController {
   constructor(private readonly agentSessionService: AgentSessionService) {}
 

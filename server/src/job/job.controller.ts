@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { dbJobToJobEntity, JobEntity } from './entities/job.entity';
@@ -6,6 +16,7 @@ import { JobService } from './job.service';
 
 @Controller('jobs')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class JobController {
   constructor(private readonly jobService: JobService) {}
 

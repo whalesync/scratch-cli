@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -32,6 +33,7 @@ import { UploadsService } from './uploads.service';
 
 @Controller('uploads')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 

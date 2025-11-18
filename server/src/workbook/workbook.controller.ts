@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -55,6 +56,7 @@ import { WorkbookService } from './workbook.service';
 
 @Controller('workbook')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class WorkbookController {
   constructor(
     private readonly service: WorkbookService,

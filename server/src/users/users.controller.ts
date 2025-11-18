@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   HttpCode,
@@ -8,6 +9,7 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
@@ -19,6 +21,7 @@ import { UsersService } from './users.service';
 
 @Controller('users')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,

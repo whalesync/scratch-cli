@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Logger,
@@ -8,6 +9,7 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { SnapshotTable } from '@prisma/client';
 import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
@@ -50,6 +52,7 @@ interface MigrationResult {
 
 @Controller('code-migrations')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class CodeMigrationsController {
   private readonly logger = new Logger(CodeMigrationsController.name);
 

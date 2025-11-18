@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { toActor } from 'src/auth/types';
@@ -9,6 +9,7 @@ import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
 @Controller('mentions')
 @UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class MentionsController {
   constructor(private readonly mentionsService: MentionsService) {}
 
