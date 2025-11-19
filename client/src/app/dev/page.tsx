@@ -53,7 +53,7 @@ export default function DevListPage() {
           </DevToolButton>
         </Stack>
       </MainContent.Body>
-      <MainContent.Footer>
+      <MainContent.Footer h={28}>
         <Group justify="center">
           <Text13Book c="dimmed">Environment: {getBuildFlavor()}</Text13Book>
           <Text13Book c="dimmed">Build version: {BUILD_VERSION}</Text13Book>

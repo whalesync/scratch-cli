@@ -273,7 +273,6 @@ export const workbookApi = {
   },
 
   async bulkUpdateRecords(workbookId: WorkbookId, tableId: SnapshotTableId, dto: BulkUpdateRecordsDto): Promise<void> {
-    debugger;
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records/bulk`, {
       method: 'POST',
       headers: {

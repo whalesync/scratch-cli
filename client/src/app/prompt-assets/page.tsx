@@ -214,7 +214,7 @@ export default function PromptAssetsPage() {
           resourceDocument={activeResource}
         />
       </MainContent.Body>
-      <MainContent.Footer>
+      <MainContent.Footer h={28}>
         <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={handleNewAsset}>
           New prompt asset
         </ContentFooterButton>

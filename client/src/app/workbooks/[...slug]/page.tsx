@@ -27,7 +27,7 @@ import { UpdateRecordsProvider } from './components/contexts/update-records-cont
 import { WorkbookInspector } from './components/devtool/WorkbookInspector';
 import { ManageTablesModal } from './components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from './components/PublishWorkbookWorkflow';
-import { RecordDataToolbar } from './components/RecordDataToolbar';
+import { GridFooterBar } from './components/snapshot-grid/grid-footer-bar/GridFooterBar';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
 import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
@@ -118,7 +118,7 @@ function WorkbookPageContent() {
   if (workbook) {
     if (activeTable) {
       content = <SnapshotGrid workbook={workbook} table={activeTable} />;
-      contentFooter = <RecordDataToolbar table={activeTable} />;
+      contentFooter = <GridFooterBar table={activeTable} />;
     } else if (activeTab?.startsWith('new-tab')) {
       content = <AddTableTab />;
     }
@@ -138,7 +138,7 @@ function WorkbookPageContent() {
           <Stack gap="0" w={contentWidth} h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
             <WorkbookTabBar />
             <MainContent.Body p="0">{content}</MainContent.Body>
-            {contentFooter && <MainContent.Footer>{contentFooter}</MainContent.Footer>}
+            {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
           </Stack>
           {aiChatPanel}
         </Group>

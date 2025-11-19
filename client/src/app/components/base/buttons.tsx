@@ -50,8 +50,11 @@ export const ButtonSecondaryInline = Button.withProps({
   w: 'min-content',
   size: 'compact-sm',
   variant: 'subtle',
-  color: 'gray.9',
-  c: 'gray.9',
+  color: 'var(--fg-primary)',
+  c: 'var(--fg-primary)',
+  styles: {
+    section: { color: 'var(--fg-muted)' },
+  },
 });
 
 export const ButtonDangerLight = Button.withProps({

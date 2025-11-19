@@ -65,7 +65,7 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
   }
 
   return (
-    <MainContent.Footer {...boxProps}>
+    <MainContent.Footer {...boxProps} h={28}>
       <Group h="100%" align="center">
         {saving ? (
           <>

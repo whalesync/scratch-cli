@@ -1,0 +1,10 @@
+.toolbar {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+
+.toolbar > *:not(:last-child) {
+  border-right: 1px solid var(--fg-divider);
+}

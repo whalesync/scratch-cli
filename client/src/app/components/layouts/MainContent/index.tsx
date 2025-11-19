@@ -1,5 +1,6 @@
 import { Box, Group, MantineStyleProps, Stack } from '@mantine/core';
 import { JSX, PropsWithChildren } from 'react';
+import { WithRequired } from '../../../../utils/utility-types';
 import { TextTitle2 } from '../../base/text';
 import classes from './MainContent.module.css';
 
@@ -29,7 +30,7 @@ const ContentBody = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.E
   );
 };
 
-const ContentFooter = ({ children, ...styleProps }: ChildrenWithStyleProps): JSX.Element => {
+const ContentFooter = ({ children, ...styleProps }: WithRequired<ChildrenWithStyleProps, 'h'>): JSX.Element => {
   return (
     <Box className={classes.contentFooter} {...styleProps}>
       {children}

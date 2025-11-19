@@ -49,7 +49,6 @@ import {
   ButtonSecondaryInline,
   ButtonSecondaryOutline,
   ButtonSecondarySolid,
-  ContentFooterButton,
   DevToolButton,
   IconButtonGhost,
   IconButtonInline,
@@ -179,6 +178,12 @@ export default function DevComponentGalleryPage() {
             notes="Tertiary text, most toolbars or decorative icons. AKA --mantine-color-gray-7, or Figma grey/10"
           >
             <ColorChip cssName="--fg-muted" modeAware />
+          </GalleryItem>
+          <GalleryItem
+            label="Foreground: divider"
+            notes="Most dividers between sections. AKA --mantine-color-gray-5, or Figma grey/6"
+          >
+            <ColorChip cssName="--fg-divider" modeAware />
           </GalleryItem>
           <GallerySection id="colors" title="Colors" />
           <Text12Book c="dimmed">
@@ -342,9 +347,6 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GalleryItem deprecated label="RejectSuggestionButton">
             <RejectSuggestionButton>Click</RejectSuggestionButton>
-          </GalleryItem>
-          <GalleryItem deprecated label="ContentFooterButton">
-            <ContentFooterButton>Click</ContentFooterButton>
           </GalleryItem>
           <GallerySection id="action-icons" title="Action Icons" />
           <GalleryItem label="ActionIconThreeDots">
@@ -713,7 +715,6 @@ import { Settings } from 'lucide-react'
           </Box>
         </Stack>
       </MainContent.Body>
-      <MainContent.Footer></MainContent.Footer>
     </MainContent>
   );
 }

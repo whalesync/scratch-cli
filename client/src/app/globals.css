@@ -12,6 +12,7 @@
   --fg-primary: var(--mantine-color-gray-9);
   --fg-secondary: var(--mantine-color-gray-8);
   --fg-muted: var(--mantine-color-gray-7);
+  --fg-divider: var(--mantine-color-gray-4);
 
   font-feature-settings:
     'liga' 1,
