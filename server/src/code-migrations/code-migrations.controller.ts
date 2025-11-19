@@ -18,7 +18,7 @@ import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
-import { sanitizeForWsId } from '../remote-service/connectors/ids';
+import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import type { SnapshotTableId } from '../types/ids';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 
@@ -179,7 +179,7 @@ export class CodeMigrationsController {
     }
 
     // Generate new v1 table name: {id}_{sanitized_wsId}
-    const sanitizedWsId = sanitizeForWsId(wsIdFromSpec);
+    const sanitizedWsId = sanitizeForTableWsId(wsIdFromSpec);
     const newTableName = `${tableId}_${sanitizedWsId}`;
 
     // Check if old table exists in the snapshot schema

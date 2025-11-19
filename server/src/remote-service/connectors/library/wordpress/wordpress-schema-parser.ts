@@ -1,5 +1,5 @@
 import { isArray } from 'lodash';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
 import { EntityId, PostgresColumnType } from '../../types';
 import { WordPressColumnSpec } from '../custom-spec-registry';
 import {
@@ -31,7 +31,7 @@ export function parseTableInfoFromTypes(
     .map(([, typeData]) => {
       return {
         id: {
-          wsId: sanitizeForWsId(typeData.rest_base),
+          wsId: sanitizeForTableWsId(typeData.rest_base),
           remoteId: [typeData.rest_base],
         },
         displayName: typeData.name,
@@ -185,7 +185,7 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
 
   return {
     id: {
-      wsId: sanitizeForWsId(columnId),
+      wsId: sanitizeForColumnWsId(columnId),
       remoteId: [columnId],
     },
     name: formatColumnName(columnId),

@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { Webflow } from 'webflow-api';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, ColumnOptions, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { WebflowColumnSpec, WebflowTableSpec } from '../custom-spec-registry';
 import {
@@ -18,7 +18,7 @@ export class WebflowSchemaParser {
   ): TablePreview {
     return {
       id: {
-        wsId: sanitizeForWsId(collection.id),
+        wsId: sanitizeForTableWsId(collection.id),
         remoteId: [site.id, collection.id],
       },
       displayName: `${site.displayName} - ${collection.displayName}`,
@@ -32,7 +32,7 @@ export class WebflowSchemaParser {
 
   parseTableSpec(site: Webflow.Site, collection: Webflow.Collection): WebflowTableSpec {
     const id: EntityId = {
-      wsId: sanitizeForWsId(collection.id),
+      wsId: sanitizeForTableWsId(collection.id),
       remoteId: [site.id, collection.id],
     };
 
@@ -109,7 +109,7 @@ export class WebflowSchemaParser {
 
     return {
       id: {
-        wsId: sanitizeForWsId(field.id),
+        wsId: sanitizeForColumnWsId(field.id),
         remoteId: [field.id],
       },
       slug: field.slug,

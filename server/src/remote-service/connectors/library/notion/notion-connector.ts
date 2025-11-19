@@ -14,7 +14,7 @@ import TurndownService from 'turndown';
 import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForTableWsId } from '../../ids';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
@@ -130,7 +130,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     return {
       id,
       slug: id.wsId,
-      name: sanitizeForWsId(tableTitle),
+      name: sanitizeForTableWsId(tableTitle),
       columns,
     };
   }

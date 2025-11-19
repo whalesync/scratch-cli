@@ -1,5 +1,5 @@
 import { DatabaseObjectResponse, PageObjectResponse } from '@notionhq/client';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec } from '../custom-spec-registry';
 
@@ -8,7 +8,7 @@ export class NotionSchemaParser {
     const displayName = db.title.map((t) => t.plain_text).join('');
     return {
       id: {
-        wsId: sanitizeForWsId(displayName),
+        wsId: sanitizeForTableWsId(displayName),
         remoteId: [db.id],
       },
       displayName: displayName,
@@ -29,7 +29,7 @@ export class NotionSchemaParser {
     const displayName = pageTitle ?? page.id;
     return {
       id: {
-        wsId: sanitizeForWsId(displayName),
+        wsId: sanitizeForTableWsId(displayName),
         remoteId: [page.id],
       },
       displayName: displayName,
@@ -45,7 +45,7 @@ export class NotionSchemaParser {
     const metadata = this.getColumnMetadata(property);
     return {
       id: {
-        wsId: sanitizeForWsId(property.name),
+        wsId: sanitizeForColumnWsId(property.name),
         remoteId: [property.id],
       },
       name: property.name,

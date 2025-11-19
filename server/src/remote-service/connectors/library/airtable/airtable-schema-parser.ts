@@ -1,5 +1,5 @@
 import { WSLogger } from 'src/logger';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { AirtableColumnSpec } from '../custom-spec-registry';
 import { AirtableBase, AirtableDataType, AirtableFieldsV2, AirtableTableV2 } from './airtable-types';
@@ -8,7 +8,7 @@ export class AirtableSchemaParser {
   parseTablePreview(base: AirtableBase, table: AirtableTableV2): TablePreview {
     return {
       id: {
-        wsId: sanitizeForWsId(table.name),
+        wsId: sanitizeForTableWsId(table.name),
         remoteId: [base.id, table.id],
       },
       displayName: `${base.name} - ${table.name}`,
@@ -23,7 +23,7 @@ export class AirtableSchemaParser {
     WSLogger.debug({ source: 'AirtableSchemaParser', message: 'Parsing column', field, pgType, readonly });
     return {
       id: {
-        wsId: sanitizeForWsId(field.name),
+        wsId: sanitizeForColumnWsId(field.name),
         remoteId: [field.id],
       },
       name: field.name,

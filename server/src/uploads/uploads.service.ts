@@ -7,7 +7,7 @@ import { parse, Parser } from 'csv-parse';
 import type { Response } from 'express';
 import matter from 'gray-matter';
 import { WSLogger } from 'src/logger';
-import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
+import { sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { createSnapshotTableId, createUploadId, createWorkbookId, SnapshotTableId, WorkbookId } from 'src/types/ids';
@@ -693,7 +693,7 @@ export class UploadsService {
 
       // Create table ID and name for v1 naming scheme
       const newTableId = createSnapshotTableId();
-      const wsId = sanitizeForWsId(tableSpecs[0].name);
+      const wsId = sanitizeForTableWsId(tableSpecs[0].name);
       const tableName = `${newTableId}_${wsId}`;
 
       // Create the workbook in the database

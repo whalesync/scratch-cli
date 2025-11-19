@@ -4,7 +4,7 @@ import { types } from 'pg';
 import { WSLogger } from 'src/logger';
 import { createSnapshotRecordId, SnapshotRecordId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
-import { sanitizeForWsId } from '../remote-service/connectors/ids';
+import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
@@ -112,7 +112,7 @@ export class SnapshotDb {
       }
 
       // For v1 tables, use {tableId}_{sanitized_name} format
-      const wsId = sanitizeForWsId(table.name);
+      const wsId = sanitizeForTableWsId(table.name);
       const tableName = `${tableId}_${wsId}`;
 
       const tableExists = await this.knex.schema.withSchema(workbookId).hasTable(tableName);

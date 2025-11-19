@@ -1,4 +1,4 @@
-import { sanitizeForWsId } from '../../../ids';
+import { sanitizeForTableWsId } from '../../../ids';
 import { EntityId, PostgresColumnType, TablePreview } from '../../../types';
 import { WixBlogColumnSpec, WixBlogTableSpec } from '../../custom-spec-registry';
 
@@ -6,7 +6,7 @@ export class WixBlogSchemaParser {
   parseTablePreview(): TablePreview {
     return {
       id: {
-        wsId: sanitizeForWsId('wix-blog'),
+        wsId: sanitizeForTableWsId('wix-blog'),
         remoteId: ['wix-blog'],
       },
       displayName: 'Blog Posts',
@@ -15,7 +15,7 @@ export class WixBlogSchemaParser {
 
   parseTableSpec(): WixBlogTableSpec {
     const id: EntityId = {
-      wsId: sanitizeForWsId('wix-blog'),
+      wsId: sanitizeForTableWsId('wix-blog'),
       remoteId: ['wix-blog'],
     };
 

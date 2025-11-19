@@ -3,7 +3,7 @@ import MarkdownIt from 'markdown-it';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
-import { sanitizeForWsId } from '../../ids';
+import { sanitizeForTableWsId } from '../../ids';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { WordPressTableSpec } from '../custom-spec-registry';
 import {
@@ -44,7 +44,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     // Add default tables (tags, categories)
     const defaultTables = WORDPRESS_DEFAULT_TABLE_IDS.map((tableId) => ({
       id: {
-        wsId: sanitizeForWsId(tableId),
+        wsId: sanitizeForTableWsId(tableId),
         remoteId: [tableId],
       },
       displayName: formatTableName(tableId),
@@ -61,7 +61,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     return {
       id,
       slug: id.wsId,
-      name: sanitizeForWsId(tableId),
+      name: sanitizeForTableWsId(tableId),
       columns,
     };
   }

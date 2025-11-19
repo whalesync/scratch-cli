@@ -12,7 +12,7 @@ import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
-import { sanitizeForWsId } from 'src/remote-service/connectors/ids';
+import { sanitizeForColumnWsId, sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
 import { createSnapshotTableId, createWorkbookId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
@@ -85,7 +85,7 @@ export class WorkbookService {
           tableSpecs.push(tableSpec);
 
           const newTableId = createSnapshotTableId();
-          const wsId = sanitizeForWsId(tableSpec.name);
+          const wsId = sanitizeForTableWsId(tableSpec.name);
           const tableName = `${newTableId}_${wsId}`;
 
           tableSpecToIdMap.set(tableSpec, newTableId);
@@ -1892,7 +1892,7 @@ export class WorkbookService {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${workbookId}`);
     }
 
-    const columnId = sanitizeForWsId(columnName);
+    const columnId = sanitizeForColumnWsId(columnName);
     if (DEFAULT_COLUMNS.includes(columnId)) {
       throw new BadRequestException(
         `Column name ${columnName} is reserved and cannot be used. Choose a different name.`,

@@ -56,8 +56,8 @@ export function createId(prefix: IdPrefixes): string {
   return `${prefix}${nanoid()}`;
 }
 
-export function createPlainId(): string {
-  return nanoid();
+export function createPlainId(length?: number): string {
+  return length ? nanoid(length) : nanoid();
 }
 
 export function typeForId(id: AnyId): IdType | null {

@@ -1,10 +1,17 @@
 import { CopyText } from '@/app/components/CopyText';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { Text13Regular, TextTitle3 } from '@/app/components/base/text';
+import { BadgeOK } from '@/app/components/base/badges';
+import { Text12Regular, Text13Regular, TextTitle3 } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { ColumnSpec, SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
+import {
+  ColumnSpec,
+  SnapshotColumnSettings,
+  SnapshotColumnSettingsMap,
+  SnapshotTable,
+  TableSpec,
+} from '@/types/server-entities/workbook';
 import { formatDate } from '@/utils/helpers';
 import { Badge, Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
 
@@ -77,6 +84,7 @@ export const WorkbookInspector = (props: ModalProps) => {
 
 const TableDetails = ({ table }: { table: SnapshotTable }) => {
   const tableSpec = table.tableSpec as TableSpec;
+  const columnSettings = table.columnSettings as SnapshotColumnSettingsMap;
   return (
     <Stack gap="md">
       <Group gap="lg">
@@ -123,12 +131,16 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
               <Table.Td>DB Type</Table.Td>
               <Table.Td>Tags</Table.Td>
               <Table.Td maw="30%">Metadata</Table.Td>
-              <Table.Td maw="100px">Data Converter Types</Table.Td>
+              <Table.Td maw="100px">Data Converter</Table.Td>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {tableSpec.columns.map((column, index) => (
-              <ColumnSpecDetails key={column.id.wsId || index} column={column} />
+              <ColumnSpecDetails
+                key={column.id.wsId || index}
+                column={column}
+                settings={columnSettings[column.id.wsId]}
+              />
             ))}
           </Table.Tbody>
         </Table>
@@ -137,16 +149,16 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
   );
 };
 
-const ColumnSpecDetails = ({ column }: { column: ColumnSpec }) => {
+const ColumnSpecDetails = ({ column, settings }: { column: ColumnSpec; settings?: SnapshotColumnSettings }) => {
   const tags: string[] = [];
   if (column.readonly) {
-    tags.push('readonly');
+    tags.push('Readonly');
   }
   if (column.required) {
-    tags.push('required');
+    tags.push('Required');
   }
   if (column.metadata && column.metadata.scratch) {
-    tags.push('scratch');
+    tags.push('Scratch');
   }
 
   return (
@@ -163,9 +175,15 @@ const ColumnSpecDetails = ({ column }: { column: ColumnSpec }) => {
       </Table.Td>
       <Table.Td>{column.metadata && <pre>{JSON.stringify(column.metadata, null, 2)}</pre>}</Table.Td>
       <Table.Td>
-        {column.dataConverterTypes && column.dataConverterTypes.length > 0 && (
-          <Code>{JSON.stringify(column.dataConverterTypes, null, 2)}</Code>
-        )}
+        <Stack gap="xs">
+          {settings?.dataConverter && <BadgeOK>{settings.dataConverter}</BadgeOK>}
+          {column.dataConverterTypes && column.dataConverterTypes.length > 0 && (
+            <>
+              <Text12Regular>Options:</Text12Regular>
+              <Code>{JSON.stringify(column.dataConverterTypes, null, 2)}</Code>
+            </>
+          )}
+        </Stack>
       </Table.Td>
     </Table.Tr>
   );
