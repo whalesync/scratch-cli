@@ -1,21 +1,27 @@
 'use client';
 
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { oauthApi } from '@/lib/api/oauth';
-import { serviceName } from '@/service-naming-conventions';
-import { OAuthService } from '@/types/oauth';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { CheckCircle, XCircle } from '@phosphor-icons/react';
+import { XCircle } from '@phosphor-icons/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { OAuthStatePayload } from '../../../types/server-entities/oauth';
 
 interface OAuthCallbackState {
-  status: 'loading' | 'success' | 'error';
+  status: 'loading' | 'error';
   message?: string;
   connectorAccountId?: string;
 }
 
+/**
+ * This is the page that we go back to during an OAuth authorization flow after the user has just gone out to the OAuth
+ * authorization screen for a provider (e.g. Webflow). It reads the original host/port that the request came from in the
+ * OAuth state param, then redirects back there to finish the flow.
+ *
+ * e.g. If this came from `localhost`, the OAuth flow will send the browser to `test.scratch.md`, which will then
+ * redirect back to `localhost`.
+ */
 export default function OAuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,21 +39,10 @@ export default function OAuthCallbackPage() {
       try {
         // Extract OAuth parameters from URL
         const code = searchParams.get('code');
-        const state = searchParams.get('state');
-        const error = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
+        const oAuthStateString = searchParams.get('state');
 
-        // Handle OAuth error (user denied access, etc.)
-        if (error) {
-          setState({
-            status: 'error',
-            message: errorDescription || `OAuth error: ${error}`,
-          });
-          return;
-        }
-
-        // Validate required parameters
-        if (!code || !state) {
+        // Validate required parameters.
+        if (!code || !oAuthStateString) {
           setState({
             status: 'error',
             message: 'Missing required OAuth parameters (code or state)',
@@ -55,55 +50,23 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // Determine service from URL parameter or state parameter
-        const serviceParam = searchParams.get('service');
-        const serviceFromState = extractServiceFromState();
-
-        console.debug('OAuth callback debug:', {
-          serviceParam,
-          serviceFromState,
-          state,
-        });
-
-        const service = (serviceParam as OAuthService) || serviceFromState;
-
-        if (!service || !isValidOAuthService(service)) {
+        const oAuthState = decodeOAuthStatePayload(oAuthStateString);
+        if (!oAuthState) {
           setState({
             status: 'error',
-            message: `Unable to determine OAuth service. Found: ${service || 'none'}. Check console for debug info.`,
+            message: 'Error parsing required OAuth param (state)',
           });
           return;
         }
 
-        const result = await oauthApi.callback(service, { code, state });
-
-        setState({
-          status: 'success',
-          message: `Successfully connected to ${serviceName(service)}!`,
-          connectorAccountId: result.connectorAccountId,
-        });
-
-        // Redirect to connections page after a short delay
-        setTimeout(() => {
-          router.push(RouteUrls.dataSourcesPageUrl);
-        }, 1000);
+        window.location.href = `${oAuthState.redirectPrefix}/oauth/callback-step-2${window.location.search}`;
       } catch (error) {
         console.error('OAuth callback error:', error);
-
-        // Handle specific OAuth errors
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-
-        if (errorMessage.includes('invalid_grant') || errorMessage.includes('code has already been used')) {
-          setState({
-            status: 'error',
-            message: 'This authorization code has already been used or has expired. Please try connecting again.',
-          });
-        } else {
-          setState({
-            status: 'error',
-            message: errorMessage,
-          });
-        }
+        setState({
+          status: 'error',
+          message: errorMessage,
+        });
       }
     };
 
@@ -111,24 +74,15 @@ export default function OAuthCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const extractServiceFromState = (): OAuthService | null => {
+  const decodeOAuthStatePayload = (oAuthStateString: string): OAuthStatePayload | null => {
     try {
-      const state = searchParams.get('state');
       if (!state) return null;
 
-      // Decode the base64 state parameter
-      const decoded = atob(state);
-      const parsed = JSON.parse(decoded);
-
-      // Extract service from the parsed state
-      return (parsed.service as OAuthService) || null;
+      // Decode the base64 state parameter.
+      return (JSON.parse(Buffer.from(oAuthStateString, 'base64').toString()) as OAuthStatePayload) || null;
     } catch {
       return null;
     }
-  };
-
-  const isValidOAuthService = (service: string): service is OAuthService => {
-    return ['NOTION', 'AIRTABLE', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG'].includes(service);
   };
 
   return (
@@ -140,20 +94,6 @@ export default function OAuthCallbackPage() {
             <Title order={2}>Connecting your account...</Title>
             <Text c="dimmed" ta="center">
               Please wait while we complete the OAuth connection.
-            </Text>
-          </>
-        )}
-        {state.status === 'success' && (
-          <>
-            <CheckCircle size={64} color="var(--mantine-color-green-6)" />
-            <Title order={2} c="green">
-              Connection Successful!
-            </Title>
-            <Text c="dimmed" ta="center">
-              {state.message}
-            </Text>
-            <Text size="sm" c="dimmed" ta="center">
-              Redirecting to connections page...
             </Text>
           </>
         )}
@@ -174,7 +114,6 @@ export default function OAuthCallbackPage() {
               <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
                 Back to Connections
               </ButtonSecondaryOutline>
-              {/* <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton> */}
             </Group>
           </>
         )}

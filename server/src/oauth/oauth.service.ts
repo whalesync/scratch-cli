@@ -13,6 +13,7 @@ import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
+import { OAuthStatePayload } from './types';
 
 /**
  * Response from the request to get the OAuth authorization redirect URL for a connector.
@@ -25,17 +26,6 @@ export interface OAuthCallbackRequest {
   code: string;
   state: string;
 }
-
-export type OAuthStatePayload = {
-  userId: string;
-  organizationId: string;
-  service: string;
-  connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
-  customClientId?: string;
-  customClientSecret?: string;
-  connectionName?: string;
-  ts: number;
-};
 
 @Injectable()
 export class OAuthService {
@@ -90,6 +80,7 @@ export class OAuthService {
 
     // Embed connection method and optional custom client info into state (base64 JSON)
     const statePayload: OAuthStatePayload = {
+      redirectPrefix: options.redirectPrefix,
       userId: actor.userId,
       organizationId: actor.organizationId,
       service,

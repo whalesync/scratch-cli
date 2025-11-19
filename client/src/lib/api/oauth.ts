@@ -15,7 +15,7 @@ export interface OAuthCallbackResponse {
   connectorAccountId: string;
 }
 
-export const oauthApi = {
+export const oAuthApi = {
   /**
    * Initiate OAuth flow for a service
    */
