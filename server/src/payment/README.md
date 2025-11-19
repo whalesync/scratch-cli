@@ -11,6 +11,7 @@ This module encapsulates all payment processing logic within a dedicated domain 
 ## Endpoints
 
 ### `POST /payment/portal`
+
 **Auth Required**: Yes (`ScratchpadAuthGuard`)
 
 Creates a Stripe Billing Portal URL for authenticated users to manage existing subscriptions.
@@ -18,19 +19,23 @@ Creates a Stripe Billing Portal URL for authenticated users to manage existing s
 **Use Case**: Allow users to update payment methods, view invoices, cancel subscriptions.
 
 ### `POST /payment/checkout/:productType`
+
 **Auth Required**: Yes (`ScratchpadAuthGuard`)
 
 Generates a checkout session URL for initiating new subscriptions with a specific plan type.
 
 **Parameters:**
+
 - `productType`: The subscription plan to purchase
 
 **Features:**
+
 - Tax collection configuration
 - Payment requirement settings
 - Return URL handling
 
 ### `POST /payment/webhook`
+
 **Auth Required**: No (Stripe signature verification)
 
 Receives and processes Stripe webhook events.
@@ -38,10 +43,32 @@ Receives and processes Stripe webhook events.
 **Security**: Validates requests through Stripe's cryptographic signature verification.
 
 **Handled Events:**
+
 - Checkout session completion
 - Subscription updates
 - Invoice payments
 - Payment failures
+
+## Controllers
+
+The payment module uses two controllers:
+
+### StripePaymentController
+
+Handles authenticated user endpoints:
+
+- `POST /payment/portal` - Customer portal URL generation
+- `POST /payment/checkout/:productType` - Checkout session creation
+
+**Security**: All endpoints are protected with `ScratchpadAuthGuard` at the controller level.
+
+### StripePaymentWebhookController
+
+Handles Stripe webhook events:
+
+- `POST /payment/webhook` - Webhook event processing
+
+**Security**: No authentication guard (uses Stripe signature verification instead).
 
 ## Core Service
 
@@ -58,6 +85,7 @@ Provides primary business logic using Stripe API (version 2025-08-27.basil):
 ## Subscription Plans
 
 ### STARTER_PLAN
+
 - Configured per environment
 - Different Stripe IDs for test, staging, and production
 - Enables safe sandbox development
@@ -72,6 +100,7 @@ Provides primary business logic using Stripe API (version 2025-08-27.basil):
 ## Integration
 
 The module integrates with:
+
 - **Configuration**: Stripe credentials and settings
 - **Database**: Subscription persistence via Prisma
 - **PostHog**: Analytics for subscription events
@@ -80,6 +109,7 @@ The module integrates with:
 ## Metadata Filtering
 
 Subscription validation uses metadata:
+
 - Filters for Scratchpad-specific subscriptions
 - Prevents cross-contamination in shared Stripe accounts
 - Enables multi-tenant support
@@ -87,6 +117,7 @@ Subscription validation uses metadata:
 ## Webhook Event Handling
 
 Processes multiple event types:
+
 - `checkout.session.completed`: New subscription creation
 - `customer.subscription.updated`: Subscription changes
 - `invoice.payment_succeeded`: Successful payments
@@ -102,6 +133,7 @@ Processes multiple event types:
 ## Error Handling
 
 Comprehensive error handling for:
+
 - Stripe API errors
 - Invalid webhook signatures
 - Database synchronization issues
