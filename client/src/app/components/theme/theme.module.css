@@ -27,6 +27,30 @@
   font-weight: 425;
 }
 
+/** CUSTOM CHECKBOX STYLES */
+.checkboxInput {
+  border-color: var(--mantine-color-gray-5);
+
+  &:checked {
+    background-color: var(--mantine-color-green-6);
+    border-color: var(--mantine-color-green-8);
+  }
+}
+
+/** CUSTOM Keyboard STYLES */
+.kbdRoot {
+  color: var(--fg-primary);
+  background-color: var(--bg-base);
+  border: 1px solid var(--fg-divider);
+  border-radius: 0;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+}
+
 /** CUSTOM TABLE STYLES */
 .tableThead {
   color: var(--fg-secondary);
@@ -41,6 +65,22 @@
 .tableTbody {
   color: var(--mantine-color-gray-9);
 
+  font-size: 13px;
+  font-weight: 425;
+  line-height: 19px;
+  letter-spacing: 0%;
+}
+
+/** CUSTOM TOOLTIP STYLES */
+.tooltip {
+  /* Colors are reversed here for contrast with the normal page */
+  background-color: var(--fg-primary);
+  color: var(--bg-base);
+
+  border: none;
+  border-radius: var(--mantine-radius-sm);
+
+  /** text/13-regular */
   font-size: 13px;
   font-weight: 425;
   line-height: 19px;

@@ -9,6 +9,7 @@ import {
   Anchor,
   Badge,
   Box,
+  Checkbox,
   Code,
   ColorSwatch,
   Divider,
@@ -118,6 +119,9 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#action-icons">Action Icons</Anchor>
             </List.Item>
             <List.Item>
+              <Anchor href="#input-components">Input Components</Anchor>
+            </List.Item>
+            <List.Item>
               <Anchor href="#badges">Badges</Anchor>
             </List.Item>
             <List.Item>
@@ -133,15 +137,13 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#info-panels">Info Panels</Anchor>
             </List.Item>
             <List.Item>
-              <Anchor href="#input-components">Input Components</Anchor>
-            </List.Item>
-            <List.Item>
               <Anchor href="#dev-tool-components">Dev Tool Components</Anchor>
             </List.Item>
             <List.Item>
               <Anchor href="#patterns">Complete Patterns & Examples</Anchor>
             </List.Item>
           </List>
+
           <GallerySection id="shades" title="Key shades" />
           <Text12Book c="dimmed">
             These are single-color shades that adjust for light/dark mode. Use these for all panels and text.
@@ -185,6 +187,7 @@ export default function DevComponentGalleryPage() {
           >
             <ColorChip cssName="--fg-divider" modeAware />
           </GalleryItem>
+
           <GallerySection id="colors" title="Colors" />
           <Text12Book c="dimmed">
             These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
@@ -285,6 +288,7 @@ export default function DevComponentGalleryPage() {
               <Text13Regular>Item 2</Text13Regular>
             </Group>
           </GalleryItem>
+
           <GallerySection id="mono-text" title="Text: monospace" />
           <TypeGalleryItem label="TextMono13Regular" figmaName="mono/13-regular">
             <TextMono13Regular>Brown fox is quick</TextMono13Regular>
@@ -295,6 +299,7 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="Code">
             <Code>Brown fox is quick</Code>
           </TypeGalleryItem>
+
           <GallerySection id="buttons" title="Buttons" />
           <GalleryItem label="ButtonPrimarySolid">
             <ButtonPrimarySolid leftSection={<Plus />}>Click</ButtonPrimarySolid>
@@ -348,10 +353,54 @@ export default function DevComponentGalleryPage() {
           <GalleryItem deprecated label="RejectSuggestionButton">
             <RejectSuggestionButton>Click</RejectSuggestionButton>
           </GalleryItem>
+
           <GallerySection id="action-icons" title="Action Icons" />
           <GalleryItem label="ActionIconThreeDots">
             <ActionIconThreeDots />
           </GalleryItem>
+
+          <GallerySection id="input-components" title="Input Components" />
+          <GalleryItem
+            label="Menu"
+            notes="Use standard Mantine Menu components. Use data-delete to style a delete item."
+          >
+            <Menu>
+              <Menu.Target>
+                <ActionIconThreeDots />
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<AlignEndHorizontal size={16} />}>Item 1</Menu.Item>
+                <Menu.Item leftSection={<Bird size={16} />} rightSection={<Kbd>⌘B</Kbd>}>
+                  Bird
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item data-delete leftSection={<Trash2 size={16} />}>
+                  Delete
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </GalleryItem>
+          <GalleryItem label="Checkbox">
+            <Checkbox defaultChecked label="I agree to use these components responsibly" />
+          </GalleryItem>
+          <GalleryItem label="DebouncedTextArea">
+            <DebouncedTextArea
+              placeholder="Type something... (debounced)"
+              minRows={3}
+              onChange={(e) => console.debug('Debounced value:', e.target.value)}
+            />
+          </GalleryItem>
+          <GalleryItem label="DiffViewer">
+            <DiffViewer
+              originalValue="Hello, world!"
+              suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!"
+              p="0"
+            />
+          </GalleryItem>
+          <GalleryItem label="DiffText2">
+            <DiffText2 originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
+          </GalleryItem>
+
           <GallerySection id="badges" title="Badges" />
           <GalleryItem label="Badge">
             <Badge>Neutral badge</Badge>
@@ -363,10 +412,11 @@ export default function DevComponentGalleryPage() {
             <BadgeError>Error</BadgeError>
           </GalleryItem>
           <GalleryItem label="Tooltip">
-            <Tooltip label="No customization yet, but it's here to be searched">
+            <Tooltip label="❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️">
               <Ambulance color="pink" />
             </Tooltip>
           </GalleryItem>
+
           <GallerySection id="loaders" title="Loaders" />
           <GalleryItem label="Loader">
             <Loader size="sm" />
@@ -401,12 +451,14 @@ export default function DevComponentGalleryPage() {
               ))}
             </Group>
           </GalleryItem>
+
           <GallerySection id="formatting" title="Formatting" />
           <GalleryItem label="RelativeDate (with tooltip)">
             <Text13Book c="dimmed">
               <RelativeDate date={'2025-10-05T00:25:10.892Z'} />
             </Text13Book>
           </GalleryItem>
+
           <GallerySection id="info-panels" title="Info Panels" />
           <GalleryItem label="Info.NotFoundIcon">
             <Info>
@@ -443,44 +495,7 @@ export default function DevComponentGalleryPage() {
               retry={() => console.debug('Retry clicked')}
             />
           </GalleryItem>
-          <GallerySection id="input-components" title="Input Components" />
-          <GalleryItem
-            label="Menu"
-            notes="Use standard Mantine Menu components. Use data-delete to style a delete item."
-          >
-            <Menu>
-              <Menu.Target>
-                <ActionIconThreeDots />
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<AlignEndHorizontal size={16} />}>Item 1</Menu.Item>
-                <Menu.Item leftSection={<Bird size={16} />} rightSection={<Kbd>⌘B</Kbd>}>
-                  Bird
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Item data-delete leftSection={<Trash2 size={16} />}>
-                  Delete
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </GalleryItem>
-          <GalleryItem label="DebouncedTextArea">
-            <DebouncedTextArea
-              placeholder="Type something... (debounced)"
-              minRows={3}
-              onChange={(e) => console.debug('Debounced value:', e.target.value)}
-            />
-          </GalleryItem>
-          <GalleryItem label="DiffViewer">
-            <DiffViewer
-              originalValue="Hello, world!"
-              suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!"
-              p="0"
-            />
-          </GalleryItem>
-          <GalleryItem label="DiffText2">
-            <DiffText2 originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
-          </GalleryItem>
+
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
           <GalleryItem label="LabelValuePair">
             <LabelValuePair label="Name" value="John Doe" canCopy />

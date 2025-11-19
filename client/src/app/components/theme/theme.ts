@@ -4,8 +4,10 @@ import {
   ActionIcon,
   Badge,
   Button,
+  Checkbox,
   createTheme,
   Divider,
+  Kbd,
   Menu,
   Table,
   Title,
@@ -149,12 +151,20 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       classNames: { label: classes.buttonLabel },
     }),
 
+    Checkbox: Checkbox.extend({
+      defaultProps: { size: 'xs' },
+      classNames: { input: classes.checkboxInput },
+    }),
+
     Divider: Divider.extend({
       defaultProps: {
         color: 'var(--fg-divider)',
       },
     }),
 
+    Kbd: Kbd.extend({
+      classNames: { root: classes.kbdRoot },
+    }),
     Menu: Menu.extend({
       defaultProps: {
         shadow: 'md',
@@ -173,10 +183,10 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     }),
 
     Tooltip: Tooltip.extend({
+      classNames: { tooltip: classes.tooltip },
       defaultProps: {
-        // BG and FG are reversed here because the tooltip is a popup.
-        color: 'var(--fg-primary)', // background.
-        c: 'var(--bg-panel)', // foreground.
+        withArrow: true,
+        arrowSize: 8,
       },
     }),
 
