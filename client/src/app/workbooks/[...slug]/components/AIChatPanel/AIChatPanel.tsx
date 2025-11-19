@@ -39,7 +39,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { Text12Regular, TextTitle3 } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
-import { PublishConfirmationModal } from '../snapshot-grid/modals/PublishConfirmationModal';
 import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
@@ -53,9 +52,9 @@ interface AIChatPanelProps {
 }
 
 export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { workbook, publish } = useActiveWorkbook();
+  const { workbook } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials();
-  const { closeChat } = useWorkbookEditorUIStore();
+  const { closeChat, openPublishConfirmation } = useWorkbookEditorUIStore();
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -63,7 +62,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
   const [showDeleteSessionButton, setShowDeleteSessionButton] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showToolsModal, setShowToolsModal] = useState(false);
-  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const { dataScope, activeRecordId, activeColumnId, activeResources, activeModel, setActiveModel } =
@@ -304,17 +302,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
 
   const handlePublish = () => {
     if (!workbook) return;
-    setShowPublishConfirmation(true);
-  };
-
-  const handleConfirmPublish = async () => {
-    if (!workbook) return;
-    try {
-      setShowPublishConfirmation(false);
-      await publish?.();
-    } catch (e) {
-      console.debug(e);
-    }
+    openPublishConfirmation();
   };
 
   const handleTextInputFocus = async () => {
@@ -584,16 +572,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           trackChangeAgentCapabilities(caps, workbook);
           setShowToolsModal(false);
         }}
-      />
-
-      {/* Publish Confirmation Modal */}
-      <PublishConfirmationModal
-        isOpen={showPublishConfirmation}
-        onClose={() => setShowPublishConfirmation(false)}
-        onConfirm={handleConfirmPublish}
-        workbookId={workbook?.id ?? null}
-        serviceName={activeTable?.connectorService ?? undefined}
-        isPublishing={false}
       />
     </Paper>
   );

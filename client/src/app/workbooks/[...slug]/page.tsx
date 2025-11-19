@@ -26,6 +26,7 @@ import { AddTableTab } from './components/AddTableTab';
 import { UpdateRecordsProvider } from './components/contexts/update-records-context';
 import { WorkbookInspector } from './components/devtool/WorkbookInspector';
 import { ManageTablesModal } from './components/ManageTablesModal';
+import { PublishWorkbookWorkflow } from './components/PublishWorkbookWorkflow';
 import { RecordDataToolbar } from './components/RecordDataToolbar';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
 import { WorkbookHeader } from './components/WorkbookHeader';
@@ -143,6 +144,7 @@ function WorkbookPageContent() {
         </Group>
       </MainContent>
 
+      {/* Workbook Scoped Modals and workflow components */}
       <ManageTablesModal
         isOpen={showManageTablesModal}
         onClose={() => setShowManageTablesModal(false)}
@@ -154,6 +156,8 @@ function WorkbookPageContent() {
         workbookId={workbook.id}
         tables={allTables}
       />
+      <PublishWorkbookWorkflow />
+
       {isDevToolsEnabled && <WorkbookInspector opened={devToolsOpen} onClose={closeDevTools} />}
     </PageLayout>
   );

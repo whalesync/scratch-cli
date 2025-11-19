@@ -2,7 +2,7 @@ import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Group } from '@mantine/core';
-import { MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
+import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { useLayoutManagerStore } from '../../../../stores/layout-manager-store';
 import { Text13Regular } from '../../../components/base/text';
@@ -12,7 +12,7 @@ import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 export const WorkbookHeader = () => {
   const { workbook } = useActiveWorkbook();
   const { toggleNavDrawer } = useLayoutManagerStore();
-  const { chatOpen, openChat } = useWorkbookEditorUIStore();
+  const { chatOpen, openChat, openPublishConfirmation } = useWorkbookEditorUIStore();
 
   return (
     <Group bg="var(--bg-panel)" h={36} justify="space-between" pos="relative" px="xs" gap="xs">
@@ -33,9 +33,9 @@ export const WorkbookHeader = () => {
           </ButtonSecondaryInline>
         )}
         {/* TODO: Move the publish button here, after figuring out how it should behave */}
-        {/* <ButtonSecondaryOutline size="xs" leftSection={<CloudUpload size={16} />}>
-        Publish
-      </ButtonSecondaryOutline> */}
+        <ButtonSecondaryInline size="xs" leftSection={<CloudUploadIcon size={14} />} onClick={openPublishConfirmation}>
+          Publish
+        </ButtonSecondaryInline>
         <WorkbookActionsMenu />
       </Group>
     </Group>

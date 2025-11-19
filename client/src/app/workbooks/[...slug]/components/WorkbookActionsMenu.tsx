@@ -7,7 +7,7 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { workbookApi } from '@/lib/api/workbook';
-import { getPullOperationName, getPushOperationName, serviceName } from '@/service-naming-conventions';
+import { getPullOperationName, getPushOperationName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   DownloadWorkbookResult,
@@ -39,7 +39,6 @@ import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
 import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
-import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
 enum Modals {
   DOWNLOAD_WITHOUT_JOB = 'download-without-job',
@@ -53,7 +52,7 @@ enum Modals {
 export const WorkbookActionsMenu = () => {
   const router = useRouter();
   const { user } = useScratchPadUser();
-  const { workbook, activeTable, updateWorkbook, publish, isLoading, showAllColumns } = useActiveWorkbook();
+  const { workbook, activeTable, updateWorkbook, isLoading, showAllColumns } = useActiveWorkbook();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
   const { handleDownloadCsv } = useExportAsCsv();
   const { isDevToolsEnabled } = useDevTools();
@@ -62,7 +61,6 @@ export const WorkbookActionsMenu = () => {
   const [downloadResult, setDownloadResult] = useState<DownloadWorkbookWithoutJobResult | null>(null);
   const [workbookName, setWorkbookName] = useState(workbook?.name ?? '');
   const [saving, setSaving] = useState(false);
-  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [downloadInProgress, setDownloadInProgress] = useState<DownloadWorkbookResult | null>(null);
   const [downloadingCsv, setDownloadingCsv] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
@@ -73,7 +71,7 @@ export const WorkbookActionsMenu = () => {
   });
   const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
     useDisclosure(false);
-  const openDevTools = useWorkbookEditorUIStore((state) => state.openDevTools);
+  const { openDevTools, openPublishConfirmation } = useWorkbookEditorUIStore();
 
   useEffect(() => {
     if (activeTable) {
@@ -172,33 +170,7 @@ export const WorkbookActionsMenu = () => {
 
   const handlePublish = () => {
     if (!workbook) return;
-    setShowPublishConfirmation(true);
-  };
-
-  const handleConfirmPublish = async () => {
-    if (!workbook) return;
-    try {
-      setSaving(true);
-      setShowPublishConfirmation(false);
-      modalStack.open(Modals.PUBLISH);
-      await publish?.();
-
-      ScratchpadNotifications.success({
-        title: 'Published',
-        message: `Your data has been published to ${activeTable?.connectorService ? serviceName(activeTable.connectorService) : 'unknown'}`,
-        autoClose: 5000,
-      });
-    } catch (e) {
-      console.debug(e);
-      ScratchpadNotifications.error({
-        title: 'Publish failed',
-        message: (e as Error).message ?? 'There was an error publishing your data',
-        autoClose: 5000,
-      });
-    } finally {
-      setSaving(false);
-      modalStack.close(Modals.PUBLISH);
-    }
+    openPublishConfirmation();
   };
 
   const handleAbandon = async () => {
@@ -502,16 +474,6 @@ export const WorkbookActionsMenu = () => {
         </Menu.Dropdown>
       </Menu>
       {/* Fully remove the modal when not shown, to clean up state */}
-      {workbook && (
-        <PublishConfirmationModal
-          isOpen={showPublishConfirmation}
-          onClose={() => setShowPublishConfirmation(false)}
-          onConfirm={handleConfirmPublish}
-          workbookId={workbook.id}
-          serviceName={activeTable?.connectorService ? serviceName(activeTable.connectorService) : undefined}
-          isPublishing={saving}
-        />
-      )}
 
       {downloadInProgress && workbook?.id && (
         <DownloadProgressModal jobId={downloadInProgress.jobId} onClose={() => setDownloadInProgress(null)} />

@@ -35,9 +35,14 @@ export interface WorkbookEditorUIState {
 
   tabs: (TableTabState | NewTabState)[];
 
+  // UI state for the dev tools panel.
   devToolsOpen: boolean;
 
+  // UI state for the chat panel.
   chatOpen: boolean;
+
+  // UI state for the publish confirmation modal.
+  publishConfirmationOpen: boolean;
 }
 
 type Actions = {
@@ -61,7 +66,9 @@ type Actions = {
 
   openChat: () => void;
   closeChat: () => void;
-  toggleChat: () => void;
+
+  openPublishConfirmation: () => void;
+  closePublishConfirmation: () => void;
 };
 
 type WorkbookEditorUIStore = WorkbookEditorUIState & Actions;
@@ -74,6 +81,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   tabs: [],
   devToolsOpen: false,
   chatOpen: true,
+  publishConfirmationOpen: false,
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
@@ -95,11 +103,15 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   closeTab: (id: TabId) => {
     set({ ...closeTabAndFixActiveTab(id, get().tabs, get().activeTab) });
   },
+
   openDevTools: () => set({ devToolsOpen: true }),
   closeDevTools: () => set({ devToolsOpen: false }),
+
   openChat: () => set({ chatOpen: true }),
   closeChat: () => set({ chatOpen: false }),
-  toggleChat: () => set({ chatOpen: !get().chatOpen }),
+
+  openPublishConfirmation: () => set({ publishConfirmationOpen: true }),
+  closePublishConfirmation: () => set({ publishConfirmationOpen: false }),
   /**
    * This is called every time the workbook is updated from the server.
    * Any state that has a dependency on the workbook's data should be updated here, to clean up any stale state.
