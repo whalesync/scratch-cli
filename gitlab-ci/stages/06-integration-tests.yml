@@ -9,6 +9,7 @@ include:
 integration tests for test env post-deploy:
   stage: post-deploy integration tests
   interruptible: false
+  resource_group: test
   variables:
     CLERK_SECRET_KEY: "${CLERK_SECRET_KEY_DEVELOPMENT}"
     INTEGRATION_TEST_CLIENT_DOMAIN: "test.scratch.md"
@@ -20,12 +21,14 @@ integration tests for test env post-deploy:
     - !reference [.use_nvm, script]
     - yarn run test:integration --verbose
   cache: !reference [.caches, server]
+  dependencies: []
   rules:
     - !reference [.rules, on_merge_to_master]
 
 integration tests for test env pre-deploy:
   stage: pre-deploy integration tests
   interruptible: false
+  resource_group: test
   variables:
     CLERK_SECRET_KEY: "${CLERK_SECRET_KEY_DEVELOPMENT}"
     INTEGRATION_TEST_CLIENT_DOMAIN: "test.scratch.md"
@@ -44,10 +47,11 @@ notify slack on integration test failure test env post-deploy:
   stage: post-deploy integration tests
   needs:
     - integration tests for test env post-deploy
+  dependencies: []
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\",\"channel\":\"#feed-scratch\"}" \
       ${SLACK_WEBHOOK_URL}
   rules:
     - !reference [.rules, on_merge_to_master]
@@ -57,10 +61,11 @@ notify slack on integration test failure test env pre-deploy:
   stage: pre-deploy integration tests
   needs:
     - integration tests for test env pre-deploy
+  dependencies: []
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\",\"channel\":\"#feed-scratch\"}" \
       ${SLACK_WEBHOOK_URL}
   rules:
     - !reference [.rules, on_merge_to_prod]
