@@ -12,6 +12,7 @@ export const SWR_KEYS = {
   connectorAccounts: {
     list: () => ['connector-accounts'],
     detail: (id: string) => ['connector-accounts', 'detail', id],
+    allTables: () => ['connector-accounts', 'all-tables'],
   },
   workbook: {
     list: () => ['workbook', 'list', 'all'],

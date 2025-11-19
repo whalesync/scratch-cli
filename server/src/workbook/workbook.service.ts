@@ -1080,10 +1080,13 @@ export class WorkbookService {
           },
         );
 
-        // Set syncInProgress=false for this table on success
+        // Set syncInProgress=false and update lastSyncTime for this table on success
         await this.db.client.snapshotTable.update({
           where: { id: table.id },
-          data: { syncInProgress: false },
+          data: {
+            syncInProgress: false,
+            lastSyncTime: new Date(),
+          },
         });
 
         // Send snapshot-updated event to client
@@ -1241,19 +1244,43 @@ export class WorkbookService {
       tableAndConnector.push({ table, tableSpec: table.tableSpec as AnyTableSpec, connector });
     }
 
+    // Track which tables had operations performed
+    const tableIdsWithOperations = new Set<string>();
+
     // First create everything.
     for (const { table, tableSpec, connector } of tableAndConnector) {
-      await this.publishCreatesToTable(workbook, connector, table, tableSpec);
+      const count = await this.publishCreatesToTable(workbook, connector, table, tableSpec);
+      if (count > 0) {
+        tableIdsWithOperations.add(table.id);
+      }
     }
 
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
     for (const { table, tableSpec, connector } of tableAndConnector) {
-      await this.publishUpdatesToTable(workbook, connector, table, tableSpec);
+      const count = await this.publishUpdatesToTable(workbook, connector, table, tableSpec);
+      if (count > 0) {
+        tableIdsWithOperations.add(table.id);
+      }
     }
 
     // Finally the deletes since hopefully nothing references them any more.
     for (const { table, tableSpec, connector } of tableAndConnector) {
-      await this.publishDeletesToTable(workbook, connector, table, tableSpec);
+      const count = await this.publishDeletesToTable(workbook, connector, table, tableSpec);
+      if (count > 0) {
+        tableIdsWithOperations.add(table.id);
+      }
+    }
+
+    // Update lastSyncTime only for tables that had operations performed
+    if (tableIdsWithOperations.size > 0) {
+      await this.db.client.snapshotTable.updateMany({
+        where: {
+          id: { in: Array.from(tableIdsWithOperations) },
+        },
+        data: {
+          lastSyncTime: new Date(),
+        },
+      });
     }
 
     WSLogger.debug({
@@ -1268,8 +1295,8 @@ export class WorkbookService {
     connector: Connector<S>,
     table: WorkbookCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
-  ): Promise<void> {
-    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+  ): Promise<number> {
+    return await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       workbook.id as WorkbookId,
       table.tableName,
       'create',
@@ -1301,10 +1328,10 @@ export class WorkbookService {
     connector: Connector<S>,
     table: WorkbookCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
-  ): Promise<void> {
+  ): Promise<number> {
     // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
 
-    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+    return await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       workbook.id as WorkbookId,
       table.tableName,
       'update',
@@ -1324,10 +1351,10 @@ export class WorkbookService {
     connector: Connector<S>,
     table: WorkbookCluster.SnapshotTable,
     tableSpec: TableSpecs[S],
-  ): Promise<void> {
+  ): Promise<number> {
     // Finally the deletes since hopefully nothing references them.
 
-    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+    return await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
       workbook.id as WorkbookId,
       table.tableName,
       'delete',

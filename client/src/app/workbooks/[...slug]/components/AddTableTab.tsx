@@ -1,258 +1,389 @@
 'use client';
 
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { Text13Book, Text13Medium, Text13Regular, TextTitle3 } from '@/app/components/base/text';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useConnectorAccounts } from '@/hooks/use-connector-account';
-import { connectorAccountsApi } from '@/lib/api/connector-accounts';
+import { useAllTables } from '@/hooks/use-all-tables';
+import { useUploads } from '@/hooks/use-uploads';
 import { workbookApi } from '@/lib/api/workbook';
-import { serviceName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { EntityId, TableList, TablePreview } from '@/types/server-entities/table-list';
-import { AddTableToWorkbookDto } from '@/types/server-entities/workbook';
-import { Center, Checkbox, Group, Loader, ScrollArea, Stack, Table, Text } from '@mantine/core';
-import { PlusIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { EntityId, TableGroup } from '@/types/server-entities/table-list';
+import { AddTableToWorkbookDto, SnapshotTable } from '@/types/server-entities/workbook';
+import { Box, Center, Collapse, Divider, Group, Loader, Stack, TextInput } from '@mantine/core';
+import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCw, SearchIcon, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
 
-interface ConnectorOption {
-  connectorAccountId: string | null;
-  service: Service;
-  displayName: string;
-  isVirtual: boolean;
-}
+// Helper to format relative time
+const formatRelativeTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
+// Helper to find matching snapshot table by comparing EntityIds
+const findMatchingSnapshotTable = (
+  tableId: EntityId,
+  snapshotTables: SnapshotTable[] | undefined,
+): SnapshotTable | undefined => {
+  if (!snapshotTables) return undefined;
+  return snapshotTables.find((st) => st.tableSpec.id.remoteId.every((r) => tableId.remoteId.includes(r)));
+};
 
 export const AddTableTab = () => {
   const { workbook } = useActiveWorkbook();
+  const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
+  const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
 
-  const [step, setStep] = useState<'select-connector' | 'select-table'>('select-connector');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [selectedConnectorAccountId, setSelectedConnectorAccountId] = useState<string | null>(null);
-  const [selectedTableIds, setSelectedTableIds] = useState<EntityId[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [tables, setTables] = useState<TableList | null>(null);
-  const [loadingTables, setLoadingTables] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
+  const [refreshingGroups, setRefreshingGroups] = useState<Record<string, boolean>>({});
 
-  const { connectorAccounts, isLoading: loadingAccounts } = useConnectorAccounts();
+  // Transform CSV uploads into a TableGroup
+  const csvGroup = useMemo((): TableGroup | null => {
+    const csvUploads = uploads.filter((upload) => upload.type === 'CSV');
+    if (csvUploads.length === 0) return null;
 
-  // Add CSV as a virtual connector (no connectorAccountId)
-  const allConnectorOptions: ConnectorOption[] = [
-    {
-      connectorAccountId: null,
+    return {
       service: Service.CSV,
-      displayName: 'CSV uploads',
-      isVirtual: true,
-    },
-    ...(connectorAccounts || []).map((ca) => ({
-      connectorAccountId: ca.id,
-      service: ca.service,
-      displayName: ca.displayName,
-      isVirtual: false,
-    })),
-  ];
-
-  // Fetch tables when connector is selected
-  useEffect(() => {
-    const fetchTables = async () => {
-      if (!selectedService) {
-        setTables(null);
-        return;
-      }
-
-      setLoadingTables(true);
-      try {
-        const tableList = await connectorAccountsApi.listTables(selectedService, selectedConnectorAccountId);
-        setTables(tableList);
-      } catch (error) {
-        console.error('Failed to fetch tables:', error);
-        setTables({ tables: [] });
-      } finally {
-        setLoadingTables(false);
-      }
+      connectorAccountId: null,
+      displayName: 'Uploaded files',
+      tables: csvUploads.map((upload) => ({
+        id: {
+          wsId: upload.id,
+          remoteId: [upload.id],
+        },
+        displayName: upload.name,
+      })),
     };
+  }, [uploads]);
 
-    if (step === 'select-table' && selectedService) {
-      fetchTables();
-    }
-  }, [step, selectedService, selectedConnectorAccountId]);
+  // Combine backend groups with CSV group and filter by search
+  const groupedTables = useMemo(() => {
+    // Combine all groups
+    const allGroups = csvGroup ? [...tableGroups, csvGroup] : tableGroups;
 
-  const handleConnectorSelect = (connectorAccountId: string | null, service: Service) => {
-    setSelectedConnectorAccountId(connectorAccountId);
-    setSelectedService(service);
-    setStep('select-table');
-  };
+    // Filter groups by search query
+    const filteredGroups = allGroups
+      .map((group) => ({
+        ...group,
+        tables: group.tables.filter((table) => table.displayName.toLowerCase().includes(searchQuery.toLowerCase())),
+      }))
+      .filter((group) => group.tables.length > 0);
 
-  const handleTableToggle = (tableId: EntityId) => {
-    setSelectedTableIds((prev) => {
-      const isSelected = prev.some((id) => JSON.stringify(id) === JSON.stringify(tableId));
-      if (isSelected) {
-        return prev.filter((id) => JSON.stringify(id) !== JSON.stringify(tableId));
-      } else {
-        return [...prev, tableId];
-      }
+    // Sort groups: CSV uploads last
+    return filteredGroups.sort((a, b) => {
+      if (a.service === Service.CSV) return 1;
+      if (b.service === Service.CSV) return -1;
+      return 0;
     });
+  }, [tableGroups, csvGroup, searchQuery]);
+
+  // Get tables that are already in the workbook (for "Available in workbook" section)
+  const tablesInWorkbook = useMemo(() => {
+    if (!workbook?.snapshotTables) return [];
+
+    // Flatten all groups and find tables that match snapshot tables
+    const matches: Array<{
+      table: TableGroup['tables'][0];
+      group: TableGroup;
+      snapshotTable: SnapshotTable;
+    }> = [];
+
+    for (const group of groupedTables) {
+      for (const table of group.tables) {
+        const snapshotTable = findMatchingSnapshotTable(table.id, workbook.snapshotTables);
+        if (snapshotTable) {
+          matches.push({ table, group, snapshotTable });
+        }
+      }
+    }
+
+    return matches;
+  }, [groupedTables, workbook?.snapshotTables]);
+
+  const toggleGroup = (groupKey: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
   };
 
-  const handleAddTables = async () => {
-    if (!workbook || selectedTableIds.length === 0 || !selectedService) {
+  const handleTableSelect = async (table: TableGroup['tables'][0], group: TableGroup) => {
+    if (!workbook) return;
+
+    // Toggle selection
+    if (selectedTableId === table.id) {
+      setSelectedTableId(null);
       return;
     }
 
-    setIsAdding(true);
+    setSelectedTableId(table.id);
+
+    // Automatically add the table when selected
     try {
-      // Add all selected tables
-      for (const tableId of selectedTableIds) {
-        const dto: AddTableToWorkbookDto = {
-          service: selectedService,
-          connectorAccountId: selectedConnectorAccountId || undefined,
-          tableId: tableId,
-        };
-        await workbookApi.addTable(workbook.id, dto);
-      }
+      const dto: AddTableToWorkbookDto = {
+        service: group.service,
+        connectorAccountId: group.connectorAccountId || undefined,
+        tableId: table.id,
+      };
+      await workbookApi.addTable(workbook.id, dto);
 
       ScratchpadNotifications.success({
-        title: `${selectedTableIds.length} table${selectedTableIds.length > 1 ? 's' : ''} added`,
-        message: `The tables have been added to your workbook.`,
+        title: 'Table added',
+        message: `${table.displayName} has been added to your workbook.`,
       });
-      handleClose();
     } catch (error) {
-      console.error('Failed to add tables:', error);
+      console.error('Failed to add table:', error);
       ScratchpadNotifications.error({
-        title: 'Failed to add tables',
+        title: 'Failed to add table',
         message: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
-      setIsAdding(false);
+      setSelectedTableId(null);
     }
   };
 
-  const handleClose = () => {
-    // TODO: Cleanup.
-    setStep('select-connector');
-    setSelectedService(null);
-    setSelectedConnectorAccountId(null);
-    setSelectedTableIds([]);
+  const handleRefresh = async (groupKey: string) => {
+    // Set loading state for this group
+    setRefreshingGroups((prev) => ({ ...prev, [groupKey]: true }));
+
+    try {
+      // If refreshing uploaded files, only refresh uploads
+      if (groupKey === Service.CSV) {
+        await mutateUploads();
+      } else {
+        // TODO: Refresh only the tables for the specific service.
+        // For other connectors, refresh all tables
+        await mutateAllTables();
+      }
+    } finally {
+      // Clear loading state for this group
+      setRefreshingGroups((prev) => ({ ...prev, [groupKey]: false }));
+    }
   };
 
-  const handleBack = () => {
-    setStep('select-connector');
-    setSelectedTableIds([]);
+  const handleNewDataSource = () => {
+    // TODO: Navigate to new data source page or open modal
+    console.log('New data source');
+  };
+
+  const handleUploadFile = () => {
+    // TODO: Open file upload modal
+    console.log('Upload file');
   };
 
   if (!workbook) {
     return <Loader />;
   }
 
+  const isLoading = loadingTables || loadingUploads;
+
   return (
-    <Stack gap="md" maw={500} mx="auto" align="center" py="xl">
-      <DecorativeBoxedIcon Icon={PlusIcon} />
-      <Text13Medium ta="center">Import table into workbook</Text13Medium>
-      <Text13Book c="dimmed" ta="center">
-        Select which table you want to import
-        <br /> into the workbook.
-      </Text13Book>
+    <Stack gap="md" maw={600} mx="auto" py="xl">
+      <Stack gap="xs" align="center">
+        <DecorativeBoxedIcon Icon={PlusIcon} />
+        <Text13Medium ta="center">Import table into workbook</Text13Medium>
+        <Text13Book c="dimmed" ta="center">
+          Select which table you want to import
+          <br />
+          into the workbook.
+        </Text13Book>
+      </Stack>
 
-      {step === 'select-connector' && (
-        <>
-          {loadingAccounts ? (
-            <Center py="xl">
-              <Loader size="sm" />
-            </Center>
-          ) : (
-            <ScrollArea.Autosize mah={400} mih={400} w="100%">
-              <Table highlightOnHover withTableBorder>
-                <Table.Tbody>
-                  {allConnectorOptions.map((connector) => (
-                    <Table.Tr
-                      key={connector.connectorAccountId || 'csv'}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleConnectorSelect(connector.connectorAccountId, connector.service)}
+      {/* Bordered container with search and table list */}
+      <Box
+        style={{
+          border: '1px solid var(--mantine-color-gray-3)',
+          borderRadius: 'var(--mantine-radius-sm)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Search bar inside container */}
+        <TextInput
+          placeholder="Search tables..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          leftSection={<StyledLucideIcon Icon={SearchIcon} size="sm" />}
+          variant="unstyled"
+          styles={{
+            input: {
+              borderBottom: '1px solid var(--mantine-color-gray-3)',
+              borderRadius: 0,
+              paddingLeft: 'var(--mantine-spacing-xl)',
+            },
+          }}
+        />
+
+        {isLoading ? (
+          <Center py="xl">
+            <Loader size="sm" />
+          </Center>
+        ) : groupedTables.length > 0 || tablesInWorkbook.length > 0 ? (
+          <Stack gap={0}>
+            {/* Available in workbook section */}
+            {tablesInWorkbook.length > 0 && (
+              <>
+                <Text13Book c="dimmed" px="sm" py="xs">
+                  Available in workbook
+                </Text13Book>
+                {tablesInWorkbook.map(({ table, group, snapshotTable }) => {
+                  return (
+                    <Box
+                      key={table.id.wsId}
+                      px="sm"
+                      py="xs"
+                      style={{
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                      }}
+                      onClick={() => handleTableSelect(table, group)}
                     >
-                      <Table.Td>
-                        <Group gap="md" wrap="nowrap">
-                          <ConnectorIcon connector={connector.service} size={32} withBorder />
-                          <div style={{ flex: 1 }}>
-                            <Text size="sm" fw={500}>
-                              {connector.displayName}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {serviceName(connector.service)}
-                            </Text>
-                          </div>
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea.Autosize>
-          )}
-        </>
-      )}
+                      <Group gap="sm" wrap="nowrap">
+                        <ConnectorIcon connector={group.service} size={16} />
+                        <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
+                        {snapshotTable.lastSyncTime && (
+                          <Group gap="xs">
+                            <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
+                            <Text13Regular c="var(--fg-muted)">
+                              {formatRelativeTime(snapshotTable.lastSyncTime)}
+                            </Text13Regular>
+                          </Group>
+                        )}
+                      </Group>
+                    </Box>
+                  );
+                })}
+                <Divider />
+              </>
+            )}
 
-      {step === 'select-table' && (
-        <>
-          <Group justify="space-between" align="center">
-            <TextTitle3>Select a Table</TextTitle3>
-            <ButtonSecondaryOutline size="xs" onClick={handleBack}>
-              Back to Connectors
-            </ButtonSecondaryOutline>
-          </Group>
+            {/* Grouped tables by connector */}
+            {groupedTables.map((group, groupIndex) => {
+              const groupKey = group.service;
+              const isCollapsed = collapsedGroups[groupKey];
+              const isLastGroup = groupIndex === groupedTables.length - 1;
+              const isRefreshing = refreshingGroups[groupKey];
 
-          <Text13Regular c="dimmed">
-            Choose a table to add to your workbook. The table&apos;s data will be downloaded and added to your workbook.
+              return (
+                <div key={groupKey}>
+                  {/* Group header */}
+                  <Group
+                    gap="sm"
+                    px="sm"
+                    py="xs"
+                    style={{
+                      cursor: 'pointer',
+                    }}
+                    wrap="nowrap"
+                  >
+                    <Group gap="sm" style={{ flex: 1 }} onClick={() => toggleGroup(groupKey)} wrap="nowrap">
+                      <StyledLucideIcon Icon={isCollapsed ? ChevronRight : ChevronDown} size="sm" />
+                      <Text13Regular>{group.displayName}</Text13Regular>
+                    </Group>
+                    <Group
+                      gap="xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isRefreshing) {
+                          handleRefresh(groupKey);
+                        }
+                      }}
+                      style={{ cursor: isRefreshing ? 'default' : 'pointer' }}
+                    >
+                      {isRefreshing ? (
+                        <Loader size="xs" />
+                      ) : (
+                        <StyledLucideIcon Icon={RefreshCw} size="sm" c="var(--fg-muted)" />
+                      )}
+                      <Text13Regular c="var(--fg-muted)">Refresh</Text13Regular>
+                    </Group>
+                  </Group>
+
+                  {/* Group tables */}
+                  <Collapse in={!isCollapsed}>
+                    {group.tables.map((table) => {
+                      const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
+                      return (
+                        <Box
+                          key={table.id.wsId}
+                          px="sm"
+                          py="xs"
+                          style={{
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '';
+                          }}
+                          onClick={() => handleTableSelect(table, group)}
+                        >
+                          <Group gap="sm" wrap="nowrap">
+                            <ConnectorIcon connector={group.service} size={16} />
+                            <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
+                            {matchingSnapshot?.lastSyncTime && (
+                              <Group gap="xs">
+                                <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
+                                <Text13Regular c="var(--fg-muted)">
+                                  {formatRelativeTime(matchingSnapshot.lastSyncTime)}
+                                </Text13Regular>
+                              </Group>
+                            )}
+                          </Group>
+                        </Box>
+                      );
+                    })}
+                  </Collapse>
+
+                  {/* Divider between groups */}
+                  {!isLastGroup && <Divider />}
+                </div>
+              );
+            })}
+          </Stack>
+        ) : searchQuery ? (
+          <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+            No tables found matching &quot;{searchQuery}&quot;
           </Text13Regular>
+        ) : (
+          <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+            No tables available from your connections.
+          </Text13Regular>
+        )}
+      </Box>
 
-          {loadingTables ? (
-            <Center py="xl">
-              <Loader size="sm" />
-            </Center>
-          ) : tables && tables.tables && tables.tables.length > 0 ? (
-            <ScrollArea.Autosize mah={400} mih={400}>
-              <Table highlightOnHover withTableBorder>
-                <Table.Tbody>
-                  {tables.tables.map((table: TablePreview) => {
-                    const isSelected = selectedTableIds.some((id) => JSON.stringify(id) === JSON.stringify(table.id));
-                    return (
-                      <Table.Tr
-                        key={table.id.wsId}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleTableToggle(table.id)}
-                      >
-                        <Table.Td style={{ width: 40 }}>
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => handleTableToggle(table.id)}
-                            onClick={() => handleTableToggle(table.id)}
-                          />
-                        </Table.Td>
-                        <Table.Td>
-                          <Text size="sm" fw={500}>
-                            {table.displayName}
-                          </Text>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea.Autosize>
-          ) : (
-            <Text size="sm" c="dimmed" ta="center" py="xl">
-              No tables available from this connector.
-            </Text>
-          )}
-
-          <Group justify="flex-end" mt="md">
-            <ButtonPrimaryLight onClick={handleAddTables} disabled={selectedTableIds.length === 0} loading={isAdding}>
-              Add {selectedTableIds.length > 0 ? selectedTableIds.length : ''} Table
-              {selectedTableIds.length !== 1 ? 's' : ''}
-            </ButtonPrimaryLight>
-          </Group>
-        </>
-      )}
+      {/* Bottom action buttons */}
+      <Group justify="center" gap="sm">
+        <ButtonSecondaryOutline
+          leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
+          onClick={handleNewDataSource}
+        >
+          New data source
+        </ButtonSecondaryOutline>
+        <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
+          Upload file
+        </ButtonSecondaryOutline>
+      </Group>
     </Stack>
   );
 };

@@ -728,7 +728,8 @@ export class SnapshotDb {
     batchSize: number,
     callback: (records: SnapshotRecord[], trx: Knex.Transaction) => Promise<void>,
     markAsClean: boolean,
-  ) {
+  ): Promise<number> {
+    let processedCount = 0;
     // Process all dirty records in a single transaction to avoid pagination issues
     await this.knex.transaction(async (trx) => {
       const query = trx<DbRecord>(tableName)
@@ -755,6 +756,7 @@ export class SnapshotDb {
       }
 
       const allDbRecords = await query;
+      processedCount = allDbRecords.length;
 
       if (allDbRecords.length > 0) {
         // Process records in batches
@@ -788,6 +790,7 @@ export class SnapshotDb {
         }
       }
     });
+    return processedCount;
   }
 
   async updateRemoteIds(

@@ -199,10 +199,13 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         // Mark table as completed
         currentTable.status = 'completed';
 
-        // Set syncInProgress=false for this table on success
+        // Set syncInProgress=false and update lastSyncTime for this table on success
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
-          data: { syncInProgress: false },
+          data: {
+            syncInProgress: false,
+            lastSyncTime: new Date(),
+          },
         });
 
         WSLogger.debug({

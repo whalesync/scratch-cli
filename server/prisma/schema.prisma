@@ -182,6 +182,9 @@ model SnapshotTable {
   // Whether records are currently being synced/downloaded for this table
   syncInProgress Boolean @default(false)
 
+  // Timestamp of the last successful sync (download or publish)
+  lastSyncTime DateTime?
+
   // Columns that are hidden from the UI and agent, list of column wsIds
   hiddenColumns String[] @default([])
 

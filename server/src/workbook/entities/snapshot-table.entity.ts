@@ -18,6 +18,7 @@ export class SnapshotTable {
   hidden: boolean;
   syncInProgress: boolean;
   hiddenColumns: string[];
+  lastSyncTime: Date | null;
 
   constructor(snapshotTable: SnapshotTableCluster.SnapshotTable) {
     this.id = snapshotTable.id;
@@ -34,5 +35,6 @@ export class SnapshotTable {
     this.hidden = snapshotTable.hidden;
     this.syncInProgress = snapshotTable.syncInProgress;
     this.hiddenColumns = snapshotTable.hiddenColumns ?? [];
+    this.lastSyncTime = snapshotTable.lastSyncTime ?? null;
   }
 }

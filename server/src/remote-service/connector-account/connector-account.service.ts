@@ -14,6 +14,7 @@ import { exceptionForConnectorError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
+import { TableGroup } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 import { DecryptedCredentials } from './types/encrypted-credentials.interface';
 
@@ -192,6 +193,29 @@ export class ConnectorAccountService {
     });
   }
 
+  async listAllUserTables(actor: Actor): Promise<TableGroup[]> {
+    const allAccounts = await this.findAll(actor);
+
+    // Fetch tables from all connector accounts in parallel
+    const tablePromises = allAccounts.map((account) =>
+      this.listTables(account.service, account.id, actor).then((tables) => ({
+        service: account.service,
+        connectorAccountId: account.id,
+        displayName: account.displayName,
+        tables,
+      })),
+    );
+
+    try {
+      const groups = await Promise.all(tablePromises);
+      return groups;
+    } catch (error) {
+      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  }
+
   async listTables(service: Service, connectorAccountId: string | null, actor: Actor): Promise<TablePreview[]> {
     // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (e.g., CSV)
     // When connectorAccountId is provided, load the account and pass it to the connector
@@ -216,7 +240,7 @@ export class ConnectorAccountService {
     }
 
     try {
-      return connector.listTables();
+      return connector.listTables().then((tables) => tables.sort((a, b) => a.displayName.localeCompare(b.displayName)));
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
     }

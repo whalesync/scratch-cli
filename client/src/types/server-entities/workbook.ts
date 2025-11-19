@@ -75,6 +75,7 @@ export interface SnapshotTable {
   hidden: boolean;
   syncInProgress: boolean;
   hiddenColumns: string[];
+  lastSyncTime: string | null;
 }
 
 export interface Workbook {
