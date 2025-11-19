@@ -1,5 +1,6 @@
 'use client';
 
+import { SnapshotTableId } from '@/types/server-entities/ids';
 import { Box, Group, Loader, Paper, Select, Stack, Text } from '@mantine/core';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -92,7 +93,11 @@ export default function AdvancedAgentInputWrapper() {
 
         {/* Advanced Agent Input */}
         {selectedTableId && (
-          <AdvancedAgentInput tableId={selectedTableId} workbook={workbook} onMessageChange={setInputValue} />
+          <AdvancedAgentInput
+            tableId={selectedTableId as SnapshotTableId}
+            workbook={workbook}
+            onMessageChange={setInputValue}
+          />
         )}
 
         {/* Rendered Text Display */}

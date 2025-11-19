@@ -3,9 +3,10 @@ import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { toActor } from 'src/auth/types';
 import type { WorkbookId } from 'src/types/ids';
+import { MentionsSearchRecordsRequestDto } from './dto/record-search.dto';
+import { MentionsSearchResourcesRequestDto } from './dto/resource-search.dto';
+import { RecordMentionEntity, ResourceMentionEntity } from './entities/mentions.entity';
 import { MentionsService } from './mentions.service';
-import type { MentionsSearchRequestDto } from './types';
-import { RecordMentionEntity, ResourceMentionEntity } from './types';
 
 @Controller('mentions')
 @UseGuards(ScratchpadAuthGuard)
@@ -15,7 +16,7 @@ export class MentionsController {
 
   @Post('search/resources')
   async searchResources(
-    @Body() body: MentionsSearchRequestDto,
+    @Body() body: MentionsSearchResourcesRequestDto,
     @Req() req: RequestWithUser,
   ): Promise<ResourceMentionEntity[]> {
     const { text } = body;
@@ -24,7 +25,7 @@ export class MentionsController {
 
   @Post('search/records')
   async searchRecords(
-    @Body() body: MentionsSearchRequestDto,
+    @Body() body: MentionsSearchRecordsRequestDto,
     @Req() req: RequestWithUser,
   ): Promise<RecordMentionEntity[]> {
     const { text, workbookId, tableId } = body;

@@ -19,7 +19,7 @@ import {
 } from '@/lib/posthog';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTableId } from '@/types/server-entities/ids';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
@@ -47,12 +47,8 @@ import { ContextBadges } from './ContextBadges';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 
-interface AIChatPanelProps {
-  activeTable: SnapshotTable | null;
-}
-
-export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
-  const { workbook } = useActiveWorkbook();
+export default function AIChatPanel() {
+  const { workbook, activeTable } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials();
   const { closeChat, openPublishConfirmation } = useWorkbookEditorUIStore();
   const [message, setMessage] = useState('');
@@ -481,7 +477,7 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
         </Stack>
         {/* User Input for Chat */}
         <AdvancedAgentInput
-          tableId={activeTable?.id || ''}
+          tableId={(activeTable?.id as SnapshotTableId) || ''}
           workbook={workbook}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}

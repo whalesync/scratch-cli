@@ -107,11 +107,6 @@ function WorkbookPageContent() {
   }
 
   const allTables = getSnapshotTables(workbook, true); // Include hidden tables
-  const aiChatPanel = activeTable ? (
-    <Box w={chatWidth} h="100%">
-      <AIChatPanel activeTable={activeTable} />
-    </Box>
-  ) : null;
 
   let content = null;
   let contentFooter = null;
@@ -140,7 +135,11 @@ function WorkbookPageContent() {
             <MainContent.Body p="0">{content}</MainContent.Body>
             {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
           </Stack>
-          {aiChatPanel}
+          {activeTable && (
+            <Box w={chatWidth} h="100%">
+              <AIChatPanel />
+            </Box>
+          )}
         </Group>
       </MainContent>
 

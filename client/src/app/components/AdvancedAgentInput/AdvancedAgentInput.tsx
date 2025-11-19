@@ -1,8 +1,11 @@
 'use client';
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { mentionsApi, RecordMentionEntity, ResourceMentionEntity } from '@/lib/api/mentions';
+import { mentionsApi } from '@/lib/api/mentions';
+import { SnapshotTableId, WorkbookId } from '@/types/server-entities/ids';
+import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { TableSpec, Workbook } from '@/types/server-entities/workbook';
+import { useMantineColorScheme } from '@mantine/core';
 import { FC, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
@@ -10,8 +13,10 @@ import { Command, CommandSuggestion } from './CommandSuggestions';
 import { SuggestionItem } from './SuggestionItem';
 import { TypesafeMention } from './TypesafeMention';
 
+const MIN_QUERY_LENGTH = 2;
+
 interface AdvancedAgentInputProps {
-  tableId: string;
+  tableId: SnapshotTableId;
   workbook?: Workbook;
   onMessageChange?: (message: string) => void;
   onSendMessage?: () => void;
@@ -63,10 +68,35 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   onFocus,
   commands = [],
 }) => {
+  const { colorScheme } = useMantineColorScheme();
   const [value, setValueState] = useState('');
   const previousValueRef = useRef('');
   const { handleUndo, handleRedo, setValue, setPreviousValue } = useUndoRedo(value, setValueState, previousValueRef);
+  const resourceMentionStyle =
+    colorScheme === 'dark'
+      ? {
+          backgroundColor: 'var(--mantine-color-gray-3)',
+        }
+      : {
+          backgroundColor: 'var(--mantine-color-gray-3)',
+        };
+  const recordMentionStyle =
+    colorScheme === 'dark'
+      ? {
+          backgroundColor: 'var(--mantine-color-green-3)',
+        }
+      : {
+          backgroundColor: 'var(--mantine-color-green-3)',
+        };
 
+  const tableMentionStyle =
+    colorScheme === 'dark'
+      ? {
+          backgroundColor: 'var(--mantine-color-gray-3)',
+        }
+      : {
+          backgroundColor: 'var(--mantine-color-gray-3)',
+        };
   const executeCommand = (commandId: string) => {
     const command = commands.find((c) => c.id === commandId);
     if (command) {
@@ -172,18 +202,26 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       style={{ height: 100 }}
       classNames={classNames}
       spellCheck={false}
+      allowSuggestionsAboveCursor={true}
     >
+      {/* Resource Mentions */}
       <TypesafeMention
         trigger="@"
         markup="@[__display__](__id__)"
         displayTransform={(id, display) => ` @${display} `}
-        style={{
-          backgroundColor: 'rgba(16, 20, 21, 0.7)',
-        }}
+        style={resourceMentionStyle}
         data={async (
           query: string,
           callback: (results: { id: string; display: string; title: string; preview: string }[]) => void,
         ) => {
+          if (!tableId) {
+            callback([]);
+            return;
+          }
+          if (query.length < MIN_QUERY_LENGTH) {
+            callback([]);
+            return;
+          }
           try {
             const resources = await mentionsApi.searchResources({ text: query });
             const items = resources.map((r) => ({
@@ -202,17 +240,33 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         appendSpaceOnAdd
       />
 
+      {/* Record Mentions */}
       <TypesafeMention
         trigger="#"
         markup="#[__display__](__id__)"
         displayTransform={(id, display) => ` #${display} `}
-        style={{
-          backgroundColor: 'rgba(68, 68, 68, 0.7)',
-          color: '#0077b6',
-        }}
+        style={recordMentionStyle}
         data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
+          if (!workbook?.id) {
+            callback([]);
+            return;
+          }
+
+          if (!tableId) {
+            callback([]);
+            return;
+          }
+          if (query.length < MIN_QUERY_LENGTH) {
+            callback([]);
+            return;
+          }
+
           try {
-            const records = await mentionsApi.searchRecords({ text: query, tableId: tableId });
+            const records = await mentionsApi.searchRecords({
+              text: query,
+              workbookId: workbook.id as WorkbookId,
+              tableId: tableId,
+            });
             const items = records.map((r) => ({
               id: r.id,
               display: r.title,
@@ -228,6 +282,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         appendSpaceOnAdd
       />
 
+      {/* Commands Mentions */}
       <TypesafeMention
         trigger="/"
         markup="/[__display__](__id__)"
@@ -240,14 +295,13 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         }}
         appendSpaceOnAdd
       />
+
+      {/* Table / Column Mentions */}
       <TypesafeMention
         trigger="$"
         markup="$[__display__](__id__)"
         displayTransform={(id, display) => ` $${display} `}
-        style={{
-          backgroundColor: 'rgba(34, 99, 94, 0.7)',
-          color: '#00bb00',
-        }}
+        style={tableMentionStyle}
         data={(query, callback) => {
           if (!workbook?.snapshotTables) {
             callback([]);

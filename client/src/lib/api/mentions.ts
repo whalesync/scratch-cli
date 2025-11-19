@@ -1,30 +1,20 @@
+import { SnapshotTableId, WorkbookId } from '@/types/server-entities/ids';
+import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
-export interface MentionsSearchRequest {
+export type MentionsSearchRecordsRequestDto = {
   text: string;
-  tableId?: string;
-}
+  workbookId: WorkbookId;
+  tableId: SnapshotTableId;
+};
 
-export interface ResourceMentionEntity {
-  id: string;
-  title: string;
-  preview: string;
-}
-
-export interface RecordMentionEntity {
-  id: string;
-  title: string;
-  tableId: string;
-}
-
-export interface MentionsSearchResponse {
-  resources: ResourceMentionEntity[];
-  records: RecordMentionEntity[];
-}
+export type MentionsSearchResourcesRequestDto = {
+  text: string;
+};
 
 export const mentionsApi = {
-  searchResources: async (request: MentionsSearchRequest): Promise<ResourceMentionEntity[]> => {
+  searchResources: async (request: MentionsSearchResourcesRequestDto): Promise<ResourceMentionEntity[]> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/mentions/search/resources`, {
       method: 'POST',
       headers: {
@@ -37,7 +27,7 @@ export const mentionsApi = {
     return res.json();
   },
 
-  searchRecords: async (request: MentionsSearchRequest): Promise<RecordMentionEntity[]> => {
+  searchRecords: async (request: MentionsSearchRecordsRequestDto): Promise<RecordMentionEntity[]> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/mentions/search/records`, {
       method: 'POST',
       headers: {

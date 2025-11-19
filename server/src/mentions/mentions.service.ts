@@ -7,7 +7,7 @@ import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
-import { RecordMentionEntity, ResourceMentionEntity } from './types';
+import { RecordMentionEntity, ResourceMentionEntity } from './entities/mentions.entity';
 
 type SearchInput = { text: string; workbookId: WorkbookId; actor: Actor; tableId?: string };
 
