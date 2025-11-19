@@ -3,6 +3,7 @@
   min-height: 200px;
   padding: 16px;
   margin: -16px;
+  background-color: transparent;
 
   &[data-accept],
   &[data-reject] {

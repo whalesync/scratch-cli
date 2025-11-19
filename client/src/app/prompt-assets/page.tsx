@@ -4,20 +4,20 @@ import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
-import { formatBytes } from '@/utils/helpers';
-import { Alert, Badge, Group, Modal, Paper, Stack, Table, Text } from '@mantine/core';
+import { Alert, Badge, Group, Menu, Modal, Paper, Stack, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
-import { DownloadIcon, LinkIcon, PencilLineIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { capitalize } from 'lodash';
+import { DownloadIcon, Edit3, LinkIcon, PlusIcon, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { StyleGuideId } from '../../types/server-entities/ids';
-import { ButtonPrimaryLight, ButtonSecondaryOutline, ContentFooterButton } from '../components/base/buttons';
-import { Text13Medium, Text13Regular } from '../components/base/text';
-import { FileUploadDropzone } from '../components/dropzone/FileUploadDropzone';
+import { formatBytes } from '../../utils/helpers';
+import { ActionIconThreeDots } from '../components/base/action-icons';
+import { ButtonPrimaryLight, ButtonPrimarySolid, ButtonSecondaryOutline } from '../components/base/buttons';
 import { EditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
+import { RelativeDate } from '../components/RelativeDate';
 import { ScratchpadNotifications } from '../components/ScratchpadNotifications';
-import { ToolIconButton } from '../components/ToolIconButton';
 
 export default function PromptAssetsPage() {
   const { promptAssets, isLoading, error, mutate } = usePromptAssets();
@@ -67,10 +67,6 @@ export default function PromptAssetsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   if (error) {
     return (
       <Paper p="md">
@@ -95,90 +91,105 @@ export default function PromptAssetsPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Prompt assets" />
+      <MainContent.BasicHeader
+        title="Prompt assets"
+        actions={
+          <ButtonPrimarySolid onClick={handleNewAsset} leftSection={<PlusIcon />}>
+            New asset
+          </ButtonPrimarySolid>
+        }
+      />
       <MainContent.Body>
         {isLoading ? (
           <Text>Loading...</Text>
         ) : (
-          <FileUploadDropzone allowedTypes={['md']}>
-            <Table highlightOnHover>
-              <Table.Thead>
-                <Table.Tr h="30px">
-                  <Table.Td w="60%">Name</Table.Td>
-                  <Table.Td w="15%">Updated</Table.Td>
-                  <Table.Td w="15%" align="right">
-                    Size
+          <Table highlightOnHover>
+            <Table.Thead>
+              <Table.Tr h="30px">
+                <Table.Td w="50%">Name</Table.Td>
+                <Table.Td w="15%">File size</Table.Td>
+                <Table.Td w="10%">Kind</Table.Td>
+                <Table.Td w="15%">Created</Table.Td>
+                <Table.Td w="10%" align="right">
+                  {/* Actions */}
+                </Table.Td>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {sortedResources.map((styleGuide) => (
+                <Table.Tr
+                  key={styleGuide.id}
+                  onClick={() => handleEditResource(styleGuide)}
+                  style={{ cursor: 'pointer' }}
+                  h="30px"
+                >
+                  <Table.Td h="30px">
+                    <Group gap="sm">
+                      {resourceIcon(styleGuide)}
+                      {styleGuide.name}
+                      {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
+                      {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
+                      {styleGuide.tags.map((tag) => (
+                        <Badge key={tag}>{tag}</Badge>
+                      ))}
+                    </Group>
                   </Table.Td>
-                  <Table.Td w="15%" align="right">
-                    Actions
+                  <Table.Td>{formatBytes(styleGuide.body.length)}</Table.Td>
+                  <Table.Td>{capitalize(styleGuide.contentType)}</Table.Td>
+                  <Table.Td>
+                    <RelativeDate date={styleGuide.createdAt} />
                   </Table.Td>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {sortedResources.map((styleGuide) => (
-                  <Table.Tr
-                    key={styleGuide.id}
-                    onClick={() => handleEditResource(styleGuide)}
-                    style={{ cursor: 'pointer' }}
-                    h="30px"
-                  >
-                    <Table.Td h="30px">
-                      <Group gap="sm">
-                        {resourceIcon(styleGuide)}
-                        <Text13Medium>{styleGuide.name}</Text13Medium>
-                        {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
-                        {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
-                        {styleGuide.tags.map((tag) => (
-                          <Badge key={tag}>{tag}</Badge>
-                        ))}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text13Regular>{formatDate(styleGuide.updatedAt)}</Text13Regular>
-                    </Table.Td>
-                    <Table.Td align="right">
-                      <Text13Regular>{formatBytes(styleGuide.body.length)}</Text13Regular>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs" justify="flex-end">
-                        {styleGuide.sourceUrl && (
-                          <ToolIconButton
-                            size="md"
-                            tooltip="Redownload external content"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUpdateExternalResource(styleGuide.id);
-                            }}
-                            loading={isExternalResourceUpdating}
-                            icon={DownloadIcon}
-                          />
-                        )}
-                        <ToolIconButton
-                          size="md"
-                          onClick={async (e) => {
+                  <Table.Td align="right">
+                    <Menu>
+                      <Menu.Target>
+                        {/* Prevent the menu clicking the underlying table row */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ width: 'fit-content' }}>
+                          <ActionIconThreeDots />
+                        </div>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<Edit3 size={16} />}
+                          onClick={(e) => {
                             e.stopPropagation();
                             setActiveResource(styleGuide);
                             openCreateModal();
                           }}
-                          icon={PencilLineIcon}
-                        />
+                        >
+                          Edit
+                        </Menu.Item>
 
-                        <ToolIconButton
-                          size="md"
+                        {styleGuide.sourceUrl && (
+                          <Menu.Item
+                            leftSection={<DownloadIcon size={16} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateExternalResource(styleGuide.id);
+                            }}
+                            disabled={isExternalResourceUpdating}
+                          >
+                            {isExternalResourceUpdating ? 'Updating...' : 'Redownload external content'}
+                          </Menu.Item>
+                        )}
+                        <Menu.Divider />
+                        <Menu.Item
+                          data-delete
+                          leftSection={<Trash2 size={16} />}
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveResource(styleGuide);
                             openDeleteModal();
                           }}
-                          icon={Trash2Icon}
-                        />
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </FileUploadDropzone>
+                        >
+                          Delete
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
         )}
 
         <Modal title="Confirm delete" centered opened={isDeleteModalOpen} onClose={closeDeleteModal}>
@@ -214,11 +225,6 @@ export default function PromptAssetsPage() {
           resourceDocument={activeResource}
         />
       </MainContent.Body>
-      <MainContent.Footer h={28}>
-        <ContentFooterButton leftSection={<PlusIcon size={16} />} onClick={handleNewAsset}>
-          New prompt asset
-        </ContentFooterButton>
-      </MainContent.Footer>
     </MainContent>
   );
 }

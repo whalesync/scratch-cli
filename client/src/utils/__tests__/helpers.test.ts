@@ -99,14 +99,15 @@ describe('helpers', () => {
 
   describe('formatBytes', () => {
     it('should format bytes correctly', () => {
-      expect(formatBytes(0)).toBe('0 Byte');
-      expect(formatBytes(1024)).toBe('1.00 KB');
-      expect(formatBytes(1048576)).toBe('1.00 MB');
-      expect(formatBytes(1073741824)).toBe('1.00 GB');
+      expect(formatBytes(0)).toBe('0 Bytes');
+      expect(formatBytes(12)).toBe('12 Bytes');
+      expect(formatBytes(1024)).toBe('1.0 KB');
+      expect(formatBytes(1048576)).toBe('1.0 MB');
+      expect(formatBytes(1073741824)).toBe('1.0 GB');
     });
 
     it('should format without unit when includeUnit is false', () => {
-      expect(formatBytes(1024, false)).toBe('1.00');
+      expect(formatBytes(1024, false)).toBe('1.0');
     });
   });
 

@@ -139,9 +139,10 @@ export function formatDate(date: string | Date | undefined): string {
 
 export function formatBytes(bytes: number, includeUnit: boolean = true): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  if (bytes === 0) return '0 Byte';
+  if (bytes === 0) return '0 Bytes';
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return (bytes / Math.pow(1024, i)).toFixed(2) + (includeUnit ? ' ' + sizes[i] : '');
+  const decimals = i > 0 ? 1 : 0;
+  return (bytes / Math.pow(1024, i)).toFixed(decimals) + (includeUnit ? ' ' + sizes[i] : '');
 }
 
 export function formatNumber(number: number): string {
