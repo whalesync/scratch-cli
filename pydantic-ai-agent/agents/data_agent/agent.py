@@ -74,7 +74,6 @@ def create_agent(
 
             # Build snapshot context from the run context
             workbook_context = ""
-            print(f"\n\n\n\n\n\n\n\n\nRYDOR: ctx.deps: {ctx.deps}")
             if ctx.deps.workbook:
                 workbook_context = build_workbook_context(
                     workbook=ctx.deps.workbook,

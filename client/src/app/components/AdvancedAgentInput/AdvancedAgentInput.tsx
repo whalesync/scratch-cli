@@ -59,6 +59,33 @@ const renderFieldSuggestion = (suggestion: any) => {
   return <SuggestionItem title={suggestion.display} description={'Field'} />;
 };
 
+const MENTION_STYLES: Record<string, Record<string, React.CSSProperties>> = {
+  resource: {
+    dark: {
+      backgroundColor: 'var(--mantine-color-gray-3)',
+    },
+    light: {
+      backgroundColor: 'var(--mantine-color-gray-3)',
+    },
+  },
+  record: {
+    dark: {
+      backgroundColor: 'var(--mantine-color-green-3)',
+    },
+    light: {
+      backgroundColor: 'var(--mantine-color-green-3)',
+    },
+  },
+  table: {
+    dark: {
+      backgroundColor: 'var(--mantine-color-gray-3)',
+    },
+    light: {
+      backgroundColor: 'var(--mantine-color-gray-3)',
+    },
+  },
+};
+
 export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   tableId,
   workbook,
@@ -72,31 +99,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   const [value, setValueState] = useState('');
   const previousValueRef = useRef('');
   const { handleUndo, handleRedo, setValue, setPreviousValue } = useUndoRedo(value, setValueState, previousValueRef);
-  const resourceMentionStyle =
-    colorScheme === 'dark'
-      ? {
-          backgroundColor: 'var(--mantine-color-gray-3)',
-        }
-      : {
-          backgroundColor: 'var(--mantine-color-gray-3)',
-        };
-  const recordMentionStyle =
-    colorScheme === 'dark'
-      ? {
-          backgroundColor: 'var(--mantine-color-green-3)',
-        }
-      : {
-          backgroundColor: 'var(--mantine-color-green-3)',
-        };
 
-  const tableMentionStyle =
-    colorScheme === 'dark'
-      ? {
-          backgroundColor: 'var(--mantine-color-gray-3)',
-        }
-      : {
-          backgroundColor: 'var(--mantine-color-gray-3)',
-        };
   const executeCommand = (commandId: string) => {
     const command = commands.find((c) => c.id === commandId);
     if (command) {
@@ -104,14 +107,19 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
     }
   };
 
-  const handlePersonRemoved = (id: string, display: string) => {
+  const handleResourceRemoved = (id: string, display: string) => {
     console.debug('Record mention removed:', display, 'ID:', id);
     // Add your custom logic here
     // Example: update a list, trigger an API call, etc.
   };
 
-  const handleProjectRemoved = (id: string, display: string) => {
-    console.debug('Resource mention removed:', display, 'ID:', id);
+  const handleRecordRemoved = (id: string, display: string) => {
+    console.debug('Record mention removed:', display, 'ID:', id);
+    // Add your custom logic here
+  };
+
+  const handleTableRemoved = (id: string, display: string) => {
+    console.debug('Table mention removed:', display, 'ID:', id);
     // Add your custom logic here
   };
 
@@ -132,19 +140,23 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       return;
     }
 
-    // Check for all mention types (commands, records=@, resources=#)
+    // Check for all mention types (commands, resources=@, records=#, tables=$)
     const commandPattern = /\/\[(\w+)\]\((cmd\d+)\)/g;
-    const peoplePattern = /@\[([^\]]+)\]\(([^)]+)\)/g; // records
-    const projectPattern = /#\[([^\]]+)\]\(([^)]+)\)/g; // resources
+    const resourcePattern = /@\[([^\]]+)\]\(([^)]+)\)/g; // resources
+    const recordPattern = /#\[([^\]]+)\]\(([^)]+)\)/g; // records
+    const tablePattern = /\$\[([^\]]+)\]\(([^)]+)\)/g; // tables
 
     const currentCommands = [...newValue.matchAll(commandPattern)];
     const previousCommands = previousValueRef.current ? [...previousValueRef.current.matchAll(commandPattern)] : [];
 
-    const currentPeople = [...newValue.matchAll(peoplePattern)];
-    const previousPeople = previousValueRef.current ? [...previousValueRef.current.matchAll(peoplePattern)] : [];
+    const currentResources = [...newValue.matchAll(resourcePattern)];
+    const previousResources = previousValueRef.current ? [...previousValueRef.current.matchAll(resourcePattern)] : [];
 
-    const currentProjects = [...newValue.matchAll(projectPattern)];
-    const previousProjects = previousValueRef.current ? [...previousValueRef.current.matchAll(projectPattern)] : [];
+    const currentRecords = [...newValue.matchAll(recordPattern)];
+    const previousRecords = previousValueRef.current ? [...previousValueRef.current.matchAll(recordPattern)] : [];
+
+    const currentTables = [...newValue.matchAll(tablePattern)];
+    const previousTables = previousValueRef.current ? [...previousValueRef.current.matchAll(tablePattern)] : [];
 
     // Check if a command was added
     if (currentCommands.length > previousCommands.length) {
@@ -154,19 +166,26 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       setPreviousValue(cleanedValue);
     }
     // Check if a person mention was removed
-    else if (currentPeople.length < previousPeople.length) {
-      const removedPerson = previousPeople.find((prev) => !currentPeople.some((curr) => curr[0] === prev[0]));
-      if (removedPerson) {
-        handlePersonRemoved(removedPerson[2], removedPerson[1]);
+    else if (currentResources.length < previousResources.length) {
+      const removedResource = previousResources.find((prev) => !currentResources.some((curr) => curr[0] === prev[0]));
+      if (removedResource) {
+        handleResourceRemoved(removedResource[2], removedResource[1]);
       }
       setValue(newValue);
       setPreviousValue(newValue);
     }
     // Check if a project mention was removed
-    else if (currentProjects.length < previousProjects.length) {
-      const removedProject = previousProjects.find((prev) => !currentProjects.some((curr) => curr[0] === prev[0]));
-      if (removedProject) {
-        handleProjectRemoved(removedProject[2], removedProject[1]);
+    else if (currentRecords.length < previousRecords.length) {
+      const removedRecord = previousRecords.find((prev) => !currentRecords.some((curr) => curr[0] === prev[0]));
+      if (removedRecord) {
+        handleRecordRemoved(removedRecord[2], removedRecord[1]);
+      }
+      setValue(newValue);
+      setPreviousValue(newValue);
+    } else if (currentTables.length < previousTables.length) {
+      const removedTable = previousTables.find((prev) => !currentTables.some((curr) => curr[0] === prev[0]));
+      if (removedTable) {
+        handleTableRemoved(removedTable[2], removedTable[1]);
       }
       setValue(newValue);
       setPreviousValue(newValue);
@@ -198,7 +217,6 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       onFocus={onFocus}
       disabled={disabled}
       placeholder={`Type your message ...`}
-      // className="mentions"
       style={{ height: 100 }}
       classNames={classNames}
       spellCheck={false}
@@ -209,7 +227,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="@"
         markup="@[__display__](__id__)"
         displayTransform={(id, display) => ` @${display} `}
-        style={resourceMentionStyle}
+        style={MENTION_STYLES.resource[colorScheme]}
         data={async (
           query: string,
           callback: (results: { id: string; display: string; title: string; preview: string }[]) => void,
@@ -245,7 +263,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="#"
         markup="#[__display__](__id__)"
         displayTransform={(id, display) => ` #${display} `}
-        style={recordMentionStyle}
+        style={MENTION_STYLES.record[colorScheme]}
         data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
           if (!workbook?.id) {
             callback([]);
@@ -301,7 +319,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="$"
         markup="$[__display__](__id__)"
         displayTransform={(id, display) => ` $${display} `}
-        style={tableMentionStyle}
+        style={MENTION_STYLES.table[colorScheme]}
         data={(query, callback) => {
           if (!workbook?.snapshotTables) {
             callback([]);

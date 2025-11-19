@@ -137,13 +137,12 @@ class ScratchpadApi:
         return records
 
     @staticmethod
-    def bulk_update_records(
+    def bulk_suggest_record_updates(
         user_id: str,
         workbook_id: str,
         table_id: str,
         operations: List[RecordOperation],
     ) -> None:
-        """Bulk update records in a table"""
         url = f"{API_CONFIG.get_api_url()}/workbook/{workbook_id}/tables/{table_id}/records/bulk-suggest"
         params = {}
 
@@ -163,6 +162,8 @@ class ScratchpadApi:
                 ops_payload["deletes"].append(op_dict)
             elif op.op == "undelete":
                 ops_payload["undeletes"].append(op_dict)
+
+        logger.debug(f"Bulk update records payload: {ops_payload}")
 
         response = requests.post(
             url,

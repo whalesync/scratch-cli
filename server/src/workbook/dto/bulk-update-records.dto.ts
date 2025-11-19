@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 export type RecordOperation =
   | CreateRecordOperation
@@ -48,17 +48,21 @@ export class UndeleteRecordOperation {
 export class BulkUpdateRecordsDto {
   @IsArray()
   @ValidateNested({ each: true })
-  creates: CreateRecordOperation[];
+  @IsOptional()
+  creates?: CreateRecordOperation[];
 
   @IsArray()
   @ValidateNested({ each: true })
-  updates: UpdateRecordOperation[];
+  @IsOptional()
+  updates?: UpdateRecordOperation[];
 
   @IsArray()
   @ValidateNested({ each: true })
-  deletes: DeleteRecordOperation[];
+  @IsOptional()
+  deletes?: DeleteRecordOperation[];
 
   @IsArray()
   @ValidateNested({ each: true })
-  undeletes: UndeleteRecordOperation[];
+  @IsOptional()
+  undeletes?: UndeleteRecordOperation[];
 }

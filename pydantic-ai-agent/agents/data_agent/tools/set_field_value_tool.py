@@ -83,7 +83,7 @@ def set_field_value_tool_implementation(
             RecordOperation(op="update", wsId=wsId, data={column.id.wsId: new_value})
         ]
 
-        ScratchpadApi.bulk_update_records(
+        ScratchpadApi.bulk_suggest_record_updates(
             user_id=chatRunContext.user_id,
             workbook_id=chatRunContext.session.workbook_id,
             table_id=table.id,

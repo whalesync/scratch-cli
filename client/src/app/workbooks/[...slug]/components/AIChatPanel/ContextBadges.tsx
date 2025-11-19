@@ -2,6 +2,7 @@
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { Group, Text, Tooltip } from '@mantine/core';
 import { Icon } from '@phosphor-icons/react';
 import _ from 'lodash';
@@ -10,13 +11,14 @@ import styles from './ContextBadges.module.css';
 
 export const ContextBadges = () => {
   const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
+  const { activeTable } = useActiveWorkbook();
 
   return (
     <Group gap="xs">
       {dataScope === 'table' && (
         <ContextBadge
           label={_.capitalize(dataScope)}
-          tooltip="The agent can work all active records in the table"
+          tooltip={`The agent can work all active records in the table "${activeTable?.tableSpec?.name || ''}"`}
           icon={Table2Icon}
         />
       )}

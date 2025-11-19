@@ -637,9 +637,10 @@ export class WorkbookService {
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${workbookId}`);
     }
+
     const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
-    const ops = _.concat<RecordOperation>(dto.creates, dto.updates, dto.deletes, dto.undeletes);
+    const ops = _.concat<RecordOperation>(dto.creates ?? [], dto.updates ?? [], dto.deletes ?? [], dto.undeletes ?? []);
     this.validateBulkUpdateOps(ops, tableSpec);
 
     this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
@@ -959,6 +960,12 @@ export class WorkbookService {
     const numericRegex = /^-?\d+(\.\d+)?$/;
 
     const columnMap = new Map(tableSpec.columns.map((c) => [c.id.wsId, c]));
+
+    if (ops.length === 0) {
+      throw new BadRequestException({
+        message: 'No bulk update operations provided.',
+      });
+    }
 
     for (const op of ops) {
       if (op.op === 'create' || op.op === 'update') {

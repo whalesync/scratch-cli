@@ -72,7 +72,7 @@ def define_delete_records_tool(agent: Agent[ChatRunContext, ResponseFromAgent]):
             )
 
             # Call the bulk update endpoint
-            ScratchpadApi.bulk_update_records(
+            ScratchpadApi.bulk_suggest_record_updates(
                 user_id=chatRunContext.user_id,
                 workbook_id=chatRunContext.session.workbook_id,
                 table_id=table.id,
