@@ -3,8 +3,10 @@ import {
   BulkUpdateRecordsDto,
   EnqueueableRecordOperation,
   ListRecordsResponse,
+  RecordOperation,
   UpdateRecordOperation,
 } from '@/types/server-entities/records';
+import _ from 'lodash';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { SWR_KEYS } from '../../../../../lib/api/keys';
@@ -64,7 +66,10 @@ export const UpdateRecordsProvider = ({ children }: { children: ReactNode }) => 
       const { workbookId, tableId } = tableUpdates[0];
       const swrKeyMatcher = SWR_KEYS.workbook.recordsKeyMatcher(workbookId, tableId);
       const dto: BulkUpdateRecordsDto = {
-        ops: tableUpdates.map((upd) => upd.operation),
+        creates: [],
+        updates: tableUpdates.map((upd) => upd.operation).filter((op) => op.op === 'update'),
+        deletes: tableUpdates.map((upd) => upd.operation).filter((op) => op.op === 'delete'),
+        undeletes: tableUpdates.map((upd) => upd.operation).filter((op) => op.op === 'undelete'),
       };
 
       // Update all paginated keys for this table optimistically (no revalidate)
@@ -110,7 +115,10 @@ export const UpdateRecordsProvider = ({ children }: { children: ReactNode }) => 
         Object.entries(groupedByTable).map(async ([, operations]) => {
           const { workbookId, tableId } = operations[0];
           const dto: BulkUpdateRecordsDto = {
-            ops: operations.map((update) => update.operation),
+            creates: [],
+            updates: operations.map((update) => update.operation).filter((op) => op.op === 'update'),
+            deletes: operations.map((update) => update.operation).filter((op) => op.op === 'delete'),
+            undeletes: operations.map((update) => update.operation).filter((op) => op.op === 'undelete'),
           };
 
           await bulkUpdateRecordsForTable(workbookId, tableId, dto);
@@ -239,7 +247,8 @@ function optimisticDataForBulkUpdateRecords(
 
   const newRecords = [...existingData.records];
 
-  for (const op of dto.ops) {
+  const ops = _.concat<RecordOperation>(dto.creates, dto.updates, dto.deletes, dto.undeletes);
+  for (const op of ops) {
     if (op.op === 'create') {
       console.error('Create operation not supported in optimistic data for bulk update records');
       continue;

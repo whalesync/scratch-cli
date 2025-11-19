@@ -1,4 +1,3 @@
-import { Type } from 'class-transformer';
 import { IsArray, IsIn, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
 
 export type RecordOperation =
@@ -49,16 +48,17 @@ export class UndeleteRecordOperation {
 export class BulkUpdateRecordsDto {
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Object, {
-    discriminator: {
-      property: 'op',
-      subTypes: [
-        { value: CreateRecordOperation, name: 'create' },
-        { value: UpdateRecordOperation, name: 'update' },
-        { value: DeleteRecordOperation, name: 'delete' },
-        { value: UndeleteRecordOperation, name: 'undelete' },
-      ],
-    },
-  })
-  ops: (CreateRecordOperation | UpdateRecordOperation | DeleteRecordOperation | UndeleteRecordOperation)[];
+  creates: CreateRecordOperation[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  updates: UpdateRecordOperation[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  deletes: DeleteRecordOperation[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  undeletes: UndeleteRecordOperation[];
 }

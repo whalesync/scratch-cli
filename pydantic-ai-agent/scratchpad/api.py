@@ -148,20 +148,26 @@ class ScratchpadApi:
         params = {}
 
         # Build operation payload - only include wsId if it exists (not needed for create operations)
-        ops_payload = []
+        ops_payload = {"creates": [], "updates": [], "deletes": [], "undeletes": []}
         for op in operations:
             op_dict = {"op": op.op}
             if op.wsId is not None:
                 op_dict["wsId"] = op.wsId
             if op.data is not None:
                 op_dict["data"] = op.data
-            ops_payload.append(op_dict)
+            if op.op == "create":
+                ops_payload["creates"].append(op_dict)
+            elif op.op == "update":
+                ops_payload["updates"].append(op_dict)
+            elif op.op == "delete":
+                ops_payload["deletes"].append(op_dict)
+            elif op.op == "undelete":
+                ops_payload["undeletes"].append(op_dict)
 
-        payload = {"ops": ops_payload}
         response = requests.post(
             url,
             headers=API_CONFIG.get_api_headers(user_id),
-            json=payload,
+            json=ops_payload,
             params=params,
         )
 

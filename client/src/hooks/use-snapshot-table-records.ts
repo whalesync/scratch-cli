@@ -170,12 +170,15 @@ export const useSnapshotTableRecords = (args: {
 
     // Create the record on the server - this will trigger a workbook edited event
     await workbookApi.bulkUpdateRecords(workbook.id, snapshotTable.id, {
-      ops: [
+      creates: [
         {
           op: 'create',
           data: newRecordData,
         },
       ],
+      updates: [],
+      deletes: [],
+      undeletes: [],
     });
 
     // Refresh records to get the newly created record

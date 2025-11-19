@@ -484,10 +484,13 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
 
       // Delete records via API call
       await workbookApi.bulkUpdateRecords(workbookId, tableId, {
-        ops: selectedRows.map((record) => ({
+        creates: [],
+        updates: [],
+        deletes: selectedRows.map((record) => ({
           op: 'delete',
           wsId: record.id.wsId,
         })),
+        undeletes: [],
       });
 
       ScratchpadNotifications.success({
@@ -523,7 +526,6 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
             operation: {
               op: 'undelete',
               wsId: record.id.wsId,
-              data: {},
             },
           }),
         ),

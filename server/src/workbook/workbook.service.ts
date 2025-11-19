@@ -639,19 +639,20 @@ export class WorkbookService {
     }
     const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
-    this.validateBulkUpdateOps(dto.ops, tableSpec);
+    const ops = _.concat<RecordOperation>(dto.creates, dto.updates, dto.deletes, dto.undeletes);
+    this.validateBulkUpdateOps(ops, tableSpec);
 
     this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
       type: 'record-changes',
       data: {
         tableId,
-        numRecords: dto.ops.length,
+        numRecords: ops.length,
         changeType: type,
         source: type === 'suggested' ? 'agent' : 'user',
       },
     });
 
-    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, dto.ops, type);
+    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, ops, type);
   }
 
   async deepFetchRecords(
@@ -1793,7 +1794,13 @@ export class WorkbookService {
 
               // Create suggestions for this chunk using wsId-based operations
               if (operations.length > 0) {
-                await this.bulkUpdateRecords(workbookId, tableId, { ops: operations }, actor, 'suggested');
+                await this.bulkUpdateRecords(
+                  workbookId,
+                  tableId,
+                  { creates: [], updates: operations, deletes: [], undeletes: [] },
+                  actor,
+                  'suggested',
+                );
               }
             }
 

@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConnectorInstantiationErrorExceptionFilter } from './exception-filters/connector.exception-filter';
@@ -29,9 +30,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: false, bufferLogs: true });
 
   // Turn on class validation for body and URL params (DTOs).
-  // TODO: Turn this on once we fix the integration tests (not that the integration tests are broken, but they fail
-  // when this is turned on).
-  // app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe());
 
   // Enable CORS
   app.enableCors({
