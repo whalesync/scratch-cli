@@ -63,7 +63,7 @@ notify slack on failure test environment:
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - Test\",\"channel\":\"#feed-scratch\"}" 
+      --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - Test\",\"channel\":\"#feed-scratch\"}" \
       ${SLACK_WEBHOOK_URL}
   rules:
     - !reference [.rules, on_merge_to_master]
@@ -81,7 +81,7 @@ notify slack on success test environment:
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"✅ Successfully deployed Scratch to GCP - Test \",\"channel\":\"#feed-scratch\"}" 
+      --data "{\"text\":\"✅ Successfully deployed Scratch to GCP - Test \",\"channel\":\"#feed-scratch\"}" \
       ${SLACK_WEBHOOK_URL}
   rules:
     - !reference [.rules, on_merge_to_master]
@@ -137,7 +137,6 @@ notify slack on failure production environment:
     - |
       curl -X POST -H 'Content-type: application/json' \
       --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - Production\" ,\"channel\":\"#feed-scratch\"}" \
-
       ${SLACK_WEBHOOK_URL}
   rules:
     - !reference [.rules, on_merge_to_prod]
