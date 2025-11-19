@@ -87,7 +87,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
       const connectionName = newDisplayName ?? undefined;
       console.log('connectionName', connectionName);
       await initiateOAuth(newService as OAuthService, {
-        redirectPrefix: `${window.location.protocol}://${window.location.host}`,
+        // (http|https)://<host, e.g. test.scratch.md>
+        redirectPrefix: `${window.location.protocol}//${window.location.host}`,
         connectionMethod: isCustom ? 'OAUTH_CUSTOM' : 'OAUTH_SYSTEM',
         customClientId: isCustom ? customClientId : undefined,
         customClientSecret: isCustom ? customClientSecret : undefined,
