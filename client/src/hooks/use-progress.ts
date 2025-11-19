@@ -1,37 +1,56 @@
+import { JobEntity } from '@/types/server-entities/job';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { progressApi } from '../lib/api/progress';
-import { JobEntity } from '@/types/server-entities/job';
 
-export const useJobProgress = (jobId: string | null, continuePolling = false) => {
-  const { data, error, isLoading, mutate } = useSWR<JobEntity>(
+type JobResult<TPublicProgress extends object = object> = {
+  job?: JobEntity<TPublicProgress>;
+  error?: Error;
+  isLoading: boolean;
+  mutate: () => unknown;
+};
+
+export const useJob = <TPublicProgress extends object>(
+  jobId: string | null,
+  continuePolling = false,
+): JobResult<TPublicProgress> => {
+  const { data, error, isLoading, mutate } = useSWR<JobEntity<TPublicProgress>>(
     jobId ? `progress-${jobId}` : null,
     jobId ? () => progressApi.getJobProgress(jobId) : null,
     {
       refreshInterval: continuePolling ? 1000 : 0, // Poll every second if continuePolling is true
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   );
 
   return {
-    progress: data,
+    job: data,
     error,
     isLoading,
     mutate,
   };
 };
 
-export const useJobProgressWithCancellation = (jobId: string | null) => {
+export type JobWithCancellationResult<TPublicProgress extends object> = {
+  jobResult: JobResult<TPublicProgress>;
+  cancellationRequested: boolean;
+  isCancelling: boolean;
+  cancelJob: () => void;
+};
+export const useJobWithCancellation = <TPublicProgress extends object>(
+  jobId: string | null,
+): JobWithCancellationResult<TPublicProgress> => {
   const [cancellationRequested, setCancellationRequested] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  
+
   // Always poll initially - we'll control stopping based on state
-  const { progress, error, isLoading, mutate } = useJobProgress(jobId, true);
+  const jobResult = useJob<TPublicProgress>(jobId, true);
+  const { job, error, isLoading, mutate } = jobResult;
 
   const cancelJob = async () => {
     if (isCancelling || cancellationRequested || !jobId) return;
-    
+
     setIsCancelling(true);
     try {
       const result = await progressApi.cancelJob(jobId);
@@ -48,10 +67,12 @@ export const useJobProgressWithCancellation = (jobId: string | null) => {
   };
 
   return {
-    progress,
-    error,
-    isLoading,
-    mutate,
+    jobResult: {
+      job,
+      error,
+      isLoading,
+      mutate,
+    },
     cancellationRequested,
     isCancelling,
     cancelJob,

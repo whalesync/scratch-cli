@@ -43,7 +43,6 @@ import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchCo
 enum Modals {
   DOWNLOAD_WITHOUT_JOB = 'download-without-job',
   DOWNLOAD = 'download',
-  PUBLISH = 'publish',
   RENAME = 'rename',
   CONFIRM_DELETE = 'confirm-delete',
   CONFIRM_DOWNLOAD = 'confirm-download',
@@ -307,12 +306,6 @@ export const WorkbookActionsMenu = () => {
           <Text>Your data is being downloaded from the remote source. This may take a few minutes.</Text>
         </Group>
       </Modal>
-      <Modal {...modalStack.register(Modals.PUBLISH)} title="Publishing workbook" centered size="md">
-        <Group gap="xs" wrap="nowrap">
-          <Loader size="xs" />
-          <Text>Your data is being published to {connectorAccount?.displayName}. This may take a few minutes.</Text>
-        </Group>
-      </Modal>
       <Modal {...modalStack.register(Modals.RENAME)} title="Rename workbook" centered size="lg">
         <Stack>
           <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
@@ -474,7 +467,6 @@ export const WorkbookActionsMenu = () => {
         </Menu.Dropdown>
       </Menu>
       {/* Fully remove the modal when not shown, to clean up state */}
-
       {downloadInProgress && workbook?.id && (
         <DownloadProgressModal jobId={downloadInProgress.jobId} onClose={() => setDownloadInProgress(null)} />
       )}

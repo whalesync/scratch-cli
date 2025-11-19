@@ -184,6 +184,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Insert new records with generated cfr_ IDs
     const recordsToInsert = records.map((record) => {
+      // TEST: Throw error if ID field matches specific value
+      // Will be removed soon
+      // if (record.fields['ID'] === '@#$GSFAG$#%^FWQG#!$^') {
+      //   throw new Error('Test error: Invalid ID value detected');
+      // }
+
       const remoteId = createCsvFileRecordId();
       return {
         remoteId,
@@ -228,6 +234,12 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Update records by remoteId
     for (const record of records) {
+      // TEST: Throw error if ID field matches specific value
+      // Will be removed soon
+      // if (record.partialFields['ID'] === '@#$GSFAG$#%^FWQG#!$^') {
+      //   throw new Error('Test error: Invalid ID value detected');
+      // }
+
       if (Object.keys(record.partialFields).length === 0) {
         // Don't create empty update statements
         continue;

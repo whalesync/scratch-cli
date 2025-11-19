@@ -1,9 +1,13 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { usePublishSummary } from '@/hooks/use-publish-summary';
-import { Anchor, Collapse, Group, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
-import pluralize from 'pluralize';
-import { useState } from 'react';
+import { Service } from '@/types/server-entities/connector-accounts';
+import { SnapshotTable } from '@/types/server-entities/workbook';
+import { Group, Modal, Stack, Text } from '@mantine/core';
+import { CircleAlertIcon } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import { WorkbookId } from '../../../../../../types/server-entities/ids';
+import { StatusListItem } from './StatusListItem';
+import { TablePublishStats } from './TablePublishStats';
 
 interface PublishConfirmationModalProps {
   isOpen: boolean;
@@ -12,6 +16,8 @@ interface PublishConfirmationModalProps {
   workbookId: WorkbookId | null;
   serviceName?: string;
   isPublishing: boolean;
+  snapshotTableIds: string[];
+  snapshotTables: SnapshotTable[];
 }
 
 export const PublishConfirmationModal = ({
@@ -21,22 +27,96 @@ export const PublishConfirmationModal = ({
   workbookId,
   serviceName,
   isPublishing,
+  snapshotTableIds,
+  snapshotTables,
 }: PublishConfirmationModalProps) => {
-  const [showChanges, setShowChanges] = useState(false);
-  const { publishSummary, isLoading: isLoadingSummary, fetchSummary } = usePublishSummary(workbookId);
+  const { publishSummary, fetchSummary, isLoading, error } = usePublishSummary(workbookId, snapshotTableIds);
 
   const handleClose = () => {
-    setShowChanges(false);
     onClose();
   };
 
-  const handleShowChanges = () => {
-    setShowChanges(!showChanges);
-    if (!showChanges) {
-      // Always refetch when showing changes to get the latest data
+  useEffect(() => {
+    if (isOpen) {
       fetchSummary();
     }
-  };
+  }, [isOpen, fetchSummary, workbookId, snapshotTableIds, snapshotTables]);
+
+  // Create a map of tableId -> service for quick lookup
+  const tableServiceMap = useMemo(() => {
+    const map = new Map<string, Service | null>();
+    snapshotTables.forEach((table) => {
+      map.set(table.id, table.connectorService);
+    });
+    return map;
+  }, [snapshotTables]);
+
+  // Get all unique tables with their stats from the publish summary
+  const tablesWithStats = useMemo(() => {
+    if (!publishSummary) return [];
+
+    const tableStatsMap = new Map<
+      string,
+      {
+        tableId: string;
+        tableName: string;
+        service: Service | null;
+        newRecords: number;
+        updatedRecords: number;
+        deletedRecords: number;
+      }
+    >();
+
+    // Collect creates
+    publishSummary.creates.forEach((table) => {
+      if (!tableStatsMap.has(table.tableId)) {
+        tableStatsMap.set(table.tableId, {
+          tableId: table.tableId,
+          tableName: table.tableName,
+          service: tableServiceMap.get(table.tableId) ?? null,
+          newRecords: 0,
+          updatedRecords: 0,
+          deletedRecords: 0,
+        });
+      }
+      const stats = tableStatsMap.get(table.tableId)!;
+      stats.newRecords += table.count;
+    });
+
+    // Collect updates
+    publishSummary.updates.forEach((table) => {
+      if (!tableStatsMap.has(table.tableId)) {
+        tableStatsMap.set(table.tableId, {
+          tableId: table.tableId,
+          tableName: table.tableName,
+          service: tableServiceMap.get(table.tableId) ?? null,
+          newRecords: 0,
+          updatedRecords: 0,
+          deletedRecords: 0,
+        });
+      }
+      const stats = tableStatsMap.get(table.tableId)!;
+      stats.updatedRecords += table.records.length;
+    });
+
+    // Collect deletes
+    publishSummary.deletes.forEach((table) => {
+      if (!tableStatsMap.has(table.tableId)) {
+        tableStatsMap.set(table.tableId, {
+          tableId: table.tableId,
+          tableName: table.tableName,
+          service: tableServiceMap.get(table.tableId) ?? null,
+          newRecords: 0,
+          updatedRecords: 0,
+          deletedRecords: 0,
+        });
+      }
+      const stats = tableStatsMap.get(table.tableId)!;
+      stats.deletedRecords += table.records.length;
+    });
+
+    return Array.from(tableStatsMap.values());
+  }, [publishSummary, tableServiceMap]);
 
   return (
     <Modal
@@ -50,93 +130,34 @@ export const PublishConfirmationModal = ({
       centered
       size="lg"
     >
-      <Stack>
-        <Text c="orange.6">Your original data will be overwritten.</Text>
+      <Stack gap="md">
+        <Text>These changes will be published to {serviceName}:</Text>
 
-        <Group justify="space-between" align="center">
-          <Anchor onClick={handleShowChanges} style={{ cursor: 'pointer' }}>
-            {showChanges ? 'Hide changes' : 'Show changes'}
-          </Anchor>
-        </Group>
+        {isLoading ? (
+          <Text c="dimmed">Loading summary...</Text>
+        ) : error ? (
+          <Text c="red">Error loading summary: {error.message}</Text>
+        ) : tablesWithStats.length === 0 ? (
+          <Text c="dimmed">No changes detected to publish.</Text>
+        ) : (
+          tablesWithStats.map((table) => (
+            <TablePublishStats
+              key={table.tableId}
+              tableId={table.tableId}
+              tableName={table.tableName}
+              service={table.service}
+              newRecords={table.newRecords}
+              updatedRecords={table.updatedRecords}
+              deletedRecords={table.deletedRecords}
+            />
+          ))
+        )}
 
-        <Collapse in={showChanges}>
-          {isLoadingSummary ? (
-            <Group gap="xs">
-              <Loader size="xs" />
-              <Text>Loading changes...</Text>
-            </Group>
-          ) : publishSummary ? (
-            <ScrollArea h={300}>
-              <Stack gap="md">
-                {publishSummary.creates.length > 0 && (
-                  <Stack gap="xs">
-                    <Text fw={500} c="green.6">
-                      Records to be created:
-                    </Text>
-                    {publishSummary.creates.map((table) => (
-                      <Text key={table.tableId} size="sm">
-                        <strong>{table.tableName}:</strong> {table.count} {pluralize('record', table.count)}
-                      </Text>
-                    ))}
-                  </Stack>
-                )}
-
-                {publishSummary.updates.length > 0 && (
-                  <Stack gap="xs">
-                    <Text fw={500} c="blue.6">
-                      Records to be updated:
-                    </Text>
-                    {publishSummary.updates.map((table) => (
-                      <Stack key={table.tableId} gap="xs">
-                        <Text size="sm" fw={500}>
-                          {table.tableName}:
-                        </Text>
-                        {table.records.map((record) => (
-                          <Stack key={record.wsId} gap="xs" ml="md">
-                            <Text size="sm">{record.title}</Text>
-                            <Stack gap="xs" ml="md">
-                              {Object.entries(record.changes).map(([field, change]) => (
-                                <Text key={field} size="xs" c="dimmed">
-                                  <strong>{field}:</strong> {String(change.from)} → {String(change.to)}
-                                </Text>
-                              ))}
-                            </Stack>
-                          </Stack>
-                        ))}
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-
-                {publishSummary.deletes.length > 0 && (
-                  <Stack gap="xs">
-                    <Text fw={500} c="red.6">
-                      Records to be deleted:
-                    </Text>
-                    {publishSummary.deletes.map((table) => (
-                      <Stack key={table.tableId} gap="xs">
-                        <Text size="sm" fw={500}>
-                          {table.tableName}:
-                        </Text>
-                        {table.records.map((record) => (
-                          <Text key={record.wsId} size="sm" ml="md">
-                            {record.title}
-                          </Text>
-                        ))}
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-
-                {publishSummary.creates.length === 0 &&
-                  publishSummary.updates.length === 0 &&
-                  publishSummary.deletes.length === 0 && <Text c="dimmed">No changes to publish.</Text>}
-              </Stack>
-            </ScrollArea>
-          ) : (
-            <Text c="red">Failed to load changes summary.</Text>
-          )}
-        </Collapse>
+        <StatusListItem
+          text1="Your original data will be overwritten."
+          text2="This cannot be undone."
+          iconProps={{ Icon: CircleAlertIcon, c: 'var(--mantine-color-gray-6)', size: 'md' }}
+        />
 
         <Group justify="flex-end">
           <ButtonSecondaryOutline onClick={handleClose} disabled={isPublishing}>
@@ -144,7 +165,7 @@ export const PublishConfirmationModal = ({
           </ButtonSecondaryOutline>
           <ButtonPrimaryLight
             onClick={async () => {
-              onConfirm();
+              await onConfirm();
               handleClose();
             }}
             loading={isPublishing}

@@ -3,8 +3,13 @@ import { Progress } from './base-types';
 import { AddThreeNumbersJobDefinition } from './job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobDefinition } from './job-definitions/add-two-numbers.job';
 import { DownloadRecordsJobDefinition } from './job-definitions/download-records.job';
+import { PublishRecordsJobDefinition } from './job-definitions/publish-records.job';
 
-export type JobDefinition = AddTwoNumbersJobDefinition | AddThreeNumbersJobDefinition | DownloadRecordsJobDefinition;
+export type JobDefinition =
+  | AddTwoNumbersJobDefinition
+  | AddThreeNumbersJobDefinition
+  | DownloadRecordsJobDefinition
+  | PublishRecordsJobDefinition;
 export type JobData = JobDefinition['data'];
 export type JobTypes = JobDefinition['type'];
 export type BullMqJob<TDefinition extends JobDefinition = JobDefinition> = BullMQPlainJob<

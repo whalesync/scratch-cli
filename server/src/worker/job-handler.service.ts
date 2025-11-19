@@ -4,10 +4,12 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { DownloadRecordsJobHandler } from './jobs/job-definitions/download-records.job';
+import { PublishRecordsJobHandler } from './jobs/job-definitions/publish-records.job';
 import { JobDefinition, JobHandler } from './jobs/union-types';
 
 @Injectable()
@@ -18,6 +20,7 @@ export class JobHandlerService {
     private readonly config: ScratchpadConfigService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookService: WorkbookService,
   ) {}
 
   getHandler = <TDefinition extends JobDefinition>(data: TDefinition['data']): JobHandler<TDefinition> => {
@@ -37,6 +40,14 @@ export class JobHandlerService {
           this.snapshotDbService.snapshotDb,
           this.connectorAccountService,
           this.snapshotEventService,
+        );
+      case 'publish-records':
+        return new PublishRecordsJobHandler(
+          prisma,
+          this.connectorService,
+          this.connectorAccountService,
+          this.snapshotEventService,
+          this.workbookService,
         );
 
       default:

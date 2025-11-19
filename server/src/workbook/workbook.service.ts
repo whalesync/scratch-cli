@@ -1123,15 +1123,35 @@ export class WorkbookService {
     };
   }
 
-  async publish(id: WorkbookId, actor: Actor): Promise<void> {
+  async publish(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    if (!this.configService.getUseJobs()) {
+      // Fall back to synchronous publish when jobs are not available
+      await this.publishWithoutJob(id, actor);
+      return {
+        jobId: 'sync-publish', // Use a placeholder ID for synchronous publishes
+      };
+    }
+    const job = await this.bullEnqueuerService.enqueuePublishRecordsJob(id, actor, snapshotTableIds);
+
+    // Track analytics and audit log when job is enqueued
+    const workbook = await this.findOneOrThrow(id, actor);
+    this.posthogService.trackPublishWorkbook(actor.userId, workbook);
+    await this.auditLogService.logEvent({
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      eventType: 'publish',
+      message: `Publishing workbook ${workbook.name}`,
+      entityId: workbook.id as WorkbookId,
+    });
+
+    return {
+      jobId: job.id as string,
+    };
+  }
+
+  async publishWithoutJob(id: WorkbookId, actor: Actor): Promise<void> {
     const workbook = await this.findOneOrThrow(id, actor);
 
-    // if (!workbook.connectorAccount) {
-    //   throw new BadRequestException('Cannot publish connectorless workbooks');
-    // }
-
-    // TODO: Do this work somewhere real.
-    // For now it's running synchronously, but could also be done in the background.
     await this.publishAllTablesInWorkbook(workbook, actor);
 
     this.posthogService.trackPublishWorkbook(actor.userId, workbook);
@@ -1144,14 +1164,18 @@ export class WorkbookService {
     });
   }
 
-  async getPublishSummary(id: WorkbookId, actor: Actor): Promise<PublishSummaryDto> {
+  async getPublishSummary(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<PublishSummaryDto> {
     const workbook = await this.findOneOrThrow(id, actor);
 
     // if (!snapshot.connectorAccount) {
     //   throw new BadRequestException('Cannot get publish summary for connectorless snapshots');
     // }
 
-    const tables = workbook.snapshotTables ?? [];
+    // Filter tables if specific table IDs are provided
+    let tables = workbook.snapshotTables ?? [];
+    if (snapshotTableIds && snapshotTableIds.length > 0) {
+      tables = tables.filter((table) => snapshotTableIds.includes(table.id));
+    }
 
     const summary: PublishSummaryDto = {
       deletes: [],
@@ -1324,6 +1348,43 @@ export class WorkbookService {
     );
   }
 
+  async publishCreatesToTableWithProgress<S extends Service>(
+    workbook: WorkbookCluster.Workbook,
+    connector: Connector<S>,
+    table: WorkbookCluster.SnapshotTable,
+    tableSpec: TableSpecs[S],
+    onProgress: (count: number) => Promise<void>,
+  ): Promise<void> {
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+      workbook.id as WorkbookId,
+      table.tableName,
+      'create',
+      connector.getBatchSize('create'),
+      async (records, trx) => {
+        const sanitizedRecords = records
+          .map((record) => filterToOnlyEditedKnownFields(record, tableSpec))
+          .map((r) => ({ wsId: r.id.wsId, fields: r.fields }));
+
+        const returnedRecords = await connector.createRecords(
+          tableSpec,
+          table.columnSettings as SnapshotColumnSettingsMap,
+          sanitizedRecords,
+        );
+        // Save the created IDs.
+        await this.snapshotDbService.snapshotDb.updateRemoteIds(
+          workbook.id as WorkbookId,
+          { spec: tableSpec, tableName: table.tableName },
+          returnedRecords,
+          trx,
+        );
+
+        // Call progress callback with count
+        await onProgress(records.length);
+      },
+      true,
+    );
+  }
+
   private async publishUpdatesToTable<S extends Service>(
     workbook: WorkbookCluster.Workbook,
     connector: Connector<S>,
@@ -1342,6 +1403,33 @@ export class WorkbookService {
           connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
         );
         await connector.updateRecords(tableSpec, table.columnSettings as SnapshotColumnSettingsMap, sanitizedRecords);
+      },
+      true,
+    );
+  }
+
+  async publishUpdatesToTableWithProgress<S extends Service>(
+    workbook: WorkbookCluster.Workbook,
+    connector: Connector<S>,
+    table: WorkbookCluster.SnapshotTable,
+    tableSpec: TableSpecs[S],
+    onProgress: (count: number) => Promise<void>,
+  ): Promise<void> {
+    // Then apply updates since it might depend on the created IDs, and clear out FKs to the deleted records.
+
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+      workbook.id as WorkbookId,
+      table.tableName,
+      'update',
+      connector.getBatchSize('update'),
+      async (records) => {
+        const sanitizedRecords = records.map((record) =>
+          connector.sanitizeRecordForUpdate(record as ExistingSnapshotRecord, tableSpec),
+        );
+        await connector.updateRecords(tableSpec, table.columnSettings as SnapshotColumnSettingsMap, sanitizedRecords);
+
+        // Call progress callback with count
+        await onProgress(records.length);
       },
       true,
     );
@@ -1378,6 +1466,43 @@ export class WorkbookService {
       true,
     );
   }
+
+  async publishDeletesToTableWithProgress<S extends Service>(
+    workbook: WorkbookCluster.Workbook,
+    connector: Connector<S>,
+    table: WorkbookCluster.SnapshotTable,
+    tableSpec: TableSpecs[S],
+    onProgress: (count: number) => Promise<void>,
+  ): Promise<void> {
+    // Finally the deletes since hopefully nothing references them.
+
+    await this.snapshotDbService.snapshotDb.forAllDirtyRecords(
+      workbook.id as WorkbookId,
+      table.tableName,
+      'delete',
+      connector.getBatchSize('delete'),
+      async (records, trx) => {
+        const recordIds = records
+          .filter((r) => !!r.id.remoteId)
+          .map((r) => ({ wsId: r.id.wsId, remoteId: r.id.remoteId! }));
+
+        await connector.deleteRecords(tableSpec, recordIds);
+
+        // Remove them from the snapshot.
+        await this.snapshotDbService.snapshotDb.deleteRecords(
+          workbook.id as WorkbookId,
+          table.tableName,
+          records.map((r) => r.id.wsId),
+          trx,
+        );
+
+        // Call progress callback with count
+        await onProgress(records.length);
+      },
+      true,
+    );
+  }
+
   async setActiveRecordsFilter(
     workbookId: WorkbookId,
     tableId: string,

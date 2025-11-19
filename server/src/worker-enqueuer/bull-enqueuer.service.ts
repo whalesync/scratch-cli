@@ -5,6 +5,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { createPlainId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
+import { PublishRecordsJobDefinition } from 'src/worker/jobs/job-definitions/publish-records.job';
 import { JobData } from 'src/worker/jobs/union-types';
 
 @Injectable()
@@ -58,6 +59,19 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       snapshotTableIds,
       type: 'download-records',
+    };
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueuePublishRecordsJob(workbookId: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<Job> {
+    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
+    const id = `publish-records-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PublishRecordsJobDefinition['data'] = {
+      workbookId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      snapshotTableIds,
+      type: 'publish-records',
     };
     return await this.enqueueJobWithId(data, id);
   }

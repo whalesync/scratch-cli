@@ -14,6 +14,7 @@ export const StyledLucideIcon = ({
   centerInText,
   ml,
   mr,
+  mt,
   className,
   strokeWidth,
 }: {
@@ -24,6 +25,7 @@ export const StyledLucideIcon = ({
   centerInText?: true;
   ml?: MantineSize | number;
   mr?: MantineSize | number;
+  mt?: MantineSize | number;
   className?: string;
   strokeWidth?: number;
 }): JSX.Element => {
@@ -43,6 +45,9 @@ export const StyledLucideIcon = ({
   }
   if (mr) {
     style.marginRight = resolveSpacing(mr, theme);
+  }
+  if (mt) {
+    style.marginTop = resolveSpacing(mt, theme);
   }
   if (resolvedSize) {
     style.minWidth = resolvedSize;

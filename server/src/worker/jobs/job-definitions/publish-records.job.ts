@@ -1,0 +1,349 @@
+import type { PrismaClient } from '@prisma/client';
+import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
+import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
+import type { WorkbookId } from '../../../types/ids';
+import type { JsonSafeObject } from '../../../utils/objects';
+import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
+// Non type imports
+import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
+import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { WSLogger } from '../../../logger';
+import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import { WorkbookService } from '../../../workbook/workbook.service';
+
+export type PublishRecordsPublicProgress = {
+  totalRecordsPublished: number;
+  tables: {
+    id: string;
+    name: string;
+    creates: number;
+    updates: number;
+    deletes: number;
+    status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  }[];
+};
+
+export type PublishRecordsJobDefinition = JobDefinitionBuilder<
+  'publish-records',
+  {
+    workbookId: WorkbookId;
+    snapshotTableIds?: string[]; // Optional: if provided, only publish these tables
+    userId: string;
+    organizationId: string;
+    progress?: JsonSafeObject;
+  },
+  PublishRecordsPublicProgress,
+  { tableIndex: number },
+  void
+>;
+
+export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecordsJobDefinition> {
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly connectorService: ConnectorsService,
+    private readonly connectorAccountService: ConnectorAccountService,
+    private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookService: WorkbookService,
+  ) {}
+
+  async run(params: {
+    data: PublishRecordsJobDefinition['data'];
+    progress: Progress<
+      PublishRecordsJobDefinition['publicProgress'],
+      PublishRecordsJobDefinition['initialJobProgress']
+    >;
+    abortSignal: AbortSignal;
+    checkpoint: (
+      progress: Omit<
+        Progress<PublishRecordsJobDefinition['publicProgress'], PublishRecordsJobDefinition['initialJobProgress']>,
+        'timestamp'
+      >,
+    ) => Promise<void>;
+  }) {
+    const { data, checkpoint, progress } = params;
+
+    // Fetch workbook with snapshot tables
+    const workbook = await this.prisma.workbook.findUnique({
+      where: { id: data.workbookId },
+      include: {
+        snapshotTables: {
+          include: {
+            connectorAccount: true,
+          },
+        },
+      },
+    });
+
+    if (!workbook) {
+      throw new Error(`Workbook with id ${data.workbookId} not found`);
+    }
+
+    // Filter snapshot tables if specific tables are requested
+    let snapshotTablesToProcess = workbook.snapshotTables || [];
+    if (data.snapshotTableIds && data.snapshotTableIds.length > 0) {
+      snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => data.snapshotTableIds!.includes(st.id));
+      if (snapshotTablesToProcess.length === 0) {
+        throw new Error(`No SnapshotTables found with the provided IDs in workbook ${data.workbookId}`);
+      }
+    }
+
+    // Set syncInProgress=true for all tables being processed
+    await this.prisma.snapshotTable.updateMany({
+      where: {
+        id: { in: snapshotTablesToProcess.map((st) => st.id) },
+      },
+      data: {
+        syncInProgress: true,
+      },
+    });
+
+    WSLogger.debug({
+      source: 'PublishRecordsJob',
+      message: 'Set syncInProgress=true for tables',
+      workbookId: workbook.id,
+      tableCount: snapshotTablesToProcess.length,
+    });
+
+    type TableToProcess = {
+      id: string;
+      name: string;
+      creates: number;
+      updates: number;
+      deletes: number;
+      status: 'pending' | 'in_progress' | 'completed' | 'failed';
+    };
+
+    // Create TableToProcess array for snapshot tables to process
+    const tablesToProcess: TableToProcess[] = snapshotTablesToProcess.map((snapshotTable) => ({
+      id: (snapshotTable.tableSpec as AnyTableSpec).id.wsId,
+      name: (snapshotTable.tableSpec as AnyTableSpec).name,
+      creates: 0,
+      updates: 0,
+      deletes: 0,
+      status: 'pending' as const,
+    }));
+
+    let totalRecordsPublished = 0;
+
+    // Determine starting index from progress (for resumability)
+    const startIndex = progress?.jobProgress?.tableIndex ?? 0;
+
+    WSLogger.debug({
+      source: 'PublishRecordsJob',
+      message: 'Starting publish job',
+      workbookId: workbook.id,
+      tableCount: snapshotTablesToProcess.length,
+      startIndex,
+    });
+
+    // Process each snapshot table with its own connector (per-table phases)
+    for (let i = startIndex; i < snapshotTablesToProcess.length; i++) {
+      const snapshotTable = snapshotTablesToProcess[i];
+      const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
+      const currentTable = tablesToProcess[i];
+
+      // Mark table as in_progress
+      currentTable.status = 'in_progress';
+
+      WSLogger.debug({
+        source: 'PublishRecordsJob',
+        message: 'Publishing records for table',
+        workbookId: workbook.id,
+        snapshotTableId: snapshotTable.id,
+        tableIndex: i,
+      });
+
+      // Get connector for this specific table
+      const service = snapshotTable.connectorService;
+
+      let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
+      if (snapshotTable.connectorAccountId) {
+        decryptedConnectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, {
+          userId: data.userId,
+          organizationId: data.organizationId,
+        });
+        if (!decryptedConnectorAccount) {
+          throw new Error(`Connector account ${snapshotTable.connectorAccountId} not found`);
+        }
+      }
+
+      const connector = await this.connectorService.getConnector({
+        service,
+        connectorAccount: decryptedConnectorAccount,
+        decryptedCredentials: decryptedConnectorAccount,
+        userId: data.userId,
+      });
+
+      try {
+        // Phase 1: Process creates for this table
+        WSLogger.debug({
+          source: 'PublishRecordsJob',
+          message: 'Publishing creates for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+        });
+
+        await this.workbookService.publishCreatesToTableWithProgress(
+          workbook,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          connector,
+          snapshotTable,
+          tableSpec,
+          async (count: number) => {
+            currentTable.creates += count;
+            totalRecordsPublished += count;
+
+            // Send real-time event
+            this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+              type: 'snapshot-updated',
+              data: {
+                tableId: snapshotTable.id,
+                source: 'user',
+              },
+            });
+
+            // Checkpoint after each batch
+            await checkpoint({
+              publicProgress: {
+                totalRecordsPublished,
+                tables: tablesToProcess,
+              },
+              jobProgress: {
+                tableIndex: i,
+              },
+              connectorProgress: {},
+            });
+          },
+        );
+
+        // Phase 2: Process updates for this table
+        WSLogger.debug({
+          source: 'PublishRecordsJob',
+          message: 'Publishing updates for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+        });
+
+        await this.workbookService.publishUpdatesToTableWithProgress(
+          workbook,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          connector,
+          snapshotTable,
+          tableSpec,
+          async (count: number) => {
+            currentTable.updates += count;
+            totalRecordsPublished += count;
+
+            // Send real-time event
+            this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+              type: 'snapshot-updated',
+              data: {
+                tableId: snapshotTable.id,
+                source: 'user',
+              },
+            });
+
+            // Checkpoint after each batch
+            await checkpoint({
+              publicProgress: {
+                totalRecordsPublished,
+                tables: tablesToProcess,
+              },
+              jobProgress: {
+                tableIndex: i,
+              },
+              connectorProgress: {},
+            });
+          },
+        );
+
+        // Phase 3: Process deletes for this table
+        WSLogger.debug({
+          source: 'PublishRecordsJob',
+          message: 'Publishing deletes for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+        });
+
+        await this.workbookService.publishDeletesToTableWithProgress(
+          workbook,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          connector,
+          snapshotTable,
+          tableSpec,
+          async (count: number) => {
+            currentTable.deletes += count;
+            totalRecordsPublished += count;
+
+            // Send real-time event
+            this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+              type: 'snapshot-updated',
+              data: {
+                tableId: snapshotTable.id,
+                source: 'user',
+              },
+            });
+
+            // Checkpoint after each batch
+            await checkpoint({
+              publicProgress: {
+                totalRecordsPublished,
+                tables: tablesToProcess,
+              },
+              jobProgress: {
+                tableIndex: i,
+              },
+              connectorProgress: {},
+            });
+          },
+        );
+
+        // Mark table as completed
+        currentTable.status = 'completed';
+
+        // Set syncInProgress=false for this table on success
+        await this.prisma.snapshotTable.update({
+          where: { id: snapshotTable.id },
+          data: { syncInProgress: false },
+        });
+
+        WSLogger.debug({
+          source: 'PublishRecordsJob',
+          message: 'Publish completed for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+          creates: currentTable.creates,
+          updates: currentTable.updates,
+          deletes: currentTable.deletes,
+        });
+      } catch (error) {
+        // Mark table as failed
+        currentTable.status = 'failed';
+
+        // Set syncInProgress=false for this table on failure
+        await this.prisma.snapshotTable.update({
+          where: { id: snapshotTable.id },
+          data: { syncInProgress: false },
+        });
+
+        WSLogger.error({
+          source: 'PublishRecordsJob',
+          message: 'Failed to publish records for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        // Stop immediately on error (as per design decision #3)
+        throw exceptionForConnectorError(error, connector);
+      }
+    }
+
+    WSLogger.debug({
+      source: 'PublishRecordsJob',
+      message: 'Publish job completed',
+      workbookId: workbook.id,
+      totalRecordsPublished,
+    });
+  }
+}

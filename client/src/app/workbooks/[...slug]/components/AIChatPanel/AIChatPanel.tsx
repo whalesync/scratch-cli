@@ -559,7 +559,6 @@ export default function AIChatPanel({ activeTable }: AIChatPanelProps) {
           }}
         />
       </Modal>
-
       {/* Tools Modal */}
       <ToolsModal
         opened={showToolsModal}

@@ -38,6 +38,7 @@ import { CreateWorkbookDto } from './dto/create-workbook.dto';
 import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
 import { DownloadRecordsDto } from './dto/download-records.dto';
 import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
+import { PublishRecordsDto } from './dto/publish-records.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
 import { RejectCellValueDto } from './dto/reject-cell-value.dto';
 import { AddScratchColumnDto, RemoveScratchColumnDto } from './dto/scratch-column.dto';
@@ -139,13 +140,22 @@ export class WorkbookController {
   }
 
   @Post(':id/publish')
-  async publish(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
-    return this.service.publish(id, toActor(req.user));
+  async publish(
+    @Param('id') id: WorkbookId,
+    @Body() publishDto: PublishRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ jobId: string }> {
+    return this.service.publish(id, toActor(req.user), publishDto.snapshotTableIds);
   }
 
-  @Get(':id/publish-summary')
-  async getPublishSummary(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<PublishSummaryDto> {
-    return await this.service.getPublishSummary(id, toActor(req.user));
+  @UseGuards(ScratchpadAuthGuard)
+  @Post(':id/publish-summary')
+  async getPublishSummary(
+    @Param('id') id: WorkbookId,
+    @Body() publishDto: PublishRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<PublishSummaryDto> {
+    return await this.service.getPublishSummary(id, toActor(req.user), publishDto.snapshotTableIds);
   }
 
   @Post(':id/download-without-job')

@@ -1,6 +1,6 @@
 import { Button, Modal, Stack, Text } from '@mantine/core';
 import { FC, useEffect } from 'react';
-import { useJobProgressWithCancellation } from '../../../../hooks/use-progress';
+import { useJobWithCancellation } from '../../../../hooks/use-progress';
 import { DownloadProgress } from './DownloadJobProgress';
 import { DownloadJobProgressDisplay } from './DownloadJobProgressDisplay';
 
@@ -11,31 +11,31 @@ type Props = {
 
 export const DownloadProgressModal: FC<Props> = (props) => {
   const { jobId, onClose } = props;
-  const { progress, error, isLoading, cancellationRequested, isCancelling, cancelJob } =
-    useJobProgressWithCancellation(jobId);
+  const { jobResult, cancellationRequested, isCancelling, cancelJob } = useJobWithCancellation(jobId);
+  const { job, error, isLoading } = jobResult;
 
   // Close modal when job is completed or failed
   useEffect(() => {
-    if (progress?.state === 'completed' || progress?.state === 'failed') {
+    if (job?.state === 'completed' || job?.state === 'failed') {
       // Auto-close after a short delay to show final state
       const timer = setTimeout(() => {
         onClose();
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [progress?.state, onClose]);
+  }, [job?.state, onClose]);
 
   const getStatusText = () => {
     if (isLoading) return 'Loading...';
     if (error) return 'Error loading progress';
-    if (!progress) return 'Waiting for job to start...';
+    if (!job) return 'Waiting for job to start...';
 
     // Show cancellation status
-    if (cancellationRequested && progress.state === 'active') {
+    if (cancellationRequested && job.state === 'active') {
       return 'Cancelling job...';
     }
 
-    switch (progress.state) {
+    switch (job.state) {
       case 'waiting':
         return 'Job is waiting to start...';
       case 'active':
@@ -43,7 +43,7 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       case 'completed':
         return 'Download completed successfully!';
       case 'failed':
-        return `Download failed: ${progress.failedReason || 'Unknown error'}`;
+        return `Download failed: ${job.failedReason || 'Unknown error'}`;
       case 'delayed':
         return 'Job is delayed...';
       case 'paused':
@@ -62,10 +62,10 @@ export const DownloadProgressModal: FC<Props> = (props) => {
   // };
 
   const getDownloadProgress = (): DownloadProgress | null => {
-    if (!progress?.publicProgress || typeof progress.publicProgress !== 'object') {
+    if (!job?.publicProgress || typeof job.publicProgress !== 'object') {
       return null;
     }
-    return progress.publicProgress as DownloadProgress;
+    return job.publicProgress as DownloadProgress;
   };
 
   return (
@@ -76,10 +76,10 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       centered
       size="lg"
       closeOnClickOutside={false}
-      closeOnEscape={progress?.state === 'completed' || progress?.state === 'failed'}
+      closeOnEscape={job?.state === 'completed' || job?.state === 'failed'}
     >
       <Stack>
-        {progress ? (
+        {job ? (
           <Stack gap="md">
             {(() => {
               const downloadProgress = getDownloadProgress();
@@ -95,14 +95,14 @@ export const DownloadProgressModal: FC<Props> = (props) => {
         )}
 
         {/* Cancel button - show when job is active and not already cancelled */}
-        {progress?.state === 'active' && !cancellationRequested && (
+        {job?.state === 'active' && !cancellationRequested && (
           <Button onClick={cancelJob} loading={isCancelling} color="red" variant="outline" fullWidth>
             {isCancelling ? 'Cancelling...' : 'Cancel Download'}
           </Button>
         )}
 
         {/* Close button - show when job is completed or failed */}
-        {(progress?.state === 'completed' || progress?.state === 'failed') && (
+        {(job?.state === 'completed' || job?.state === 'failed') && (
           <Button onClick={onClose} fullWidth>
             Close
           </Button>

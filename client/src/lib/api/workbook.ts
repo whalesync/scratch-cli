@@ -163,22 +163,27 @@ export const workbookApi = {
     return res.json();
   },
 
-  async publish(id: WorkbookId): Promise<void> {
+  async publish(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}/publish`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ snapshotTableIds }),
     });
     await checkForApiError(res, 'Failed to start publish');
+    return res.json();
   },
 
-  async getPublishSummary(id: WorkbookId): Promise<PublishSummary> {
+  async getPublishSummary(id: WorkbookId, snapshotTableIds?: string[]): Promise<PublishSummary> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}/publish-summary`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ snapshotTableIds }),
     });
     await checkForApiError(res, 'Failed to get publish summary');
     return res.json();

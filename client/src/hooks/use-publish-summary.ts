@@ -3,7 +3,7 @@ import { PublishSummary } from '@/types/server-entities/publish-summary';
 import { useCallback, useState } from 'react';
 import { WorkbookId } from '../types/server-entities/ids';
 
-export const usePublishSummary = (workbookId: WorkbookId | null) => {
+export const usePublishSummary = (workbookId: WorkbookId | null, snapshotTableIds?: string[]) => {
   const [publishSummary, setPublishSummary] = useState<PublishSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -15,14 +15,14 @@ export const usePublishSummary = (workbookId: WorkbookId | null) => {
     setError(null);
 
     try {
-      const data = await workbookApi.getPublishSummary(workbookId);
+      const data = await workbookApi.getPublishSummary(workbookId, snapshotTableIds);
       setPublishSummary(data);
     } catch (err) {
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
-  }, [workbookId]);
+  }, [workbookId, snapshotTableIds]);
 
   return {
     publishSummary,
