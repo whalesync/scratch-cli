@@ -84,6 +84,7 @@ describe('WordPressConnector', () => {
       // Minimal table spec with just title field
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
+        slug: 'posts',
         name: 'Posts',
         columns: [MOCK_TITLE_COLUMN],
       };
@@ -125,6 +126,7 @@ describe('WordPressConnector', () => {
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
         name: 'Posts',
+        slug: 'posts',
         columns: [MOCK_TITLE_COLUMN],
       };
 
@@ -157,6 +159,7 @@ describe('WordPressConnector', () => {
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
         name: 'Posts',
+        slug: 'posts',
         columns: [MOCK_CONTENT_COLUMN],
       };
 
@@ -182,6 +185,7 @@ describe('WordPressConnector', () => {
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
         name: 'Posts',
+        slug: 'posts',
         columns: [MOCK_CONTENT_COLUMN],
       };
 
@@ -213,6 +217,7 @@ describe('WordPressConnector', () => {
       const mockTableSpec: WordPressTableSpec = {
         id: { wsId: 'posts', remoteId: ['posts'] },
         name: 'Posts',
+        slug: 'posts',
         columns: [
           {
             id: { wsId: 'status', remoteId: ['status'] },
@@ -246,10 +251,81 @@ describe('WordPressConnector', () => {
       expect(record.fields.sticky).toBe(true);
     });
 
+    it('should handle empty string values for ACF fields', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: { wsId: 'posts', remoteId: ['posts'] },
+        name: 'Posts',
+        slug: 'posts',
+        columns: [
+          {
+            id: { wsId: 'file_array', remoteId: ['file_array'] },
+            name: 'Files',
+            pgType: PostgresColumnType.NUMERIC_ARRAY,
+            wordpressDataType: WordPressDataType.ARRAY,
+          },
+          {
+            id: { wsId: 'number', remoteId: ['number'] },
+            name: 'Number',
+            pgType: PostgresColumnType.NUMERIC,
+            wordpressDataType: WordPressDataType.NUMBER,
+          },
+          {
+            id: { wsId: 'integer', remoteId: ['integer'] },
+            name: 'Integer',
+            pgType: PostgresColumnType.NUMERIC,
+            wordpressDataType: WordPressDataType.NUMBER,
+          },
+          {
+            id: { wsId: 'bool', remoteId: ['bool'] },
+            name: 'Boolean',
+            pgType: PostgresColumnType.BOOLEAN,
+            wordpressDataType: WordPressDataType.BOOLEAN,
+          },
+        ],
+      };
+
+      mockClient.pollRecords.mockResolvedValue([
+        {
+          id: 1,
+          acf: {
+            file_array: '',
+            number: '',
+            integer: '',
+            bool: '',
+          },
+        },
+        {
+          id: 2,
+          acf: {
+            file_array: [1, 2, 3],
+            number: 42,
+            integer: 67,
+            bool: true,
+          },
+        },
+      ]);
+
+      const callback = jest.fn().mockResolvedValue(undefined);
+
+      await connector.downloadTableRecords(mockTableSpec, {}, callback);
+
+      const [record1, record2] = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records;
+      expect(record1.fields.file_array).toBe(null);
+      expect(record1.fields.number).toBe(null);
+      expect(record1.fields.integer).toBe(null);
+      expect(record1.fields.bool).toBe(null);
+
+      expect(record2.fields.file_array).toStrictEqual([1, 2, 3]);
+      expect(record2.fields.number).toBe(42);
+      expect(record2.fields.integer).toBe(67);
+      expect(record2.fields.bool).toBe(true);
+    });
+
     it('should handle progress parameter for resuming downloads', async () => {
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
         name: 'Posts',
+        slug: 'posts',
         columns: [MOCK_TITLE_COLUMN],
       };
 
@@ -273,6 +349,7 @@ describe('WordPressConnector', () => {
       const mockTableSpec: WordPressTableSpec = {
         id: { wsId: 'posts', remoteId: ['posts'] },
         name: 'Posts',
+        slug: 'posts',
         columns: [
           {
             id: { wsId: 'title', remoteId: ['title'] },

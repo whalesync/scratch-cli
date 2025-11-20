@@ -183,9 +183,22 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
         if (acfObject && typeof acfObject === 'object') {
           for (const [acfFieldId, value] of Object.entries(acfObject)) {
             const column = tableSpec.columns.find((c) => c.id.remoteId[0] === acfFieldId);
-            if (column && value !== undefined) {
-              record.fields[column.id.wsId] = value;
+            let convertedValue = value;
+            if (!column || value === undefined) {
+              continue;
             }
+            // Handle values being returned as empty string by ACF
+            if (
+              column.wordpressDataType === WordPressDataType.NUMBER ||
+              column.wordpressDataType === WordPressDataType.INTEGER ||
+              column.wordpressDataType === WordPressDataType.ARRAY ||
+              column.wordpressDataType === WordPressDataType.BOOLEAN
+            ) {
+              if (value === '') {
+                convertedValue = null;
+              }
+            }
+            record.fields[column.id.wsId] = convertedValue;
           }
         }
         continue;
@@ -255,7 +268,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     // TODO - parse the error more gracefully and return more specific error details.
 
     return {
-      userFriendlyMessage: 'An error occurred while connecting to YouTube',
+      userFriendlyMessage: 'An error occurred while connecting to Wordpress',
       description: error instanceof Error ? error.message : String(error),
     };
   }
