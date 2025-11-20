@@ -1,47 +1,12 @@
 import axios from 'axios';
 import { getAgentUrl, getAgentWebSocketUrl, getApiUrl, getAuthToken } from './common';
+import { AgentCredential, RecordsResponse, Session, Table, Workbook } from './types';
 import { waitForWebSocketMessage } from './websocket';
-
-interface Workbook {
-  id: string;
-  name: string;
-  snapshotTables: Table[];
-}
-
-interface Table {
-  id: string;
-  tableSpec: {
-    name: string;
-    id: {
-      wsId: string;
-      remoteId: string[];
-    };
-  };
-}
-
-interface Session {
-  id: string;
-  name: string;
-}
-
-interface TableRecord {
-  id: {
-    wsId: string;
-    remoteId: string[];
-  };
-  fields: Record<string, string>;
-  __edited_fields: Record<string, string>;
-  __suggested_values: Record<string, string>;
-}
-
-interface RecordsResponse {
-  count: number;
-  records: TableRecord[];
-}
 
 describe('Smoke Tests', () => {
   let authToken: string;
   let agentJwt: string;
+  let agentCredentialId: string | undefined;
   let workbookId: string;
   let table: Table | undefined;
   let sessionId: string | undefined;
@@ -71,6 +36,32 @@ describe('Smoke Tests', () => {
     agentJwt = (response.data as { agentJwt: string }).agentJwt;
   });
 
+  it('should obtain agent credentials for the current user', async () => {
+    const response = await axios.get(`${getApiUrl()}/user/credentials`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      validateStatus: () => true, // Don't throw on any status
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.data).toBeDefined();
+
+    const credentials = response.data as AgentCredential[];
+    if (credentials.length === 0) {
+      throw new Error('No agent credentials found for the current user');
+    }
+
+    const credential = credentials.find((c) => c.service === 'openrouter' && c.enabled && c.default);
+
+    if (!credential) {
+      throw new Error('No active openrouter credential found for the current user');
+    }
+
+    // Store the first credential for the next test
+    agentCredentialId = credential?.id;
+  });
+
   it('should fetch workbooks and get the first workbook ID', async () => {
     const response = await axios.get(`${getApiUrl()}/workbook`, {
       headers: {
@@ -89,7 +80,15 @@ describe('Smoke Tests', () => {
       );
     }
 
-    const workbook = workbooks[0];
+    let workbook = workbooks[0];
+    if (process.env.INTEGRATION_TEST_WORKBOOK_ID) {
+      const specificWorkbook = workbooks.find((w) => w.id === process.env.INTEGRATION_TEST_WORKBOOK_ID);
+      if (!specificWorkbook) {
+        throw new Error(`Workbook ${process.env.INTEGRATION_TEST_WORKBOOK_ID} not found`);
+      }
+      workbook = specificWorkbook;
+    }
+
     console.log(`Selected workbook ${workbook.id} (${workbook.name}) for further testing`);
     workbookId = workbook.id;
     expect(workbookId).toBeDefined();
@@ -102,6 +101,14 @@ describe('Smoke Tests', () => {
     }
 
     table = workbook.snapshotTables[0];
+    if (process.env.INTEGRATION_TEST_TABLE_ID) {
+      const specificTable = workbook.snapshotTables.find((t) => t.id === process.env.INTEGRATION_TEST_TABLE_ID);
+      if (!specificTable) {
+        throw new Error(`Table ${process.env.INTEGRATION_TEST_TABLE_ID} not found`);
+      }
+      table = specificTable;
+    }
+
     console.log(`Selected table ${table.id} (${table.tableSpec.name}) for further testing`);
     expect(table.id).toBeDefined();
   });
@@ -169,6 +176,12 @@ describe('Smoke Tests', () => {
           data: {
             message: 'Reverse the words in the first string column',
             agent_jwt: agentJwt,
+            active_table_id: table?.id,
+            data_scope: 'table',
+            capabilities: ['data:create', 'views:filtering', 'data:update', 'data:delete', 'data:field-tools'],
+            credential_id: agentCredentialId,
+            model: process.env.INTEGRATION_TEST_LLM_MODEL ?? undefined,
+            model_context_length: 200000,
           },
         }),
       );

@@ -38,6 +38,20 @@ export const DevToolsPanel = () => {
           {isAdmin && <Badge size="xs">Admin</Badge>}
         </Group>
         <Group wrap="nowrap" gap="xs">
+          <Text13Regular miw={200}>Clerk ID</Text13Regular>
+          <Text13Regular>{user?.clerkId || 'No clerk ID found'}</Text13Regular>
+          <CopyButton value={user?.clerkId || ''} timeout={2000}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : `${user?.clerkId}`} withArrow position="right">
+                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
+
+        <Group wrap="nowrap" gap="xs">
           <Text13Regular miw={200}>Agent Token</Text13Regular>
           <PasswordInput
             variant="unstyled"
