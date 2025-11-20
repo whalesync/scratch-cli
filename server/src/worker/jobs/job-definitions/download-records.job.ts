@@ -44,6 +44,72 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     private readonly snapshotEventService: SnapshotEventService,
   ) {}
 
+  /**
+   * Resets the 'seen' flag to false for all records in a table before starting a download
+   */
+  private async resetSeenFlags(workbookId: WorkbookId, tableName: string) {
+    await this.snapshotDb.knex.withSchema(workbookId).table(tableName).update({
+      __seen: false,
+    });
+  }
+
+  /**
+   * Deletes records that were not seen during the download (i.e., records with __seen=false)
+   */
+  private async deleteUnseenRecords(workbookId: WorkbookId, tableName: string) {
+    const batchSize = 1000;
+    let deletedCount = 0;
+
+    try {
+      while (true) {
+        // Find records where __seen is false (not seen during this sync)
+        const recordsToDelete = await this.snapshotDb.knex
+          .select<Array<{ wsId: string }>>('wsId')
+          .from(tableName)
+          .withSchema(workbookId)
+          .where('__seen', false)
+          .limit(batchSize);
+
+        if (recordsToDelete.length === 0) {
+          break;
+        }
+
+        const wsIds: string[] = recordsToDelete.map((r) => r.wsId);
+
+        // Delete in a transaction
+        await this.snapshotDb.knex.transaction(async (trx) => {
+          await this.snapshotDb.deleteRecords(workbookId, tableName, wsIds, trx);
+        });
+
+        deletedCount += recordsToDelete.length;
+
+        // If we got fewer records than batch size, we're done
+        if (recordsToDelete.length < batchSize) {
+          break;
+        }
+      }
+
+      if (deletedCount > 0) {
+        WSLogger.info({
+          source: 'DownloadRecordsJob',
+          message: 'Completed deletion of unseen records',
+          workbookId,
+          tableName,
+          totalDeleted: deletedCount,
+        });
+      }
+    } catch (error) {
+      WSLogger.error({
+        source: 'DownloadRecordsJob',
+        message: 'Failed to delete unseen records',
+        workbookId,
+        tableName,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't throw - we don't want to fail the entire job if cleanup fails
+    }
+  }
+
   async run(params: {
     data: DownloadRecordsJobDefinition['data'];
     progress: Progress<
@@ -133,6 +199,9 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         snapshotTableId: snapshotTable.id,
       });
 
+      // Reset the 'seen' flag to false for all records before starting the download
+      await this.resetSeenFlags(workbook.id as WorkbookId, snapshotTable.tableName);
+
       // Get connector for this specific table
       const service = snapshotTable.connectorService;
 
@@ -214,6 +283,9 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           workbookId: workbook.id,
           snapshotTableId: snapshotTable.id,
         });
+
+        // Delete records that weren't seen in this sync (__seen=false or undefined)
+        await this.deleteUnseenRecords(workbook.id as WorkbookId, snapshotTable.tableName);
       } catch (error) {
         // Mark table as failed
         currentTable.status = 'failed';

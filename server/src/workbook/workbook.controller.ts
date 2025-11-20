@@ -470,7 +470,7 @@ export class WorkbookController {
         FROM information_schema.columns
         WHERE table_schema = '${workbookId}'
         AND table_name = '${tableId}'
-        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty')
+        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty', '__seen')
         ORDER BY ordinal_position
       `;
 

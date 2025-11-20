@@ -29,6 +29,8 @@ export const DIRTY_COLUMN = '__dirty';
 // A special field that is used to mark a record as deleted in the EDITED_FIELDS_COLUMN and SUGGESTED_FIELDS_COLUMN
 export const DELETED_FIELD = '__deleted';
 
+export const SEEN_COLUMN = '__seen';
+
 /**
  * Represents a table for database operations.
  * Contains both the table specification (for column information) and the actual PostgreSQL table name.
@@ -58,6 +60,7 @@ type DbRecord = {
   [SUGGESTED_FIELDS_COLUMN]: Record<string, unknown>;
   [METADATA_COLUMN]: Record<string, unknown>;
   [DIRTY_COLUMN]: boolean;
+  [SEEN_COLUMN]: boolean;
   [key: string]: unknown;
 };
 
@@ -158,6 +161,7 @@ export class SnapshotDb {
           t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
           t.jsonb(METADATA_COLUMN).defaultTo('{}');
           t.boolean(DIRTY_COLUMN).defaultTo(false);
+          t.boolean(SEEN_COLUMN).defaultTo(true);
         });
       } else {
         // The table exists, so we need to check if we need to migrate it.
@@ -180,7 +184,7 @@ export class SnapshotDb {
         }
 
         // The table exists, so we need to check if the metadata columns exist.
-        for (const col of [EDITED_FIELDS_COLUMN, DIRTY_COLUMN]) {
+        for (const col of [EDITED_FIELDS_COLUMN, DIRTY_COLUMN, SEEN_COLUMN]) {
           const hasColumn = await this.knex.schema.withSchema(workbookId).hasColumn(tableName, col);
           if (!hasColumn) {
             await this.knex.schema.withSchema(workbookId).table(tableName, (t) => {
@@ -188,6 +192,8 @@ export class SnapshotDb {
                 t.jsonb(EDITED_FIELDS_COLUMN).nullable();
               } else if (col === DIRTY_COLUMN) {
                 t.boolean(DIRTY_COLUMN).defaultTo(false);
+              } else if (col === SEEN_COLUMN) {
+                t.boolean(SEEN_COLUMN).defaultTo(true);
               }
             });
           }
@@ -266,7 +272,8 @@ export class SnapshotDb {
       t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
       t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
       t.jsonb(METADATA_COLUMN).defaultTo('{}');
-      t.boolean(DIRTY_COLUMN).defaultTo(false);
+      t.boolean(SEEN_COLUMN).defaultTo(true);
+      t.boolean(DIRTY_COLUMN).defaultTo(true);
     });
   }
 
@@ -286,6 +293,7 @@ export class SnapshotDb {
       wsId: createSnapshotRecordId(), // Will be ignored on merge.
       id: r.id,
       ...this.sanitizeFieldsForKnexInput(r.fields, table.spec.columns),
+      [SEEN_COLUMN]: true,
       [METADATA_COLUMN]: r.metadata,
     }));
 
@@ -294,7 +302,7 @@ export class SnapshotDb {
     }
 
     // There might already be records in the DB. We want to pair by (remote) id and overwrite everything except the wsId.
-    const columnsToUpdateOnMerge = table.spec.columns.map((c) => c.id.wsId);
+    const columnsToUpdateOnMerge = [...table.spec.columns.map((c) => c.id.wsId), METADATA_COLUMN, SEEN_COLUMN];
 
     await this.knex(table.tableName)
       .withSchema(workbookId)
@@ -391,7 +399,7 @@ export class SnapshotDb {
   }
 
   private mapDbRecordToSnapshotRecord(record: DbRecord): SnapshotRecord {
-    const { wsId, id, __edited_fields, __suggested_values, __dirty, __metadata, ...fields } = record;
+    const { wsId, id, __edited_fields, __suggested_values, __dirty, __metadata, __seen, ...fields } = record;
     return {
       id: {
         wsId,
@@ -402,6 +410,7 @@ export class SnapshotDb {
       __suggested_values,
       __dirty,
       __metadata,
+      __seen,
     };
   }
 
@@ -765,10 +774,20 @@ export class SnapshotDb {
 
           await callback(
             batch.map(
-              ({ wsId, id: remoteId, __edited_fields, __dirty, __suggested_values, __metadata, ...fields }) => ({
+              ({
+                wsId,
+                id: remoteId,
+                __edited_fields,
+                __dirty,
+                __suggested_values,
+                __metadata,
+                __seen,
+                ...fields
+              }) => ({
                 id: { wsId, remoteId },
                 __edited_fields,
                 __dirty,
+                __seen,
                 __suggested_values: __suggested_values ?? {},
                 fields,
                 __metadata,
