@@ -137,6 +137,7 @@ export function PromptAssetSelector({
               handleAdd(val);
             }}
             disabled={disabled}
+            zIndex={1001}
           >
             <Combobox.Target>
               <ActionIcon

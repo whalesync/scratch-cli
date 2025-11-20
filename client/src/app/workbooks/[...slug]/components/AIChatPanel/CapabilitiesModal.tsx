@@ -59,7 +59,7 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
   };
 
   return (
-    <Modal opened={opened} onClose={handleCancel} title="Configure tools" size="lg" zIndex={1003}>
+    <Modal opened={opened} onClose={handleCancel} title="Configure tools" size="lg" zIndex={1001}>
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Select which tools the AI agent should have access to:
