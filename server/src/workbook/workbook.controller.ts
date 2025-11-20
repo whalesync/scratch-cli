@@ -275,14 +275,13 @@ export class WorkbookController {
   }
 
   @Post(':id/tables/:tableId/accept-cell-values')
-  @HttpCode(204)
   async acceptCellValues(
     @Param('id') workbookId: WorkbookId,
     @Param('tableId') tableId: string,
     @Body() acceptCellValueDto: AcceptCellValueDto,
     @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.acceptCellValues(workbookId, tableId, acceptCellValueDto.items, toActor(req.user));
+  ): Promise<{ recordsUpdated: number }> {
+    return await this.service.acceptCellValues(workbookId, tableId, acceptCellValueDto.items, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/accept-all-suggestions')
@@ -322,14 +321,13 @@ export class WorkbookController {
   }
 
   @Post(':id/tables/:tableId/reject-values')
-  @HttpCode(204)
   async rejectValues(
     @Param('id') workbookId: WorkbookId,
     @Param('tableId') tableId: string,
     @Body() rejectCellValueDto: RejectCellValueDto,
     @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.rejectValues(workbookId, tableId, rejectCellValueDto.items, toActor(req.user));
+  ): Promise<{ recordsUpdated: number }> {
+    return await this.service.rejectValues(workbookId, tableId, rejectCellValueDto.items, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-all-suggestions')

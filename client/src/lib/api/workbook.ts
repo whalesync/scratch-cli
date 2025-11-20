@@ -330,7 +330,7 @@ export const workbookApi = {
     workbookId: WorkbookId,
     tableId: SnapshotTableId,
     items: { wsId: string; columnId: string }[],
-  ): Promise<void> {
+  ): Promise<{ recordsUpdated: number }> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/accept-cell-values`, {
       method: 'POST',
       headers: {
@@ -340,13 +340,14 @@ export const workbookApi = {
       body: JSON.stringify({ items }),
     });
     await checkForApiError(res, 'Failed to accept cell values');
+    return res.json();
   },
 
   async rejectCellValues(
     workbookId: WorkbookId,
     tableId: SnapshotTableId,
     items: { wsId: string; columnId: string }[],
-  ): Promise<void> {
+  ): Promise<{ recordsUpdated: number }> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/reject-values`, {
       method: 'POST',
       headers: {
@@ -356,6 +357,7 @@ export const workbookApi = {
       body: JSON.stringify({ items }),
     });
     await checkForApiError(res, 'Failed to reject cell values');
+    return res.json();
   },
 
   async acceptAllSuggestions(workbookId: WorkbookId, tableId: SnapshotTableId): Promise<AcceptAllSuggestionsResult> {

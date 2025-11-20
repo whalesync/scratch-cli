@@ -576,7 +576,7 @@ export class SnapshotDb {
     tableId: string,
     items: { wsId: string; columnId: string }[],
     tableSpec: AnyTableSpec,
-  ): Promise<void> {
+  ): Promise<number> {
     const now = new Date().toISOString();
 
     // Create a map of column ID to column type
@@ -597,7 +597,8 @@ export class SnapshotDb {
       {} as Record<string, string[]>,
     );
 
-    await this.knex.transaction(async (trx) => {
+    return await this.knex.transaction(async (trx) => {
+      let numRecordsUpdated = 0;
       // Process each record (wsId) separately
       for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
         const updatePayload: Record<string, any> = {};
@@ -683,7 +684,9 @@ export class SnapshotDb {
 
         // Execute the update for this record
         await trx(tableId).withSchema(workbookId).where('wsId', wsId).update(updatePayload);
+        numRecordsUpdated++;
       }
+      return numRecordsUpdated;
     });
   }
 
@@ -691,7 +694,7 @@ export class SnapshotDb {
     workbookId: WorkbookId,
     tableId: string,
     items: { wsId: string; columnId: string }[],
-  ): Promise<void> {
+  ): Promise<number> {
     // Group items by wsId
     const groupedByWsId = items.reduce(
       (acc, item) => {
@@ -704,7 +707,8 @@ export class SnapshotDb {
       {} as Record<string, string[]>,
     );
 
-    await this.knex.transaction(async (trx) => {
+    return await this.knex.transaction(async (trx) => {
+      let numRecordsUpdated = 0;
       // Process each record (wsId) separately
       for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
         const updatePayload: Record<string, any> = {};
@@ -726,7 +730,9 @@ export class SnapshotDb {
 
         // Execute the update for this record
         await trx(tableId).withSchema(workbookId).where('wsId', wsId).update(updatePayload);
+        numRecordsUpdated++;
       }
+      return numRecordsUpdated;
     });
   }
 

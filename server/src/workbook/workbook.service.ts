@@ -652,6 +652,7 @@ export class WorkbookService {
 
     const ops = _.concat<RecordOperation>(dto.creates ?? [], dto.updates ?? [], dto.deletes ?? [], dto.undeletes ?? []);
     this.validateBulkUpdateOps(ops, tableSpec);
+    await this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, ops, type);
 
     this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
       type: 'record-changes',
@@ -662,8 +663,6 @@ export class WorkbookService {
         source: type === 'suggested' ? 'agent' : 'user',
       },
     });
-
-    return this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, ops, type);
   }
 
   async getOperationCounts(
@@ -795,7 +794,7 @@ export class WorkbookService {
     tableId: string,
     items: { wsId: string; columnId: string }[],
     actor: Actor,
-  ): Promise<void> {
+  ): Promise<{ recordsUpdated: number }> {
     const workbook = await this.findOneOrThrow(workbookId, actor);
     const snapshotTable = getSnapshotTableById(workbook, tableId);
     if (!snapshotTable) {
@@ -818,7 +817,12 @@ export class WorkbookService {
       }
     }
 
-    await this.snapshotDbService.snapshotDb.acceptCellValues(workbookId, snapshotTable.tableName, items, tableSpec);
+    const recordsUpdated = await this.snapshotDbService.snapshotDb.acceptCellValues(
+      workbookId,
+      snapshotTable.tableName,
+      items,
+      tableSpec,
+    );
 
     // Count unique wsId values in the items list
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
@@ -833,6 +837,8 @@ export class WorkbookService {
         source: 'user',
       },
     });
+
+    return { recordsUpdated };
   }
 
   async rejectValues(
@@ -840,7 +846,7 @@ export class WorkbookService {
     tableId: string,
     items: { wsId: string; columnId: string }[],
     actor: Actor,
-  ): Promise<void> {
+  ): Promise<{ recordsUpdated: number }> {
     const workbook = await this.findOneOrThrow(workbookId, actor);
     const snapshotTable = getSnapshotTableById(workbook, tableId);
     if (!snapshotTable) {
@@ -851,7 +857,11 @@ export class WorkbookService {
     const uniqueWsIds = new Set(items.map((item) => item.wsId));
     const uniqueRecordCount = uniqueWsIds.size;
 
-    await this.snapshotDbService.snapshotDb.rejectValues(workbookId, snapshotTable.tableName, items);
+    const recordsUpdated = await this.snapshotDbService.snapshotDb.rejectValues(
+      workbookId,
+      snapshotTable.tableName,
+      items,
+    );
 
     this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
       type: 'record-changes',
@@ -862,6 +872,7 @@ export class WorkbookService {
         source: 'user',
       },
     });
+    return { recordsUpdated };
   }
 
   async acceptAllSuggestions(
