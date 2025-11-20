@@ -422,7 +422,12 @@ export class WorkbookService {
     });
   }
 
-  findAllForConnectorAccount(connectorAccountId: string, actor: Actor): Promise<WorkbookCluster.Workbook[]> {
+  findAllForConnectorAccount(
+    connectorAccountId: string,
+    actor: Actor,
+    sortBy: 'name' | 'createdAt' | 'updatedAt' = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ): Promise<WorkbookCluster.Workbook[]> {
     return this.db.client.workbook.findMany({
       where: {
         userId: actor.userId,
@@ -433,19 +438,23 @@ export class WorkbookService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        [sortBy]: sortOrder,
       },
       include: WorkbookCluster._validator.include,
     });
   }
 
-  findAllForUser(actor: Actor): Promise<WorkbookCluster.Workbook[]> {
+  findAllForUser(
+    actor: Actor,
+    sortBy: 'name' | 'createdAt' | 'updatedAt' = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ): Promise<WorkbookCluster.Workbook[]> {
     return this.db.client.workbook.findMany({
       where: {
         userId: actor.userId,
       },
       orderBy: {
-        createdAt: 'desc',
+        [sortBy]: sortOrder,
       },
       include: WorkbookCluster._validator.include,
     });

@@ -19,18 +19,29 @@ import { BulkUpdateRecordsDto, ListRecordsResponse } from '../../types/server-en
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';
 
+export type WorkbookSortBy = 'name' | 'createdAt' | 'updatedAt';
+export type WorkbookSortOrder = 'asc' | 'desc';
+
 export const workbookApi = {
-  list: async (connectorAccountId?: string): Promise<Workbook[]> => {
-    const res = await fetch(
-      `${API_CONFIG.getApiUrl()}/workbook${connectorAccountId ? `?connectorAccountId=${connectorAccountId}` : ''}`,
-      {
-        method: 'GET',
-        headers: {
-          ...API_CONFIG.getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
+  list: async (
+    connectorAccountId?: string,
+    sortBy: WorkbookSortBy = 'createdAt',
+    sortOrder: WorkbookSortOrder = 'desc',
+  ): Promise<Workbook[]> => {
+    const params = new URLSearchParams();
+    if (connectorAccountId) {
+      params.append('connectorAccountId', connectorAccountId);
+    }
+    params.append('sortBy', sortBy);
+    params.append('sortOrder', sortOrder);
+
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
       },
-    );
+    });
     await checkForApiError(res, 'Failed to fetch workbooks');
     return res.json();
   },

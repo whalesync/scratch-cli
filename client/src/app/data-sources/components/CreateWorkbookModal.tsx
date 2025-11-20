@@ -47,7 +47,7 @@ export const CreateWorkbookModal = ({
   const [channelId, setChannelId] = useState<string>('');
   const [isAddingChannel, setIsAddingChannel] = useState(false);
 
-  const { createWorkbook } = useWorkbooks(connectorAccount.id);
+  const { createWorkbook } = useWorkbooks({ connectorAccountId: connectorAccount.id });
 
   const tableTerm = tableName(connectorAccount.service);
   const tableTermPlural = tablesName(connectorAccount.service);

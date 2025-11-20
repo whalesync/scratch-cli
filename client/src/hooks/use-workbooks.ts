@@ -1,10 +1,16 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { workbookApi } from '@/lib/api/workbook';
+import { workbookApi, WorkbookSortBy, WorkbookSortOrder } from '@/lib/api/workbook';
 import { CreateWorkbookDto, UpdateWorkbookDto, Workbook } from '@/types/server-entities/workbook';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { WorkbookId } from '../types/server-entities/ids';
+
+export interface UseWorkbooksOptions {
+  connectorAccountId?: string;
+  sortBy?: WorkbookSortBy;
+  sortOrder?: WorkbookSortOrder;
+}
 
 export interface UseWorkbooksReturn {
   workbooks: Workbook[] | undefined;
@@ -16,17 +22,22 @@ export interface UseWorkbooksReturn {
   refreshWorkbooks: () => Promise<void>;
 }
 
-export const useWorkbooks = (connectorAccountId?: string): UseWorkbooksReturn => {
+export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksReturn => {
+  const { connectorAccountId, sortBy = 'createdAt', sortOrder = 'desc' } = options;
   const { mutate } = useSWRConfig();
-  const { data, error, isLoading } = useSWR(SWR_KEYS.workbook.list(), () => workbookApi.list(connectorAccountId), {
-    refreshInterval: 10000,
-    revalidateOnReconnect: true,
-  });
+  const { data, error, isLoading } = useSWR(
+    SWR_KEYS.workbook.list(sortBy, sortOrder),
+    () => workbookApi.list(connectorAccountId, sortBy, sortOrder),
+    {
+      refreshInterval: 10000,
+      revalidateOnReconnect: true,
+    },
+  );
 
   const createWorkbook = useCallback(
     async (dto: CreateWorkbookDto): Promise<Workbook> => {
       const newWorkbook = await workbookApi.create(dto);
-      mutate(SWR_KEYS.workbook.list());
+      mutate(SWR_KEYS.workbook.listKeyMatcher());
       return newWorkbook;
     },
     [mutate],
@@ -35,7 +46,7 @@ export const useWorkbooks = (connectorAccountId?: string): UseWorkbooksReturn =>
   const updateWorkbook = useCallback(
     async (id: WorkbookId, updateDto: UpdateWorkbookDto): Promise<Workbook> => {
       const updatedWorkbook = await workbookApi.update(id, updateDto);
-      mutate(SWR_KEYS.workbook.list());
+      mutate(SWR_KEYS.workbook.listKeyMatcher());
       mutate(SWR_KEYS.workbook.detail(id));
       return updatedWorkbook;
     },
@@ -45,13 +56,13 @@ export const useWorkbooks = (connectorAccountId?: string): UseWorkbooksReturn =>
   const deleteWorkbook = useCallback(
     async (id: WorkbookId): Promise<void> => {
       await workbookApi.delete(id);
-      mutate(SWR_KEYS.workbook.list());
+      mutate(SWR_KEYS.workbook.listKeyMatcher());
     },
     [mutate],
   );
 
   const refreshWorkbooks = useCallback(async () => {
-    await mutate(SWR_KEYS.workbook.list());
+    await mutate(SWR_KEYS.workbook.listKeyMatcher());
   }, [mutate]);
 
   const displayError = useMemo(() => {

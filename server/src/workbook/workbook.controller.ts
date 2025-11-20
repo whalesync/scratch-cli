@@ -73,15 +73,17 @@ export class WorkbookController {
   @Get()
   async findAll(
     @Query('connectorAccountId') connectorAccountId: string | undefined,
+    @Query('sortBy') sortBy: 'name' | 'createdAt' | 'updatedAt' | undefined,
+    @Query('sortOrder') sortOrder: 'asc' | 'desc' | undefined,
     @Req() req: RequestWithUser,
   ): Promise<Workbook[]> {
     if (connectorAccountId) {
-      return (await this.service.findAllForConnectorAccount(connectorAccountId, toActor(req.user))).map(
-        (s) => new Workbook(s),
-      );
+      return (
+        await this.service.findAllForConnectorAccount(connectorAccountId, toActor(req.user), sortBy, sortOrder)
+      ).map((s) => new Workbook(s));
     }
 
-    return (await this.service.findAllForUser(toActor(req.user))).map((s) => new Workbook(s));
+    return (await this.service.findAllForUser(toActor(req.user), sortBy, sortOrder)).map((s) => new Workbook(s));
   }
 
   @Get(':id')
