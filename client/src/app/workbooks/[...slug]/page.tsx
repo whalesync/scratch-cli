@@ -39,14 +39,13 @@ const DEFAULT_CHAT_WIDTH = '500px';
 function WorkbookPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId, updateSnapshotPath } = useWorkbookParams();
-  const { activeTable } = useActiveWorkbook();
   const activeTab = useWorkbookEditorUIStore((state) => state.activeTab);
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
   const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   const router = useRouter();
-  const { workbook, isLoading, refreshWorkbook } = useActiveWorkbook();
+  const { workbook, activeTable, isLoading, refreshWorkbook } = useActiveWorkbook();
 
   const [showManageTablesModal, setShowManageTablesModal] = useState(false);
 

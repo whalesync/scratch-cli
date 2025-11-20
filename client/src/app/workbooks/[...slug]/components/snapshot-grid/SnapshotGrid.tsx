@@ -1,5 +1,6 @@
 'use client';
 
+import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import {
   getHeaderColumnSpec,
@@ -9,7 +10,7 @@ import {
 import { recordName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
-import { Box, Center, Loader, Text, useMantineColorScheme } from '@mantine/core';
+import { Box, Center, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
@@ -610,7 +611,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   if (!mounted || (isLoading && !records)) {
     return (
       <Center h="100%">
-        <Loader />
+        <LoaderWithMessage message="Loading records..." centered />
       </Center>
     );
   }
@@ -837,7 +838,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
           }}
         >
           <Center>
-            <Loader size="xl" />
+            <LoaderWithMessage centered message="Syncing..." />
           </Center>
         </Box>
       )}
