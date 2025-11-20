@@ -15,8 +15,8 @@ test.describe('Example Test Suite', () => {
     // Navigate to home page
     await page.goto('/');
 
-    // Wait for page to be loaded
-    await page.waitForLoadState('networkidle');
+    // Wait for DOM to be loaded (more reliable than networkidle for apps with WebSockets/analytics)
+    await page.waitForLoadState('domcontentloaded');
 
     // Basic assertion - page should be accessible
     expect(page.url()).toContain('localhost:3000');
@@ -26,8 +26,8 @@ test.describe('Example Test Suite', () => {
     // Navigate to workbooks page
     await page.goto('/workbooks');
 
-    // Wait for navigation to complete
-    await page.waitForLoadState('networkidle');
+    // Wait for DOM to be loaded
+    await page.waitForLoadState('domcontentloaded');
 
     // Check that we're on the workbooks page
     expect(page.url()).toContain('/workbooks');
@@ -37,8 +37,8 @@ test.describe('Example Test Suite', () => {
     // Navigate to data sources page
     await page.goto('/data-sources');
 
-    // Wait for page to load
-    await page.waitForLoadState('networkidle');
+    // Wait for DOM to be loaded
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify we're on the data sources page
     expect(page.url()).toContain('/data-sources');

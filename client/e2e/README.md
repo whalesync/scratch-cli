@@ -283,13 +283,28 @@ test('form test', async ({ page }) => {
 ### 3. Wait for Elements Properly
 
 ```typescript
-// Good: Wait for specific conditions
-await page.waitForLoadState('networkidle');
+// Best: Wait for specific elements to be visible
 await expect(page.locator('[data-testid="workbook"]')).toBeVisible();
 
+// Good: Wait for DOM to be ready
+await page.waitForLoadState('domcontentloaded');
+
+// Avoid: networkidle is unreliable for apps with WebSockets/real-time features
+// Our app uses WebSockets and analytics which keep connections open indefinitely
+// await page.waitForLoadState('networkidle'); // ❌ Don't use this - causes flaky tests!
+
 // Bad: Hard-coded waits
-await page.waitForTimeout(5000); // Avoid this
+await page.waitForTimeout(5000); // ❌ Avoid this
 ```
+
+**Why avoid `networkidle`?**
+
+Our app uses:
+- WebSocket connections for real-time updates
+- PostHog analytics with periodic requests
+- Background polling and SSE
+
+These keep the network active, so `networkidle` (which waits for 500ms of no network activity) either times out or causes flaky tests. Use `domcontentloaded` or wait for specific elements instead.
 
 ### 4. Use Data Test IDs
 

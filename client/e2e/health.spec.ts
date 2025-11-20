@@ -15,8 +15,8 @@ test.describe('Health Checks', () => {
     // Navigate to health page (already authenticated via global setup)
     await page.goto('/health');
 
-    // Wait for page to load
-    await page.waitForLoadState('networkidle');
+    // Wait for DOM to be loaded (more reliable than networkidle)
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify we can access the health page
     expect(page.url()).toContain('/health');

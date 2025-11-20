@@ -56,8 +56,8 @@ setup('authenticate', async ({ page }) => {
   await page.waitForURL(/localhost:3000\/(?!.*sign-in)/, { timeout: 30000 });
 
   console.log('Verifying authentication...');
-  // Wait for page to be fully loaded
-  await page.waitForLoadState('networkidle');
+  // Wait for DOM to be loaded (more reliable than networkidle for apps with real-time features)
+  await page.waitForLoadState('domcontentloaded');
 
   // Verify we're not on sign-in page anymore
   expect(page.url()).not.toContain('sign-in');
