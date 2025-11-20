@@ -35,7 +35,6 @@ import { SnapshotTableGridProps } from '../types';
 import { AG } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
-import { SettingsModal } from './modals/SettingsModal';
 import RecordDetailsOverlay from './RecordDetailsOverlay';
 import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
@@ -153,15 +152,9 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   });
 
   // Get theme from Mantine
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
   const isLightMode = colorScheme === 'light';
-
-  // Settings modal state
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-
-  // Column header settings
-  const [showDataTypeInHeader, setShowDataTypeInHeader] = useState(false);
 
   // We'll use gridApi.getFocusedCell() instead of tracking state
 
@@ -175,11 +168,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const originalColumnWidthsRef = useRef<Map<string, number>>(new Map());
 
   // Storage key for this specific snapshot and table
-  const { columnState, mounted, onColumnStateChanged, clearColumnState } = useStoreColumnState(
-    workbook.id,
-    table.id,
-    gridApi,
-  );
+  const { columnState, mounted, onColumnStateChanged } = useStoreColumnState(workbook.id, table.id, gridApi);
 
   // Handle column resize to update overlay width when record details are visible
   const handleColumnResized = useCallback(() => {
@@ -211,7 +200,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const { cellRenderer } = useCellRenderer(table.tableSpec, acceptCellValues, rejectCellValues);
   const { idColumn, dotColumn } = useSpecialColDefs({
     entityName: recordName(table.connectorService as Service),
-    onSettingsClick: () => setIsSettingsModalOpen(true),
     resizable: true,
     gridApi,
     recordDetailsVisible: !!activeCells?.recordId,
@@ -582,7 +570,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         tableId: table.id,
         records: records,
         columnSpec: column,
-        showDataTypeInHeader: showDataTypeInHeader,
+        showDataTypeInHeader: false,
       },
       comparator: getComparatorFunctionForColumnSpec(column),
       cellDataType:
@@ -801,17 +789,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         tableColumns={table.tableSpec.columns}
         tableId={table.id}
         onShowRecordJson={handleShowRecordJson}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        isDarkTheme={isDarkTheme}
-        onThemeToggle={toggleColorScheme}
-        showDataTypeInHeader={showDataTypeInHeader}
-        onShowDataTypeToggle={setShowDataTypeInHeader}
-        onClearColumnState={clearColumnState}
       />
 
       {/* Record JSON Modal */}

@@ -7,13 +7,12 @@ import { getCellClassFn } from './useCellClass';
 
 interface UseIdColDefProps {
   entityName: string;
-  onSettingsClick: () => void;
   resizable?: boolean;
   gridApi?: GridApi<SnapshotRecord> | null;
   recordDetailsVisible?: boolean;
 }
 
-export const useSpecialColDefs = ({ entityName, onSettingsClick, resizable = true, gridApi }: UseIdColDefProps) => {
+export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
 
@@ -29,7 +28,6 @@ export const useSpecialColDefs = ({ entityName, onSettingsClick, resizable = tru
     // Use custom ID header component with settings button
     headerComponent: IdHeaderComponent,
     headerComponentParams: {
-      onSettingsClick,
       entityName,
     },
     valueGetter: (params) => {

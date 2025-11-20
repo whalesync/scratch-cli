@@ -1,16 +1,13 @@
-import { ActionIcon, Group, Text } from '@mantine/core';
-import { Gear } from '@phosphor-icons/react';
+import { Group, Text } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
 import { useEffect, useState } from 'react';
 
 interface IdHeaderComponentProps extends IHeaderParams {
-  onSettingsClick: () => void;
   entityName: string;
 }
 
 export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
   const [currentSort, setCurrentSort] = useState<'asc' | 'desc' | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   // Update sort state when column sort changes
   useEffect(() => {
@@ -36,11 +33,6 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
     props.setSort(nextSort);
   };
 
-  const handleSettingsClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    props.onSettingsClick();
-  };
-
   return (
     <div
       style={{
@@ -53,8 +45,6 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
         cursor: 'pointer',
       }}
       onClick={handleSort}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <Group gap="xs" style={{ flex: 1 }}>
         <Text size="sm" className="ag-header-cell-text" fw={600}>
@@ -64,13 +54,6 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
         {/* Sort indicator */}
         {currentSort && <span style={{ fontSize: '12px', color: '#666' }}>{currentSort === 'asc' ? '↑' : '↓'}</span>}
       </Group>
-
-      {/* Settings button - only show on hover */}
-      {isHovered && (
-        <ActionIcon size="xs" variant="subtle" color="gray" onClick={handleSettingsClick} style={{ flexShrink: 0 }}>
-          <Gear size={14} />
-        </ActionIcon>
-      )}
     </div>
   );
 };
