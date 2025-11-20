@@ -1,0 +1,159 @@
+/* Status indicator used in table cells */
+.baseStatusIndicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 2px var(--mantine-color-gray-a-3);
+  background: var(--mantine-color-gray-a-8);
+  flex-shrink: 0;
+}
+
+.baseActiveStatusIndicator {
+  box-shadow: 0 0 0 2px var(--mantine-color-green-a-3);
+  background: var(--mantine-color-green-a-8);
+}
+
+.baseInactiveStatusIndicator {
+  box-shadow: 0 0 0 2px var(--mantine-color-red-a-3);
+  background: var(--mantine-color-red-a-8);
+}
+
+.baseSetupRequiredStatusIndicator {
+  box-shadow: 0 0 0 2px var(--mantine-color-gray-a-3);
+  background: var(--mantine-color-gray-a-8);
+}
+
+.baseFailedStatusIndicator {
+  box-shadow: 0 0 0 2px var(--mantine-color-red-a-3);
+  background: var(--mantine-color-red-a-8);
+}
+
+/* Loader animation */
+@keyframes rotation {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.indicatorHoverArea {
+  width: max-content;
+  &[aria-expanded='true'] {
+    box-shadow: 0 0 0 4px var(--mantine-color-gray-3);
+    border-radius: var(--mantine-radius-xs);
+    background: var(--mantine-color-gray-3);
+  }
+}
+
+.indicatorHoverArea:hover {
+  cursor: default;
+}
+
+.animatedLoadingContainer {
+  margin-bottom: 3px;
+}
+
+.baseLoadingIndicatorContainer {
+  padding: var(--mantine-spacing-xs);
+  border: 1px solid var(--mantine-color-gray-6);
+  border-radius: 100%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.baseLoadingIndicator {
+  animation: rotation;
+  flex-shrink: 0;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+  animation-direction: normal;
+  animation-timing-function: linear;
+}
+
+/* Sync status */
+
+.dashedLineContainer {
+  flex: 1;
+}
+
+.dashedLine {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, transparent 0 2px, var(--mantine-color-gray-6) 0 5px);
+  flex-grow: 1;
+}
+
+.dashedLineActiveLeft {
+  background: repeating-linear-gradient(90deg, transparent 0 2px, var(--mantine-color-blue-8) 0 5px);
+  animation: moveLeft 0.4s linear infinite; /* Add animation */
+}
+.dashedLineActiveRight {
+  background: repeating-linear-gradient(90deg, transparent 0 2px, var(--mantine-color-blue-8) 0 5px);
+  animation: moveRight 0.4s linear infinite; /* Add animation */
+}
+@keyframes moveLeft {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -5px 0;
+  }
+}
+@keyframes moveRight {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 5px 0;
+  }
+}
+
+.avatarContainer {
+  position: relative;
+}
+
+.avatarCheckIndicator {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 100%;
+  border: 1px solid var(--mantine-color-green-10);
+  color: var(--mantine-color-green-10);
+  bottom: -8px;
+  right: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-blue-1);
+}
+
+/* Status indicator used in table cells */
+.targetGroup {
+  position: relative; /* Ensure the hover background is positioned correctly */
+  padding: 3px;
+}
+
+/* Status indicator used in table cells */
+.footer {
+  background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-gray-11);
+}
+
+.targetGroup:hover {
+  cursor: default; /* for some reason the cursor changes to I-beam without this. */
+  background-color: var(--mantine-color-gray-1); /* Add background color on hover */
+  border-radius: 8px; /* Add border radius to the background */
+  transition:
+    background-color 0.2s ease,
+    border-radius 0.2s ease; /* Smooth transition */
+}
+
+.dropDown {
+  padding: 0px;
+  max-width: 300px;
+}

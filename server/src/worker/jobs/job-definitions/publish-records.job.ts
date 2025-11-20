@@ -16,9 +16,13 @@ export type PublishRecordsPublicProgress = {
   tables: {
     id: string;
     name: string;
+    connector: string;
     creates: number;
     updates: number;
     deletes: number;
+    expectedCreates: number;
+    expectedUpdates: number;
+    expectedDeletes: number;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
   }[];
 };
@@ -31,6 +35,7 @@ export type PublishRecordsJobDefinition = JobDefinitionBuilder<
     userId: string;
     organizationId: string;
     progress?: JsonSafeObject;
+    initialPublicProgress?: PublishRecordsPublicProgress;
   },
   PublishRecordsPublicProgress,
   { tableIndex: number },
@@ -107,21 +112,37 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
     type TableToProcess = {
       id: string;
       name: string;
+      connector: string;
       creates: number;
       updates: number;
       deletes: number;
+      expectedCreates: number;
+      expectedUpdates: number;
+      expectedDeletes: number;
       status: 'pending' | 'in_progress' | 'completed' | 'failed';
     };
 
+    // Create a map for quick lookup of initial progress
+    const initialProgressMap = new Map(data.initialPublicProgress?.tables.map((t) => [t.id, t]) || []);
+
     // Create TableToProcess array for snapshot tables to process
-    const tablesToProcess: TableToProcess[] = snapshotTablesToProcess.map((snapshotTable) => ({
-      id: (snapshotTable.tableSpec as AnyTableSpec).id.wsId,
-      name: (snapshotTable.tableSpec as AnyTableSpec).name,
-      creates: 0,
-      updates: 0,
-      deletes: 0,
-      status: 'pending' as const,
-    }));
+    const tablesToProcess: TableToProcess[] = snapshotTablesToProcess.map((snapshotTable) => {
+      const tableId = (snapshotTable.tableSpec as AnyTableSpec).id.wsId;
+      const initialTableProgress = initialProgressMap.get(tableId);
+
+      return {
+        id: tableId,
+        name: (snapshotTable.tableSpec as AnyTableSpec).name,
+        connector: snapshotTable.connectorService,
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        expectedCreates: initialTableProgress?.expectedCreates || 0,
+        expectedUpdates: initialTableProgress?.expectedUpdates || 0,
+        expectedDeletes: initialTableProgress?.expectedDeletes || 0,
+        status: 'pending' as const,
+      };
+    });
 
     let totalRecordsPublished = 0;
 
@@ -144,6 +165,18 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
 
       // Mark table as in_progress
       currentTable.status = 'in_progress';
+
+      // Checkpoint initial status for this table
+      await checkpoint({
+        publicProgress: {
+          totalRecordsPublished,
+          tables: tablesToProcess,
+        },
+        jobProgress: {
+          tableIndex: i,
+        },
+        connectorProgress: {},
+      });
 
       WSLogger.debug({
         source: 'PublishRecordsJob',
@@ -300,6 +333,18 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
 
         // Mark table as completed
         currentTable.status = 'completed';
+
+        // Checkpoint final status for this table
+        await checkpoint({
+          publicProgress: {
+            totalRecordsPublished,
+            tables: tablesToProcess,
+          },
+          jobProgress: {
+            tableIndex: i + 1,
+          },
+          connectorProgress: {},
+        });
 
         // Set syncInProgress=false for this table on success
         await this.prisma.snapshotTable.update({

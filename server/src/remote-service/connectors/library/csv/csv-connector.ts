@@ -183,7 +183,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     const recordsToInsert = records.map((record) => {
       // TEST: Throw error if ID field matches specific value
       // Will be removed soon
-      // if (record.fields['ID'] === '@#$GSFAG$#%^FWQG#!$^') {
+      // if (record.fields['ID'] === '$GSFAG$#%^F@#WQG#!$^') {
       //   throw new Error('Test error: Invalid ID value detected');
       // }
 

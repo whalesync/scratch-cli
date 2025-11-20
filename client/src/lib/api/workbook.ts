@@ -200,6 +200,20 @@ export const workbookApi = {
     return res.json();
   },
 
+  async getOperationCounts(
+    id: WorkbookId,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}/operation-counts`, {
+      method: 'GET',
+      headers: {
+        ...API_CONFIG.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+    await checkForApiError(res, 'Failed to get operation counts');
+    return res.json();
+  },
+
   async delete(id: WorkbookId): Promise<void> {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${id}`, {
       method: 'DELETE',

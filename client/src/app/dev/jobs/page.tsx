@@ -1,12 +1,13 @@
 'use client';
 
-import { Badge, Button, Center, Group, Loader, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
+import { Badge, Button, Center, Group, Loader, Stack, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
 import { Check, Circle, Dot, Eye, X } from 'lucide-react';
 import { useState } from 'react';
 import { useJobs } from '../../../hooks/use-jobs';
 import { JobEntity } from '../../../types/server-entities/job';
 import { formatDate, timeAgo } from '../../../utils/helpers';
 import { DownloadProgressModal2 } from '../../components/jobs/download/DownloadJobProgressModal2';
+import { PublishJobProgressModal } from '../../components/jobs/publish/PublishJobProgressModal';
 import MainContent from '../../components/layouts/MainContent';
 
 const getStatusIcon = (status: JobEntity['state']) => {
@@ -120,6 +121,7 @@ export default function JobsPage() {
           <Table>
             <Table.Thead>
               <Table.Tr>
+                <Table.Th>Job ID</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Started</Table.Th>
@@ -131,6 +133,16 @@ export default function JobsPage() {
             <Table.Tbody>
               {jobs.map((job) => (
                 <Table.Tr key={`${job.dbJobId}-${job.bullJobId}`}>
+                  <Table.Td>
+                    <Stack>
+                      <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                        {job.dbJobId || '-'}
+                      </Text>
+                      <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                        {job.bullJobId || '-'}
+                      </Text>
+                    </Stack>
+                  </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
                       {/* {JSON.stringify(job)} */}
@@ -193,8 +205,15 @@ export default function JobsPage() {
       </MainContent.Body>
 
       {/* Download Progress Modal */}
+      {/* Job Progress Modals */}
       {selectedJob && selectedJob.bullJobId && (
-        <DownloadProgressModal2 job={selectedJob} onClose={() => setSelectedJob(null)} />
+        <>
+          {selectedJob.type === 'publish-records' ? (
+            <PublishJobProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
+          ) : (
+            <DownloadProgressModal2 job={selectedJob} onClose={() => setSelectedJob(null)} />
+          )}
+        </>
       )}
     </MainContent>
   );

@@ -1,5 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { usePublishSummary } from '@/hooks/use-publish-summary';
+import { useOperationCounts } from '@/hooks/use-operation-counts';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Modal, Stack, Text } from '@mantine/core';
@@ -30,7 +30,7 @@ export const PublishConfirmationModal = ({
   snapshotTableIds,
   snapshotTables,
 }: PublishConfirmationModalProps) => {
-  const { publishSummary, fetchSummary, isLoading, error } = usePublishSummary(workbookId, snapshotTableIds);
+  const { operationCounts, fetchCounts, isLoading, error } = useOperationCounts(workbookId);
 
   const handleClose = () => {
     onClose();
@@ -38,9 +38,9 @@ export const PublishConfirmationModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      fetchSummary();
+      void fetchCounts();
     }
-  }, [isOpen, fetchSummary, workbookId, snapshotTableIds, snapshotTables]);
+  }, [isOpen, fetchCounts, workbookId]);
 
   // Create a map of tableId -> service for quick lookup
   const tableServiceMap = useMemo(() => {
@@ -51,72 +51,31 @@ export const PublishConfirmationModal = ({
     return map;
   }, [snapshotTables]);
 
+  // Create a map of tableId -> tableName for quick lookup
+  const tableNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    snapshotTables.forEach((table) => {
+      map.set(table.id, table.tableSpec.name);
+    });
+    return map;
+  }, [snapshotTables]);
+
   // Get all unique tables with their stats from the publish summary
   const tablesWithStats = useMemo(() => {
-    if (!publishSummary) return [];
+    if (!operationCounts) return [];
 
-    const tableStatsMap = new Map<
-      string,
-      {
-        tableId: string;
-        tableName: string;
-        service: Service | null;
-        newRecords: number;
-        updatedRecords: number;
-        deletedRecords: number;
-      }
-    >();
+    // Filter counts to only include selected tables
+    const selectedCounts = operationCounts.filter((count) => snapshotTableIds.includes(count.tableId));
 
-    // Collect creates
-    publishSummary.creates.forEach((table) => {
-      if (!tableStatsMap.has(table.tableId)) {
-        tableStatsMap.set(table.tableId, {
-          tableId: table.tableId,
-          tableName: table.tableName,
-          service: tableServiceMap.get(table.tableId) ?? null,
-          newRecords: 0,
-          updatedRecords: 0,
-          deletedRecords: 0,
-        });
-      }
-      const stats = tableStatsMap.get(table.tableId)!;
-      stats.newRecords += table.count;
-    });
-
-    // Collect updates
-    publishSummary.updates.forEach((table) => {
-      if (!tableStatsMap.has(table.tableId)) {
-        tableStatsMap.set(table.tableId, {
-          tableId: table.tableId,
-          tableName: table.tableName,
-          service: tableServiceMap.get(table.tableId) ?? null,
-          newRecords: 0,
-          updatedRecords: 0,
-          deletedRecords: 0,
-        });
-      }
-      const stats = tableStatsMap.get(table.tableId)!;
-      stats.updatedRecords += table.records.length;
-    });
-
-    // Collect deletes
-    publishSummary.deletes.forEach((table) => {
-      if (!tableStatsMap.has(table.tableId)) {
-        tableStatsMap.set(table.tableId, {
-          tableId: table.tableId,
-          tableName: table.tableName,
-          service: tableServiceMap.get(table.tableId) ?? null,
-          newRecords: 0,
-          updatedRecords: 0,
-          deletedRecords: 0,
-        });
-      }
-      const stats = tableStatsMap.get(table.tableId)!;
-      stats.deletedRecords += table.records.length;
-    });
-
-    return Array.from(tableStatsMap.values());
-  }, [publishSummary, tableServiceMap]);
+    return selectedCounts.map((count) => ({
+      tableId: count.tableId,
+      tableName: tableNameMap.get(count.tableId) || 'Unknown Table',
+      service: tableServiceMap.get(count.tableId) ?? null,
+      newRecords: count.creates,
+      updatedRecords: count.updates,
+      deletedRecords: count.deletes,
+    }));
+  }, [operationCounts, snapshotTableIds, tableServiceMap, tableNameMap]);
 
   return (
     <Modal
@@ -152,13 +111,11 @@ export const PublishConfirmationModal = ({
             />
           ))
         )}
-
         <StatusListItem
           text1="Your original data will be overwritten."
           text2="This cannot be undone."
           iconProps={{ Icon: CircleAlertIcon, c: 'var(--mantine-color-gray-6)', size: 'md' }}
         />
-
         <Group justify="flex-end">
           <ButtonSecondaryOutline onClick={handleClose} disabled={isPublishing}>
             Cancel

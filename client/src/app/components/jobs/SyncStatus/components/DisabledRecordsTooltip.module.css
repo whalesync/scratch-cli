@@ -1,0 +1,41 @@
+.table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Column sizing tuned for 600px dropdown width */
+.colRecord {
+  width: 30%;
+  max-width: 40%;
+}
+
+.colTable {
+  width: 25%;
+}
+
+.colPaused {
+  width: 25%;
+}
+
+.noWrap {
+  white-space: nowrap;
+}
+
+/* Ensure text does not wrap and shows ellipsis */
+.ellipsis {
+  overflow: hidden;
+}
+
+.cellContent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0; /* allow child to shrink for ellipsis */
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

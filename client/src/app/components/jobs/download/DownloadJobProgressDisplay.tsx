@@ -2,7 +2,6 @@ import { DownloadProgress, TableProgress } from '@/app/components/jobs/download/
 import { Badge, Group, Stack, Text, ThemeIcon } from '@mantine/core';
 import { Check, Circle, Dot } from 'lucide-react';
 import { FC } from 'react';
-import { getStatusColor } from '../job-utils';
 
 type Props = {
   downloadProgress: DownloadProgress;
@@ -50,9 +49,7 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
       {/* Total Records */}
       <Group justify="space-between">
         <Text fw={500}>Total Records Downloaded</Text>
-        <Badge size="lg" color={getStatusColor()}>
-          {downloadProgress.totalRecords.toLocaleString()}
-        </Badge>
+        <Badge size="lg">{downloadProgress.totalRecords.toLocaleString()}</Badge>
       </Group>
 
       {/* Tables List */}

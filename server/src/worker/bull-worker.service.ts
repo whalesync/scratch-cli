@@ -1,5 +1,4 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { DbJob } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
@@ -103,6 +102,16 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async processJob(job: Job) {
+    const jobId = job.id;
+    if (!jobId) {
+      // Should ever happen. We need the check to make the compiler happy
+      WSLogger.error({
+        source: 'QueueService',
+        message: 'Received an error without id. ',
+      });
+      throw new Error('Job ID is missing');
+    }
+
     const jobData = job.data as JobData;
     const handler = this.jobHandlerService.getHandler(jobData);
     const abortController = new AbortController();
@@ -115,34 +124,23 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       userId: jobData.userId,
     });
 
-    // Create job record in database
-    let dbJob: DbJob | null = null;
-    try {
-      dbJob = await this.jobService.createJob({
-        userId: jobData.userId || 'unknown', // Extract userId from job data
-        type: jobData.type,
-        data: jobData,
-        bullJobId: job.id?.toString(),
-      });
-      WSLogger.debug({
-        source: 'QueueService',
-        message: 'Job record created in database',
-        jobId: job.id?.toString(),
-        dbJobId: dbJob.id,
-      });
-    } catch (error) {
-      WSLogger.error({
-        source: 'QueueService',
-        message: 'Failed to create job record in database',
-        jobId: job.id?.toString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    // TODO: This should be creater by the service that enqueues the job
+    const dbJob = await this.jobService.createJob({
+      userId: jobData.userId || 'unknown',
+      type: jobData.type,
+      data: jobData,
+      bullJobId: job.id?.toString(),
+    });
 
-    // Store the abort controller for this job
-    if (job.id) {
-      this.activeJobs.set(job.id.toString(), abortController);
-    }
+    await this.jobService.updateJobStatus({
+      id: dbJob.id,
+      status: 'active',
+      processedOn: new Date(),
+    });
+
+    // const isLastAttempt = job.attemptsStarted < (job.opts.attempts ?? 1);
+
+    this.activeJobs.set(jobId, abortController);
 
     let latestProgress = job.progress as Progress;
     const checkpoint = async (progress: Progress<any, any, any>) => {
@@ -157,31 +155,6 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       }
     };
 
-    // Update job status to ACTIVE
-    if (dbJob) {
-      try {
-        await this.jobService.updateJobStatus({
-          id: dbJob.id,
-          status: 'active',
-          processedOn: new Date(),
-        });
-        WSLogger.debug({
-          source: 'QueueService',
-          message: 'Job status updated to ACTIVE',
-          jobId: job.id?.toString(),
-          dbJobId: dbJob.id,
-        });
-      } catch (error) {
-        WSLogger.error({
-          source: 'QueueService',
-          message: 'Failed to update job status to ACTIVE',
-          jobId: job.id?.toString(),
-          dbJobId: dbJob.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
-
     try {
       const result = await handler.run({
         data: jobData,
@@ -190,72 +163,30 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         abortSignal: abortController.signal,
       });
 
-      // Update job status to COMPLETED
-      if (dbJob) {
-        try {
-          await this.jobService.updateJobStatus({
-            id: dbJob.id,
-            status: 'completed',
-            result: {},
-            finishedOn: new Date(),
-            progress: latestProgress,
-          });
-          WSLogger.info({
-            source: 'QueueService',
-            message: 'Job completed successfully',
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-            jobType: jobData.type,
-            userId: jobData.userId,
-          });
-        } catch (error) {
-          WSLogger.error({
-            source: 'QueueService',
-            message: 'Failed to update job status to COMPLETED',
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
-      }
+      await this.jobService.updateJobStatus({
+        id: dbJob.id,
+        status: 'completed',
+        result: {},
+        finishedOn: new Date(),
+        progress: latestProgress,
+      });
 
       return result;
     } catch (error) {
       // Update job status to FAILED or CANCELLED
-      if (dbJob) {
-        try {
-          const status = error instanceof JobCanceledError ? 'canceled' : 'failed';
-          await this.jobService.updateJobStatus({
-            id: dbJob.id,
-            status,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            finishedOn: new Date(),
-          });
-          WSLogger.error({
-            source: 'QueueService',
-            message: `Job status updated to ${status}`,
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-            jobType: jobData.type,
-            userId: jobData.userId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        } catch (updateError) {
-          WSLogger.error({
-            source: 'QueueService',
-            message: 'Failed to update job status to FAILED/CANCELLED',
-            jobId: job.id?.toString(),
-            dbJobId: dbJob.id,
-            error: updateError instanceof Error ? updateError.message : 'Unknown error',
-          });
-        }
-      }
+      const status = error instanceof JobCanceledError ? 'canceled' : 'failed';
+      await this.jobService.updateJobStatus({
+        id: dbJob.id,
+        status,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        finishedOn: new Date(),
+      });
 
       if (error instanceof JobCanceledError) {
         WSLogger.warn({
           source: 'QueueService',
           message: 'Job was cancelled',
-          jobId: job.id?.toString(),
+          jobId,
           error: error.message,
         });
         throw error;
@@ -263,16 +194,13 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       WSLogger.error({
         source: 'QueueService',
         message: 'Job failed unexpectedly',
-        jobId: job.id?.toString(),
+        jobId: job.id,
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
     } finally {
-      // Clean up the abort controller when job finishes
-      if (job.id) {
-        this.activeJobs.delete(job.id.toString());
-      }
+      this.activeJobs.delete(jobId);
     }
   }
 

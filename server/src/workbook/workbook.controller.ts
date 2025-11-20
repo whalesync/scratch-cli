@@ -160,6 +160,14 @@ export class WorkbookController {
     return await this.service.getPublishSummary(id, toActor(req.user), publishDto.snapshotTableIds);
   }
 
+  @Get(':id/operation-counts')
+  async getOperationCounts(
+    @Param('id') id: WorkbookId,
+    @Req() req: RequestWithUser,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    return this.service.getOperationCounts(id, toActor(req.user));
+  }
+
   @Post(':id/download-without-job')
   async downloadWithoutJob(
     @Param('id') id: WorkbookId,

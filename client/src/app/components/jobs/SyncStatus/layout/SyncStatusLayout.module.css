@@ -1,0 +1,45 @@
+.syncStatusLayout {
+  --ICON_W: 40px;
+  --HALF_ICON_W: 20px;
+}
+
+.gapBox {
+  display: flex;
+  width: calc(100% / 6 - var(--HALF_ICON_W));
+  justify-content: center;
+}
+
+.iconBox {
+  display: flex;
+  width: var(--ICON_W);
+  justify-content: center;
+}
+
+/* .centerBadge class removed as it is no longer used */
+
+.overlayBadge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  /* Ensure it doesn't block clicks if necessary, though usually badges are non-interactive */
+  pointer-events: none;
+  background-color: var(--mantine-color-body, white);
+  white-space: nowrap; /* Ensure it expands with content */
+}
+
+.flowLineBox {
+  display: flex;
+  /* Formula to keep alignment: (W - 1.5 * ICON_W) / 3 */
+  /* Badge width is now 0 in the flow calculation because it's overlaid */
+  width: calc((100% - (1.5 * var(--ICON_W))) / 3);
+  justify-content: center;
+}
+
+/* Status indicator used in table cells */
+.bottomBox {
+  display: flex;
+  width: calc(100% / 3);
+  justify-content: center;
+}

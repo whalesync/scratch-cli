@@ -34,6 +34,7 @@ export enum IdPrefixes {
   UPLOAD = 'upl_',
   AUDIT_LOG_EVENT = 'ael_', // Audit log event
   ORGANIZATION = 'org_', // Organization
+  JOB = 'job_', // Job
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -251,4 +252,15 @@ export function isOrganizationId(id: unknown): id is OrganizationId {
 
 export function createOrganizationId(): OrganizationId {
   return createId(IdPrefixes.ORGANIZATION) as OrganizationId;
+}
+
+// ------- Job -------
+export type JobId = PrefixedId<IdPrefixes.JOB>;
+
+export function isJobId(id: unknown): id is JobId {
+  return isId(id, IdPrefixes.JOB);
+}
+
+export function createJobId(): JobId {
+  return createId(IdPrefixes.JOB) as JobId;
 }

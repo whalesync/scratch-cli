@@ -27,6 +27,7 @@ import {
   PostgresColumnType,
   SnapshotRecord,
 } from '../remote-service/connectors/types';
+import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
 import { AddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
 import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
 import { CreateWorkbookDto } from './dto/create-workbook.dto';
@@ -665,6 +666,29 @@ export class WorkbookService {
     return this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, ops, type);
   }
 
+  async getOperationCounts(
+    workbookId: WorkbookId,
+    actor: Actor,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    const workbook = await this.findOneOrThrow(workbookId, actor);
+
+    if (!workbook.snapshotTables) {
+      return [];
+    }
+
+    const results = await Promise.all(
+      workbook.snapshotTables.map(async (table) => {
+        const counts = await this.snapshotDbService.snapshotDb.countExpectedOperations(workbookId, table.tableName);
+        return {
+          tableId: table.id,
+          ...counts,
+        };
+      }),
+    );
+
+    return results;
+  }
+
   async deepFetchRecords(
     workbookId: WorkbookId,
     tableId: string,
@@ -1147,10 +1171,42 @@ export class WorkbookService {
         jobId: 'sync-publish', // Use a placeholder ID for synchronous publishes
       };
     }
-    const job = await this.bullEnqueuerService.enqueuePublishRecordsJob(id, actor, snapshotTableIds);
+    // Construct initial public progress
+    const workbook = await this.findOneOrThrow(id, actor);
+    let snapshotTablesToProcess = workbook.snapshotTables || [];
+    if (snapshotTableIds && snapshotTableIds.length > 0) {
+      snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
+    }
+
+    const initialPublicProgressTables: PublishRecordsPublicProgress['tables'] = [];
+    for (const st of snapshotTablesToProcess) {
+      const counts = await this.snapshotDbService.snapshotDb.countExpectedOperations(id, st.tableName);
+      initialPublicProgressTables.push({
+        id: (st.tableSpec as AnyTableSpec).id.wsId,
+        name: (st.tableSpec as AnyTableSpec).name,
+        connector: st.connectorService,
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        expectedCreates: counts.creates,
+        expectedUpdates: counts.updates,
+        expectedDeletes: counts.deletes,
+        status: 'pending' as const,
+      });
+    }
+
+    const initialPublicProgress: PublishRecordsPublicProgress = {
+      totalRecordsPublished: 0,
+      tables: initialPublicProgressTables,
+    };
+    const job = await this.bullEnqueuerService.enqueuePublishRecordsJob(
+      id,
+      actor,
+      snapshotTableIds,
+      initialPublicProgress,
+    );
 
     // Track analytics and audit log when job is enqueued
-    const workbook = await this.findOneOrThrow(id, actor);
     this.posthogService.trackPublishWorkbook(actor.userId, workbook);
     await this.auditLogService.logEvent({
       userId: actor.userId,

@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { createJobId } from 'src/types/ids';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
 import { DbJobStatus, JobEntity } from './entities/job.entity';
@@ -36,7 +37,7 @@ export class JobService {
   }): Promise<DbJob> {
     const job = await this.db.client.dbJob.create({
       data: {
-        id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: createJobId(),
         userId: params.userId,
         type: params.type,
         data: params.data as any,
@@ -44,7 +45,6 @@ export class JobService {
         status: 'active',
       },
     });
-
     return job;
   }
 
@@ -116,7 +116,8 @@ export class JobService {
       bullJobId: job.id as string,
       dbJobId: job.id as string,
       type: job.name,
-      publicProgress: (job.progress as Progress).publicProgress,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
+      publicProgress: (job.progress as Progress).publicProgress || (job.data as any).initialPublicProgress || undefined,
       state: state,
       processedOn: job.processedOn ? new Date(job.processedOn) : null,
       finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,

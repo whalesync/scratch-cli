@@ -730,6 +730,38 @@ export class SnapshotDb {
     });
   }
 
+  async countExpectedOperations(
+    workbookId: WorkbookId,
+    tableName: string,
+  ): Promise<{ creates: number; updates: number; deletes: number }> {
+    const result = await this.knex.transaction(async (trx) => {
+      const query = trx<DbRecord>(tableName).withSchema(workbookId).where(DIRTY_COLUMN, true);
+
+      // We can't easily do a single query with count(*) and filters because the filters are on JSON fields.
+      // But we can do a single query that sums up the conditions.
+      // Postgres allows casting booleans to integers (1 for true, 0 for false) but it's safer to use CASE WHEN.
+
+      const counts = await query
+        .sum({
+          creates: trx.raw(`CASE WHEN ??->>'__created' IS NOT NULL THEN 1 ELSE 0 END`, [EDITED_FIELDS_COLUMN]),
+          deletes: trx.raw(`CASE WHEN ??->>'__deleted' IS NOT NULL THEN 1 ELSE 0 END`, [EDITED_FIELDS_COLUMN]),
+          updates: trx.raw(`CASE WHEN ??->>'__created' IS NULL AND ??->>'__deleted' IS NULL THEN 1 ELSE 0 END`, [
+            EDITED_FIELDS_COLUMN,
+            EDITED_FIELDS_COLUMN,
+          ]),
+        })
+        .first();
+
+      return {
+        creates: parseInt((counts?.creates as string) || '0', 10),
+        updates: parseInt((counts?.updates as string) || '0', 10),
+        deletes: parseInt((counts?.deletes as string) || '0', 10),
+      };
+    });
+
+    return result;
+  }
+
   async forAllDirtyRecords(
     workbookId: WorkbookId,
     tableName: string,

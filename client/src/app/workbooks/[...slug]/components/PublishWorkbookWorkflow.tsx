@@ -1,6 +1,6 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { TableSelectorModal } from '@/app/components/TableSelectorModal';
+import { TableSelectorModal2 } from '@/app/components/TableSelectorModal2';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
@@ -49,25 +49,26 @@ export const PublishWorkbookWorkflow = () => {
     }
   };
 
-  if (!workbook || !activeTable) {
-    return null;
-  }
+  // if (!workbook || !activeTable) {
+  //   return null;
+  // }
 
   return (
     <>
-      {showTableSelector && (
-        <TableSelectorModal
+      {workbook && activeTable && showTableSelector && (
+        <TableSelectorModal2
           isOpen={showTableSelector}
           onClose={() => setShowTableSelector(false)}
           onConfirm={handleTablesSelectedForPublish}
           tables={workbook.snapshotTables || []}
           currentTableId={activeTable.id}
           title="Select tables to publish"
-          description="Choose which tables you want to publish to the remote source."
-          confirmButtonText="Continue"
+          description="Select the tables you want to publish:"
+          // confirmButtonText="Continue"
+          workbookId={workbook.id}
         />
       )}
-      {showPublishConfirmation && (
+      {workbook && activeTable && showPublishConfirmation && (
         <PublishConfirmationModal
           isOpen={showPublishConfirmation}
           onClose={() => setShowPublishConfirmation(false)}
@@ -80,7 +81,7 @@ export const PublishWorkbookWorkflow = () => {
         />
       )}
 
-      {publishInProgress && workbook?.id && (
+      {publishInProgress && (
         <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={() => setPublishInProgress(null)} />
       )}
     </>
