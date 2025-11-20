@@ -31,4 +31,8 @@ export class OAuthInitiateOptionsDto {
   @IsString()
   @IsOptional()
   connectionName?: string;
+
+  @IsString()
+  @IsOptional()
+  returnPage?: string;
 }

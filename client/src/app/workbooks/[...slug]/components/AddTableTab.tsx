@@ -11,11 +11,12 @@ import { workbookApi } from '@/lib/api/workbook';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
 import { AddTableToWorkbookDto, SnapshotTable } from '@/types/server-entities/workbook';
-import { Box, Center, Collapse, Divider, Group, Loader, Stack, TextInput } from '@mantine/core';
+import { Box, Center, Collapse, Divider, Group, Loader, Stack, TextInput, useModalsStack } from '@mantine/core';
 import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCw, SearchIcon, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
+import { CreateConnectionModal } from '../../../data-sources/components/CreateConnectionModal';
 
 // Helper to format relative time
 const formatRelativeTime = (dateString: string): string => {
@@ -46,6 +47,7 @@ export const AddTableTab = () => {
   const { workbook } = useActiveWorkbook();
   const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
+  const modalStack = useModalsStack(['create']);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -176,11 +178,6 @@ export const AddTableTab = () => {
     }
   };
 
-  const handleNewDataSource = () => {
-    // TODO: Navigate to new data source page or open modal
-    console.log('New data source');
-  };
-
   const handleUploadFile = () => {
     // TODO: Open file upload modal
     console.log('Upload file');
@@ -194,6 +191,7 @@ export const AddTableTab = () => {
 
   return (
     <Stack gap="md" maw={600} mx="auto" py="xl">
+      <CreateConnectionModal {...modalStack.register('create')} />
       <Stack gap="xs" align="center">
         <DecorativeBoxedIcon Icon={PlusIcon} />
         <Text13Medium ta="center">Import table into workbook</Text13Medium>
@@ -376,7 +374,7 @@ export const AddTableTab = () => {
       <Group justify="center" gap="sm">
         <ButtonSecondaryOutline
           leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
-          onClick={handleNewDataSource}
+          onClick={() => modalStack.open('create')}
         >
           New data source
         </ButtonSecondaryOutline>

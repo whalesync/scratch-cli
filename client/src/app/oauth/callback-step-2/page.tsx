@@ -83,9 +83,10 @@ export default function OAuthCallbackPage() {
           connectorAccountId: result.connectorAccountId,
         });
 
-        // Redirect to connections page after a short delay
+        // Redirect to returnPage (if specified) or connections page after a short delay
+        const returnPage = extractReturnPageFromState();
         setTimeout(() => {
-          router.push(RouteUrls.dataSourcesPageUrl);
+          router.push(returnPage || RouteUrls.dataSourcesPageUrl);
         }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -122,6 +123,22 @@ export default function OAuthCallbackPage() {
 
       // Extract service from the parsed state
       return (parsed.service as OAuthService) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const extractReturnPageFromState = (): string | null => {
+    try {
+      const state = searchParams.get('state');
+      if (!state) return null;
+
+      // Decode the base64 state parameter
+      const decoded = atob(state);
+      const parsed = JSON.parse(decoded);
+
+      // Extract returnPage from the parsed state
+      return (parsed.returnPage as string) || null;
     } catch {
       return null;
     }

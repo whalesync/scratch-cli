@@ -88,6 +88,7 @@ export class OAuthService {
       customClientId: options.customClientId,
       customClientSecret: options.customClientSecret,
       connectionName: options.connectionName,
+      returnPage: options.returnPage,
       ts: Date.now(),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');

@@ -86,7 +86,8 @@ export const CreateConnectionModal = (props: ModalProps) => {
     try {
       const isCustom = authMethod === 'oauth_custom';
       const connectionName = newDisplayName ?? undefined;
-      console.log('connectionName', connectionName);
+      const pathname = window.location.pathname;
+      console.debug('connectionName', connectionName);
       await initiateOAuth(newService as OAuthService, {
         // (http|https)://<host, e.g. test.scratch.md>
         redirectPrefix: `${window.location.protocol}//${window.location.host}`,
@@ -94,6 +95,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
         customClientId: isCustom ? customClientId : undefined,
         customClientSecret: isCustom ? customClientSecret : undefined,
         connectionName: connectionName,
+        returnPage: pathname,
       });
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
