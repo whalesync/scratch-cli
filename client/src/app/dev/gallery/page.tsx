@@ -444,10 +444,24 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="AnimatedArrowsClockwise">
             <AnimatedArrowsClockwise size={32} weight="regular" />
           </GalleryItem>
-          <GalleryItem label="ConnectorIcon">
+          <GalleryItem label="ConnectorIcon (40px, with border)">
             <Group gap="sm">
               {Object.values(Service).map((service) => (
-                <ConnectorIcon key={service} connector={service} size={40} withBorder />
+                <ConnectorIcon key={service} connector={service} withBorder color="red" />
+              ))}
+            </Group>
+          </GalleryItem>
+          <GalleryItem label="ConnectorIcon (40px, no border)">
+            <Group gap="sm">
+              {Object.values(Service).map((service) => (
+                <ConnectorIcon key={service} connector={service} color="red" />
+              ))}
+            </Group>
+          </GalleryItem>
+          <GalleryItem label="ConnectorIcon (20px)">
+            <Group gap="sm">
+              {Object.values(Service).map((service) => (
+                <ConnectorIcon key={service} connector={service} size={24} color="red" />
               ))}
             </Group>
           </GalleryItem>

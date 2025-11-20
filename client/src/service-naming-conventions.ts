@@ -86,7 +86,7 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     tables: 'channels',
     records: 'videos',
     bases: null,
-    logo: 'youtube-color-svgrepo-com.svg',
+    logo: 'youtube.svg',
     oauthLabel: 'OAuth (100 api credits/day)',
     oauthPrivateLabel: 'Private OAuth (10,000 api credits/day)',
     pushOperationName: 'Publish',
