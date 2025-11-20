@@ -12,7 +12,8 @@ import { AirtableSchemaParser } from './airtable-schema-parser';
 import { AirtableRecord } from './airtable-types';
 
 export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
-  service = Service.AIRTABLE;
+  readonly service = Service.AIRTABLE;
+  static readonly displayName = 'Airtable';
 
   private readonly client: AirtableApiClient;
   private readonly schemaParser = new AirtableSchemaParser();
@@ -20,9 +21,6 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   constructor(apiKey: string) {
     super();
     this.client = new AirtableApiClient(apiKey);
-  }
-  displayName(): string {
-    return 'Airtable';
   }
 
   public async testConnection(): Promise<void> {

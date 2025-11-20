@@ -380,7 +380,7 @@ describe('WordPressConnector', () => {
 
   describe('displayName', () => {
     it('should return WordPress as display name', () => {
-      expect(connector.displayName()).toBe('WordPress');
+      expect(WordPressConnector.displayName).toBe('WordPress');
     });
   });
 

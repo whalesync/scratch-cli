@@ -33,21 +33,18 @@ type NotionDownloadProgress = {
 
 const page_size = Number(process.env.NOTION_PAGE_SIZE ?? 100);
 export class NotionConnector extends Connector<typeof Service.NOTION, NotionDownloadProgress> {
+  readonly service = Service.NOTION;
+  static displayName = 'Notion';
+
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
   private readonly turndownService: TurndownService = new TurndownService({
     headingStyle: 'atx',
   });
 
-  service = Service.NOTION;
-
   constructor(apiKey: string) {
     super();
     this.client = new Client({ auth: apiKey });
-  }
-
-  displayName(): string {
-    return 'Notion';
   }
 
   async testConnection(): Promise<void> {

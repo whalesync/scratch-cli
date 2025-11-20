@@ -20,7 +20,9 @@ import { WixAuthor } from './wix-blog-spec-types';
 export const WIX_DEFAULT_BATCH_SIZE = 100; // Wix API supports up to 100
 
 export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
-  service = Service.WIX_BLOG;
+  readonly service = Service.WIX_BLOG;
+  static readonly displayName = 'Wix Blog';
+
   private readonly htmlToRicosConverter = new HtmlToWixConverter();
   private readonly ricosToHtmlConverter = new WixToHtmlConverter();
   private readonly turndownService: TurndownService = new TurndownService({
@@ -56,10 +58,6 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
         members,
       },
     });
-  }
-
-  displayName(): string {
-    return 'Wix Blog';
   }
 
   public async testConnection(): Promise<void> {

@@ -18,6 +18,8 @@ import { WordPressDataType, WordPressDownloadProgress, WordPressRecord } from '.
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
   readonly service = Service.WORDPRESS;
+  static readonly displayName = 'WordPress';
+
   private client: WordPressHttpClient;
   private readonly turndownService: TurndownService = new TurndownService({
     headingStyle: 'atx',
@@ -26,10 +28,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   constructor(username: string, password: string, endpoint: string) {
     super();
     this.client = new WordPressHttpClient(endpoint, username, password);
-  }
-
-  displayName(): string {
-    return 'WordPress';
   }
 
   async testConnection(): Promise<void> {

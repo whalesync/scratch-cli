@@ -1,6 +1,7 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { ScratchpadApiError } from '@/lib/api/error';
 import { getLogo, getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { Service } from '@/types/server-entities/connector-accounts';
@@ -149,7 +150,11 @@ export const CreateConnectionModal = (props: ModalProps) => {
       props.onClose?.();
     } catch (error) {
       console.error('Failed to create connection:', error);
-      setError('Failed to create connection. Please try again.');
+      if (error instanceof ScratchpadApiError) {
+        setError(error.message);
+      } else {
+        setError('Failed to create connection. Please try again.');
+      }
     } finally {
       setIsCreating(false);
     }

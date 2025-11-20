@@ -39,7 +39,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * Get the display name for for the data service the connector operates on
    * @returns The display name for the connector.
    */
-  abstract displayName(): string;
+  static readonly displayName: string;
 
   /**
    * Test the current state of the connection to the Datasource.

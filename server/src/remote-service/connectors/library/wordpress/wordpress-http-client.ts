@@ -1,4 +1,7 @@
+import { Service } from '@prisma/client';
 import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
+import { WSLogger } from 'src/logger';
+import { ConnectorAuthError } from '../../error';
 import { WORDPRESS_ORG_V2_PATH } from './wordpress-constants';
 import {
   WordPressEndpointOptionsResponse,
@@ -160,8 +163,13 @@ export class WordPressHttpClient {
         try {
           await this.testEndpoint(endpoint);
           return endpoint;
-        } catch {
+        } catch (error) {
           // Continue to try other options
+          WSLogger.info({
+            source: 'WordpressHttpClient',
+            message: 'Result of testing specific endpoint',
+            error: error,
+          });
         }
       }
 
@@ -180,13 +188,25 @@ export class WordPressHttpClient {
             try {
               await this.testEndpoint(discoveredEndpoint);
               return discoveredEndpoint;
-            } catch {
+            } catch (error) {
               // Continue to try other options
+              WSLogger.info({
+                source: 'WordpressHttpClient',
+                message: 'Result of testing endpoint discovery',
+                error: error,
+                link: link,
+                url: discoveredEndpoint,
+              });
             }
           }
         }
-      } catch {
+      } catch (error) {
         // Continue to try other options
+        WSLogger.info({
+          source: 'WordpressHttpClient',
+          message: 'Result of testing endpoint discovery',
+          error: error,
+        });
       }
 
       // Option 3: Try common WordPress REST API paths
@@ -197,21 +217,46 @@ export class WordPressHttpClient {
         try {
           await client.testEndpoint(endpoint);
           return endpoint;
-        } catch {
+        } catch (error) {
           // Continue to next variation
+          WSLogger.info({
+            source: 'WordpressHttpClient',
+            message: 'Result of testing common endpoint prefixes',
+            error: error,
+            url: endpoint,
+          });
         }
       }
-
-      throw new Error(
-        `Could not find a valid WordPress REST API endpoint. Please verify your WordPress URL and credentials.`,
-      );
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Invalid URL')) {
-        throw new Error(
-          'The WordPress URL you entered is not valid. Please provide the full address of your WordPress site including "https://"',
+      if (!(error instanceof Error)) {
+        throw new ConnectorAuthError(
+          `Unexpected error in discoverAndValidateEndpoint: ${error}`,
+          'Unexpected error when communicating with Wordpress',
+          Service.WORDPRESS,
         );
       }
-      throw error;
+
+      if (error.message.includes('Invalid URL')) {
+        throw new ConnectorAuthError(
+          error.message,
+          'The WordPress URL you entered is not valid. Please provide the full address of your WordPress site including "https://"',
+          Service.WORDPRESS,
+          error,
+        );
+      }
+
+      throw new ConnectorAuthError(
+        error.message,
+        'There was an error communicating with Wordpress',
+        Service.WORDPRESS,
+        error,
+      );
     }
+
+    throw new ConnectorAuthError(
+      'Could not find a valid WordPress REST API endpoint.',
+      `Could not find a valid WordPress REST API endpoint. Please verify your WordPress URL and credentials.`,
+      Service.WORDPRESS,
+    );
   }
 }

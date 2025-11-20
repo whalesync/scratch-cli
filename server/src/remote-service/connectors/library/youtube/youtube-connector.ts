@@ -19,6 +19,8 @@ import { YoutubeApiClient } from './youtube-api-client';
 
 export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   readonly service = Service.YOUTUBE;
+  static readonly displayName = 'YouTube';
+
   private readonly apiClient: YoutubeApiClient;
 
   constructor(
@@ -27,10 +29,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   ) {
     super();
     this.apiClient = new YoutubeApiClient(accessToken);
-  }
-
-  displayName(): string {
-    return 'YouTube';
   }
 
   async testConnection(): Promise<void> {

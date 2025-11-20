@@ -360,7 +360,7 @@ describe('WebflowConnector', () => {
 
   describe('displayName', () => {
     it('should return Webflow as display name', () => {
-      expect(connector.displayName()).toBe('Webflow');
+      expect(WebflowConnector.displayName).toBe('Webflow');
     });
   });
 

@@ -11,7 +11,8 @@ import { CsvTableSpec } from '../custom-spec-registry';
 import { CsvSchemaParser } from './csv-schema-parser';
 
 export class CsvConnector extends Connector<typeof Service.CSV> {
-  service = Service.CSV;
+  readonly service = Service.CSV;
+  static readonly displayName = 'CSV';
 
   constructor(
     private readonly db: DbService,
@@ -19,10 +20,6 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     private readonly userId?: string,
   ) {
     super();
-  }
-
-  displayName(): string {
-    return 'CSV';
   }
 
   public async testConnection(): Promise<void> {

@@ -147,7 +147,7 @@ describe('NotionConnector', () => {
 
   describe('displayName', () => {
     it('should return Notion as display name', () => {
-      expect(connector.displayName()).toBe('Notion');
+      expect(NotionConnector.displayName).toBe('Notion');
     });
   });
 

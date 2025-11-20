@@ -505,7 +505,7 @@ describe('WixBlogConnector', () => {
 
   describe('displayName', () => {
     it('should return Wix Blog as display name', () => {
-      expect(connector.displayName()).toBe('Wix Blog');
+      expect(WixBlogConnector.displayName).toBe('Wix Blog');
     });
   });
 

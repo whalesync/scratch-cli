@@ -10,7 +10,8 @@ import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
 import { EncryptedData, getEncryptionService } from '../../utils/encryption';
 import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';
-import { exceptionForConnectorError } from '../connectors/error';
+import { getServiceDisplayName } from '../connectors/display-names';
+import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
 import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
@@ -259,10 +260,16 @@ export class ConnectorAccountService {
     try {
       const result = await authParser.parseUserProvidedParams({ userProvidedParams });
       return { ...result };
-    } catch (error: unknown) {
-      throw new InternalServerErrorException('Failed to parse user provided parameters', {
-        cause: error as Error,
-      });
+    } catch (error) {
+      // If the error is already a UserFriendlyError, re-throw it directly
+      if (isUserFriendlyError(error)) {
+        throw error;
+      }
+      throw new ConnectorAuthError(
+        `Unexpected error in parseUserProvidedParams: ${error}`,
+        `There was an unexpected error connecting to ${getServiceDisplayName(service)}`,
+        service,
+      );
     }
   }
 

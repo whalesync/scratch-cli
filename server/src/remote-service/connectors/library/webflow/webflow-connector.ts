@@ -15,7 +15,8 @@ import { WEBFLOW_METADATA_COLUMNS } from './webflow-spec-types';
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
 
 export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
-  service = Service.WEBFLOW;
+  readonly service = Service.WEBFLOW;
+  static readonly displayName = 'Webflow';
 
   private readonly turndownService: TurndownService = new TurndownService({
     headingStyle: 'atx',
@@ -26,10 +27,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   constructor(accessToken: string) {
     super();
     this.client = new WebflowClient({ accessToken });
-  }
-
-  displayName(): string {
-    return 'Webflow';
   }
 
   public async testConnection(): Promise<void> {

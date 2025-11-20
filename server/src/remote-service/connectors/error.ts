@@ -3,8 +3,10 @@ import { Service } from '@prisma/client';
 import { AxiosError, HttpStatusCode } from 'axios';
 import _, { isString } from 'lodash';
 import { Connector } from './connector';
+import { getServiceDisplayName } from './display-names';
 import { ConnectorErrorDetails } from './types';
 
+// Handled with exception filter in exception-filters module
 export class ConnectorInstantiationError extends Error {
   public readonly service: Service;
   constructor(message: string, service: Service, cause?: Error) {
@@ -12,6 +14,27 @@ export class ConnectorInstantiationError extends Error {
     this.name = 'ConnectorInstantiationError';
     this.service = service;
   }
+}
+
+// Handled with exception filter in exception-filters module
+export class ConnectorAuthError extends Error {
+  public readonly userFriendlyMessage: string;
+  public readonly service: Service;
+  constructor(message: string, userFriendlyMessage: string, service: Service, cause?: Error) {
+    super(message, { cause });
+    this.name = 'ConnectorAuthError';
+    this.userFriendlyMessage = userFriendlyMessage;
+    this.service = service;
+  }
+}
+
+// Use for asserting that an exception has a userFriendlyMessage attached
+export interface UserFriendlyError extends Error {
+  userFriendlyMessage: string;
+}
+
+export function isUserFriendlyError(error: unknown): error is UserFriendlyError {
+  return error instanceof Error && 'userFriendlyMessage' in error;
 }
 
 export class ErrorMessageTemplates {
@@ -58,7 +81,7 @@ export function extractCommonDetailsFromAxiosError(
 ): ConnectorErrorDetails | null {
   if (error.response?.status === HttpStatusCode.Forbidden || error.response?.status === HttpStatusCode.Unauthorized) {
     return {
-      userFriendlyMessage: ErrorMessageTemplates.API_UNAUTHORIZED(connector.displayName()),
+      userFriendlyMessage: ErrorMessageTemplates.API_UNAUTHORIZED(getServiceDisplayName(connector.service)),
       description: error.message,
       additionalContext: {
         status: error.response?.status,
@@ -72,7 +95,7 @@ export function extractCommonDetailsFromAxiosError(
     error.code === 'ECONNABORTED'
   ) {
     return {
-      userFriendlyMessage: ErrorMessageTemplates.API_TIMEOUT(connector.displayName()),
+      userFriendlyMessage: ErrorMessageTemplates.API_TIMEOUT(getServiceDisplayName(connector.service)),
       description: error.message,
       additionalContext: {
         status: error.response?.status,
@@ -129,8 +152,8 @@ export function extractErrorMessageFromAxiosError(
     return statusText;
   }
   if (isContentLengthExceededError(error)) {
-    return ErrorMessageTemplates.RESPONSE_TOO_LARGE(connector.displayName());
+    return ErrorMessageTemplates.RESPONSE_TOO_LARGE(getServiceDisplayName(connector.service));
   }
 
-  return ErrorMessageTemplates.UNKNOWN_ERROR(connector.displayName());
+  return ErrorMessageTemplates.UNKNOWN_ERROR(getServiceDisplayName(connector.service));
 }
