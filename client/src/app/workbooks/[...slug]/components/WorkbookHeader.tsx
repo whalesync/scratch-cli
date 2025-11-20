@@ -11,8 +11,10 @@ import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 
 export const WorkbookHeader = () => {
   const { workbook } = useActiveWorkbook();
-  const { toggleNavDrawer } = useLayoutManagerStore();
-  const { chatOpen, openChat, openPublishConfirmation } = useWorkbookEditorUIStore();
+  const toggleNavDrawer = useLayoutManagerStore((state) => state.toggleNavDrawer);
+  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
+  const openChat = useWorkbookEditorUIStore((state) => state.openChat);
+  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
 
   return (
     <Group bg="var(--bg-panel)" h={36} justify="space-between" pos="relative" px="xs" gap="xs">

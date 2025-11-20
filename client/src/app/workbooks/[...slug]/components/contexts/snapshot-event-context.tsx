@@ -65,7 +65,9 @@ export const SnapshotEventProvider = ({ children, workbookId }: SnapshotEventPro
       if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
         addToMessageLog('Mutate snapshot SWR keys');
         // Invalidate snapshot detail cache
-        globalMutate(SWR_KEYS.workbook.detail(workbookId));
+        globalMutate(SWR_KEYS.workbook.detail(workbookId), undefined, {
+          revalidate: true,
+        });
         globalMutate(SWR_KEYS.workbook.list());
 
         if (event.data.tableId) {
@@ -205,10 +207,11 @@ const log = (message: string, data?: unknown) => {
 };
 
 export interface SnapshotEvent {
-  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed';
+  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
   data: {
     tableId?: SnapshotTableId;
     source: 'user' | 'agent';
+    message?: string; // optional message to accompany the event to help with debugging
   };
 }
 
@@ -219,6 +222,7 @@ export interface SnapshotRecordEvent {
     numRecords: number;
     changeType: 'suggested' | 'accepted' | 'rejected';
     source: 'user' | 'agent';
+    message?: string; // optional message to accompany the event to help with debugging
   };
 }
 

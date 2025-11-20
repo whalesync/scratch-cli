@@ -26,7 +26,9 @@ export const PageLayout = ({
   navVariant: navMode = 'fixed',
 }: PageLayoutProps) => {
   const pathname = usePathname();
-  const { rightPanelOpened, navDrawerOpened, closeNavDrawer } = useLayoutManagerStore();
+  const rightPanelOpened = useLayoutManagerStore((state) => state.rightPanelOpened);
+  const navDrawerOpened = useLayoutManagerStore((state) => state.navDrawerOpened);
+  const closeNavDrawer = useLayoutManagerStore((state) => state.closeNavDrawer);
 
   useEffect(() => {
     // Track page views in PostHog

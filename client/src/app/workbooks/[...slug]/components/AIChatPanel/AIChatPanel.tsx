@@ -50,7 +50,8 @@ import { SessionHistorySelector } from './SessionHistorySelector';
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials();
-  const { closeChat, openPublishConfirmation } = useWorkbookEditorUIStore();
+  const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
+  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);

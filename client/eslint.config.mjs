@@ -1,16 +1,41 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { FlatCompat } from '@eslint/eslintrc';
+import { createRequire } from 'module';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+const noZustandStoreDestructuring = require('./eslint-rules/no-zustand-store-destructuring.js');
+
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      local: {
+        rules: {
+          'no-zustand-store-destructuring': noZustandStoreDestructuring,
+        },
+      },
+    },
+    rules: {
+      'local/no-zustand-store-destructuring': [
+        'error',
+        {
+          // Match hooks ending with "Store" (default pattern)
+          hookPattern: '^use.*Store$',
+          // You can also specify specific hook names if needed:
+          // hookNames: ['useWorkbookEditorUIStore', 'useLayoutManagerStore'],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

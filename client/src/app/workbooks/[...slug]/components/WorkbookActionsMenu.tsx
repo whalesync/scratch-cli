@@ -70,7 +70,9 @@ export const WorkbookActionsMenu = () => {
   });
   const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
     useDisclosure(false);
-  const { openDevTools, openPublishConfirmation } = useWorkbookEditorUIStore();
+
+  const openDevTools = useWorkbookEditorUIStore((state) => state.openDevTools);
+  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
 
   useEffect(() => {
     if (activeTable) {

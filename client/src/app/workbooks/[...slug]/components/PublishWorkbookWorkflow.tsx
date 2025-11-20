@@ -13,7 +13,8 @@ import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirma
  */
 export const PublishWorkbookWorkflow = () => {
   const { workbook, activeTable } = useActiveWorkbook();
-  const { publishConfirmationOpen, closePublishConfirmation } = useWorkbookEditorUIStore();
+  const publishConfirmationOpen = useWorkbookEditorUIStore((state) => state.publishConfirmationOpen);
+  const closePublishConfirmation = useWorkbookEditorUIStore((state) => state.closePublishConfirmation);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [selectedPublishTableIds, setSelectedPublishTableIds] = useState<string[]>([]);
@@ -48,39 +49,40 @@ export const PublishWorkbookWorkflow = () => {
     }
   };
 
-  if(!workbook || !activeTable) {
+  if (!workbook || !activeTable) {
     return null;
   }
 
   return (
-
-        <>
-          {showTableSelector && <TableSelectorModal
-            isOpen={showTableSelector}
-            onClose={() => setShowTableSelector(false)}
-            onConfirm={handleTablesSelectedForPublish}
-            tables={workbook.snapshotTables || []}
-            currentTableId={activeTable.id}
-            title="Select tables to publish"
-            description="Choose which tables you want to publish to the remote source."
-            confirmButtonText="Continue"
-          />}
-          {showPublishConfirmation&& <PublishConfirmationModal
-            isOpen={showPublishConfirmation}
-            onClose={() => setShowPublishConfirmation(false)}
-            onConfirm={handleConfirmPublish}
-            workbookId={workbook.id}
-            serviceName={activeTable.connectorService ? serviceName(activeTable.connectorService) : undefined}
-            isPublishing={false}
-            snapshotTableIds={selectedPublishTableIds}
-            snapshotTables={workbook.snapshotTables ?? []}
-          />}
-
-          {publishInProgress && workbook?.id && (
-            <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={() => setPublishInProgress(null)} />
-          )}
-        </>
+    <>
+      {showTableSelector && (
+        <TableSelectorModal
+          isOpen={showTableSelector}
+          onClose={() => setShowTableSelector(false)}
+          onConfirm={handleTablesSelectedForPublish}
+          tables={workbook.snapshotTables || []}
+          currentTableId={activeTable.id}
+          title="Select tables to publish"
+          description="Choose which tables you want to publish to the remote source."
+          confirmButtonText="Continue"
+        />
+      )}
+      {showPublishConfirmation && (
+        <PublishConfirmationModal
+          isOpen={showPublishConfirmation}
+          onClose={() => setShowPublishConfirmation(false)}
+          onConfirm={handleConfirmPublish}
+          workbookId={workbook.id}
+          serviceName={activeTable.connectorService ? serviceName(activeTable.connectorService) : undefined}
+          isPublishing={false}
+          snapshotTableIds={selectedPublishTableIds}
+          snapshotTables={workbook.snapshotTables ?? []}
+        />
       )}
 
-
-
+      {publishInProgress && workbook?.id && (
+        <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={() => setPublishInProgress(null)} />
+      )}
+    </>
+  );
+};

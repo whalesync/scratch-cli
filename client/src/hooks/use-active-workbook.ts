@@ -1,5 +1,4 @@
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { useMemo } from 'react';
 import { useWorkbookEditorUIStore } from '../stores/workbook-editor-store';
 import { isSnapshotTableId } from '../types/server-entities/ids';
 import { useWorkbook, UseWorkbookReturn } from './use-workbook';
@@ -20,15 +19,9 @@ export const useActiveWorkbook = (): UseActiveWorkbookReturn => {
 
   const hookResult = useWorkbook(workbookId);
 
-  // If the workbook table list changes we need to recalculate the active table and make sure we are
-  // using the latest version of the SnapshotTable object
-  const activeTable = useMemo(
-    () =>
-      isSnapshotTableId(activeTab)
-        ? hookResult?.workbook?.snapshotTables?.find((table) => table.id === activeTab)
-        : undefined,
-    [activeTab, hookResult?.workbook?.snapshotTables],
-  );
+  const activeTable = isSnapshotTableId(activeTab)
+    ? hookResult?.workbook?.snapshotTables?.find((table) => table.id === activeTab)
+    : undefined;
 
   return {
     ...hookResult,

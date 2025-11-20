@@ -12,14 +12,16 @@ export interface SnapshotRecordEvent {
     numRecords: number;
     changeType: 'suggested' | 'accepted' | 'rejected';
     source: 'user' | 'agent';
+    message?: string; // optional message to accompany the event to help with debugging
   };
 }
 
 export interface SnapshotEvent {
-  type: 'snapshot-updated' | 'filter-changed';
+  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
   data: {
     tableId?: string;
     source: 'user' | 'agent';
+    message?: string; // optional message to accompany the event to help with debugging
   };
 }
 
