@@ -322,16 +322,23 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     records: { wsId: string; fields: Record<string, unknown> }[],
   ): Promise<{ wsId: string; remoteId: string }[]> {
     const results: { wsId: string; remoteId: string }[] = [];
+    let hasPageContentUpdate = false;
+    let pageContentValue: string | undefined;
 
     for (const record of records) {
       const notionProperties: CreatePageParameters['properties'] = {};
       for (const [wsId, value] of Object.entries(record.fields)) {
         const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
         if (column && !column.readonly) {
-          const propertyId = column.id.remoteId[0];
-          const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
-          if (propertyValue) {
-            notionProperties[propertyId] = propertyValue;
+          if (wsId === PAGE_CONTENT_COLUMN_ID) {
+            hasPageContentUpdate = true;
+            pageContentValue = value as string;
+          } else {
+            const propertyId = column.id.remoteId[0];
+            const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
+            if (propertyValue) {
+              notionProperties[propertyId] = propertyValue;
+            }
           }
         }
       }
@@ -340,6 +347,15 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
         parent: { database_id: tableSpec.id.remoteId[0] },
         properties: notionProperties,
       });
+
+      // Update page content if needed
+      if (hasPageContentUpdate && pageContentValue) {
+        // Check if the data converter for this column is markdown
+        const dataConverter = columnSettingsMap[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
+        // default to markdown if no data converter is set
+        const isMarkdown = !dataConverter || dataConverter === 'markdown';
+        await this.updatePageContent(newPage.id, pageContentValue, isMarkdown);
+      }
 
       results.push({ wsId: record.wsId, remoteId: newPage.id });
     }
