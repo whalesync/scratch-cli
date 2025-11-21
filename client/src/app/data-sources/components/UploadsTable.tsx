@@ -7,9 +7,10 @@ import { Upload, uploadsApi } from '@/lib/api/uploads';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { UploadIcon } from 'lucide-react';
+import { ArrowDown, ArrowUp, UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { usePersistedSort } from '../../../hooks/use-persisted-sort';
 import { TextMono13Regular } from '../../components/base/text';
 import { FileUploadDropzone } from '../../components/dropzone/FileUploadDropzone';
 import { CsvViewModal } from '../../components/modals/CsvViewModal';
@@ -126,9 +127,16 @@ export default function UploadsTable() {
   };
 
   // TODO: Only request CSVs from the server instead of filtering here.
-  const sortedCsvUploads = uploads
-    .filter((upload) => upload.type === 'CSV')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const csvUploads = useMemo(() => uploads?.filter((upload) => upload.type === 'CSV') || [], [uploads]);
+
+  const {
+    sortedItems: sortedCsvUploads,
+    sort,
+    handleSort,
+  } = usePersistedSort<Upload>(csvUploads, 'uploads-table-sort', {
+    field: 'createdAt',
+    direction: 'desc',
+  });
 
   let content = null;
 
@@ -141,10 +149,21 @@ export default function UploadsTable() {
       <Table ml="xs">
         <Table.Thead>
           <Table.Tr>
-            <Table.Td>Name</Table.Td>
+            <Table.Td onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
+              <Group gap="xs">
+                Name
+                {sort.field === 'name' && (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+              </Group>
+            </Table.Td>
             <Table.Td w="10%">Type</Table.Td>
             <Table.Td w="20%">Status</Table.Td>
-            <Table.Td w="20%">Created</Table.Td>
+            <Table.Td w="20%" onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer' }}>
+              <Group gap="xs">
+                Created
+                {sort.field === 'createdAt' &&
+                  (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+              </Group>
+            </Table.Td>
             <Table.Td w="120px" align="right"></Table.Td>
           </Table.Tr>
         </Table.Thead>

@@ -2,9 +2,10 @@
 
 import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { Group, Loader, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
-import { PlusIcon } from 'lucide-react';
+import { ArrowDown, ArrowUp, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../../hooks/use-connector-account';
+import { usePersistedSort } from '../../../hooks/use-persisted-sort';
 import { ButtonPrimaryLight, ButtonPrimarySolid, ButtonSecondaryOutline } from '../../components/base/buttons';
 import { TextMono13Regular } from '../../components/base/text';
 import { ErrorInfo } from '../../components/InfoPanel';
@@ -47,6 +48,15 @@ export default function ConnectorTable() {
     }
   };
 
+  const {
+    sortedItems: sortedConnectorAccounts,
+    sort,
+    handleSort,
+  } = usePersistedSort<ConnectorAccount>(connectorAccounts, 'connector-table-sort', {
+    field: 'createdAt',
+    direction: 'desc',
+  });
+
   if (isLoading) {
     return <Loader />;
   }
@@ -54,8 +64,6 @@ export default function ConnectorTable() {
   if (error) {
     return <ErrorInfo error={error} />;
   }
-
-  const sortedConnectorAccounts = connectorAccounts?.sort((a, b) => a.displayName.localeCompare(b.displayName)) || [];
 
   return (
     <>
@@ -82,10 +90,22 @@ export default function ConnectorTable() {
       <Table ml="xs">
         <Table.Thead>
           <Table.Tr>
-            <Table.Td>Name</Table.Td>
+            <Table.Td onClick={() => handleSort('displayName')} style={{ cursor: 'pointer' }}>
+              <Group gap="xs">
+                Name
+                {sort.field === 'displayName' &&
+                  (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+              </Group>
+            </Table.Td>
             <Table.Td w="10%">Type</Table.Td>
             <Table.Td w="20%">Status</Table.Td>
-            <Table.Td w="20%">Created</Table.Td>
+            <Table.Td w="20%" onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer' }}>
+              <Group gap="xs">
+                Created
+                {sort.field === 'createdAt' &&
+                  (sort.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+              </Group>
+            </Table.Td>
             <Table.Td w="120px" align="right"></Table.Td>
           </Table.Tr>
         </Table.Thead>
