@@ -11,11 +11,23 @@ import { workbookApi } from '@/lib/api/workbook';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
 import { AddTableToWorkbookDto, SnapshotTable } from '@/types/server-entities/workbook';
-import { Box, Center, Collapse, Divider, Group, Loader, Stack, TextInput, useModalsStack } from '@mantine/core';
+import {
+  Box,
+  Center,
+  Collapse,
+  Divider,
+  Group,
+  Loader,
+  ScrollArea,
+  Stack,
+  TextInput,
+  useModalsStack,
+} from '@mantine/core';
 import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCw, SearchIcon, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
+import { UploadFileModal } from '../../../components/modals/UploadFileModal';
 import { CreateConnectionModal } from '../../../data-sources/components/CreateConnectionModal';
 
 // Helper to format relative time
@@ -47,7 +59,7 @@ export const AddTableTab = () => {
   const { workbook } = useActiveWorkbook();
   const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
-  const modalStack = useModalsStack(['create']);
+  const modalStack = useModalsStack(['create', 'upload']);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -179,8 +191,7 @@ export const AddTableTab = () => {
   };
 
   const handleUploadFile = () => {
-    // TODO: Open file upload modal
-    console.log('Upload file');
+    modalStack.open('upload');
   };
 
   if (!workbook) {
@@ -189,199 +200,212 @@ export const AddTableTab = () => {
 
   const isLoading = loadingTables || loadingUploads;
 
+  const handleUploadModalClose = () => {
+    // When modal closes, close it via modalStack and refresh uploads
+    modalStack.close('upload');
+    // Refresh the uploads list to show the newly uploaded CSV
+    mutateUploads();
+  };
+
   return (
-    <Stack gap="md" maw={600} mx="auto" py="xl">
+    <>
       <CreateConnectionModal {...modalStack.register('create')} />
-      <Stack gap="xs" align="center">
-        <DecorativeBoxedIcon Icon={PlusIcon} />
-        <Text13Medium ta="center">Import table into workbook</Text13Medium>
-        <Text13Book c="dimmed" ta="center">
-          Select which table you want to import
-          <br />
-          into the workbook.
-        </Text13Book>
-      </Stack>
+      <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} />
+      <Stack gap="md" maw={600} mx="auto" py="xl">
+        <Stack gap="xs" align="center">
+          <DecorativeBoxedIcon Icon={PlusIcon} />
+          <Text13Medium ta="center">Import table into workbook</Text13Medium>
+          <Text13Book c="dimmed" ta="center">
+            Select which table you want to import
+            <br />
+            into the workbook.
+          </Text13Book>
+        </Stack>
 
-      {/* Bordered container with search and table list */}
-      <Box
-        style={{
-          border: '1px solid var(--mantine-color-gray-3)',
-          borderRadius: 'var(--mantine-radius-sm)',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Search bar inside container */}
-        <TextInput
-          placeholder="Search tables..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.currentTarget.value)}
-          leftSection={<StyledLucideIcon Icon={SearchIcon} size="sm" />}
-          variant="unstyled"
-          styles={{
-            input: {
-              borderBottom: '1px solid var(--mantine-color-gray-3)',
-              borderRadius: 0,
-              paddingLeft: 'var(--mantine-spacing-xl)',
-            },
+        {/* Bordered container with search and table list */}
+        <Box
+          style={{
+            border: '1px solid var(--mantine-color-gray-3)',
+            borderRadius: 'var(--mantine-radius-sm)',
+            overflow: 'hidden',
+            minHeight: 422,
           }}
-        />
+        >
+          {/* Search bar inside container */}
+          <TextInput
+            placeholder="Search tables..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            leftSection={<StyledLucideIcon Icon={SearchIcon} size="sm" />}
+            variant="unstyled"
+            styles={{
+              input: {
+                borderBottom: '1px solid var(--mantine-color-gray-3)',
+                borderRadius: 0,
+                paddingLeft: 'var(--mantine-spacing-xl)',
+              },
+            }}
+          />
 
-        {isLoading ? (
-          <Center py="xl">
-            <Loader size="sm" />
-          </Center>
-        ) : groupedTables.length > 0 || tablesInWorkbook.length > 0 ? (
-          <Stack gap={0}>
-            {/* Available in workbook section */}
-            {tablesInWorkbook.length > 0 && (
-              <>
-                <Text13Book c="dimmed" px="sm" py="xs">
-                  Available in workbook
-                </Text13Book>
-                {tablesInWorkbook.map(({ table, group, snapshotTable }) => {
-                  return (
-                    <Box
-                      key={table.id.wsId}
+          {isLoading ? (
+            <Center py="xl">
+              <Loader size="sm" />
+            </Center>
+          ) : groupedTables.length > 0 || tablesInWorkbook.length > 0 ? (
+            <Stack gap={0}>
+              {/* Available in workbook section */}
+              {tablesInWorkbook.length > 0 && (
+                <>
+                  <Text13Book c="dimmed" px="sm" py="xs">
+                    Available in workbook
+                  </Text13Book>
+                  {tablesInWorkbook.map(({ table, group, snapshotTable }) => {
+                    return (
+                      <Box
+                        key={table.id.wsId}
+                        px="sm"
+                        py="xs"
+                        style={{
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '';
+                        }}
+                        onClick={() => handleTableSelect(table, group)}
+                      >
+                        <Group gap="sm" wrap="nowrap">
+                          <ConnectorIcon connector={group.service} size={16} />
+                          <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
+                          {snapshotTable.lastSyncTime && (
+                            <Group gap="xs">
+                              <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
+                              <Text13Regular c="var(--fg-muted)">
+                                {formatRelativeTime(snapshotTable.lastSyncTime)}
+                              </Text13Regular>
+                            </Group>
+                          )}
+                        </Group>
+                      </Box>
+                    );
+                  })}
+                  <Divider />
+                </>
+              )}
+
+              {/* Grouped tables by connector */}
+              {groupedTables.map((group, groupIndex) => {
+                const groupKey = group.service;
+                const isCollapsed = collapsedGroups[groupKey];
+                const isLastGroup = groupIndex === groupedTables.length - 1;
+                const isRefreshing = refreshingGroups[groupKey];
+
+                return (
+                  <div key={groupKey}>
+                    {/* Group header */}
+                    <Group
+                      gap="sm"
                       px="sm"
                       py="xs"
                       style={{
                         cursor: 'pointer',
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '';
-                      }}
-                      onClick={() => handleTableSelect(table, group)}
+                      wrap="nowrap"
                     >
-                      <Group gap="sm" wrap="nowrap">
-                        <ConnectorIcon connector={group.service} size={16} />
-                        <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
-                        {snapshotTable.lastSyncTime && (
-                          <Group gap="xs">
-                            <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
-                            <Text13Regular c="var(--fg-muted)">
-                              {formatRelativeTime(snapshotTable.lastSyncTime)}
-                            </Text13Regular>
-                          </Group>
-                        )}
+                      <Group gap="sm" style={{ flex: 1 }} onClick={() => toggleGroup(groupKey)} wrap="nowrap">
+                        <StyledLucideIcon Icon={isCollapsed ? ChevronRight : ChevronDown} size="sm" />
+                        <Text13Regular>{group.displayName}</Text13Regular>
                       </Group>
-                    </Box>
-                  );
-                })}
-                <Divider />
-              </>
-            )}
-
-            {/* Grouped tables by connector */}
-            {groupedTables.map((group, groupIndex) => {
-              const groupKey = group.service;
-              const isCollapsed = collapsedGroups[groupKey];
-              const isLastGroup = groupIndex === groupedTables.length - 1;
-              const isRefreshing = refreshingGroups[groupKey];
-
-              return (
-                <div key={groupKey}>
-                  {/* Group header */}
-                  <Group
-                    gap="sm"
-                    px="sm"
-                    py="xs"
-                    style={{
-                      cursor: 'pointer',
-                    }}
-                    wrap="nowrap"
-                  >
-                    <Group gap="sm" style={{ flex: 1 }} onClick={() => toggleGroup(groupKey)} wrap="nowrap">
-                      <StyledLucideIcon Icon={isCollapsed ? ChevronRight : ChevronDown} size="sm" />
-                      <Text13Regular>{group.displayName}</Text13Regular>
+                      <Group
+                        gap="xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isRefreshing) {
+                            handleRefresh(groupKey);
+                          }
+                        }}
+                        style={{ cursor: isRefreshing ? 'default' : 'pointer' }}
+                      >
+                        {isRefreshing ? (
+                          <Loader size="xs" />
+                        ) : (
+                          <StyledLucideIcon Icon={RefreshCw} size="sm" c="var(--fg-muted)" />
+                        )}
+                        <Text13Regular c="var(--fg-muted)">Refresh</Text13Regular>
+                      </Group>
                     </Group>
-                    <Group
-                      gap="xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isRefreshing) {
-                          handleRefresh(groupKey);
-                        }
-                      }}
-                      style={{ cursor: isRefreshing ? 'default' : 'pointer' }}
-                    >
-                      {isRefreshing ? (
-                        <Loader size="xs" />
-                      ) : (
-                        <StyledLucideIcon Icon={RefreshCw} size="sm" c="var(--fg-muted)" />
-                      )}
-                      <Text13Regular c="var(--fg-muted)">Refresh</Text13Regular>
-                    </Group>
-                  </Group>
 
-                  {/* Group tables */}
-                  <Collapse in={!isCollapsed}>
-                    {group.tables.map((table) => {
-                      const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
-                      return (
-                        <Box
-                          key={table.id.wsId}
-                          px="sm"
-                          py="xs"
-                          style={{
-                            cursor: 'pointer',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '';
-                          }}
-                          onClick={() => handleTableSelect(table, group)}
-                        >
-                          <Group gap="sm" wrap="nowrap">
-                            <ConnectorIcon connector={group.service} size={16} />
-                            <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
-                            {matchingSnapshot?.lastSyncTime && (
-                              <Group gap="xs">
-                                <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
-                                <Text13Regular c="var(--fg-muted)">
-                                  {formatRelativeTime(matchingSnapshot.lastSyncTime)}
-                                </Text13Regular>
+                    {/* Group tables */}
+                    <Collapse in={!isCollapsed}>
+                      <ScrollArea.Autosize mah={150}>
+                        {group.tables.map((table) => {
+                          const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
+                          return (
+                            <Box
+                              key={table.id.wsId}
+                              px="sm"
+                              py="xs"
+                              style={{
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '';
+                              }}
+                              onClick={() => handleTableSelect(table, group)}
+                            >
+                              <Group gap="sm" wrap="nowrap">
+                                <ConnectorIcon connector={group.service} size={16} />
+                                <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
+                                {matchingSnapshot?.lastSyncTime && (
+                                  <Group gap="xs">
+                                    <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
+                                    <Text13Regular c="var(--fg-muted)">
+                                      {formatRelativeTime(matchingSnapshot.lastSyncTime)}
+                                    </Text13Regular>
+                                  </Group>
+                                )}
                               </Group>
-                            )}
-                          </Group>
-                        </Box>
-                      );
-                    })}
-                  </Collapse>
+                            </Box>
+                          );
+                        })}
+                      </ScrollArea.Autosize>
+                    </Collapse>
 
-                  {/* Divider between groups */}
-                  {!isLastGroup && <Divider />}
-                </div>
-              );
-            })}
-          </Stack>
-        ) : searchQuery ? (
-          <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-            No tables found matching &quot;{searchQuery}&quot;
-          </Text13Regular>
-        ) : (
-          <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-            No tables available from your connections.
-          </Text13Regular>
-        )}
-      </Box>
+                    {/* Divider between groups */}
+                    {!isLastGroup && <Divider />}
+                  </div>
+                );
+              })}
+            </Stack>
+          ) : searchQuery ? (
+            <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+              No tables found matching &quot;{searchQuery}&quot;
+            </Text13Regular>
+          ) : (
+            <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+              No tables available from your connections.
+            </Text13Regular>
+          )}
+        </Box>
 
-      {/* Bottom action buttons */}
-      <Group justify="center" gap="sm">
-        <ButtonSecondaryOutline
-          leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
-          onClick={() => modalStack.open('create')}
-        >
-          New data source
-        </ButtonSecondaryOutline>
-        <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
-          Upload file
-        </ButtonSecondaryOutline>
-      </Group>
-    </Stack>
+        {/* Bottom action buttons */}
+        <Group justify="center" gap="sm">
+          <ButtonSecondaryOutline
+            leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
+            onClick={() => modalStack.open('create')}
+          >
+            New data source
+          </ButtonSecondaryOutline>
+          <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
+            Upload file
+          </ButtonSecondaryOutline>
+        </Group>
+      </Stack>
+    </>
   );
 };

@@ -34,6 +34,7 @@ interface CsvPreviewModalProps {
   fileName: string | null;
   file: File | null;
   previewError?: string | null;
+  disableNavigation?: boolean; // If true, don't navigate after upload
 }
 
 // Function to get icon for modal column type (includes IGNORE)
@@ -44,7 +45,15 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
   return getColumnTypeIcon(type as PostgresColumnType);
 };
 
-export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, data, fileName, file, previewError }) => {
+export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
+  opened,
+  onClose,
+  data,
+  fileName,
+  file,
+  previewError,
+  disableNavigation = false,
+}) => {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const [firstRowIsHeader, setFirstRowIsHeader] = useState(true);
@@ -152,8 +161,8 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({ opened, onClose, dat
       // Close modal
       onClose();
 
-      // Navigate to uploads page only if not already there
-      if (pathname !== RouteUrls.dataSourcesPageUrl) {
+      // Navigate to uploads page only if not already there and navigation is enabled
+      if (!disableNavigation && pathname !== RouteUrls.dataSourcesPageUrl) {
         router.push(RouteUrls.dataSourcesPageUrl);
       }
     } catch (error) {

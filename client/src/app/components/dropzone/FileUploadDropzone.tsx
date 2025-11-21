@@ -16,11 +16,15 @@ export const FileUploadDropzone = ({
   children,
   allowedTypes,
   openRef,
+  disableNavigation = false,
+  onUploadComplete,
   ...props
 }: {
   allowedTypes: ('csv' | 'md')[];
   openRef?: React.ForwardedRef<() => void | undefined>;
   children: React.ReactNode;
+  disableNavigation?: boolean;
+  onUploadComplete?: () => void;
 } & MantineStyleProps) => {
   // CSV preview state
   const [csvPreviewData, setCsvPreviewData] = useState<CsvPreviewResponse | null>(null);
@@ -115,11 +119,14 @@ export const FileUploadDropzone = ({
             setCsvPreviewData(null);
             setCsvPreviewFile(null);
             setCsvPreviewError(null);
+            // Call the upload complete callback when CSV preview closes
+            onUploadComplete?.();
           }}
           data={csvPreviewData}
           fileName={csvPreviewFileName}
           file={csvPreviewFile}
           previewError={csvPreviewError}
+          disableNavigation={disableNavigation}
         />
       )}
 
