@@ -1,13 +1,25 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadApiError } from '@/lib/api/error';
-import { getLogo, getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
+import { getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
-import { Alert, Group, Modal, ModalProps, Radio, Select, Stack, TextInput } from '@mantine/core';
-import Image from 'next/image';
+import {
+  Alert,
+  Group,
+  Text as MantineText,
+  Modal,
+  ModalProps,
+  Radio,
+  SimpleGrid,
+  Stack,
+  TextInput,
+  UnstyledButton,
+} from '@mantine/core';
+import { Check } from 'lucide-react';
 import { useState } from 'react';
 
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
@@ -62,6 +74,14 @@ export const CreateConnectionModal = (props: ModalProps) => {
       methods.push('user_provided_params');
     }
     return methods;
+  };
+
+  const handleSelectNewService = (service: Service) => {
+    setNewService(service);
+    setNewDisplayName(serviceName(service));
+    setAuthMethod(getDefaultAuthMethod(service));
+    setCustomClientId('');
+    setCustomClientSecret('');
   };
 
   const handleClearForm = () => {
@@ -177,36 +197,36 @@ export const CreateConnectionModal = (props: ModalProps) => {
     >
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
-        <Select
-          label="Service"
-          placeholder="Pick a service"
-          required
-          data={availableServices.map((service) => {
-            return {
-              value: service,
-              label: `${serviceName(service)}`,
-            };
-          })}
-          value={newService}
-          onChange={(value) => {
-            setNewService(value as Service);
-            setNewDisplayName(serviceName(value as Service));
-            // Set default auth method based on service capabilities
-            setAuthMethod(getDefaultAuthMethod(value as Service));
-            setCustomClientId('');
-            setCustomClientSecret('');
-          }}
-          renderOption={({ option }) => {
-            const service = option.value as Service;
-            const iconPath = getLogo(service);
+        <MantineText size="sm" fw={500} mb={4}>
+          App
+        </MantineText>
+        <SimpleGrid cols={2} spacing="xs" mb="md">
+          {availableServices.map((service) => {
+            const isSelected = newService === service;
             return (
-              <Group gap="sm">
-                <Image src={iconPath} alt={`${serviceName(service)} icon`} width={22} height={22} />
-                <span>{option.label}</span>
-              </Group>
+              <UnstyledButton
+                key={service}
+                onClick={() => handleSelectNewService(service)}
+                style={{
+                  border: `1px solid ${isSelected ? 'var(--mantine-color-teal-4)' : 'var(--mantine-color-gray-3)'}`,
+                  padding: '6px 8px',
+                  backgroundColor: isSelected ? 'var(--mantine-color-teal-0)' : 'transparent',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Group justify="space-between" wrap="nowrap">
+                  <Group gap="xs" wrap="nowrap">
+                    <ConnectorIcon connector={service} size={20} />
+                    <MantineText size="sm" fw={500}>
+                      {serviceName(service)}
+                    </MantineText>
+                  </Group>
+                  {isSelected && <Check style={{ width: 12, height: 12, color: 'var(--mantine-color-teal-6)' }} />}
+                </Group>
+              </UnstyledButton>
             );
-          }}
-        />
+          })}
+        </SimpleGrid>
         <TextInput
           label="Name"
           placeholder="Enter a name for your connection"
@@ -215,102 +235,111 @@ export const CreateConnectionModal = (props: ModalProps) => {
           onChange={(e) => setNewDisplayName(e.currentTarget.value)}
         />
 
-        {newService && getSupportedAuthMethods(newService).length > 1 && (
-          <Radio.Group
-            label={
-              <span
-                onClick={(e: React.MouseEvent) => {
-                  if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    setShowOAuthCustom(!showOAuthCustom);
-                  }
-                }}
-              >
-                Authentication Method
-              </span>
-            }
-            value={authMethod}
-            onChange={(value) => setAuthMethod(value as AuthMethod)}
-          >
-            <Group gap="xs" mt="xs">
-              {getSupportedAuthMethods(newService).includes('oauth') && (
-                <Radio value="oauth" label={getOauthLabel(newService)} />
-              )}
-              {getSupportedAuthMethods(newService).includes('user_provided_params') && (
-                <Radio value="user_provided_params" label="API Key" />
-              )}
-              {newService === Service.YOUTUBE && showOAuthCustom && (
-                <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
-              )}
-            </Group>
-          </Radio.Group>
-        )}
-        {/* Private OAuth credentials (YouTube only for now) */}
-        {authMethod === 'oauth_custom' && (
-          <>
-            <Alert color="blue" title="Private OAuth">
-              How to set up a private OAuth connection{' '}
-              <a href="https://www.google.com" target="_blank" rel="noreferrer">
-                here
-              </a>
-              .
-            </Alert>
-            <TextInput
-              label="OAuth Client ID"
-              placeholder="Enter your app's client ID"
-              value={customClientId}
-              onChange={(e) => setCustomClientId(e.currentTarget.value)}
-            />
-            <TextInput
-              label="OAuth Client Secret"
-              placeholder="Enter your app's client secret"
-              value={customClientSecret}
-              onChange={(e) => setCustomClientSecret(e.currentTarget.value)}
-              type="password"
-            />
-          </>
-        )}
-        {authMethod === 'user_provided_params' && newService === Service.WORDPRESS && (
-          <>
-            <TextInput
-              label="User email"
-              placeholder="Enter your user email here"
-              value={username}
-              onChange={(e) => setUsername(e.currentTarget.value)}
-            />
-            <TextInput
-              label="Application password"
-              placeholder="Enter your application password here"
-              value={password}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-              type="password"
-            />
-            <TextInput
-              label="WordPress URL"
-              placeholder="Enter the address of your WordPress site here"
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.currentTarget.value)}
-            />
-          </>
-        )}
-        {newService === Service.CSV && (
-          <Alert color="blue" title="CSV Connection">
-            CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
-          </Alert>
-        )}
-
-        {newService &&
-          newService !== Service.CSV &&
-          newService !== Service.WORDPRESS &&
-          getSupportedAuthMethods(newService).includes('user_provided_params') &&
-          authMethod === 'user_provided_params' && (
-            <TextInput
-              label="API Key"
-              placeholder="Enter API Key"
-              value={newApiKey}
-              onChange={(e) => setNewApiKey(e.currentTarget.value)}
-            />
+        {/* Authentication Method */}
+        <Stack
+          style={{
+            minHeight: 150, // So that the UI doesn't jump too much
+          }}
+        >
+          {newService && getSupportedAuthMethods(newService).length > 1 && (
+            <Radio.Group
+              label={
+                <span
+                  onClick={(e: React.MouseEvent) => {
+                    if (e.ctrlKey || e.metaKey) {
+                      e.preventDefault();
+                      setShowOAuthCustom(!showOAuthCustom);
+                    }
+                  }}
+                >
+                  Authentication Method
+                </span>
+              }
+              value={authMethod}
+              onChange={(value) => setAuthMethod(value as AuthMethod)}
+            >
+              <Group gap="xs" mt="xs">
+                {getSupportedAuthMethods(newService).includes('oauth') && (
+                  <Radio value="oauth" label={getOauthLabel(newService)} />
+                )}
+                {getSupportedAuthMethods(newService).includes('user_provided_params') && (
+                  <Radio value="user_provided_params" label="API Key" />
+                )}
+                {newService === Service.YOUTUBE && showOAuthCustom && (
+                  <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
+                )}
+              </Group>
+            </Radio.Group>
           )}
+          {/* Private OAuth credentials (YouTube only for now) */}
+          {authMethod === 'oauth_custom' && (
+            <>
+              <Alert color="blue" title="Private OAuth">
+                How to set up a private OAuth connection{' '}
+                <a href="https://www.google.com" target="_blank" rel="noreferrer">
+                  here
+                </a>
+                .
+              </Alert>
+              <TextInput
+                label="OAuth Client ID"
+                placeholder="Enter your app's client ID"
+                value={customClientId}
+                onChange={(e) => setCustomClientId(e.currentTarget.value)}
+              />
+              <TextInput
+                label="OAuth Client Secret"
+                placeholder="Enter your app's client secret"
+                value={customClientSecret}
+                onChange={(e) => setCustomClientSecret(e.currentTarget.value)}
+                type="password"
+              />
+            </>
+          )}
+          {authMethod === 'user_provided_params' && newService === Service.WORDPRESS && (
+            <Stack>
+              <Group grow>
+                <TextInput
+                  label="User email"
+                  placeholder="Enter your user email here"
+                  value={username}
+                  onChange={(e) => setUsername(e.currentTarget.value)}
+                />
+                <TextInput
+                  label="Application password"
+                  placeholder="Enter your application password here"
+                  value={password}
+                  onChange={(e) => setPassword(e.currentTarget.value)}
+                  type="password"
+                />
+              </Group>
+              <TextInput
+                label="WordPress URL"
+                placeholder="Enter the address of your WordPress site here"
+                value={endpoint}
+                onChange={(e) => setEndpoint(e.currentTarget.value)}
+              />
+            </Stack>
+          )}
+          {newService === Service.CSV && (
+            <Alert color="blue" title="CSV Connection">
+              CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
+            </Alert>
+          )}
+          {newService &&
+            newService !== Service.CSV &&
+            newService !== Service.WORDPRESS &&
+            getSupportedAuthMethods(newService).includes('user_provided_params') &&
+            authMethod === 'user_provided_params' && (
+              <TextInput
+                label="API Key"
+                placeholder="Enter API Key"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.currentTarget.value)}
+              />
+            )}
+        </Stack>
+
         <Group justify="flex-end">
           <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
           <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading || isCreating}>
