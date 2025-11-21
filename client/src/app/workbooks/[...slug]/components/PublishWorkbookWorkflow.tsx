@@ -37,6 +37,7 @@ export const PublishWorkbookWorkflow = () => {
 
     try {
       setShowPublishConfirmation(false);
+      // TODO: This should use useWorkbook().publish() instead to get shared logic.
       const result = await workbookApi.publish(workbook.id, selectedPublishTableIds);
       setPublishInProgress(result);
     } catch (e) {

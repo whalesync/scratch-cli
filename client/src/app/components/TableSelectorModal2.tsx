@@ -29,13 +29,7 @@ export function TableSelectorModal2({
   workbookId,
 }: TableSelectorModal2Props) {
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
-  const { operationCounts, isLoading, error, fetchCounts } = useOperationCounts(workbookId);
-
-  useEffect(() => {
-    if (isOpen) {
-      void fetchCounts();
-    }
-  }, [isOpen, fetchCounts]);
+  const { operationCounts, isLoading, error } = useOperationCounts(workbookId);
 
   const tablesWithChanges = useMemo(() => {
     const set = new Set<string>();

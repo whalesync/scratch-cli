@@ -53,6 +53,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       undefined,
       { revalidate: true },
     );
+    globalMutate(SWR_KEYS.operationCounts.get(id), undefined, { revalidate: true });
   }, [id, data, mutate, globalMutate]);
 
   const displayError = useMemo(() => {

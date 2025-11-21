@@ -68,7 +68,10 @@ export const useSnapshotTableRecords = (args: {
 
   const refreshRecords = useCallback(async () => {
     await mutate(swrKey);
-  }, [mutate, swrKey]);
+    if (workbookId) {
+      await mutate(SWR_KEYS.operationCounts.get(workbookId));
+    }
+  }, [mutate, swrKey, workbookId]);
 
   const acceptCellValues = useCallback(
     async (items: { wsId: string; columnId: string }[]) => {
@@ -82,6 +85,7 @@ export const useSnapshotTableRecords = (args: {
       } finally {
         // Always revalidate to get the canonical state from the server.
         await mutate(swrKey);
+        await mutate(SWR_KEYS.operationCounts.get(workbookId));
       }
     },
     [workbookId, tableId, mutate, swrKey, workbook],
@@ -141,8 +145,9 @@ export const useSnapshotTableRecords = (args: {
   const acceptAllSuggestions = useCallback(async () => {
     if (!tableId || !workbookId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
     const result = await workbookApi.acceptAllSuggestions(workbookId, tableId);
+    await mutate(SWR_KEYS.operationCounts.get(workbookId));
     return result;
-  }, [tableId, workbookId]);
+  }, [mutate, tableId, workbookId]);
 
   const rejectAllSuggestions = useCallback(async () => {
     if (!tableId || !workbookId) return { recordsRejected: 0, totalChangesRejected: 0 };
@@ -183,6 +188,9 @@ export const useSnapshotTableRecords = (args: {
 
     // Refresh records to get the newly created record
     await mutate(swrKey);
+    if (workbookId) {
+      await mutate(SWR_KEYS.operationCounts.get(workbookId));
+    }
   }, [workbook, tableId, mutate, swrKey, workbookId]);
 
   const displayError = useMemo(() => {

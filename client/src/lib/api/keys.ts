@@ -16,8 +16,7 @@ export const SWR_KEYS = {
   },
   workbook: {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],
-    listKeyMatcher: () => (key: Arguments) =>
-      Array.isArray(key) && key[0] === 'workbook' && key[1] === 'list',
+    listKeyMatcher: () => (key: Arguments) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'list',
     detail: (id: WorkbookId) => ['workbook', 'detail', id],
     records: (workbookId: WorkbookId, tableId: SnapshotTableId, cursor?: string, take?: number) => [
       'workbook',
@@ -36,6 +35,7 @@ export const SWR_KEYS = {
       key[3] === tableId,
     publishSummary: (id: WorkbookId) => ['workbook', 'publish-summary', id],
   },
+  operationCounts: { get: (id: WorkbookId) => ['operation-counts', id] },
   view: {
     list: (workbookId: WorkbookId) => ['view', 'list', workbookId],
     upsert: () => ['view', 'upsert'],

@@ -4,7 +4,7 @@ import { Service } from '@/types/server-entities/connector-accounts';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Modal, Stack, Text } from '@mantine/core';
 import { CircleAlertIcon } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { WorkbookId } from '../../../../../../types/server-entities/ids';
 import { StatusListItem } from './StatusListItem';
 import { TablePublishStats } from './TablePublishStats';
@@ -30,17 +30,11 @@ export const PublishConfirmationModal = ({
   snapshotTableIds,
   snapshotTables,
 }: PublishConfirmationModalProps) => {
-  const { operationCounts, fetchCounts, isLoading, error } = useOperationCounts(workbookId);
+  const { operationCounts, isLoading, error } = useOperationCounts(workbookId);
 
   const handleClose = () => {
     onClose();
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      void fetchCounts();
-    }
-  }, [isOpen, fetchCounts, workbookId]);
 
   // Create a map of tableId -> service for quick lookup
   const tableServiceMap = useMemo(() => {

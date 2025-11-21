@@ -329,5 +329,6 @@ async function bulkUpdateRecordsForTable(
     // Always revalidate to get the canonical state from the server.
     // This handles all paginated keys
     await globalMutate(swrKeyMatcher);
+    globalMutate(SWR_KEYS.operationCounts.get(workbookId));
   }
 }

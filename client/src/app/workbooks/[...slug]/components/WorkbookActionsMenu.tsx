@@ -32,7 +32,9 @@ import {
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
 import { useEffect, useRef, useState } from 'react';
+import { mutate } from 'swr';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
+import { SWR_KEYS } from '../../../../lib/api/keys';
 import { Service } from '../../../../types/server-entities/connector-accounts';
 import { SnapshotTableId } from '../../../../types/server-entities/ids';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
@@ -128,6 +130,7 @@ export const WorkbookActionsMenu = () => {
     try {
       setUploadingFile(tableId);
       const result = await workbookApi.importSuggestions(workbook.id, tableId, file);
+      await mutate(SWR_KEYS.operationCounts.get(workbook.id));
       console.debug('handleImportSuggestions: success', result);
       ScratchpadNotifications.success({
         title: 'Import completed',
