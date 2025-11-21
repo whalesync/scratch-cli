@@ -7,7 +7,7 @@ import { paymentApi } from '@/lib/api/payment';
 import { ScratchpadPlanType } from '@/types/server-entities/payment';
 import { stringToEnum } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
+import { RotateCwIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { JSX, useEffect, useState } from 'react';
 
@@ -57,7 +57,7 @@ const ProductCheckoutRedirect = (): JSX.Element => {
         <Info.Title>Unable to load Stripe billing portal.</Info.Title>
         <Info.StatusPageDescription />
         <Info.Actions>
-          <ButtonSecondaryOutline href={RouteUrls.homePageUrl} leftSection={<ArrowsClockwiseIcon />} component="a">
+          <ButtonSecondaryOutline href={RouteUrls.homePageUrl} leftSection={<RotateCwIcon />} component="a">
             Return to Snapshots
           </ButtonSecondaryOutline>
         </Info.Actions>

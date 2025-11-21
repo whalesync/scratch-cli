@@ -1,6 +1,5 @@
 'use client';
 
-import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
@@ -17,6 +16,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Box, Group, Stack } from '@mantine/core';
 import _ from 'lodash';
+import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
 import { useWorkbook } from '../../../hooks/use-workbook';

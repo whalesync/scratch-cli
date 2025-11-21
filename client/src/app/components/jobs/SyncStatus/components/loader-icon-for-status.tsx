@@ -1,5 +1,5 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
+import { RotateCwIcon } from 'lucide-react';
 import { FC } from 'react';
 type Props = {
   status: string;
@@ -7,7 +7,7 @@ type Props = {
 export const LoaderIconForStatus: FC<Props> = (props) => {
   const { status } = props;
   if (status === 'ACTIVE') {
-    return <StyledLucideIcon Icon={ArrowsClockwiseIcon} />;
+    return <StyledLucideIcon Icon={RotateCwIcon} />;
   }
   if (status === 'SYNCING') {
     return 'SyncLoadingSpinner';

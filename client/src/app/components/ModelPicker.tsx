@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { BadgeOK } from './base/badges';
 
@@ -269,7 +269,7 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
               placeholder="Search models..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              leftSection={<MagnifyingGlassIcon size={16} />}
+              leftSection={<Search size={16} />}
               size="sm"
             />
 

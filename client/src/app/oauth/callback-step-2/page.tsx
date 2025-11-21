@@ -6,7 +6,7 @@ import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { CheckCircle, XCircle } from '@phosphor-icons/react';
+import { CircleCheckBigIcon, CircleXIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -162,7 +162,7 @@ export default function OAuthCallbackPage() {
         )}
         {state.status === 'success' && (
           <>
-            <CheckCircle size={64} color="var(--mantine-color-green-6)" />
+            <CircleCheckBigIcon size={64} color="var(--mantine-color-green-6)" />
             <Title order={2} c="green">
               Connection Successful!
             </Title>
@@ -177,7 +177,7 @@ export default function OAuthCallbackPage() {
 
         {state.status === 'error' && (
           <>
-            <XCircle size={64} color="var(--mantine-color-red-6)" />
+            <CircleXIcon size={64} color="var(--mantine-color-red-6)" />
             <Title order={2} c="red">
               Connection Failed
             </Title>

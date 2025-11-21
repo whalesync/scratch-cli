@@ -1,5 +1,5 @@
 import { Box, Button, Group, RenderTreeNodePayload, Text, Tree, TreeNodeData, useTree } from '@mantine/core';
-import { MinusIcon, PlusIcon } from '@phosphor-icons/react';
+import { MinusIcon, PlusIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface JsonTreeViewerProps {

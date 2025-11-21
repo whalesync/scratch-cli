@@ -1,6 +1,6 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { JobEntity } from '@/types/server-entities/job';
-import { CheckIcon, CircleIcon, DotIcon, XCircleIcon } from 'lucide-react';
+import { CheckIcon, CircleIcon, CircleXIcon, DotIcon } from 'lucide-react';
 import { TableStatus } from './publish/PublishJobProgress';
 
 /**
@@ -72,7 +72,7 @@ export const getTableIndicator = (status: TableStatus) => {
     case 'failed':
       return <StyledLucideIcon Icon={CircleIcon} size={12} c="red" />;
     case 'canceled':
-      return <StyledLucideIcon Icon={XCircleIcon} size={12} c="yellow" />;
+      return <StyledLucideIcon Icon={CircleXIcon} size={12} c="yellow" />;
     default:
       return <StyledLucideIcon Icon={CircleIcon} size={12} c="gray" />;
   }

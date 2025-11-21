@@ -11,7 +11,7 @@ import {
 } from '@/types/server-entities/style-guide';
 import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { CheckCircleIcon, DownloadSimpleIcon, XCircleIcon } from '@phosphor-icons/react';
+import { CircleCheckBigIcon, CircleXIcon, DownloadIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
 import { ToolIconButton } from './ToolIconButton';
@@ -153,7 +153,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
             variant="light"
             withCloseButton
             onClose={() => setError(null)}
-            icon={<XCircleIcon size={20} />}
+            icon={<CircleXIcon size={20} />}
           >
             {error}
           </Alert>
@@ -162,7 +162,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           <Alert
             color="green"
             variant="light"
-            icon={<CheckCircleIcon size={20} />}
+            icon={<CircleCheckBigIcon size={20} />}
             withCloseButton
             onClose={() => setContentUpdatedMessage(null)}
           >
@@ -205,7 +205,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
             size="lg"
             onClick={handleDownloadResource}
             loading={isSaving}
-            icon={DownloadSimpleIcon}
+            icon={DownloadIcon}
             tooltip="Download from source"
           />
         </Group>

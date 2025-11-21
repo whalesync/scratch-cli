@@ -1,6 +1,6 @@
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { PlusIcon } from '@phosphor-icons/react';
+import { PlusIcon } from 'lucide-react';
 import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
 
 export const NewRecordFooterButton = ({ table }: { table: SnapshotTable }) => {

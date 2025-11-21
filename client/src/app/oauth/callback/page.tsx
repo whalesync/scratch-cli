@@ -3,7 +3,7 @@
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { XCircle } from '@phosphor-icons/react';
+import { CircleXIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { OAuthStatePayload } from '../../../types/server-entities/oauth';
@@ -100,7 +100,7 @@ export default function OAuthCallbackPage() {
 
         {state.status === 'error' && (
           <>
-            <XCircle size={64} color="var(--mantine-color-red-6)" />
+            <CircleXIcon size={64} color="var(--mantine-color-red-6)" />
             <Title order={2} c="red">
               Connection Failed
             </Title>

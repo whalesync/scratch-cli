@@ -6,9 +6,17 @@ import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { Alert, Badge, Group, Menu, Modal, Paper, Stack, Table, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { FileCodeIcon, FileMdIcon, FileTextIcon } from '@phosphor-icons/react';
 import { capitalize } from 'lodash';
-import { DownloadIcon, Edit3, LinkIcon, PlusIcon, Trash2 } from 'lucide-react';
+import {
+  DownloadIcon,
+  Edit3,
+  FileCodeIcon,
+  FileTextIcon,
+  FileTypeIcon,
+  LinkIcon,
+  PlusIcon,
+  Trash2,
+} from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { StyleGuideId } from '../../types/server-entities/ids';
 import { formatBytes } from '../../utils/helpers';
@@ -81,7 +89,7 @@ export default function PromptAssetsPage() {
 
   const resourceIcon = (resource: StyleGuide) => {
     if (resource.contentType === 'markdown') {
-      return <FileMdIcon size={20} />;
+      return <FileTypeIcon size={20} />;
     }
     if (resource.contentType === 'json') {
       return <FileCodeIcon size={20} />;

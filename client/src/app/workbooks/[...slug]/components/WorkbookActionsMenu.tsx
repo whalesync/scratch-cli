@@ -18,16 +18,18 @@ import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { DownloadSimpleIcon, PencilSimpleLineIcon, TrashIcon, UploadIcon } from '@phosphor-icons/react';
 import {
   ArrowUp,
   BetweenVerticalEndIcon,
-  Bot,
   Command,
+  DownloadIcon,
   EyeIcon,
   FileDownIcon,
   FileUpIcon,
+  PencilLineIcon,
   SearchCodeIcon,
+  TrashIcon,
+  UploadIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
@@ -38,6 +40,7 @@ import { SWR_KEYS } from '../../../../lib/api/keys';
 import { Service } from '../../../../types/server-entities/connector-accounts';
 import { SnapshotTableId } from '../../../../types/server-entities/ids';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
+import { DevToolMenuItem } from '../../../components/DevToolMenu';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
 import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
@@ -330,15 +333,15 @@ export const WorkbookActionsMenu = () => {
           <Menu.Item
             disabled={menuItemsDisabled}
             onClick={() => modalStack.open(Modals.RENAME)}
-            leftSection={<PencilSimpleLineIcon />}
+            leftSection={<PencilLineIcon />}
           >
             Rename
           </Menu.Item>
 
           {isDevToolsEnabled && (
-            <Menu.Item disabled={menuItemsDisabled} onClick={handleOpenAdvancedInput} leftSection={<Bot size={16} />}>
+            <DevToolMenuItem disabled={menuItemsDisabled} onClick={handleOpenAdvancedInput}>
               Advanced Agent Input
-            </Menu.Item>
+            </DevToolMenuItem>
           )}
 
           <Menu.Divider />
@@ -348,7 +351,7 @@ export const WorkbookActionsMenu = () => {
             onClick={() => {
               modalStack.open(Modals.CONFIRM_DOWNLOAD);
             }}
-            leftSection={<DownloadSimpleIcon />}
+            leftSection={<DownloadIcon />}
           >
             {getPullOperationName(connectorAccount?.service)}
           </Menu.Item>

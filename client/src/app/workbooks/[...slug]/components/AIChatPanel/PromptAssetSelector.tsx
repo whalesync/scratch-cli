@@ -1,5 +1,4 @@
 import { Text12Regular } from '@/app/components/base/text';
-import { StyledIcon } from '@/app/components/Icons/StyledIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
@@ -12,8 +11,7 @@ import {
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { Workbook } from '@/types/server-entities/workbook';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
-import { FileIcon, PlusIcon } from '@phosphor-icons/react';
-import { AtSignIcon } from 'lucide-react';
+import { AtSignIcon, FileIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './PromptAssetSelector.module.css';
@@ -58,7 +56,7 @@ export function PromptAssetSelector({
       .map((promptAsset) => (
         <Combobox.Option value={promptAsset.id} key={promptAsset.id}>
           <Group gap="4px">
-            <StyledIcon Icon={FileIcon} size={14} />
+            <StyledLucideIcon Icon={FileIcon} size={14} />
             <Text12Regular>{promptAsset.name}</Text12Regular>
           </Group>
         </Combobox.Option>
@@ -73,7 +71,7 @@ export function PromptAssetSelector({
     list.push(
       <Combobox.Option value="new" key="new">
         <Group gap="4px">
-          <StyledIcon Icon={PlusIcon} size={14} />
+          <StyledLucideIcon Icon={PlusIcon} size={14} />
           <Text12Regular>New prompt asset...</Text12Regular>
         </Group>
       </Combobox.Option>,
@@ -184,7 +182,7 @@ export const ResourcePill = ({
 }) => {
   return (
     <Group p="2px" gap="2xs" wrap="nowrap" className={styles.pill} onClick={onClick}>
-      <StyledIcon Icon={FileIcon} size={14} />
+      <StyledLucideIcon Icon={FileIcon} size={14} />
       <Text12Regular>{resource.name}</Text12Regular>
       <CloseButton
         size="xs"

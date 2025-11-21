@@ -29,7 +29,7 @@ import {
   Ambulance,
   Bird,
   BookMarked,
-  CircleCheck,
+  CircleCheckBigIcon,
   Home,
   MoonStar,
   Plus,
@@ -327,17 +327,17 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GalleryItem label="IconButtonOutline">
             <IconButtonOutline>
-              <CircleCheck />
+              <CircleCheckBigIcon />
             </IconButtonOutline>
           </GalleryItem>
           <GalleryItem label="IconButtonGhost">
             <IconButtonGhost>
-              <CircleCheck />
+              <CircleCheckBigIcon />
             </IconButtonGhost>
           </GalleryItem>
           <GalleryItem label="IconButtonInline">
             <IconButtonInline>
-              <CircleCheck />
+              <CircleCheckBigIcon />
             </IconButtonInline>
           </GalleryItem>
           <GalleryItem label="CloseButtonInline">
@@ -459,7 +459,7 @@ export default function DevComponentGalleryPage() {
             <CircularProgress fraction={0.75} />
           </GalleryItem>
           <GalleryItem label="AnimatedArrowsClockwise">
-            <AnimatedArrowsClockwise size={32} weight="regular" />
+            <AnimatedArrowsClockwise size={32} />
           </GalleryItem>
           <GalleryItem label="ConnectorIcon (40px, with border)">
             <Group gap="sm">
@@ -650,7 +650,7 @@ export default function DevComponentGalleryPage() {
               <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
                 <Group justify="space-between">
                   <Group gap="sm">
-                    <StyledLucideIcon Icon={CircleCheck} size="sm" c="var(--mantine-color-green-6)" />
+                    <StyledLucideIcon Icon={CircleCheckBigIcon} size="sm" c="var(--mantine-color-green-6)" />
                     <Text13Regular>Sync completed successfully</Text13Regular>
                   </Group>
                   <Text12Regular c="dimmed">2 minutes ago</Text12Regular>

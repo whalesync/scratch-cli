@@ -3,8 +3,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { TableSpec } from '@/types/server-entities/workbook';
 import { ActionIcon, Group, StyleProp } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
-import { XIcon } from '@phosphor-icons/react';
-import { ChevronLeftIcon, ChevronRightIcon, Rows4Icon } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, Rows4Icon, XIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 
