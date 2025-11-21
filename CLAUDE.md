@@ -11,3 +11,8 @@ This is a monorepo with three main components:
 ## Subdirectory-Specific Rules
 
 Each component has its own CLAUDE.md with instructions specific to the project.
+
+## NVM
+
+When running commands that depend on Node, first run `nvm use` in whichever directory you're working in (e.g.
+server/, client/). You DON'T need to source `~/.nvm/nvm.sh`.

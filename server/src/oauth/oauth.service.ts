@@ -36,14 +36,14 @@ export class OAuthService {
     private readonly notionProvider: NotionOAuthProvider,
     private readonly webflowProvider: WebflowOAuthProvider,
     private readonly wixProvider: WixOAuthProvider,
-    private readonly youtubeProvider: YouTubeOAuthProvider,
+    private readonly youTubeProvider: YouTubeOAuthProvider,
     private readonly posthogService: PostHogService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
     this.providers.set('WEBFLOW', this.webflowProvider);
     this.providers.set('WIX_BLOG', this.wixProvider);
-    this.providers.set('YOUTUBE', this.youtubeProvider);
+    this.providers.set('YOUTUBE', this.youTubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
   }
@@ -53,6 +53,11 @@ export class OAuthService {
     return await encryptionService.encryptObject(credentials);
   }
 
+  /**
+   * Decrypts stored OAuth credentials from the database format back to plain objects.
+   * Handles the conversion of serialized date strings back to Date objects for expiration times.
+   * Returns an empty object if no credentials are provided.
+   */
   public async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
     if (!encryptedCredentials || Object.keys(encryptedCredentials).length === 0) {
       return {};
@@ -70,7 +75,10 @@ export class OAuthService {
   }
 
   /**
-   * Initiate OAuth flow for any supported service
+   * Initiates an OAuth authorization flow for a supported external service.
+   * Builds a state payload containing user info, connection preferences, and security data,
+   * then generates the authorization URL that the client should redirect the user to.
+   * Supports both system-managed OAuth apps and custom OAuth client credentials.
    */
   initiateOAuth(service: string, actor: Actor, options: OAuthInitiateOptionsDto): OAuthInitiateResponse {
     const provider = this.providers.get(service);
@@ -101,7 +109,10 @@ export class OAuthService {
   }
 
   /**
-   * Handle OAuth callback and exchange code for tokens
+   * Handles the OAuth callback after the user authorizes the application.
+   * Decodes and validates the state parameter to ensure the request matches the original user,
+   * exchanges the authorization code for access/refresh tokens via the provider,
+   * and creates a new ConnectorAccount record with the encrypted credentials.
    */
   async handleOAuthCallback(
     service: string,
@@ -149,7 +160,10 @@ export class OAuthService {
   }
 
   /**
-   * Refresh OAuth tokens for a connector account
+   * Refreshes expired OAuth tokens for a connector account using the stored refresh token.
+   * Fetches the account, decrypts credentials, calls the provider's refresh endpoint,
+   * and updates the database with the new access token (and optionally new refresh token).
+   * Throws if the account is not OAuth-based or lacks a refresh token.
    */
   async refreshOAuthTokens(connectorAccountId: string): Promise<void> {
     const account = await this.db.client.connectorAccount.findUnique({
@@ -193,7 +207,7 @@ export class OAuthService {
   }
 
   /**
-   * Create new OAuth connector account with OAuth data
+   * Create new OAuth connector account with OAuth data.
    */
   private async createOAuthAccount(
     service: string,
@@ -249,7 +263,7 @@ export class OAuthService {
   }
 
   /**
-   * Map service string to Service enum
+   * Map service string to Service enum.
    */
   private mapServiceStringToEnum(service: string): Service {
     switch (service.toLowerCase()) {
@@ -269,29 +283,9 @@ export class OAuthService {
   }
 
   /**
-   * Generate a secure state parameter
-   */
-  private generateState(userId: string): string {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substring(2);
-    return Buffer.from(`${userId}:${timestamp}:${random}`).toString('base64');
-  }
-
-  /**
-   * Validate state parameter
-   */
-  private validateState(state: string, userId: string): boolean {
-    try {
-      const decoded = Buffer.from(state, 'base64').toString();
-      const [stateUserId] = decoded.split(':');
-      return stateUserId === userId;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Check if OAuth tokens are expired and need refresh
+   * Checks whether the OAuth access token for a connector account has expired or will expire soon.
+   * Uses a 5-minute buffer to proactively refresh tokens before they actually expire,
+   * preventing failed API calls due to race conditions. Returns false if no expiration is set.
    */
   async isTokenExpired(connectorAccountId: string): Promise<boolean> {
     const account = await this.db.client.connectorAccount.findUnique({
@@ -317,7 +311,9 @@ export class OAuthService {
   }
 
   /**
-   * Get valid access token, refreshing if necessary
+   * Retrieves a valid OAuth access token for making API calls to external services.
+   * Automatically checks token expiration and refreshes if needed before returning.
+   * This is the primary method other services should use to obtain tokens for API requests.
    */
   async getValidAccessToken(connectorAccountId: string): Promise<string> {
     const account = await this.db.client.connectorAccount.findUnique({
@@ -364,7 +360,9 @@ export class OAuthService {
   }
 
   /**
-   * Get YouTube OAuth credentials for API client initialization
+   * Returns the YouTube OAuth client configuration (client ID, secret, and redirect URI).
+   * Used by the YouTube connector service to initialize the Google API client for making
+   * authenticated requests. Exposes the provider's configuration without token data.
    */
   getYouTubeOAuthCredentials(): { clientId: string; clientSecret: string; redirectUri: string } {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
