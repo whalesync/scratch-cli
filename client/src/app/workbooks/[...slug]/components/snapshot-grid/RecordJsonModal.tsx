@@ -1,7 +1,9 @@
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { TextTitle1 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
-import { ActionIcon, Code, Group, Modal, ScrollArea, Stack, Text } from '@mantine/core';
+import { ActionIcon, Code, Group, Modal, ScrollArea, Stack } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { Copy } from 'lucide-react';
 
@@ -28,21 +30,18 @@ export const RecordJsonModal = ({ isOpen, onClose, record }: RecordJsonModalProp
       onClose={onClose}
       title={
         <Group justify="space-between" align="center" style={{ width: '100%' }}>
-          <Text fw={500}>Record Data (JSON)</Text>
+          <TextTitle1>Record Data</TextTitle1>
           <ActionIcon variant="subtle" onClick={handleCopyJson} title={clipboard.copied ? 'Copied!' : 'Copy JSON'}>
             <StyledLucideIcon Icon={Copy} size={16} />
           </ActionIcon>
         </Group>
       }
       centered
-      size="lg"
+      size="xl"
     >
       <Stack>
-        <Text size="sm" c="dimmed">
-          Record ID: <Code>{record.id.wsId}</Code>
-        </Text>
-
-        <ScrollArea h={400}>
+        <LabelValuePair label="Record ID" value={record.id.wsId} canCopy />
+        <ScrollArea h={500}>
           <Code
             block
             style={{
@@ -57,8 +56,10 @@ export const RecordJsonModal = ({ isOpen, onClose, record }: RecordJsonModalProp
         </ScrollArea>
 
         <Group justify="flex-end">
+          <ButtonSecondaryOutline onClick={handleCopyJson}>
+            {clipboard.copied ? 'Copied!' : 'Copy JSON'}
+          </ButtonSecondaryOutline>
           <ButtonSecondaryOutline onClick={onClose}>Close</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleCopyJson}>{clipboard.copied ? 'Copied!' : 'Copy JSON'}</ButtonPrimaryLight>
         </Group>
       </Stack>
     </Modal>

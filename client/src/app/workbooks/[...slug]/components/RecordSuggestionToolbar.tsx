@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
-import { Text12Regular } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { Text12Regular, TextMono12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
@@ -114,19 +114,21 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
     );
   } else if (suggestionContainsDelete) {
     suggestionLabel = (
-      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>{`//`} Pending delete</Text12Regular>
+      <TextMono12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+        {`//`} Pending delete
+      </TextMono12Regular>
     );
   } else if (suggestions.length === 1 && columnId) {
     suggestionLabel = (
-      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+      <TextMono12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
         {`//`} {suggestions.length} {pluralize('change', suggestions.length)} pending in cell
-      </Text12Regular>
+      </TextMono12Regular>
     );
   } else {
     suggestionLabel = (
-      <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+      <TextMono12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
         {`//`} {suggestions.length} {pluralize('change', suggestions.length)} pending in record
-      </Text12Regular>
+      </TextMono12Regular>
     );
   }
 
@@ -135,12 +137,12 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
       <Group h="100%" align="center">
         {suggestionLabel}
         <Group ml="auto">
-          <RejectSuggestionButton size="xs" onClick={handleRejectSuggestions} loading={saving}>
+          <ButtonSecondaryOutline size="compact-xs" onClick={handleRejectSuggestions} loading={saving}>
             Reject
-          </RejectSuggestionButton>
-          <AcceptSuggestionButton size="xs" onClick={handleAcceptSuggestions} loading={saving}>
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight size="compact-xs" onClick={handleAcceptSuggestions} loading={saving}>
             Accept
-          </AcceptSuggestionButton>
+          </ButtonPrimaryLight>
         </Group>
       </Group>
     </MainContent.Footer>

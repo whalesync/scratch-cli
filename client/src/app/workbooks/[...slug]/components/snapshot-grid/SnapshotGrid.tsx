@@ -610,7 +610,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       <div
         className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
-          height: showSuggestionToolbar ? 'calc(100% - 44px)' : '100%',
+          height: showSuggestionToolbar ? 'calc(100% - 28px)' : '100%',
           width: '100%',
           overflow: 'auto',
         }}
@@ -744,18 +744,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         />
       </div>
 
-      {showSuggestionToolbar && (
-        <GridSuggestionToolbar
-          table={table}
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 44,
-          }}
-        />
-      )}
+      {showSuggestionToolbar && <GridSuggestionToolbar table={table} />}
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
       {activeCells?.recordId && selectedRecord && (

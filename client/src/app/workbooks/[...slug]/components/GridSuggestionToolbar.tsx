@@ -1,20 +1,20 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
-import { Text12Regular } from '@/app/components/base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { Text12Regular, TextMono12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { BoxProps, Group, Loader } from '@mantine/core';
+import { Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
 import { useWorkbookEditorUIStore } from '../../../../stores/workbook-editor-store';
 
 type GridSuggestionToolbarProps = {
   table: SnapshotTable;
-} & BoxProps;
+};
 
 export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.Element | null => {
-  const { table, ...boxProps } = props;
+  const { table } = props;
   const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
   const { totalSuggestions, totalSuggestedDeletes, acceptAllSuggestions, rejectAllSuggestions, refreshRecords } =
     useSnapshotTableRecords({ workbookId, tableId: table.id });
@@ -65,7 +65,7 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
   }
 
   return (
-    <MainContent.Footer {...boxProps} h={28}>
+    <MainContent.Footer h={28} pos="absolute" bottom={0} left={0} right={0}>
       <Group h="100%" align="center">
         {saving ? (
           <>
@@ -73,20 +73,20 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
             <Text12Regular>Saving...</Text12Regular>
           </>
         ) : (
-          <Text12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
+          <TextMono12Regular style={{ fontStyle: 'italic', textTransform: 'uppercase' }}>
             {`//`} {totalSuggestions} {pluralize('change', totalSuggestions)} pending{' '}
             {totalSuggestedDeletes > 0
               ? `(${totalSuggestedDeletes} ${pluralize('record', totalSuggestedDeletes)} to deleted)`
               : ''}
-          </Text12Regular>
+          </TextMono12Regular>
         )}
         <Group ml="auto">
-          <RejectSuggestionButton size="xs" onClick={handleRejectAllSuggestions} loading={saving}>
+          <ButtonSecondaryOutline size="compact-xs" onClick={handleRejectAllSuggestions} loading={saving}>
             Reject all
-          </RejectSuggestionButton>
-          <AcceptSuggestionButton size="xs" onClick={handleAcceptAllSuggestions} loading={saving}>
+          </ButtonSecondaryOutline>
+          <ButtonPrimaryLight size="compact-xs" onClick={handleAcceptAllSuggestions} loading={saving}>
             Accept all
-          </AcceptSuggestionButton>
+          </ButtonPrimaryLight>
         </Group>
       </Group>
     </MainContent.Footer>
