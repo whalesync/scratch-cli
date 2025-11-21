@@ -13,6 +13,7 @@
   padding: 0 var(--mantine-spacing-lg);
   flex-grow: 1; /* Takes up all available space between header and footer */
   overflow-y: auto; /* Enables vertical scrolling if content overflows */
+  overflow-x: hidden; /* Prevents horizontal scrolling */
   justify-content: flex-start; /* Align text at the top */
   align-items: flex-start; /* Align text to the left */
   flex-direction: column; /* Stack paragraphs vertically */
