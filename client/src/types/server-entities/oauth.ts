@@ -8,6 +8,7 @@ export type OAuthInitiateOptionsDto = {
   customClientSecret?: string;
   connectionName?: string;
   returnPage?: string;
+  connectorAccountId?: string; // used to identify the connector account to reauthorize
 };
 
 /**
@@ -23,5 +24,6 @@ export type OAuthStatePayload = {
   customClientSecret?: string;
   connectionName?: string;
   returnPage?: string;
+  connectorAccountId?: string; // used to identify the connector account to reauthorize
   ts: number;
 };

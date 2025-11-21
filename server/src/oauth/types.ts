@@ -11,5 +11,6 @@ export type OAuthStatePayload = {
   customClientSecret?: string;
   connectionName?: string;
   returnPage?: string;
+  connectorAccountId?: string;
   ts: number;
 };

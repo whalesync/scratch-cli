@@ -4,10 +4,10 @@ import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { serviceName } from '@/service-naming-conventions';
-import { ConnectorAccount, ConnectorHealthStatus } from '@/types/server-entities/connector-accounts';
+import { AuthType, ConnectorAccount, ConnectorHealthStatus, Service } from '@/types/server-entities/connector-accounts';
 import { Group, Menu, Table } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Badge, Edit3, Plus, RefreshCcwIcon, Trash2 } from 'lucide-react';
+import { ArrowLeftRightIcon, Badge, Plus, RefreshCcwIcon, SquarePenIcon, Trash2 } from 'lucide-react';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { BadgeError, BadgeOK } from '../../components/base/badges';
 import { RelativeDate } from '../../components/RelativeDate';
@@ -17,6 +17,7 @@ interface ConnectorRowProps {
   connectorAccount: ConnectorAccount;
   onTest: (con: ConnectorAccount) => void;
   onUpdate: (conn: ConnectorAccount) => void;
+  onReauthorize: (conn: ConnectorAccount) => void;
   onDelete: (id: string) => void;
   testingId: string | null;
 }
@@ -33,7 +34,14 @@ const HealthIcon = ({ c }: { c: ConnectorAccount }) => {
   return <Badge>Unknown</Badge>;
 };
 
-export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, testingId }: ConnectorRowProps) {
+export function ConnectorRow({
+  connectorAccount,
+  onTest,
+  onUpdate,
+  onDelete,
+  onReauthorize,
+  testingId,
+}: ConnectorRowProps) {
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
@@ -71,9 +79,19 @@ export function ConnectorRow({ connectorAccount, onTest, onUpdate, onDelete, tes
                 <ActionIconThreeDots />
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item leftSection={<Edit3 size={16} />} onClick={() => onUpdate(connectorAccount)}>
-                  Rename
+                <Menu.Item leftSection={<SquarePenIcon size={16} />} onClick={() => onUpdate(connectorAccount)}>
+                  {connectorAccount.authType === AuthType.OAUTH || connectorAccount.service === Service.CSV
+                    ? 'Rename'
+                    : 'Edit'}
                 </Menu.Item>
+                {connectorAccount.authType === AuthType.OAUTH && (
+                  <Menu.Item
+                    leftSection={<ArrowLeftRightIcon size={16} />}
+                    onClick={() => onReauthorize(connectorAccount)}
+                  >
+                    Reauthorize
+                  </Menu.Item>
+                )}
                 <Menu.Divider />
                 <Menu.Item data-delete leftSection={<Trash2 size={16} />} onClick={() => onDelete(connectorAccount.id)}>
                   Delete

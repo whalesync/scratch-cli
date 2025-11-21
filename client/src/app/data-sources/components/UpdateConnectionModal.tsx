@@ -64,7 +64,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   };
 
   return (
-    <Modal title="Update Connection" centered size="lg" {...modalProps}>
+    <Modal title="Edit Data Source" centered size="lg" {...modalProps}>
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
         <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
@@ -74,6 +74,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
             <TextInput
               label="API Key"
               value={updatedApiKey}
+              placeholder="Enter your new API key, secret or token"
               onChange={(e) => setUpdatedApiKey(e.currentTarget.value)}
             />
           )}

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthType, Service } from '@prisma/client';
+import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
@@ -73,6 +73,7 @@ export class OAuthService {
       customClientSecret: options.customClientSecret,
       connectionName: options.connectionName,
       returnPage: options.returnPage,
+      connectorAccountId: options.connectorAccountId,
       ts: Date.now(),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
@@ -118,21 +119,43 @@ export class OAuthService {
       throw new BadRequestException('Invalid state parameter: invalid organization Id ${statePayload.organizationId}');
     }
 
+    let existingConnectorAccount: ConnectorAccount | null = null;
+    if (statePayload.connectorAccountId) {
+      existingConnectorAccount = await this.db.client.connectorAccount.findUnique({
+        where: { id: statePayload.connectorAccountId },
+      });
+      if (!existingConnectorAccount) {
+        throw new BadRequestException(
+          'Invalid state parameter: invalid connector account Id ${statePayload.connectorAccountId}',
+        );
+      }
+    }
+
     // Exchange authorization code for access token (with overrides for custom OAuth)
     const tokenResponse = await provider.exchangeCodeForTokens(callbackData.code, {
       clientId: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientId : undefined,
       clientSecret: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientSecret : undefined,
     });
 
-    // Create new connector account (include connection method and custom client creds for storage)
-    const connectorAccount = await this.createOAuthAccount(service, actor, tokenResponse, {
-      connectionMethod: statePayload.connectionMethod,
-      customClientId: statePayload.customClientId,
-      customClientSecret: statePayload.customClientSecret,
-      connectionName: statePayload.connectionName,
-    });
+    if (existingConnectorAccount) {
+      await this.updateOAuthAccount(existingConnectorAccount, actor, tokenResponse, {
+        connectionMethod: statePayload.connectionMethod,
+        customClientId: statePayload.customClientId,
+        customClientSecret: statePayload.customClientSecret,
+        connectionName: statePayload.connectionName,
+      });
+      return { connectorAccountId: existingConnectorAccount.id };
+    } else {
+      // Create new connector account (include connection method and custom client creds for storage)
+      const connectorAccount = await this.createOAuthAccount(service, actor, tokenResponse, {
+        connectionMethod: statePayload.connectionMethod,
+        customClientId: statePayload.customClientId,
+        customClientSecret: statePayload.customClientSecret,
+        connectionName: statePayload.connectionName,
+      });
 
-    return { connectorAccountId: connectorAccount.id };
+      return { connectorAccountId: connectorAccount.id };
+    }
   }
 
   /**
@@ -231,6 +254,48 @@ export class OAuthService {
     });
 
     return newConnectorAccount;
+  }
+
+  private async updateOAuthAccount(
+    connectorAccount: ConnectorAccount,
+    actor: Actor,
+    tokenResponse: OAuthTokenResponse,
+    connectionInfo?: {
+      connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
+      customClientId?: string;
+      customClientSecret?: string;
+      connectionName?: string;
+    },
+  ): Promise<void> {
+    // Prepare credentials for encryption
+    const credentials: DecryptedCredentials = {
+      oauthAccessToken: tokenResponse.access_token,
+      oauthRefreshToken: tokenResponse.refresh_token,
+      oauthExpiresAt: this.expiresInToOAuthExpiresAt(tokenResponse.expires_in),
+      oauthWorkspaceId: tokenResponse.workspace_id,
+      customOAuthClientId:
+        connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientId : undefined,
+      customOAuthClientSecret:
+        connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientSecret : undefined,
+    };
+
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(credentials);
+
+    // Create new account
+    await this.db.client.connectorAccount.update({
+      where: { id: connectorAccount.id },
+      data: {
+        encryptedCredentials: encryptedCredentials as Record<string, any>,
+        healthStatus: 'OK', // assume healthy because this connection is created via a successful oauth flow
+        healthStatusLastCheckedAt: new Date(),
+      },
+    });
+
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REAUTHORIZED, actor.userId, {
+      service: connectorAccount.service,
+      authType: AuthType.OAUTH,
+      healthStatus: 'OK',
+    });
   }
 
   /**

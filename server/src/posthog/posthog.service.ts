@@ -170,6 +170,7 @@ export enum PostHogEventName {
   ACCOUNT_USER_CREATED = 'account_user_created',
   CONNECTOR_ACCOUNT_CREATED = 'connector_created',
   CONNECTOR_ACCOUNT_REMOVED = 'connector_deleted',
+  CONNECTOR_ACCOUNT_REAUTHORIZED = 'connector_reauthorized',
   WORKBOOK_CREATED = 'workbook_created',
   WORKBOOK_REMOVED = 'workbook_deleted',
   WORKBOOK_PUBLISHED = 'workbook_published',
