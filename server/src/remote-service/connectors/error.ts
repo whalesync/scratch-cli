@@ -108,13 +108,13 @@ export function extractCommonDetailsFromAxiosError(
 
 /**
  * Extracts the error message from an Axios error. This is used for internally built Rest API clients like Airtable.
- * @param connector - The connector that the error occurred for.
+ * @param service - The service that the error occurred for.
  * @param error - The error to extract the message from.
  * @param errorKeys - Optional. A list of keys to search for in the response data to pull a message from.
  * @returns The error message. or a default if no message is found.
  */
 export function extractErrorMessageFromAxiosError(
-  connector: Connector<Service>,
+  service: Service,
   error: AxiosError,
   errorKeys: string[] = [],
 ): string {
@@ -152,8 +152,8 @@ export function extractErrorMessageFromAxiosError(
     return statusText;
   }
   if (isContentLengthExceededError(error)) {
-    return ErrorMessageTemplates.RESPONSE_TOO_LARGE(getServiceDisplayName(connector.service));
+    return ErrorMessageTemplates.RESPONSE_TOO_LARGE(getServiceDisplayName(service));
   }
 
-  return ErrorMessageTemplates.UNKNOWN_ERROR(getServiceDisplayName(connector.service));
+  return ErrorMessageTemplates.UNKNOWN_ERROR(getServiceDisplayName(service));
 }

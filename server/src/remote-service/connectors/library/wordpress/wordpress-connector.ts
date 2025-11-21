@@ -1,8 +1,10 @@
 import { Service } from '@prisma/client';
+import { isAxiosError } from 'axios';
 import MarkdownIt from 'markdown-it';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
+import { extractErrorMessageFromAxiosError } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { WordPressTableSpec } from '../custom-spec-registry';
@@ -263,10 +265,16 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
-    // TODO - parse the error more gracefully and return more specific error details.
+    if (isAxiosError(error)) {
+      const message = extractErrorMessageFromAxiosError(this.service, error, ['message']);
+      return {
+        userFriendlyMessage: `Wordpress returned an error: ${message}`,
+        description: `Wordpress returned HTTP ${error.status}: ${message}`,
+      };
+    }
 
     return {
-      userFriendlyMessage: 'An error occurred while connecting to Wordpress',
+      userFriendlyMessage: `An error occurred while connecting to Wordpress: ${error instanceof Error ? error.message : 'Unknown error'}`,
       description: error instanceof Error ? error.message : String(error),
     };
   }
