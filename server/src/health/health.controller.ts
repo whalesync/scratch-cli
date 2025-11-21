@@ -3,13 +3,13 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { BUILD_VERSION } from 'src/version';
 
 /**
- * Root of the Scratch API.
+ * Health check endpoint for the Scratch API.
  *
- * NOTE: It is *not* auth guarded because it only returns basic helpful info.
+ * NOTE: It is *not* auth guarded because it only returns basic helpful info for monitoring services.
  */
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
-export class AdminController {
+export class HealthController {
   @Get()
   getRoot() {
     return {
@@ -27,6 +27,7 @@ export class AdminController {
       build_version: BUILD_VERSION,
       in_cloud: ScratchpadConfigService.isRunningInCloudRun(),
       app_url: ScratchpadConfigService.getClientBaseUrl(),
+      apptype: ScratchpadConfigService.getScratchpadServiceType(),
     };
   }
 }
