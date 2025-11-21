@@ -131,7 +131,7 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
 
   components: {
     ActionIcon: ActionIcon.extend({
-      classNames: classes,
+      classNames: { root: classes.actionIconRoot },
       defaultProps: {
         variant: 'subtle',
         size: 'md',

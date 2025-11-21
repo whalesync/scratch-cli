@@ -1,4 +1,8 @@
-.root {
+/** CUSTOM ACTION ICON STYLES */
+
+.actionIconRoot {
+  border-width: 0.5px;
+
   /* A variant of transparent that changes color on hover */
   &[data-variant='transparent-hover'] {
     background: transparent;
@@ -17,7 +21,7 @@
 .badgeRoot {
   font-weight: 425;
 
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border: 0.5px solid color-mix(in srgb, currentColor 30%, transparent);
   border-radius: 0; /** Square corners */
   text-transform: none; /** Override the all-caps default */
 }

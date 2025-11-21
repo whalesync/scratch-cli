@@ -15,7 +15,7 @@ export function ConnectorIcon(
       w={size ?? 40}
       h={size ?? 40}
       alt={connector || 'Connector icon'}
-      bd={withBorder ? '1px solid var(--mantine-color-gray-4)' : 'none'}
+      bd={withBorder ? '0.5px solid var(--mantine-color-gray-4)' : 'none'}
       bg={withBorder ? 'var(--bg-base)' : 'transparent'}
       p="3.5px"
       {...rest}
