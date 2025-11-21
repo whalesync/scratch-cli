@@ -63,15 +63,7 @@ export class OAuthService {
       return {};
     }
 
-    const encryptionService = getEncryptionService();
-    const decrypted = await encryptionService.decryptObject<DecryptedCredentials>(encryptedCredentials);
-
-    // Convert oauthExpiresAt back to Date if it exists
-    if (decrypted.oauthExpiresAt) {
-      decrypted.oauthExpiresAt = new Date(decrypted.oauthExpiresAt);
-    }
-
-    return decrypted;
+    return getEncryptionService().decryptObject<DecryptedCredentials>(encryptedCredentials);
   }
 
   /**
@@ -192,17 +184,12 @@ export class OAuthService {
     // Update the credentials
     decryptedCredentials.oauthAccessToken = tokenResponse.access_token;
     decryptedCredentials.oauthRefreshToken = tokenResponse.refresh_token || decryptedCredentials.oauthRefreshToken;
-    decryptedCredentials.oauthExpiresAt = tokenResponse.expires_in
-      ? new Date(Date.now() + tokenResponse.expires_in * 1000)
-      : undefined;
+    decryptedCredentials.oauthExpiresAt = this.expiresInToOAuthExpiresAt(tokenResponse.expires_in);
 
     const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);
-
     await this.db.client.connectorAccount.update({
       where: { id: connectorAccountId },
-      data: {
-        encryptedCredentials: encryptedCredentials as Record<string, any>,
-      },
+      data: { encryptedCredentials },
     });
   }
 
@@ -226,7 +213,7 @@ export class OAuthService {
     const credentials: DecryptedCredentials = {
       oauthAccessToken: tokenResponse.access_token,
       oauthRefreshToken: tokenResponse.refresh_token,
-      oauthExpiresAt: tokenResponse.expires_in ? new Date(Date.now() + tokenResponse.expires_in * 1000) : undefined,
+      oauthExpiresAt: this.expiresInToOAuthExpiresAt(tokenResponse.expires_in),
       oauthWorkspaceId: tokenResponse.workspace_id,
       customOAuthClientId:
         connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientId : undefined,
@@ -307,7 +294,7 @@ export class OAuthService {
 
     // Add 5 minute buffer to refresh before actual expiration
     const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return new Date() >= new Date(decryptedCredentials.oauthExpiresAt.getTime() - bufferTime);
+    return new Date() >= new Date(new Date(decryptedCredentials.oauthExpiresAt).getTime() - bufferTime);
   }
 
   /**
@@ -379,5 +366,9 @@ export class OAuthService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       redirectUri: youtubeProvider.redirectUri,
     };
+  }
+
+  private expiresInToOAuthExpiresAt(tokenExpiresIn?: number): string | undefined {
+    return tokenExpiresIn ? new Date(Date.now() + tokenExpiresIn * 1000).toISOString() : undefined;
   }
 }

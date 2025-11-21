@@ -3,18 +3,17 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(scrypt);
 
-export interface EncryptedData {
+export type EncryptedData = {
   encrypted: string;
   iv: string;
   salt: string;
-}
+};
 
 export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
   private readonly keyLength = 32; // 256 bits
   private readonly ivLength = 16; // 128 bits
   private readonly saltLength = 32; // 256 bits
-  private readonly tagLength = 16; // 128 bits
 
   constructor(private readonly masterKey: string) {
     if (!masterKey || masterKey.length < 32) {

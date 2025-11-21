@@ -39,15 +39,7 @@ export class ConnectorAccountService {
       return {};
     }
 
-    const encryptionService = getEncryptionService();
-    const decrypted = await encryptionService.decryptObject<DecryptedCredentials>(encryptedCredentials);
-
-    // Convert oauthExpiresAt back to Date if it exists
-    if (decrypted.oauthExpiresAt) {
-      decrypted.oauthExpiresAt = new Date(decrypted.oauthExpiresAt);
-    }
-
-    return decrypted;
+    return getEncryptionService().decryptObject<DecryptedCredentials>(encryptedCredentials);
   }
 
   private async getDecryptedAccount(account: ConnectorAccount): Promise<ConnectorAccount & DecryptedCredentials> {

@@ -1,4 +1,4 @@
-export interface EncryptedCredentials {
+export interface DecryptedCredentials {
   apiKey?: string;
   // WordPress specific
   username?: string;
@@ -9,23 +9,7 @@ export interface EncryptedCredentials {
   oauthRefreshToken?: string;
   oauthExpiresAt?: string; // ISO string
   oauthWorkspaceId?: string;
-  // Optional custom OAuth app credentials (encrypted at rest)
-  customOAuthClientId?: string;
-  customOAuthClientSecret?: string;
-}
-
-export interface DecryptedCredentials {
-  apiKey?: string;
-  // WordPress specific
-  username?: string;
-  password?: string;
-  endpoint?: string;
-
-  oauthAccessToken?: string;
-  oauthRefreshToken?: string;
-  oauthExpiresAt?: Date;
-  oauthWorkspaceId?: string;
-  // Optional custom OAuth app credentials (plaintext in memory only)
+  // Optional custom OAuth app credentials (plaintext in memory only, encrypted at rest)
   customOAuthClientId?: string;
   customOAuthClientSecret?: string;
 }
