@@ -18,6 +18,7 @@ import {
   List,
   Loader,
   Menu,
+  Popover,
   Stack,
   Tooltip,
   useComputedColorScheme,
@@ -73,9 +74,11 @@ import {
   TextTitle3,
   TextTitle4,
 } from '../../components/base/text';
+import { CircularProgress } from '../../components/CircularProgress';
 import { CloseButtonInline } from '../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { DebouncedTextArea } from '../../components/DebouncedTextArea';
+import { DevToolPopover } from '../../components/DevToolReveal';
 import { DotSpacer } from '../../components/DotSpacer';
 import { DecorativeBoxedIcon } from '../../components/Icons/DecorativeBoxedIcon';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
@@ -340,9 +343,6 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="CloseButtonInline">
             <CloseButtonInline />
           </GalleryItem>
-          <GalleryItem label="DevToolButton">
-            <DevToolButton>Click</DevToolButton>
-          </GalleryItem>
           <GalleryItem label="ToolIconButton" notes="ActionIcon Button with tooltip. Use on toolbars and inline rows. ">
             <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" size="sm" />
           </GalleryItem>
@@ -417,6 +417,17 @@ export default function DevComponentGalleryPage() {
             </Tooltip>
           </GalleryItem>
 
+          <GalleryItem label="Popover">
+            <Popover>
+              <Popover.Target>
+                <ButtonSecondaryInline>Popover trigger</ButtonSecondaryInline>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Text13Regular>❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</Text13Regular>
+              </Popover.Dropdown>
+            </Popover>
+          </GalleryItem>
+
           <GallerySection id="loaders" title="Loaders" />
           <GalleryItem label="Loader">
             <Loader size="sm" />
@@ -440,6 +451,12 @@ export default function DevComponentGalleryPage() {
             notes="This isn't a Button, it's just a little box. Sometimes you want your icon in a little box? Decorative icons added to sections to provide delight."
           >
             <DecorativeBoxedIcon Icon={Home} />
+          </GalleryItem>
+          <GalleryItem
+            label="CircularProgress"
+            notes="A simple circular progress indicator. Mantine's is too complicated."
+          >
+            <CircularProgress fraction={0.75} />
           </GalleryItem>
           <GalleryItem label="AnimatedArrowsClockwise">
             <AnimatedArrowsClockwise size={32} weight="regular" />
@@ -511,6 +528,16 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
 
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
+          <GalleryItem label="DevToolButton">
+            <DevToolButton>Click</DevToolButton>
+          </GalleryItem>
+          <GalleryItem label="DevToolPopover" notes="Hide extra information only in dev">
+            <DevToolPopover>
+              <Text13Regular>
+                Here is some extra information that is only visible in dev, it doesn&apos;t take up space in the layout.
+              </Text13Regular>
+            </DevToolPopover>
+          </GalleryItem>
           <GalleryItem label="LabelValuePair">
             <LabelValuePair label="Name" value="John Doe" canCopy />
           </GalleryItem>

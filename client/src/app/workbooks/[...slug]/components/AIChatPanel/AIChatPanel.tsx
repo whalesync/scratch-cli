@@ -46,6 +46,7 @@ import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
+import { TokenUseButton } from './TokenUseButton';
 
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
@@ -488,7 +489,7 @@ export default function AIChatPanel() {
         />
 
         {/* Model and Submit Row */}
-        <Group gap="xs" align="flex-end">
+        <Group gap="xs">
           <Tooltip
             multiline
             w={220}
@@ -498,7 +499,6 @@ export default function AIChatPanel() {
               <StyledLucideIcon Icon={LucideFileKey} size="md" c="dimmed" strokeWidth={1} />
             </Box>
           </Tooltip>
-
           <Button
             variant="transparent"
             onClick={() => setShowModelSelector(true)}
@@ -518,6 +518,8 @@ export default function AIChatPanel() {
             availableCapabilitiesCount={AGENT_CAPABILITIES.length}
             onClick={() => setShowToolsModal(true)}
           />
+
+          {activeTable && <TokenUseButton table={activeTable} />}
 
           <Group gap="2px" ml="auto">
             <ActionIcon

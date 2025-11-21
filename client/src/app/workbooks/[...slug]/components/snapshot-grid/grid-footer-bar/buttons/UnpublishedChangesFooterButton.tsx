@@ -1,8 +1,8 @@
-import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import pluralize from 'pluralize';
 import { useMemo } from 'react';
 import { useSnapshotTableRecords } from '../../../../../../../hooks/use-snapshot-table-records';
+import { Text13Regular } from '../../../../../../components/base/text';
 
 export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { records } = useSnapshotTableRecords({
@@ -25,8 +25,8 @@ export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable
 
   // TODO: Open the publication modal from here too?
   return (
-    <ButtonSecondaryInline>
+    <Text13Regular>
       {unpublishedCount} unpublished {pluralize('change', unpublishedCount)}
-    </ButtonSecondaryInline>
+    </Text13Regular>
   );
 };

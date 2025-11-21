@@ -116,3 +116,8 @@
 .menuItemSection {
   color: var(--fg-muted);
 }
+
+/** CUSTOM POPOVER STYLES */
+.popoverDropdown {
+  padding: var(--mantine-spacing-xs);
+}

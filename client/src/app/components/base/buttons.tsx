@@ -52,6 +52,7 @@ export const ButtonSecondaryInline = Button.withProps({
   variant: 'subtle',
   color: 'var(--fg-primary)',
   c: 'var(--fg-primary)',
+  bd: 'none',
   styles: {
     section: { color: 'var(--fg-muted)' },
   },

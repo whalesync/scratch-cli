@@ -9,7 +9,8 @@ import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workboo
 import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
 
 /** Magic SQL query to filter only edited records. This is a hack to show only filtered records by setting special sql. */
-const ONLY_EDITED_RECORDS_SQL = `__edited_fields <> '{}'::jsonb`;
+const ONLY_EDITED_SQL = `__edited_fields <> '{}'::jsonb`;
+const ONLY_PENDING_SUGGESTIONS_SQL = `__suggested_values <> '{}'::jsonb`;
 
 export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { clearActiveRecordFilter } = useActiveWorkbook();
@@ -18,9 +19,12 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
 
   // This is a hack. There's a premade filter for only edited records that just sets the SQL on the client.
   // If the sql still matches that, we show a checkmark next to it.
-  const currentFilterType: 'custom' | 'only_edited' | null = useMemo(() => {
-    if (table.activeRecordSqlFilter === ONLY_EDITED_RECORDS_SQL) {
+  const currentFilterType: 'custom' | 'only_edited' | 'only_pending_suggestions' | null = useMemo(() => {
+    if (table.activeRecordSqlFilter === ONLY_EDITED_SQL) {
       return 'only_edited';
+    }
+    if (table.activeRecordSqlFilter === ONLY_PENDING_SUGGESTIONS_SQL) {
+      return 'only_pending_suggestions';
     }
     if (!!table.activeRecordSqlFilter) {
       return 'custom';
@@ -58,10 +62,19 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
             leftSection={<FunnelPlusIcon size={16} />}
             rightSection={currentFilterType === 'only_edited' ? <CheckIcon size={16} /> : null}
             onClick={async () => {
-              await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_EDITED_RECORDS_SQL);
+              await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_EDITED_SQL);
             }}
           >
             Unpublished changes
+          </Menu.Item>{' '}
+          <Menu.Item
+            leftSection={<FunnelPlusIcon size={16} />}
+            rightSection={currentFilterType === 'only_pending_suggestions' ? <CheckIcon size={16} /> : null}
+            onClick={async () => {
+              await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_PENDING_SUGGESTIONS_SQL);
+            }}
+          >
+            Pending suggestions
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item
@@ -94,7 +107,7 @@ const CustomSqlFilterModal = ({
     if (isOpen) {
       setSqlFilterText(
         // Hack: clobber the premade filter for only edited records.
-        table.activeRecordSqlFilter && table.activeRecordSqlFilter !== ONLY_EDITED_RECORDS_SQL
+        table.activeRecordSqlFilter && table.activeRecordSqlFilter !== ONLY_EDITED_SQL
           ? table.activeRecordSqlFilter
           : '',
       );

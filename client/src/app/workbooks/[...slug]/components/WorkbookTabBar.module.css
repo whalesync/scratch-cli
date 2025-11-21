@@ -1,6 +1,5 @@
 .root {
   background-color: var(--bg-panel);
-  border-top: 1px solid var(--mantine-color-gray-4);
   border-bottom: 1px solid var(--mantine-color-gray-4);
   height: 38;
 }

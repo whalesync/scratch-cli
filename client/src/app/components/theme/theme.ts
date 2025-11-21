@@ -9,6 +9,7 @@ import {
   Divider,
   Kbd,
   Menu,
+  Popover,
   Table,
   Title,
   Tooltip,
@@ -175,6 +176,17 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
         item: classes.menuItem,
         divider: classes.menuDivider,
         itemSection: classes.menuItemSection,
+      },
+    }),
+
+    Popover: Popover.extend({
+      defaultProps: {
+        withArrow: true,
+        shadow: 'md',
+        width: 250,
+      },
+      classNames: {
+        dropdown: classes.popoverDropdown,
       },
     }),
 

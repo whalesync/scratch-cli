@@ -1,7 +1,7 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workbook';
 import { getColumnTypeIcon } from '../../../../../../../utils/columns';
@@ -30,7 +30,7 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
   return (
     <Menu>
       <Menu.Target>
-        <ButtonSecondaryInline>{buttonText}</ButtonSecondaryInline>
+        <ButtonSecondaryInline rightSection={<ChevronDownIcon size={16} />}>{buttonText}</ButtonSecondaryInline>
       </Menu.Target>
       <Menu.Dropdown>
         {table.tableSpec.columns.map((column) => {

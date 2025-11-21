@@ -1,19 +1,66 @@
 import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
+import { PersistedModelOption } from '../types/common';
+import { SnapshotTable } from '../types/server-entities/workbook';
 
-export type TokenCalculation = {
+// Stats about how many tokens a list of records takes.
+type TokenCountResult = {
   tokenCount: number;
   charCount: number;
+
+  // Debugging:
   method: 'tiktoken' | 'estimate' | 'sampling' | 'empty_array' | 'missing_data';
   accuracy: 'estimate' | 'exact';
+};
+
+// Stats about our usage of the available context space.
+export type TokenUsageStats = {
+  tokens: TokenCountResult;
+  avgTokensPerRecord: number;
+  visibleRecords: number;
+  visibleColumns: number;
+
+  // Model limits:
+  modelMaxTokens: number | null;
+
+  // Combined limits:
+  usagePercentage: number | null;
+  maxRecordsFit: number;
 };
 
 // Cache encoding instances per model to avoid recreating them on every call
 const encodingCache = new Map<string, Tiktoken>();
 
+export function tokenUsageStats(
+  model: PersistedModelOption,
+  table: SnapshotTable,
+  records: unknown[],
+): TokenUsageStats {
+  const recordTokenCount = calculateTokensForRecords(records, model.value);
+
+  const usagePercentage = model.contextLength
+    ? Math.round((recordTokenCount.tokenCount / model.contextLength) * 100)
+    : null;
+  const avgTokensPerRecord = records.length > 0 ? Math.round(recordTokenCount.tokenCount / records.length) : 0;
+
+  return {
+    tokens: recordTokenCount,
+    avgTokensPerRecord,
+    visibleRecords: records.length,
+    visibleColumns: table.tableSpec.columns.length - table.hiddenColumns.length,
+
+    // Model limits:
+    modelMaxTokens: model.contextLength ?? null,
+
+    // Combined limits:
+    usagePercentage,
+    maxRecordsFit: model.contextLength && avgTokensPerRecord ? Math.floor(model.contextLength / avgTokensPerRecord) : 0,
+  };
+}
+
 /**
  * Count tokens for a list of records by JSON stringifying them
  */
-export function calculateTokensForRecords(records: unknown[], model: string): TokenCalculation {
+function calculateTokensForRecords(records: unknown[], model: string): TokenCountResult {
   if (!records) return { tokenCount: 0, charCount: 0, method: 'missing_data', accuracy: 'exact' };
   if (records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
 
@@ -68,6 +115,7 @@ export function calculateTokensForRecords(records: unknown[], model: string): To
 
   return { tokenCount: estimatedTokens, charCount: allLength, method: 'sampling', accuracy: 'estimate' };
 }
+
 /**
  * Get or create a cached encoding for a model
  */
@@ -119,5 +167,3 @@ export function formatTokenCount(tokens: number): string {
     return `${(tokens / 1000000).toFixed(1)}M`;
   }
 }
-export const tokenCalculationSymbol = (calculation: TokenCalculation) =>
-  calculation.accuracy === 'estimate' ? '≈' : '=';
