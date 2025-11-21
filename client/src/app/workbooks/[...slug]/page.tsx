@@ -154,8 +154,6 @@ function WorkbookPageContent() {
         workbookId={workbook.id}
         tables={allTables}
       />
-      <PublishWorkbookWorkflow />
-
       {isDevToolsEnabled && <WorkbookInspector opened={devToolsOpen} onClose={closeDevTools} />}
     </PageLayout>
   );
@@ -191,6 +189,7 @@ export default function WorkbookPage() {
         <AIAgentSessionManagerProvider workbookId={params.workbookId}>
           <UpdateRecordsProvider>
             <WorkbookPageContent />
+            <PublishWorkbookWorkflow />
           </UpdateRecordsProvider>
         </AIAgentSessionManagerProvider>
       </SnapshotEventProvider>

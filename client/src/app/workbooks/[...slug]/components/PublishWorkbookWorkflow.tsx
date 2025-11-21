@@ -5,14 +5,14 @@ import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
 /**
  * A container component that handles the publish workflow and the modals involved. Triggered through the WorkbookEditorUIStore
  */
 export const PublishWorkbookWorkflow = () => {
-  const { workbook, activeTable } = useActiveWorkbook();
+  const { workbook, activeTable, refreshWorkbook } = useActiveWorkbook();
   const publishConfirmationOpen = useWorkbookEditorUIStore((state) => state.publishConfirmationOpen);
   const closePublishConfirmation = useWorkbookEditorUIStore((state) => state.closePublishConfirmation);
   const [showTableSelector, setShowTableSelector] = useState(false);
@@ -32,7 +32,7 @@ export const PublishWorkbookWorkflow = () => {
     setShowPublishConfirmation(true);
   };
 
-  const handleConfirmPublish = async () => {
+  const handleConfirmPublish = useCallback(async () => {
     if (!workbook) return;
 
     try {
@@ -47,11 +47,13 @@ export const PublishWorkbookWorkflow = () => {
         autoClose: 5000,
       });
     }
-  };
+  }, [workbook, selectedPublishTableIds]);
 
-  // if (!workbook || !activeTable) {
-  //   return null;
-  // }
+  const handlePublishComplete = useCallback(async () => {
+    setPublishInProgress(null);
+    // Ensure the workbook is refreshed to reflect the changes to sync status on all the published tables
+    await refreshWorkbook();
+  }, [refreshWorkbook, setPublishInProgress]);
 
   return (
     <>
@@ -81,9 +83,7 @@ export const PublishWorkbookWorkflow = () => {
         />
       )}
 
-      {publishInProgress && (
-        <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={() => setPublishInProgress(null)} />
-      )}
+      {publishInProgress && <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={handlePublishComplete} />}
     </>
   );
 };

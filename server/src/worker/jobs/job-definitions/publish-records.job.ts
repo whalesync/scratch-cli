@@ -102,6 +102,14 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
       },
     });
 
+    this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+      type: 'sync-status-changed',
+      data: {
+        source: 'user',
+        message: 'Publish records job started',
+      },
+    });
+
     WSLogger.debug({
       source: 'PublishRecordsJob',
       message: 'Set syncInProgress=true for tables',
@@ -232,6 +240,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
               data: {
                 tableId: snapshotTable.id,
                 source: 'user',
+                message: 'Updating publishing counts for creates',
               },
             });
 
@@ -273,6 +282,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
               data: {
                 tableId: snapshotTable.id,
                 source: 'user',
+                message: 'Updating publishing counts for updates',
               },
             });
 
@@ -314,6 +324,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
               data: {
                 tableId: snapshotTable.id,
                 source: 'user',
+                message: 'Updating publishing counts for deletes',
               },
             });
 
@@ -352,6 +363,15 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
           data: { syncInProgress: false },
         });
 
+        this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+          type: 'sync-status-changed',
+          data: {
+            source: 'user',
+            tableId: snapshotTable.id,
+            message: 'Publish records job completed for table',
+          },
+        });
+
         WSLogger.debug({
           source: 'PublishRecordsJob',
           message: 'Publish completed for table',
@@ -369,6 +389,15 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
           data: { syncInProgress: false },
+        });
+
+        this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+          type: 'sync-status-changed',
+          data: {
+            source: 'user',
+            tableId: snapshotTable.id,
+            message: 'Publish records job failed for table',
+          },
         });
 
         WSLogger.error({
