@@ -2,12 +2,13 @@ import { Injectable, InternalServerErrorException, NotFoundException } from '@ne
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
+import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { WSLogger } from 'src/logger';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
 import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
-import { EncryptedData, getEncryptionService } from '../../utils/encryption';
+import { EncryptedData } from '../../utils/encryption';
 import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
@@ -26,24 +27,11 @@ export class ConnectorAccountService {
     private readonly connectorsService: ConnectorsService,
     private readonly posthogService: PostHogService,
     private readonly auditLogService: AuditLogService,
+    private readonly credentialEncryptionService: CredentialEncryptionService,
   ) {}
 
-  private async encryptCredentials(credentials: DecryptedCredentials): Promise<EncryptedData> {
-    const encryptionService = getEncryptionService();
-    const encryptedData = await encryptionService.encryptObject(credentials);
-    return encryptedData;
-  }
-
-  private async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
-    if (!encryptedCredentials || Object.keys(encryptedCredentials).length === 0) {
-      return {};
-    }
-
-    return getEncryptionService().decryptObject<DecryptedCredentials>(encryptedCredentials);
-  }
-
   private async getDecryptedAccount(account: ConnectorAccount): Promise<ConnectorAccount & DecryptedCredentials> {
-    const decryptedCredentials = await this.decryptCredentials(
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
       account.encryptedCredentials as unknown as EncryptedData,
     );
     return {
@@ -60,7 +48,9 @@ export class ConnectorAccountService {
 
     const credentials: DecryptedCredentials = parsedCredentials;
 
-    const encryptedCredentials = await this.encryptCredentials(credentials as unknown as DecryptedCredentials);
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(
+      credentials as unknown as DecryptedCredentials,
+    );
 
     const connectorAccount = await this.db.client.connectorAccount.create({
       data: {
@@ -127,7 +117,7 @@ export class ConnectorAccountService {
       throw new NotFoundException('ConnectorAccount not found');
     }
 
-    const decryptedCredentials = await this.decryptCredentials(
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
       currentAccount.encryptedCredentials as unknown as EncryptedData,
     );
 
@@ -137,7 +127,7 @@ export class ConnectorAccountService {
       decryptedCredentials[param] = updateDto.userProvidedParams?.[param];
     }
 
-    const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(decryptedCredentials);
 
     const account = await this.db.client.connectorAccount.update({
       where: { id, organizationId: actor.organizationId },

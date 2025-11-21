@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthType, Service } from '@prisma/client';
 import { capitalize } from 'lodash';
+import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
 import { createConnectorAccountId } from '../types/ids';
-import { EncryptedData, getEncryptionService } from '../utils/encryption';
+import { EncryptedData } from '../utils/encryption';
 import { OAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
@@ -38,6 +39,7 @@ export class OAuthService {
     private readonly wixProvider: WixOAuthProvider,
     private readonly youTubeProvider: YouTubeOAuthProvider,
     private readonly posthogService: PostHogService,
+    private readonly credentialEncryptionService: CredentialEncryptionService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
@@ -46,24 +48,6 @@ export class OAuthService {
     this.providers.set('YOUTUBE', this.youTubeProvider);
     // Future providers can be added here:
     // this.providers.set('airtable', this.airtableProvider);
-  }
-
-  private async encryptCredentials(credentials: DecryptedCredentials): Promise<EncryptedData> {
-    const encryptionService = getEncryptionService();
-    return await encryptionService.encryptObject(credentials);
-  }
-
-  /**
-   * Decrypts stored OAuth credentials from the database format back to plain objects.
-   * Handles the conversion of serialized date strings back to Date objects for expiration times.
-   * Returns an empty object if no credentials are provided.
-   */
-  public async decryptCredentials(encryptedCredentials: EncryptedData): Promise<DecryptedCredentials> {
-    if (!encryptedCredentials || Object.keys(encryptedCredentials).length === 0) {
-      return {};
-    }
-
-    return getEncryptionService().decryptObject<DecryptedCredentials>(encryptedCredentials);
   }
 
   /**
@@ -166,7 +150,7 @@ export class OAuthService {
       throw new BadRequestException('Invalid OAuth connector account for token refresh');
     }
 
-    const decryptedCredentials = await this.decryptCredentials(
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
       account.encryptedCredentials as unknown as EncryptedData,
     );
 
@@ -186,7 +170,7 @@ export class OAuthService {
     decryptedCredentials.oauthRefreshToken = tokenResponse.refresh_token || decryptedCredentials.oauthRefreshToken;
     decryptedCredentials.oauthExpiresAt = this.expiresInToOAuthExpiresAt(tokenResponse.expires_in);
 
-    const encryptedCredentials = await this.encryptCredentials(decryptedCredentials);
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(decryptedCredentials);
     await this.db.client.connectorAccount.update({
       where: { id: connectorAccountId },
       data: { encryptedCredentials },
@@ -221,7 +205,7 @@ export class OAuthService {
         connectionInfo?.connectionMethod === 'OAUTH_CUSTOM' ? connectionInfo.customClientSecret : undefined,
     };
 
-    const encryptedCredentials = await this.encryptCredentials(credentials);
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(credentials);
 
     // Create new account
     const newConnectorAccount = await this.db.client.connectorAccount.create({
@@ -284,7 +268,7 @@ export class OAuthService {
       return false; // No credentials, assume valid
     }
 
-    const decryptedCredentials = await this.decryptCredentials(
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
       account.encryptedCredentials as unknown as EncryptedData,
     );
 
@@ -311,7 +295,7 @@ export class OAuthService {
       throw new BadRequestException('Invalid OAuth account');
     }
 
-    const decryptedCredentials = await this.decryptCredentials(
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
       account.encryptedCredentials as unknown as EncryptedData,
     );
 
@@ -332,7 +316,7 @@ export class OAuthService {
         throw new UnauthorizedException('Failed to refresh access token');
       }
 
-      const updatedCredentials = await this.decryptCredentials(
+      const updatedCredentials = await this.credentialEncryptionService.decryptCredentials(
         updatedAccount.encryptedCredentials as unknown as EncryptedData,
       );
 
