@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { AgentSessionService } from './agent-session.service';
-import { CreateAgentSessionDto } from './dto/create-agent-session.dto';
+import { CreateAgentSessionDto, ValidatedCreateAgentSessionDto } from './dto/create-agent-session.dto';
 import { UpdateAgentSessionDto } from './dto/update-agent-session.dto';
 import { AgentSessionEntity } from './entities/agent-session.entity';
 
@@ -26,7 +26,8 @@ export class AgentSessionController {
 
   @Post()
   async create(@Body() createAgentSessionDto: CreateAgentSessionDto): Promise<AgentSessionEntity> {
-    return this.agentSessionService.create(createAgentSessionDto);
+    const dto = createAgentSessionDto as ValidatedCreateAgentSessionDto;
+    return this.agentSessionService.create(dto);
   }
 
   @Get(':sessionId')
@@ -39,7 +40,8 @@ export class AgentSessionController {
     @Param('sessionId') sessionId: string,
     @Body() updateAgentSessionDto: UpdateAgentSessionDto,
   ): Promise<AgentSessionEntity> {
-    return this.agentSessionService.update(sessionId, updateAgentSessionDto);
+    const dto = updateAgentSessionDto;
+    return this.agentSessionService.update(sessionId, dto);
   }
 
   @Delete(':sessionId')

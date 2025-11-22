@@ -4,16 +4,19 @@ import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 export class AcceptCellValueItem {
   @IsString()
   @IsNotEmpty()
-  wsId: string;
+  wsId?: string;
 
   @IsString()
   @IsNotEmpty()
-  columnId: string;
+  columnId?: string;
 }
 
 export class AcceptCellValueDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AcceptCellValueItem)
-  items: AcceptCellValueItem[];
+  items?: AcceptCellValueItem[];
 }
+
+export type ValidatedAcceptCellValueItem = Required<AcceptCellValueItem>;
+export type ValidatedAcceptCellValueDto = Required<AcceptCellValueDto>;

@@ -11,7 +11,7 @@ import {
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
-import { OAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
+import { OAuthInitiateOptionsDto, ValidatedOAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.service';
 import { OAuthService } from './oauth.service';
 
@@ -30,7 +30,8 @@ export class OAuthController {
     @Req() req: RequestWithUser,
     @Body() body: OAuthInitiateOptionsDto,
   ): OAuthInitiateResponse {
-    return this.oauthService.initiateOAuth(service, toActor(req.user), body);
+    const dto = body as ValidatedOAuthInitiateOptionsDto;
+    return this.oauthService.initiateOAuth(service, toActor(req.user), dto);
   }
 
   @Post(':service/callback')

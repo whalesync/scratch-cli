@@ -6,3 +6,5 @@ export class PublishRecordsDto {
   @IsString({ each: true })
   snapshotTableIds?: string[];
 }
+
+export type ValidatedPublishRecordsDto = PublishRecordsDto;

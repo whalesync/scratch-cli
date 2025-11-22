@@ -16,3 +16,11 @@ Each component has its own CLAUDE.md with instructions specific to the project.
 
 When running commands that depend on Node, first run `nvm use` in whichever directory you're working in (e.g.
 server/, client/). You DON'T need to source `~/.nvm/nvm.sh`.
+
+## NestJS DTOs in "server/"
+
+For NestJS DTOs, we use the pattern:
+
+- `class` definitions with 'class-validator' decorators for validation
+- All properties are optional (in TypeScript, "?") to pass strict build rules
+- A corresponding `Validated...` type where required fields are declared as required, using `Required<>` and `Pick<>`

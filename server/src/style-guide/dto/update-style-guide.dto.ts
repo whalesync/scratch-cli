@@ -26,3 +26,5 @@ export class UpdateStyleGuideDto {
   @IsOptional()
   tags?: string[];
 }
+
+export type ValidatedUpdateStyleGuideDto = UpdateStyleGuideDto;

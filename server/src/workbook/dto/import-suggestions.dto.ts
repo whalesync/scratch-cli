@@ -7,6 +7,8 @@ export class ImportSuggestionsDto {
 }
 
 export class ImportSuggestionsResponseDto {
-  recordsProcessed: number;
-  suggestionsCreated: number;
+  recordsProcessed?: number;
+  suggestionsCreated?: number;
 }
+
+export type ValidatedImportSuggestionsDto = ImportSuggestionsDto;

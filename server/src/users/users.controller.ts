@@ -15,7 +15,7 @@ import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -49,12 +49,13 @@ export class UsersController {
   @Patch('current/settings')
   @HttpCode(204)
   async updateUserSettings(@Req() req: RequestWithUser, @Body() updateSettingsDto: UpdateSettingsDto): Promise<void> {
+    const dto = updateSettingsDto as ValidatedUpdateSettingsDto;
     const user = await this.usersService.findOne(req.user.id);
 
     if (!user) {
       throw new NotFoundException(`User ${req.user.id} not found`);
     }
 
-    await this.usersService.updateUserSettings(user, updateSettingsDto);
+    await this.usersService.updateUserSettings(user, dto);
   }
 }

@@ -4,14 +4,17 @@ import { PostgresColumnType } from 'src/remote-service/connectors/types';
 export class AddScratchColumnDto {
   @IsString()
   @IsNotEmpty()
-  columnName: string;
+  columnName?: string;
 
   @IsEnum(PostgresColumnType)
-  dataType: PostgresColumnType;
+  dataType?: PostgresColumnType;
 }
 
 export class RemoveScratchColumnDto {
   @IsString()
   @IsNotEmpty()
-  columnId: string;
+  columnId?: string;
 }
+
+export type ValidatedAddScratchColumnDto = Required<AddScratchColumnDto>;
+export type ValidatedRemoveScratchColumnDto = Required<RemoveScratchColumnDto>;

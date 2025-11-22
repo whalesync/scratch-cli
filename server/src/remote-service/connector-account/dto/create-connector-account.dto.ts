@@ -4,7 +4,7 @@ import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-valida
 export class CreateConnectorAccountDto {
   @IsEnum(Service)
   @IsNotEmpty()
-  readonly service: Service;
+  readonly service?: Service;
 
   @IsObject()
   @IsOptional()
@@ -22,3 +22,6 @@ export class CreateConnectorAccountDto {
   @IsOptional()
   readonly displayName?: string;
 }
+
+export type ValidatedCreateConnectorAccountDto = Required<Pick<CreateConnectorAccountDto, 'service'>> &
+  Pick<CreateConnectorAccountDto, 'userProvidedParams' | 'authType' | 'modifier' | 'displayName'>;

@@ -4,6 +4,6 @@ export interface MdFieldValue {
 }
 
 export class PreviewMdResponseDto {
-  data: Record<string, MdFieldValue>; // Front matter with type info
-  PAGE_CONTENT: string; // Markdown content
+  data?: Record<string, MdFieldValue>; // Front matter with type info
+  PAGE_CONTENT?: string; // Markdown content
 }

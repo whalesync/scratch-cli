@@ -8,6 +8,6 @@ export type CsvPreviewRow =
       error: string[];
     };
 
-export class PreviewCsvResponseDto {
+export type PreviewCsvResponseDto = {
   rows: CsvPreviewRow[];
-}
+};

@@ -5,12 +5,15 @@ import type { EntityId } from '../../remote-service/connectors/types';
 export class AddTableToWorkbookDto {
   @IsNotEmpty()
   @IsEnum(Service)
-  service: Service;
+  service?: Service;
 
   @IsOptional()
   @IsString()
   connectorAccountId?: string;
 
   @IsNotEmpty()
-  tableId: EntityId;
+  tableId?: EntityId;
 }
+
+export type ValidatedAddTableToWorkbookDto = Required<Pick<AddTableToWorkbookDto, 'service' | 'tableId'>> &
+  Pick<AddTableToWorkbookDto, 'connectorAccountId'>;

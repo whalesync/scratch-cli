@@ -23,11 +23,15 @@ import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
-import { CreateWorkbookFromCsvDto, CreateWorkbookFromCsvResponseDto } from './dto/create-workbook-from-csv.dto';
+import {
+  CreateWorkbookFromCsvDto,
+  CreateWorkbookFromCsvResponseDto,
+  ValidatedCreateWorkbookFromCsvDto,
+} from './dto/create-workbook-from-csv.dto';
 import { ListUploadsResponseDto } from './dto/list-uploads.dto';
 import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
 import { PreviewMdResponseDto } from './dto/preview-md.dto';
-import { CsvAdvancedSettings, UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
+import { CsvAdvancedSettings, type UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
 import { UploadMdResponseDto } from './dto/upload-md.dto';
 import { UploadsService } from './uploads.service';
 
@@ -167,11 +171,12 @@ export class UploadsController {
     @Body() body: CreateWorkbookFromCsvDto,
     @Req() req: RequestWithUser,
   ): Promise<CreateWorkbookFromCsvResponseDto> {
+    const dto = body as ValidatedCreateWorkbookFromCsvDto;
     return await this.uploadsService.createWorkbookFromCsvUpload(
       uploadId,
       toActor(req.user),
-      body.name,
-      body.titleColumnRemoteId,
+      dto.name,
+      dto.titleColumnRemoteId,
     );
   }
 }

@@ -3,13 +3,15 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class MentionsSearchRecordsRequestDto {
   @IsString()
   @IsNotEmpty()
-  text: string;
+  text?: string;
 
   @IsString()
   @IsNotEmpty()
-  workbookId: string;
+  workbookId?: string;
 
   @IsString()
   @IsNotEmpty()
-  tableId: string;
+  tableId?: string;
 }
+
+export type ValidatedMentionsSearchRecordsRequestDto = Required<MentionsSearchRecordsRequestDto>;

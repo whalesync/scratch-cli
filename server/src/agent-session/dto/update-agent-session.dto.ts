@@ -5,3 +5,5 @@ export class UpdateAgentSessionDto {
   @IsOptional()
   data?: any;
 }
+
+export type ValidatedUpdateAgentSessionDto = UpdateAgentSessionDto;

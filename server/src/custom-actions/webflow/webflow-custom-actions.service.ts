@@ -8,8 +8,8 @@ import { WebflowCustomActions } from 'src/remote-service/connectors/library/webf
 import { WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
-import { WebflowPublishItemsDto } from './dto/publish-items.dto';
-import { WebflowPublishSiteDto } from './dto/publish-site.dto';
+import { ValidatedWebflowPublishItemsDto } from './dto/publish-items.dto';
+import { ValidatedWebflowPublishSiteDto } from './dto/publish-site.dto';
 
 @Injectable()
 export class WebflowCustomActionsService {
@@ -23,7 +23,7 @@ export class WebflowCustomActionsService {
   /**
    * Publish items in a Webflow collection
    */
-  async publishItems(dto: WebflowPublishItemsDto, actor: Actor) {
+  async publishItems(dto: ValidatedWebflowPublishItemsDto, actor: Actor) {
     // Get the snapshot table and verify access through snapshot
     const snapshotTable = await this.getSnapshotTableWithAccess(dto.snapshotTableId, actor);
 
@@ -91,7 +91,7 @@ export class WebflowCustomActionsService {
   /**
    * Publish a Webflow site
    */
-  async publishSite(dto: WebflowPublishSiteDto, actor: Actor) {
+  async publishSite(dto: ValidatedWebflowPublishSiteDto, actor: Actor) {
     // Get the snapshot table and verify access through snapshot
     const snapshotTable = await this.getSnapshotTableWithAccess(dto.snapshotTableId, actor);
 

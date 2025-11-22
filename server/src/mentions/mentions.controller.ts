@@ -3,8 +3,11 @@ import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { toActor } from 'src/auth/types';
 import type { WorkbookId } from 'src/types/ids';
-import { MentionsSearchRecordsRequestDto } from './dto/record-search.dto';
-import { MentionsSearchResourcesRequestDto } from './dto/resource-search.dto';
+import { MentionsSearchRecordsRequestDto, ValidatedMentionsSearchRecordsRequestDto } from './dto/record-search.dto';
+import {
+  MentionsSearchResourcesRequestDto,
+  ValidatedMentionsSearchResourcesRequestDto,
+} from './dto/resource-search.dto';
 import { RecordMentionEntity, ResourceMentionEntity } from './entities/mentions.entity';
 import { MentionsService } from './mentions.service';
 
@@ -19,7 +22,8 @@ export class MentionsController {
     @Body() body: MentionsSearchResourcesRequestDto,
     @Req() req: RequestWithUser,
   ): Promise<ResourceMentionEntity[]> {
-    const { text } = body;
+    const dto = body as ValidatedMentionsSearchResourcesRequestDto;
+    const { text } = dto;
     return await this.mentionsService.searchResources({ actor: toActor(req.user), queryText: text });
   }
 
@@ -28,7 +32,8 @@ export class MentionsController {
     @Body() body: MentionsSearchRecordsRequestDto,
     @Req() req: RequestWithUser,
   ): Promise<RecordMentionEntity[]> {
-    const { text, workbookId, tableId } = body;
+    const dto = body as ValidatedMentionsSearchRecordsRequestDto;
+    const { text, workbookId, tableId } = dto;
     return await this.mentionsService.searchRecords({
       workbookId: workbookId as WorkbookId,
       actor: toActor(req.user),

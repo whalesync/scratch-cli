@@ -12,7 +12,10 @@ import {
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { AiAgentTokenUsageService } from './ai-agent-token-usage.service';
-import { CreateAiAgentTokenUsageEventDto } from './dto/create-ai-agent-token-usage-event.dto';
+import {
+  CreateAiAgentTokenUsageEventDto,
+  ValidatedCreateAiAgentTokenUsageEventDto,
+} from './dto/create-ai-agent-token-usage-event.dto';
 
 @Controller('agent-token-usage')
 @UseGuards(ScratchpadAuthGuard)
@@ -22,7 +25,8 @@ export class AiAgentTokenUsageController {
 
   @Post('/track')
   create(@Body() createAiAgentTokenUsageEventDto: CreateAiAgentTokenUsageEventDto, @Req() req: RequestWithUser) {
-    return this.aiAgentTokenUsageService.create(createAiAgentTokenUsageEventDto, req.user.id);
+    const dto = createAiAgentTokenUsageEventDto as ValidatedCreateAiAgentTokenUsageEventDto;
+    return this.aiAgentTokenUsageService.create(dto, req.user.id);
   }
 
   @Get('/events')

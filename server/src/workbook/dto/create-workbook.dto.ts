@@ -14,3 +14,5 @@ export class CreateWorkbookDto {
     tableId: EntityId;
   }[];
 }
+
+export type ValidatedCreateWorkbookDto = CreateWorkbookDto;

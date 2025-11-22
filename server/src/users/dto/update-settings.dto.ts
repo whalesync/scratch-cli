@@ -7,5 +7,7 @@ export class UpdateSettingsDto {
    */
   @IsObject()
   @IsNotEmpty()
-  updates: Record<string, string | number | boolean | null>; // null values will remove the key from the settings object
+  updates?: Record<string, string | number | boolean | null>; // null values will remove the key from the settings object
 }
+
+export type ValidatedUpdateSettingsDto = Required<UpdateSettingsDto>;

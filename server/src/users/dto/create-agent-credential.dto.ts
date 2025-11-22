@@ -2,10 +2,10 @@ import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateAgentCredentialDto {
   @IsString()
-  service: string;
+  service?: string;
 
   @IsString()
-  apiKey: string;
+  apiKey?: string;
 
   @IsString()
   @IsOptional()
@@ -25,3 +25,7 @@ export class UpdateAgentCredentialDto {
   @IsOptional()
   default?: boolean;
 }
+
+export type ValidatedCreateAgentCredentialDto = Required<Pick<CreateAgentCredentialDto, 'service' | 'apiKey'>> &
+  Pick<CreateAgentCredentialDto, 'description' | 'default'>;
+export type ValidatedUpdateAgentCredentialDto = UpdateAgentCredentialDto;

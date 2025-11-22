@@ -2,7 +2,7 @@ import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, Use
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
-import { WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
+import { ValidatedWixPublishDraftPostsDto, WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 import { WixCustomActionsService } from './wix-custom-actions.service';
 
 @Controller('custom-actions/wix')
@@ -12,7 +12,8 @@ export class WixCustomActionsController {
   constructor(private readonly service: WixCustomActionsService) {}
 
   @Post('publish-draft-posts')
-  async publishDraftPosts(@Body() dto: WixPublishDraftPostsDto, @Req() req: RequestWithUser) {
+  async publishDraftPosts(@Body() dtoParam: WixPublishDraftPostsDto, @Req() req: RequestWithUser) {
+    const dto = dtoParam as ValidatedWixPublishDraftPostsDto;
     return this.service.publishDraftPosts(dto, toActor(req.user));
   }
 }

@@ -2,14 +2,16 @@ import { IsObject, IsString } from 'class-validator';
 
 export class CreateAgentSessionDto {
   @IsString()
-  id: string;
+  id?: string;
 
   @IsString()
-  userId: string;
+  userId?: string;
 
   @IsString()
-  workbookId: string;
+  workbookId?: string;
 
   @IsObject()
-  data: any;
+  data?: any;
 }
+
+export type ValidatedCreateAgentSessionDto = Required<CreateAgentSessionDto>;

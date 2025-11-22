@@ -16,8 +16,8 @@ import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
 import { ConnectorAccountService } from './connector-account.service';
-import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
-import { ListTablesDto } from './dto/list-tables.dto';
+import { CreateConnectorAccountDto, type ValidatedCreateConnectorAccountDto } from './dto/create-connector-account.dto';
+import { ListTablesDto, ValidatedListTablesDto } from './dto/list-tables.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { ConnectorAccount } from './entities/connector-account.entity';
 import { TableGroup, TableList } from './entities/table-list.entity';
@@ -31,7 +31,8 @@ export class ConnectorAccountController {
 
   @Post()
   async create(@Body() createDto: CreateConnectorAccountDto, @Req() req: RequestWithUser): Promise<ConnectorAccount> {
-    return this.service.create(createDto, toActor(req.user));
+    const dto = createDto as ValidatedCreateConnectorAccountDto;
+    return this.service.create(dto, toActor(req.user));
   }
 
   @Get()
@@ -51,7 +52,8 @@ export class ConnectorAccountController {
   }
 
   @Post('tables')
-  async listTables(@Body() dto: ListTablesDto, @Req() req: RequestWithUser): Promise<TableList> {
+  async listTables(@Body() dtoParam: ListTablesDto, @Req() req: RequestWithUser): Promise<TableList> {
+    const dto = dtoParam as ValidatedListTablesDto;
     const tables = await this.service.listTables(dto.service, dto.connectorAccountId ?? null, toActor(req.user));
     return { tables };
   }
@@ -67,7 +69,8 @@ export class ConnectorAccountController {
     @Body() updateDto: UpdateConnectorAccountDto,
     @Req() req: RequestWithUser,
   ): Promise<ConnectorAccount> {
-    return this.service.update(id, updateDto, toActor(req.user));
+    const dto = updateDto;
+    return this.service.update(id, dto, toActor(req.user));
   }
 
   @Delete(':id')

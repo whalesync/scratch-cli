@@ -14,7 +14,7 @@ import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
 import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
-import { CreateConnectorAccountDto } from './dto/create-connector-account.dto';
+import { ValidatedCreateConnectorAccountDto } from './dto/create-connector-account.dto';
 import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { TableGroup } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
@@ -40,7 +40,7 @@ export class ConnectorAccountService {
     };
   }
 
-  async create(createDto: CreateConnectorAccountDto, actor: Actor): Promise<ConnectorAccount> {
+  async create(createDto: ValidatedCreateConnectorAccountDto, actor: Actor): Promise<ConnectorAccount> {
     const { credentials: parsedCredentials, extras } = await this.parseUserProvidedParams(
       createDto.userProvidedParams || {},
       createDto.service,

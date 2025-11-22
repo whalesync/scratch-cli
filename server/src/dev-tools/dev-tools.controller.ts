@@ -20,7 +20,7 @@ import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
-import { UpdateSettingsDto } from 'src/users/dto/update-settings.dto';
+import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from 'src/users/dto/update-settings.dto';
 import { User } from 'src/users/entities/user.entity';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
@@ -78,9 +78,10 @@ export class DevToolsController {
   @HttpCode(204)
   async updateUserSettings(
     @Param('id') id: string,
-    @Body() dto: UpdateSettingsDto,
+    @Body() dtoParam: UpdateSettingsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
+    const dto = dtoParam as ValidatedUpdateSettingsDto;
     if (!hasAdminToolsPermission(req.user)) {
       throw new UnauthorizedException('Only admins can update user settings');
     }

@@ -1,5 +1,5 @@
 export class UploadMdResponseDto {
-  uploadId: string;
-  mdUploadId: string;
-  frontMatterKeys: string[];
+  uploadId?: string;
+  mdUploadId?: string;
+  frontMatterKeys?: string[];
 }

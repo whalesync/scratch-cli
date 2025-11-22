@@ -8,41 +8,41 @@ export type RecordOperation =
 
 export class CreateRecordOperation {
   @IsIn(['create'])
-  op: 'create';
+  op?: 'create';
 
   @IsObject()
-  data: Record<string, unknown>;
+  data?: Record<string, unknown>;
 }
 
 export class UpdateRecordOperation {
   @IsIn(['update'])
-  op: 'update';
+  op?: 'update';
 
   @IsString()
   @IsNotEmpty()
-  wsId: string;
+  wsId?: string;
 
   @IsObject()
   @IsNotEmpty()
-  data: Record<string, unknown>;
+  data?: Record<string, unknown>;
 }
 
 export class DeleteRecordOperation {
   @IsIn(['delete'])
-  op: 'delete';
+  op?: 'delete';
 
   @IsString()
   @IsNotEmpty()
-  wsId: string;
+  wsId?: string;
 }
 
 export class UndeleteRecordOperation {
   @IsIn(['undelete'])
-  op: 'undelete';
+  op?: 'undelete';
 
   @IsString()
   @IsNotEmpty()
-  wsId: string;
+  wsId?: string;
 }
 
 export class BulkUpdateRecordsDto {
@@ -66,3 +66,9 @@ export class BulkUpdateRecordsDto {
   @IsOptional()
   undeletes?: UndeleteRecordOperation[];
 }
+
+export type ValidatedCreateRecordOperation = Required<CreateRecordOperation>;
+export type ValidatedUpdateRecordOperation = Required<UpdateRecordOperation>;
+export type ValidatedDeleteRecordOperation = Required<DeleteRecordOperation>;
+export type ValidatedUndeleteRecordOperation = Required<UndeleteRecordOperation>;
+export type ValidatedBulkUpdateRecordsDto = BulkUpdateRecordsDto;

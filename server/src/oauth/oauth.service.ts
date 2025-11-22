@@ -8,7 +8,7 @@ import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
 import { createConnectorAccountId } from '../types/ids';
 import { EncryptedData } from '../utils/encryption';
-import { OAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
+import { ValidatedOAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
@@ -56,7 +56,7 @@ export class OAuthService {
    * then generates the authorization URL that the client should redirect the user to.
    * Supports both system-managed OAuth apps and custom OAuth client credentials.
    */
-  initiateOAuth(service: string, actor: Actor, options: OAuthInitiateOptionsDto): OAuthInitiateResponse {
+  initiateOAuth(service: string, actor: Actor, options: ValidatedOAuthInitiateOptionsDto): OAuthInitiateResponse {
     const provider = this.providers.get(service);
     if (!provider) {
       throw new BadRequestException(`Unsupported OAuth service: ${service}`);

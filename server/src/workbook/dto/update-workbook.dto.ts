@@ -6,3 +6,5 @@ export class UpdateWorkbookDto {
   @IsNotEmpty()
   name?: string;
 }
+
+export type ValidatedUpdateWorkbookDto = UpdateWorkbookDto;

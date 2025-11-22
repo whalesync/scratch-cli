@@ -31,21 +31,34 @@ import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import type { WorkbookId } from '../types/ids';
-import { AcceptCellValueDto } from './dto/accept-cell-value.dto';
-import { AddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
+import {
+  AcceptCellValueDto,
+  ValidatedAcceptCellValueDto,
+  ValidatedAcceptCellValueItem,
+} from './dto/accept-cell-value.dto';
+import { type ValidatedAddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
 import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
 import { CreateWorkbookDto } from './dto/create-workbook.dto';
-import { DeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
+import { DeepFetchRecordsDto, ValidatedDeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
 import { DownloadRecordsDto } from './dto/download-records.dto';
 import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishRecordsDto } from './dto/publish-records.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
-import { RejectCellValueDto } from './dto/reject-cell-value.dto';
-import { AddScratchColumnDto, RemoveScratchColumnDto } from './dto/scratch-column.dto';
+import {
+  RejectCellValueDto,
+  ValidatedRejectCellValueDto,
+  ValidatedRejectCellValueItem,
+} from './dto/reject-cell-value.dto';
+import {
+  AddScratchColumnDto,
+  RemoveScratchColumnDto,
+  ValidatedAddScratchColumnDto,
+  ValidatedRemoveScratchColumnDto,
+} from './dto/scratch-column.dto';
 import { SetPageSizeDto } from './dto/set-page-size.dto';
-import { SetTitleColumnDto } from './dto/set-title-column.dto';
+import { SetTitleColumnDto, ValidatedSetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
-import { UpdateColumnSettingsDto } from './dto/update-column-settings.dto';
+import { UpdateColumnSettingsDto, ValidatedUpdateColumnSettingsDto } from './dto/update-column-settings.dto';
 import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
@@ -67,7 +80,8 @@ export class WorkbookController {
 
   @Post()
   async create(@Body() createWorkbookDto: CreateWorkbookDto, @Req() req: RequestWithUser): Promise<Workbook> {
-    return new Workbook(await this.service.create(createWorkbookDto, toActor(req.user)));
+    const dto = createWorkbookDto;
+    return new Workbook(await this.service.create(dto, toActor(req.user)));
   }
 
   @Get()
@@ -101,15 +115,17 @@ export class WorkbookController {
     @Body() updateWorkbookDto: UpdateWorkbookDto,
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
-    return new Workbook(await this.service.update(id, updateWorkbookDto, toActor(req.user)));
+    const dto = updateWorkbookDto;
+    return new Workbook(await this.service.update(id, dto, toActor(req.user)));
   }
 
   @Post(':id/add-table')
   async addTable(
     @Param('id') id: WorkbookId,
-    @Body() addTableDto: AddTableToWorkbookDto,
+    @Body() addTableDto: ValidatedAddTableToWorkbookDto,
     @Req() req: RequestWithUser,
   ): Promise<SnapshotTable> {
+    const dto = addTableDto;
     const actor = toActor(req.user);
 
     // Verify the user is an admin or owner of the workbookId
@@ -118,7 +134,7 @@ export class WorkbookController {
       throw new NotFoundException('Workbook not found');
     }
 
-    const createdTable = await this.service.addTableToWorkbook(id, addTableDto, actor);
+    const createdTable = await this.service.addTableToWorkbook(id, dto, actor);
     return new SnapshotTable(createdTable);
   }
 
@@ -147,7 +163,8 @@ export class WorkbookController {
     @Body() publishDto: PublishRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
-    return this.service.publish(id, toActor(req.user), publishDto.snapshotTableIds);
+    const dto = publishDto;
+    return this.service.publish(id, toActor(req.user), dto.snapshotTableIds);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -157,7 +174,8 @@ export class WorkbookController {
     @Body() publishDto: PublishRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<PublishSummaryDto> {
-    return await this.service.getPublishSummary(id, toActor(req.user), publishDto.snapshotTableIds);
+    const dto = publishDto;
+    return await this.service.getPublishSummary(id, toActor(req.user), dto.snapshotTableIds);
   }
 
   @Get(':id/operation-counts')
@@ -182,7 +200,8 @@ export class WorkbookController {
     @Body() downloadDto: DownloadRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<DownloadWorkbookResult> {
-    return this.service.download(id, toActor(req.user), downloadDto.snapshotTableIds);
+    const dto = downloadDto;
+    return this.service.download(id, toActor(req.user), dto.snapshotTableIds);
   }
 
   @Delete(':id')
@@ -224,7 +243,8 @@ export class WorkbookController {
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(workbookId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'accepted');
+    const dto = bulkUpdateRecordsDto;
+    await this.service.bulkUpdateRecords(workbookId, tableId, dto, toActor(req.user), 'accepted');
   }
 
   @Post(':id/tables/:tableId/records/bulk-suggest')
@@ -235,7 +255,8 @@ export class WorkbookController {
     @Body() bulkUpdateRecordsDto: BulkUpdateRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.bulkUpdateRecords(workbookId, tableId, bulkUpdateRecordsDto, toActor(req.user), 'suggested');
+    const dto = bulkUpdateRecordsDto;
+    await this.service.bulkUpdateRecords(workbookId, tableId, dto, toActor(req.user), 'suggested');
   }
 
   @Post(':id/tables/:tableId/import-suggestions')
@@ -265,11 +286,12 @@ export class WorkbookController {
     @Body() deepFetchRecordsDto: DeepFetchRecordsDto,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
+    const dto = deepFetchRecordsDto as ValidatedDeepFetchRecordsDto;
     return await this.service.deepFetchRecords(
       workbookId,
       tableId,
-      deepFetchRecordsDto.recordIds,
-      deepFetchRecordsDto.fields || null,
+      dto.recordIds,
+      dto.fields || null,
       toActor(req.user),
     );
   }
@@ -281,7 +303,9 @@ export class WorkbookController {
     @Body() acceptCellValueDto: AcceptCellValueDto,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number }> {
-    return await this.service.acceptCellValues(workbookId, tableId, acceptCellValueDto.items, toActor(req.user));
+    const dto = acceptCellValueDto as ValidatedAcceptCellValueDto;
+    const items = dto.items as ValidatedAcceptCellValueItem[];
+    return await this.service.acceptCellValues(workbookId, tableId, items, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/accept-all-suggestions')
@@ -301,12 +325,8 @@ export class WorkbookController {
     @Body() updateColumnSettingsDto: UpdateColumnSettingsDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.updateColumnSettings(
-      workbookId,
-      tableId,
-      updateColumnSettingsDto.columnSettings,
-      toActor(req.user),
-    );
+    const dto = updateColumnSettingsDto as ValidatedUpdateColumnSettingsDto;
+    await this.service.updateColumnSettings(workbookId, tableId, dto.columnSettings, toActor(req.user));
   }
 
   @Patch(':id/tables/:tableId/title-column')
@@ -317,7 +337,8 @@ export class WorkbookController {
     @Body() setTitleColumnDto: SetTitleColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.setTitleColumn(workbookId, tableId, setTitleColumnDto.columnId, toActor(req.user));
+    const dto = setTitleColumnDto as ValidatedSetTitleColumnDto;
+    await this.service.setTitleColumn(workbookId, tableId, dto.columnId, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-values')
@@ -327,7 +348,9 @@ export class WorkbookController {
     @Body() rejectCellValueDto: RejectCellValueDto,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number }> {
-    return await this.service.rejectValues(workbookId, tableId, rejectCellValueDto.items, toActor(req.user));
+    const dto = rejectCellValueDto as ValidatedRejectCellValueDto;
+    const items = dto.items as ValidatedRejectCellValueItem[];
+    return await this.service.rejectValues(workbookId, tableId, items, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-all-suggestions')
@@ -347,7 +370,8 @@ export class WorkbookController {
     @Body() setActiveRecordsFilterDto: SetActiveRecordsFilterDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.setActiveRecordsFilter(workbookId, tableId, setActiveRecordsFilterDto, toActor(req.user));
+    const dto = setActiveRecordsFilterDto;
+    await this.service.setActiveRecordsFilter(workbookId, tableId, dto, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/clear-active-record-filter')
@@ -368,7 +392,8 @@ export class WorkbookController {
     @Body() setPageSizeDto: SetPageSizeDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.setPageSize(workbookId, tableId, setPageSizeDto.pageSize ?? null, toActor(req.user));
+    const dto = setPageSizeDto;
+    await this.service.setPageSize(workbookId, tableId, dto.pageSize ?? null, toActor(req.user));
   }
 
   /**
@@ -538,7 +563,8 @@ export class WorkbookController {
     @Body() addScratchColumnDto: AddScratchColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.addScratchColumn(workbookId, tableId, addScratchColumnDto, toActor(req.user));
+    const dto = addScratchColumnDto as ValidatedAddScratchColumnDto;
+    await this.service.addScratchColumn(workbookId, tableId, dto, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/remove-scratch-column')
@@ -548,7 +574,8 @@ export class WorkbookController {
     @Body() removeScratchColumnDto: RemoveScratchColumnDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.removeScratchColumn(workbookId, tableId, removeScratchColumnDto.columnId, toActor(req.user));
+    const dto = removeScratchColumnDto as ValidatedRemoveScratchColumnDto;
+    await this.service.removeScratchColumn(workbookId, tableId, dto.columnId, toActor(req.user));
   }
 
   @Post(':id/tables/:tableId/hide-column')

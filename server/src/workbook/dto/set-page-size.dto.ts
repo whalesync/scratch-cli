@@ -6,3 +6,5 @@ export class SetPageSizeDto {
   @Min(1)
   pageSize?: number | null;
 }
+
+export type ValidatedSetPageSizeDto = SetPageSizeDto;

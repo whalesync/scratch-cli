@@ -14,7 +14,7 @@ import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 import { createStyleGuideId, StyleGuideId } from '../types/ids';
-import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
+import { ValidatedCreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { ExternalContent } from './entities/external-content.entity';
 import { StyleGuide } from './entities/style-guide.entity';
@@ -27,7 +27,7 @@ export class StyleGuideService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createStyleGuideDto: CreateStyleGuideDto, actor: Actor): Promise<StyleGuide> {
+  async create(createStyleGuideDto: ValidatedCreateStyleGuideDto, actor: Actor): Promise<StyleGuide> {
     // validate the DTO
     if (createStyleGuideDto.sourceUrl) {
       createStyleGuideDto.sourceUrl = this.sanitizeUrl(createStyleGuideDto.sourceUrl);

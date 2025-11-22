@@ -6,3 +6,5 @@ export class DownloadRecordsDto {
   @IsString({ each: true })
   snapshotTableIds?: string[];
 }
+
+export type ValidatedDownloadRecordsDto = DownloadRecordsDto;

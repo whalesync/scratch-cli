@@ -2,9 +2,11 @@ import { IsArray, IsString } from 'class-validator';
 
 export class WebflowPublishItemsDto {
   @IsString()
-  snapshotTableId: string;
+  snapshotTableId?: string;
 
   @IsArray()
   @IsString({ each: true })
-  recordIds: string[];
+  recordIds?: string[];
 }
+
+export type ValidatedWebflowPublishItemsDto = Required<WebflowPublishItemsDto>;

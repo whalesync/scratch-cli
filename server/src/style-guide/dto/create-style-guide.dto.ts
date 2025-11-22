@@ -3,24 +3,27 @@ import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString } from 'clas
 export class CreateStyleGuideDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name?: string;
 
   @IsString()
-  body: string;
+  body?: string;
 
   @IsBoolean()
-  autoInclude: boolean;
+  autoInclude?: boolean;
 
   @IsString()
   @IsOptional()
-  sourceUrl: string;
+  sourceUrl?: string;
 
   @IsString()
   @IsOptional()
   @IsIn(['markdown', 'json', 'text'])
-  contentType: string;
+  contentType?: string;
 
   @IsArray()
   @IsOptional()
-  tags: string[];
+  tags?: string[];
 }
+
+export type ValidatedCreateStyleGuideDto = Required<Pick<CreateStyleGuideDto, 'name' | 'body' | 'autoInclude'>> &
+  Pick<CreateStyleGuideDto, 'sourceUrl' | 'contentType' | 'tags'>;

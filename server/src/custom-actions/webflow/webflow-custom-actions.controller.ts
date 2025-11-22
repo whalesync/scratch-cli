@@ -2,8 +2,8 @@ import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, Use
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { toActor } from '../../auth/types';
-import { WebflowPublishItemsDto } from './dto/publish-items.dto';
-import { WebflowPublishSiteDto } from './dto/publish-site.dto';
+import { ValidatedWebflowPublishItemsDto, WebflowPublishItemsDto } from './dto/publish-items.dto';
+import { ValidatedWebflowPublishSiteDto, WebflowPublishSiteDto } from './dto/publish-site.dto';
 import { WebflowCustomActionsService } from './webflow-custom-actions.service';
 
 @Controller('custom-actions/webflow')
@@ -13,12 +13,14 @@ export class WebflowCustomActionsController {
   constructor(private readonly service: WebflowCustomActionsService) {}
 
   @Post('publish-items')
-  async publishItems(@Body() dto: WebflowPublishItemsDto, @Req() req: RequestWithUser) {
+  async publishItems(@Body() dtoParam: WebflowPublishItemsDto, @Req() req: RequestWithUser) {
+    const dto = dtoParam as ValidatedWebflowPublishItemsDto;
     return this.service.publishItems(dto, toActor(req.user));
   }
 
   @Post('publish-site')
-  async publishSite(@Body() dto: WebflowPublishSiteDto, @Req() req: RequestWithUser) {
+  async publishSite(@Body() dtoParam: WebflowPublishSiteDto, @Req() req: RequestWithUser) {
+    const dto = dtoParam as ValidatedWebflowPublishSiteDto;
     return this.service.publishSite(dto, toActor(req.user));
   }
 }

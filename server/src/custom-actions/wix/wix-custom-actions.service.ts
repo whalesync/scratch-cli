@@ -8,7 +8,7 @@ import { WixCustomActions } from 'src/remote-service/connectors/library/wix/cust
 import { WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
-import { WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
+import { ValidatedWixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 
 @Injectable()
 export class WixCustomActionsService {
@@ -22,7 +22,7 @@ export class WixCustomActionsService {
   /**
    * Publish draft posts in Wix Blog
    */
-  async publishDraftPosts(dto: WixPublishDraftPostsDto, actor: Actor) {
+  async publishDraftPosts(dto: ValidatedWixPublishDraftPostsDto, actor: Actor) {
     // Get the snapshot table and verify access through snapshot
     const snapshotTable = await this.getSnapshotTableWithAccess(dto.snapshotTableId, actor);
 

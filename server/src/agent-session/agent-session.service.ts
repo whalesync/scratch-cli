@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
-import { CreateAgentSessionDto } from './dto/create-agent-session.dto';
+import { ValidatedCreateAgentSessionDto } from './dto/create-agent-session.dto';
 import { UpdateAgentSessionDto } from './dto/update-agent-session.dto';
 import { AgentSessionEntity } from './entities/agent-session.entity';
 
@@ -11,7 +11,7 @@ import { AgentSessionEntity } from './entities/agent-session.entity';
 export class AgentSessionService {
   constructor(private db: DbService) {}
 
-  async create(createAgentSessionDto: CreateAgentSessionDto): Promise<AgentSessionEntity> {
+  async create(createAgentSessionDto: ValidatedCreateAgentSessionDto): Promise<AgentSessionEntity> {
     const agentSession = await this.db.client.agentSession.create({
       data: createAgentSessionDto,
     });

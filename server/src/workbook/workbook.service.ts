@@ -28,12 +28,12 @@ import {
   SnapshotRecord,
 } from '../remote-service/connectors/types';
 import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
-import { AddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
+import { ValidatedAddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
 import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
-import { CreateWorkbookDto } from './dto/create-workbook.dto';
+import { ValidatedCreateWorkbookDto } from './dto/create-workbook.dto';
 import { ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
 import { PublishSummaryDto } from './dto/publish-summary.dto';
-import { AddScratchColumnDto } from './dto/scratch-column.dto';
+import { ValidatedAddScratchColumnDto } from './dto/scratch-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
@@ -57,7 +57,7 @@ export class WorkbookService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createWorkbookDto: CreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
+  async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
     const { name, tables } = createWorkbookDto;
 
     const workbookId = createWorkbookId();
@@ -177,7 +177,7 @@ export class WorkbookService {
    */
   async addTableToWorkbook(
     workbookId: WorkbookId,
-    addTableDto: AddTableToWorkbookDto,
+    addTableDto: ValidatedAddTableToWorkbookDto,
     actor: Actor,
   ): Promise<SnapshotTableCluster.SnapshotTable> {
     const { service, connectorAccountId, tableId } = addTableDto;
@@ -2087,7 +2087,7 @@ export class WorkbookService {
   async addScratchColumn(
     workbookId: WorkbookId,
     tableId: string, // The WS Table ID
-    addScratchColumnDto: AddScratchColumnDto,
+    addScratchColumnDto: ValidatedAddScratchColumnDto,
     actor: Actor,
   ): Promise<void> {
     const { columnName, dataType } = addScratchColumnDto;

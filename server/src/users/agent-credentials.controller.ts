@@ -21,7 +21,11 @@ import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
 import { AgentCredentialsService } from './agent-credentials.service';
-import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from './dto/create-agent-credential.dto';
+import {
+  CreateAgentCredentialDto,
+  UpdateAgentCredentialDto,
+  ValidatedCreateAgentCredentialDto,
+} from './dto/create-agent-credential.dto';
 import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
 
 @Controller('user/credentials')
@@ -105,7 +109,8 @@ export class AgentCredentialsController {
     @Body() createAgentCredentialDto: CreateAgentCredentialDto,
     @Req() req: RequestWithUser,
   ): Promise<AiAgentCredential> {
-    return new AiAgentCredential(await this.service.create({ ...createAgentCredentialDto, userId: req.user.id }));
+    const dto = createAgentCredentialDto as ValidatedCreateAgentCredentialDto;
+    return new AiAgentCredential(await this.service.create({ ...dto, userId: req.user.id }));
   }
 
   @Post(':id')
@@ -114,6 +119,7 @@ export class AgentCredentialsController {
     @Body() updateAgentCredentialDto: UpdateAgentCredentialDto,
     @Req() req: RequestWithUser,
   ): Promise<AiAgentCredential> {
+    const dto = updateAgentCredentialDto;
     const credential = await this.service.findOne(id);
 
     if (!credential) {
@@ -124,17 +130,17 @@ export class AgentCredentialsController {
       throw new ForbiddenException();
     }
 
-    if (credential.source === 'SYSTEM' && updateAgentCredentialDto.description) {
+    if (credential.source === 'SYSTEM' && dto.description) {
       // users cannot update the details of the system generated credentials, only the default flag
       throw new ForbiddenException();
     }
 
     // No values provided, throw error
-    if (updateAgentCredentialDto.default === undefined && updateAgentCredentialDto.description === undefined) {
+    if (dto.default === undefined && dto.description === undefined) {
       throw new BadRequestException('At least one of description or default must be provided');
     }
 
-    const updatedCredential = await this.service.update(id, req.user.id, updateAgentCredentialDto);
+    const updatedCredential = await this.service.update(id, req.user.id, dto);
 
     if (!updatedCredential) {
       throw new NotFoundException();

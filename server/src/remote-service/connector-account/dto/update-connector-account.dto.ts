@@ -18,3 +18,5 @@ export class UpdateConnectorAccountDto {
   @IsOptional()
   readonly extras?: Record<string, any>;
 }
+
+export type ValidatedUpdateConnectorAccountDto = UpdateConnectorAccountDto;

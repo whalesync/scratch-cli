@@ -15,7 +15,7 @@ import {
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
-import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
+import { CreateStyleGuideDto, ValidatedCreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { StyleGuideService } from './style-guide.service';
 
@@ -32,7 +32,8 @@ export class StyleGuideController {
 
   @Post()
   create(@Body() createStyleGuideDto: CreateStyleGuideDto, @Req() req: RequestWithUser) {
-    return this.styleGuideService.create(createStyleGuideDto, toActor(req.user));
+    const dto = createStyleGuideDto as ValidatedCreateStyleGuideDto;
+    return this.styleGuideService.create(dto, toActor(req.user));
   }
 
   @Get()
@@ -47,7 +48,8 @@ export class StyleGuideController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateStyleGuideDto: UpdateStyleGuideDto, @Req() req: RequestWithUser) {
-    return this.styleGuideService.update(id, updateStyleGuideDto, toActor(req.user));
+    const dto = updateStyleGuideDto;
+    return this.styleGuideService.update(id, dto, toActor(req.user));
   }
 
   @Delete(':id')

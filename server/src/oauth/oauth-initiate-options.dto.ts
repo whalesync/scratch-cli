@@ -14,7 +14,7 @@ export class OAuthInitiateOptionsDto {
    */
   @IsString()
   @IsNotEmpty()
-  redirectPrefix: string;
+  redirectPrefix?: string;
 
   @IsString()
   @IsOptional()
@@ -40,3 +40,14 @@ export class OAuthInitiateOptionsDto {
   @IsOptional()
   connectorAccountId?: string;
 }
+
+export type ValidatedOAuthInitiateOptionsDto = Required<Pick<OAuthInitiateOptionsDto, 'redirectPrefix'>> &
+  Pick<
+    OAuthInitiateOptionsDto,
+    | 'connectionMethod'
+    | 'customClientId'
+    | 'customClientSecret'
+    | 'connectionName'
+    | 'returnPage'
+    | 'connectorAccountId'
+  >;
