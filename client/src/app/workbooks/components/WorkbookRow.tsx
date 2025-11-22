@@ -6,7 +6,7 @@ import { useWorkbooks } from '@/hooks/use-workbooks';
 import { Workbook } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { Edit3, Table2, Trash2 } from 'lucide-react';
+import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
@@ -113,7 +113,7 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         </Table.Td>
         <Table.Td>
           <Group gap="xs" justify="flex-end" onClick={(e) => e.stopPropagation()}>
-            <ToolbarIconButton icon={Edit3} onClick={() => modalStack.open('rename')} title="Rename workbook" />
+            <ToolbarIconButton icon={Edit3Icon} onClick={() => modalStack.open('rename')} title="Rename workbook" />
             <ToolbarIconButton
               icon={Trash2}
               onClick={() => modalStack.open('confirm-delete')}

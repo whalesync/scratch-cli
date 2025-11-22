@@ -7,7 +7,7 @@ import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/ty
 import { UserSetting } from '@/types/server-entities/users';
 import { Grid, Group, Modal, Stack, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { PencilLineIcon } from 'lucide-react';
+import { Edit3Icon } from 'lucide-react';
 import { useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
 
@@ -48,7 +48,7 @@ export const UserPreferencesCard = () => {
                   {getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string}
                 </Text13Regular>
               </UnstyledButton>
-              <ToolIconButton size="md" icon={PencilLineIcon} onClick={openModelPicker} loading={saving} />
+              <ToolIconButton size="md" icon={Edit3Icon} onClick={openModelPicker} loading={saving} />
             </Group>
             <Text12Book c="dimmed">Set the default LLM to use in your conversations in new workbooks</Text12Book>
           </Stack>

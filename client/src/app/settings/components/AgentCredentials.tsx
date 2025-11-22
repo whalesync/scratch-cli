@@ -6,7 +6,7 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import { Alert, Badge, Center, Grid, Group, Loader, Modal, Progress, Stack, Text, useModalsStack } from '@mantine/core';
-import { PencilLineIcon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
+import { Edit3Icon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
 
@@ -142,7 +142,7 @@ export const AgentCredentials = () => {
                   setActiveCredential(credential);
                   modalStack.open('edit');
                 }}
-                icon={PencilLineIcon}
+                icon={Edit3Icon}
                 disabled={credential.source === 'SYSTEM'}
               />
               <ToolIconButton

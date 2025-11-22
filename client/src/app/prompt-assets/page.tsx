@@ -9,7 +9,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { capitalize } from 'lodash';
 import {
   DownloadIcon,
-  Edit3,
+  Edit3Icon,
   FileCodeIcon,
   FileTextIcon,
   FileTypeIcon,
@@ -157,7 +157,7 @@ export default function PromptAssetsPage() {
                       </Menu.Target>
                       <Menu.Dropdown>
                         <Menu.Item
-                          leftSection={<Edit3 size={16} />}
+                          leftSection={<Edit3Icon size={16} />}
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveResource(styleGuide);

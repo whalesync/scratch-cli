@@ -13,7 +13,13 @@ export const DevWebocketFooterButton = () => {
   }
   return (
     <>
-      <ToolIconButton icon={BugIcon} onClick={toggle} size="md" tooltip="Dev Tool: Toggle workbook event log" />
+      <ToolIconButton
+        icon={BugIcon}
+        onClick={toggle}
+        size="md"
+        color="var(--mantine-color-devTool-9)"
+        tooltip="Workbook dev event log"
+      />
       <WorkbookWebsocketEventDebugDialog opened={isOpen} onClose={close} />
     </>
   );

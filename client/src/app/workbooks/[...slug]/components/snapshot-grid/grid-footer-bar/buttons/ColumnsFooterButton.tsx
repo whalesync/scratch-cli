@@ -1,13 +1,17 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { CheckIcon, ChevronDownIcon } from 'lucide-react';
+import { useDisclosure } from '@mantine/hooks';
+import { CheckIcon, ChevronDownIcon, CirclePlusIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workbook';
 import { getColumnTypeIcon } from '../../../../../../../utils/columns';
+import { CreateScratchColumnModal } from '../../modals/CreateScratchColumnModal';
 
 export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { hideColumn, unhideColumn, showAllColumns } = useActiveWorkbook();
+  const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
+    useDisclosure(false);
 
   const hiddenCount = table.hiddenColumns.length;
   const totalCount = table.tableSpec.columns.length;
@@ -28,32 +32,46 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
   }, [hiddenCount, totalCount]);
 
   return (
-    <Menu>
-      <Menu.Target>
-        <ButtonSecondaryInline rightSection={<ChevronDownIcon size={16} />}>{buttonText}</ButtonSecondaryInline>
-      </Menu.Target>
-      <Menu.Dropdown>
-        {table.tableSpec.columns.map((column) => {
-          const isHidden = table.hiddenColumns.includes(column.id.wsId);
-          return (
-            <Menu.Item
-              key={column.id.wsId}
-              onClick={() => (isHidden ? unhideColumn(table.id, column.id.wsId) : hideColumn(table.id, column.id.wsId))}
-              leftSection={getColumnTypeIcon(column.pgType)}
-              rightSection={!isHidden && <CheckIcon size={16} />}
-            >
-              {column.name}
-            </Menu.Item>
-          );
-        })}
-        <Menu.Divider />
-        <Menu.Item disabled={hiddenCount === 0} onClick={() => showAllColumns(table.id)}>
-          Show all columns
-        </Menu.Item>
-        <Menu.Item disabled={hiddenCount === totalCount} onClick={() => hideAllColumns()}>
-          Hide all columns
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+    <>
+      <Menu>
+        <Menu.Target>
+          <ButtonSecondaryInline rightSection={<ChevronDownIcon size={16} />}>{buttonText}</ButtonSecondaryInline>
+        </Menu.Target>
+        <Menu.Dropdown>
+          {table.tableSpec.columns.map((column) => {
+            const isHidden = table.hiddenColumns.includes(column.id.wsId);
+            return (
+              <Menu.Item
+                key={column.id.wsId}
+                onClick={() =>
+                  isHidden ? unhideColumn(table.id, column.id.wsId) : hideColumn(table.id, column.id.wsId)
+                }
+                leftSection={getColumnTypeIcon(column.pgType)}
+                rightSection={!isHidden && <CheckIcon size={16} />}
+              >
+                {column.name}
+              </Menu.Item>
+            );
+          })}
+          <Menu.Divider />
+          <Menu.Item onClick={openCreateScratchColumnModal} leftSection={<CirclePlusIcon size={16} />}>
+            New scratch column
+          </Menu.Item>
+
+          <Menu.Item disabled={hiddenCount === 0} onClick={() => showAllColumns(table.id)}>
+            Show all columns
+          </Menu.Item>
+          <Menu.Item disabled={hiddenCount === totalCount} onClick={() => hideAllColumns()}>
+            Hide all columns
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+      <CreateScratchColumnModal
+        opened={createScratchColumnModal}
+        onClose={closeCreateScratchColumnModal}
+        workbookId={table.workbookId}
+        tableId={table.id}
+      />
+    </>
   );
 };

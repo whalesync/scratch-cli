@@ -7,6 +7,7 @@ import { DevWebocketFooterButton } from './buttons/DevWebocketFooterButton';
 import { FilterFooterButton } from './buttons/FilterFooterButton';
 import { HelpMenuFooterButton } from './buttons/HelpMenuFooterButton';
 import { LastUpdatedFooterButton } from './buttons/LastUpdatedFooterButton';
+import { MoreFooterMenuButton } from './buttons/MoreFooterMenuButton';
 import { NewRecordFooterButton } from './buttons/NewRecordFooterButton';
 import { PageSizeFooterButton } from './buttons/PageSizeFooterButton';
 import { UnpublishedChangesFooterButton } from './buttons/UnpublishedChangesFooterButton';
@@ -20,8 +21,7 @@ export const GridFooterBar = ({ table }: { table: SnapshotTable }) => {
         <FilterFooterButton table={table} />
         <PageSizeFooterButton table={table} />
         <ColumnsFooterButton table={table} />
-        {/* Add as soon as we have some table-specific menu items. */}
-        {/* <MoreFooterMenuButton table={table} /> */}
+        <MoreFooterMenuButton table={table} />
         <Box flex={1}>{/* Whitespace */}</Box>
         <UnpublishedChangesFooterButton table={table} />
         <LastUpdatedFooterButton table={table} />

@@ -4,46 +4,24 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { TableSelection, TableSelectionComponent } from '@/app/components/TableSelectionComponent';
 import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { useExportAsCsv } from '@/hooks/use-export-as-csv';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { workbookApi } from '@/lib/api/workbook';
 import { getPullOperationName, getPushOperationName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import {
-  DownloadWorkbookResult,
-  DownloadWorkbookWithoutJobResult,
-  getActiveRecordSqlFilterById,
-} from '@/types/server-entities/workbook';
+import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from '@/types/server-entities/workbook';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Loader, Menu, Modal, Stack, Text, TextInput, useModalsStack } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import {
-  ArrowUp,
-  BetweenVerticalEndIcon,
-  Command,
-  DownloadIcon,
-  EyeIcon,
-  FileDownIcon,
-  FileUpIcon,
-  PencilLineIcon,
-  SearchCodeIcon,
-  TrashIcon,
-  UploadIcon,
-} from 'lucide-react';
+import { ArrowUp, Command, DownloadIcon, Edit3Icon, Trash2Icon, UploadIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import pluralize from 'pluralize';
-import { useEffect, useRef, useState } from 'react';
-import { mutate } from 'swr';
+import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
-import { SWR_KEYS } from '../../../../lib/api/keys';
 import { Service } from '../../../../types/server-entities/connector-accounts';
-import { SnapshotTableId } from '../../../../types/server-entities/ids';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DevToolMenuItem } from '../../../components/DevToolMenu';
 import { DownloadProgressModal } from '../../../components/jobs/download/DownloadJobProgressModal';
 import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
-import { CreateScratchColumnModal } from './snapshot-grid/modals/CreateScratchColumnModal';
 
 enum Modals {
   DOWNLOAD_WITHOUT_JOB = 'download-without-job',
@@ -56,25 +34,18 @@ enum Modals {
 export const WorkbookActionsMenu = () => {
   const router = useRouter();
   const { user } = useScratchPadUser();
-  const { workbook, activeTable, updateWorkbook, isLoading, showAllColumns } = useActiveWorkbook();
+  const { workbook, activeTable, updateWorkbook, isLoading } = useActiveWorkbook();
   const { connectorAccount } = useConnectorAccount(activeTable?.connectorAccountId ?? undefined);
-  const { handleDownloadCsv } = useExportAsCsv();
   const { isDevToolsEnabled } = useDevTools();
   const modalStack = useModalsStack(Object.values(Modals));
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [downloadResult, setDownloadResult] = useState<DownloadWorkbookWithoutJobResult | null>(null);
+  const [, setDownloadResult] = useState<DownloadWorkbookWithoutJobResult | null>(null);
   const [workbookName, setWorkbookName] = useState(workbook?.name ?? '');
   const [saving, setSaving] = useState(false);
   const [downloadInProgress, setDownloadInProgress] = useState<DownloadWorkbookResult | null>(null);
-  const [downloadingCsv, setDownloadingCsv] = useState<string | null>(null);
-  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [tableSelection, setTableSelection] = useState<TableSelection>({
     mode: 'current',
     tableIds: activeTable ? [activeTable.id] : [],
   });
-  const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
-    useDisclosure(false);
 
   const openDevTools = useWorkbookEditorUIStore((state) => state.openDevTools);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
@@ -119,34 +90,6 @@ export const WorkbookActionsMenu = () => {
         title: 'Download failed',
         message: 'There was an error starting the download.',
       });
-    }
-  };
-
-  const handleImportSuggestions = async (file: File | null, tableId: SnapshotTableId) => {
-    if (!workbook || !file) {
-      console.debug('handleImportSuggestions: early return', { workbook: !!workbook, file: !!file });
-      return;
-    }
-
-    console.debug('handleImportSuggestions: starting', { workbookId: workbook.id, tableId, fileName: file.name });
-
-    try {
-      setUploadingFile(tableId);
-      const result = await workbookApi.importSuggestions(workbook.id, tableId, file);
-      await mutate(SWR_KEYS.operationCounts.get(workbook.id));
-      console.debug('handleImportSuggestions: success', result);
-      ScratchpadNotifications.success({
-        title: 'Import completed',
-        message: `Processed ${result.recordsProcessed} records and created ${result.suggestionsCreated} suggestions.`,
-      });
-    } catch (error) {
-      console.error('handleImportSuggestions: error', error);
-      ScratchpadNotifications.error({
-        title: 'Import failed',
-        message: error instanceof Error ? error.message : 'There was an error importing the suggestions.',
-      });
-    } finally {
-      setUploadingFile(null);
     }
   };
 
@@ -209,15 +152,6 @@ export const WorkbookActionsMenu = () => {
 
   const menuItemsDisabled = isLoading || saving;
 
-  const hasActiveRecordSqlFilter = (tableId: string) => {
-    if (!workbook) return false;
-    if (!tableId) return false;
-    const filter = getActiveRecordSqlFilterById(workbook, tableId);
-    return filter && filter.trim() !== '';
-  };
-
-  const hasHiddenColumns = activeTable?.hiddenColumns && activeTable.hiddenColumns.length > 0;
-
   const renderConnectorCustomActions = () => {
     if (!workbook || !activeTable) return null;
 
@@ -247,9 +181,8 @@ export const WorkbookActionsMenu = () => {
       <>
         <Menu.Divider />
         <Menu.Label>Dev Tools</Menu.Label>
-        <Menu.Item onClick={openDevTools} leftSection={<SearchCodeIcon size={16} />}>
-          Workbook Inpsector
-        </Menu.Item>
+        <DevToolMenuItem onClick={openDevTools}> Workbook Inspector</DevToolMenuItem>
+        <DevToolMenuItem onClick={handleOpenAdvancedInput}>Advanced Agent Input</DevToolMenuItem>
       </>
     );
   };
@@ -333,16 +266,10 @@ export const WorkbookActionsMenu = () => {
           <Menu.Item
             disabled={menuItemsDisabled}
             onClick={() => modalStack.open(Modals.RENAME)}
-            leftSection={<PencilLineIcon />}
+            leftSection={<Edit3Icon size={16} />}
           >
-            Rename
+            Rename workbook
           </Menu.Item>
-
-          {isDevToolsEnabled && (
-            <DevToolMenuItem disabled={menuItemsDisabled} onClick={handleOpenAdvancedInput}>
-              Advanced Agent Input
-            </DevToolMenuItem>
-          )}
 
           <Menu.Divider />
           <Menu.Label>Sync with source</Menu.Label>
@@ -378,86 +305,6 @@ export const WorkbookActionsMenu = () => {
             {getPushOperationName(connectorAccount?.service)}
           </Menu.Item>
 
-          {workbook && activeTable && (
-            <>
-              <Menu.Divider />
-              <Menu.Label>CSV</Menu.Label>
-
-              <Menu.Item
-                disabled={menuItemsDisabled || downloadingCsv === activeTable.id}
-                onClick={() => {
-                  handleDownloadCsv(workbook, activeTable.id, activeTable.tableSpec.name, setDownloadingCsv, false);
-                }}
-                leftSection={downloadingCsv === activeTable.id ? <Loader size="xs" /> : <FileDownIcon size={16} />}
-              >
-                Export all {activeTable.tableSpec.name} as CSV
-              </Menu.Item>
-
-              <Menu.Item
-                disabled={
-                  menuItemsDisabled || downloadingCsv === activeTable.id || !hasActiveRecordSqlFilter(activeTable.id)
-                }
-                onClick={() => {
-                  handleDownloadCsv(
-                    workbook,
-                    activeTable.id,
-                    activeTable.tableSpec.name + ' (filtered)',
-                    setDownloadingCsv,
-                    true,
-                  );
-                }}
-                leftSection={downloadingCsv === activeTable.id ? <Loader size="xs" /> : <FileDownIcon size={16} />}
-              >
-                Export filtered {activeTable.tableSpec.name} as CSV
-              </Menu.Item>
-              <Menu.Item
-                disabled={menuItemsDisabled || uploadingFile === activeTable?.id}
-                onClick={(e) => {
-                  e.preventDefault();
-                  console.debug('Menu.Item clicked for table:', activeTable?.id);
-                  const input = fileInputRefs.current[activeTable?.id];
-                  if (input) {
-                    console.debug('Triggering file input click');
-                    input.click();
-                  } else {
-                    console.debug('File input ref not found for table:', activeTable?.id);
-                  }
-                }}
-                leftSection={uploadingFile === activeTable?.id ? <Loader size="xs" /> : <FileUpIcon size={16} />}
-                closeMenuOnClick={false}
-              >
-                Import Suggestions
-              </Menu.Item>
-              <input
-                key={`file-input-${activeTable?.id}`}
-                type="file"
-                ref={(el) => {
-                  fileInputRefs.current[activeTable?.id] = el;
-                }}
-                accept=".csv"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  console.debug('File input onChange triggered', { files: e.target.files?.length });
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    console.debug('File selected:', file.name);
-                    handleImportSuggestions(file, activeTable?.id);
-                    e.target.value = ''; // Reset input
-                  }
-                }}
-              />
-              <Menu.Item onClick={openCreateScratchColumnModal} leftSection={<BetweenVerticalEndIcon size={16} />}>
-                Add Scratch Column
-              </Menu.Item>
-
-              {hasHiddenColumns && (
-                <Menu.Item onClick={() => showAllColumns(activeTable.id)} leftSection={<EyeIcon size={16} />}>
-                  Show all hidden columns
-                </Menu.Item>
-              )}
-            </>
-          )}
-
           {/* Connector-custom actions */}
           {renderConnectorCustomActions()}
 
@@ -467,24 +314,16 @@ export const WorkbookActionsMenu = () => {
           <Menu.Item
             data-delete
             disabled={menuItemsDisabled}
-            leftSection={saving ? <Loader size="xs" /> : <TrashIcon />}
+            leftSection={saving ? <Loader size="xs" /> : <Trash2Icon size={16} />}
             onClick={() => modalStack.open(Modals.CONFIRM_DELETE)}
           >
-            Abandon
+            Delete workbook
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
       {/* Fully remove the modal when not shown, to clean up state */}
       {downloadInProgress && workbook?.id && (
         <DownloadProgressModal jobId={downloadInProgress.jobId} onClose={() => setDownloadInProgress(null)} />
-      )}
-      {workbook && activeTable && activeTable.id && (
-        <CreateScratchColumnModal
-          opened={createScratchColumnModal}
-          onClose={closeCreateScratchColumnModal}
-          workbookId={workbook.id}
-          tableId={activeTable.id}
-        />
       )}
     </>
   );
