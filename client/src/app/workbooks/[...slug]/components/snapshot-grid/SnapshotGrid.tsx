@@ -18,6 +18,7 @@ import {
   CellStyleFunc,
   ColDef,
   GridApi,
+  GridReadyEvent,
   ModuleRegistry,
   ValueGetterFunc,
 } from 'ag-grid-community';
@@ -25,7 +26,6 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GridReadyEvent } from '../../../../../../node_modules/ag-grid-community/dist/types/src/events';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { useAgentChatContext } from '../contexts/agent-chat-context';

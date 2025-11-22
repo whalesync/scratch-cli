@@ -21,3 +21,7 @@ local
 
 # Claude local files.
 .claude/
+
+# Node.js compiled output and packages.
+dist/
+node_modules/
