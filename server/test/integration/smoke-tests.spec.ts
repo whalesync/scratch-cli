@@ -1,3 +1,6 @@
+// End-to-end smoke tests for the complete Scratch workflow.
+// Tests only the API basics: authentication, fetching workbooks/tables, creating an AI agent session,
+// sending a message via WebSocket to modify table data, and accepting AI suggestions to confirm changes persist.
 import axios from 'axios';
 import { getAgentUrl, getAgentWebSocketUrl, getApiUrl, getAuthToken } from './common';
 import { AgentCredential, RecordsResponse, Session, Table, Workbook } from './types';

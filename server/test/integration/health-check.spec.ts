@@ -1,3 +1,5 @@
+// Health check integration tests.
+// Verifies that all three services (client, server, agent) respond with 200 status on their health endpoints.
 import axios from 'axios';
 
 import { getAgentUrl, getApiUrl, getClientUrl } from './common';

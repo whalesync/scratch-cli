@@ -1,6 +1,6 @@
-/**
- * Common configuration for integration tests
- */
+// Common configuration and utilities for integration tests.
+// Provides environment-based service URLs (client, API, agent) and Clerk authentication helpers.
+// Supports both local (http/ws) and deployed (https/wss) environments.
 
 import { createClerkClient } from '@clerk/backend';
 const clientDomain = process.env.INTEGRATION_TEST_CLIENT_DOMAIN || 'test.scratch.md';

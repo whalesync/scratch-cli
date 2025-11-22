@@ -1,3 +1,5 @@
+// TypeScript type definitions for integration test data structures.
+// Defines interfaces for workbooks, tables, sessions, records, and agent credentials.
 export interface Workbook {
   id: string;
   name: string;

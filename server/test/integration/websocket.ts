@@ -1,3 +1,5 @@
+// WebSocket testing utilities.
+// Provides helper function to wait for specific WebSocket message types with timeout support.
 interface WebSocketMessage {
   type: string;
   data?: {
