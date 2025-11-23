@@ -143,7 +143,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     this.activeJobs.set(jobId, abortController);
 
     let latestProgress = job.progress as Progress;
-    const checkpoint = async (progress: Progress<any, any, any>) => {
+    const checkpoint = async (progress: Omit<Progress, 'timestamp'>) => {
       if (progress) {
         const newProgress = { ...progress, timestamp: Date.now() };
         latestProgress = newProgress;

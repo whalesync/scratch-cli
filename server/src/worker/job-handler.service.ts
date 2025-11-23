@@ -10,7 +10,7 @@ import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numb
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { DownloadRecordsJobHandler } from './jobs/job-definitions/download-records.job';
 import { PublishRecordsJobHandler } from './jobs/job-definitions/publish-records.job';
-import { JobDefinition, JobHandler } from './jobs/union-types';
+import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
 @Injectable()
 export class JobHandlerService {
@@ -23,16 +23,16 @@ export class JobHandlerService {
     private readonly workbookService: WorkbookService,
   ) {}
 
-  getHandler = <TDefinition extends JobDefinition>(data: TDefinition['data']): JobHandler<TDefinition> => {
+  getHandler = (data: JobData): JobHandler<JobDefinition> => {
     const prisma = new PrismaClient({
       datasources: { db: { url: process.env.DATABASE_URL } },
     });
 
     switch (data.type) {
       case 'add-two-numbers':
-        return AddTwoNumbersJobHandler;
+        return AddTwoNumbersJobHandler as JobHandler<JobDefinition>;
       case 'add-three-numbers':
-        return new AddThreeNumbersJobHandler(prisma);
+        return new AddThreeNumbersJobHandler(prisma) as JobHandler<JobDefinition>;
       case 'download-records':
         return new DownloadRecordsJobHandler(
           prisma,
@@ -40,7 +40,7 @@ export class JobHandlerService {
           this.snapshotDbService.snapshotDb,
           this.connectorAccountService,
           this.snapshotEventService,
-        );
+        ) as JobHandler<JobDefinition>;
       case 'publish-records':
         return new PublishRecordsJobHandler(
           prisma,
@@ -48,7 +48,7 @@ export class JobHandlerService {
           this.connectorAccountService,
           this.snapshotEventService,
           this.workbookService,
-        );
+        ) as JobHandler<JobDefinition>;
 
       default:
         throw new Error(`Unknown job type. Data: ${JSON.stringify(data)}`);

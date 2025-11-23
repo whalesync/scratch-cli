@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { JsonSafeObject } from 'src/utils/objects';
-import { JobDefinitionBuilder, JobHandlerBuilder, JobResult, Progress } from '../base-types';
+import { JobDefinitionBuilder, JobResult, Progress } from '../base-types';
+import { JobHandler } from '../union-types';
 
 export type AddTwoNumbersJobDefinition = JobDefinitionBuilder<
   'add-two-numbers',
@@ -14,7 +15,7 @@ export type AddTwoNumbersJobDefinition = JobDefinitionBuilder<
   JobResult
 >;
 
-export const AddTwoNumbersJobHandler: JobHandlerBuilder<AddTwoNumbersJobDefinition> = {
+export const AddTwoNumbersJobHandler: JobHandler<AddTwoNumbersJobDefinition> = {
   run: async (params: {
     data: AddTwoNumbersJobDefinition['data'];
     progress: Progress<AddTwoNumbersJobDefinition['publicProgress'], AddTwoNumbersJobDefinition['initialJobProgress']>;
