@@ -10,7 +10,7 @@ import { Connector } from '../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';
 import { WebflowSchemaParser } from './webflow-schema-parser';
-import { WEBFLOW_METADATA_COLUMNS } from './webflow-spec-types';
+import { WEBFLOW_METADATA_COLUMNS, WebflowItemMetadata } from './webflow-spec-types';
 
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
 
@@ -127,8 +127,8 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         const fieldId = column.id.remoteId[0];
 
         // Handle predefined metadata columns
-        if (WEBFLOW_METADATA_COLUMNS.includes(fieldId)) {
-          record.fields[fieldId] = metadata[fieldId];
+        if (WEBFLOW_METADATA_COLUMNS.includes(fieldId as keyof WebflowItemMetadata)) {
+          record.fields[fieldId] = metadata[fieldId as keyof WebflowItemMetadata];
         }
 
         // Webflow uses a slug for the column value, this is really bad, but if we don't have a slug
@@ -232,7 +232,8 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     for (const column of tableSpec.columns) {
       // We don't need to set the metadata columns as they are read only.
       // we shouldn't get to this point but just in case for safety.
-      if (WEBFLOW_METADATA_COLUMNS.includes(column.id.wsId)) {
+      // (Question: how does this if check make sense?)
+      if (WEBFLOW_METADATA_COLUMNS.includes(column.id.wsId as keyof WebflowItemMetadata)) {
         continue;
       }
 

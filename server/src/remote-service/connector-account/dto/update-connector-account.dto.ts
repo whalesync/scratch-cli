@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { DecryptedCredentials } from '../types/encrypted-credentials.interface';
 
 export class UpdateConnectorAccountDto {
   @IsString()
@@ -8,7 +9,7 @@ export class UpdateConnectorAccountDto {
 
   @IsObject()
   @IsOptional()
-  readonly userProvidedParams?: Record<string, string>;
+  readonly userProvidedParams?: Partial<DecryptedCredentials>;
 
   @IsString()
   @IsOptional()

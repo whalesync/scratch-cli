@@ -204,15 +204,12 @@ export class StyleGuideService {
       }
 
       if (contentType.includes('text/html') || contentType.includes('application/xhtml+xml')) {
-        // convert the HTML to markdown
-        // TODO - figure out how to fix the type errors here
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        // Convert the HTML to Markdown.
         const result = await Parser.parse(url, { contentType: 'markdown', html: contentString });
 
         return {
           url: sanitizedUrl,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          content: result.content,
+          content: result.content ?? '',
           contentType: 'markdown',
         };
       }

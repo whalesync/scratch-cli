@@ -491,7 +491,7 @@ export function convertNotionSimpleTableBlockToHtml(tableBlock: NotionBlockObjec
   const hasColumnHeader: boolean = tableValue?.has_column_header === true;
   const hasRowHeader: boolean = tableValue?.has_row_header === true;
 
-  const children = (tableBlock['children'] ?? []) as Array<Record<string, unknown>>;
+  const children = ((tableBlock as Record<string, unknown>)['children'] ?? []) as Array<Record<string, unknown>>;
   const rowsHtml: string[] = [];
 
   for (const child of children) {

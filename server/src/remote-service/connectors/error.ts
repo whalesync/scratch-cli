@@ -137,7 +137,7 @@ export function extractErrorMessageFromAxiosError(
       const objectKeys = Object.keys(responseMessage);
       return objectKeys
         .map((k) => {
-          let value = responseMessage[k] as unknown;
+          let value = (responseMessage as Record<string, unknown>)[k];
           if (Array.isArray(value)) {
             value = value.join(' • ');
           }

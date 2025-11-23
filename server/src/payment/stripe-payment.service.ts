@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import _ from 'lodash';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
@@ -87,7 +88,7 @@ export class StripePaymentService {
         message: `Failed to generate new customer for user ${user.id}`,
         error: err,
       });
-      return errResult(ErrorCode.StripeLibraryError, `Failed to generate new customer: ${err}`);
+      return errResult(ErrorCode.StripeLibraryError, `Failed to generate new customer: ${_.toString(err)}`);
     }
     return ok(response.id);
   }
@@ -135,7 +136,7 @@ export class StripePaymentService {
 
       return ok('success');
     } catch (err) {
-      return stripeLibraryError(`Failed to create trial subscription: ${err}`, {
+      return stripeLibraryError(`Failed to create trial subscription: ${_.toString(err)}`, {
         context: { stripeCustomerId, stripePriceId },
       });
     }
@@ -536,7 +537,9 @@ export class StripePaymentService {
     try {
       return ok(await this.stripe.subscriptions.retrieve(stripeSubscriptionId));
     } catch (err) {
-      return stripeLibraryError(`Failed to retrieve subscription: ${err}`, { context: { stripeSubscriptionId } });
+      return stripeLibraryError(`Failed to retrieve subscription: ${_.toString(err)}`, {
+        context: { stripeSubscriptionId },
+      });
     }
   }
 

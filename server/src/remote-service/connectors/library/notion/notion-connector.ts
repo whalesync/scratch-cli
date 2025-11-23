@@ -7,8 +7,9 @@ import {
   PageObjectResponse,
   RequestTimeoutError,
 } from '@notionhq/client';
-import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
+import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@prisma/client';
+import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import TurndownService from 'turndown';
 import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
@@ -77,7 +78,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
           children: [] as ConvertedNotionBlock[],
         } as ConvertedNotionBlock;
 
-        if (block['has_children']) {
+        if (_.has(block, 'has_children') && (block as BlockObjectResponse).has_children) {
           blockWithChildren.children = await this.fetchBlocksWithChildren(block.id);
         }
 

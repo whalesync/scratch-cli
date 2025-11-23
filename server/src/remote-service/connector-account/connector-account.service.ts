@@ -122,7 +122,7 @@ export class ConnectorAccountService {
     );
 
     // Update credentials if provided
-    const updatedProvidedParams = Object.keys(updateDto.userProvidedParams ?? {});
+    const updatedProvidedParams = Object.keys(updateDto.userProvidedParams ?? {}) as (keyof DecryptedCredentials)[];
     for (const param of updatedProvidedParams) {
       decryptedCredentials[param] = updateDto.userProvidedParams?.[param];
     }
@@ -248,7 +248,7 @@ export class ConnectorAccountService {
         throw error;
       }
       throw new ConnectorAuthError(
-        `Unexpected error in parseUserProvidedParams: ${error}`,
+        `Unexpected error in parseUserProvidedParams: ${_.toString(error)}`,
         `There was an unexpected error connecting to ${getServiceDisplayName(service)}`,
         service,
       );

@@ -1,5 +1,6 @@
 import { Service } from '@prisma/client';
 import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
+import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import { ConnectorAuthError } from '../../error';
 import { WORDPRESS_ORG_V2_PATH } from './wordpress-constants';
@@ -230,7 +231,7 @@ export class WordPressHttpClient {
     } catch (error) {
       if (!(error instanceof Error)) {
         throw new ConnectorAuthError(
-          `Unexpected error in discoverAndValidateEndpoint: ${error}`,
+          `Unexpected error in discoverAndValidateEndpoint: ${_.toString(error)}`,
           'Unexpected error when communicating with Wordpress',
           Service.WORDPRESS,
         );
