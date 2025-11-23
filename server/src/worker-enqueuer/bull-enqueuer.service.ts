@@ -10,8 +10,8 @@ import { JobData } from 'src/worker/jobs/union-types';
 
 @Injectable()
 export class BullEnqueuerService implements OnModuleDestroy {
-  private redis: IORedis;
-  private queue: Queue;
+  private redis?: IORedis;
+  private queue?: Queue;
 
   constructor(private readonly configService: ScratchpadConfigService) {
     if (configService.getUseJobs()) {
@@ -43,11 +43,11 @@ export class BullEnqueuerService implements OnModuleDestroy {
   }
 
   private async enqueueJobWithId(data: JobData, id: string): Promise<Job> {
-    return await this.queue.add(data.type, data, { jobId: id });
+    return await this.getQueue().add(data.type, data, { jobId: id });
   }
 
   async enqueueJob(data: JobData): Promise<Job> {
-    return await this.queue.add(data.type, data);
+    return await this.getQueue().add(data.type, data);
   }
 
   async enqueueDownloadRecordsJob(workbookId: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<Job> {
@@ -80,5 +80,12 @@ export class BullEnqueuerService implements OnModuleDestroy {
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);
+  }
+
+  private getQueue(): Queue {
+    if (!this.queue) {
+      throw new Error('Expected queue to not be undefined');
+    }
+    return this.queue;
   }
 }

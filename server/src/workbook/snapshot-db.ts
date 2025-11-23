@@ -65,7 +65,7 @@ type DbRecord = {
 };
 
 export class SnapshotDb {
-  public knex: Knex;
+  public knex?: Knex;
 
   init(knex: Knex) {
     this.knex = knex;
@@ -81,9 +81,9 @@ export class SnapshotDb {
   async validateSqlFilter(workbookId: WorkbookId, tableName: string, sqlWhereClause: string): Promise<string | null> {
     try {
       // Test the SQL WHERE clause using Knex query builder with raw WHERE clause
-      const testQuery = this.knex
-        .select(this.knex.raw('1'))
-        .from(this.knex.raw(`"${workbookId}"."${tableName}"`))
+      const testQuery = this.getKnex()
+        .select(this.getKnex().raw('1'))
+        .from(this.getKnex().raw(`"${workbookId}"."${tableName}"`))
         .whereRaw(sqlWhereClause)
         .limit(1);
 
@@ -107,7 +107,7 @@ export class SnapshotDb {
     tables: AnyTableSpec[],
     tableSpecToIdMap: Map<AnyTableSpec, SnapshotTableId>,
   ) {
-    await this.knex.raw(`CREATE SCHEMA IF NOT EXISTS "${workbookId}"`);
+    await this.getKnex().raw(`CREATE SCHEMA IF NOT EXISTS "${workbookId}"`);
     for (const table of tables) {
       const tableId = tableSpecToIdMap.get(table);
       if (!tableId) {
@@ -118,84 +118,94 @@ export class SnapshotDb {
       const wsId = sanitizeForTableWsId(table.name);
       const tableName = `${tableId}_${wsId}`;
 
-      const tableExists = await this.knex.schema.withSchema(workbookId).hasTable(tableName);
+      const tableExists = await this.getKnex().schema.withSchema(workbookId).hasTable(tableName);
       if (!tableExists) {
-        await this.knex.schema.withSchema(workbookId).createTable(tableName, (t) => {
-          t.text('wsId').primary();
-          t.text('id').nullable().unique();
-          for (const col of table.columns) {
-            if (col.id.wsId === 'id') {
-              continue;
-            }
-            switch (col.pgType) {
-              case PostgresColumnType.TEXT:
-                t.text(col.id.wsId);
-                break;
-              case PostgresColumnType.TEXT_ARRAY:
-                t.specificType(col.id.wsId, 'text[]');
-                break;
-              case PostgresColumnType.NUMERIC:
-                t.specificType(col.id.wsId, 'numeric');
-                break;
-              case PostgresColumnType.NUMERIC_ARRAY:
-                t.specificType(col.id.wsId, 'numeric[]');
-                break;
-              case PostgresColumnType.BOOLEAN:
-                t.boolean(col.id.wsId);
-                break;
-              case PostgresColumnType.BOOLEAN_ARRAY:
-                t.specificType(col.id.wsId, 'boolean[]');
-                break;
-              case PostgresColumnType.JSONB:
-                t.jsonb(col.id.wsId);
-                break;
-              case PostgresColumnType.TIMESTAMP:
-                t.timestamp(col.id.wsId, { useTz: false });
-                break;
+        await this.getKnex()
+          .schema.withSchema(workbookId)
+          .createTable(tableName, (t) => {
+            t.text('wsId').primary();
+            t.text('id').nullable().unique();
+            for (const col of table.columns) {
+              if (col.id.wsId === 'id') {
+                continue;
+              }
+              switch (col.pgType) {
+                case PostgresColumnType.TEXT:
+                  t.text(col.id.wsId);
+                  break;
+                case PostgresColumnType.TEXT_ARRAY:
+                  t.specificType(col.id.wsId, 'text[]');
+                  break;
+                case PostgresColumnType.NUMERIC:
+                  t.specificType(col.id.wsId, 'numeric');
+                  break;
+                case PostgresColumnType.NUMERIC_ARRAY:
+                  t.specificType(col.id.wsId, 'numeric[]');
+                  break;
+                case PostgresColumnType.BOOLEAN:
+                  t.boolean(col.id.wsId);
+                  break;
+                case PostgresColumnType.BOOLEAN_ARRAY:
+                  t.specificType(col.id.wsId, 'boolean[]');
+                  break;
+                case PostgresColumnType.JSONB:
+                  t.jsonb(col.id.wsId);
+                  break;
+                case PostgresColumnType.TIMESTAMP:
+                  t.timestamp(col.id.wsId, { useTz: false });
+                  break;
 
-              default:
-                assertUnreachable(col.pgType);
+                default:
+                  assertUnreachable(col.pgType);
+              }
             }
-          }
-          t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
-          t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
-          t.jsonb(METADATA_COLUMN).defaultTo('{}');
-          t.boolean(DIRTY_COLUMN).defaultTo(false);
-          t.boolean(SEEN_COLUMN).defaultTo(true);
-        });
+            t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
+            t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
+            t.jsonb(METADATA_COLUMN).defaultTo('{}');
+            t.boolean(DIRTY_COLUMN).defaultTo(false);
+            t.boolean(SEEN_COLUMN).defaultTo(true);
+          });
       } else {
         // The table exists, so we need to check if we need to migrate it.
-        const hasWsId = await this.knex.schema.withSchema(workbookId).hasColumn(tableName, 'wsId');
+        const hasWsId = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, 'wsId');
         if (!hasWsId) {
           // Add wsId column, populate it, and set it as the new primary key.
-          await this.knex.schema.withSchema(workbookId).alterTable(tableName, (t) => {
-            t.uuid('wsId').nullable();
-          });
-          await this.knex.raw(`UPDATE "${workbookId}"."${tableName}" SET "wsId" = gen_random_uuid()`);
-          await this.knex.schema.withSchema(workbookId).alterTable(tableName, (t) => {
-            t.dropPrimary();
-          });
+          await this.getKnex()
+            .schema.withSchema(workbookId)
+            .alterTable(tableName, (t) => {
+              t.uuid('wsId').nullable();
+            });
+          await this.getKnex().raw(`UPDATE "${workbookId}"."${tableName}" SET "wsId" = gen_random_uuid()`);
+          await this.getKnex()
+            .schema.withSchema(workbookId)
+            .alterTable(tableName, (t) => {
+              t.dropPrimary();
+            });
 
-          await this.knex.schema.withSchema(workbookId).alterTable(tableName, (t) => {
-            t.uuid('wsId').notNullable().alter();
-            t.primary(['wsId']);
-            t.unique(['id']);
-          });
+          await this.getKnex()
+            .schema.withSchema(workbookId)
+            .alterTable(tableName, (t) => {
+              t.uuid('wsId').notNullable().alter();
+              t.primary(['wsId']);
+              t.unique(['id']);
+            });
         }
 
         // The table exists, so we need to check if the metadata columns exist.
         for (const col of [EDITED_FIELDS_COLUMN, DIRTY_COLUMN, SEEN_COLUMN]) {
-          const hasColumn = await this.knex.schema.withSchema(workbookId).hasColumn(tableName, col);
+          const hasColumn = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, col);
           if (!hasColumn) {
-            await this.knex.schema.withSchema(workbookId).table(tableName, (t) => {
-              if (col === EDITED_FIELDS_COLUMN) {
-                t.jsonb(EDITED_FIELDS_COLUMN).nullable();
-              } else if (col === DIRTY_COLUMN) {
-                t.boolean(DIRTY_COLUMN).defaultTo(false);
-              } else if (col === SEEN_COLUMN) {
-                t.boolean(SEEN_COLUMN).defaultTo(true);
-              }
-            });
+            await this.getKnex()
+              .schema.withSchema(workbookId)
+              .table(tableName, (t) => {
+                if (col === EDITED_FIELDS_COLUMN) {
+                  t.jsonb(EDITED_FIELDS_COLUMN).nullable();
+                } else if (col === DIRTY_COLUMN) {
+                  t.boolean(DIRTY_COLUMN).defaultTo(false);
+                } else if (col === SEEN_COLUMN) {
+                  t.boolean(SEEN_COLUMN).defaultTo(true);
+                }
+              });
           }
         }
       }
@@ -206,7 +216,7 @@ export class SnapshotDb {
    * Check if a table with the given wsId exists in the workbook schema
    */
   async tableExists(workbookId: WorkbookId, tableName: string): Promise<boolean> {
-    const exists = await this.knex.schema.withSchema(workbookId).hasTable(tableName);
+    const exists = await this.getKnex().schema.withSchema(workbookId).hasTable(tableName);
     return exists;
   }
 
@@ -214,7 +224,7 @@ export class SnapshotDb {
    * Drop a table from the snapshot schema if it exists
    */
   async dropTableIfExists(workbookId: WorkbookId, tableName: string): Promise<void> {
-    await this.knex.schema.withSchema(workbookId).dropTableIfExists(tableName);
+    await this.getKnex().schema.withSchema(workbookId).dropTableIfExists(tableName);
   }
 
   /**
@@ -223,58 +233,60 @@ export class SnapshotDb {
    */
   async addTableToWorkbook(workbookId: WorkbookId, table: TableForDb) {
     // Ensure the schema exists (it should, but just in case)
-    await this.knex.raw(`CREATE SCHEMA IF NOT EXISTS "${workbookId}"`);
+    await this.getKnex().raw(`CREATE SCHEMA IF NOT EXISTS "${workbookId}"`);
 
     // Check if table already exists
-    const tableExists = await this.knex.schema.withSchema(workbookId).hasTable(table.tableName);
+    const tableExists = await this.getKnex().schema.withSchema(workbookId).hasTable(table.tableName);
     if (tableExists) {
       throw new BadRequestException(`Table ${table.spec.name} already exists in workbook ${workbookId}`);
     }
 
     // Create the table
-    await this.knex.schema.withSchema(workbookId).createTable(table.tableName, (t) => {
-      t.text('wsId').primary();
-      t.text('id').nullable().unique();
-      for (const col of table.spec.columns) {
-        if (col.id.wsId === 'id') {
-          continue;
-        }
-        switch (col.pgType) {
-          case PostgresColumnType.TEXT:
-            t.text(col.id.wsId);
-            break;
-          case PostgresColumnType.TEXT_ARRAY:
-            t.specificType(col.id.wsId, 'text[]');
-            break;
-          case PostgresColumnType.NUMERIC:
-            t.specificType(col.id.wsId, 'numeric');
-            break;
-          case PostgresColumnType.NUMERIC_ARRAY:
-            t.specificType(col.id.wsId, 'numeric[]');
-            break;
-          case PostgresColumnType.BOOLEAN:
-            t.boolean(col.id.wsId);
-            break;
-          case PostgresColumnType.BOOLEAN_ARRAY:
-            t.specificType(col.id.wsId, 'boolean[]');
-            break;
-          case PostgresColumnType.JSONB:
-            t.jsonb(col.id.wsId);
-            break;
-          case PostgresColumnType.TIMESTAMP:
-            t.timestamp(col.id.wsId, { useTz: false });
-            break;
+    await this.getKnex()
+      .schema.withSchema(workbookId)
+      .createTable(table.tableName, (t) => {
+        t.text('wsId').primary();
+        t.text('id').nullable().unique();
+        for (const col of table.spec.columns) {
+          if (col.id.wsId === 'id') {
+            continue;
+          }
+          switch (col.pgType) {
+            case PostgresColumnType.TEXT:
+              t.text(col.id.wsId);
+              break;
+            case PostgresColumnType.TEXT_ARRAY:
+              t.specificType(col.id.wsId, 'text[]');
+              break;
+            case PostgresColumnType.NUMERIC:
+              t.specificType(col.id.wsId, 'numeric');
+              break;
+            case PostgresColumnType.NUMERIC_ARRAY:
+              t.specificType(col.id.wsId, 'numeric[]');
+              break;
+            case PostgresColumnType.BOOLEAN:
+              t.boolean(col.id.wsId);
+              break;
+            case PostgresColumnType.BOOLEAN_ARRAY:
+              t.specificType(col.id.wsId, 'boolean[]');
+              break;
+            case PostgresColumnType.JSONB:
+              t.jsonb(col.id.wsId);
+              break;
+            case PostgresColumnType.TIMESTAMP:
+              t.timestamp(col.id.wsId, { useTz: false });
+              break;
 
-          default:
-            assertUnreachable(col.pgType);
+            default:
+              assertUnreachable(col.pgType);
+          }
         }
-      }
-      t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
-      t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
-      t.jsonb(METADATA_COLUMN).defaultTo('{}');
-      t.boolean(SEEN_COLUMN).defaultTo(true);
-      t.boolean(DIRTY_COLUMN).defaultTo(true);
-    });
+        t.jsonb(EDITED_FIELDS_COLUMN).defaultTo('{}');
+        t.jsonb(SUGGESTED_FIELDS_COLUMN).defaultTo('{}');
+        t.jsonb(METADATA_COLUMN).defaultTo('{}');
+        t.boolean(SEEN_COLUMN).defaultTo(true);
+        t.boolean(DIRTY_COLUMN).defaultTo(true);
+      });
   }
 
   async upsertRecords(workbookId: WorkbookId, table: TableForDb, records: ConnectorRecord[]) {
@@ -304,7 +316,7 @@ export class SnapshotDb {
     // There might already be records in the DB. We want to pair by (remote) id and overwrite everything except the wsId.
     const columnsToUpdateOnMerge = [...table.spec.columns.map((c) => c.id.wsId), METADATA_COLUMN, SEEN_COLUMN];
 
-    await this.knex(table.tableName)
+    await this.getKnex()(table.tableName)
       .withSchema(workbookId)
       .insert(upsertRecordsInput)
       .onConflict('id')
@@ -352,7 +364,7 @@ export class SnapshotDb {
     activeRecordSqlFilter?: string | null,
     hiddenColumns?: string[],
   ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number }> {
-    const query = this.knex<DbRecord>(tableName).withSchema(workbookId).orderBy('id').limit(take);
+    const query = this.getKnex()<DbRecord>(tableName).withSchema(workbookId).orderBy('id').limit(take);
 
     if (cursor) {
       query.where('wsId', '>=', cursor);
@@ -374,18 +386,18 @@ export class SnapshotDb {
 
     if (activeRecordSqlFilter && activeRecordSqlFilter.trim() !== '') {
       // Count total records without filter
-      const totalQuery = this.knex<DbRecord>(tableName).withSchema(workbookId);
+      const totalQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
       const totalRecords = await totalQuery.select('wsId');
       count = totalRecords.length;
 
       // Count filtered records with filter
-      const filteredQuery = this.knex<DbRecord>(tableName).withSchema(workbookId);
+      const filteredQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
       filteredQuery.whereRaw(activeRecordSqlFilter);
       const filteredRecords = await filteredQuery.select('wsId');
       filteredCount = filteredRecords.length;
     } else {
       // No filter, so both counts are the same
-      const totalQuery = this.knex<DbRecord>(tableName).withSchema(workbookId);
+      const totalQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
       const totalRecords = await totalQuery.select('wsId');
       count = totalRecords.length;
       filteredCount = count;
@@ -415,7 +427,11 @@ export class SnapshotDb {
   }
 
   async getRecord(workbookId: WorkbookId, tableName: string, wsId: string): Promise<SnapshotRecord | null> {
-    const result = await this.knex<DbRecord>(tableName).withSchema(workbookId).where('wsId', wsId).select('*').first();
+    const result = await this.getKnex()<DbRecord>(tableName)
+      .withSchema(workbookId)
+      .where('wsId', wsId)
+      .select('*')
+      .first();
 
     if (!result) {
       return null;
@@ -435,7 +451,7 @@ export class SnapshotDb {
       return [];
     }
 
-    const query = this.knex<DbRecord>(tableName).withSchema(workbookId).whereIn('wsId', wsIds);
+    const query = this.getKnex()<DbRecord>(tableName).withSchema(workbookId).whereIn('wsId', wsIds);
 
     query.select(this.getSelectColumns(tableSpec, hiddenColumns));
 
@@ -451,7 +467,7 @@ export class SnapshotDb {
     type: 'suggested' | 'accepted',
   ): Promise<void> {
     const now = new Date().toISOString();
-    await this.knex.transaction(async (trx) => {
+    await this.getKnex().transaction(async (trx) => {
       for (const op of ops) {
         switch (op.op) {
           case 'create': {
@@ -597,7 +613,7 @@ export class SnapshotDb {
       {} as Record<string, string[]>,
     );
 
-    return await this.knex.transaction(async (trx) => {
+    return await this.getKnex().transaction(async (trx) => {
       let numRecordsUpdated = 0;
       // Process each record (wsId) separately
       for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
@@ -707,7 +723,7 @@ export class SnapshotDb {
       {} as Record<string, string[]>,
     );
 
-    return await this.knex.transaction(async (trx) => {
+    return await this.getKnex().transaction(async (trx) => {
       let numRecordsUpdated = 0;
       // Process each record (wsId) separately
       for (const [wsId, columnIds] of Object.entries(groupedByWsId)) {
@@ -740,7 +756,7 @@ export class SnapshotDb {
     workbookId: WorkbookId,
     tableName: string,
   ): Promise<{ creates: number; updates: number; deletes: number }> {
-    const result = await this.knex.transaction(async (trx) => {
+    const result = await this.getKnex().transaction(async (trx) => {
       const query = trx<DbRecord>(tableName).withSchema(workbookId).where(DIRTY_COLUMN, true);
 
       // We can't easily do a single query with count(*) and filters because the filters are on JSON fields.
@@ -778,7 +794,7 @@ export class SnapshotDb {
   ): Promise<number> {
     let processedCount = 0;
     // Process all dirty records in a single transaction to avoid pagination issues
-    await this.knex.transaction(async (trx) => {
+    await this.getKnex().transaction(async (trx) => {
       const query = trx<DbRecord>(tableName)
         .withSchema(workbookId)
         .select('*')
@@ -896,7 +912,7 @@ export class SnapshotDb {
   }
 
   async cleanUpSnapshots(workbookId: WorkbookId) {
-    await this.knex.raw(`DROP SCHEMA IF EXISTS "${workbookId}" CASCADE`);
+    await this.getKnex().raw(`DROP SCHEMA IF EXISTS "${workbookId}" CASCADE`);
   }
 
   async addColumn(
@@ -905,21 +921,23 @@ export class SnapshotDb {
     config: { columnId: string; columnType: PostgresColumnType },
   ): Promise<void> {
     // Check if table already exists
-    const tableExists = await this.knex.schema.withSchema(workbookId).hasTable(tableName);
+    const tableExists = await this.getKnex().schema.withSchema(workbookId).hasTable(tableName);
     if (!tableExists) {
       throw new Error(`Table ${tableName} does not exist in workbook ${workbookId}`);
     }
 
     // Check if column already exists
-    const columnExists = await this.knex.schema.withSchema(workbookId).hasColumn(tableName, config.columnId);
+    const columnExists = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, config.columnId);
     if (columnExists) {
       throw new Error(`Column ${config.columnId} already exists in table ${tableName} in workbook ${workbookId}`);
     }
 
     // Add the column to the workbook table
-    await this.knex.schema.withSchema(workbookId).alterTable(tableName, (t) => {
-      t.specificType(config.columnId, config.columnType);
-    });
+    await this.getKnex()
+      .schema.withSchema(workbookId)
+      .alterTable(tableName, (t) => {
+        t.specificType(config.columnId, config.columnType);
+      });
   }
 
   /**
@@ -930,14 +948,23 @@ export class SnapshotDb {
    */
   async removeColumn(workbookId: WorkbookId, tableName: string, columnId: string): Promise<void> {
     // Check if column exists
-    const columnExists = await this.knex.schema.withSchema(workbookId).hasColumn(tableName, columnId);
+    const columnExists = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, columnId);
     if (!columnExists) {
       throw new Error(`Column ${columnId} does not exist in table ${tableName} in workbook ${workbookId}`);
     }
 
     // Remove the column from the workbook table
-    await this.knex.schema.withSchema(workbookId).alterTable(tableName, (t) => {
-      t.dropColumn(columnId);
-    });
+    await this.getKnex()
+      .schema.withSchema(workbookId)
+      .alterTable(tableName, (t) => {
+        t.dropColumn(columnId);
+      });
+  }
+
+  public getKnex(): Knex {
+    if (!this.knex) {
+      throw new Error('Expected knex to not be undefined');
+    }
+    return this.knex;
   }
 }

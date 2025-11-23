@@ -27,7 +27,7 @@ const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1'];
 // DTOs
 class RunMigrationDto {
   @IsString()
-  migration: string;
+  migration?: string;
 
   @IsOptional()
   @IsInt()
@@ -39,6 +39,8 @@ class RunMigrationDto {
   @IsString({ each: true })
   ids?: string[];
 }
+
+type ValidatedRunMigrationDto = Required<Pick<RunMigrationDto, 'migration'>> & Pick<RunMigrationDto, 'qty' | 'ids'>;
 
 interface AvailableMigrationsResponse {
   migrations: string[];
@@ -71,7 +73,8 @@ export class CodeMigrationsController {
   }
 
   @Post('run')
-  async runMigration(@Req() req: RequestWithUser, @Body() dto: RunMigrationDto): Promise<MigrationResult> {
+  async runMigration(@Req() req: RequestWithUser, @Body() dtoParam: RunMigrationDto): Promise<MigrationResult> {
+    const dto = dtoParam as ValidatedRunMigrationDto;
     if (!hasAdminToolsPermission(req.user)) {
       throw new UnauthorizedException('Only admins can run migrations');
     }
@@ -183,16 +186,18 @@ export class CodeMigrationsController {
     const newTableName = `${tableId}_${sanitizedWsId}`;
 
     // Check if old table exists in the snapshot schema
-    const oldTableExists = await this.snapshotDbService.snapshotDb.knex.schema
-      .withSchema(workbookId)
+    const oldTableExists = await this.snapshotDbService.snapshotDb
+      .getKnex()
+      .schema.withSchema(workbookId)
       .hasTable(oldTableName);
 
     if (!oldTableExists) {
       this.logger.warn(`Table ${oldTableName} does not exist in schema ${workbookId}. Skipping rename.`);
     } else {
       // Check if new table name already exists (to avoid conflicts)
-      const newTableExists = await this.snapshotDbService.snapshotDb.knex.schema
-        .withSchema(workbookId)
+      const newTableExists = await this.snapshotDbService.snapshotDb
+        .getKnex()
+        .schema.withSchema(workbookId)
         .hasTable(newTableName);
 
       if (newTableExists) {
@@ -200,9 +205,9 @@ export class CodeMigrationsController {
       }
 
       // Rename the table in PostgreSQL
-      await this.snapshotDbService.snapshotDb.knex.raw(
-        `ALTER TABLE "${workbookId}"."${oldTableName}" RENAME TO "${newTableName}"`,
-      );
+      await this.snapshotDbService.snapshotDb
+        .getKnex()
+        .raw(`ALTER TABLE "${workbookId}"."${oldTableName}" RENAME TO "${newTableName}"`);
 
       this.logger.log(`Renamed table in schema ${workbookId}: ${oldTableName} -> ${newTableName}`);
     }

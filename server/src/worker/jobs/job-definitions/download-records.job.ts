@@ -48,7 +48,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
    * Resets the 'seen' flag to false for all records in a table before starting a download
    */
   private async resetSeenFlags(workbookId: WorkbookId, tableName: string) {
-    await this.snapshotDb.knex.withSchema(workbookId).table(tableName).update({
+    await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).update({
       __seen: false,
     });
   }
@@ -63,7 +63,8 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     try {
       while (true) {
         // Find records where __seen is false (not seen during this sync)
-        const recordsToDelete = await this.snapshotDb.knex
+        const recordsToDelete = await this.snapshotDb
+          .getKnex()
           .select<Array<{ wsId: string }>>('wsId')
           .from(tableName)
           .withSchema(workbookId)
@@ -77,7 +78,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         const wsIds: string[] = recordsToDelete.map((r) => r.wsId);
 
         // Delete in a transaction
-        await this.snapshotDb.knex.transaction(async (trx) => {
+        await this.snapshotDb.getKnex().transaction(async (trx) => {
           await this.snapshotDb.deleteRecords(workbookId, tableName, wsIds, trx);
         });
 

@@ -34,6 +34,6 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.snapshotDb.knex.destroy();
+    await this.snapshotDb.getKnex().destroy();
   }
 }

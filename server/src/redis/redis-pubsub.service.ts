@@ -5,8 +5,8 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 @Injectable()
 export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
-  private publisher: IORedis;
-  private subscriber: IORedis;
+  private publisher?: IORedis;
+  private subscriber?: IORedis;
   private channelCallbacks: Map<string, Set<(message: string) => void>> = new Map();
 
   constructor(private readonly configService: ScratchpadConfigService) {}
@@ -40,7 +40,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
    * Publish a message to a Redis channel
    */
   async publish<T>(channel: string, message: T): Promise<void> {
-    await this.publisher.publish(channel, JSON.stringify(message));
+    await this.publisher?.publish(channel, JSON.stringify(message));
   }
 
   /**
@@ -62,7 +62,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
       if (!this.channelCallbacks.has(channel)) {
         this.channelCallbacks.set(channel, new Set());
         // Subscribe to the channel if this is the first subscription
-        void this.subscriber.subscribe(channel);
+        void this.subscriber?.subscribe(channel);
       }
       this.channelCallbacks.get(channel)!.add(callback);
 
@@ -74,7 +74,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
           // Unsubscribe from Redis if no more callbacks
           if (callbacks.size === 0) {
             this.channelCallbacks.delete(channel);
-            void this.subscriber.unsubscribe(channel);
+            void this.subscriber?.unsubscribe(channel);
           }
         }
       };

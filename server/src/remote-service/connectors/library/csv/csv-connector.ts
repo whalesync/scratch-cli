@@ -69,7 +69,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     const schemaName = this.getSchemaName(upload);
     const tableName = upload.typeId;
 
-    const tableInfo = await this.uploadsDbService.knex(tableName).withSchema(schemaName).columnInfo();
+    const tableInfo = await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).columnInfo();
 
     // Filter out metadata columns
     const dataColumns = Object.keys(tableInfo).filter(
@@ -128,7 +128,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     const tableName = upload.typeId;
 
     // Read records from the upload table
-    const records = await this.uploadsDbService.knex(tableName).withSchema(schemaName).select('*');
+    const records = await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).select('*');
 
     // Convert to ConnectorRecord format
     const connectorRecords: ConnectorRecord[] = records.map((record: any) => {
@@ -194,7 +194,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       };
     });
 
-    await this.uploadsDbService.knex(tableName).withSchema(schemaName).insert(recordsToInsert);
+    await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).insert(recordsToInsert);
 
     // Return the mapping of wsId to remoteId
     return records.map((record, index) => ({
@@ -242,7 +242,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
         continue;
       }
       await this.uploadsDbService
-        .knex(tableName)
+        .getKnex()(tableName)
         .withSchema(schemaName)
         .where({ remoteId: record.id.remoteId })
         .update(record.partialFields);
@@ -273,7 +273,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Delete records by remoteId
     const remoteIds = recordIds.map((r) => r.remoteId);
-    await this.uploadsDbService.knex(tableName).withSchema(schemaName).whereIn('remoteId', remoteIds).delete();
+    await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).whereIn('remoteId', remoteIds).delete();
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

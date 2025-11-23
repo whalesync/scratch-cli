@@ -227,7 +227,7 @@ export class UploadsService {
     const pgCopyWritable = new PgCopyFromWritableStream(
       qualifiedTableName,
       columnNames,
-      this.uploadsDbService.knex.client,
+      this.uploadsDbService.getKnex().client,
     );
 
     await pgCopyWritable.connect();
@@ -331,11 +331,11 @@ export class UploadsService {
     const tableId = upload.typeId;
 
     // Get total count
-    const countResult = await this.uploadsDbService.knex(tableId).withSchema(schemaName).count('* as count');
+    const countResult = await this.uploadsDbService.getKnex()(tableId).withSchema(schemaName).count('* as count');
     const total = Number(countResult[0].count);
 
     // Get rows
-    const rows = await this.uploadsDbService.knex(tableId).withSchema(schemaName).limit(limit).offset(offset);
+    const rows = await this.uploadsDbService.getKnex()(tableId).withSchema(schemaName).limit(limit).offset(offset);
 
     return { rows, total };
   }
@@ -356,7 +356,7 @@ export class UploadsService {
     const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
     const tableId = upload.typeId;
 
-    const columnInfo = await this.uploadsDbService.knex(tableId).withSchema(schemaName).columnInfo();
+    const columnInfo = await this.uploadsDbService.getKnex()(tableId).withSchema(schemaName).columnInfo();
 
     const schemaParser = new CsvSchemaParser();
     // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
@@ -442,7 +442,7 @@ export class UploadsService {
           column_name: string;
         }[];
       }
-      const columns = await this.uploadsDbService.knex.raw<ColumnInfo>(columnQuery);
+      const columns = await this.uploadsDbService.getKnex().raw<ColumnInfo>(columnQuery);
       const columnNames = columns.rows.map((row) => row.column_name);
 
       // Set response headers
@@ -455,7 +455,7 @@ export class UploadsService {
 
       // Use the CSV stream helper to stream the data
       const { stream, cleanup } = await createCsvStream({
-        knex: this.uploadsDbService.knex,
+        knex: this.uploadsDbService.getKnex(),
         schema: schemaName,
         table: tableId,
         columnNames,
@@ -480,7 +480,7 @@ export class UploadsService {
   private async deleteMdUpload(actor: Actor, mdUploadId: string): Promise<void> {
     const schemaName = this.uploadsDbService.getUploadSchemaName(actor);
 
-    await this.uploadsDbService.knex('MdUploads').withSchema(schemaName).where({ id: mdUploadId }).delete();
+    await this.uploadsDbService.getKnex()('MdUploads').withSchema(schemaName).where({ id: mdUploadId }).delete();
 
     console.log(`Deleted MD upload ${mdUploadId} from ${schemaName}`);
   }
@@ -556,7 +556,7 @@ export class UploadsService {
 
       // Insert into MdUploads table
       await this.uploadsDbService
-        .knex('MdUploads')
+        .getKnex()('MdUploads')
         .withSchema(schemaName)
         .insert({
           id: mdUploadId,
@@ -617,7 +617,7 @@ export class UploadsService {
     const mdUploadId = upload.typeId;
 
     const result = await this.uploadsDbService
-      .knex('MdUploads')
+      .getKnex()('MdUploads')
       .withSchema(schemaName)
       .where({ id: mdUploadId })
       .first();
@@ -658,7 +658,10 @@ export class UploadsService {
 
     try {
       // Get table structure from upload table
-      const tableInfo = await this.uploadsDbService.knex(uploadTableName).withSchema(uploadSchemaName).columnInfo();
+      const tableInfo = await this.uploadsDbService
+        .getKnex()(uploadTableName)
+        .withSchema(uploadSchemaName)
+        .columnInfo();
 
       const schemaParser = new CsvSchemaParser();
       // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
@@ -736,7 +739,7 @@ export class UploadsService {
         FROM "${uploadSchemaName}"."${uploadTableName}"
       `;
 
-      await this.uploadsDbService.knex.raw(copyQuery);
+      await this.uploadsDbService.getKnex().raw(copyQuery);
 
       console.log(`Successfully created snapshot ${workbookId} from CSV upload ${uploadId}`);
 

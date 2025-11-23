@@ -510,7 +510,7 @@ export class WorkbookController {
           column_name: string;
         }[];
       }
-      const columns = await this.snapshotDbService.snapshotDb.knex.raw<ColumnInfo>(columnQuery);
+      const columns = await this.snapshotDbService.snapshotDb.getKnex().raw<ColumnInfo>(columnQuery);
       const columnNames = columns.rows.map((row) => row.column_name);
 
       // Check if we should apply the SQL filter
@@ -523,7 +523,7 @@ export class WorkbookController {
 
       // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
       if (!shouldApplyFilter) {
-        await this.snapshotDbService.snapshotDb.knex(`${workbookId}.${tableId}`).update({
+        await this.snapshotDbService.snapshotDb.getKnex()(`${workbookId}.${tableId}`).update({
           __dirty: false,
           __edited_fields: {},
         });
@@ -536,7 +536,7 @@ export class WorkbookController {
 
       // Use the CSV stream helper to stream the data
       const { stream, cleanup } = await createCsvStream({
-        knex: this.snapshotDbService.snapshotDb.knex,
+        knex: this.snapshotDbService.snapshotDb.getKnex(),
         schema: workbookId,
         table: tableId,
         columnNames,

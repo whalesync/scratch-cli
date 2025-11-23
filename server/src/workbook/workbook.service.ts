@@ -1809,7 +1809,7 @@ export class WorkbookService {
           column_name: string;
         }[];
       }
-      const columns = await this.snapshotDbService.snapshotDb.knex.raw<ColumnInfo>(columnQuery);
+      const columns = await this.snapshotDbService.snapshotDb.getKnex().raw<ColumnInfo>(columnQuery);
       const columnNames = columns.rows.map((row) => row.column_name);
 
       // Check if we should apply the SQL filter
@@ -1821,7 +1821,7 @@ export class WorkbookService {
 
       // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
       if (!filteredOnly) {
-        await this.snapshotDbService.snapshotDb.knex(`${workbook.id}.${tableId}`).update({
+        await this.snapshotDbService.snapshotDb.getKnex()(`${workbook.id}.${tableId}`).update({
           __dirty: false,
           __edited_fields: {},
         });
@@ -1835,7 +1835,7 @@ export class WorkbookService {
 
       // Use the CSV stream helper to stream the data
       const { stream, cleanup } = await createCsvStream({
-        knex: this.snapshotDbService.snapshotDb.knex,
+        knex: this.snapshotDbService.snapshotDb.getKnex(),
         schema: workbook.id,
         table: tableId,
         columnNames,
@@ -1928,7 +1928,7 @@ export class WorkbookService {
 
               // Look up wsIds for these remote IDs (wsId is the internal primary key)
               const dbRecords = await this.snapshotDbService.snapshotDb
-                .knex(tableId)
+                .getKnex()(tableId)
                 .withSchema(workbookId)
                 .whereIn('id', remoteIds)
                 .select<Array<{ id: string; wsId: string }>>('id', 'wsId');

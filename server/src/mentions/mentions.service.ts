@@ -62,7 +62,7 @@ export class MentionsService {
     const mdUploadIds = uploads.map((upload) => upload.typeId);
     // Then load the full data from MdUploads by the found IDs
     const rows = (await this.uploadsDbService
-      .knex('MdUploads')
+      .getKnex()('MdUploads')
       .withSchema(schemaName)
       .select({ id: 'id' })
       .select({ PAGE_CONTENT: 'PAGE_CONTENT' })
@@ -121,7 +121,7 @@ export class MentionsService {
     try {
       // Search records in the table using the title column
       const rows = await this.snapshotDbService.snapshotDb
-        .knex(`${workbookId}.${snapshotTable.tableName}`)
+        .getKnex()(`${workbookId}.${snapshotTable.tableName}`)
         .select({ id: 'wsId' })
         .select(titleColWsId)
         .whereILike(titleColWsId, `${queryText}%`)

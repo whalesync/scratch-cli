@@ -34,7 +34,7 @@ import { WorkbookService } from './workbook.service';
 })
 export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server?: Server;
 
   constructor(
     readonly configService: ScratchpadConfigService,
@@ -81,7 +81,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       userId: client.user?.id,
     });
 
-    this.server.emit('pong', 'pong');
+    this.getServer().emit('pong', 'pong');
   }
 
   @SubscribeMessage('subscribe')
@@ -144,5 +144,12 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
         });
       }
     });
+  }
+
+  private getServer(): Server {
+    if (!this.server) {
+      throw new Error('Expected server to not be undefined');
+    }
+    return this.server;
   }
 }
