@@ -117,7 +117,7 @@ build and test server:
   script:
     - cd server
     - !reference [.use_nvm, script]
-    - yarn lint
+    - yarn lint-strict
     - yarn test
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "export const BUILD_VERSION = '$BUILD_VERSION';" > src/version.ts
