@@ -3,14 +3,11 @@ export enum ScratchpadPlanType {
 }
 
 export interface CreateCustomerPortalUrlResponse {
-    /** Url to redirect the user to. */
-    url: string;
-  }
-  
+  /** Url to redirect the user to. */
+  url: string;
+}
 
 export interface CreateCheckoutSessionResponse {
-    /** Url to redirect the user to. */
-    url: string;
-  }
-    
-  
+  /** Url to redirect the user to. */
+  url: string;
+}

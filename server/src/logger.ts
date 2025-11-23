@@ -133,32 +133,32 @@ function expandedErrorsFormat(): winston.Logform.Format {
 }
 
 export class WSLoggerShim implements LoggerService {
-  log(raw: any, ...optionalParams: any[]): any {
+  log(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.info({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 
-  error(raw: any, ...optionalParams: any[]): any {
+  error(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.error({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 
-  warn(raw: any, ...optionalParams: any[]): any {
+  warn(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.warn({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 
-  debug(raw: any, ...optionalParams: any[]): any {
+  debug(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.debug({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 
-  verbose(raw: any, ...optionalParams: any[]): any {
+  verbose(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.verbose({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 
-  fatal(raw: any, ...optionalParams: any[]): any {
+  fatal(raw: unknown, ...optionalParams: unknown[]): void {
     WSLogger.error({ source: 'unknown', message: pickMessage(raw), raw, ...optionalParams });
   }
 }
 
-function pickMessage(raw: any): string {
+function pickMessage(raw: unknown): string {
   if (typeof raw === 'string') {
     return raw;
   } else if (raw instanceof Error) {
