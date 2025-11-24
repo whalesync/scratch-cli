@@ -4,7 +4,7 @@ import MarkdownIt from 'markdown-it';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
-import { Webflow, WebflowClient } from 'webflow-api';
+import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
@@ -261,9 +261,24 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     // TODO: Webflow errors are really bad for user friendliness, we should improve this.
     const errors = _.get(error, 'errors');
     if (errors && Array.isArray(errors)) {
-      return {
+      const formattedError = {
         userFriendlyMessage: (errors as { message: string }[]).map((error) => error.message).join('; '),
         description: (errors as { message: string }[]).map((error) => error.message).join('; '),
+      };
+      return formattedError;
+    }
+    if (error instanceof WebflowError) {
+      if (
+        error.statusCode === 409 &&
+        error.message.includes("You've created all the items in your CMS Database allowed on your current plan.")
+      ) {
+        return {
+          userFriendlyMessage: 'You have reached the maximum number of CMS items allowed for your plan.',
+        };
+      }
+      return {
+        userFriendlyMessage: error.message,
+        description: error.message,
       };
     }
     return {
