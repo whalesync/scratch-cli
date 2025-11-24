@@ -8,6 +8,15 @@ import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
+import {
+  CREATED_FIELD,
+  DELETED_FIELD,
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  SEEN_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+} from './entities/reserved-coluns';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
@@ -18,18 +27,18 @@ types.setTypeParser(23, 'text', parseInt); // INT4
 // There isn't a system yet for tracking versions of edits that are made to the snapshot, so instead, we use a column
 // of metadata in each snapshotted table. It contains the fields that have been edited since last download, plus whether
 // the record was created or deleted.
-export const EDITED_FIELDS_COLUMN = '__edited_fields';
+// export const EDITED_FIELDS_COLUMN = '__edited_fields';
 // Same as the above, but for edits that are suggested by the AI.
-export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
+// export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
 // Connector specific optional per record metadata
-export const METADATA_COLUMN = '__metadata';
+// export const METADATA_COLUMN = '__metadata';
 
-export const DIRTY_COLUMN = '__dirty';
+// export const DIRTY_COLUMN = '__dirty';
 
 // A special field that is used to mark a record as deleted in the EDITED_FIELDS_COLUMN and SUGGESTED_FIELDS_COLUMN
-export const DELETED_FIELD = '__deleted';
+// export const DELETED_FIELD = '__deleted';
 
-export const SEEN_COLUMN = '__seen';
+// export const SEEN_COLUMN = '__seen';
 
 /**
  * Represents a table for database operations.
@@ -39,7 +48,6 @@ export type TableForDb = {
   spec: AnyTableSpec;
   tableName: string;
 };
-export const CREATED_FIELD = '__created';
 
 export const DEFAULT_COLUMNS = ['wsId', 'id', EDITED_FIELDS_COLUMN, SUGGESTED_FIELDS_COLUMN, DIRTY_COLUMN];
 
@@ -491,6 +499,7 @@ export class SnapshotDb {
                   : // No fields actually edited
                     // Set the suggested values on the __suggested_values json fied .
                     {
+                      [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
                       [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({
                         __created: now,
                         ...op.data,
