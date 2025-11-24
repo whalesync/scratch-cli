@@ -146,12 +146,22 @@ export class WebflowSchemaParser {
           dataConverterTypes: ['html'],
         };
 
-      case Webflow.FieldType.Number:
+      case Webflow.FieldType.Number: {
+        const validations = field.validations as
+          | {
+              format: 'decimal' | 'integer' | 'any???';
+              precision: number;
+              allowNegative: boolean;
+            }
+          | undefined;
+        const numberFormat = validations?.format === 'integer' ? 'integer' : 'decimal';
         return {
           pgType: PostgresColumnType.NUMERIC,
-          metadata: { numberFormat: 'decimal' },
+          metadata: {
+            numberFormat,
+          },
         };
-
+      }
       case Webflow.FieldType.Switch:
         return {
           pgType: PostgresColumnType.BOOLEAN,
