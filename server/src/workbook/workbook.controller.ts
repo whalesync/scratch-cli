@@ -55,7 +55,7 @@ import {
   ValidatedAddScratchColumnDto,
   ValidatedRemoveScratchColumnDto,
 } from './dto/scratch-column.dto';
-import { SetPageSizeDto } from './dto/set-page-size.dto';
+import { SetTableViewStateDto } from './dto/set-table-view-state.dto';
 import { SetTitleColumnDto, ValidatedSetTitleColumnDto } from './dto/set-title-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateColumnSettingsDto, ValidatedUpdateColumnSettingsDto } from './dto/update-column-settings.dto';
@@ -214,11 +214,20 @@ export class WorkbookController {
   async listRecords(
     @Param('id') workbookId: WorkbookId,
     @Param('tableId') tableId: string,
-    @Query('cursor') cursor: string | undefined,
+    @Query('skip', new ParseIntPipe({ optional: true })) skip: number | undefined,
     @Query('take', new ParseIntPipe({ optional: true })) take = 100,
+    @Query('useStoredSkip') useStoredSkip: string | undefined,
     @Req() req: RequestWithUser,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string }> {
-    return this.service.listRecords(workbookId, tableId, toActor(req.user), cursor, take);
+  ): Promise<{
+    records: SnapshotRecord[];
+    count: number;
+    filteredCount: number;
+    skip: number;
+    take: number;
+  }> {
+    // If no skip provided and useStoredSkip is true, use the stored skip
+    const shouldUseStoredSkip = useStoredSkip === 'true' && skip === undefined;
+    return this.service.listRecords(workbookId, tableId, toActor(req.user), skip, take, shouldUseStoredSkip);
   }
 
   @Get(':id/tables/:tableId/records/:recordId')
@@ -384,16 +393,21 @@ export class WorkbookController {
     await this.service.clearActiveRecordFilter(workbookId, tableId, toActor(req.user));
   }
 
-  @Patch(':id/tables/:tableId/page-size')
+  @Patch(':id/tables/:tableId/view-state')
   @HttpCode(204)
-  async setPageSize(
+  async setTableViewState(
     @Param('id') workbookId: WorkbookId,
     @Param('tableId') tableId: string,
-    @Body() setPageSizeDto: SetPageSizeDto,
+    @Body() setTableViewStateDto: SetTableViewStateDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    const dto = setPageSizeDto;
-    await this.service.setPageSize(workbookId, tableId, dto.pageSize ?? null, toActor(req.user));
+    await this.service.setTableViewState(
+      workbookId,
+      tableId,
+      setTableViewStateDto.pageSize,
+      setTableViewStateDto.currentSkip,
+      toActor(req.user),
+    );
   }
 
   /**

@@ -78,7 +78,7 @@ import { CircularProgress } from '../../components/CircularProgress';
 import { CloseButtonInline } from '../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { DebouncedTextArea } from '../../components/DebouncedTextArea';
-import { DevToolPopover } from '../../components/DevToolReveal';
+import { DevToolPopover } from '../../components/DevToolPopover';
 import { DotSpacer } from '../../components/DotSpacer';
 import { DecorativeBoxedIcon } from '../../components/Icons/DecorativeBoxedIcon';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';

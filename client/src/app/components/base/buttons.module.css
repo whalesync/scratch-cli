@@ -1,0 +1,16 @@
+.IconButtonInline {
+  width: min-content;
+  color: var(--fg-muted);
+  padding: 0;
+  aspect-ratio: 1;
+
+  &:disabled {
+    background-color: transparent;
+    color: var(--mantine-color-gray-5);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: transparent;
+    color: var(--mantine-color-gray-9);
+  }
+}

@@ -15,7 +15,7 @@ import type {
   Workbook,
 } from '@/types/server-entities/workbook';
 import { SnapshotTableId, WorkbookId } from '../../types/server-entities/ids';
-import { BulkUpdateRecordsDto, ListRecordsResponse } from '../../types/server-entities/records';
+import { BulkUpdateRecordsDto, ListRecordsResponse, SetTableViewStateDto } from '../../types/server-entities/records';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';
 
@@ -227,15 +227,19 @@ export const workbookApi = {
   async listRecords(
     workbookId: WorkbookId,
     tableId: SnapshotTableId,
-    cursor?: string,
+    skip?: number,
     take?: number,
+    useStoredSkip?: boolean,
   ): Promise<ListRecordsResponse> {
     const url = new URL(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/records`);
-    if (cursor) {
-      url.searchParams.append('cursor', cursor);
+    if (skip !== undefined) {
+      url.searchParams.append('skip', skip.toString());
     }
     if (take) {
       url.searchParams.append('take', take.toString());
+    }
+    if (useStoredSkip) {
+      url.searchParams.append('useStoredSkip', 'true');
     }
     const res = await fetch(url.toString(), {
       method: 'GET',
@@ -290,16 +294,16 @@ export const workbookApi = {
     await checkForApiError(res, 'Failed to clear active record filter');
   },
 
-  async setPageSize(workbookId: WorkbookId, tableId: SnapshotTableId, pageSize: number | null): Promise<void> {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/page-size`, {
+  async setTableViewState(workbookId: WorkbookId, tableId: SnapshotTableId, dto: SetTableViewStateDto): Promise<void> {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/${workbookId}/tables/${tableId}/view-state`, {
       method: 'PATCH',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ pageSize }),
+      body: JSON.stringify(dto),
     });
-    await checkForApiError(res, 'Failed to set page size');
+    await checkForApiError(res, 'Failed to set table view state');
   },
 
   async bulkUpdateRecords(workbookId: WorkbookId, tableId: SnapshotTableId, dto: BulkUpdateRecordsDto): Promise<void> {

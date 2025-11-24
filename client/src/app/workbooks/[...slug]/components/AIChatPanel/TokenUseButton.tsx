@@ -8,7 +8,7 @@ import { formatTokenCount, TokenUsageStats, tokenUsageStats } from '../../../../
 import { ButtonSecondaryInline } from '../../../../components/base/buttons';
 import { Text13Regular } from '../../../../components/base/text';
 import { CircularProgress } from '../../../../components/CircularProgress';
-import { DevToolPopover } from '../../../../components/DevToolReveal';
+import { DevToolPopover } from '../../../../components/DevToolPopover';
 import { StyledLucideIcon } from '../../../../components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 

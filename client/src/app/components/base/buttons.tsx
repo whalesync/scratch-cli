@@ -2,6 +2,7 @@ import { Button } from '@mantine/core';
 import { Cpu } from 'lucide-react';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 import customBordersClasses from '../theme/custom-borders.module.css';
+import styles from './buttons.module.css';
 
 export const ButtonPrimarySolid = Button.withProps({
   variant: 'filled',
@@ -91,15 +92,9 @@ export const IconButtonGhost = Button.withProps({
 });
 
 export const IconButtonInline = Button.withProps({
-  variant: 'subtle',
-  w: 'min-content',
+  variant: 'transparent',
   size: 'compact-sm',
-  color: 'redvar(--fg-muted)',
-  c: 'var(--fg-muted)',
-  p: 0,
-  styles: {
-    root: { aspectRatio: '1' },
-  },
+  classNames: { root: styles.IconButtonInline },
 });
 
 export const DevToolButton = Button.withProps({

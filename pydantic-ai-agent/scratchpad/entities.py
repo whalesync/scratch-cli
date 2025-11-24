@@ -115,6 +115,12 @@ class BulkUpdateRecordsDto:
 class ListRecordsResponse:
     records: List[SnapshotRecord]
     nextCursor: Optional[str] = None
+    prevCursor: Optional[str] = None
+    count: int = 0
+    filteredCount: int = 0
+    startIndex: Optional[int] = None
+    endIndex: Optional[int] = None
+    # Deprecated field for backwards compatibility
     filteredRecordsCount: int = 0
 
 

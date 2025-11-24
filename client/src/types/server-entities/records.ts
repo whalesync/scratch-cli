@@ -66,7 +66,13 @@ export type BulkUpdateRecordsDto = {
 export type EnqueueableRecordOperation = UpdateRecordOperation | DeleteRecordOperation | UndeleteRecordOperation;
 export interface ListRecordsResponse {
   records: SnapshotRecord[];
-  nextCursor?: string;
   count: number;
   filteredCount: number;
+  skip: number;
+  take: number;
 }
+
+export type SetTableViewStateDto = {
+  pageSize?: number | null;
+  currentSkip?: number | null;
+};

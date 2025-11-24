@@ -9,7 +9,7 @@ import { HelpMenuFooterButton } from './buttons/HelpMenuFooterButton';
 import { LastUpdatedFooterButton } from './buttons/LastUpdatedFooterButton';
 import { MoreFooterMenuButton } from './buttons/MoreFooterMenuButton';
 import { NewRecordFooterButton } from './buttons/NewRecordFooterButton';
-import { PageSizeFooterButton } from './buttons/PageSizeFooterButton';
+import { PaginationFooterButton } from './buttons/PaginationFooterButton';
 import { UnpublishedChangesFooterButton } from './buttons/UnpublishedChangesFooterButton';
 import styles from './GridFooterBar.module.css';
 
@@ -19,7 +19,7 @@ export const GridFooterBar = ({ table }: { table: SnapshotTable }) => {
       <Group className={styles.toolbar}>
         <NewRecordFooterButton table={table} />
         <FilterFooterButton table={table} />
-        <PageSizeFooterButton table={table} />
+        <PaginationFooterButton table={table} />
         <ColumnsFooterButton table={table} />
         <MoreFooterMenuButton table={table} />
         <Box flex={1}>{/* Whitespace */}</Box>

@@ -522,9 +522,16 @@ export class WorkbookService {
     workbookId: WorkbookId,
     tableId: string,
     actor: Actor,
-    cursor: string | undefined,
+    skip: number | undefined,
     take: number,
-  ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
+    useStoredSkip: boolean = false,
+  ): Promise<{
+    records: SnapshotRecord[];
+    count: number;
+    filteredCount: number;
+    skip: number;
+    take: number;
+  }> {
     const workbook = await this.findOneOrThrow(workbookId, actor);
 
     const snapshotTable = getSnapshotTableById(workbook, tableId);
@@ -534,29 +541,28 @@ export class WorkbookService {
 
     const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
+    // Use stored skip if requested and no skip provided
+    const effectiveSkip = useStoredSkip && skip === undefined ? (snapshotTable.currentSkip ?? 0) : (skip ?? 0);
+
     // Apply pageSize limit if set
     const effectiveTake = snapshotTable.pageSize !== null ? Math.min(take, snapshotTable.pageSize) : take;
 
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       workbookId,
       snapshotTable.tableName,
-      cursor,
-      effectiveTake + 1,
+      effectiveSkip,
+      effectiveTake,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
+      undefined,
     );
-
-    let nextCursor: string | undefined;
-    if (result.records.length === effectiveTake + 1) {
-      const nextRecord = result.records.pop();
-      nextCursor = nextRecord!.id.wsId;
-    }
 
     return {
       records: result.records,
-      nextCursor,
       count: result.count,
       filteredCount: result.filteredCount,
+      skip: result.skip,
+      take: result.take,
     };
   }
 
@@ -566,6 +572,16 @@ export class WorkbookService {
     actor: Actor,
     cursor: string | undefined,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; count: number; filteredCount: number }> {
+    if (cursor) {
+      WSLogger.error({
+        source: 'WorkbookService.listRecordsForAi',
+        message: 'NOT YET IMPLEMENTED: cursor is not supported for AI pagination and is being ignored',
+        workbookId,
+        tableId,
+        cursor,
+      });
+    }
+
     const workbook = await this.findOneOrThrow(workbookId, actor);
     const snapshotTable = getSnapshotTableById(workbook, tableId);
     if (!snapshotTable) {
@@ -582,18 +598,12 @@ export class WorkbookService {
     const result = await this.snapshotDbService.snapshotDb.listRecords(
       workbookId,
       snapshotTable.tableName,
-      cursor,
+      0, // AI always starts from beginning
       effectiveTake,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
       snapshotTable.hiddenColumns,
     );
-
-    // let nextCursor: string | undefined;
-    // if (result.records.length === take + 1) {
-    //   const nextRecord = result.records.pop();
-    //   nextCursor = nextRecord!.id.wsId;
-    // }
 
     return {
       records: result.records,
@@ -888,12 +898,7 @@ export class WorkbookService {
     }
 
     // get all of the records for the table with suggestions and build a list of items to accept
-    const records = await this.snapshotDbService.snapshotDb.listRecords(
-      workbookId,
-      snapshotTable.tableName,
-      undefined,
-      10000,
-    );
+    const records = await this.snapshotDbService.snapshotDb.listRecords(workbookId, snapshotTable.tableName, 0, 10000);
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.acceptCellValues(workbookId, tableId, allSuggestions, actor);
@@ -974,12 +979,7 @@ export class WorkbookService {
     }
 
     // get all of the records for the table with suggestions and build a list of items to reject
-    const records = await this.snapshotDbService.snapshotDb.listRecords(
-      workbookId,
-      snapshotTable.tableName,
-      undefined,
-      10000,
-    );
+    const records = await this.snapshotDbService.snapshotDb.listRecords(workbookId, snapshotTable.tableName, 0, 10000);
     const { allSuggestions, recordsWithSuggestions } = this.extractSuggestions(records.records);
 
     await this.rejectValues(workbookId, tableId, allSuggestions, actor);
@@ -1618,6 +1618,10 @@ export class WorkbookService {
       where: { id: snapshotTable.id },
       data: {
         activeRecordSqlFilter: dto.sqlWhereClause,
+
+        // Reset pagination.
+        pageSize: null,
+        currentSkip: 0,
       },
     });
 
@@ -1653,18 +1657,30 @@ export class WorkbookService {
     });
   }
 
-  async setPageSize(workbookId: WorkbookId, tableId: string, pageSize: number | null, actor: Actor): Promise<void> {
+  async setTableViewState(
+    workbookId: WorkbookId,
+    tableId: string,
+    pageSize: number | null | undefined,
+    currentSkip: number | null | undefined,
+    actor: Actor,
+  ): Promise<void> {
     const workbook = await this.findOneOrThrow(workbookId, actor);
     const snapshotTable = getSnapshotTableById(workbook, tableId);
     if (!snapshotTable) {
       throw new NotFoundException(`Table ${tableId} not found in snapshot ${workbookId}`);
     }
 
+    const updateData: { pageSize?: number | null; currentSkip?: number | null } = {};
+    if (pageSize !== undefined) {
+      updateData.pageSize = pageSize;
+    }
+    if (currentSkip !== undefined) {
+      updateData.currentSkip = currentSkip;
+    }
+
     await this.db.client.snapshotTable.update({
       where: { id: snapshotTable.id },
-      data: {
-        pageSize: pageSize,
-      },
+      data: updateData,
     });
   }
 
@@ -2191,7 +2207,7 @@ export class WorkbookService {
     const records = await this.snapshotDbService.snapshotDb.listRecords(
       workbookId,
       snapshotTable.tableName,
-      undefined,
+      0,
       10000,
       tableSpec,
     );

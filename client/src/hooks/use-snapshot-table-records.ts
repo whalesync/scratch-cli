@@ -27,6 +27,12 @@ export interface UseSnapshotRecordsReturn {
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   count: number;
   filteredCount: number;
+  skip: number;
+  take: number;
+  startIndex: number;
+  endIndex: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
   recordsWithSuggestions: number;
   totalSuggestions: number;
   totalSuggestedDeletes: number;
@@ -39,19 +45,22 @@ export interface UseSnapshotRecordsReturn {
 export const useSnapshotTableRecords = (args: {
   workbookId: WorkbookId | null;
   tableId: SnapshotTableId | null;
-  cursor?: string;
+  skip?: number;
   take?: number;
   generateHash?: boolean;
 }): UseSnapshotRecordsReturn => {
-  const { workbookId, tableId, cursor, take = 1000, generateHash = false } = args;
+  const { workbookId, tableId, skip, take = 1000, generateHash = false } = args;
   const { workbook } = useWorkbook(workbookId);
-  const swrKey = workbookId && tableId ? SWR_KEYS.workbook.records(workbookId, tableId, cursor, take) : null;
+  const swrKey = workbookId && tableId ? SWR_KEYS.workbook.records(workbookId, tableId, skip, take) : null;
 
   const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(
     tableId ? swrKey : null,
-    () => (workbookId && tableId ? workbookApi.listRecords(workbookId, tableId, cursor, take) : undefined),
+    () =>
+      workbookId && tableId
+        ? workbookApi.listRecords(workbookId, tableId, skip, take, skip === undefined) // Use stored skip when no skip provided
+        : undefined,
     {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
@@ -201,16 +210,32 @@ export const useSnapshotTableRecords = (args: {
     return error?.message;
   }, [error]);
 
+  // Calculate pagination info
+  const currentSkip = data?.skip ?? 0;
+  const currentTake = data?.take ?? take;
+  const totalCount = data?.filteredCount ?? 0;
+
+  const startIndex = currentSkip + 1; // 1-based
+  const endIndex = currentSkip + (data?.records?.length ?? 0);
+  const hasNextPage = endIndex < totalCount;
+  const hasPrevPage = currentSkip > 0;
+
   return {
     records: data?.records ?? undefined,
     recordDataHash,
+    skip: currentSkip,
+    take: currentTake,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
     isLoading,
     error: displayError, // show a sanitized error message to the user to avoid exposing the exception details
     refreshRecords,
     acceptCellValues,
     rejectCellValues,
     count: data?.count || 0,
-    filteredCount: data?.filteredCount || 0,
+    filteredCount: totalCount,
     recordsWithSuggestions,
     totalSuggestions,
     totalSuggestedDeletes,

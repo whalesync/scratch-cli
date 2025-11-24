@@ -366,21 +366,20 @@ export class SnapshotDb {
   async listRecords(
     workbookId: WorkbookId,
     tableName: string,
-    cursor: string | undefined,
+    skip: number,
     take: number,
     tableSpec?: AnyTableSpec,
     activeRecordSqlFilter?: string | null,
     hiddenColumns?: string[],
-  ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number }> {
-    const query = this.getKnex()<DbRecord>(tableName).withSchema(workbookId).orderBy('id').limit(take);
-
-    if (cursor) {
-      query.where('wsId', '>=', cursor);
-    }
+  ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number; skip: number; take: number }> {
+    const query = this.getKnex()<DbRecord>(tableName)
+      .withSchema(workbookId)
+      .orderBy('id', 'asc')
+      .limit(take)
+      .offset(skip);
 
     // Apply active record filter using SQL WHERE clauses
     if (activeRecordSqlFilter && activeRecordSqlFilter.trim() !== '') {
-      // Apply the SQL WHERE clause directly
       query.whereRaw(activeRecordSqlFilter);
     }
 
@@ -395,26 +394,30 @@ export class SnapshotDb {
     if (activeRecordSqlFilter && activeRecordSqlFilter.trim() !== '') {
       // Count total records without filter
       const totalQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
-      const totalRecords = await totalQuery.select('wsId');
-      count = totalRecords.length;
+      const totalRecords = await totalQuery.count('* as count');
+      count = parseInt(String(totalRecords[0].count), 10);
 
       // Count filtered records with filter
       const filteredQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
       filteredQuery.whereRaw(activeRecordSqlFilter);
-      const filteredRecords = await filteredQuery.select('wsId');
-      filteredCount = filteredRecords.length;
+      const filteredRecords = await filteredQuery.count('* as count');
+      filteredCount = parseInt(String(filteredRecords[0].count), 10);
     } else {
       // No filter, so both counts are the same
       const totalQuery = this.getKnex()<DbRecord>(tableName).withSchema(workbookId);
-      const totalRecords = await totalQuery.select('wsId');
-      count = totalRecords.length;
+      const totalRecords = await totalQuery.count('* as count');
+      count = parseInt(String(totalRecords[0].count), 10);
       filteredCount = count;
     }
 
+    const records = result.map((r) => this.mapDbRecordToSnapshotRecord(r));
+
     return {
-      records: result.map((r) => this.mapDbRecordToSnapshotRecord(r)),
+      records,
       count,
       filteredCount,
+      skip,
+      take,
     };
   }
 
