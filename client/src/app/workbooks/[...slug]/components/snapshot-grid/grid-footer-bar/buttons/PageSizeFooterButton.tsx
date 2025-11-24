@@ -6,6 +6,9 @@ import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
 import { useCallback, useMemo } from 'react';
 import { useSWRConfig } from 'swr';
+import { formatNumber } from '../../../../../../../utils/helpers';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 500, 1000] as const;
 
 export const PageSizeFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { mutate: globalMutate } = useSWRConfig();
@@ -50,12 +53,11 @@ export const PageSizeFooterButton = ({ table }: { table: SnapshotTable }) => {
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Label>Page Size</Menu.Label>
-        <Menu.Item onClick={() => handleSetPageSize(10)}>10 records</Menu.Item>
-        <Menu.Item onClick={() => handleSetPageSize(25)}>25 records</Menu.Item>
-        <Menu.Item onClick={() => handleSetPageSize(50)}>50 records</Menu.Item>
-        <Menu.Item onClick={() => handleSetPageSize(100)}>100 records</Menu.Item>
-        <Menu.Item onClick={() => handleSetPageSize(500)}>500 records</Menu.Item>
-        <Menu.Item onClick={() => handleSetPageSize(1000)}>1,000 records</Menu.Item>
+        {PAGE_SIZE_OPTIONS.map((pageSize) => (
+          <Menu.Item key={pageSize} onClick={() => handleSetPageSize(pageSize)}>
+            {formatNumber(pageSize)} records
+          </Menu.Item>
+        ))}
         <Menu.Divider />
         <Menu.Item onClick={() => handleSetPageSize(null)}>All records</Menu.Item>
       </Menu.Dropdown>

@@ -1,8 +1,28 @@
-import { Box, Code, Divider, Group, Kbd, Modal, ModalProps, Stack, Text } from '@mantine/core';
-import { ButtonSecondaryOutline } from './base/buttons';
-import { Text13Regular, TextTitle3 } from './base/text';
+import { Box, Code, Divider, Group, Kbd, Modal, Stack, Text } from '@mantine/core';
+import { useEffect } from 'react';
+import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
+import { ButtonSecondaryOutline } from '../../../../../components/base/buttons';
+import { Text13Regular, TextTitle3 } from '../../../../../components/base/text';
 
-export const KeyboardShortcutHelpModal = (props: ModalProps) => {
+export const KeyboardShortcutHelpModal = () => {
+  const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
+  const showModal = useWorkbookEditorUIStore((state) => state.showModal);
+  const dismissModal = useWorkbookEditorUIStore((state) => state.dismissModal);
+  const isOpen = activeModal?.type === WorkbookModals.KEYBOARD_SHORTCUT_HELP;
+
+  // Hook it up to a keyboard shortcut.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'h') {
+        event.preventDefault();
+        showModal({ type: WorkbookModals.KEYBOARD_SHORTCUT_HELP });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showModal]);
+
   const shortcutsContent = (
     <Stack gap="md">
       {/* Grid Navigation */}
@@ -120,10 +140,18 @@ export const KeyboardShortcutHelpModal = (props: ModalProps) => {
   );
 
   return (
-    <Modal title="Reference" size="lg" transitionProps={{ transition: 'fade', duration: 200 }} {...props}>
+    <Modal
+      title="Reference"
+      size="lg"
+      transitionProps={{ transition: 'fade', duration: 200 }}
+      opened={isOpen}
+      onClose={() => dismissModal(WorkbookModals.KEYBOARD_SHORTCUT_HELP)}
+    >
       {shortcutsContent}
       <Group justify="flex-end" mt="lg">
-        <ButtonSecondaryOutline onClick={props.onClose}>Close</ButtonSecondaryOutline>
+        <ButtonSecondaryOutline onClick={() => dismissModal(WorkbookModals.KEYBOARD_SHORTCUT_HELP)}>
+          Close
+        </ButtonSecondaryOutline>
       </Group>
     </Modal>
   );

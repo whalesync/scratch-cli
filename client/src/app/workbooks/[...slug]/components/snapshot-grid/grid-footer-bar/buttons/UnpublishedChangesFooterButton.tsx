@@ -2,10 +2,12 @@ import { SnapshotTable } from '@/types/server-entities/workbook';
 import pluralize from 'pluralize';
 import { useMemo } from 'react';
 import { useOperationCounts } from '../../../../../../../hooks/use-operation-counts';
-import { Text13Regular } from '../../../../../../components/base/text';
+import { useWorkbookEditorUIStore } from '../../../../../../../stores/workbook-editor-store';
+import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
 
 export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { operationCounts } = useOperationCounts(table.workbookId);
+  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
 
   const unpublishedCount = useMemo(() => {
     const oc = operationCounts?.find((count) => count.tableId === table.id);
@@ -16,10 +18,9 @@ export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable
     return oc.creates + oc.updates + oc.deletes;
   }, [operationCounts, table.id]);
 
-  // TODO: Open the publication modal from here too?
   return (
-    <Text13Regular>
+    <ButtonSecondaryInline onClick={openPublishConfirmation}>
       {unpublishedCount ?? '-'} unpublished {pluralize('change', unpublishedCount ?? 0)}
-    </Text13Regular>
+    </ButtonSecondaryInline>
   );
 };

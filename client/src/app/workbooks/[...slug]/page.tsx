@@ -28,6 +28,7 @@ import { WorkbookInspector } from './components/devtool/WorkbookInspector';
 import { ManageTablesModal } from './components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from './components/PublishWorkbookWorkflow';
 import { GridFooterBar } from './components/snapshot-grid/grid-footer-bar/GridFooterBar';
+import { WorkbookEditorModals } from './components/snapshot-grid/modals/WorkbookEditorModals';
 import SnapshotGrid from './components/snapshot-grid/SnapshotGrid';
 import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
@@ -190,6 +191,7 @@ export default function WorkbookPage() {
           <UpdateRecordsProvider>
             <WorkbookPageContent />
             <PublishWorkbookWorkflow />
+            <WorkbookEditorModals />
           </UpdateRecordsProvider>
         </AIAgentSessionManagerProvider>
       </SnapshotEventProvider>

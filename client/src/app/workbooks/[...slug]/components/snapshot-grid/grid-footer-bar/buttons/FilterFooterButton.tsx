@@ -105,14 +105,18 @@ const CustomSqlFilterModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      setSqlFilterText(
-        // Hack: clobber the premade filter for only edited records.
-        table.activeRecordSqlFilter && table.activeRecordSqlFilter !== ONLY_EDITED_SQL
-          ? table.activeRecordSqlFilter
-          : '',
-      );
-      setSqlFilterError(null); // Clear any previous errors
+      // Hack: clobber the premade filter for only edited records.
+      const isPremadeFilter =
+        table.activeRecordSqlFilter === ONLY_EDITED_SQL || table.activeRecordSqlFilter === ONLY_PENDING_SUGGESTIONS_SQL;
+      if (isOpen) {
+        if (table.activeRecordSqlFilter && !isPremadeFilter) {
+          setSqlFilterText(table.activeRecordSqlFilter);
+        } else {
+          setSqlFilterText('');
+        }
+      }
     }
+    setSqlFilterError(null); // Clear any previous errors
   }, [isOpen, table.activeRecordSqlFilter]);
 
   const handleSetSqlFilter = useCallback(async () => {

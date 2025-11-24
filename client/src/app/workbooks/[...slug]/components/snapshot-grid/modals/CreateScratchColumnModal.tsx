@@ -4,14 +4,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { PostgresColumnType } from '@/types/server-entities/workbook';
 import { Group, Modal, Select, Stack, TextInput } from '@mantine/core';
 import { useState } from 'react';
-import { SnapshotTableId, WorkbookId } from '../../../../../../types/server-entities/ids';
-
-interface CreateScratchColumnModalProps {
-  opened: boolean;
-  onClose: () => void;
-  workbookId: WorkbookId;
-  tableId: SnapshotTableId;
-}
+import { WorkbookModals, useWorkbookEditorUIStore } from '../../../../../../stores/workbook-editor-store';
 
 const DATA_TYPE_OPTIONS = [
   { value: PostgresColumnType.TEXT, label: 'Text' },
@@ -20,7 +13,14 @@ const DATA_TYPE_OPTIONS = [
   { value: PostgresColumnType.TIMESTAMP, label: 'Date' },
 ] as const;
 
-export const CreateScratchColumnModal = ({ opened, onClose, workbookId, tableId }: CreateScratchColumnModalProps) => {
+/** Controlled by the WorkbookEditorUIStore */
+export const CreateScratchColumnModal = () => {
+  const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
+  const dismissModal = useWorkbookEditorUIStore((state) => state.dismissModal);
+  const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
+  const isOpen = activeModal?.type === WorkbookModals.CREATE_SCRATCH_COLUMN;
+  const tableId = activeModal?.type === WorkbookModals.CREATE_SCRATCH_COLUMN ? activeModal.tableId : null;
+
   const [columnName, setColumnName] = useState('');
   const [dataType, setDataType] = useState<PostgresColumnType>(PostgresColumnType.TEXT);
   const [isCreating, setIsCreating] = useState(false);
@@ -29,12 +29,12 @@ export const CreateScratchColumnModal = ({ opened, onClose, workbookId, tableId 
     if (!isCreating) {
       setColumnName('');
       setDataType(PostgresColumnType.TEXT);
-      onClose();
+      dismissModal(WorkbookModals.CREATE_SCRATCH_COLUMN);
     }
   };
 
   const handleCreate = async () => {
-    if (!columnName.trim() || !dataType) {
+    if (!columnName.trim() || !dataType || !workbookId || !tableId) {
       return;
     }
 
@@ -52,7 +52,7 @@ export const CreateScratchColumnModal = ({ opened, onClose, workbookId, tableId 
 
       setColumnName('');
       setDataType(PostgresColumnType.TEXT);
-      onClose();
+      dismissModal(WorkbookModals.CREATE_SCRATCH_COLUMN);
     } catch (error) {
       console.debug('Failed to create scratch column:', error);
       ScratchpadNotifications.error({
@@ -67,7 +67,7 @@ export const CreateScratchColumnModal = ({ opened, onClose, workbookId, tableId 
   const isFormValid = columnName.trim().length > 0 && dataType !== null;
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="Create Column" centered size="md">
+    <Modal opened={isOpen} onClose={handleClose} title="Create Column" centered size="md">
       <Stack gap="md">
         <TextInput
           label="Column Name"

@@ -26,6 +26,26 @@ export type ActiveCells = {
   columnId: string | undefined;
 };
 
+export enum WorkbookModals {
+  CREATE_SCRATCH_COLUMN = 'create_scratch_column',
+  KEYBOARD_SHORTCUT_HELP = 'keyboard_shortcut_help',
+  RENAME_WORKBOOK = 'rename_workbook',
+  CONFIRM_DELETE = 'confirm-delete',
+  CONFIRM_REFRESH_SOURCE = 'confirm-refresh-source',
+}
+
+export type WorkbookModalParams =
+  | { type: WorkbookModals.CREATE_SCRATCH_COLUMN; tableId: SnapshotTableId }
+  | { type: WorkbookModals.KEYBOARD_SHORTCUT_HELP }
+  | { type: WorkbookModals.RENAME_WORKBOOK }
+  | {
+      type: WorkbookModals.CONFIRM_DELETE;
+      workbookId: WorkbookId /** Provide explicitly to be safe from race conditions */;
+    }
+  | {
+      type: WorkbookModals.CONFIRM_REFRESH_SOURCE;
+    };
+
 export interface WorkbookEditorUIState {
   // The real entities are available with useActiveWorkbook() hook.
   workbookId: WorkbookId | null;
@@ -43,6 +63,8 @@ export interface WorkbookEditorUIState {
 
   // UI state for the publish confirmation modal.
   publishConfirmationOpen: boolean;
+
+  activeModal: WorkbookModalParams | null;
 }
 
 type Actions = {
@@ -69,6 +91,9 @@ type Actions = {
 
   openPublishConfirmation: () => void;
   closePublishConfirmation: () => void;
+
+  showModal: (modal: WorkbookModalParams) => void;
+  dismissModal: (modalType: WorkbookModalParams['type']) => void;
 };
 
 type WorkbookEditorUIStore = WorkbookEditorUIState & Actions;
@@ -82,6 +107,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   devToolsOpen: false,
   chatOpen: true,
   publishConfirmationOpen: false,
+  activeModal: null,
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
@@ -112,6 +138,14 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
 
   openPublishConfirmation: () => set({ publishConfirmationOpen: true }),
   closePublishConfirmation: () => set({ publishConfirmationOpen: false }),
+
+  showModal: (modal: WorkbookModalParams) => set({ activeModal: modal }),
+  dismissModal: (modalType: WorkbookModalParams['type'] | null) => {
+    if (modalType && modalType !== get().activeModal?.type) {
+      return;
+    }
+    set({ activeModal: null });
+  },
   /**
    * This is called every time the workbook is updated from the server.
    * Any state that has a dependency on the workbook's data should be updated here, to clean up any stale state.

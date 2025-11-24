@@ -1,17 +1,15 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { CheckIcon, ChevronDownIcon, CirclePlusIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workbook';
+import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../../stores/workbook-editor-store';
 import { getColumnTypeIcon } from '../../../../../../../utils/columns';
-import { CreateScratchColumnModal } from '../../modals/CreateScratchColumnModal';
 
 export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
   const { hideColumn, unhideColumn, showAllColumns } = useActiveWorkbook();
-  const [createScratchColumnModal, { open: openCreateScratchColumnModal, close: closeCreateScratchColumnModal }] =
-    useDisclosure(false);
+  const showModal = useWorkbookEditorUIStore((state) => state.showModal);
 
   const hiddenCount = table.hiddenColumns.length;
   const totalCount = table.tableSpec.columns.length;
@@ -54,7 +52,10 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
             );
           })}
           <Menu.Divider />
-          <Menu.Item onClick={openCreateScratchColumnModal} leftSection={<CirclePlusIcon size={16} />}>
+          <Menu.Item
+            onClick={() => showModal({ type: WorkbookModals.CREATE_SCRATCH_COLUMN, tableId: table.id })}
+            leftSection={<CirclePlusIcon size={16} />}
+          >
             New scratch column
           </Menu.Item>
 
@@ -66,12 +67,6 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
-      <CreateScratchColumnModal
-        opened={createScratchColumnModal}
-        onClose={closeCreateScratchColumnModal}
-        workbookId={table.workbookId}
-        tableId={table.id}
-      />
     </>
   );
 };
