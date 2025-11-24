@@ -476,7 +476,25 @@ export class SnapshotDb {
     tableName: string,
     ops: RecordOperation[],
     type: 'suggested' | 'accepted',
+    tableSpec: AnyTableSpec,
   ): Promise<void> {
+    const readOnlyColumns = new Set(tableSpec.columns.filter((c) => c.readonly).map((c) => c.id.wsId));
+
+    for (const op of ops) {
+      if (op.op === 'create' || op.op === 'update') {
+        if (!op.data) continue;
+
+        for (const field of Object.keys(op.data)) {
+          if (readOnlyColumns.has(field)) {
+            if (type === 'accepted') {
+              throw new BadRequestException(`Cannot modify read-only column: ${field}`);
+            } else {
+              delete op.data[field];
+            }
+          }
+        }
+      }
+    }
     const now = new Date().toISOString();
     await this.getKnex().transaction(async (trx) => {
       for (const op of ops) {

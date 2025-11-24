@@ -63,7 +63,7 @@ def build_workbook_context(
         for col in table.columns:
             if columns_to_exclude and col.id.wsId in columns_to_exclude:
                 continue
-            workbook_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}, Metadata: {col.metadata or {}}, Required: {col.required}\n"
+            workbook_context += f"  - Name: {col.name}, ID: {col.id.wsId}, Type: {col.type}, Metadata: {col.metadata or {}}, Required: {col.required}, Readonly: {col.readonly}\n"
 
         # Add records if available
         if preloaded_records and table.name in preloaded_records and include_records:

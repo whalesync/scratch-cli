@@ -19,6 +19,7 @@ class ColumnSpecForAi(BaseModel):
     name: str
     type: str  # "text" | "number" | "json"
     required: bool = False
+    readonly: bool = False
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -79,6 +80,7 @@ def convert_scratchpad_workbook_to_ai_workbook(
                 name=col["name"],  # type: ignore
                 type=col["pgType"],  # type: ignore
                 required=col.get("required", False),  # type: ignore
+                readonly=col.get("readonly", False),  # type: ignore
                 metadata=col.get("metadata", None),  # type: ignore
             )
             converted_columns.append(column_spec)

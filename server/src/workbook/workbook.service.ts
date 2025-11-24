@@ -663,7 +663,13 @@ export class WorkbookService {
 
     const ops = _.concat<RecordOperation>(dto.creates ?? [], dto.updates ?? [], dto.deletes ?? [], dto.undeletes ?? []);
     this.validateBulkUpdateOps(ops, tableSpec);
-    await this.snapshotDbService.snapshotDb.bulkUpdateRecords(workbookId, snapshotTable.tableName, ops, type);
+    await this.snapshotDbService.snapshotDb.bulkUpdateRecords(
+      workbookId,
+      snapshotTable.tableName,
+      ops,
+      type,
+      tableSpec,
+    );
 
     this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
       type: 'record-changes',
