@@ -231,8 +231,8 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         break;
       }
 
-      const records: ConnectorRecord[] = await Promise.all(
-        videosResponse.items.map((video) => this.formatRecordWithoutTranscript(video, tableSpec)),
+      const records: ConnectorRecord[] = videosResponse.items.map((video) =>
+        this.formatRecordWithoutTranscript(video, tableSpec),
       );
 
       await callback({ records });

@@ -72,7 +72,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
    */
   private async fetchDefaultBlogAuthorMemberId(): Promise<WixAuthor[]> {
     // TODO: we can add pagination if we need to at some point. for now it's an overkill i don't expect people to have 100+ authors.
-    const members = await this.wixClient.members.queryMembers().find();
+    const members = await this.wixClient.members.queryMembers({}).find();
 
     // Convert Member[] to JSON-safe format (only include serializable fields)
     return members.items.map((member) => ({
