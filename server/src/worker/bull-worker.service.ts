@@ -13,7 +13,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   private redis: IORedis | null = null;
   private pubSubRedis: IORedis | null = null;
   private worker: Worker | null = null;
-  private activeJobs: Map<string, AbortController> = new Map();
+  private activeJobToAbortCtrl: Map<string, AbortController> = new Map();
 
   constructor(
     // private readonly workerPool: WorkerPoolService,
@@ -64,7 +64,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       });
       // Clean up the abort controller when job completes
       if (job.id) {
-        this.activeJobs.delete(job.id.toString());
+        this.activeJobToAbortCtrl.delete(job.id.toString());
       }
     });
 
@@ -79,7 +79,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       });
       // Clean up the abort controller when job fails
       if (job?.id) {
-        this.activeJobs.delete(job.id.toString());
+        this.activeJobToAbortCtrl.delete(job.id.toString());
       }
     });
 
@@ -140,7 +140,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
 
     // const isLastAttempt = job.attemptsStarted < (job.opts.attempts ?? 1);
 
-    this.activeJobs.set(jobId, abortController);
+    this.activeJobToAbortCtrl.set(jobId, abortController);
 
     let latestProgress = job.progress as Progress;
     const checkpoint = async (progress: Omit<Progress, 'timestamp'>) => {
@@ -200,7 +200,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       });
       throw error;
     } finally {
-      this.activeJobs.delete(jobId);
+      this.activeJobToAbortCtrl.delete(jobId);
     }
   }
 
@@ -209,7 +209,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       const data = JSON.parse(message) as { action?: string; jobId?: string };
       if (data.action === 'cancel' && data.jobId) {
         const jobId = data.jobId;
-        const abortController = this.activeJobs.get(jobId);
+        const abortController = this.activeJobToAbortCtrl.get(jobId);
 
         if (abortController) {
           console.log(`Cancelling job ${jobId}`);

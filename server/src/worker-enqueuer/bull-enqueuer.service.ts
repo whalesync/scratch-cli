@@ -25,13 +25,9 @@ export class BullEnqueuerService implements OnModuleDestroy {
       this.queue = new Queue('worker-queue', {
         connection: this.redis,
         defaultJobOptions: {
-          removeOnComplete: 10,
-          removeOnFail: 5,
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
+          removeOnComplete: 100,
+          removeOnFail: 100,
+          attempts: 1,
         },
       });
     }
