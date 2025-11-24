@@ -24,6 +24,7 @@ import { convertNotionBlockObjectToHtmlv2 } from './conversion/notion-rich-text-
 import { convertToNotionBlocks } from './conversion/notion-rich-text-push';
 import { ConvertedNotionBlock } from './conversion/notion-rich-text-push-types';
 import { NotionSchemaParser } from './notion-schema-parser';
+import { PageObjectResponsePropertyTypes } from './property-types';
 
 export const PAGE_CONTENT_COLUMN_NAME = 'Page Content';
 export const PAGE_CONTENT_COLUMN_ID = 'WS_PAGE_CONTENT';
@@ -209,7 +210,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   public downloadRecordDeep = undefined;
 
   private extractPropertyValue(
-    property: PageObjectResponse['properties'][string],
+    property: PageObjectResponsePropertyTypes,
   ): string | number | boolean | Date | null | string[] {
     switch (property.type) {
       case 'title':
@@ -266,6 +267,14 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
         return property.last_edited_time;
       case 'last_edited_by':
         return property.last_edited_by.id;
+      case 'place':
+        return property.place?.address || property.place?.name || '';
+      case 'unique_id': {
+        const { prefix, number } = property.unique_id;
+        return prefix ? `${prefix}-${number}` : number;
+      }
+      case 'button':
+        return '';
       default:
         return `Unsupported type: ${property.type}`;
     }

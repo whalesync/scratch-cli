@@ -3,6 +3,21 @@ import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec } from '../custom-spec-registry';
 
+/**
+ * These are properties not supported in @notionhq/client:3.1.3
+ * Drop this when we upgrade to 4.x.x or 5.x.x
+ */
+export type NewNotionProperties = ({ type: 'place' } | { type: 'unique_id' } | { type: 'button' }) &
+  NotionPropertyFields;
+export type NotionPropertyFields = {
+  id: string;
+  name: string;
+};
+
+export type SupportedNotionProperties = DatabaseObjectResponse['properties'][string];
+
+export type NotionProperty = SupportedNotionProperties | NewNotionProperties;
+
 export class NotionSchemaParser {
   parseDatabaseTablePreview(db: DatabaseObjectResponse): TablePreview {
     const displayName = db.title.map((t) => t.plain_text).join('');
@@ -39,7 +54,7 @@ export class NotionSchemaParser {
     };
   }
 
-  parseColumn(property: DatabaseObjectResponse['properties'][string]): NotionColumnSpec {
+  parseColumn(property: NotionProperty): NotionColumnSpec {
     const pgType = this.getPostgresType(property);
     const readonly = this.isColumnReadonly(property);
     const metadata = this.getColumnMetadata(property);
@@ -56,7 +71,7 @@ export class NotionSchemaParser {
     };
   }
 
-  private getColumnMetadata(property: DatabaseObjectResponse['properties'][string]): ColumnMetadata | undefined {
+  private getColumnMetadata(property: NotionProperty): ColumnMetadata | undefined {
     switch (property.type) {
       case 'number':
         return { numberFormat: 'decimal' };
@@ -92,7 +107,7 @@ export class NotionSchemaParser {
     }
   }
 
-  private getPostgresType(property: DatabaseObjectResponse['properties'][string]): PostgresColumnType {
+  private getPostgresType(property: NotionProperty): PostgresColumnType {
     switch (property.type) {
       case 'number':
         return PostgresColumnType.NUMERIC;
@@ -134,7 +149,7 @@ export class NotionSchemaParser {
     }
   }
 
-  private isColumnReadonly(property: DatabaseObjectResponse['properties'][string]): boolean {
+  private isColumnReadonly(property: NotionProperty): boolean {
     switch (property.type) {
       case 'formula':
       case 'rollup':
@@ -142,6 +157,9 @@ export class NotionSchemaParser {
       case 'created_by':
       case 'last_edited_time':
       case 'last_edited_by':
+      case 'unique_id':
+      case 'button':
+      case 'place':
         return true;
 
       default:
