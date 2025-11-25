@@ -4,7 +4,7 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { Info } from '@/app/components/InfoPanel';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { paymentApi } from '@/lib/api/payment';
-import { ScratchpadPlanType } from '@/types/server-entities/payment';
+import { ScratchpadPlanType } from '@spinner/shared-types';
 import { stringToEnum } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { RotateCwIcon } from 'lucide-react';

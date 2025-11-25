@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Subscription } from '@prisma/client';
+import { SubscriptionId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
-import { SubscriptionId } from 'src/types/ids';
 import { SubscriptionService } from './subscription.service';
 
 describe('SubscriptionService', () => {

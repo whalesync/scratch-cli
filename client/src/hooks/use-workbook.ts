@@ -5,7 +5,7 @@ import { SnapshotColumnSettingsMap, UpdateWorkbookDto, Workbook } from '@/types/
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
-import { SnapshotTableId, WorkbookId } from '../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 export interface UseWorkbookReturn {
   workbook: Workbook | undefined;

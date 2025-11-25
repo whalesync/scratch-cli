@@ -1,6 +1,6 @@
 import { RouteUrls } from '@/utils/route-urls';
 import { useParams, useRouter } from 'next/navigation';
-import { SnapshotTableId, WorkbookId } from '../../../../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 export function useWorkbookParams() {
   const params = useParams();

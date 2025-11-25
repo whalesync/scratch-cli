@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Workbook } from '@prisma/client';
+import { WorkbookId } from '@spinner/shared-types';
 import { Observable } from 'rxjs';
 import { WSLogger } from 'src/logger';
 import { RedisPubSubService } from 'src/redis/redis-pubsub.service';
-import { WorkbookId } from '../types/ids';
 
 export interface SnapshotRecordEvent {
   type: 'record-changes';

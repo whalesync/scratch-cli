@@ -1,6 +1,6 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ScratchpadPlanType } from '@/types/server-entities/payment';
+import { ScratchpadPlanType } from '@spinner/shared-types';
 import { RouteUrls } from '@/utils/route-urls';
 import { Modal, Stack } from '@mantine/core';
 import Link from 'next/link';

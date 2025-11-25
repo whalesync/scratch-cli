@@ -3,7 +3,7 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { StyleGuideId } from '../types/server-entities/ids';
+import { StyleGuideId } from '@spinner/shared-types';
 
 export function usePromptAssets() {
   const { data, error, isLoading, mutate } = useSWR<StyleGuide[]>('style-guides', () => styleGuideApi.getAll(), {

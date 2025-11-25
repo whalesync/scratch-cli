@@ -1,6 +1,6 @@
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { useWorkbookEditorUIStore } from '../stores/workbook-editor-store';
-import { isSnapshotTableId } from '../types/server-entities/ids';
+import { isSnapshotTableId } from '@spinner/shared-types';
 import { useWorkbook, UseWorkbookReturn } from './use-workbook';
 
 interface UseActiveWorkbookReturn extends UseWorkbookReturn {

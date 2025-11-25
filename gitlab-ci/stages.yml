@@ -1,6 +1,6 @@
 stages:
-  - build
-  - external
+  - build and test
+  - push to prod
   - push images
   - pre-deploy integration tests
   - run migrations

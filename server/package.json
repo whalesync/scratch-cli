@@ -44,6 +44,7 @@
     "@openfeature/server-sdk": "^1.20.0",
     "@postlight/parser": "^2.2.3",
     "@prisma/client": "^6.16.3",
+    "@spinner/shared-types": "1.0.0",
     "@tapico/node-openfeature-posthog": "^1.1.4",
     "@types/html-minifier": "^4.0.5",
     "@types/ioredis": "^5.0.0",

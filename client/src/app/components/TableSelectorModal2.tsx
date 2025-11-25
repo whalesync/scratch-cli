@@ -1,7 +1,7 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { useOperationCounts } from '@/hooks/use-operation-counts';
-import { WorkbookId } from '@/types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Checkbox, Group, Loader, Modal, Stack, Text } from '@mantine/core';
 import pluralize from 'pluralize';

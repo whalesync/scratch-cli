@@ -4,7 +4,7 @@ import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook'
 import { Box, Paper, ScrollArea } from '@mantine/core';
 import { FC, useEffect } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
-import { WorkbookId } from '../../../../../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';

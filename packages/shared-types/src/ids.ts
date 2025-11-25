@@ -1,8 +1,5 @@
-import _ from 'lodash';
-import { customAlphabet } from 'nanoid';
-
-// NOTE!! This file is copied to the client by `yarn run copy-server-files`.
-// Please run that command so the changes are included in your commit.
+import _ from "lodash";
+import { customAlphabet } from "nanoid";
 
 /**
  * The prefix at the front of a database ID.
@@ -13,26 +10,26 @@ import { customAlphabet } from 'nanoid';
  *  - Add the generator for it below
  */
 export enum IdPrefixes {
-  USER = 'usr_',
-  API_TOKEN = 'atk_',
-  CONNECTOR_ACCOUNT = 'coa_',
-  WORKBOOK = 'wkb_',
-  SNAPSHOT_TABLE = 'snt_',
-  SNAPSHOT_RECORD = 'sre_',
-  CUSTOM_CONNECTOR = 'cuc_',
-  SNAPSHOT_TABLE_VIEW = 'stv_',
-  STYLE_GUIDE = 'sgd_',
-  CSV_FILE_RECORD = 'cfr_', // Record in CSV upload table
-  CSV_SNAPSHOT_RECORD = 'csr_', // Record in snapshot created from CSV
-  VIEW = 'vew_',
-  AI_AGENT_CREDENTIAL = 'aac_',
-  AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',
-  SUBSCRIPTION = 'sub_',
-  INVOICE_RESULT = 'inv_',
-  UPLOAD = 'upl_',
-  AUDIT_LOG_EVENT = 'ael_', // Audit log event
-  ORGANIZATION = 'org_', // Organization
-  JOB = 'job_', // Job
+  USER = "usr_",
+  API_TOKEN = "atk_",
+  CONNECTOR_ACCOUNT = "coa_",
+  WORKBOOK = "wkb_",
+  SNAPSHOT_TABLE = "snt_",
+  SNAPSHOT_RECORD = "sre_",
+  CUSTOM_CONNECTOR = "cuc_",
+  SNAPSHOT_TABLE_VIEW = "stv_",
+  STYLE_GUIDE = "sgd_",
+  CSV_FILE_RECORD = "cfr_", // Record in CSV upload table
+  CSV_SNAPSHOT_RECORD = "csr_", // Record in snapshot created from CSV
+  VIEW = "vew_",
+  AI_AGENT_CREDENTIAL = "aac_",
+  AI_AGENT_TOKEN_USAGE_EVENT = "uev_",
+  SUBSCRIPTION = "sub_",
+  INVOICE_RESULT = "inv_",
+  UPLOAD = "upl_",
+  AUDIT_LOG_EVENT = "ael_", // Audit log event
+  ORGANIZATION = "org_", // Organization
+  JOB = "job_", // Job
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -45,11 +42,14 @@ const ID_RANDOM_LENGTH = 10;
 const ID_LENGTH = ID_RANDOM_LENGTH + 4; /* prefix with underscore */
 
 export function isId(id: unknown, prefix: IdPrefixes): boolean {
-  return typeof id === 'string' && id.length === ID_LENGTH && id.startsWith(prefix);
+  return (
+    typeof id === "string" && id.length === ID_LENGTH && id.startsWith(prefix)
+  );
 }
 
 // Normal alphabet without - or _ so it can be selected in text editors more easily.
-const alphabet: string = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const alphabet: string =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 const nanoid = customAlphabet(alphabet, ID_RANDOM_LENGTH);
 
@@ -62,7 +62,9 @@ export function createPlainId(length?: number): string {
 }
 
 export function typeForId(id: AnyId): IdType | null {
-  return (_.findKey(IdPrefixes, (value) => id.startsWith(value)) as IdType) ?? null;
+  return (
+    (_.findKey(IdPrefixes, (value) => id.startsWith(value)) as IdType) ?? null
+  );
 }
 
 // ------- Users -------
@@ -102,7 +104,10 @@ export function createConnectorAccountId(): ConnectorAccountId {
 export type WorkbookId = PrefixedId<IdPrefixes.WORKBOOK>;
 
 export function isWorkbookId(id: unknown): id is WorkbookId {
-  return isId(id, IdPrefixes.WORKBOOK) || isId(id, 'sna_' as IdPrefixes /* Legacy migration */);
+  return (
+    isId(id, IdPrefixes.WORKBOOK) ||
+    isId(id, "sna_" as IdPrefixes /* Legacy migration */)
+  );
 }
 
 export function createWorkbookId(): WorkbookId {
@@ -165,14 +170,19 @@ export function createAiAgentCredentialId(): AiAgentCredentialId {
 }
 
 // ------- AiAgentTokenUsageEvent -------
-export type AiAgentTokenUsageEventId = PrefixedId<IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT>;
+export type AiAgentTokenUsageEventId =
+  PrefixedId<IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT>;
 
-export function isAiAgentTokenUsageEventId(id: unknown): id is AiAgentTokenUsageEventId {
+export function isAiAgentTokenUsageEventId(
+  id: unknown
+): id is AiAgentTokenUsageEventId {
   return isId(id, IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT);
 }
 
 export function createAiAgentTokenUsageEventId(): AiAgentTokenUsageEventId {
-  return createId(IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT) as AiAgentTokenUsageEventId;
+  return createId(
+    IdPrefixes.AI_AGENT_TOKEN_USAGE_EVENT
+  ) as AiAgentTokenUsageEventId;
 }
 
 // ------- Subscription -------

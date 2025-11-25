@@ -1,6 +1,6 @@
 'use client';
 
-import { SnapshotTableId } from '@/types/server-entities/ids';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { Box, Group, Loader, Paper, Select, Stack, Text } from '@mantine/core';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';

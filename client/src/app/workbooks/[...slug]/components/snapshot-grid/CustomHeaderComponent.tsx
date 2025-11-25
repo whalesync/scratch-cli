@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
-import { SnapshotTableId } from '../../../../../types/server-entities/ids';
+import { SnapshotTableId } from '@spinner/shared-types';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: SnapshotTableId;

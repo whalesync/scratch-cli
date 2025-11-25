@@ -7,11 +7,15 @@ include:
 # =============================================================================
 
 build and test client:
-  stage: build
+  stage: build and test
   interruptible: true
   script:
+    - cd packages/shared-types
+    - !reference [.use_nvm, script]
+    - yarn build
+    - cd ../..
     - cd client
-    - yarn install --frozen-lockfile
+    - !reference [.use_nvm, script]
     - yarn lint-strict
     - yarn test
     - export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY_DEVELOPMENT
@@ -29,7 +33,7 @@ build and test client:
     - !reference [.rules, on_merge_to_prod]
 
 build client docker image for test:
-  stage: build
+  stage: build and test
   extends:
     - .docker_builder_image
   cache: []
@@ -40,7 +44,6 @@ build client docker image for test:
       - client/image-test.tar
     expire_in: 1 hour
   script:
-    - cd client
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "Labelling this build as $BUILD_VERSION"
     # Environment-specific .env flags are set here.
@@ -56,19 +59,19 @@ build client docker image for test:
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://test-agent.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://test-agent.scratch.md
       -t spinner/spinner-client-test
-      -f Dockerfile .
+      -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-test > image-test.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - client/Dockerfile
+        - client/Dockerfile.monorepo
         - client/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
 
 upload posthog client source_maps test:
-  stage: build
+  stage: build and test
   needs:
     - build client docker image for test
   extends:
@@ -92,7 +95,7 @@ upload posthog client source_maps test:
     - !reference [.rules, on_merge_to_master]
 
 build client docker image for production:
-  stage: build
+  stage: build and test
   extends:
     - .docker_builder_image
   cache: []
@@ -103,7 +106,6 @@ build client docker image for production:
       - client/image-production.tar
     expire_in: 1 hour
   script:
-    - cd client
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "Labelling this build as $BUILD_VERSION"
     # Environment-specific .env flags are set here.
@@ -120,12 +122,12 @@ build client docker image for production:
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratch.md
       --build-arg NEXT_PUBLIC_GA_ID=G-GVXSMCZ3JR
       -t spinner/spinner-client-production
-      -f Dockerfile .
+      -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-production > image-production.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - client/Dockerfile
+        - client/Dockerfile.monorepo
         - client/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
@@ -136,9 +138,13 @@ build client docker image for production:
 # =============================================================================
 
 build and test server:
-  stage: build
+  stage: build and test
   interruptible: true
   script:
+    - cd packages/shared-types
+    - !reference [.use_nvm, script]
+    - yarn build
+    - cd ../..
     - cd server
     - !reference [.use_nvm, script]
     - yarn lint-strict
@@ -161,7 +167,7 @@ build and test server:
     - !reference [.rules, on_merge_to_prod]
 
 build server docker image:
-  stage: build
+  stage: build and test
   extends:
     - .docker_builder_image
   cache: []
@@ -172,14 +178,13 @@ build server docker image:
       - server/image.tar
     expire_in: 1 hour
   script:
-    - cd server
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "Labelling this build as $BUILD_VERSION"
     - >
       docker build
       --build-arg BUILD_VERSION="${BUILD_VERSION}"
       -t spinner/spinner-server
-      -f Dockerfile .
+      -f server/Dockerfile.monorepo .
     - docker save spinner/spinner-server > image.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -196,7 +201,7 @@ build server docker image:
 # =============================================================================
 
 build and test agent:
-  stage: build
+  stage: build and test
   image: python:$PYTHON_VERSION-slim
   script:
     - cd pydantic-ai-agent
@@ -215,7 +220,7 @@ build and test agent:
     - !reference [.rules, on_merge_to_prod]
 
 build agent docker image:
-  stage: build
+  stage: build and test
   extends:
     - .docker_builder_image
   cache: []
@@ -250,7 +255,7 @@ build agent docker image:
 # =============================================================================
 
 dummy job:
-  stage: build
+  stage: build and test
   interruptible: true
   image:
   script:

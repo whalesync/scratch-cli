@@ -1,19 +1,12 @@
 import { Subscription, TokenType, UserRole } from '@prisma/client';
+import { SubscriptionInfo } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { UserFlagValues } from 'src/experiments/experiments.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
-import { getPlan, getPlanTypeFromString, ScratchpadPlanType } from 'src/payment/plans';
+import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { Organization } from './organization.entity';
 
-export interface SubscriptionInfo {
-  status: 'valid' | 'expired' | 'payment_failed';
-  planDisplayName: string;
-  planType: ScratchpadPlanType;
-  daysRemaining: number;
-  isTrial: boolean;
-  canManageSubscription: boolean; // if the current user can manage the subscription
-  ownerId: string; // the id of the user who created the subscription
-}
+export type { SubscriptionInfo } from '@spinner/shared-types';
 export class User {
   createdAt: Date;
   updatedAt: Date;

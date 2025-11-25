@@ -1,5 +1,5 @@
+import { WorkbookId } from '@spinner/shared-types';
 import { WorkbookCluster } from '../../db/cluster-types';
-import { WorkbookId } from '../../types/ids';
 import { SnapshotTable as SnapshotTableEntity } from './snapshot-table.entity';
 
 export class Workbook {

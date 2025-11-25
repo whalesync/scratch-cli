@@ -1,8 +1,8 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { createPlainId, WorkbookId } from '@spinner/shared-types';
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { createPlainId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
 import { PublishRecordsJobDefinition } from 'src/worker/jobs/job-definitions/publish-records.job';

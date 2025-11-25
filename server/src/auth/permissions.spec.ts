@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client';
-import { UserId } from 'src/types/ids';
+import { UserId } from '@spinner/shared-types';
 import { hasAdminToolsPermission } from './permissions';
 import { AuthenticatedUser } from './types';
 

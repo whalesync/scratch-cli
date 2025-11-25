@@ -12,6 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { SnapshotTable } from '@prisma/client';
+import type { SnapshotTableId } from '@spinner/shared-types';
 import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
@@ -19,7 +20,6 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
 import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
-import type { SnapshotTableId } from '../types/ids';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 
 const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1'];

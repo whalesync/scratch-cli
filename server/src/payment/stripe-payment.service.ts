@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import { createInvoiceResultId, createSubscriptionId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
@@ -7,7 +8,6 @@ import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
-import { createInvoiceResultId, createSubscriptionId } from 'src/types/ids';
 import {
   AsyncResult,
   badRequestError,

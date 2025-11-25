@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuditLogEvent } from '@prisma/client';
-import { AnyId, createAuditLogEventId } from 'src/types/ids';
+import { AnyId, createAuditLogEventId } from '@spinner/shared-types';
 import { DbService } from '../db/db.service';
 import { AuditLogEventType } from './types';
 

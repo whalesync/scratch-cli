@@ -7,7 +7,7 @@ import {
   SendMessageResponse,
   SessionListResponse,
 } from '@/types/server-entities/agent';
-import { WorkbookId } from '../../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { ScratchpadApiError } from './error';
 

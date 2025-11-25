@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { createAiAgentTokenUsageEventId } from '@spinner/shared-types';
 import { DbService } from '../db/db.service';
-import { createAiAgentTokenUsageEventId } from '../types/ids';
 import { ValidatedCreateAiAgentTokenUsageEventDto } from './dto/create-ai-agent-token-usage-event.dto';
 import { AiAgentTokenUsageEvent } from './entities/ai-agent-token-usage-event.entity';
 import { UsageSummary } from './entities/usage-summary.entity';

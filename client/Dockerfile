@@ -23,7 +23,7 @@ COPY ./ /app/
 # Next.js automatically assigns this in next build, but set it just to be safe
 ENV NODE_ENV=production
 
-# Define a flavor we can set at docker build time. 
+# Define a flavor we can set at docker build time.
 # Valid values: 'production', 'staging', 'test', 'development'
 # A couple weird things here:
 # 1. Prefixing it with "NEXT_PUBLIC_" means it will be available in client AND server code (so no secrets).
@@ -72,7 +72,7 @@ COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/public /app/public
 COPY --from=builder /app/package.json /app/package.json
 
-# Automatically leverage output traces to reduce image size 
+# Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone /app/
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static /app/.next/static

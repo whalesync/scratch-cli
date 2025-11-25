@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import { createSnapshotRecordId, SnapshotRecordId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { Knex } from 'knex';
 import { types } from 'pg';
 import { WSLogger } from 'src/logger';
-import { createSnapshotRecordId, SnapshotRecordId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { assertUnreachable } from 'src/utils/asserts';
 import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';

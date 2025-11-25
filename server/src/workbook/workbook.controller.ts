@@ -22,6 +22,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { WorkbookId } from '@spinner/shared-types';
 import type { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
@@ -30,7 +31,6 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
-import type { WorkbookId } from '../types/ids';
 import {
   AcceptCellValueDto,
   ValidatedAcceptCellValueDto,

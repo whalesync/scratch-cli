@@ -1,8 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
+import type { WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
-import type { WorkbookId } from '../../../types/ids';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { SnapshotDb } from '../../../workbook/snapshot-db';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Organization } from '@prisma/client';
+import { OrganizationId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
-import { OrganizationId } from 'src/types/ids';
 import { OrganizationsService } from './organizations.service';
 
 describe('OrganizationsService', () => {

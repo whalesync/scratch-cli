@@ -1,6 +1,6 @@
+import { WorkbookId } from '@spinner/shared-types';
 import { SnapshotTableCluster } from '../../db/cluster-types';
 import { AnyTableSpec } from '../../remote-service/connectors/library/custom-spec-registry';
-import { WorkbookId } from '../../types/ids';
 import type { SnapshotColumnSettingsMap } from '../types';
 
 export class SnapshotTable {

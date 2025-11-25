@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
+import { createJobId } from '@spinner/shared-types';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
-import { createJobId } from 'src/types/ids';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
 import { DbJobStatus, JobEntity } from './entities/job.entity';

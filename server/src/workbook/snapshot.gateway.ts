@@ -10,13 +10,13 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
+import type { WorkbookId } from '@spinner/shared-types';
 import { Server } from 'socket.io';
 import type { SocketWithUser } from 'src/auth/types';
 import { toActor } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
-import type { WorkbookId } from 'src/types/ids';
 import { SnapshotEventService } from './snapshot-event.service';
 import { WorkbookService } from './workbook.service';
 

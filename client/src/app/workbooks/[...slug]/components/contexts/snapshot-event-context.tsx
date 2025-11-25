@@ -6,7 +6,7 @@ import { useSetState } from '@mantine/hooks';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSWRConfig } from 'swr';
-import { SnapshotTableId, WorkbookId } from '../../../../../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 interface SnapshotEventContextValue {
   isConnected: boolean;

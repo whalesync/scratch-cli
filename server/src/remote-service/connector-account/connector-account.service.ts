@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
+import { ConnectorAccountId, createConnectorAccountId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
@@ -7,7 +8,6 @@ import { WSLogger } from 'src/logger';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
-import { ConnectorAccountId, createConnectorAccountId } from '../../types/ids';
 import { EncryptedData } from '../../utils/encryption';
 import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';

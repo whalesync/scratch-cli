@@ -1,7 +1,7 @@
 import { workbookApi } from '@/lib/api/workbook';
 import { PublishSummary } from '@/types/server-entities/publish-summary';
 import { useCallback, useState } from 'react';
-import { WorkbookId } from '../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 
 export const usePublishSummary = (workbookId: WorkbookId | null, snapshotTableIds?: string[]) => {
   const [publishSummary, setPublishSummary] = useState<PublishSummary | null>(null);

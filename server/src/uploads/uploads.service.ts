@@ -3,6 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
+import {
+  createSnapshotTableId,
+  createUploadId,
+  createWorkbookId,
+  SnapshotTableId,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { parse, Parser } from 'csv-parse';
 import type { Response } from 'express';
 import matter from 'gray-matter';
@@ -10,7 +17,6 @@ import { WSLogger } from 'src/logger';
 import { sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
 import { CsvSchemaParser } from 'src/remote-service/connectors/library/csv/csv-schema-parser';
 import { AnyTableSpec, CsvColumnSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { createSnapshotTableId, createUploadId, createWorkbookId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { pipeline, Readable } from 'stream';

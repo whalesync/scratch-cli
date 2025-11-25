@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { Service } from '../../../../../types/server-entities/connector-accounts';
-import { SnapshotTableId } from '../../../../../types/server-entities/ids';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
 import { WebflowPublishMenuItem } from './custom-actions/webflow/WebflowPublishMenuItem';
 import { WixPublishMenuItem } from './custom-actions/wix/WixPublishMenuItem';

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AiAgentCredential } from '@prisma/client';
+import { AiAgentCredentialId, createAiAgentCredentialId } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
-import { AiAgentCredentialId, createAiAgentCredentialId } from 'src/types/ids';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 

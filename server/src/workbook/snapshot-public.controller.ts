@@ -8,8 +8,8 @@ import {
   Res,
   UseInterceptors,
 } from '@nestjs/common';
+import type { WorkbookId } from '@spinner/shared-types';
 import type { Response } from 'express';
-import type { WorkbookId } from 'src/types/ids';
 import { WorkbookService } from './workbook.service';
 
 /**

@@ -3,7 +3,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { SnapshotRecord, SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { FC, useCallback, useMemo, useState } from 'react';
-import { WorkbookId } from '../../../../../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 import { DisplayField } from './DisplayField';

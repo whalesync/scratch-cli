@@ -1,8 +1,7 @@
+import { ScratchpadPlanType } from '@spinner/shared-types';
 import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
 
-export enum ScratchpadPlanType {
-  STARTER_PLAN = 'STARTER_PLAN',
-}
+export { ScratchpadPlanType } from '@spinner/shared-types';
 
 export function getPlanTypeFromString(productTypeString: string): ScratchpadPlanType | undefined {
   for (const [k, v] of Object.entries(ScratchpadPlanType)) {

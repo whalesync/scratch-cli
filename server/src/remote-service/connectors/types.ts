@@ -1,5 +1,5 @@
+import { SnapshotRecordId } from '@spinner/shared-types';
 import { EditedFieldsMetadata } from 'src/workbook/snapshot-db';
-import { SnapshotRecordId } from '../../types/ids';
 
 export type TablePreview = {
   id: EntityId;

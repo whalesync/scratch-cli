@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import type { WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import type { WorkbookId } from 'src/types/ids';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';

@@ -6,7 +6,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { WorkbookId } from '../../../../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 
 interface ManageTablesModalProps {
   isOpen: boolean;

@@ -2,7 +2,7 @@
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi } from '@/lib/api/mentions';
-import { SnapshotTableId, WorkbookId } from '@/types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { TableSpec, Workbook } from '@/types/server-entities/workbook';
 import { useMantineColorScheme } from '@mantine/core';

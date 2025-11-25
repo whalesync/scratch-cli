@@ -14,7 +14,7 @@ import type {
   UpdateWorkbookDto,
   Workbook,
 } from '@/types/server-entities/workbook';
-import { SnapshotTableId, WorkbookId } from '../../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { BulkUpdateRecordsDto, ListRecordsResponse, SetTableViewStateDto } from '../../types/server-entities/records';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';

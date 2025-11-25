@@ -5,7 +5,7 @@ import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Modal, Stack, Text } from '@mantine/core';
 import { CircleAlertIcon } from 'lucide-react';
 import { useMemo } from 'react';
-import { WorkbookId } from '../../../../../../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import { StatusListItem } from './StatusListItem';
 import { TablePublishStats } from './TablePublishStats';
 

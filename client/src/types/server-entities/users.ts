@@ -1,4 +1,4 @@
-import { ScratchpadPlanType } from './payment';
+import { SubscriptionInfo } from '@spinner/shared-types';
 
 export interface User {
   id: string;
@@ -17,15 +17,7 @@ export interface User {
   settings?: Record<string, string | number | boolean>;
 }
 
-export interface SubscriptionInfo {
-  status: 'valid' | 'expired' | 'payment_failed';
-  planDisplayName: string;
-  planType: ScratchpadPlanType;
-  daysRemaining: number;
-  isTrial: boolean;
-  canManageSubscription: boolean;
-  ownerId: string;
-}
+export type { SubscriptionInfo } from '@spinner/shared-types';
 
 /** User-scoped feature flag settings provided by the server */
 export interface UserExperimentFlags {

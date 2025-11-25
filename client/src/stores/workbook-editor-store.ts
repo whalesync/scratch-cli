@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SnapshotTableId, WorkbookId } from '../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { SnapshotTable, Workbook } from '../types/server-entities/workbook';
 
 // Transient ID for a tab that doesn't have a table yet.

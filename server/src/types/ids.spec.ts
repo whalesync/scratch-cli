@@ -9,7 +9,7 @@ import {
   isUserId,
   isWorkbookId,
   typeForId,
-} from './ids';
+} from '@spinner/shared-types';
 
 // Mock nanoid to avoid ESM import issues in Jest
 jest.mock('nanoid', () => ({

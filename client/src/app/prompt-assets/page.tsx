@@ -18,7 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { StyleGuideId } from '../../types/server-entities/ids';
+import { StyleGuideId } from '@spinner/shared-types';
 import { formatBytes } from '../../utils/helpers';
 import { ActionIconThreeDots } from '../components/base/action-icons';
 import { ButtonPrimaryLight, ButtonPrimarySolid, ButtonSecondaryOutline } from '../components/base/buttons';

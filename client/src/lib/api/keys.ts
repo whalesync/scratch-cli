@@ -1,5 +1,5 @@
 import { Arguments } from 'swr';
-import { SnapshotTableId, WorkbookId } from '../../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 export const SWR_KEYS = {
   agentCredentials: {

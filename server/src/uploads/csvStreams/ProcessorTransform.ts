@@ -1,4 +1,4 @@
-import { createCsvFileRecordId } from 'src/types/ids';
+import { createCsvFileRecordId } from '@spinner/shared-types';
 import { Transform, TransformCallback } from 'stream';
 
 export class ProcessorTransform extends Transform {

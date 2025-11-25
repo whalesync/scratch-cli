@@ -1,4 +1,4 @@
-import { createPlainId } from 'src/types/ids';
+import { createPlainId } from '@spinner/shared-types';
 
 /** The IDs we work on internally are used direclty in postgres and the UI and should be sane. */
 // TODO(ryder): This doesn't check for uniqueness, so it will fail if two columns canonicalize to the same thing.

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Organization } from '@prisma/client';
+import { OrganizationId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
-import { OrganizationId } from 'src/types/ids';
 
 @Injectable()
 export class OrganizationsService {

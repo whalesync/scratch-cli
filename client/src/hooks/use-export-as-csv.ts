@@ -3,7 +3,7 @@ import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { Workbook } from '@/types/server-entities/workbook';
 import { useSWRConfig } from 'swr';
-import { SnapshotTableId } from '../types/server-entities/ids';
+import { SnapshotTableId } from '@spinner/shared-types';
 
 export const useExportAsCsv = () => {
   const { mutate: globalMutate } = useSWRConfig();

@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
+import { createSnapshotTableId, createWorkbookId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import type { Response } from 'express';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -13,7 +14,6 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForColumnWsId, sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
-import { createSnapshotTableId, createWorkbookId, SnapshotTableId, WorkbookId } from 'src/types/ids';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';

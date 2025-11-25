@@ -14,7 +14,7 @@ import {
 import { hashStringList } from '@/utils/helpers';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { SnapshotTableId, WorkbookId } from '../types/server-entities/ids';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useWorkbook } from './use-workbook';
 
 export interface UseSnapshotRecordsReturn {

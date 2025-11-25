@@ -4,7 +4,7 @@ import { workbookApi, WorkbookSortBy, WorkbookSortOrder } from '@/lib/api/workbo
 import { CreateWorkbookDto, UpdateWorkbookDto, Workbook } from '@/types/server-entities/workbook';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { WorkbookId } from '../types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 
 export interface UseWorkbooksOptions {
   connectorAccountId?: string;

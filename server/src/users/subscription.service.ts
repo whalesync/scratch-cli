@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Subscription } from '@prisma/client';
+import { SubscriptionId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
-import { SubscriptionId } from 'src/types/ids';
 
 @Injectable()
 export class SubscriptionService {

@@ -20,7 +20,7 @@ import {
 } from '@/lib/posthog';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
-import { SnapshotTableId } from '@/types/server-entities/ids';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';

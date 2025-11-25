@@ -1,5 +1,5 @@
 import { workbookApi } from '@/lib/api/workbook';
-import { WorkbookId } from '@/types/server-entities/ids';
+import { WorkbookId } from '@spinner/shared-types';
 import useSWR from 'swr';
 import { SWR_KEYS } from '../lib/api/keys';
 

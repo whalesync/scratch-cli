@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AiAgentCredentialSource, TokenType, UserRole } from '@prisma/client';
+import { createAiAgentCredentialId, createApiTokenId, createOrganizationId, createUserId } from '@spinner/shared-types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
@@ -8,7 +9,6 @@ import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
-import { createAiAgentCredentialId, createApiTokenId, createOrganizationId, createUserId } from 'src/types/ids';
 import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';

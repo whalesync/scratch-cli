@@ -1,4 +1,4 @@
-import { UploadId } from 'src/types/ids';
+import { UploadId } from '@spinner/shared-types';
 
 /**
  * Upload type enum (used internally)
