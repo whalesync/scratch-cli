@@ -1,5 +1,5 @@
+import { SnapshotTableId, StyleGuideId, WorkbookId } from '@spinner/shared-types';
 import { Arguments } from 'swr';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 export const SWR_KEYS = {
   agentCredentials: {
@@ -56,5 +56,10 @@ export const SWR_KEYS = {
     detail: (id: string) => ['uploads', 'detail', id],
     csvData: (id: string, limit?: number, offset?: number) => ['uploads', 'csv-data', id, limit, offset],
     mdData: (id: string) => ['uploads', 'md-data', id],
+  },
+
+  styleGuides: {
+    list: () => ['style-guides', 'list'],
+    detail: (id: StyleGuideId) => ['style-guides', 'detail', id],
   },
 };

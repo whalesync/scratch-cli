@@ -54,7 +54,7 @@ const UsageSummaryTab = ({ summary }: { summary?: UsageSummary }) => {
           <Table.Thead>
             <Table.Tr>
               <Table.Th onClick={() => setSortBy('model')} style={{ cursor: 'pointer' }} w="50%">
-                Modal
+                Model
                 {sortBy === 'model' && <StyledLucideIcon Icon={ArrowDownIcon} c="gray" size={12} ml="xs" />}
               </Table.Th>
               <Table.Th ta="right" onClick={() => setSortBy('requests')} style={{ cursor: 'pointer' }} w="25%">

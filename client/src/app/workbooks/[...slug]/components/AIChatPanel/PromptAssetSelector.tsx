@@ -12,8 +12,8 @@ import { StyleGuide } from '@/types/server-entities/style-guide';
 import { Workbook } from '@/types/server-entities/workbook';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
 import { AtSignIcon, FileIcon, PlusIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { EditResourceModal } from '../../../../components/EditResourceModal';
+import { useCallback, useEffect, useMemo } from 'react';
+import { EditResourceModal, useEditResourceModal } from '../../../../components/EditResourceModal';
 import styles from './PromptAssetSelector.module.css';
 
 export function PromptAssetSelector({
@@ -26,6 +26,7 @@ export function PromptAssetSelector({
   resetInputFocus: () => void;
 }) {
   const { promptAssets, mutate: refreshResourceList } = usePromptAssets();
+  const resourceModal = useEditResourceModal();
   const combobox = useCombobox({
     onDropdownClose: () => {
       combobox.resetSelectedOption();
@@ -33,8 +34,6 @@ export function PromptAssetSelector({
     },
   });
   const { activeResources, setActiveResources } = useAgentChatContext();
-  const [isEditResourceModalOpen, setIsEditResourceModalOpen] = useState(false);
-  const [resourceToEdit, setResourceToEdit] = useState<StyleGuide | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -91,8 +90,7 @@ export function PromptAssetSelector({
     (resourceId: string) => {
       if (resourceId === 'new') {
         trackClickCreateResourceInChat(workbook);
-        setIsEditResourceModalOpen(true);
-        setResourceToEdit(null);
+        resourceModal.open('new');
       } else {
         trackAddResourceToChat(workbook);
         setActiveResources([...activeResources, resourceId]);
@@ -100,7 +98,7 @@ export function PromptAssetSelector({
       combobox.closeDropdown();
       resetInputFocus();
     },
-    [combobox, resetInputFocus, workbook, setActiveResources, activeResources],
+    [combobox, resetInputFocus, workbook, setActiveResources, activeResources, resourceModal],
   );
 
   const selectedResources = promptAssets.filter((p) => activeResources.includes(p.id));
@@ -108,18 +106,14 @@ export function PromptAssetSelector({
   return (
     <>
       <EditResourceModal
-        opened={isEditResourceModalOpen}
-        onClose={() => {
-          setIsEditResourceModalOpen(false);
-          setResourceToEdit(null);
-        }}
-        resourceDocument={resourceToEdit}
-        onSuccess={async (newStyleGuide, isNewResource) => {
-          await refreshResourceList();
-          setIsEditResourceModalOpen(false);
-
-          if (isNewResource && !activeResources.includes(newStyleGuide.id)) {
-            setActiveResources([...activeResources, newStyleGuide.id]);
+        {...resourceModal}
+        close={(result) => {
+          resourceModal.close();
+          if (result) {
+            if (result.action === 'create' && !activeResources.includes(result.asset.id)) {
+              setActiveResources([...activeResources, result.asset.id]);
+            }
+            refreshResourceList();
           }
         }}
       />
@@ -160,8 +154,7 @@ export function PromptAssetSelector({
               onRemove={() => handleRemove(sg.id)}
               onClick={() => {
                 trackClickViewResourceFromChat(workbook);
-                setResourceToEdit(sg);
-                setIsEditResourceModalOpen(true);
+                resourceModal.open(sg);
               }}
             />
           ))}

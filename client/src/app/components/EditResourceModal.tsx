@@ -1,5 +1,6 @@
 'use client';
 
+import { SWR_KEYS } from '@/lib/api/keys';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import {
@@ -9,19 +10,21 @@ import {
   StyleGuide,
   UpdateStyleGuideDto,
 } from '@/types/server-entities/style-guide';
-import { Alert, Checkbox, Group, Modal, ModalProps, Stack, Textarea, TextInput } from '@mantine/core';
+import { Alert, Checkbox, Group, Modal, Stack, Textarea, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { CircleCheckBigIcon, CircleXIcon, DownloadIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { mutate } from 'swr';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
 import { ToolIconButton } from './ToolIconButton';
 
-interface EditResourceModalProps extends ModalProps {
-  resourceDocument: StyleGuide | null;
-  onSuccess?: (updatedStyleGuide: StyleGuide, isNewResource: boolean) => void;
+interface EditResourceModalProps {
+  opened: boolean;
+  close: (result: { asset: StyleGuide; action: 'create' | 'update' } | null) => void;
+  asset: StyleGuide | null;
 }
 
-export function EditResourceModal({ resourceDocument, onSuccess, ...props }: EditResourceModalProps) {
+export function EditResourceModal({ opened, close, asset }: EditResourceModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState('');
@@ -34,16 +37,16 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
   const [resetInputFocus, setResetInputFocus] = useState(false);
 
   useEffect(() => {
-    if (!props.opened) {
+    if (!opened) {
       return;
     }
 
-    if (resourceDocument) {
-      setContent(resourceDocument.body);
-      setName(resourceDocument.name);
-      setAutoInclude(resourceDocument.autoInclude);
-      setSourceUrl(resourceDocument.sourceUrl || '');
-      setContentType(resourceDocument.contentType);
+    if (asset) {
+      setContent(asset.body);
+      setName(asset.name);
+      setAutoInclude(asset.autoInclude);
+      setSourceUrl(asset.sourceUrl || '');
+      setContentType(asset.contentType);
       setResetInputFocus(true);
     } else {
       setName('');
@@ -56,7 +59,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
     setError(null);
     setIsSaving(false);
     setContentUpdatedMessage(null);
-  }, [resourceDocument, props.opened]);
+  }, [asset, opened]);
 
   useEffect(() => {
     // Focus on textarea when modal opens or style guide changes
@@ -66,7 +69,7 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
     }
   }, [resetInputFocus]);
 
-  const isNewResource = !resourceDocument;
+  const isNewResource = !asset;
 
   const handleDownloadResource = async () => {
     trackClickDownloadResource();
@@ -115,15 +118,16 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
           contentType,
           tags: [],
         };
-        updatedStyleGuide = await styleGuideApi.update(resourceDocument.id, updateData);
+        updatedStyleGuide = await styleGuideApi.update(asset.id, updateData);
       }
+      await mutate(SWR_KEYS.styleGuides.detail(updatedStyleGuide.id));
+      await mutate(SWR_KEYS.styleGuides.list());
 
-      onSuccess?.(updatedStyleGuide, isNewResource);
       notifications.show({
         message: isNewResource ? `Successfully created resource.` : `Successfully updated resource.`,
         color: 'green',
       });
-      props.onClose?.();
+      close({ asset: updatedStyleGuide, action: isNewResource ? 'create' : 'update' });
     } catch (err) {
       setError('Failed to update resource');
       console.error('Error updating resource:', err);
@@ -134,17 +138,18 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
 
   const handleClose = () => {
     if (!isSaving) {
-      props.onClose?.();
+      close(null);
     }
   };
 
   return (
     <Modal
-      title={resourceDocument ? `Edit ${resourceDocument.name}` : 'Create a new prompt asset'}
+      opened={opened}
+      onClose={() => close(null)}
+      title={asset ? `Edit ${asset.name}` : 'Create a new prompt asset'}
       size="xl"
       closeOnClickOutside={!isSaving}
       closeOnEscape={!isSaving}
-      {...props}
     >
       <Stack gap="md">
         {error && (
@@ -229,3 +234,30 @@ export function EditResourceModal({ resourceDocument, onSuccess, ...props }: Edi
     </Modal>
   );
 }
+
+export const useEditResourceModal = () => {
+  const [opened, setOpened] = useState(false);
+  const [asset, setAsset] = useState<StyleGuide | null>(null);
+
+  const open = (resource: StyleGuide | 'new') => {
+    if (resource === 'new') {
+      setAsset(null);
+    } else {
+      setAsset(resource);
+    }
+    setOpened(true);
+  };
+
+  const close = () => {
+    setOpened(false);
+    setAsset(null);
+  };
+
+  return {
+    opened,
+    open,
+    close,
+    asset,
+    setAsset,
+  };
+};

@@ -17,14 +17,14 @@ export const ContextBadges = () => {
       {dataScope === 'table' && (
         <ContextBadge
           label={_.capitalize(dataScope)}
-          tooltip={`The agent can work all active records in the table "${activeTable?.tableSpec?.name || ''}"`}
+          tooltip={`The agent can work with all visisble records in the table "${activeTable?.tableSpec?.name || ''}"`}
           icon={Table2Icon}
         />
       )}
       {dataScope === 'record' || dataScope === 'column' ? (
         <ContextBadge
           label={_.capitalize(activeRecordId || '')}
-          tooltip="The agent is just working on this record"
+          tooltip="The agent is working on only this record"
           icon={Disc3Icon}
         />
       ) : null}
@@ -32,7 +32,7 @@ export const ContextBadges = () => {
         <ContextBadge
           label={_.capitalize(activeColumnId || '')}
           icon={RectangleEllipsisIcon}
-          tooltip="The agent is focusing on this field"
+          tooltip="The agent is focusing on only this field"
         />
       )}
     </Group>
