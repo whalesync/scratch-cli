@@ -177,7 +177,10 @@ export class ConnectorAccountService {
   }
 
   async listAllUserTables(actor: Actor): Promise<TableGroup[]> {
-    const allAccounts = await this.findAll(actor);
+    const allAccounts = await this.db.client.connectorAccount.findMany({
+      // Ignore accounts with failed health status
+      where: { organizationId: actor.organizationId, healthStatus: 'OK' },
+    });
 
     // Fetch tables from all connector accounts in parallel
     const tablePromises = allAccounts.map((account) =>
