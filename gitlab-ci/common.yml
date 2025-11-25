@@ -33,6 +33,13 @@ include:
     - . ~/.bashrc
     - nvm use && yarn install --frozen-lockfile --cache-folder .yarn --prefer-offline
 
+.build_shared_types:
+  script:
+    - cd packages/shared-types
+    - !reference [.use_nvm, script]
+    - yarn build
+    - cd ../..
+
 # Reusable snippet for including into rules to trigger jobs only on merge to master, not in MRs or scheduled pipelines
 .rules:
   on_merge_to_master:

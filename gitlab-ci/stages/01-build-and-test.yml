@@ -10,10 +10,7 @@ build and test client:
   stage: build and test
   interruptible: true
   script:
-    - cd packages/shared-types
-    - !reference [.use_nvm, script]
-    - yarn build
-    - cd ../..
+    - !reference [.build_shared_types, script]
     - cd client
     - !reference [.use_nvm, script]
     - yarn lint-strict
@@ -80,6 +77,7 @@ upload posthog client source_maps test:
   allow_failure: true # This job should not block the rest of the pipeline if it fails
   cache: []
   script:
+    - !reference [.build_shared_types, script]
     - cd client
     - !reference [.use_nvm, script]
     - yarn install --frozen-lockfile
@@ -142,10 +140,7 @@ build and test server:
   stage: build and test
   interruptible: true
   script:
-    - cd packages/shared-types
-    - !reference [.use_nvm, script]
-    - yarn build
-    - cd ../..
+    - !reference [.build_shared_types, script]
     - cd server
     - !reference [.use_nvm, script]
     - yarn lint-strict
