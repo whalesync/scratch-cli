@@ -67,6 +67,30 @@ build client docker image for test:
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
 
+upload posthog client source_maps test:
+  stage: build
+  needs:
+    - build client docker image for test
+  extends:
+    - .with_posthog_cli
+  interruptible: true
+  allow_failure: true # This job should not block the rest of the pipeline if it fails
+  cache: []
+  script:
+    - cd client
+    - yarn install --frozen-lockfile
+    - export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY_DEVELOPMENT
+    - yarn build
+    - export POSTHOG_CLI_ENV_ID=$POSTHOG_PROJECT_ID_TEST
+    - export POSTHOG_CLI_TOKEN=$POSTHOG_CLI_API_KEY_TEST
+    - posthog-cli sourcemap inject --directory .next/static
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - client/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+
 build client docker image for production:
   stage: build
   extends:

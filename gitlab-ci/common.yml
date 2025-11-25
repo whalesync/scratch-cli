@@ -91,3 +91,13 @@ include:
     paths:
       - client/node_modules
     unprotect: true
+
+# Reusable snippet for including into rules to install Posthog CLI
+.with_posthog_cli:
+  extends:
+    - .use_nvm
+  before_script:
+    - echo "Installing Posthog CLI"
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/PostHog/posthog/releases/download/posthog-cli-v0.0.5/posthog-cli-installer.sh | sh
+    - source $HOME/.posthog/env
+    - posthog-cli-update
