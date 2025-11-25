@@ -133,6 +133,7 @@ export class WebflowSchemaParser {
   } {
     const type = field.type;
     switch (type) {
+      case Webflow.FieldType.Reference:
       case Webflow.FieldType.PlainText:
         return {
           pgType: PostgresColumnType.TEXT,
