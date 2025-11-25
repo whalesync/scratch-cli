@@ -55,6 +55,8 @@ build client docker image for test:
       --build-arg NEXT_PUBLIC_API_URL=https://test-api.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://test-agent.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://test-agent.scratch.md
+      --build-arg POSTHOG_PROJECT_ID="${POSTHOG_PROJECT_ID_TEST}"
+      --build-arg POSTHOG_CLI_API_KEY="${POSTHOG_CLI_API_KEY_TEST}"
       -t spinner/spinner-client-test
       -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-test > client/image-test.tar
@@ -65,32 +67,6 @@ build client docker image for test:
         - client/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
-    - !reference [.rules, on_merge_to_master]
-
-upload posthog client source_maps test:
-  stage: build and test
-  needs:
-    - build client docker image for test
-  extends:
-    - .with_posthog_cli
-  interruptible: true
-  allow_failure: true # This job should not block the rest of the pipeline if it fails
-  cache: []
-  script:
-    - !reference [.build_shared_types, script]
-    - cd client
-    - !reference [.use_nvm, script]
-    - yarn install --frozen-lockfile
-    - export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY_DEVELOPMENT
-    - yarn build
-    - export POSTHOG_CLI_ENV_ID=$POSTHOG_PROJECT_ID_TEST
-    - export POSTHOG_CLI_TOKEN=$POSTHOG_CLI_API_KEY_TEST
-    - posthog-cli sourcemap inject --directory .next/static
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - client/**/*
-        - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
 
 build client docker image for production:
@@ -120,6 +96,8 @@ build client docker image for production:
       --build-arg NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=wss://agent.scratch.md
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratch.md
       --build-arg NEXT_PUBLIC_GA_ID=G-GVXSMCZ3JR
+      --build-arg POSTHOG_PROJECT_ID="${POSTHOG_PROJECT_ID_PRODUCTION}"
+      --build-arg POSTHOG_API_KEY="${POSTHOG_CLI_API_KEY_PRODUCTION}"
       -t spinner/spinner-client-production
       -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-production > client/image-production.tar
