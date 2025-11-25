@@ -139,6 +139,11 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
       metadata = { textFormat: 'html' };
       dataConverterTypes = ['html'];
       break;
+    case WordPressDataType.RENDERED_INLINE:
+      pgType = PostgresColumnType.TEXT;
+      metadata = { textFormat: 'html' };
+      dataConverterTypes = ['html'];
+      break;
     case WordPressDataType.EMAIL:
       pgType = PostgresColumnType.TEXT;
       metadata = { textFormat: 'email' };
@@ -164,7 +169,7 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
     case WordPressDataType.OBJECT:
     case WordPressDataType.UNKNOWN:
     default:
-      pgType = PostgresColumnType.JSONB;
+      pgType = PostgresColumnType.TEXT;
       break;
   }
 
@@ -220,6 +225,10 @@ function parseTypeFromArgument(columnId: string, arg: WordPressArgument, isAcf: 
 
   // Check for rendered object
   if (arg.properties !== undefined && arg.properties['rendered'] !== undefined) {
+    if (columnId === 'title') {
+      // Special case the title column as rendered inline so it isn't wrapped in HTML
+      return WordPressDataType.RENDERED_INLINE;
+    }
     return WordPressDataType.RENDERED;
   }
 

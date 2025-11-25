@@ -93,6 +93,7 @@ export enum WordPressDataType {
   ARRAY = 'wordpress/array',
   OBJECT = 'wordpress/object',
   RENDERED = 'wordpress/rendered',
+  RENDERED_INLINE = 'wordpress/renderedinline',
   FOREIGN_KEY = 'wordpress/foreignkey',
   // None of the above.
   UNKNOWN = 'wordpress/unknown',

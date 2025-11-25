@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Service } from '@prisma/client';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { ConnectorRecord, PostgresColumnType } from '../../types';
 import { WordPressTableSpec } from '../custom-spec-registry';
 import { WordPressConnector } from './wordpress-connector';
 import { WORDPRESS_POLLING_PAGE_SIZE } from './wordpress-constants';
-import { WordPressDataType } from './wordpress-types';
+import { WordPressDataType, WordPressEndpointOptionsResponse, WordPressRecord } from './wordpress-types';
 
 // Mock the WordPressHttpClient
 jest.mock('./wordpress-http-client', () => {
@@ -21,13 +23,6 @@ jest.mock('./wordpress-http-client', () => {
   };
 });
 
-// Mock turndown
-jest.mock('turndown', () =>
-  jest.fn().mockImplementation(() => ({
-    turndown: jest.fn((html: string) => html.replace(/<[^>]*>/g, '').trim()),
-  })),
-);
-
 // Mock client type
 type MockWordPressClient = {
   pollRecords: jest.Mock;
@@ -41,7 +36,6 @@ type MockWordPressClient = {
 
 // Shared test constants
 const TEST_ENDPOINT = 'posts';
-const TEST_ENDPOINT_TAGS = 'tags';
 
 const MOCK_ENTITY_ID = {
   wsId: 'posts',
@@ -61,6 +55,10 @@ const MOCK_CONTENT_COLUMN = {
   pgType: PostgresColumnType.TEXT,
   wordpressDataType: WordPressDataType.RENDERED,
 };
+
+const postsSchemaResponse = JSON.parse(
+  readFileSync(join(__dirname, '__fixtures__', 'posts-schema-response.json'), 'utf8'),
+) as WordPressEndpointOptionsResponse;
 
 describe('WordPressConnector', () => {
   let connector: WordPressConnector;
@@ -117,9 +115,9 @@ describe('WordPressConnector', () => {
       const records = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records;
       expect(records).toHaveLength(2);
       expect(records[0].id).toBe('1');
-      expect(records[0].fields.title).toBe('Test Post'); // HTML stripped by turndown mock
+      expect(records[0].fields.title).toBe('# Test Post'); // HTML stripped by turndown mock
       expect(records[1].id).toBe('2');
-      expect(records[1].fields.title).toBe('Another Post');
+      expect(records[1].fields.title).toBe('# Another Post');
     });
 
     it('should handle pagination correctly', async () => {
@@ -178,7 +176,7 @@ describe('WordPressConnector', () => {
 
       const record = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records[0];
       // Should be converted to markdown (HTML tags stripped by mock)
-      expect(record.fields.content).toBe('HeadingParagraph content');
+      expect(record.fields.content).toBe('# Heading\n\nParagraph content');
     });
 
     it('should keep rendered content as HTML when dataConverter is html', async () => {
@@ -397,71 +395,14 @@ describe('WordPressConnector', () => {
   });
 
   describe('fetchTableSpec', () => {
-    it('should fetch table spec for a post type', async () => {
-      // Mock endpoint options response
-      mockClient.getEndpointOptions.mockResolvedValue({
-        schema: {
-          properties: {
-            id: {
-              type: 'integer',
-              context: ['view', 'edit'],
-            },
-            title: {
-              type: 'object',
-              properties: {
-                rendered: { type: 'string' },
-              },
-              context: ['view', 'edit'],
-            },
-            content: {
-              type: 'object',
-              properties: {
-                rendered: { type: 'string' },
-              },
-              context: ['view', 'edit'],
-            },
-            status: {
-              type: 'string',
-              context: ['view', 'edit'],
-            },
-          },
-        },
-      });
+    it('should fetch and parse the table spec for a post type', async () => {
+      // Mock endpoint options response with a real response
+      mockClient.getEndpointOptions.mockResolvedValue(postsSchemaResponse);
 
       const tableSpec = await connector.fetchTableSpec(MOCK_ENTITY_ID);
 
       expect(mockClient.getEndpointOptions).toHaveBeenCalledWith(TEST_ENDPOINT);
-      expect(tableSpec.id).toEqual(MOCK_ENTITY_ID);
-      expect(tableSpec.columns).toBeDefined();
-      expect(tableSpec.columns.length).toBeGreaterThan(0);
-    });
-
-    it('should handle endpoint with minimal schema', async () => {
-      const entityId = {
-        wsId: 'tags',
-        remoteId: [TEST_ENDPOINT_TAGS],
-      };
-
-      mockClient.getEndpointOptions.mockResolvedValue({
-        schema: {
-          properties: {
-            id: {
-              type: 'integer',
-              context: ['view'],
-            },
-            name: {
-              type: 'string',
-              context: ['view'],
-            },
-          },
-        },
-      });
-
-      const tableSpec = await connector.fetchTableSpec(entityId);
-
-      expect(mockClient.getEndpointOptions).toHaveBeenCalledWith(TEST_ENDPOINT_TAGS);
-      expect(tableSpec.id).toEqual(entityId);
-      expect(tableSpec.columns).toBeDefined();
+      expect(tableSpec).toMatchSnapshot();
     });
 
     it('should sanitize table name from table ID', async () => {
@@ -482,6 +423,312 @@ describe('WordPressConnector', () => {
 
       expect(tableSpec.name).toBeDefined();
       expect(tableSpec.id.remoteId[0]).toBe('custom-post-type');
+    });
+  });
+
+  describe('updateRecords', () => {
+    it('should convert all field types correctly and call API with proper body', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: MOCK_ENTITY_ID,
+        name: 'Posts',
+        slug: 'posts',
+        columns: [
+          {
+            id: { wsId: 'string_field', remoteId: ['string_field'] },
+            name: 'String Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.STRING,
+          },
+          {
+            id: { wsId: 'email_field', remoteId: ['email_field'] },
+            name: 'Email Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.EMAIL,
+          },
+          {
+            id: { wsId: 'uri_field', remoteId: ['uri_field'] },
+            name: 'URI Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.URI,
+          },
+          {
+            id: { wsId: 'enum_field', remoteId: ['enum_field'] },
+            name: 'Enum Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.ENUM,
+          },
+          {
+            id: { wsId: 'integer_field', remoteId: ['integer_field'] },
+            name: 'Integer Field',
+            pgType: PostgresColumnType.NUMERIC,
+            wordpressDataType: WordPressDataType.INTEGER,
+          },
+          {
+            id: { wsId: 'number_field', remoteId: ['number_field'] },
+            name: 'Number Field',
+            pgType: PostgresColumnType.NUMERIC,
+            wordpressDataType: WordPressDataType.NUMBER,
+          },
+          {
+            id: { wsId: 'boolean_field', remoteId: ['boolean_field'] },
+            name: 'Boolean Field',
+            pgType: PostgresColumnType.BOOLEAN,
+            wordpressDataType: WordPressDataType.BOOLEAN,
+          },
+          {
+            id: { wsId: 'date_field', remoteId: ['date_field'] },
+            name: 'Date Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.DATE,
+          },
+          {
+            id: { wsId: 'datetime_field', remoteId: ['datetime_field'] },
+            name: 'DateTime Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.DATETIME,
+          },
+          {
+            id: { wsId: 'array_field', remoteId: ['array_field'] },
+            name: 'Array Field',
+            pgType: PostgresColumnType.NUMERIC_ARRAY,
+            wordpressDataType: WordPressDataType.ARRAY,
+          },
+          {
+            id: { wsId: 'object_field', remoteId: ['object_field'] },
+            name: 'Object Field',
+            pgType: PostgresColumnType.JSONB,
+            wordpressDataType: WordPressDataType.OBJECT,
+          },
+          {
+            id: { wsId: 'rendered_field_markdown', remoteId: ['rendered_field_markdown'] },
+            name: 'Rendered Field (Markdown)',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.RENDERED,
+          },
+          {
+            id: { wsId: 'rendered_field_html', remoteId: ['rendered_field_html'] },
+            name: 'Rendered Field (HTML)',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.RENDERED,
+          },
+          {
+            id: { wsId: 'title', remoteId: ['title'] },
+            name: 'Title',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.RENDERED_INLINE,
+          },
+          {
+            id: { wsId: 'foreign_key_field', remoteId: ['foreign_key_field'] },
+            name: 'Foreign Key Field',
+            pgType: PostgresColumnType.NUMERIC,
+            wordpressDataType: WordPressDataType.FOREIGN_KEY,
+          },
+          {
+            id: { wsId: 'unknown_field', remoteId: ['unknown_field'] },
+            name: 'Unknown Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.UNKNOWN,
+          },
+          {
+            id: { wsId: 'readonly_field', remoteId: ['readonly_field'] },
+            name: 'Readonly Field',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.STRING,
+            readonly: true,
+          },
+        ],
+      };
+
+      const columnSettingsMap = {
+        rendered_field_markdown: {
+          dataConverter: 'markdown',
+        },
+        rendered_field_html: {
+          dataConverter: 'html',
+        },
+        title: {
+          dataConverter: 'markdown',
+        },
+      };
+
+      const recordsToUpdate = [
+        {
+          id: { wsId: 'test-ws-id', remoteId: '123' },
+          partialFields: {
+            string_field: 'Test String',
+            email_field: 'test@example.com',
+            uri_field: 'https://example.com',
+            enum_field: 'option1',
+            integer_field: 42,
+            number_field: 3.14,
+            boolean_field: true,
+            date_field: '2023-01-15',
+            datetime_field: '2023-01-15T10:30:00Z',
+            array_field: [1, 2, 3],
+            object_field: { key: 'value', nested: { prop: 123 } },
+            rendered_field_markdown: '# Heading\n\nParagraph with **bold** text.',
+            rendered_field_html: '<h1>Heading</h1><p>HTML content</p>',
+            title: 'Hello World',
+            foreign_key_field: 456,
+            unknown_field: 'unknown value',
+            readonly_field: 'This should be ignored',
+          },
+        },
+      ];
+
+      mockClient.updateRecord.mockResolvedValue(undefined);
+
+      await connector.updateRecords(mockTableSpec, columnSettingsMap, recordsToUpdate);
+
+      expect(mockClient.updateRecord).toHaveBeenCalledTimes(1);
+      expect(mockClient.updateRecord).toHaveBeenCalledWith(TEST_ENDPOINT, '123', expect.any(Object));
+
+      // Snapshot the request body to ensure all field conversions are correct
+      const requestBody = mockClient.updateRecord.mock.calls[0][2] as WordPressRecord;
+      expect(requestBody).toMatchSnapshot();
+    });
+
+    it('should only include modified columns in the request body', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: MOCK_ENTITY_ID,
+        name: 'Posts',
+        slug: 'posts',
+        columns: [
+          {
+            id: { wsId: 'title', remoteId: ['title'] },
+            name: 'Title',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.RENDERED,
+          },
+          {
+            id: { wsId: 'status', remoteId: ['status'] },
+            name: 'Status',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.STRING,
+          },
+        ],
+      };
+
+      const recordsToUpdate = [
+        {
+          id: { wsId: 'test-ws-id', remoteId: '456' },
+          partialFields: {
+            status: 'draft', // Only updating status, not title
+          },
+        },
+      ];
+
+      mockClient.updateRecord.mockResolvedValue(undefined);
+
+      await connector.updateRecords(mockTableSpec, {}, recordsToUpdate);
+
+      const requestBody = mockClient.updateRecord.mock.calls[0][2] as WordPressRecord;
+      expect(requestBody).toEqual({
+        status: 'draft',
+      });
+      expect(requestBody).not.toHaveProperty('title');
+    });
+
+    it('should handle markdown to HTML conversion for rendered fields', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: MOCK_ENTITY_ID,
+        name: 'Posts',
+        slug: 'posts',
+        columns: [MOCK_CONTENT_COLUMN],
+      };
+
+      const recordsToUpdate = [
+        {
+          id: { wsId: 'test-ws-id', remoteId: '789' },
+          partialFields: {
+            content: '# Main Heading\n\n## Subheading\n\nParagraph with *italic* and **bold**.',
+          },
+        },
+      ];
+
+      mockClient.updateRecord.mockResolvedValue(undefined);
+
+      await connector.updateRecords(mockTableSpec, {}, recordsToUpdate);
+
+      const requestBody = mockClient.updateRecord.mock.calls[0][2] as WordPressRecord;
+      // Markdown should be converted to HTML
+      expect(requestBody.content).toContain('<h1>Main Heading</h1>');
+      expect(requestBody.content).toContain('<h2>Subheading</h2>');
+      expect(requestBody.content).toContain('<em>italic</em>');
+      expect(requestBody.content).toContain('<strong>bold</strong>');
+    });
+
+    it('should keep HTML as-is when dataConverter is html', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: MOCK_ENTITY_ID,
+        name: 'Posts',
+        slug: 'posts',
+        columns: [MOCK_CONTENT_COLUMN],
+      };
+
+      const columnSettingsMap = {
+        content: {
+          dataConverter: 'html',
+        },
+      };
+
+      const htmlContent = '<div class="custom"><h1>Title</h1><p>Content</p></div>';
+      const recordsToUpdate = [
+        {
+          id: { wsId: 'test-ws-id', remoteId: '999' },
+          partialFields: {
+            content: htmlContent,
+          },
+        },
+      ];
+
+      mockClient.updateRecord.mockResolvedValue(undefined);
+
+      await connector.updateRecords(mockTableSpec, columnSettingsMap, recordsToUpdate);
+
+      const requestBody = mockClient.updateRecord.mock.calls[0][2] as WordPressRecord;
+      // HTML should be kept as-is
+      expect(requestBody.content).toBe(htmlContent);
+    });
+
+    it('should process multiple records sequentially', async () => {
+      const mockTableSpec: WordPressTableSpec = {
+        id: MOCK_ENTITY_ID,
+        name: 'Posts',
+        slug: 'posts',
+        columns: [
+          {
+            id: { wsId: 'status', remoteId: ['status'] },
+            name: 'Status',
+            pgType: PostgresColumnType.TEXT,
+            wordpressDataType: WordPressDataType.STRING,
+          },
+        ],
+      };
+
+      const recordsToUpdate = [
+        {
+          id: { wsId: 'test-ws-id-1', remoteId: '100' },
+          partialFields: { status: 'publish' },
+        },
+        {
+          id: { wsId: 'test-ws-id-2', remoteId: '200' },
+          partialFields: { status: 'draft' },
+        },
+        {
+          id: { wsId: 'test-ws-id-3', remoteId: '300' },
+          partialFields: { status: 'pending' },
+        },
+      ];
+
+      mockClient.updateRecord.mockResolvedValue(undefined);
+
+      await connector.updateRecords(mockTableSpec, {}, recordsToUpdate);
+
+      expect(mockClient.updateRecord).toHaveBeenCalledTimes(3);
+      expect(mockClient.updateRecord).toHaveBeenNthCalledWith(1, TEST_ENDPOINT, '100', { status: 'publish' });
+      expect(mockClient.updateRecord).toHaveBeenNthCalledWith(2, TEST_ENDPOINT, '200', { status: 'draft' });
+      expect(mockClient.updateRecord).toHaveBeenNthCalledWith(3, TEST_ENDPOINT, '300', { status: 'pending' });
     });
   });
 

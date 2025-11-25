@@ -247,13 +247,17 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       }
       const value = fields[wsId];
       const remoteId = column.id.remoteId[0];
-      if (column.wordpressDataType === WordPressDataType.RENDERED) {
+      if (
+        column.wordpressDataType === WordPressDataType.RENDERED ||
+        column.wordpressDataType === WordPressDataType.RENDERED_INLINE
+      ) {
         const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
         if (dataConverter === 'html') {
           wpRecord[remoteId] = value;
         } else {
           const converter = MarkdownIt({});
-          const markdownContent = converter.render(String(value));
+          const inline = column.wordpressDataType === WordPressDataType.RENDERED_INLINE;
+          const markdownContent = inline ? converter.renderInline(String(value)) : converter.render(String(value));
           wpRecord[remoteId] = markdownContent;
         }
       } else {
