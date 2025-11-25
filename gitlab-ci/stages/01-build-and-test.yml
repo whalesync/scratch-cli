@@ -57,7 +57,7 @@ build client docker image for test:
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://test-agent.scratch.md
       -t spinner/spinner-client-test
       -f client/Dockerfile.monorepo .
-    - docker save spinner/spinner-client-test > image-test.tar
+    - docker save spinner/spinner-client-test > client/image-test.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -122,7 +122,7 @@ build client docker image for production:
       --build-arg NEXT_PUBLIC_GA_ID=G-GVXSMCZ3JR
       -t spinner/spinner-client-production
       -f client/Dockerfile.monorepo .
-    - docker save spinner/spinner-client-production > image-production.tar
+    - docker save spinner/spinner-client-production > client/image-production.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -181,7 +181,7 @@ build server docker image:
       --build-arg BUILD_VERSION="${BUILD_VERSION}"
       -t spinner/spinner-server
       -f server/Dockerfile.monorepo .
-    - docker save spinner/spinner-server > image.tar
+    - docker save spinner/spinner-server > server/image.tar
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
