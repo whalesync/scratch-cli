@@ -669,19 +669,32 @@ export class SnapshotDb {
           let castExpression: string;
           switch (columnType) {
             case PostgresColumnType.NUMERIC:
-            case PostgresColumnType.NUMERIC_ARRAY:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as a numeric
               castExpression = `(??->>?)::numeric`;
               break;
+            case PostgresColumnType.NUMERIC_ARRAY:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as JSON, then turn it into individual values, parse each as numeric, then turn it back into an array
+              castExpression = `ARRAY(SELECT (jsonb_array_elements((??->>?)::jsonb))::text::numeric)`;
+              break;
             case PostgresColumnType.BOOLEAN:
-            case PostgresColumnType.BOOLEAN_ARRAY:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as a boolean
               castExpression = `(??->>?)::boolean`;
               break;
+            case PostgresColumnType.BOOLEAN_ARRAY:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as JSON, then turn it into individual values, parse each as boolean, then turn it back into an array
+              castExpression = `ARRAY(SELECT (jsonb_array_elements((??->>?)::jsonb))::text::boolean)`;
+              break;
             case PostgresColumnType.JSONB:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as JSON
               castExpression = `(??->>?)::jsonb`;
               break;
-            case PostgresColumnType.TEXT:
             case PostgresColumnType.TEXT_ARRAY:
+              // Retrieve <columnId> as a string from __suggested_values and parse it as JSON, then turn it into individual values, then turn it back into an array
+              castExpression = `ARRAY(SELECT jsonb_array_elements_text((??->>?)::jsonb))`;
+              break;
+            case PostgresColumnType.TEXT:
             default:
+              // Retrieve <columnId> as a string from __suggested_values
               castExpression = `??->>?`;
               break;
           }
