@@ -1,11 +1,11 @@
 .chatPanelHeader {
-  border-bottom: 1px solid var(--mantine-color-gray-4);
+  border-bottom: 1px solid var(--fg-divider);
   padding: 2px 6px 2px 6px;
   flex-shrink: 0; /* Prevents it from shrinking */
 }
 
 .chatPanelBody {
-  padding: 2px 6px 2px 6px;
+  padding: 8px;
   flex-grow: 1; /* Takes up all available space between header and footer */
   overflow-y: auto; /* Enables vertical scrolling if content overflows */
   justify-content: flex-start; /* Align text at the top */
@@ -14,7 +14,7 @@
 }
 
 .chatPanelFooter {
-  border-top: 1px solid var(--mantine-color-gray-4);
+  border-top: 1px solid var(--fg-divider);
   flex-shrink: 0; /* Prevents it from shrinking */
   flex-grow: 1;
   padding: 2px 6px 2px 6px;

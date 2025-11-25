@@ -1,19 +1,19 @@
 .root {
   background-color: var(--bg-panel);
   border-bottom: 1px solid var(--mantine-color-gray-4);
-  height: 38;
 }
 
 .list {
   flex-wrap: nowrap;
   --tabs-list-gap: 0; /* Undocumented, override. */
+  height: 100%;
 }
 
 .tab {
   color: var(--fg-secondary);
   border-bottom: none;
   border-right: 1px solid var(--mantine-color-gray-4);
-  height: 36;
+  height: 100%;
 
   &:hover {
     background-color: var(--bg-selected);

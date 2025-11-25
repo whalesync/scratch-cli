@@ -1,5 +1,6 @@
 'use client';
 
+import { Text9Regular, TextMono12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/hooks/use-agent-chat-websocket';
 import { useDevTools } from '@/hooks/use-dev-tools';
@@ -9,8 +10,16 @@ import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import _ from 'lodash';
-import { Coins, FoldVerticalIcon, UnfoldVerticalIcon } from 'lucide-react';
+import {
+  AlertCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Coins,
+  FoldVerticalIcon,
+  UnfoldVerticalIcon,
+} from 'lucide-react';
 import { MarkdownRenderer } from '../../../../components/markdown/MarkdownRenderer';
+import classes from './ChatMessageElement.module.css';
 
 const LocalAdminMessage = ({ msg }: { msg: string }) => {
   return (
@@ -22,9 +31,9 @@ const LocalAdminMessage = ({ msg }: { msg: string }) => {
 
 const BasicMessage = ({ msg }: { msg: string }) => {
   return (
-    <Text size="xs" c="dimmed" pl="xs" style={{ textTransform: 'uppercase' }}>
+    <TextMono12Regular c="dimmed" pl="xs" style={{ textTransform: 'uppercase' }}>
       [{msg}]
-    </Text>
+    </TextMono12Regular>
   );
 };
 
@@ -65,9 +74,9 @@ const AgentToolCallMessage = ({ msg }: { msg: ChatMessage }) => {
   const toggleButton = displayArgs ? (
     <ActionIcon variant="transparent-hover" color="gray" size="xs" onClick={() => toggle()}>
       {isExpanded ? (
-        <StyledLucideIcon Icon={FoldVerticalIcon} size={14} />
+        <StyledLucideIcon Icon={ChevronUpIcon} size={14} />
       ) : (
-        <StyledLucideIcon Icon={UnfoldVerticalIcon} size={14} />
+        <StyledLucideIcon Icon={ChevronDownIcon} size={14} />
       )}
     </ActionIcon>
   ) : null;
@@ -216,17 +225,6 @@ export const ChatMessageElement = ({
     }
   }
 
-  const bgColor = msg.role === 'user' ? 'transparent' : 'transparent';
-  const border =
-    msg.variant === 'error'
-      ? '1px solid red'
-      : msg.role === 'user'
-        ? '1px solid var(--mantine-color-gray-2)'
-        : '1px solid transparent';
-  const alignment = msg.role === 'user' ? 'flex-end' : 'flex-start';
-  const maxWidth = msg.role === 'user' ? '90%' : '100%';
-  const padding = '4px';
-
   // Extract usage stats for response messages
   const usageStats: UsageStats | null =
     msg.variant === 'message' && msg.role === 'assistant' && msg.payload
@@ -270,35 +268,38 @@ export const ChatMessageElement = ({
     </Box>
   ) : null;
 
+  const icon =
+    msg.variant === 'error' ? (
+      <StyledLucideIcon Icon={AlertCircleIcon} size={14} c="var(--mantine-color-red-8)" mt={4} />
+    ) : null;
+
   return (
-    <Paper
-      p={padding}
-      bg={bgColor}
-      bd={border}
-      bdrs="0px"
-      style={{
-        alignSelf: alignment,
-        maxWidth: maxWidth,
-      }}
-      w="100%"
-    >
-      <Stack gap="4px" w="100%">
-        <Box fz="xs" style={{ overflow: 'hidden' }}>
+    <Stack gap="4px" w="100%">
+      <Paper className={classes.chatMessageRoot} data-chat-role={msg.role} data-chat-variant={msg.variant}>
+        {icon ? (
+          <Group wrap="nowrap" align="flex-start">
+            {icon}
+            <Box flex={1}>
+              <MarkdownRenderer>{msg.message}</MarkdownRenderer>
+            </Box>
+          </Group>
+        ) : (
           <MarkdownRenderer>{msg.message}</MarkdownRenderer>
-        </Box>
-        <Group gap="xs" justify="flex-end" align="center">
-          {usageStats && (
-            <Tooltip label={usageTooltipContent} withArrow>
-              <Box style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-                <StyledLucideIcon Icon={Coins} size={10} c="dimmed" centerInText />
-              </Box>
-            </Tooltip>
-          )}
-          <Text c="dimmed" fz="8px">
-            {timeAgo(msg.timestamp)}
-          </Text>
-        </Group>
-      </Stack>
-    </Paper>
+        )}
+        <Text9Regular ta="right" c="dimmed">
+          {timeAgo(msg.timestamp)}
+        </Text9Regular>
+      </Paper>
+      <Group gap="xs" justify="flex-end" align="center">
+        {usageStats && (
+          // TODO: Fix this tooltip
+          <Tooltip label={usageTooltipContent} withArrow>
+            <Box style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
+              <StyledLucideIcon Icon={Coins} size={10} c="dimmed" centerInText />
+            </Box>
+          </Tooltip>
+        )}
+      </Group>
+    </Stack>
   );
 };

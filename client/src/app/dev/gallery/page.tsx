@@ -67,6 +67,7 @@ import {
   Text16Book,
   Text16Medium,
   Text16Regular,
+  Text9Regular,
   TextMono12Regular,
   TextMono13Regular,
   TextTitle1,
@@ -283,6 +284,9 @@ export default function DevComponentGalleryPage() {
           </TypeGalleryItem>
           <TypeGalleryItem label="Text12Book c='dimmed'">
             <Text12Book c="dimmed">Brown fox is quick</Text12Book>
+          </TypeGalleryItem>
+          <TypeGalleryItem label="Text9Regular" notes="Off-spec but for very tiny text needs">
+            <Text9Regular c="dimmed">Brown fox is quick</Text9Regular>
           </TypeGalleryItem>
           <GalleryItem label="DotSpacer">
             <Group gap={0}>

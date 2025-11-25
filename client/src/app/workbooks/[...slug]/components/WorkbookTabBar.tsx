@@ -10,6 +10,8 @@ import { CloseButtonInline } from '../../../components/CloseButtonInline';
 import { ConnectorIcon } from '../../../components/ConnectorIcon';
 import classes from './WorkbookTabBar.module.css';
 
+export const WORKBOOK_TAB_BAR_HEIGHT = 40;
+
 export const WorkbookTabBar = () => {
   const { workbook, hideTable, deleteTable } = useActiveWorkbook();
   const tabs = useWorkbookEditorUIStore((state) => state.tabs);
@@ -21,6 +23,7 @@ export const WorkbookTabBar = () => {
   return (
     <Tabs
       classNames={classes}
+      h={WORKBOOK_TAB_BAR_HEIGHT}
       variant="pills"
       value={activeTab}
       onChange={(value) => value && setActiveTab(value as SnapshotTableId | NewTabId)}
@@ -37,7 +40,7 @@ export const WorkbookTabBar = () => {
           />
         ))}
         <Box key="new-tab-button">
-          <IconButtonGhost onClick={openNewBlankTab}>
+          <IconButtonGhost onClick={openNewBlankTab} h="100%">
             <Plus size={16} />
           </IconButtonGhost>
         </Box>

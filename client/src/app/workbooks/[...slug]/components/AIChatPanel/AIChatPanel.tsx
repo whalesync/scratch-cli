@@ -4,6 +4,7 @@ import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/Advanced
 import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
@@ -24,21 +25,21 @@ import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
-import _ from 'lodash';
 import {
   ChevronDownIcon,
   LucideFileKey,
-  MessagesSquareIcon,
   OctagonMinusIcon,
   Plus,
   SendIcon,
   SparklesIcon,
+  Trash2Icon,
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
-import { Text12Regular, TextTitle3 } from '../../../../components/base/text';
+import { Text12Regular, Text13Medium } from '../../../../components/base/text';
 import ModelPicker from '../../../../components/ModelPicker';
+import { WORKBOOK_TAB_BAR_HEIGHT } from '../WorkbookTabBar';
 import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
@@ -213,6 +214,47 @@ export default function AIChatPanel() {
     }
   };
 
+  const onDeleteSessionClick = useCallback(async () => {
+    if (!activeSessionId) {
+      return;
+    }
+    await disconnect();
+    clearActiveSession();
+    await deleteSession(activeSessionId);
+  }, [activeSessionId, clearActiveSession, deleteSession, disconnect]);
+
+  const onSessionHistorySelected = useCallback(
+    async (sessionId: string) => {
+      if (sessionId) {
+        await disconnect();
+        try {
+          await activateSession(sessionId);
+          await connect(sessionId);
+          trackOpenOldChatSession(workbook);
+          setMessage('');
+          setResetInputFocus(true);
+          scrollToBottom();
+        } catch (error) {
+          setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      } else {
+        clearActiveSession();
+        await disconnect();
+      }
+    },
+    [
+      clearActiveSession,
+      disconnect,
+      activateSession,
+      connect,
+      workbook,
+      setMessage,
+      setResetInputFocus,
+      scrollToBottom,
+      setError,
+    ],
+  );
+
   const sendMessage = async () => {
     if (!message.trim() || !activeSessionId || agentTaskRunning) return;
     const messageCleaned = message.trim();
@@ -346,71 +388,35 @@ export default function AIChatPanel() {
         flexDirection: 'column',
       }}
       p={0}
-      bd="1px solid var(--mantine-color-gray-4)"
+      bd="1px solid var(--fg-divider)"
     >
-      <Box h="40px" className={classes.chatPanelHeader}>
-        <Group align="center" wrap="nowrap" h="100%" gap="2px">
-          <ToolIconButton icon={MessagesSquareIcon} onClick={closeChat} size="sm" />
-          <Group
-            gap="2px"
-            flex={1}
-            onMouseEnter={() => setShowDeleteSessionButton(true)}
-            onMouseLeave={() => setShowDeleteSessionButton(false)}
-          >
-            <TextTitle3>
-              {activeSession ? _.truncate(activeSession.name, { length: 30, omission: '...' }) : 'Chat'}
-            </TextTitle3>
-            {activeSession && showDeleteSessionButton && (
-              <ActionIcon
-                onClick={async () => {
-                  if (!activeSessionId) return;
-                  await disconnect();
-                  await clearActiveSession();
-                  await deleteSession(activeSessionId);
-                }}
-                size="sm"
-                variant="transparent-hover"
-                color="gray"
-                title="Delete session"
-                disabled={!activeSessionId}
-              >
-                <StyledLucideIcon Icon={XIcon} size={14} />
-              </ActionIcon>
-            )}
-          </Group>
-          <Group gap="xs" ml="auto">
-            <ActionIcon
-              onClick={createNewSession}
-              size="sm"
-              variant="transparent-hover"
-              color="gray"
-              title="New chat"
-              disabled={!activeOpenRouterCredentials}
-            >
-              <StyledLucideIcon Icon={Plus} size={14} />
-            </ActionIcon>
-            <SessionHistorySelector
-              disabled={!activeOpenRouterCredentials}
-              onSelect={async (sessionId: string) => {
-                if (sessionId) {
-                  await disconnect();
-                  try {
-                    await activateSession(sessionId);
-                    await connect(sessionId);
-                    trackOpenOldChatSession(workbook);
-                    setMessage('');
-                    setResetInputFocus(true);
-                    scrollToBottom();
-                  } catch (error) {
-                    setError(`Failed to activate session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                  }
-                } else {
-                  clearActiveSession();
-                  await disconnect();
-                }
-              }}
+      <Box h={WORKBOOK_TAB_BAR_HEIGHT} className={classes.chatPanelHeader}>
+        <Group
+          align="center"
+          wrap="nowrap"
+          h="100%"
+          gap={2}
+          onMouseEnter={() => setShowDeleteSessionButton(true)}
+          onMouseLeave={() => setShowDeleteSessionButton(false)}
+        >
+          <ToolIconButton icon={XIcon} onClick={closeChat} />
+          <Text13Medium>{activeSession?.name ?? 'Chat'}</Text13Medium>
+          {activeSession && showDeleteSessionButton && (
+            <ToolbarIconButton
+              icon={Trash2Icon}
+              onClick={onDeleteSessionClick}
+              title="Delete session"
+              disabled={!activeSessionId}
             />
-          </Group>
+          )}
+          <Box flex={1} />
+          <ToolbarIconButton
+            icon={Plus}
+            onClick={createNewSession}
+            title="New chat"
+            disabled={!activeOpenRouterCredentials}
+          />
+          <SessionHistorySelector disabled={!activeOpenRouterCredentials} onSelect={onSessionHistorySelected} />
         </Group>
       </Box>
       <Box w="100%" h="100%" className={classes.chatPanelBody} ref={scrollAreaRef}>
@@ -424,7 +430,6 @@ export default function AIChatPanel() {
             )}
           </Alert>
         )}
-
         {connectionError && (
           <Alert color="red" mb="sm" p="xs">
             <Text size="xs" c="dimmed">
@@ -432,9 +437,7 @@ export default function AIChatPanel() {
             </Text>
           </Alert>
         )}
-
         {/* Messages */}
-
         {activeSessionId ? (
           <Stack gap="xs">
             {chatHistory.map((msg, index) => (

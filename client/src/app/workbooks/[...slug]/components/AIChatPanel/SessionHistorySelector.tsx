@@ -4,7 +4,7 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { ChatSessionSummary } from '@/types/server-entities/agent';
 import { timeAgo } from '@/utils/helpers';
 import { ActionIcon, Combobox, Group, Text, useCombobox } from '@mantine/core';
-import { HistoryIcon } from 'lucide-react';
+import { Clock4Icon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
 export const SessionHistorySelector = ({
@@ -107,14 +107,8 @@ export const SessionHistorySelector = ({
       }}
     >
       <Combobox.Target>
-        <ActionIcon
-          variant="transparent-hover"
-          color="gray"
-          size="sm"
-          onClick={() => combobox.toggleDropdown()}
-          disabled={disabled}
-        >
-          <StyledLucideIcon Icon={HistoryIcon} size={14} />
+        <ActionIcon onClick={() => combobox.toggleDropdown()} disabled={disabled}>
+          <StyledLucideIcon Icon={Clock4Icon} size={14} />
         </ActionIcon>
       </Combobox.Target>
 
