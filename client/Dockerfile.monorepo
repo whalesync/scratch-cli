@@ -109,7 +109,7 @@ COPY --from=builder /app/client/package.json /app/client/package.json
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/client/.next/standalone /app/
+COPY --from=builder --chown=nextjs:nodejs /app/client/.next/standalone /app/client/
 COPY --from=builder --chown=nextjs:nodejs /app/client/.next/static /app/client/.next/static
 
 USER nextjs
@@ -120,7 +120,6 @@ ENV PORT=3000
 ENV RUNNING_IN_CLOUD=false
 ENV APP_ENV=test
 
-# The standalone output puts server.js at the root of the standalone directory
-# We copied /app/client/.next/standalone to /app/, so server.js is at /app/server.js
-WORKDIR /app
+# server.js is at /app/client/server.js
+WORKDIR /app/client
 CMD ["node", "server.js"]
