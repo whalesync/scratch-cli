@@ -32,7 +32,7 @@ import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
-import { AG } from './ag-grid-constants';
+import { AG, ID_COLUMN_FIELD } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
 import { CustomHeaderComponent } from './CustomHeaderComponent';
 import RecordDetailsOverlay from './RecordDetailsOverlay';
@@ -117,17 +117,18 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   const recalculateOverlayWidth = useCallback(() => {
     if (gridApi) {
-      // Get the width of the first 2 columns (ID and Title)
+      // Get the width of the first 3 pinned columns (dot, ID, and Title)
       // Use the table spec to identify the title column (respects titleColumnRemoteId)
       const titleColumnWsId = identifyRecordTitleColumn(table.tableSpec);
       const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === titleColumnWsId);
+      const idColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === ID_COLUMN_FIELD);
 
       let pinnedColumnsWidth = AG.dotColumn.width;
 
-      // if (dotColumn) {
-      //   pinnedColumnsWidth += dotColumn.getActualWidth();
-      //   console.debug('ID column width:', dotColumn.getActualWidth());
-      // }
+      if (idColumn) {
+        pinnedColumnsWidth += idColumn.getActualWidth();
+        console.debug('ID column width:', idColumn.getActualWidth());
+      }
 
       if (titleColumn) {
         pinnedColumnsWidth += titleColumn.getActualWidth();
@@ -585,8 +586,8 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   const headerColumnDef = dataColumns[0];
   const otherColumnDefs = dataColumns.slice(1);
-  // Combine columns in order: ID, Title (if exists), data columns, then menu column
-  const columnDefs: ColDef[] = [dotColumn, headerColumnDef, idColumn, ...otherColumnDefs];
+  // Combine columns in order: dot, ID, Title (if exists), data columns, then menu column
+  const columnDefs: ColDef[] = [dotColumn, idColumn, headerColumnDef, ...otherColumnDefs];
 
   if (error) {
     return (

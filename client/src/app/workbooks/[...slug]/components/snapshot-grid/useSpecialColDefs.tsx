@@ -21,10 +21,11 @@ export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: Use
     headerName: entityName + 'ID',
     sortable: true,
     filter: false,
-    resizable: resizable,
+    resizable: true,
+    pinned: 'left',
+    lockPosition: true,
     width: 150,
-    minWidth: 150,
-    maxWidth: 150,
+    minWidth: 100,
     // Use custom ID header component with settings button
     headerComponent: IdHeaderComponent,
     headerComponentParams: {
