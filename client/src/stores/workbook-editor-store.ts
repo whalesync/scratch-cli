@@ -1,3 +1,4 @@
+import { RouteUrls } from '@/utils/route-urls';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
 import { SnapshotTable, Workbook } from '../types/server-entities/workbook';
@@ -112,22 +113,44 @@ const INITIAL_STATE: WorkbookEditorUIState = {
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openWorkbook: (params: { workbookId: WorkbookId; tableId?: SnapshotTableId; recordId?: string; columnId?: string }) =>
+  openWorkbook: (params: {
+    workbookId: WorkbookId;
+    tableId?: SnapshotTableId;
+    recordId?: string;
+    columnId?: string;
+  }) => {
     set({
       workbookId: params.workbookId,
       activeTab: params.tableId ?? null,
       activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
-    }),
-  closeWorkbook: () => set({ ...INITIAL_STATE }),
-  setActiveTab: (activeTab: TabId) => set({ activeTab }),
-  setActiveCells: (activeCells: ActiveCells | null) =>
-    set({ activeCells, recordDetailsVisible: !!activeCells?.recordId }),
+    });
+  },
+  closeWorkbook: () => {
+    set({ ...INITIAL_STATE });
+  },
+  setActiveTab: (activeTab: TabId) => {
+    set({ activeTab });
+    RouteUrls.updateWorkbookPath(get().workbookId ?? '', activeTab);
+  },
+  setActiveCells: (activeCells: ActiveCells | null) => {
+    const current = get();
+    set({ activeCells, recordDetailsVisible: !!activeCells?.recordId });
+    RouteUrls.updateWorkbookPath(
+      current.workbookId ?? '',
+      current.activeTab || undefined,
+      activeCells?.recordId,
+      activeCells?.columnId,
+    );
+  },
   openNewBlankTab: () => {
     const newTab = newBlankTab();
     set({ tabs: [...get().tabs, newTab], activeTab: newTab.id });
+    RouteUrls.updateWorkbookPath(get().workbookId ?? '', newTab.id);
   },
   closeTab: (id: TabId) => {
-    set({ ...closeTabAndFixActiveTab(id, get().tabs, get().activeTab) });
+    const fixedTabs = closeTabAndFixActiveTab(id, get().tabs, get().activeTab);
+    set({ ...fixedTabs });
+    RouteUrls.updateWorkbookPath(get().workbookId ?? '', fixedTabs.activeTab || undefined);
   },
 
   openDevTools: () => set({ devToolsOpen: true }),
@@ -158,6 +181,7 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     }
 
     const changes: Partial<WorkbookEditorUIState> = reconcileOpenTabs(
+      workbook.id,
       current.tabs,
       workbook.snapshotTables ?? [],
       current.activeTab,
@@ -168,6 +192,7 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
 }));
 
 function reconcileOpenTabs(
+  workbookId: WorkbookId,
   tabs: TabState[],
   snapshotTables: SnapshotTable[],
   activeTab: TabId | null,
@@ -199,6 +224,8 @@ function reconcileOpenTabs(
   // Ensure there is a valid active tab.
   if (!result.activeTab || !result.tabs.find((tab) => tab.id === result.activeTab)) {
     result.activeTab = result.tabs[0]?.id ?? null;
+    // set the path to the first tab
+    RouteUrls.updateWorkbookPath(workbookId, result.activeTab || undefined);
   }
 
   return result;

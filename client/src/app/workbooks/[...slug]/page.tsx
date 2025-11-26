@@ -39,7 +39,7 @@ const DEFAULT_CHAT_WIDTH = '500px';
 
 function WorkbookPageContent() {
   const { isDevToolsEnabled } = useDevTools();
-  const { tableId, updateSnapshotPath } = useWorkbookParams();
+  const { tableId: pathTableId } = useWorkbookParams();
   const activeTab = useWorkbookEditorUIStore((state) => state.activeTab);
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
@@ -64,7 +64,7 @@ function WorkbookPageContent() {
       // update the active table and table context with the newer version
       setActiveTab(updatedTable.id);
     }
-  }, [workbook, activeTable, tableId, updateSnapshotPath, setActiveTab]);
+  }, [workbook, activeTable, pathTableId, setActiveTab]);
 
   // Temp place untill we have a better handling of hotkeys, commands,
   useEffect(() => {
@@ -171,11 +171,14 @@ export default function WorkbookPage() {
 
   useEffect(() => {
     openWorkbook(params);
+    
     return () => {
       closeWorkbook();
       closeNavDrawer();
     };
-  }, [params, openWorkbook, closeWorkbook, closeNavDrawer]);
+    // Only depend on the changing value for workbook id, no the params object reference which changes with each render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.workbookId, openWorkbook, closeWorkbook, closeNavDrawer]);
 
   const { workbook } = useWorkbook(params.workbookId);
   useEffect(() => {

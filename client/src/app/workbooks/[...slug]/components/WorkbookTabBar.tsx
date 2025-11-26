@@ -26,7 +26,11 @@ export const WorkbookTabBar = () => {
       h={WORKBOOK_TAB_BAR_HEIGHT}
       variant="pills"
       value={activeTab}
-      onChange={(value) => value && setActiveTab(value as SnapshotTableId | NewTabId)}
+      onChange={(value) => {
+        if(value){
+          setActiveTab(value as SnapshotTableId | NewTabId);
+        }
+     }}
     >
       <Tabs.List>
         {tabs.map((tab) => (

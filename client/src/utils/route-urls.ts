@@ -1,8 +1,11 @@
 export class RouteUrls {
   // Public routes
   static healthEndpoint = '/api/health';
+
+  // Not implemented yet, just placeholder for future use
   static signInPageUrl = '/sign-in';
   static signInPageWithRedirect = (redirect_url: string) => `${this.signInPageUrl}?redirect_url=${redirect_url}`;
+  // Not implemented yet, just placeholder for future use
   static signUpPageUrl = '/sign-up';
   static signUpPageWithRedirect = (redirect_url: string) => `${this.signUpPageUrl}?redirect_url=${redirect_url}`;
 
@@ -62,4 +65,23 @@ export class RouteUrls {
   static isSubscribedOnlyRoute(pathname: string): boolean {
     return RouteUrls.subscriptionRoutePatterns.some((pattern) => new RegExp(pattern).test(pathname));
   }
+
+  /**
+   * Updates the current path without triggering a rerender of the page
+   * @param workbookId - The ID of the workbook
+   * @param tableId - The ID of the table. If undefined, the table id will be removed from the path.
+   * @param recordId - The ID of the record. If undefined, the record id will be removed from the path.
+   * @param columnId - The ID of the column. If undefined, the column id will be removed from the path.
+   */
+  static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string, columnId?: string) => {
+    if (tableId && recordId && columnId) {
+      window.history.replaceState(null, '', RouteUrls.workbookColumnView(workbookId, tableId, recordId, columnId));
+    } else if (tableId && recordId) {
+      window.history.replaceState(null, '', RouteUrls.workbookRecordView(workbookId, tableId, recordId));
+    } else if (tableId) {
+      window.history.replaceState(null, '', RouteUrls.workbookTablePage(workbookId, tableId));
+    } else {
+      window.history.replaceState(null, '', RouteUrls.workbookPageUrl(workbookId));
+    }
+  };
 }
