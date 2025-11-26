@@ -13,15 +13,8 @@ export class RouteUrls {
   static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
-  static workbookPageUrl = (id: string, tableId?: string, recordId?: string) => {
-    if (tableId && recordId) {
-      return this.workbookRecordView(id, tableId, recordId);
-    }
-    if (tableId) {
-      return this.workbookTablePage(id, tableId);
-    }
-    return `/workbooks/${id}`;
-  };
+  static workbookPageUrl = (id: string) => `/workbooks/${id}`;
+  static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
   static workbookRecordView = (id: string, tableId: string, recordId: string) =>
     `/workbooks/${id}/${tableId}/${recordId}`;

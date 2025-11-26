@@ -24,7 +24,7 @@ import { useState } from 'react';
 
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
-export const CreateConnectionModal = (props: ModalProps) => {
+export const CreateConnectionModal = (props: ModalProps & { returnUrl?: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
@@ -106,7 +106,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
     try {
       const isCustom = authMethod === 'oauth_custom';
       const connectionName = newDisplayName ?? undefined;
-      const pathname = window.location.pathname;
+      const returnPage = props.returnUrl ?? window.location.pathname;
       console.debug('connectionName', connectionName);
       await initiateOAuth(newService as OAuthService, {
         // (http|https)://<host, e.g. test.scratch.md>
@@ -115,7 +115,7 @@ export const CreateConnectionModal = (props: ModalProps) => {
         customClientId: isCustom ? customClientId : undefined,
         customClientSecret: isCustom ? customClientSecret : undefined,
         connectionName: connectionName,
-        returnPage: pathname,
+        returnPage: returnPage,
       });
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {

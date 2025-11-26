@@ -5,7 +5,7 @@ import { SnapshotTable, Workbook } from '../types/server-entities/workbook';
 
 // Transient ID for a tab that doesn't have a table yet.
 // This isn't persisted or saved between sessions.
-export type NewTabId = `new-tab-${string}`;
+export type NewTabId = `new-tab-${string}` | 'new';
 
 export type NewTabState = {
   type: 'new-tab';
@@ -113,12 +113,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openWorkbook: (params: {
-    workbookId: WorkbookId;
-    tableId?: SnapshotTableId;
-    recordId?: string;
-    columnId?: string;
-  }) => {
+  openWorkbook: (params: { workbookId: WorkbookId; tableId?: TabId; recordId?: string; columnId?: string }) => {
     set({
       workbookId: params.workbookId,
       activeTab: params.tableId ?? null,
@@ -219,6 +214,10 @@ function reconcileOpenTabs(
   if (result.tabs.length === 0) {
     const newTab = newBlankTab();
     result = { tabs: [newTab], activeTab: newTab.id };
+  } else if (activeTab === 'new') {
+    // external link to a new tab
+    const newTab = newBlankTab();
+    result = { tabs: [...result.tabs, newTab], activeTab: newTab.id };
   }
 
   // Ensure there is a valid active tab.

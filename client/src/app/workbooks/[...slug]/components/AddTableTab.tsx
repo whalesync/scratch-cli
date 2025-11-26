@@ -11,6 +11,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
 import { AddTableToWorkbookDto, SnapshotTable } from '@/types/server-entities/workbook';
+import { RouteUrls } from '@/utils/route-urls';
 import {
   Box,
   Center,
@@ -209,7 +210,10 @@ export const AddTableTab = () => {
 
   return (
     <>
-      <CreateConnectionModal {...modalStack.register('create')} />
+      <CreateConnectionModal
+        {...modalStack.register('create')}
+        returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
+      />
       <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} />
       <Stack gap="md" maw={600} mx="auto" py="xl">
         <Stack gap="xs" align="center">
