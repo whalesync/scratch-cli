@@ -27,6 +27,7 @@ import {
   PostgresColumnType,
   SnapshotRecord,
 } from '../remote-service/connectors/types';
+import { DownloadRecordsPublicProgress } from '../worker/jobs/job-definitions/download-records.job';
 import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
 import { ValidatedAddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
 import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
@@ -1078,7 +1079,34 @@ export class WorkbookService {
         jobId: 'sync-download', // Use a placeholder ID for synchronous downloads
       };
     }
-    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(id, actor, snapshotTableIds);
+    // Construct initial public progress
+    const workbook = await this.findOneOrThrow(id, actor);
+    let snapshotTablesToProcess = workbook.snapshotTables || [];
+    if (snapshotTableIds && snapshotTableIds.length > 0) {
+      snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
+    }
+
+    const initialPublicProgressTables: DownloadRecordsPublicProgress['tables'] = [];
+    for (const st of snapshotTablesToProcess) {
+      initialPublicProgressTables.push({
+        id: (st.tableSpec as AnyTableSpec).id.wsId,
+        name: (st.tableSpec as AnyTableSpec).name,
+        connector: st.connectorService,
+        records: 0,
+        status: 'pending' as const,
+      });
+    }
+
+    const initialPublicProgress: DownloadRecordsPublicProgress = {
+      totalRecords: 0,
+      tables: initialPublicProgressTables,
+    };
+    const job = await this.bullEnqueuerService.enqueueDownloadRecordsJob(
+      id,
+      actor,
+      snapshotTableIds,
+      initialPublicProgress,
+    );
     return {
       jobId: job.id as string,
     };

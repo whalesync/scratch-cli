@@ -1,5 +1,5 @@
 import { Button, Modal, Stack, Text } from '@mantine/core';
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import { useJobWithCancellation } from '../../../../hooks/use-progress';
 import { DownloadProgress } from './DownloadJobProgress';
 import { DownloadJobProgressDisplay } from './DownloadJobProgressDisplay';
@@ -11,19 +11,19 @@ type Props = {
 
 export const DownloadProgressModal: FC<Props> = (props) => {
   const { jobId, onClose } = props;
-  const { jobResult, cancellationRequested, isCancelling, cancelJob } = useJobWithCancellation(jobId);
+  const { jobResult, cancellationRequested, isCancelling, cancelJob } = useJobWithCancellation<DownloadProgress>(jobId);
   const { job, error, isLoading } = jobResult;
 
-  // Close modal when job is completed or failed
-  useEffect(() => {
-    if (job?.state === 'completed' || job?.state === 'failed') {
-      // Auto-close after a short delay to show final state
-      const timer = setTimeout(() => {
-        onClose();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [job?.state, onClose]);
+  // // Close modal when job is completed or failed
+  // useEffect(() => {
+  //   if (job?.state === 'completed' || job?.state === 'failed') {
+  //     // Auto-close after a short delay to show final state
+  //     const timer = setTimeout(() => {
+  //       onClose();
+  //     }, 2000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [job?.state, onClose]);
 
   const getStatusText = () => {
     if (isLoading) return 'Loading...';
@@ -61,13 +61,6 @@ export const DownloadProgressModal: FC<Props> = (props) => {
   //   return 'orange';
   // };
 
-  const getDownloadProgress = (): DownloadProgress | null => {
-    if (!job?.publicProgress || typeof job.publicProgress !== 'object') {
-      return null;
-    }
-    return job.publicProgress as DownloadProgress;
-  };
-
   return (
     <Modal
       opened={true}
@@ -79,20 +72,7 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       closeOnEscape={job?.state === 'completed' || job?.state === 'failed'}
     >
       <Stack>
-        {job ? (
-          <Stack gap="md">
-            {(() => {
-              const downloadProgress = getDownloadProgress();
-              if (!downloadProgress) {
-                return <Text>Loading progress...</Text>;
-              }
-
-              return <DownloadJobProgressDisplay downloadProgress={downloadProgress} />;
-            })()}
-          </Stack>
-        ) : (
-          <Text>Loading...</Text>
-        )}
+        <DownloadJobProgressDisplay job={job} />
 
         {/* Cancel button - show when job is active and not already cancelled */}
         {job?.state === 'active' && !cancellationRequested && (

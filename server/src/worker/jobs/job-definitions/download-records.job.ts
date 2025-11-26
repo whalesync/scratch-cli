@@ -18,7 +18,9 @@ export type DownloadRecordsPublicProgress = {
   tables: {
     id: string;
     name: string;
+    connector: string;
     records: number;
+    status: 'pending' | 'active' | 'completed' | 'failed';
   }[];
 };
 export type DownloadRecordsJobDefinition = JobDefinitionBuilder<
@@ -29,6 +31,7 @@ export type DownloadRecordsJobDefinition = JobDefinitionBuilder<
     userId: string;
     organizationId: string;
     progress?: JsonSafeObject;
+    initialPublicProgress?: DownloadRecordsPublicProgress;
   },
   DownloadRecordsPublicProgress,
   { index: number },
@@ -170,6 +173,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     type TableToProcess = {
       id: string;
       name: string;
+      connector: string;
       records: number;
       status: 'pending' | 'active' | 'completed' | 'failed';
     };
@@ -178,6 +182,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     const tablesToProcess: TableToProcess[] = snapshotTablesToProcess.map((snapshotTable) => ({
       id: (snapshotTable.tableSpec as AnyTableSpec).id.wsId,
       name: (snapshotTable.tableSpec as AnyTableSpec).name,
+      connector: snapshotTable.connectorService,
       records: 0,
       status: 'pending' as const,
     }));
@@ -192,6 +197,18 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       // Mark table as active
       currentTable.status = 'active';
+
+      // Checkpoint initial status for this table
+      await checkpoint({
+        publicProgress: {
+          totalRecords,
+          tables: tablesToProcess,
+        },
+        jobProgress: {
+          index: i,
+        },
+        connectorProgress: {},
+      });
 
       WSLogger.debug({
         source: 'DownloadRecordsJob',
@@ -269,6 +286,18 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         // Mark table as completed
         currentTable.status = 'completed';
 
+        // Checkpoint final status for this table
+        await checkpoint({
+          publicProgress: {
+            totalRecords,
+            tables: tablesToProcess,
+          },
+          jobProgress: {
+            index: i + 1,
+          },
+          connectorProgress: {},
+        });
+
         // Set syncInProgress=false and update lastSyncTime for this table on success
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
@@ -290,6 +319,18 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       } catch (error) {
         // Mark table as failed
         currentTable.status = 'failed';
+
+        // Checkpoint failed status for this table
+        await checkpoint({
+          publicProgress: {
+            totalRecords,
+            tables: tablesToProcess,
+          },
+          jobProgress: {
+            index: i,
+          },
+          connectorProgress: {},
+        });
 
         // Set syncInProgress=false for this table on failure
         await this.prisma.snapshotTable.update({

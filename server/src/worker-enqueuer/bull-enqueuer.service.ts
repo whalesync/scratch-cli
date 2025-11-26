@@ -46,7 +46,12 @@ export class BullEnqueuerService implements OnModuleDestroy {
     return await this.getQueue().add(data.type, data);
   }
 
-  async enqueueDownloadRecordsJob(workbookId: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<Job> {
+  async enqueueDownloadRecordsJob(
+    workbookId: WorkbookId,
+    actor: Actor,
+    snapshotTableIds?: string[],
+    initialPublicProgress?: DownloadRecordsJobDefinition['publicProgress'],
+  ): Promise<Job> {
     // Generate a simple ID without table names (since we can have 0, 1, or many tables)
     const id = `download-records-${actor.userId}-${workbookId}-${createPlainId()}`;
     const data: DownloadRecordsJobDefinition['data'] = {
@@ -55,6 +60,7 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       snapshotTableIds,
       type: 'download-records',
+      initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);
   }

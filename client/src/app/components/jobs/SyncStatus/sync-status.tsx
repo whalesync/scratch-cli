@@ -16,7 +16,7 @@ type Props = {
   tableName: string;
   connector: string;
   doneCount: number;
-  totalCount: number;
+  totalCount?: number;
   status: TableStatus;
   direction?: 'left' | 'right';
 };
@@ -53,9 +53,9 @@ export const SyncStatus: FC<Props> = (props) => {
       centerIcon={
         <Badge size="lg" mx="4px" variant="light" color={badgeColor}>
           <Text fw={500}>
-            {direction === 'left' && '←'}
-            {`${doneCount}/${totalCount}`}
-            {direction === 'right' && '→'}
+            {direction === 'left' && '← '}
+            {totalCount !== undefined ? `${doneCount}/${totalCount}` : `${doneCount}`}
+            {direction === 'right' && ' →'}
           </Text>
         </Badge>
       }

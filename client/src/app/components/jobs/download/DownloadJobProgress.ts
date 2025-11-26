@@ -6,6 +6,7 @@ export type DownloadProgress = {
 export type TableProgress = {
     id: string;
     name: string;
+    connector: string;
     records: number;
     status: 'pending' | 'active' | 'completed' | 'failed';
 };

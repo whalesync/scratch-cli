@@ -1,12 +1,12 @@
 'use client';
 
+import { DownloadProgressModal } from '@/app/components/jobs/download/DownloadJobProgressModal';
 import { Badge, Button, Center, Group, Loader, Stack, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
 import { Check, Circle, Dot, Eye, X } from 'lucide-react';
 import { useState } from 'react';
 import { useJobs } from '../../../hooks/use-jobs';
 import { JobEntity } from '../../../types/server-entities/job';
 import { formatDate, timeAgo } from '../../../utils/helpers';
-import { DownloadProgressModal2 } from '../../components/jobs/download/DownloadJobProgressModal2';
 import { PublishJobProgressModal } from '../../components/jobs/publish/PublishJobProgressModal';
 import MainContent from '../../components/layouts/MainContent';
 
@@ -206,12 +206,13 @@ export default function JobsPage() {
 
       {/* Download Progress Modal */}
       {/* Job Progress Modals */}
+
       {selectedJob && selectedJob.bullJobId && (
         <>
           {selectedJob.type === 'publish-records' ? (
             <PublishJobProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
           ) : (
-            <DownloadProgressModal2 job={selectedJob} onClose={() => setSelectedJob(null)} />
+            <DownloadProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
           )}
         </>
       )}
