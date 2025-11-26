@@ -19,6 +19,9 @@ export namespace WorkbookCluster {
         include: {
           connectorAccount: true,
         },
+        orderBy: {
+          createdAt: 'asc',
+        },
       },
     },
   });

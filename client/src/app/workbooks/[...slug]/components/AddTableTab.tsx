@@ -7,10 +7,10 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
-import { workbookApi } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
-import { AddTableToWorkbookDto, SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   Box,
@@ -57,9 +57,11 @@ const findMatchingSnapshotTable = (
 };
 
 export const AddTableTab = () => {
-  const { workbook } = useActiveWorkbook();
+  const { workbook, addTable } = useActiveWorkbook();
   const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
+  const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
+  const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
   const modalStack = useModalsStack(['create', 'upload']);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,17 +152,9 @@ export const AddTableTab = () => {
 
     // Automatically add the table when selected
     try {
-      const dto: AddTableToWorkbookDto = {
-        service: group.service,
-        connectorAccountId: group.connectorAccountId || undefined,
-        tableId: table.id,
-      };
-      await workbookApi.addTable(workbook.id, dto);
-
-      ScratchpadNotifications.success({
-        title: 'Table added',
-        message: `${table.displayName} has been added to your workbook.`,
-      });
+      const snapshotTableId = await addTable(table.id, group.service, group.connectorAccountId ?? undefined);
+      setActiveTab(snapshotTableId);
+      closeNewTabs();
     } catch (error) {
       console.error('Failed to add table:', error);
       ScratchpadNotifications.error({
@@ -301,7 +295,7 @@ export const AddTableTab = () => {
 
               {/* Grouped tables by connector */}
               {groupedTables.map((group, groupIndex) => {
-                const groupKey = group.service;
+                const groupKey = `${group.service}-${group.connectorAccountId ?? ''}`;
                 const isCollapsed = collapsedGroups[groupKey];
                 const isLastGroup = groupIndex === groupedTables.length - 1;
                 const isRefreshing = refreshingGroups[groupKey];

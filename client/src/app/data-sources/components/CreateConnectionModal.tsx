@@ -24,7 +24,12 @@ import { useState } from 'react';
 
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
-export const CreateConnectionModal = (props: ModalProps & { returnUrl?: string }) => {
+export type CreateConnectionModalProps = ModalProps & {
+  returnUrl?: string;
+};
+
+export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
+  const { returnUrl, ...modalProps } = props;
   const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
@@ -106,7 +111,7 @@ export const CreateConnectionModal = (props: ModalProps & { returnUrl?: string }
     try {
       const isCustom = authMethod === 'oauth_custom';
       const connectionName = newDisplayName ?? undefined;
-      const returnPage = props.returnUrl ?? window.location.pathname;
+      const returnPage = returnUrl ?? window.location.pathname;
       console.debug('connectionName', connectionName);
       await initiateOAuth(newService as OAuthService, {
         // (http|https)://<host, e.g. test.scratch.md>
@@ -189,7 +194,7 @@ export const CreateConnectionModal = (props: ModalProps & { returnUrl?: string }
       title="Create Connection"
       size="lg"
       centered
-      {...props}
+      {...modalProps}
       onExitTransitionEnd={() => {
         // clear the form when the modal is closed
         handleClearForm();

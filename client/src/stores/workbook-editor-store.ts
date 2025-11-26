@@ -83,6 +83,7 @@ type Actions = {
 
   openNewBlankTab: () => void;
   closeTab: (id: TabId) => void;
+  closeNewTabs: () => void;
 
   openDevTools: () => void;
   closeDevTools: () => void;
@@ -146,6 +147,11 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     const fixedTabs = closeTabAndFixActiveTab(id, get().tabs, get().activeTab);
     set({ ...fixedTabs });
     RouteUrls.updateWorkbookPath(get().workbookId ?? '', fixedTabs.activeTab || undefined);
+  },
+  closeNewTabs: () => {
+    const tabs = get().tabs.filter((tab) => tab.type !== 'new-tab');
+    set({ tabs });
+    RouteUrls.updateWorkbookPath(get().workbookId ?? '', tabs.length > 0 ? tabs[0].id : undefined);
   },
 
   openDevTools: () => set({ devToolsOpen: true }),

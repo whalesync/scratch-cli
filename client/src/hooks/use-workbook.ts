@@ -1,7 +1,14 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { SnapshotColumnSettingsMap, UpdateWorkbookDto, Workbook } from '@/types/server-entities/workbook';
+import { Service } from '@/types/server-entities/connector-accounts';
+import { EntityId } from '@/types/server-entities/table-list';
+import {
+  AddTableToWorkbookDto,
+  SnapshotColumnSettingsMap,
+  UpdateWorkbookDto,
+  Workbook,
+} from '@/types/server-entities/workbook';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -17,10 +24,12 @@ export interface UseWorkbookReturn {
   updateColumnSettings: (tableId: SnapshotTableId, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
   clearActiveRecordFilter: (tableId: SnapshotTableId) => Promise<void>;
   hideTable: (tableId: SnapshotTableId) => Promise<void>;
+  unhideTable: (tableId: SnapshotTableId) => Promise<void>;
   deleteTable: (tableId: SnapshotTableId) => Promise<void>;
   hideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   unhideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   showAllColumns: (tableId: SnapshotTableId) => Promise<void>;
+  addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTableId>;
 }
 
 export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
@@ -129,6 +138,17 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     [id, mutate],
   );
 
+  const unhideTable = useCallback(
+    async (tableId: SnapshotTableId) => {
+      if (!id) {
+        return;
+      }
+      await workbookApi.hideTable(id, tableId, false);
+      await mutate();
+    },
+    [id, mutate],
+  );
+
   const deleteTable = useCallback(
     async (tableId: SnapshotTableId) => {
       if (!id) {
@@ -173,6 +193,20 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     [id, mutate],
   );
 
+  const addTable = useCallback(
+    async (tableId: EntityId, service: Service, connectorAccountId?: string): Promise<SnapshotTableId> => {
+      if (!id) {
+        throw new Error('Workbook not found');
+      }
+
+      const dto: AddTableToWorkbookDto = { tableId, service, connectorAccountId };
+      const snapshotTable = await workbookApi.addTable(id, dto);
+      await mutate();
+      return snapshotTable.id;
+    },
+    [id, mutate],
+  );
+
   return {
     workbook: data,
     isLoading,
@@ -183,9 +217,11 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     updateColumnSettings,
     clearActiveRecordFilter,
     hideTable,
+    unhideTable,
     deleteTable,
     hideColumn,
     unhideColumn,
     showAllColumns,
+    addTable,
   };
 };
