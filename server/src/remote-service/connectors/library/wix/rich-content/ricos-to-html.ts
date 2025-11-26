@@ -4,6 +4,7 @@ import type {
   WixCodeBlockNode,
   WixDocument,
   WixHeadingNode,
+  WixImageNode,
   WixListItemNode,
   WixListNode,
   WixNode,
@@ -44,6 +45,8 @@ class WixToHtmlConverter {
         return this.convertCodeBlock(node);
       case 'BLOCKQUOTE':
         return this.convertBlockquote(node);
+      case 'IMAGE':
+        return this.convertImage(node);
       case 'LIST_ITEM':
         // This shouldn't happen at the root level, but handle it gracefully
         return this.convertListItem(node);
@@ -162,6 +165,37 @@ class WixToHtmlConverter {
     return this.formatTag('blockquote', content);
   }
 
+  private convertImage(node: WixImageNode): string {
+    const { imageData } = node;
+    const attributes: string[] = [];
+
+    // Build the image URL from Wix media ID
+    // If a full URL is provided, use it; otherwise construct from ID
+    const imageUrl = imageData.image.src.url || `wix:image://v1/${imageData.image.src.id}`;
+    attributes.push(`src="${this.escapeAttribute(imageUrl)}"`);
+
+    // Add alt text only if available (to match Wix format exactly)
+    if (imageData.altText) {
+      attributes.push(`alt="${this.escapeAttribute(imageData.altText)}"`);
+    }
+
+    // Add width and height if available
+    if (imageData.image.width) {
+      attributes.push(`width="${imageData.image.width}"`);
+    }
+    if (imageData.image.height) {
+      attributes.push(`height="${imageData.image.height}"`);
+    }
+
+    // Store Wix-specific data in data attributes for round-trip conversion
+    if (imageData.containerData) {
+      attributes.push(`data-wix-container="${this.escapeAttribute(JSON.stringify(imageData.containerData))}"`);
+    }
+
+    const indent = this.options.prettify ? this.getIndent() : '';
+    return `${indent}<img ${attributes.join(' ')}>`;
+  }
+
   private convertTextNodes(textNodes: WixTextNode[]): string {
     return textNodes.map((textNode) => this.convertTextNode(textNode)).join('');
   }
@@ -173,6 +207,9 @@ class WixToHtmlConverter {
     }
 
     let content = this.escapeHtml(textNode.textData.text);
+
+    // Convert newline characters to <br> tags for line breaks within paragraphs
+    content = content.replace(/\n/g, '<br>');
 
     // Apply decorations in the order they appear (first decoration becomes innermost)
     const decorations = textNode.textData.decorations;
@@ -218,6 +255,15 @@ class WixToHtmlConverter {
       case 'FONT_SIZE': {
         const unit = decoration.fontSizeData.unit.toLowerCase();
         return `<span style="font-size: ${decoration.fontSizeData.value}${unit}">${content}</span>`;
+      }
+
+      case 'FONT_FAMILY': {
+        const family = decoration.fontFamilyData.family;
+        // Use <code> tag for monospace fonts, otherwise use span with style
+        if (family === 'monospace' || family.toLowerCase().includes('mono')) {
+          return `<code>${content}</code>`;
+        }
+        return `<span style="font-family: ${this.escapeAttribute(family)}">${content}</span>`;
       }
 
       case 'LINK': {

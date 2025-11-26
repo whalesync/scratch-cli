@@ -7,6 +7,10 @@ import type {
   WixDividerNode,
   WixDocument,
   WixHeadingNode,
+  WixImageContainerData,
+  WixImageData,
+  WixImageNode,
+  WixImageSrc,
   WixLinkDecoration,
   WixListItemNode,
   WixListNode,
@@ -40,9 +44,55 @@ class HtmlToWixConverter {
       listIndentation: 0,
     });
 
+    // Add empty paragraphs between block-level elements for Wix spacing
+    const nodesWithSpacing = this.addSpacingBetweenBlocks(nodes);
+
     return {
-      nodes: nodes.length > 0 ? nodes : [this.createEmptyParagraph()],
+      nodes: nodesWithSpacing.length > 0 ? nodesWithSpacing : [this.createEmptyParagraph()],
     };
+  }
+
+  private addSpacingBetweenBlocks(nodes: WixNode[]): WixNode[] {
+    if (nodes.length <= 1) {
+      return nodes;
+    }
+
+    const result: WixNode[] = [];
+
+    for (let i = 0; i < nodes.length; i++) {
+      result.push(nodes[i]);
+
+      const currentNode = nodes[i];
+      const nextNode = nodes[i + 1];
+
+      if (!nextNode) continue;
+
+      // Add empty paragraph for spacing in these specific cases (matching Wix behavior):
+      // 1. Before a HEADING (to create section spacing)
+      // 2. After a LIST (before any other block)
+      const addSpacing =
+        nextNode.type === 'HEADING' || // Spacing before headings
+        currentNode.type === 'BULLETED_LIST' || // Spacing after lists
+        currentNode.type === 'ORDERED_LIST';
+
+      if (addSpacing) {
+        // Don't add if:
+        // 1. Current node is already an empty paragraph
+        // 2. Next node is already an empty paragraph
+        // 3. We just added an empty paragraph (check the last item in result)
+        const isCurrentEmpty = currentNode.type === 'PARAGRAPH' && currentNode.nodes?.length === 0;
+        const isNextEmpty = nextNode.type === 'PARAGRAPH' && nextNode.nodes?.length === 0;
+
+        const lastAdded = result.length > 0 ? result[result.length - 1] : null;
+        const lastAddedIsEmpty = lastAdded !== null && lastAdded.type === 'PARAGRAPH' && lastAdded.nodes?.length === 0;
+
+        if (!isCurrentEmpty && !isNextEmpty && !lastAddedIsEmpty) {
+          result.push(this.createEmptyParagraph());
+        }
+      }
+    }
+
+    return result;
   }
 
   private parseCheerioNodes(elements: Cheerio<AnyNode>, $: CheerioAPI, context: ParseContext): WixNode[] {
@@ -96,8 +146,7 @@ class HtmlToWixConverter {
 
     const wixTextNode: WixTextNode = {
       type: 'TEXT',
-      id: '',
-      nodes: [],
+      id: this.generateId(),
       textData: {
         text: text,
         decorations: [...context.decorations],
@@ -144,6 +193,9 @@ class HtmlToWixConverter {
       case 'hr':
         return this.createDivider();
 
+      case 'img':
+        return this.parseImage($element);
+
       case 'strong':
       case 'b':
         return this.parseStyledElement($element, $, context, 'BOLD');
@@ -188,19 +240,41 @@ class HtmlToWixConverter {
     }
   }
 
-  private parseParagraph($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixParagraphNode {
+  private parseParagraph($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixNode | WixNode[] {
+    // Check if paragraph contains block-level elements (like images)
+    const hasBlockChild = $element
+      .children()
+      .toArray()
+      .some((child) => {
+        const childType = (child as { type: string }).type;
+        if (childType !== 'tag') {
+          return false;
+        }
+        const name = (child as { tagName?: string }).tagName?.toLowerCase();
+        return name === 'img' || name === 'hr' || name === 'pre' || name === 'blockquote';
+      });
+
+    // If paragraph contains block-level elements, parse them as separate nodes
+    if (hasBlockChild) {
+      return this.parseCheerioNodes($element.contents(), $, context);
+    }
+
+    // Otherwise, parse as inline content (normal paragraph behavior)
     const textNodes = this.parseInlineContent($element, $, context);
     const alignment = this.getTextAlignment($element);
     const indentation = this.getIndentation($element);
 
     // For empty paragraphs, return empty nodes array instead of fallback text node
-    const hasOnlyEmptyTextNode =
-      textNodes.length === 1 && textNodes[0].textData.text === '' && textNodes[0].textData.decorations.length === 0;
+    // Check if all text nodes are completely empty (no text at all and no decorations)
+    // Note: We preserve whitespace-only text as it may be intentional
+    const isCompletelyEmpty = textNodes.every(
+      (node) => node.textData.text === '' && node.textData.decorations.length === 0,
+    );
 
     return {
       type: 'PARAGRAPH',
       id: this.generateId(),
-      nodes: hasOnlyEmptyTextNode ? [] : textNodes,
+      nodes: isCompletelyEmpty ? [] : textNodes,
       paragraphData: {
         textStyle: {
           textAlignment: alignment,
@@ -374,8 +448,29 @@ class HtmlToWixConverter {
   }
 
   private parseCode($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixNode[] {
-    // For inline code, treat as regular text with monospace styling
-    return this.parseCheerioNodes($element.contents(), $, context);
+    // Check if this is inside a <pre> tag (which means it's already a code block)
+    const parent = $element.parent();
+    const parentTag = parent.prop('tagName')?.toLowerCase();
+
+    if (parentTag === 'pre') {
+      // Already handled by parsePreformatted, treat as regular text
+      return this.parseCheerioNodes($element.contents(), $, context);
+    }
+
+    // For inline code, add monospace font-family decoration
+    const codeDecoration: WixTextDecoration = {
+      type: 'FONT_FAMILY',
+      fontFamilyData: {
+        family: 'monospace',
+      },
+    };
+
+    const newContext: ParseContext = {
+      ...context,
+      decorations: [...context.decorations, codeDecoration],
+    };
+
+    return this.parseCheerioNodes($element.contents(), $, newContext);
   }
 
   private parsePreformatted($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixCodeBlockNode {
@@ -418,6 +513,122 @@ class HtmlToWixConverter {
     };
   }
 
+  private parseImage($element: Cheerio<Element>): WixImageNode {
+    const src = $element.attr('src') || '';
+    const alt = $element.attr('alt');
+    const width = $element.attr('width');
+    const height = $element.attr('height');
+    const wixContainerData = $element.attr('data-wix-container');
+
+    // Extract Wix media ID and optional full URL
+    const imageSrc = this.extractMediaId(src);
+
+    // Parse container data if present
+    const containerData = this.parseContainerData(wixContainerData);
+
+    // Build image data object
+    const imageData = this.buildImageData(imageSrc, alt, width, height, containerData);
+
+    return {
+      type: 'IMAGE',
+      id: this.generateId(),
+      imageData,
+    };
+  }
+
+  private extractMediaId(src: string): WixImageSrc {
+    // Handle our custom wix:image:// protocol
+    if (src.startsWith('wix:image://v1/')) {
+      return {
+        id: src.replace('wix:image://v1/', ''),
+      };
+    }
+
+    // Handle HTTP(S) URLs
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      // Try to extract filename with extension (e.g., "9a4116_abc123.jpg")
+      const filenameMatch = src.match(/\/([a-zA-Z0-9_~-]+\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff))/i);
+      if (filenameMatch) {
+        return {
+          id: filenameMatch[1],
+          url: src,
+        };
+      }
+
+      // Fallback: extract last path segment before query string
+      const pathMatch = src.match(/\/([a-zA-Z0-9_~-]+)(?:\?|$)/);
+      if (pathMatch) {
+        return {
+          id: pathMatch[1],
+          url: src,
+        };
+      }
+
+      // Last resort: use everything after last slash
+      const lastSegment = src.substring(src.lastIndexOf('/') + 1);
+      return {
+        id: lastSegment || src,
+        url: src,
+      };
+    }
+
+    // Default: treat as media ID directly
+    return { id: src };
+  }
+
+  private parseContainerData(wixContainerData: string | undefined): WixImageContainerData | undefined {
+    if (!wixContainerData) {
+      return undefined;
+    }
+
+    try {
+      // Parse and validate the structure
+      const parsed = JSON.parse(wixContainerData) as unknown;
+
+      // Basic validation to ensure it matches expected structure
+      if (parsed && typeof parsed === 'object') {
+        return parsed as WixImageContainerData;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private buildImageData(
+    imageSrc: WixImageSrc,
+    alt: string | undefined,
+    width: string | undefined,
+    height: string | undefined,
+    containerData: WixImageContainerData | undefined,
+  ): WixImageData {
+    // Build base structure
+    const imageData: WixImageData = {
+      image: {
+        src: imageSrc,
+      },
+    };
+
+    // Add optional fields only if they exist
+    if (width) {
+      imageData.image.width = parseInt(width, 10);
+    }
+
+    if (height) {
+      imageData.image.height = parseInt(height, 10);
+    }
+
+    if (containerData) {
+      imageData.containerData = containerData;
+    }
+
+    if (alt && alt.trim() !== '') {
+      imageData.altText = alt;
+    }
+
+    return imageData;
+  }
+
   private parseInlineContent($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixTextNode[] {
     const result: WixTextNode[] = [];
 
@@ -431,8 +642,7 @@ class HtmlToWixConverter {
           // Include all text content including whitespace
           result.push({
             type: 'TEXT',
-            id: '',
-            nodes: [],
+            id: this.generateId(),
             textData: {
               text,
               decorations: [...context.decorations],
@@ -450,8 +660,7 @@ class HtmlToWixConverter {
       : [
           {
             type: 'TEXT',
-            id: '',
-            nodes: [],
+            id: this.generateId(),
             textData: {
               text: '',
               decorations: [],
@@ -483,6 +692,22 @@ class HtmlToWixConverter {
 
       case 'span':
         return this.parseInlineSpan($element, $, context);
+
+      case 'code':
+        return this.parseInlineCode($element, $, context);
+
+      case 'br':
+        // Line break within paragraph - return a TEXT node with newline character
+        return [
+          {
+            type: 'TEXT',
+            id: this.generateId(),
+            textData: {
+              text: '\n',
+              decorations: [...context.decorations],
+            },
+          },
+        ];
 
       default:
         return this.parseInlineContent($element, $, context);
@@ -538,6 +763,23 @@ class HtmlToWixConverter {
     return this.parseInlineContent($element, $, newContext);
   }
 
+  private parseInlineCode($element: Cheerio<Element>, $: CheerioAPI, context: ParseContext): WixTextNode[] {
+    // Add monospace font-family decoration for inline code
+    const codeDecoration: WixTextDecoration = {
+      type: 'FONT_FAMILY',
+      fontFamilyData: {
+        family: 'monospace',
+      },
+    };
+
+    const newContext: ParseContext = {
+      ...context,
+      decorations: [...context.decorations, codeDecoration],
+    };
+
+    return this.parseInlineContent($element, $, newContext);
+  }
+
   private createDecoration(type: 'BOLD' | 'ITALIC' | 'UNDERLINE' | 'STRIKETHROUGH'): WixTextDecoration {
     switch (type) {
       case 'BOLD':
@@ -584,18 +826,30 @@ class HtmlToWixConverter {
       });
     }
 
+    // Parse font-family
+    const fontFamilyMatch = style.match(/font-family:\s*([^;]+)/);
+    if (fontFamilyMatch) {
+      decorations.push({
+        type: 'FONT_FAMILY',
+        fontFamilyData: {
+          family: fontFamilyMatch[1].trim().replace(/['"]/g, ''), // Remove quotes
+        },
+      });
+    }
+
     // Parse font-weight for bold
-    if (style.includes('font-weight: bold') || style.includes('font-weight: 700')) {
+    const fontWeightMatch = style.match(/font-weight:\s*(bold|[6-9]00)/);
+    if (fontWeightMatch) {
       decorations.push({ type: 'BOLD', fontWeightValue: 700 });
     }
 
     // Parse font-style for italic
-    if (style.includes('font-style: italic')) {
+    if (style.match(/font-style:\s*italic(?:;|$)/)) {
       decorations.push({ type: 'ITALIC', italicData: true });
     }
 
     // Parse text-decoration for underline
-    if (style.includes('text-decoration: underline')) {
+    if (style.match(/text-decoration:\s*underline(?:;|$)/)) {
       decorations.push({ type: 'UNDERLINE', underlineData: true });
     }
 

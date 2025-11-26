@@ -4,14 +4,13 @@ import { draftPosts } from '@wix/blog';
 import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
 import _ from 'lodash';
-import MarkdownIt from 'markdown-it';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
-import TurndownService from 'turndown';
 import { Connector } from '../../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, TablePreview } from '../../../types';
 import { WixBlogTableSpec } from '../../custom-spec-registry';
 import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
+import { createMarkdownParser, createTurndownService } from '../rich-content/markdown-helpers';
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
 import { WixDocument } from '../rich-content/types';
 import { WixBlogSchemaParser } from './wix-blog-schema-parser';
@@ -25,9 +24,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
   private readonly htmlToRicosConverter = new HtmlToWixConverter();
   private readonly ricosToHtmlConverter = new WixToHtmlConverter();
-  private readonly turndownService: TurndownService = new TurndownService({
-    headingStyle: 'atx',
-  });
+  private readonly turndownService = createTurndownService();
   private readonly wixClient: ReturnType<
     typeof createClient<
       undefined,
@@ -277,8 +274,9 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
             if (dataConverter === 'html') {
               html = wsValue as string;
             } else {
-              // Convert markdown to HTML
-              html = MarkdownIt({}).render(wsValue as string);
+              // Convert markdown to HTML (preserves img tags)
+              const md = createMarkdownParser();
+              html = md.render(wsValue as string);
             }
             // Convert HTML to Ricos format using proper converter
             wixPost[fieldId] = this.htmlToRicosConverter.convert(html);

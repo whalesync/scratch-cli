@@ -28,7 +28,8 @@ export type WixNode =
   | WixDividerNode
   | WixCodeBlockNode
   | WixListItemNode
-  | WixBlockquoteNode;
+  | WixBlockquoteNode
+  | WixImageNode;
 
 export type WixBaseNode = {
   id: string;
@@ -80,6 +81,36 @@ export type WixBlockquoteNode = WixBaseNode & {
   };
 };
 
+export type WixImageNode = WixBaseNode & {
+  type: 'IMAGE';
+  nodes?: []; // Always empty for IMAGE nodes
+  imageData: WixImageData;
+};
+
+export type WixImageContainerData = {
+  width?: {
+    size?: 'SMALL' | 'ORIGINAL' | 'FULL_WIDTH';
+    custom?: string; // Custom width in pixels
+  };
+  alignment?: 'LEFT' | 'CENTER' | 'RIGHT';
+  textWrap?: boolean;
+};
+
+export type WixImageSrc = {
+  id: string; // Wix media ID (e.g., "9a4116_2161bd3b120046b7bc653b638305c2cc~mv2.jpg")
+  url?: string; // Full URL if available
+};
+
+export type WixImageData = {
+  containerData?: WixImageContainerData;
+  image: {
+    src: WixImageSrc;
+    width?: number; // Original width
+    height?: number; // Original height
+  };
+  altText?: string; // Alt text for accessibility
+};
+
 export type WixTextNode = {
   type: 'TEXT';
   id: string;
@@ -98,6 +129,7 @@ export type WixTextDecoration =
   | WixUnderlineDecoration
   | WixColorDecoration
   | WixFontSizeDecoration
+  | WixFontFamilyDecoration
   | WixLinkDecoration
   | WixStrikethroughDecoration;
 
@@ -136,6 +168,13 @@ export type WixFontSizeDecoration = {
   fontSizeData: {
     unit: 'PX' | 'EM';
     value: number;
+  };
+};
+
+export type WixFontFamilyDecoration = {
+  type: 'FONT_FAMILY';
+  fontFamilyData: {
+    family: string;
   };
 };
 
