@@ -11,16 +11,19 @@ This module provides unified authentication and authorization mechanisms to acco
 ## Authentication Strategies
 
 ### ClerkStrategy
+
 - Validates JWT tokens issued by Clerk (external identity provider)
 - Automatically creates or retrieves users in the database by their Clerk ID
 - Used for web application authentication
 
 ### APITokenStrategy
+
 - Validates user-scoped API tokens stored in the database
 - Enables programmatic access for authenticated users
 - Used for CLI tools and API integrations
 
 ### AgentTokenStrategy
+
 - Validates special agent tokens (shared secret key + user ID)
 - Allows internal agents or services to operate on behalf of users
 - Used for AI agents and internal services
@@ -28,6 +31,7 @@ This module provides unified authentication and authorization mechanisms to acco
 ## Guards
 
 ### ScratchpadAuthGuard
+
 - Controller-level guard for HTTP endpoints
 - Attempts authentication in sequence:
   1. API token
@@ -36,6 +40,7 @@ This module provides unified authentication and authorization mechanisms to acco
 - Succeeds if any strategy validates successfully
 
 ### WebSocketAuthGuard
+
 - Designed for Socket.io WebSocket connections
 - Implements dual authentication fallback:
   1. API token first
@@ -45,22 +50,28 @@ This module provides unified authentication and authorization mechanisms to acco
 ## Types and Utilities
 
 ### AuthenticatedUser
+
 Extension of base user data with metadata about authentication type and source.
 
 ### RequestWithUser / SocketWithUser
+
 Type definitions that inject authenticated user into request/socket contexts.
 
 ### hasAdminToolsPermission()
+
 Role-based access control function that checks if a user:
+
 - Has an ADMIN role
 - Authenticated via either JWT or API token
 
 ### toActor()
+
 Converts authenticated users into actor objects with organization context, supporting the organization-based authorization model.
 
 ## Integration
 
 The auth module is a foundational module used throughout the application to protect endpoints and enforce access control. It integrates with:
+
 - Clerk for identity management
 - Database for API token validation
 - User management for actor context

@@ -2,9 +2,9 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi, WorkbookSortBy, WorkbookSortOrder } from '@/lib/api/workbook';
 import { CreateWorkbookDto, UpdateWorkbookDto, Workbook } from '@/types/server-entities/workbook';
+import { WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { WorkbookId } from '@spinner/shared-types';
 
 export interface UseWorkbooksOptions {
   connectorAccountId?: string;

@@ -5,6 +5,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
 import {
   AlertCircle,
@@ -19,7 +20,6 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
-import { SnapshotTableId } from '@spinner/shared-types';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: SnapshotTableId;

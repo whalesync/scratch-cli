@@ -11,12 +11,14 @@ This module manages the complete lifecycle of uploaded files—from preview and 
 ## Supported File Types
 
 ### CSV Files
+
 - Parsed and streamed into PostgreSQL tables
 - Inferred column typing
 - Efficient stream processing
 - Preview before import
 
 ### Markdown Files
+
 - With front matter support
 - Stored as structured JSON records
 - Page content preserved
@@ -25,9 +27,11 @@ This module manages the complete lifecycle of uploaded files—from preview and 
 ## Controllers
 
 ### UploadsController
+
 **Authentication**: Required (`ScratchpadAuthGuard`)
 
 Provides endpoints for:
+
 - Uploading files
 - Previewing data
 - Listing uploads
@@ -36,9 +40,11 @@ Provides endpoints for:
 - Creating snapshots from CSV uploads
 
 ### UploadsPublicController
+
 **Authentication**: Not required (security via unguessable upload IDs)
 
 Provides:
+
 - Public download endpoints
 - Shareable CSV exports
 - No auth required (URL-based access)
@@ -48,6 +54,7 @@ Provides:
 ### UploadsService
 
 Handles business logic:
+
 - **CSV Streaming**: Efficient data processing with transform pipelines
 - **PostgreSQL COPY**: Minimizes memory overhead for large files
 - **Schema Introspection**: Discovers table structure
@@ -57,6 +64,7 @@ Handles business logic:
 ### UploadsDbService
 
 Manages database operations:
+
 - **Organization-scoped Schemas**: `uploads_{organizationId}` prefix
 - **Dynamic Table Creation**: CSV tables with proper column typing
 - **Shared MdUploads Table**: Markdown storage
@@ -65,6 +73,7 @@ Manages database operations:
 ## CSV Processing
 
 ### Stream Pipeline
+
 1. Parse CSV file
 2. Infer column types
 3. Transform data
@@ -72,12 +81,14 @@ Manages database operations:
 5. Minimal memory usage
 
 ### Column Type Inference
+
 - Automatic type detection
 - Number vs. string
 - Date formats
 - Boolean values
 
 ### Preview Mode
+
 - View sample data
 - Validate structure
 - Check before committing
@@ -85,11 +96,13 @@ Manages database operations:
 ## Markdown Processing
 
 ### Front Matter
+
 - YAML metadata extraction
 - Structured storage
 - Page content separation
 
 ### Storage Format
+
 - JSON records in shared table
 - Organization-scoped
 - Searchable metadata
@@ -97,11 +110,13 @@ Manages database operations:
 ## Schema Organization
 
 ### Per-Organization Schemas
+
 - `uploads_{organizationId}` naming
 - Isolated data per organization
 - Multi-tenant security
 
 ### Table Structure
+
 - CSV: One table per upload
 - Markdown: Shared MdUploads table
 - Proper indexing
@@ -109,6 +124,7 @@ Manages database operations:
 ## Integration with Snapshots
 
 ### CSV to Snapshot
+
 - Materialize CSV uploads into snapshot tables
 - Bridge between ephemeral and persistent data
 - Create immutable copies
@@ -117,6 +133,7 @@ Manages database operations:
 ## Endpoints
 
 ### Upload Operations
+
 - `POST /uploads`: Upload new file
 - `GET /uploads/preview`: Preview upload data
 - `GET /uploads`: List user's uploads
@@ -124,24 +141,29 @@ Manages database operations:
 - `DELETE /uploads/:id`: Delete upload
 
 ### Query Operations
+
 - `GET /uploads/:id/query`: Query upload data
 - Supports filtering and pagination
 - SQL-like operations
 
 ### Snapshot Creation
+
 - `POST /uploads/:id/snapshot`: Create snapshot from CSV
 
 ### Public Access
+
 - `GET /public/uploads/:id/download`: Public CSV download
 
 ## Security
 
 ### Authenticated Access
+
 - User must own upload
 - Organization-scoped queries
 - Access control per upload
 
 ### Public Access
+
 - Unguessable upload IDs
 - URL-based security
 - No auth required for sharing
@@ -149,11 +171,13 @@ Manages database operations:
 ## Performance
 
 ### Streaming
+
 - Low memory footprint
 - Handle large files efficiently
 - PostgreSQL COPY for speed
 
 ### Indexing
+
 - Proper database indexes
 - Fast queries
 - Efficient lookups
@@ -171,6 +195,7 @@ Manages database operations:
 ## Error Handling
 
 Handles:
+
 - Invalid CSV format
 - Unsupported file types
 - Large file limits

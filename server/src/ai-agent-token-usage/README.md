@@ -13,21 +13,26 @@ This module provides functionality to record token usage events from AI agent in
 All endpoints are protected by `ScratchpadAuthGuard`:
 
 ### `POST /agent-token-usage/track`
+
 Tracks a new token usage event with:
+
 - Model name
 - Request token count
 - Response token count
 - Optional context data for debugging
 
 ### `GET /agent-token-usage/events`
+
 Retrieves paginated historical usage events for the authenticated user using cursor-based pagination.
 
 ### `GET /agent-token-usage/stats/summary`
+
 Retrieves aggregated usage statistics for the current calendar month, grouped by model.
 
 ## Data Model
 
 Each token usage event includes:
+
 - User ID
 - Model name (e.g., "gpt-4", "claude-3-sonnet")
 - Request counts

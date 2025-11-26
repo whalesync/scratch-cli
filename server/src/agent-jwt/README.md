@@ -13,6 +13,7 @@ This module serves as a bridge between the server-side authentication system and
 ### JwtGeneratorService
 
 The main service exports a single method to generate tokens containing:
+
 - `userId`: The authenticated user's ID
 - `role`: The user's role (from Prisma's UserRole enum)
 

@@ -15,7 +15,9 @@ This module serves as a core component for managing user accounts and their asso
 Provides user session management:
 
 #### `GET /users/current`
+
 Returns authenticated user with:
+
 - User profile information
 - JWT tokens (websocket and agent)
 - Feature flags
@@ -23,6 +25,7 @@ Returns authenticated user with:
 - Subscription status
 
 #### Debug Endpoint
+
 Resource provisioning for development/testing.
 
 ### AgentCredentialsController
@@ -30,15 +33,19 @@ Resource provisioning for development/testing.
 Manages AI service credentials:
 
 #### `GET /user/credentials`
+
 Lists all AI service credentials for the user.
 
 #### `POST /user/credentials`
+
 Creates new AI service credential (OpenRouter key).
 
 #### `GET /user/credentials/:credentialId`
+
 Retrieves specific credential details.
 
 #### `DELETE /user/credentials/:credentialId`
+
 Removes AI service credential.
 
 ## Core Services
@@ -48,6 +55,7 @@ Removes AI service credential.
 Handles user lifecycle management:
 
 #### User Creation
+
 - Via Clerk authentication
 - Automatic API token provisioning
 - Trial subscription creation
@@ -55,11 +63,13 @@ Handles user lifecycle management:
 - Slack notifications for new users
 
 #### User Lookups
+
 - By user ID
 - By Clerk ID
 - By API token
 
 #### Token Management
+
 - Websocket tokens (short-lived)
 - API tokens (long-lived)
 - Token expiration handling
@@ -68,6 +78,7 @@ Handles user lifecycle management:
 ### AgentCredentialsService
 
 Manages AI service credentials:
+
 - CRUD operations
 - Default credential management
 - Usage statistics
@@ -93,17 +104,20 @@ Manages AI service credentials:
 ## Token Types
 
 ### Websocket Tokens
+
 - Short expiration
 - Used for real-time connections
 - Generated per session
 
 ### API Tokens
+
 - Long-lived (configurable expiration)
 - Used for programmatic access
 - Multiple tokens per user
 - Can be revoked
 
 ### Agent Tokens
+
 - Special format for AI agents
 - Include user ID and role
 - Used by custom connectors
@@ -111,6 +125,7 @@ Manages AI service credentials:
 ## AI Credentials
 
 ### OpenRouter Integration
+
 - Automatic key provisioning
 - Credit limit management
 - Usage tracking
@@ -118,6 +133,7 @@ Manages AI service credentials:
 - Default credential selection
 
 ### Credential Types
+
 - User-created credentials
 - System-generated credentials (protected)
 - Organization-scoped access
@@ -125,12 +141,15 @@ Manages AI service credentials:
 ## Authorization
 
 ### Actor Pattern
+
 Users converted to Actor objects with:
+
 - User ID
 - Organization context
 - Role information
 
 ### Role-Based Access
+
 - ADMIN role for privileged operations
 - User role for standard access
 - System role for internal operations
@@ -138,6 +157,7 @@ Users converted to Actor objects with:
 ## Integration
 
 The module imports and integrates with:
+
 - **DbModule**: Database access
 - **AuthModule**: Authentication strategies
 - **PaymentModule**: Subscription management
@@ -150,16 +170,19 @@ The module imports and integrates with:
 ## Security Features
 
 ### Credential Protection
+
 - System-generated credentials cannot be modified by users
 - Only credential owners can delete
 - Audit trail for all operations
 
 ### Token Security
+
 - Secure random generation
 - Expiration handling
 - Revocation support
 
 ### Organization Isolation
+
 - Users scoped to organizations
 - No cross-organization access
 - Proper authorization checks
@@ -167,6 +190,7 @@ The module imports and integrates with:
 ## User Data
 
 User objects include:
+
 - Profile information (name, email)
 - Clerk ID (external identity)
 - Organization membership
@@ -178,6 +202,7 @@ User objects include:
 ## Feature Flags
 
 Users receive personalized feature flags:
+
 - Loaded from experiments module
 - Included in current user response
 - Enable client-side feature gates
@@ -185,6 +210,7 @@ Users receive personalized feature flags:
 ## Analytics
 
 User events tracked:
+
 - User creation
 - Credential creation/deletion
 - Login events

@@ -19,11 +19,7 @@ export const fetcher = async (url: string) => {
       // The response might not be a valid JSON
       info = res.statusText;
     }
-    throw new FetchError(
-      "An error occurred while fetching the data.",
-      info,
-      res.status
-    );
+    throw new FetchError('An error occurred while fetching the data.', info, res.status);
   }
   return res.json();
 };

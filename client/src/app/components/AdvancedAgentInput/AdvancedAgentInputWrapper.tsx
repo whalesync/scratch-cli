@@ -1,7 +1,7 @@
 'use client';
 
-import { SnapshotTableId } from '@spinner/shared-types';
 import { Box, Group, Loader, Paper, Select, Stack, Text } from '@mantine/core';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';

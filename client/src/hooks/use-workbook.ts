@@ -2,10 +2,10 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotColumnSettingsMap, UpdateWorkbookDto, Workbook } from '@/types/server-entities/workbook';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 export interface UseWorkbookReturn {
   workbook: Workbook | undefined;

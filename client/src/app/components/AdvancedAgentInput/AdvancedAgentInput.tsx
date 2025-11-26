@@ -2,10 +2,10 @@
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi } from '@/lib/api/mentions';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { TableSpec, Workbook } from '@/types/server-entities/workbook';
 import { useMantineColorScheme } from '@mantine/core';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { FC, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';

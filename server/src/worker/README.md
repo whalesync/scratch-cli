@@ -13,17 +13,20 @@ This module provides asynchronous job processing capabilities that decouple long
 ### Core Components
 
 #### QueueService
+
 - BullMQ integration for job queuing
 - Job lifecycle tracking
 - Progress reporting
 - Graceful cancellation via Redis pub/sub
 
 #### JobHandlerService
+
 - Factory for instantiating type-safe job handlers
 - Dependency injection for services
 - Clean handler interface
 
 #### WorkerPoolService
+
 - Piscina management for concurrent execution
 - Worker thread pool
 - Load distribution
@@ -31,7 +34,9 @@ This module provides asynchronous job processing capabilities that decouple long
 ## Job System
 
 ### Job Definition
+
 Uses strongly-typed builder pattern:
+
 - Consistent interfaces
 - Type-safe job definitions
 - Compile-time validation
@@ -39,9 +44,11 @@ Uses strongly-typed builder pattern:
 ### Job Types
 
 #### download-records
+
 Fetches and upserts data from external connectors into snapshot database.
 
 **Features:**
+
 - Connector integration
 - Progress tracking
 - Error handling
@@ -59,12 +66,14 @@ Fetches and upserts data from external connectors into snapshot database.
 ## Progress Tracking
 
 ### Checkpoints
+
 - Regular progress updates
 - Percentage completion
 - Status messages
 - Error information
 
 ### Storage
+
 - Progress persisted to database
 - Real-time updates available
 - Historical record maintained
@@ -72,11 +81,13 @@ Fetches and upserts data from external connectors into snapshot database.
 ## Cancellation Support
 
 ### Redis Pub/Sub
+
 - Cancellation messages published
 - Workers subscribe to cancellation channel
 - Graceful shutdown
 
 ### Abort Controllers
+
 - Job functions can check cancellation state
 - Clean resource cleanup
 - Partial work saved
@@ -84,13 +95,16 @@ Fetches and upserts data from external connectors into snapshot database.
 ## Type Safety
 
 ### Service Injection
+
 Job handlers receive needed services:
+
 - Prisma client
 - ConnectorsService
 - SnapshotDbService
 - Other dependencies
 
 ### Pure Functions
+
 - Testable job logic
 - No global dependencies
 - Clear service requirements
@@ -98,11 +112,13 @@ Job handlers receive needed services:
 ## Integration
 
 ### Snapshot Module
+
 - Downloads snapshot data
 - Synchronizes external records
 - Updates local database
 
 ### Connector Services
+
 - Fetches data from external APIs
 - Handles authentication
 - Manages rate limits
@@ -134,7 +150,9 @@ DATABASE_URL=your_database_url
 ## Database Operations
 
 ### Job Records
+
 Stored via Prisma:
+
 - Job metadata
 - Status tracking
 - Progress information
@@ -142,6 +160,7 @@ Stored via Prisma:
 - Timestamps
 
 ### Transaction Support
+
 - Atomic operations
 - Rollback on failure
 - Consistent state
@@ -149,12 +168,14 @@ Stored via Prisma:
 ## Error Handling
 
 ### Comprehensive Logging
+
 - Error capture
 - Stack traces
 - Context information
 - Retry logic
 
 ### Failure States
+
 - Jobs marked as failed
 - Error details stored
 - Notifications sent
@@ -163,12 +184,14 @@ Stored via Prisma:
 ## Concurrency
 
 ### Worker Pool
+
 - Multiple concurrent jobs
 - Thread isolation
 - Resource management
 - Load balancing
 
 ### Queue Management
+
 - Priority support
 - Rate limiting
 - Backpressure handling
@@ -176,12 +199,14 @@ Stored via Prisma:
 ## Monitoring
 
 ### Job Metrics
+
 - Processing time
 - Success rate
 - Error frequency
 - Queue depth
 
 ### Progress Visibility
+
 - Real-time status
 - Completion percentage
 - Time estimates
@@ -189,6 +214,7 @@ Stored via Prisma:
 ## Service Type
 
 Conditionally loaded based on:
+
 - `SERVICE_TYPE` environment variable
 - Worker service mode
 - Monolith mode
@@ -240,18 +266,21 @@ src/worker/
 ## Best Practices
 
 ### Job Design
+
 - Keep jobs idempotent
 - Handle partial failures
 - Report progress regularly
 - Clean up resources
 
 ### Error Handling
+
 - Log comprehensive context
 - Set appropriate retry policies
 - Handle transient failures
 - Notify on permanent failures
 
 ### Performance
+
 - Batch operations when possible
 - Use appropriate parallelism
 - Monitor queue depth

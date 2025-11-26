@@ -217,13 +217,11 @@ test('should handle API responses', async ({ page }) => {
 Authentication uses Playwright's **storage state** pattern for maximum efficiency:
 
 1. **Global Setup** (`e2e/global.setup.ts`): Runs once before all tests
-
    - Initializes Clerk testing token
    - Signs in a test user programmatically
    - Saves authentication state to `.auth/user.json`
 
 2. **Test Execution**: All tests automatically use the saved auth state
-
    - No need to sign in before each test
    - Tests start already authenticated
    - Much faster test execution
@@ -300,6 +298,7 @@ await page.waitForTimeout(5000); // ❌ Avoid this
 **Why avoid `networkidle`?**
 
 Our app uses:
+
 - WebSocket connections for real-time updates
 - PostHog analytics with periodic requests
 - Background polling and SSE

@@ -3,10 +3,10 @@
 import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { useSetState } from '@mantine/hooks';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSWRConfig } from 'swr';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 interface SnapshotEventContextValue {
   isConnected: boolean;

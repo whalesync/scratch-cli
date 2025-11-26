@@ -5,6 +5,7 @@ This document describes the standardized pattern for testing connectors.
 ## Overview
 
 All connector tests should follow a consistent structure to ensure:
+
 - **Completeness**: All critical methods are tested
 - **Maintainability**: Tests are easy to understand and update
 - **Efficiency**: Tests use minimal data to avoid memory issues
@@ -66,6 +67,7 @@ describe('YourConnector', () => {
 ## Key Testing Principles
 
 ### 1. Mock the API Client, Not Internals
+
 ```typescript
 // ✅ GOOD: Mock the SDK/API client
 jest.mock('webflow-api', () => ({
@@ -77,6 +79,7 @@ jest.mock('https');
 ```
 
 ### 2. Use Minimal Test Data
+
 ```typescript
 // ✅ GOOD: 2-3 records, 1-2 fields
 const mockData = [
@@ -94,13 +97,16 @@ const mockData = Array.from({ length: 1000 }, (_, i) => ({
 ```
 
 ### 3. Test Core Logic, Not Everything
+
 Focus on:
+
 - ✅ Download mechanism
 - ✅ Pagination logic
 - ✅ Data transformation (API → ConnectorRecord)
 - ✅ Connector-specific features (rich text, metadata, etc.)
 
 Don't test:
+
 - ❌ The API client/SDK itself
 - ❌ Network layer
 - ❌ Every possible field type combination
@@ -114,6 +120,7 @@ Don't test:
 ## Examples
 
 See these connector tests for reference:
+
 - `webflow/webflow-connector.spec.ts` - Metadata-based pagination
 - `notion/notion-connector.spec.ts` - Cursor-based pagination
 - `wordpress/wordpress-connector.spec.ts` - Offset-based pagination
@@ -121,29 +128,31 @@ See these connector tests for reference:
 ## Adding Tests for a New Connector
 
 1. **Create mock client**:
+
    ```typescript
    const createMockClient = () => ({
      // Only methods your connector actually uses
    });
    ```
 
-3. **Mock the API library**:
+2. **Mock the API library**:
+
    ```typescript
    jest.mock('your-api-library', () => ({ ... }));
    ```
 
-4. **Write required tests**:
+3. **Write required tests**:
    - Download + transform
    - Pagination
    - Metadata methods
 
-5. **Add connector-specific tests**:
+4. **Add connector-specific tests**:
    - Rich text conversion
    - Metadata columns
    - Progress/resume
    - Special field types
 
-6. **Keep it minimal**:
+5. **Keep it minimal**:
    - 1-2 fields in table specs
    - 2-3 records in test data
    - Focus on core logic

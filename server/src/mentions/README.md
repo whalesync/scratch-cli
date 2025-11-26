@@ -13,9 +13,11 @@ This module enables users to discover relevant content through text search, like
 Both endpoints are protected by `ScratchpadAuthGuard`:
 
 ### `POST /mentions/search/resources`
+
 Searches for markdown uploads (MD documents) by name.
 
 **Functionality:**
+
 - Queries the Upload table for markdown files
 - Matches search text against file names
 - Fetches full content from MdUploads schema
@@ -24,9 +26,11 @@ Searches for markdown uploads (MD documents) by name.
 **Returns:** List of matching markdown documents with metadata and content.
 
 ### `POST /mentions/search/records`
+
 Searches for database records within a specific snapshot and table by their title field.
 
 **Functionality:**
+
 - Retrieves snapshot and table specifications
 - Locates the title column
 - Performs case-insensitive pattern matching
@@ -52,6 +56,7 @@ Provides search logic across two distinct data sources:
 ## Integration
 
 The module depends on four other modules:
+
 - **DbModule**: Database access for uploads
 - **SnapshotModule**: Snapshot metadata
 - **SnapshotDbModule**: Snapshot data queries

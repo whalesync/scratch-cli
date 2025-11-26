@@ -13,14 +13,17 @@ This module offers comprehensive administrative tools for developers and support
 All endpoints are protected by `ScratchpadAuthGuard` and require `hasAdminToolsPermission()` authorization (ADMIN role only):
 
 ### `GET /dev-tools/users/search?query=<string>`
+
 Search for users in the system by query string.
 
 Returns basic user information matching the search criteria.
 
 ### `GET /dev-tools/users/:id/details`
+
 Retrieve comprehensive administrative details about a specific user.
 
 Returns a `UserDetail` object containing:
+
 - **User Info**: Basic user account information
 - **Workbooks**: All snapshots owned by the user with table counts
 - **Integrations**: Connected connectors with service types
@@ -29,6 +32,7 @@ Returns a `UserDetail` object containing:
 ## Architecture
 
 The module orchestrates calls across multiple services:
+
 - **UsersService**: User account information
 - **PaymentService**: Subscription data
 - **SnapshotService**: Workbook/snapshot data
@@ -39,6 +43,7 @@ The module orchestrates calls across multiple services:
 ## Authorization
 
 Access is restricted to administrators only through:
+
 1. `ScratchpadAuthGuard`: Ensures user is authenticated
 2. `hasAdminToolsPermission()`: Checks for ADMIN role
 

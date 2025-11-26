@@ -1,8 +1,8 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { ScratchpadPlanType } from '@spinner/shared-types';
 import { RouteUrls } from '@/utils/route-urls';
 import { Modal, Stack } from '@mantine/core';
+import { ScratchpadPlanType } from '@spinner/shared-types';
 import Link from 'next/link';
 import { JSX } from 'react';
 import { Text13Regular, TextTitle2 } from './base/text';

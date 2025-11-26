@@ -13,16 +13,19 @@ This module functions as an intermediary between user-facing HTTP requests and t
 All endpoints are protected by `ScratchpadAuthGuard`:
 
 ### `GET /jobs`
+
 Retrieves jobs for the authenticated user with pagination support.
 
 Returns a list of jobs with their current status and metadata.
 
 ### `GET /jobs/:jobId/progress`
+
 Fetches real-time job progress and state for a specific job.
 
 Provides detailed information about job execution status.
 
 ### `POST /jobs/:jobId/cancel`
+
 Cancels an active job.
 
 Sends cancellation signal via Redis pub/sub to worker processes.
@@ -30,6 +33,7 @@ Sends cancellation signal via Redis pub/sub to worker processes.
 ## Job States
 
 Jobs progress through multiple states:
+
 - **active**: Currently executing
 - **completed**: Successfully finished
 - **failed**: Encountered an error
@@ -40,6 +44,7 @@ Jobs progress through multiple states:
 ### JobService
 
 Manages job persistence and lifecycle:
+
 - Creates job records with unique IDs and types
 - Tracks job status through state transitions
 - Stores progress data and error information
@@ -48,6 +53,7 @@ Manages job persistence and lifecycle:
 ## Integration with Workers
 
 The Job module works closely with:
+
 - **Worker Module**: Executes actual job logic
 - **BullMQ**: Queue system for job distribution
 - **QueueService**: Creates and updates job database records
@@ -56,6 +62,7 @@ The Job module works closely with:
 ## Conditional Loading
 
 The module is conditionally loaded only when:
+
 - `ScratchpadConfigService.isTaskWorkerService()` returns true
 - Service instance runs as a task worker
 - Determined by `SERVICE_TYPE` environment variable
@@ -65,6 +72,7 @@ This allows the same codebase to run different microservice configurations.
 ## Job Cancellation
 
 Cancellation flow:
+
 1. User calls cancel endpoint
 2. JobService publishes cancellation message to Redis
 3. Worker process receives message
@@ -74,6 +82,7 @@ Cancellation flow:
 ## Database Persistence
 
 All job data is persisted via Prisma:
+
 - Job metadata
 - Progress information
 - Error details

@@ -196,7 +196,7 @@ export const MdViewModal: FC<MdViewModalProps> = ({ opened, onClose, uploadId, u
               </ScrollArea>
               {isTruncated && (
                 <Text size="xs" c="dimmed" mt="xs">
-                 {' Preview truncated. Click "Show Full Content" to see the complete content.'}
+                  {' Preview truncated. Click "Show Full Content" to see the complete content.'}
                 </Text>
               )}
             </Box>

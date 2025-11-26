@@ -15,6 +15,7 @@ This module provides request/response transformation, logging, and monitoring ca
 Implements NestJS's `NestInterceptor` interface to capture and log incoming HTTP request metadata.
 
 **Functionality:**
+
 - Extracts request method (GET, POST, etc.)
 - Captures request URL
 - Logs user-agent headers
@@ -27,6 +28,7 @@ Applied globally to all HTTP requests via `app.useGlobalInterceptors()` in `main
 ## Integration
 
 The interceptor integrates with:
+
 - **WSLogger**: Centralized logging system using Winston
 - **HTTP Layer**: Automatically intercepts all requests
 - **Monitoring**: Provides visibility into traffic patterns
@@ -41,6 +43,7 @@ The interceptor integrates with:
 ## Architecture
 
 Interceptors sit between the client and route handlers:
+
 1. Request arrives
 2. Interceptor captures metadata
 3. Logs information
@@ -50,6 +53,7 @@ Interceptors sit between the client and route handlers:
 ## Extensibility
 
 The modular design allows for future interceptors to handle:
+
 - Request/response transformation
 - Performance timing
 - Authentication enrichment
@@ -64,6 +68,7 @@ Interceptors are automatically applied to all routes. No configuration needed in
 ## Logging Details
 
 Uses Winston logging library through WSLogger, providing:
+
 - Structured log format
 - Debug level filtering
 - Production-ready logging

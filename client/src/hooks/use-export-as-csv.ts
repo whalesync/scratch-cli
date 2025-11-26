@@ -2,8 +2,8 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { Workbook } from '@/types/server-entities/workbook';
-import { useSWRConfig } from 'swr';
 import { SnapshotTableId } from '@spinner/shared-types';
+import { useSWRConfig } from 'swr';
 
 export const useExportAsCsv = () => {
   const { mutate: globalMutate } = useSWRConfig();

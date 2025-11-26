@@ -12,9 +12,9 @@ import {
   SnapshotRecord,
 } from '@/types/server-entities/workbook';
 import { hashStringList } from '@/utils/helpers';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useWorkbook } from './use-workbook';
 
 export interface UseSnapshotRecordsReturn {

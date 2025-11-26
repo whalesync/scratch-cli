@@ -3,9 +3,9 @@ import { useOperationCounts } from '@/hooks/use-operation-counts';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Modal, Stack, Text } from '@mantine/core';
+import { WorkbookId } from '@spinner/shared-types';
 import { CircleAlertIcon } from 'lucide-react';
 import { useMemo } from 'react';
-import { WorkbookId } from '@spinner/shared-types';
 import { StatusListItem } from './StatusListItem';
 import { TablePublishStats } from './TablePublishStats';
 

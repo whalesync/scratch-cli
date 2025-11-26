@@ -1,6 +1,5 @@
-import { clerk } from '@clerk/testing/playwright';
+import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
 import { Page } from '@playwright/test';
-import { setupClerkTestingToken } from '@clerk/testing/playwright';
 
 /**
  * Sign in a test user using Clerk

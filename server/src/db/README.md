@@ -28,6 +28,7 @@ The core service manages two primary database clients:
 ## Initialization
 
 The service is initialized with:
+
 - Database connection URL from configuration
 - SSL certificate handling for CloudSQL environments
 - Connection string parsing
@@ -36,6 +37,7 @@ The service is initialized with:
 ## Type Safety
 
 The `cluster-types.ts` file defines:
+
 - TypeScript types for domain entities
 - Prisma validators for key models:
   - User
@@ -47,12 +49,14 @@ The `cluster-types.ts` file defines:
 ## Lifecycle Management
 
 The DbService implements NestJS lifecycle hooks:
+
 - **onModuleInit**: Establishes database connections
 - **onModuleDestroy**: Gracefully closes connections
 
 ## Integration
 
 The DbModule is:
+
 - Imported at application root level
 - Acts as a foundational module
 - Used by virtually all services requiring data persistence:
@@ -76,6 +80,7 @@ async getData() {
 ## Database Operations
 
 The module supports:
+
 - CRUD operations
 - Complex queries with relations
 - Transactions
@@ -86,6 +91,7 @@ The module supports:
 ## Environment Support
 
 Handles different database configurations for:
+
 - Local development
 - Testing
 - Staging

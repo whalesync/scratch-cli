@@ -74,10 +74,7 @@ module.exports = {
       // Member expression: something.useStore()
       if (callExpression.callee.type === 'MemberExpression') {
         const memberExpression = callExpression.callee;
-        if (
-          memberExpression.property &&
-          memberExpression.property.type === 'Identifier'
-        ) {
+        if (memberExpression.property && memberExpression.property.type === 'Identifier') {
           return memberExpression.property.name;
         }
       }
@@ -137,4 +134,3 @@ module.exports = {
     };
   },
 };
-

@@ -1,20 +1,19 @@
-import { Flavor, getBuildFlavor } from "@/utils/build";
-import { FLAGS } from "@/utils/flags-dev";
-import { useScratchPadUser } from "./useScratchpadUser";
-
+import { Flavor, getBuildFlavor } from '@/utils/build';
+import { FLAGS } from '@/utils/flags-dev';
+import { useScratchPadUser } from './useScratchpadUser';
 
 export interface SubscriptionStatus {
-    isSubscribed: boolean;
-    status: 'valid' | 'expired' | 'payment_failed' | 'none';
-    planDisplayName: string;
-    daysRemaining: number;
-    isTrial: boolean;
+  isSubscribed: boolean;
+  status: 'valid' | 'expired' | 'payment_failed' | 'none';
+  planDisplayName: string;
+  daysRemaining: number;
+  isTrial: boolean;
 }
 
 export function useSubscriptionStatus() {
   const { user } = useScratchPadUser();
 
-  if(!user){
+  if (!user) {
     return {
       isSubscribed: false,
       status: 'none',
@@ -24,7 +23,7 @@ export function useSubscriptionStatus() {
     };
   }
 
-  if(FLAGS.SKIP_PAYWALL_FOR_LOCALHOST.get() && getBuildFlavor() === Flavor.Local){
+  if (FLAGS.SKIP_PAYWALL_FOR_LOCALHOST.get() && getBuildFlavor() === Flavor.Local) {
     return {
       isSubscribed: true,
       status: 'valid',
@@ -34,7 +33,7 @@ export function useSubscriptionStatus() {
     };
   }
 
-  if(!user.subscription){
+  if (!user.subscription) {
     return {
       isSubscribed: false,
       status: 'none',
@@ -45,7 +44,7 @@ export function useSubscriptionStatus() {
   }
 
   const status = user.subscription.status;
-  if(status === 'expired' || status === 'payment_failed'){
+  if (status === 'expired' || status === 'payment_failed') {
     return {
       isSubscribed: false,
       status,
@@ -54,7 +53,6 @@ export function useSubscriptionStatus() {
       isTrial: false,
     };
   }
-
 
   return {
     isSubscribed: true,

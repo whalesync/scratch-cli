@@ -15,6 +15,7 @@ This module serves as a foundational layer with reusable code that supports core
 Enables efficient CSV data export from PostgreSQL.
 
 **Features:**
+
 - Creates PostgreSQL COPY streams
 - Configurable column selection
 - WHERE clause filtering support
@@ -22,6 +23,7 @@ Enables efficient CSV data export from PostgreSQL.
 - Direct database-to-CSV pipeline
 
 **Use Cases:**
+
 - Export snapshot data
 - Download query results
 - Generate CSV reports
@@ -32,12 +34,14 @@ Enables efficient CSV data export from PostgreSQL.
 Provides secure encryption/decryption for sensitive data.
 
 **Features:**
+
 - AES-256-GCM encryption
 - Secure key derivation
 - Encrypted credential storage
 - Decryption on-demand
 
 **Use Cases:**
+
 - Connector account credentials
 - OAuth tokens
 - API keys
@@ -48,6 +52,7 @@ Provides secure encryption/decryption for sensitive data.
 Type-safe duration handling and time calculations.
 
 **Features:**
+
 - Duration class for time operations
 - Multiple time unit support (ms, sec, min, hour, day)
 - Date arithmetic
@@ -55,6 +60,7 @@ Type-safe duration handling and time calculations.
 - Type-safe conversions
 
 **Use Cases:**
+
 - Job scheduling
 - Token expiration
 - Rate limiting
@@ -66,11 +72,13 @@ Type-safe duration handling and time calculations.
 Enum parsing utilities.
 
 **Features:**
+
 - Convert strings to enum values
 - Type-safe enum handling
 - Validation support
 
 **Use Cases:**
+
 - API parameter parsing
 - Configuration loading
 - Type conversions
@@ -80,11 +88,13 @@ Enum parsing utilities.
 TypeScript exhaustiveness checking.
 
 **Features:**
+
 - Compile-time completeness checks
 - Ensures all enum values handled
 - Type narrowing support
 
 **Use Cases:**
+
 - Switch statement completeness
 - Enum handling verification
 - Type-safe branching
@@ -94,11 +104,13 @@ TypeScript exhaustiveness checking.
 URL validation and parsing.
 
 **Features:**
+
 - HTTP/HTTPS URL validation
 - Regex pattern matching
 - Safe URL handling
 
 **Use Cases:**
+
 - External resource validation
 - Webhook URL verification
 - API endpoint validation
@@ -109,11 +121,13 @@ URL validation and parsing.
 TypeScript type definitions for JSON-safe objects.
 
 **Features:**
+
 - JsonObject type
 - JsonValue type
 - Type-safe JSON handling
 
 **Use Cases:**
+
 - API request/response types
 - Database JSON columns
 - Configuration objects
@@ -124,22 +138,26 @@ TypeScript type definitions for JSON-safe objects.
 Utilities are used throughout the application:
 
 ### CSV Export
+
 - Snapshot controller
 - Uploads service
 - Data export endpoints
 
 ### Encryption
+
 - OAuth provider
 - Connector account service
 - Credential storage
 
 ### Duration
+
 - Job scheduling
 - Token management
 - Timeout configuration
 - Rate limiting
 
 ### URL Validation
+
 - Style guide downloads
 - Webhook configuration
 - External resource imports
@@ -147,21 +165,25 @@ Utilities are used throughout the application:
 ## Design Principles
 
 ### Separation of Concerns
+
 - Extract domain-independent functions
 - Prevent code duplication
 - Single responsibility
 
 ### Type Safety
+
 - TypeScript-first design
 - Generic types where appropriate
 - Compile-time validation
 
 ### Performance
+
 - Efficient implementations
 - Stream-based processing
 - Minimal memory overhead
 
 ### Reusability
+
 - Pure functions where possible
 - No side effects
 - Composable utilities
@@ -178,26 +200,31 @@ Utilities are used throughout the application:
 ## Use Cases Summary
 
 ### Data Export
+
 - CSV streaming
 - Database COPY operations
 - Efficient data transfer
 
 ### Security
+
 - Credential encryption
 - Token protection
 - Secure storage
 
 ### Time Management
+
 - Duration calculations
 - Expiration handling
 - Scheduling support
 
 ### Validation
+
 - URL checking
 - Enum parsing
 - Type conversion
 
 ### Type Safety
+
 - JSON object handling
 - Exhaustiveness checking
 - Type narrowing
@@ -205,6 +232,7 @@ Utilities are used throughout the application:
 ## Testing
 
 Utilities are designed to be easily testable:
+
 - Pure functions
 - No external dependencies
 - Clear inputs and outputs
@@ -213,6 +241,7 @@ Utilities are designed to be easily testable:
 ## Extension
 
 Easy to add new utilities:
+
 1. Create new utility file
 2. Export functions
 3. Use throughout application

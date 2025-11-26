@@ -15,6 +15,7 @@ This module abstracts the complexity of Redis communication, providing a clean o
 Built as a NestJS module that exports a single service using the IORedis library.
 
 **Architecture:**
+
 - Maintains two separate Redis connections:
   - One for publishing messages
   - One for subscribing to channels
@@ -24,16 +25,19 @@ Built as a NestJS module that exports a single service using the IORedis library
 ## Features
 
 ### Lazy Channel Subscription
+
 - Only subscribes to Redis channels when observers exist
 - Optimizes Redis connection usage
 - Reduces overhead for unused channels
 
 ### Observable Integration
+
 - Seamless RxJS integration
 - Type-safe event streaming
 - Proper cleanup when subscriptions end
 
 ### Automatic Serialization
+
 - JSON encoding of published messages
 - JSON decoding of received messages
 - Type-safe message handling
@@ -45,6 +49,7 @@ Built as a NestJS module that exports a single service using the IORedis library
 The Snapshot module uses Redis pub/sub to implement real-time event notifications:
 
 **SnapshotEventService wraps RedisPubSubService to provide:**
+
 - Snapshot update notifications
 - Record change events
 - Suggested changes
@@ -56,6 +61,7 @@ This enables real-time updates to connected clients about snapshot modifications
 ## Event-Driven Architecture
 
 The module serves as a critical communication backbone:
+
 - **Decouples Components**: Services don't need direct dependencies
 - **Enables Real-time**: Push updates to clients instantly
 - **Scales Horizontally**: Multiple server instances can communicate
@@ -64,6 +70,7 @@ The module serves as a critical communication backbone:
 ## Integration
 
 Integrated throughout the application for:
+
 - Real-time snapshot updates
 - Job cancellation signals
 - Cross-instance communication
@@ -72,6 +79,7 @@ Integrated throughout the application for:
 ## Configuration
 
 Requires Redis connection configuration:
+
 - Host
 - Port
 - Password (if required)
@@ -82,6 +90,7 @@ Loaded from `ScratchpadConfigService`.
 ## Channels
 
 The service supports multiple channels for different event types:
+
 - Snapshot updates
 - Record changes
 - System events
@@ -90,6 +99,7 @@ The service supports multiple channels for different event types:
 ## Error Handling
 
 Handles Redis-specific errors:
+
 - Connection failures
 - Network issues
 - Subscription errors
@@ -98,6 +108,7 @@ Handles Redis-specific errors:
 ## Cleanup
 
 Proper resource management:
+
 - Unsubscribes from channels when not needed
 - Closes Redis connections gracefully
 - Prevents memory leaks

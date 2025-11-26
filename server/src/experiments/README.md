@@ -11,11 +11,15 @@ This module implements an abstraction layer around OpenFeature, a vendor-agnosti
 ## Flag Types
 
 ### System-Wide Flags
+
 Flags that apply globally across the application:
+
 - `SAMPLE_SYSTEM_FLAG`
 
 ### User-Scoped Flags
+
 Flags evaluated per-user:
+
 - `DEV_TOOLBOX`: Developer tools access
 - `REQUIRE_SUBSCRIPTION`: Subscription requirement enforcement
 - `CONNECTOR_LIST`: Available connector list configuration
@@ -34,16 +38,19 @@ Flags evaluated per-user:
 ## Special Flag Handling
 
 ### DEV_TOOLBOX
+
 - Automatically determined by user role
 - ADMIN users automatically get access
 - No external flag evaluation needed
 
 ### REQUIRE_SUBSCRIPTION
+
 - Pulled from application configuration
 - Controlled via environment variables
 - Bypasses external flag providers
 
 ### USE_JOBS
+
 - Configuration-based flag
 - Determines background job system usage
 - Environment-specific setting
@@ -51,11 +58,13 @@ Flags evaluated per-user:
 ## Backend Providers
 
 ### Production
+
 - Connects to PostHog for dynamic flag management
 - Supports local evaluation for performance
 - Real-time flag updates
 
 ### Development
+
 - Falls back to in-memory flag definitions
 - Predefined flag values for local testing
 - No external service dependency
@@ -63,6 +72,7 @@ Flags evaluated per-user:
 ## Integration
 
 The module integrates with:
+
 - **NestJS**: Dependency injection and module system
 - **PostHog**: Production feature flag provider
 - **Configuration**: System-level flag values
@@ -71,6 +81,7 @@ The module integrates with:
 ## Client Integration
 
 The frontend receives personalized flag settings when fetching the current user information:
+
 - Enables client-side feature gates
 - Supports experimentation tracking
 - Allows dynamic feature rollout
@@ -87,6 +98,7 @@ The frontend receives personalized flag settings when fetching the current user 
 ## Configuration
 
 Flags can be configured through:
+
 - PostHog dashboard (production)
 - Environment variables (system flags)
 - Application configuration service

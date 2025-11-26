@@ -13,6 +13,7 @@ This module provides centralized error handling that catches specific exceptions
 ### ConnectorInstantiationErrorExceptionFilter
 
 Registered globally in `main.ts`, this filter:
+
 - Catches `ConnectorInstantiationError` exceptions
 - Converts them to `InternalServerErrorException` responses
 - Extracts error details (service name, error message)
@@ -23,6 +24,7 @@ Instead of generic "Internal server error" messages, clients receive descriptive
 ## Error Response Format
 
 The filter provides:
+
 - HTTP status code (typically 500)
 - Detailed error message
 - Service-specific context
@@ -31,6 +33,7 @@ The filter provides:
 ## Integration with Error Utilities
 
 Works in conjunction with error handling utilities in `remote-service/connectors/error.ts`:
+
 - Standardized error templates
 - Common error scenarios:
   - Unauthorized credentials
@@ -49,6 +52,7 @@ Works in conjunction with error handling utilities in `remote-service/connectors
 ## Architecture
 
 Exception filters are registered globally at application bootstrap, intercepting exceptions before they reach the client. This creates a cohesive error handling strategy where:
+
 1. Connector-specific failures are captured
 2. Error details are standardized
 3. Helpful messages are returned to clients
@@ -56,6 +60,7 @@ Exception filters are registered globally at application bootstrap, intercepting
 ## Extensibility
 
 The module is designed to support additional exception filters for:
+
 - Different error types
 - Service-specific exceptions
 - Custom business logic errors

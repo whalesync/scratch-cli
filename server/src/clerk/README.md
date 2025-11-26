@@ -11,14 +11,18 @@ This module provides a clean, injectable service for accessing Clerk's user and 
 ## Key Components
 
 ### ClerkClientProvider
+
 Initializes the Clerk SDK client using API keys from the application's configuration service.
 
 ### ClerkService
+
 Wraps the Clerk SDK with two primary methods:
+
 - **getUserById()**: Look up users by their Clerk ID
 - **getOrganizationById()**: Look up organizations by their Clerk ID
 
 ### ClerkModule
+
 NestJS module that ties everything together and exports services for use throughout the application.
 
 ## Integration
@@ -42,6 +46,7 @@ This enables the application to leverage Clerk as its authentication provider wh
 ## Configuration
 
 The module depends on the `ScratchpadConfigService` to provide:
+
 - Clerk API keys
 - Environment-specific settings
 - Authentication configuration

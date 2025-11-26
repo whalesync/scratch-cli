@@ -5,7 +5,7 @@ interface NotificationData {
   title?: string;
   message: string;
   autoClose?: number;
-};
+}
 
 /* 
  Interface for showing Mantine notifications using standard formats

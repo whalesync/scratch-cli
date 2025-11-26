@@ -29,6 +29,7 @@ The main service provides three core methods:
 ## Event Types
 
 The module defines four event types:
+
 - `create`: Entity creation events
 - `update`: Entity modification events
 - `delete`: Entity deletion events
@@ -37,6 +38,7 @@ The module defines four event types:
 ## Data Model
 
 Each audit event includes:
+
 - Event type
 - User who performed the action
 - Organization context
@@ -48,13 +50,16 @@ Each audit event includes:
 ## Integration Points
 
 ### SnapshotService
+
 Logs major operations including:
+
 - Snapshot creation
 - Snapshot updates
 - Snapshot deletions
 - Snapshot publishing
 
 ### Dev-Tools
+
 The admin endpoint `GET /dev-tools/users/:id/details` retrieves the last 20 audit events for a user as part of user detail inspection.
 
 ## Architecture

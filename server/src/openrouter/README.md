@@ -17,6 +17,7 @@ Injectable service that handles all HTTP communication with OpenRouter's API usi
 ### Types (types.ts)
 
 TypeScript interfaces defining:
+
 - OpenRouter API response structures
 - Request payload formats
 - Result types (success/error states)
@@ -28,32 +29,38 @@ NestJS module that exports the service for dependency injection throughout the a
 ## Core Operations
 
 ### Create API Key
+
 - Creates new API keys for users
 - Configurable credit limits
 - User-specific provisioning
 
 ### Retrieve Key Data
+
 - Fetches current API key information
 - Includes usage statistics
 - Rate limit information
 
 ### Update Key Properties
+
 - Modifies credit limits
 - Changes enabled/disabled status
 - Updates key configurations
 
 ### Enable/Disable Keys
+
 - Temporarily disable keys
 - Re-enable disabled keys
 - No key deletion required
 
 ### Delete Keys
+
 - Permanently removes API keys
 - Cleans up provisioned resources
 
 ## Authentication
 
 All operations use a provisioning key for authentication:
+
 - Loaded from `ScratchpadConfigService`
 - Environment-specific configuration
 - Secure credential management
@@ -61,10 +68,12 @@ All operations use a provisioning key for authentication:
 ## Error Handling
 
 Returns typed result objects:
+
 - **Success**: Contains requested data
 - **Error**: Includes error details and messages
 
 Proper error handling for:
+
 - Network failures
 - API errors
 - Invalid requests
@@ -73,6 +82,7 @@ Proper error handling for:
 ## Integration
 
 Currently integrated into:
+
 - **Users Module**: Agent credentials controller
 - **Provisioning**: Creates keys for new users
 - **User Management**: Key lifecycle management
@@ -91,6 +101,7 @@ Enables the application to provision and manage OpenRouter API keys on behalf of
 ## Configuration
 
 Requires environment configuration:
+
 - OpenRouter provisioning key
 - API endpoint URLs
 - Environment-specific settings

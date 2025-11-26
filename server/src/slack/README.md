@@ -13,6 +13,7 @@ This module provides a simple mechanism for the development team to receive real
 ### SlackNotificationService
 
 Core service that:
+
 - Sends messages to Slack webhook URL
 - Uses configuration from `ScratchpadConfigService`
 - Checks if notifications are enabled
@@ -21,6 +22,7 @@ Core service that:
 ### SlackFormatters
 
 Utility class providing formatting functions:
+
 - **formatMarkdownLink()**: Format standard markdown links in Slack syntax
 - **newUserSignup()**: Format new user signup notification messages
 
@@ -31,17 +33,21 @@ Currently sends simple text messages in Slack markdown format, with a note for f
 ## Integration
 
 ### UsersService
+
 Sends notifications when new users sign up:
+
 - Formats user information
 - Posts to developer channel
 - Tracks user onboarding
 
 ### StripePaymentService
+
 Injected for potential payment-related notifications (not currently actively used).
 
 ## Configuration
 
 Requires environment configuration:
+
 - Slack webhook URL
 - Enable/disable flag
 - Notification preferences
@@ -51,6 +57,7 @@ Loaded from `ScratchpadConfigService`.
 ## Error Handling
 
 Graceful error handling ensures:
+
 - Notification failures don't impact application
 - 2-second timeout prevents hanging
 - Logs errors for debugging
@@ -59,6 +66,7 @@ Graceful error handling ensures:
 ## HTTP Communication
 
 Uses HTTP POST requests to Slack webhook API:
+
 - Standard Slack message format
 - Simple JSON payload
 - Webhook authentication
@@ -75,6 +83,7 @@ Uses HTTP POST requests to Slack webhook API:
 ## Future Enhancements
 
 The code includes notes for upgrading to Slack Block Kit, which would enable:
+
 - Richer message formatting
 - Interactive elements
 - Better visual hierarchy
@@ -92,9 +101,11 @@ The code includes notes for upgrading to Slack Block Kit, which would enable:
 ## Message Types
 
 Currently supports:
+
 - User signup notifications
 
 Easily extensible to add:
+
 - Payment events
 - Error alerts
 - System health

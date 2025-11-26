@@ -19,23 +19,23 @@ export const useUndoRedo = (
   const addToHistory = (newValue: string) => {
     const currentHistory = historyRef.current;
     const currentIndex = historyIndexRef.current;
-    
+
     // Don't add if it's the same as the current value
     if (currentHistory[currentIndex] === newValue) {
       return;
     }
-    
+
     // Remove any history after current index
     const newHistory = currentHistory.slice(0, currentIndex + 1);
     newHistory.push(newValue);
-    
+
     // Limit history size
     if (newHistory.length > 50) {
       newHistory.shift();
     } else {
       historyIndexRef.current = newHistory.length - 1;
     }
-    
+
     historyRef.current = newHistory;
   };
 

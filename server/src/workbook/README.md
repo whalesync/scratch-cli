@@ -11,6 +11,7 @@ This module manages snapshots—isolated PostgreSQL schemas that store copies of
 ## Core Functionality
 
 ### Snapshot Management
+
 - Create snapshots with tables from different connectors
 - Query and edit records locally
 - Bulk-update records
@@ -18,6 +19,7 @@ This module manages snapshots—isolated PostgreSQL schemas that store copies of
 - Publish changes back to source systems
 
 ### Data Operations
+
 - Create new records
 - Update existing records
 - Delete records
@@ -29,7 +31,9 @@ This module manages snapshots—isolated PostgreSQL schemas that store copies of
 ## Controllers
 
 ### SnapshotController
+
 Primary authenticated API for snapshot operations:
+
 - CRUD operations on snapshots
 - Table management
 - Record operations
@@ -37,26 +41,33 @@ Primary authenticated API for snapshot operations:
 - Publishing workflow
 
 ### AiSnapshotController
+
 AI-specific record access for agent operations.
 
 ### SnapshotPublicController
+
 Unauthenticated CSV export for shareable data.
 
 ## Real-time Features
 
 ### Server-Sent Events (SSE)
+
 Real-time updates on:
+
 - Snapshot changes
 - Record modifications
 - Synchronization status
 
 ### WebSocket Support
+
 Via `SnapshotDataGateway`:
+
 - Live subscription-based notifications
 - Real-time collaboration
 - Change propagation
 
 ### Event Infrastructure
+
 - Redis Pub/Sub for event distribution
 - Multi-instance support
 - Horizontal scaling capability
@@ -64,7 +75,9 @@ Via `SnapshotDataGateway`:
 ## Asynchronous Processing
 
 ### Background Jobs
+
 Uses Bull queues for:
+
 - Large data downloads
 - Publishing operations
 - Long-running synchronization tasks
@@ -72,11 +85,13 @@ Uses Bull queues for:
 ## Integration Points
 
 ### External Services
+
 - **Connectors**: Fetch table schemas and records
 - **Connector Accounts**: Authentication management
 - **Database Service**: Snapshot schema creation and querying
 
 ### Internal Services
+
 - **Audit Logging**: Track all changes
 - **PostHog**: Analytics tracking
 - **Worker Enqueuer**: Background job processing
@@ -84,12 +99,14 @@ Uses Bull queues for:
 ## Data Model
 
 ### Snapshot
+
 - Contains multiple tables
 - Isolated PostgreSQL schema
 - User/organization ownership
 - Configuration metadata
 
 ### SnapshotTable
+
 - Table within a snapshot
 - Column settings and configurations
 - Filter definitions
@@ -97,6 +114,7 @@ Uses Bull queues for:
 - Connector association
 
 ### Records
+
 - Stored in snapshot-specific schema
 - Flexible JSON columns
 - AI-generated suggestions
@@ -105,6 +123,7 @@ Uses Bull queues for:
 ## Configuration Storage
 
 Maintains metadata on individual snapshot tables:
+
 - Column visibility and ordering
 - Filters and sorting
 - Title column selection
@@ -122,12 +141,14 @@ Maintains metadata on individual snapshot tables:
 ## CSV Operations
 
 ### Import
+
 - Upload CSV files
 - Preview before import
 - Map columns to schema
 - Import as suggestions
 
 ### Export
+
 - Export snapshot data
 - Public shareable URLs
 - Filtered exports
@@ -136,6 +157,7 @@ Maintains metadata on individual snapshot tables:
 ## Multi-Service Support
 
 Single snapshot can contain tables from:
+
 - Multiple connector types
 - Different accounts
 - Various external services

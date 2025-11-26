@@ -13,12 +13,14 @@ This module provides a unified interface for integrating with multiple third-par
 ### Two Primary Sub-modules
 
 #### ConnectorAccountService
+
 - Credential management and orchestration
 - Secure storage of authentication data
 - Connection testing and validation
 - Account lifecycle management
 
 #### ConnectorsService
+
 - Implementation details for individual data sources
 - Service-specific API interactions
 - Data transformation logic
@@ -29,24 +31,31 @@ This module provides a unified interface for integrating with multiple third-par
 All endpoints protected by `ScratchpadAuthGuard`:
 
 ### `POST /connector-accounts`
+
 Create a new connector account.
 
 ### `GET /connector-accounts`
+
 List all connector accounts for authenticated user.
 
 ### `GET /connector-accounts/:id`
+
 Retrieve specific connector account details.
 
 ### `PUT /connector-accounts/:id`
+
 Update connector account configuration.
 
 ### `DELETE /connector-accounts/:id`
+
 Remove a connector account.
 
 ### `POST /connector-accounts/test`
+
 Test connection validity with provided credentials.
 
 ### `GET /connector-accounts/:id/tables`
+
 List available tables from a connected data source.
 
 ## Supported Connectors
@@ -65,6 +74,7 @@ List available tables from a connected data source.
 ### Abstract Connector Base Class
 
 Defines common interface for all connectors:
+
 - **listTables()**: Get available tables/entities
 - **fetchTableSpec()**: Retrieve table schema
 - **downloadRecords()**: Fetch data from source
@@ -75,6 +85,7 @@ Defines common interface for all connectors:
 ### Service-Specific Implementations
 
 Each connector handles:
+
 - Authentication mechanisms
 - API quirks and rate limits
 - Data format transformations
@@ -83,11 +94,13 @@ Each connector handles:
 ## Security
 
 ### Credential Encryption
+
 - Access tokens encrypted before storage
 - Decryption on-demand when needed
 - Secure key management
 
 ### Token Management
+
 - Automatic token refresh for OAuth
 - Expiration checking
 - Secure credential storage
@@ -95,6 +108,7 @@ Each connector handles:
 ## Integration
 
 The module integrates with:
+
 - **Audit System**: Logs connector operations
 - **PostHog**: Analytics tracking
 - **OAuth Service**: OAuth-based authentication
@@ -103,6 +117,7 @@ The module integrates with:
 ## ConnectorAccountService
 
 ### Responsibilities
+
 - Parse user-provided authentication parameters
 - Validate connections
 - Encrypt/decrypt credentials
@@ -112,7 +127,9 @@ The module integrates with:
 ## ConnectorsService
 
 ### Factory Pattern
+
 Instantiates the correct connector implementation based on service type:
+
 - Routes requests to appropriate connector
 - Manages connector instances
 - Handles connector initialization errors
@@ -120,12 +137,14 @@ Instantiates the correct connector implementation based on service type:
 ## Data Operations
 
 ### Read Operations
+
 - List available tables
 - Fetch table schemas
 - Download records with pagination
 - Query filtered data
 
 ### Write Operations
+
 - Create new records
 - Update existing records
 - Delete records
@@ -134,6 +153,7 @@ Instantiates the correct connector implementation based on service type:
 ## Error Handling
 
 Comprehensive error handling for:
+
 - Invalid credentials
 - Network failures
 - Rate limiting

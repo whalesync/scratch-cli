@@ -55,8 +55,8 @@ export const useSSE = <T = unknown>({
       try {
         await fetchEventSource(url, {
           headers: {
-            'Authorization': authType === 'api-token' ? `API-Token ${authToken}` : `Bearer ${authToken}`,
-            'Accept': 'text/event-stream',
+            Authorization: authType === 'api-token' ? `API-Token ${authToken}` : `Bearer ${authToken}`,
+            Accept: 'text/event-stream',
           },
           signal: ctrl.signal,
 
@@ -82,7 +82,7 @@ export const useSSE = <T = unknown>({
               const parsedData = JSON.parse(ev.data) as T;
               setData(parsedData);
               onMessage?.(ev); // Call the user-provided callback
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e) {
               // If data isn't JSON, you might want to handle it differently
               // For this example, we'll set the raw data

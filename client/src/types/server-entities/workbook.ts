@@ -1,6 +1,6 @@
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { Service } from './connector-accounts';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { EntityId } from './table-list';
 
 export type ColumnMetadata = {

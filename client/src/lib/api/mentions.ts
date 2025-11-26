@@ -1,5 +1,5 @@
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 

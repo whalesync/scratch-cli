@@ -1,7 +1,7 @@
 import {
   AiAgentCredential,
   CreateAiAgentCredentialDto,
-  UpdateAiAgentCredentialDto
+  UpdateAiAgentCredentialDto,
 } from '@/types/server-entities/agent-credentials';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';

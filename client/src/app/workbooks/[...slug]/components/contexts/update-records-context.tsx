@@ -6,12 +6,12 @@ import {
   RecordOperation,
   UpdateRecordOperation,
 } from '@/types/server-entities/records';
+import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { SWR_KEYS } from '../../../../../lib/api/keys';
 import { workbookApi } from '../../../../../lib/api/workbook';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 
 // This context is used to buffer updates to records and flush them in batches.
 // As `addPendingChange(...)` is called, the edits edits are accumulated in memory and immediately applied to the cache.

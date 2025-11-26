@@ -10,7 +10,7 @@ export const useJobs = (limit?: number, offset?: number) => {
       refreshInterval: 5000, // Poll every 5 seconds
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   );
 
   return {

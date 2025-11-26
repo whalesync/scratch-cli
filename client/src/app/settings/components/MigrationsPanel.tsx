@@ -1,14 +1,7 @@
 'use client';
 
 import { codeMigrationsApi } from '@/lib/api/code-migrations';
-import {
-  Button,
-  Group,
-  NumberInput,
-  Select,
-  Stack,
-  Textarea,
-} from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useEffect, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
@@ -104,7 +97,6 @@ export const MigrationsPanel = () => {
   return (
     <SettingsPanel title="Migrations" subtitle="Run database migrations to update schemas">
       <Stack gap="md">
-
         <Select
           label="Migration"
           placeholder="Select a migration"
@@ -136,11 +128,7 @@ export const MigrationsPanel = () => {
         />
 
         <Group>
-          <Button
-            onClick={handleRunMigration}
-            loading={isRunning}
-            disabled={!selectedMigration}
-          >
+          <Button onClick={handleRunMigration} loading={isRunning} disabled={!selectedMigration}>
             Run Migration
           </Button>
         </Group>

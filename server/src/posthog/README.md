@@ -13,6 +13,7 @@ This module wraps the PostHog analytics library to enable event tracking while g
 ### PostHogService
 
 Injectable NestJS service that:
+
 - Initializes based on configuration (API key and host)
 - Provides specialized tracking methods
 - Gracefully degrades when disabled
@@ -21,27 +22,33 @@ Injectable NestJS service that:
 ## Core Tracking Methods
 
 ### User Lifecycle
+
 - **captureUserCreated**: Track new user registration
 
 ### Snapshot Events
+
 - **captureSnapshotCreated**: New snapshot creation with table counts
 - **captureSnapshotPublished**: Snapshot publishing events
 - **captureSnapshotDeleted**: Snapshot deletion tracking
 
 ### Resource Management
+
 - **captureStyleGuideCreated**: Style guide creation
 - **captureStyleGuideDeleted**: Style guide deletion
 
 ### AI Credentials
+
 - **captureAgentCredentialCreated**: AI service credential creation
 - **captureAgentCredentialDeleted**: AI credential deletion
 
 ### Subscription Events
+
 - **captureTrialStarted**: Track trial subscription commencement
 
 ## Event Enrichment
 
 Each tracking method automatically enriches events with contextual properties:
+
 - Snapshot/Resource IDs
 - Connector types
 - Table counts
@@ -52,6 +59,7 @@ Each tracking method automatically enriches events with contextual properties:
 ## Graceful Degradation
 
 The service handles:
+
 - **Disabled PostHog**: Returns early without sending events
 - **Missing Configuration**: Skips initialization
 - **API Failures**: Comprehensive error handling
@@ -72,6 +80,7 @@ Integrated into application via AppModule, making it available for dependency in
 ## Configuration
 
 Requires environment configuration:
+
 - PostHog API key
 - PostHog host URL
 - Enable/disable flag
@@ -81,6 +90,7 @@ Loaded from `ScratchpadConfigService`.
 ## Lifecycle Management
 
 Implements NestJS lifecycle hooks:
+
 - **onModuleInit**: Initialize PostHog client
 - **onModuleDestroy**: Flush and shutdown gracefully
 
@@ -96,6 +106,7 @@ Implements NestJS lifecycle hooks:
 ## Error Handling
 
 Comprehensive error handling prevents analytics failures from impacting core application functionality:
+
 - API timeouts
 - Network issues
 - Invalid events
@@ -104,6 +115,7 @@ Comprehensive error handling prevents analytics failures from impacting core app
 ## Privacy Considerations
 
 Event tracking respects:
+
 - User privacy settings
 - Data minimization
 - Contextual information only

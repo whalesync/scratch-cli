@@ -11,11 +11,13 @@ This module manages and runs recurring background jobs on a schedule. It is cond
 ## Current Services
 
 ### ExampleCronService
+
 A demonstration service that shows the pattern for creating scheduled tasks. It runs daily at midnight and logs a verification message.
 
 ## Architecture
 
 The module is designed to be extensible:
+
 1. Create new injectable services decorated with `@Cron` decorator
 2. Register them in the CronModule's providers array
 3. Define schedule using cron expressions
@@ -23,6 +25,7 @@ The module is designed to be extensible:
 ## Conditional Loading
 
 The CronModule is only loaded when `ScratchpadConfigService.isCronService()` returns true, which occurs when the `SERVICE_TYPE` environment variable is set to:
+
 - `"cron"`: Dedicated cron service
 - `"monolith"`: Combined service for local development
 

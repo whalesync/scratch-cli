@@ -198,18 +198,13 @@ it('should handle pagination correctly', async () => {
 
 ```typescript
 it('should handle pagination correctly', async () => {
-  mockClient.fetch
-    .mockResolvedValueOnce([{ id: '1' }, { id: '2' }])
-    .mockResolvedValueOnce([{ id: '3' }]);
+  mockClient.fetch.mockResolvedValueOnce([{ id: '1' }, { id: '2' }]).mockResolvedValueOnce([{ id: '3' }]);
 
   const callback = jest.fn().mockResolvedValue(undefined);
   await connector.downloadTableRecords(mockTableSpec, {}, callback);
 
   expect(mockClient.fetch).toHaveBeenCalledTimes(2);
-  expect(mockClient.fetch).toHaveBeenNthCalledWith(
-    2,
-    expect.objectContaining({ offset: 2 })
-  );
+  expect(mockClient.fetch).toHaveBeenNthCalledWith(2, expect.objectContaining({ offset: 2 }));
 });
 ```
 
@@ -231,22 +226,18 @@ it('should handle pagination correctly', async () => {
   await connector.downloadTableRecords(mockTableSpec, {}, callback);
 
   expect(mockClient.collections.items.listItems).toHaveBeenCalledTimes(2);
-  expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(
-    1,
-    'collection456',
-    { offset: 0, limit: 100 }
-  );
-  expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(
-    2,
-    'collection456',
-    { offset: 100, limit: 100 }
-  );
+  expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(1, 'collection456', { offset: 0, limit: 100 });
+  expect(mockClient.collections.items.listItems).toHaveBeenNthCalledWith(2, 'collection456', {
+    offset: 100,
+    limit: 100,
+  });
 });
 ```
 
 ## Key Principles
 
 ### 1. Mock the API Client, Not the Internals
+
 - Mock the SDK/API client that your connector uses
 - Don't test the HTTP client itself - assume it works
 - Only mock methods your connector actually calls
@@ -262,6 +253,7 @@ jest.mock('https');
 ```
 
 ### 2. Use Minimal Data
+
 - **1-2 field types max** in table specs
 - **2-3 records max** in basic test data
 - Use `Array.from()` for pagination tests (100 items per page is fine)
@@ -286,12 +278,14 @@ const mockData = Array.from({ length: 1000 }, (_, i) => ({
 ### 3. Test Core Logic, Not Everything
 
 Focus on:
+
 - ✅ Download mechanism
 - ✅ Pagination logic
 - ✅ Data transformation (API → ConnectorRecord)
 - ✅ Connector-specific features (rich text, metadata, etc.)
 
 Don't test:
+
 - ❌ The API client/SDK itself
 - ❌ Network layer
 - ❌ Every possible field type combination
@@ -299,6 +293,7 @@ Don't test:
 ### 4. Required Test Coverage
 
 Every connector test file MUST include:
+
 1. `downloadTableRecords` - basic download test
 2. `downloadTableRecords` - pagination test
 3. `displayName` test
@@ -306,6 +301,7 @@ Every connector test file MUST include:
 5. `getBatchSize` test
 
 Additional tests based on connector features:
+
 - Rich text conversion (HTML ↔ Markdown)
 - Metadata columns handling
 - Progress/resume functionality
@@ -318,9 +314,7 @@ Many connectors need to handle rich text fields that can be returned as HTML or 
 ```typescript
 it('should convert rich text to markdown by default', async () => {
   mockClient.getData.mockResolvedValue({
-    items: [
-      { id: '1', description: '<h1>Heading</h1><p>Text</p>' }
-    ],
+    items: [{ id: '1', description: '<h1>Heading</h1><p>Text</p>' }],
   });
 
   const callback = jest.fn().mockResolvedValue(undefined);
@@ -332,13 +326,11 @@ it('should convert rich text to markdown by default', async () => {
 
 it('should keep rich text as HTML when dataConverter is html', async () => {
   const columnSettings = {
-    'description-field': { dataConverter: 'html' }
+    'description-field': { dataConverter: 'html' },
   };
 
   mockClient.getData.mockResolvedValue({
-    items: [
-      { id: '1', description: '<h1>Heading</h1>' }
-    ],
+    items: [{ id: '1', description: '<h1>Heading</h1>' }],
   });
 
   const callback = jest.fn().mockResolvedValue(undefined);
@@ -354,6 +346,7 @@ it('should keep rich text as HTML when dataConverter is html', async () => {
 ### Complete Example: Notion Connector
 
 See `notion/notion-connector.spec.ts` for a complete working example:
+
 - Cursor-based pagination
 - Module-level mocking with wrapper
 - Minimal table spec (1 field)
@@ -363,6 +356,7 @@ See `notion/notion-connector.spec.ts` for a complete working example:
 ### Complete Example: Webflow Connector
 
 See `webflow/webflow-connector.spec.ts` for a complete working example:
+
 - Metadata-based pagination
 - Module-level mocking with wrapper
 - Minimal table spec (1 field)

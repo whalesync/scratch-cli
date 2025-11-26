@@ -19,6 +19,7 @@ Wraps the `html-minifier-terser` library for HTML content minification.
 Async utility that minifies HTML strings while preserving semantic meaning.
 
 **Features:**
+
 - Aggressive whitespace collapsing
 - Boolean attribute shorthand
 - Normalized attribute spacing
@@ -26,12 +27,14 @@ Async utility that minifies HTML strings while preserving semantic meaning.
 - Comprehensive documentation
 
 **Minification Strategies:**
+
 1. Collapse non-semantic whitespace between tags
 2. Convert redundant boolean attributes to shorthand
    - Example: `disabled="disabled"` → `disabled`
 3. Normalize attribute spacing
 
 **Configuration:**
+
 - Currently uses minimal settings
 - Documented options for future expansion
 - Balance of size reduction and readability
@@ -43,12 +46,14 @@ Async utility that minifies HTML strings while preserving semantic meaning.
 Primary consumer of HTML minification:
 
 **Use Case:**
+
 - Minify HTML content when syncing rich-text fields
 - Reduce payload size for Webflow API
 - Ensure consistent formatting
 - Convert markdown to HTML then minify
 
 **When Applied:**
+
 - Creating records with HTML content
 - Updating records with rich-text fields
 - Converting markdown to HTML
@@ -57,16 +62,19 @@ Primary consumer of HTML minification:
 ## Benefits
 
 ### Abstraction
+
 - Hides library-specific details
 - Single place to manage dependencies
 - Easy to swap implementations
 
 ### Maintainability
+
 - Centralized library usage
 - Version upgrades in one place
 - Consistent configuration
 
 ### Testability
+
 - Easy to mock wrappers
 - Test dependent code without library
 - Isolated unit tests
@@ -86,6 +94,7 @@ The module is designed as an extensible architecture:
 ### Future Wrappers
 
 Could include:
+
 - PDF generation
 - Image processing
 - Text transformation
@@ -96,12 +105,14 @@ Could include:
 ## Design Pattern
 
 ### Wrapper Functions
+
 - Simple function interfaces
 - Hide complexity
 - Document configuration
 - Handle errors gracefully
 
 ### Configuration Management
+
 - Centralized settings
 - Environment-specific options
 - Documented defaults
@@ -124,6 +135,7 @@ const minified = await minifyHtml(html);
 ## Configuration Documentation
 
 The module includes comprehensive inline documentation:
+
 - Available options
 - Default values
 - Trade-offs
@@ -133,6 +145,7 @@ The module includes comprehensive inline documentation:
 ## Error Handling
 
 Wrappers handle library-specific errors:
+
 - Invalid input
 - Configuration errors
 - Library failures
@@ -141,6 +154,7 @@ Wrappers handle library-specific errors:
 ## Performance
 
 ### HTML Minification
+
 - Async processing
 - Memory efficient
 - Fast processing
@@ -149,6 +163,7 @@ Wrappers handle library-specific errors:
 ## Future Enhancements
 
 Potential additions:
+
 - Image optimization wrappers
 - PDF generation utilities
 - Email template processing
@@ -159,6 +174,7 @@ Potential additions:
 ## Best Practices
 
 ### When to Create Wrappers
+
 - External library usage in multiple places
 - Library interface is complex
 - Likely to change implementation
@@ -166,6 +182,7 @@ Potential additions:
 - Want to simplify testing
 
 ### Wrapper Design
+
 - Keep interfaces simple
 - Document thoroughly
 - Handle errors appropriately
@@ -175,9 +192,11 @@ Potential additions:
 ## Integration Points
 
 Current integrations:
+
 - **Webflow Connector**: HTML minification
 
 Future integrations could include:
+
 - Other connectors
 - Export services
 - Content processing
@@ -186,12 +205,14 @@ Future integrations could include:
 ## Maintenance
 
 ### Dependency Updates
+
 - Update library versions centrally
 - Test wrapper behavior
 - Document breaking changes
 - Update configuration as needed
 
 ### Adding Features
+
 - Extend wrapper interfaces
 - Maintain backward compatibility
 - Document new options

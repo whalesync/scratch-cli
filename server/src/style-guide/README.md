@@ -13,29 +13,37 @@ This module serves as a content repository where organizations can maintain shar
 All endpoints protected by `ScratchpadAuthGuard` and scoped to user's organization:
 
 ### `POST /style-guides`
+
 Create a new style guide.
 
 ### `GET /style-guides`
+
 List all style guides for the user's organization.
 
 ### `GET /style-guides/:id`
+
 Retrieve a specific style guide by ID.
 
 ### `PATCH /style-guides/:id`
+
 Update style guide properties.
 
 ### `DELETE /style-guides/:id`
+
 Remove a style guide.
 
 ### `GET /style-guides/download`
+
 Download external content from URLs.
 
 ### `PATCH /style-guides/:id/update-external-resource`
+
 Refresh guide content from an external source URL.
 
 ## Data Model
 
 Style guides include:
+
 - **Name**: Resource title
 - **Body**: Content/documentation
 - **Content Type**: Format (markdown, JSON, or text)
@@ -46,16 +54,19 @@ Style guides include:
 ## Content Types
 
 ### Markdown
+
 - Formatted documentation
 - Rich text support
 - Code blocks and lists
 
 ### JSON
+
 - Structured data
 - Configuration files
 - API schemas
 
 ### Plain Text
+
 - Simple documentation
 - Notes and guidelines
 - Raw content
@@ -63,7 +74,9 @@ Style guides include:
 ## External Resource Integration
 
 ### Download Resource
+
 The `downloadResource` method can:
+
 - Fetch content from HTTP URLs
 - Convert HTML to markdown (using Postlight Parser)
 - Preserve JSON format
@@ -71,6 +84,7 @@ The `downloadResource` method can:
 - Preserve plain text format
 
 ### URL Processing
+
 - URL validation and sanitization
 - Automatic content-type detection
 - Intelligent format conversion
@@ -86,6 +100,7 @@ The `downloadResource` method can:
 ## Integration
 
 The module integrates with:
+
 - **Database Service**: Persistence via Prisma
 - **PostHog**: Analytics for resource tracking
   - Resource creation events
@@ -95,6 +110,7 @@ The module integrates with:
 ## Audit Trail
 
 All operations are logged:
+
 - Creation events
 - Updates
 - Deletions
@@ -116,6 +132,7 @@ All operations are logged:
 ## Organization Scoping
 
 All operations enforce organization-level isolation:
+
 - Users can only access their organization's guides
 - Queries filtered by organization ID
 - No cross-organization access
@@ -124,6 +141,7 @@ All operations enforce organization-level isolation:
 ## Content Management
 
 Features include:
+
 - Create from scratch or URL
 - Update content inline
 - Refresh from external source
@@ -134,6 +152,7 @@ Features include:
 ## External Resource Refresh
 
 Keep content up-to-date:
+
 - Re-fetch from source URL
 - Update existing guide
 - Maintain reference link

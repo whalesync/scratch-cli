@@ -11,8 +11,8 @@ import {
 import { DataScope } from '@/types/server-entities/agent';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { WorkbookId } from '@spinner/shared-types';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 /**
  * Manages all of the extra context state for the Agent chat, allowing it to be managed from different parts of the UI and the chat itself

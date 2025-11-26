@@ -1,5 +1,5 @@
-import { API_CONFIG } from './config';
 import { JobEntity } from '../../types/server-entities/job';
+import { API_CONFIG } from './config';
 
 export const jobApi = {
   getJobs: async (limit?: number, offset?: number): Promise<JobEntity[]> => {

@@ -1,8 +1,8 @@
 import { Box, Group, Menu, Tabs } from '@mantine/core';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { EyeOff, Plus, Trash2 } from 'lucide-react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { NewTabId, WorkbookEditorUIState, useWorkbookEditorUIStore } from '../../../../stores/workbook-editor-store';
-import { SnapshotTableId } from '@spinner/shared-types';
 import { Workbook } from '../../../../types/server-entities/workbook';
 import { IconButtonGhost } from '../../../components/base/buttons';
 import { Text13Medium } from '../../../components/base/text';

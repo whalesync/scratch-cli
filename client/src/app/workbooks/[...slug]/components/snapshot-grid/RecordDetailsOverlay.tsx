@@ -2,9 +2,9 @@
 
 import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Paper, ScrollArea } from '@mantine/core';
+import { WorkbookId } from '@spinner/shared-types';
 import { FC, useEffect } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
-import { WorkbookId } from '@spinner/shared-types';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
