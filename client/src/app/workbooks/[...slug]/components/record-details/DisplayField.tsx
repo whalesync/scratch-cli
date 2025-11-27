@@ -1,4 +1,4 @@
-import { AcceptSuggestionButton, RejectSuggestionButton } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import {
@@ -54,12 +54,12 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const suggestValueColor = '#284283';
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="flex-end">
-      <RejectSuggestionButton onClick={onRejectSuggestion} loading={saving}>
+      <ButtonSecondaryOutline onClick={onRejectSuggestion} loading={saving}>
         Reject
-      </RejectSuggestionButton>
-      <AcceptSuggestionButton onClick={onAcceptSuggestion} loading={saving}>
+      </ButtonSecondaryOutline>
+      <ButtonPrimaryLight onClick={onAcceptSuggestion} loading={saving}>
         Accept
-      </AcceptSuggestionButton>
+      </ButtonPrimaryLight>
     </Group>
   ) : null;
 

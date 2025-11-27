@@ -8,6 +8,12 @@
   --corner-color: currentColor;
   --other-color: color-mix(in srgb, currentColor 50%, transparent);
 
+  --border-thickness: 1px;
+
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    --border-thickness: 0.5px;
+  }
+
   &::after {
     content: '';
     position: absolute;
@@ -18,19 +24,19 @@
     pointer-events: none;
     background:
       /** Four corners get L brackets in currentColor */
-      linear-gradient(var(--corner-color), var(--corner-color)) 0 0 / 0.5px 3px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 0 0 / 3px 0.5px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 100% 0 / 0.5px 3px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 100% 0 / 3px 0.5px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 0 100% / 0.5px 3px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 0 100% / 3px 0.5px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 100% 100% / 0.5px 3px no-repeat,
-      linear-gradient(var(--corner-color), var(--corner-color)) 100% 100% / 3px 0.5px no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 0 0 / var(--border-thickness) 3px no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 0 0 / 3px var(--border-thickness) no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 100% 0 / var(--border-thickness) 3px no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 100% 0 / 3px var(--border-thickness) no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 0 100% / var(--border-thickness) 3px no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 0 100% / 3px var(--border-thickness) no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 100% 100% / var(--border-thickness) 3px no-repeat,
+      linear-gradient(var(--corner-color), var(--corner-color)) 100% 100% / 3px var(--border-thickness) no-repeat,
       /** The rest of the border in a lighter shade of currentColor */
-        linear-gradient(var(--other-color), var(--other-color)) 0 0 / 100% 0.5px no-repeat,
-      linear-gradient(var(--other-color), var(--other-color)) 0 0 / 0.5px 100% no-repeat,
-      linear-gradient(var(--other-color), var(--other-color)) 0 100% / 100% 0.5px no-repeat,
-      linear-gradient(var(--other-color), var(--other-color)) 100% 0 / 0.5px 100% no-repeat;
+        linear-gradient(var(--other-color), var(--other-color)) 0 0 / 100% var(--border-thickness) no-repeat,
+      linear-gradient(var(--other-color), var(--other-color)) 0 0 / var(--border-thickness) 100% no-repeat,
+      linear-gradient(var(--other-color), var(--other-color)) 0 100% / 100% var(--border-thickness) no-repeat,
+      linear-gradient(var(--other-color), var(--other-color)) 100% 0 / var(--border-thickness) 100% no-repeat;
   }
 }
 

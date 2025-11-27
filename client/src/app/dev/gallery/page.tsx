@@ -43,7 +43,6 @@ import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwis
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import {
-  AcceptSuggestionButton,
   ButtonDangerLight,
   ButtonPrimaryLight,
   ButtonPrimarySolid,
@@ -55,7 +54,6 @@ import {
   IconButtonGhost,
   IconButtonInline,
   IconButtonOutline,
-  RejectSuggestionButton,
 } from '../../components/base/buttons';
 import {
   Text12Book,
@@ -349,13 +347,6 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
           <GalleryItem label="ToolIconButton" notes="ActionIcon Button with tooltip. Use on toolbars and inline rows. ">
             <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" size="sm" />
-          </GalleryItem>
-          {/* // TODO: Remove the deprecated ones below: */}
-          <GalleryItem deprecated label="AcceptSuggestionButton">
-            <AcceptSuggestionButton>Click</AcceptSuggestionButton>
-          </GalleryItem>
-          <GalleryItem deprecated label="RejectSuggestionButton">
-            <RejectSuggestionButton>Click</RejectSuggestionButton>
           </GalleryItem>
 
           <GallerySection id="action-icons" title="Action Icons" />

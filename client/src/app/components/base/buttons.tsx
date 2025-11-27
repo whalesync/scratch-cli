@@ -114,22 +114,6 @@ export const DevToolButtonGhost = Button.withProps({
 });
 
 /** @deprecated */
-export const AcceptSuggestionButton = Button.withProps({
-  size: 'xs',
-  variant: 'outline',
-  color: 'green', // border
-  c: 'green', // text
-});
-
-/** @deprecated */
-export const RejectSuggestionButton = Button.withProps({
-  size: 'xs',
-  variant: 'outline',
-  color: 'gray',
-  c: 'gray',
-});
-
-/** @deprecated */
 export const ContentFooterButton = Button.withProps({
   variant: 'subtle',
   size: 'xs',
