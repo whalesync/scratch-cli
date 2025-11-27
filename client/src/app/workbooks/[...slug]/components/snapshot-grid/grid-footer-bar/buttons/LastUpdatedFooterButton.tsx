@@ -20,7 +20,13 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
   return (
     <Tooltip label={isConnectionDeleted ? 'Connection deleted' : tooltipLabel}>
       <ButtonSecondaryInline
-        leftSection={isConnectionDeleted ? <DeletedConnectionIcon size={16} /> : <CloudDownloadIcon size={16} />}
+        leftSection={
+          isConnectionDeleted ? (
+            <DeletedConnectionIcon size={16} tooltipEnabled={false} />
+          ) : (
+            <CloudDownloadIcon size={16} />
+          )
+        }
         rightSection={isConnectionDeleted ? <></> : <RefreshCwIcon size={16} />}
         disabled={isConnectionDeleted}
         onClick={() => showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE })}

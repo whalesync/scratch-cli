@@ -307,6 +307,24 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
 }
 
 /**
+ * Checks if a service is deleted in a workbook.
+ * Returns true if:
+ * - The workbook has at least one snapshot table with the given service
+ * - All snapshot tables with the given service have a deleted connection.
+ * Returns false otherwise.
+ */
+export function hasDeletedServiceConnection(workbook: Workbook | undefined, service: Service): boolean {
+  if (!workbook) {
+    return false;
+  }
+  return (
+    workbook.snapshotTables
+      ?.filter((table) => table.connectorService === service)
+      .every((table) => hasDeletedConnection(table)) ?? false
+  );
+}
+
+/**
  * Checks if a snapshot table has a connection deleted.
  * A deleted connection is when the connector account was removed but the table still exists.
  * This is indicated by connectorAccountId being null while connectorService is not null.

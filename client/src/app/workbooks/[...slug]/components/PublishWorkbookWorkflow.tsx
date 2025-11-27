@@ -5,6 +5,7 @@ import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { hasDeletedConnection } from '@/types/server-entities/workbook';
 import { useCallback, useState } from 'react';
 import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
 
@@ -63,7 +64,7 @@ export const PublishWorkbookWorkflow = () => {
           isOpen={showTableSelector}
           onClose={() => setShowTableSelector(false)}
           onConfirm={handleTablesSelectedForPublish}
-          tables={workbook.snapshotTables || []}
+          tables={workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || []}
           currentTableId={activeTable.id}
           title="Select tables to publish"
           description="Select the tables you want to publish:"

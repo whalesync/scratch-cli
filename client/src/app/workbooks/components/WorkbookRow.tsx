@@ -7,7 +7,7 @@ import { RelativeDate } from '@/app/components/RelativeDate';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
-import { hasAllConnectionsDeleted, Workbook } from '@/types/server-entities/workbook';
+import { hasAllConnectionsDeleted, hasDeletedServiceConnection, Workbook } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
@@ -109,7 +109,14 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
             {allConnectionsDeleted ? (
               <DeletedConnectionIcon />
             ) : (
-              connectorList.map((table, index) => <ConnectorIcon key={index} connector={table} size={21} withBorder />)
+              connectorList.map((table, index) => {
+                const isConnectionDeleted = hasDeletedServiceConnection(workbook, table);
+                return isConnectionDeleted ? (
+                  <DeletedConnectionIcon key={`${table}-deleted-connection`} />
+                ) : (
+                  <ConnectorIcon key={index} connector={table} size={21} withBorder />
+                );
+              })
             )}
           </Group>
         </Table.Td>

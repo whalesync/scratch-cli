@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
-import { DownloadWorkbookResult, SnapshotTable, Workbook } from '../../../../../../types/server-entities/workbook';
+import {
+  DownloadWorkbookResult,
+  hasDeletedConnection,
+  SnapshotTable,
+  Workbook,
+} from '../../../../../../types/server-entities/workbook';
 import { Text13Regular } from '../../../../../components/base/text';
 import { DownloadProgressModal } from '../../../../../components/jobs/download/DownloadJobProgressModal';
 import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
@@ -91,7 +96,7 @@ const ConfirmRefreshModal = ({
 
         {workbook && activeTable && (
           <TableSelectionComponent
-            tables={workbook.snapshotTables || []}
+            tables={workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || []}
             currentTableId={activeTable.id}
             onChange={setTableSelection}
             initialSelection={tableSelection}
