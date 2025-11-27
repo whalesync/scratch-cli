@@ -45,13 +45,14 @@ import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
+import { CreditsWarningButton } from './CreditsWarningButton';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
 
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
-  const { activeOpenRouterCredentials } = useAgentCredentials();
+  const { activeOpenRouterCredentials, isNearUsageLimit } = useAgentCredentials(true);
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
@@ -492,7 +493,7 @@ export default function AIChatPanel() {
         />
 
         {/* Model and Submit Row */}
-        <Group gap="xs">
+        <Group gap="4px">
           <Tooltip
             multiline
             w={220}
@@ -523,6 +524,9 @@ export default function AIChatPanel() {
           />
 
           {activeTable && <TokenUseButton table={activeTable} />}
+          {activeOpenRouterCredentials && isNearUsageLimit && (
+            <CreditsWarningButton credential={activeOpenRouterCredentials} />
+          )}
 
           <Group gap="2px" ml="auto">
             <ActionIcon

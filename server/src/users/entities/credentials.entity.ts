@@ -1,4 +1,5 @@
 import { AiAgentCredential as PrismaAiAgentCredential } from '@prisma/client';
+import { OpenRouterGetCurrentApiKeyData } from 'src/openrouter/types';
 
 export type AgentService = 'openrouter';
 
@@ -38,10 +39,22 @@ function obfuscateApiKey(apiKey: string): string {
 
 export class CreditUsage {
   limit: number;
+  limitRemaining: number;
+  limitReset: string;
   usage: number;
+  usageDaily: number;
+  usageWeekly: number;
+  usageMonthly: number;
+  isFreeTier: boolean;
 
-  constructor(limit: number, usage: number) {
-    this.limit = limit;
-    this.usage = usage;
+  constructor(args: OpenRouterGetCurrentApiKeyData) {
+    this.limit = args.limit;
+    this.usage = args.usage;
+    this.limitRemaining = args.limit_remaining;
+    this.limitReset = args.limit_reset;
+    this.usageDaily = args.usage_daily;
+    this.usageWeekly = args.usage_weekly;
+    this.usageMonthly = args.usage_monthly;
+    this.isFreeTier = args.is_free_tier;
   }
 }

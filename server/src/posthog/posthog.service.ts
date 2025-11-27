@@ -149,6 +149,7 @@ export class PostHogService implements OnModuleDestroy {
     this.captureEvent(PostHogEventName.AGENT_CREDENTIAL_CREATED, userId, {
       credentialId: credential.id,
       credentialType: credential.service,
+      credentialSource: credential.source,
     });
   }
 
@@ -156,6 +157,7 @@ export class PostHogService implements OnModuleDestroy {
     this.captureEvent(PostHogEventName.AGENT_CREDENTIAL_DELETED, userId, {
       credentialId: credential.id,
       credentialType: credential.service,
+      credentialSource: credential.source,
     });
   }
 

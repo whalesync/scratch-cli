@@ -58,7 +58,7 @@ export class AgentCredentialsController {
                 cause: apiKeyData.cause,
               });
             } else {
-              usageData = new CreditUsage(apiKeyData.v.limit, apiKeyData.v.usage);
+              usageData = new CreditUsage(apiKeyData.v);
             }
 
             results.push(new AiAgentCredential(cred, true, usageData));
@@ -88,7 +88,11 @@ export class AgentCredentialsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential | null> {
+  async findOne(
+    @Param('id') id: string,
+    @Query('includeUsage') includeUsage: boolean = false,
+    @Req() req: RequestWithUser,
+  ): Promise<AiAgentCredential | null> {
     const credential = await this.service.findOne(id);
 
     if (!credential) {
@@ -101,7 +105,21 @@ export class AgentCredentialsController {
 
     // only include the api key if the request is authenticated with an agent token
     const includeApiKey = req.user.authType === 'agent-token';
-    return new AiAgentCredential(credential, includeApiKey);
+    let usageData: CreditUsage | undefined;
+    if (includeUsage && credential.service === 'openrouter' && credential.apiKey) {
+      const usageResult = await this.openRouterService.getCurrentApiKeyData(credential.apiKey);
+      if (isErr(usageResult)) {
+        WSLogger.error({
+          source: AgentCredentialsController.name,
+          message: `Failed to get data for ${credential.id}`,
+          error: usageResult.error,
+          cause: usageResult.cause,
+        });
+      } else {
+        usageData = new CreditUsage(usageResult.v);
+      }
+    }
+    return new AiAgentCredential(credential, includeApiKey, usageData);
   }
 
   @Post('new')

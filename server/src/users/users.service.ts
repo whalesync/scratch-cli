@@ -163,7 +163,12 @@ export class UsersService {
     }
 
     if (this.scratchpadConfigService.getGenerateOpenRouterKeyForNewUsers()) {
-      const result = await this.openRouterService.createKey(newUser.id);
+      const result = await this.openRouterService.createKey({
+        userId: newUser.id,
+        limit: this.scratchpadConfigService.getNewUserOpenRouterCreditLimit(),
+        limitReset: 'monthly',
+      });
+
       if (isOk(result)) {
         await this.db.client.aiAgentCredential.create({
           data: {

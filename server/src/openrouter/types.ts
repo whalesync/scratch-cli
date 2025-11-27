@@ -15,7 +15,17 @@ export interface OpenRouterGetCurrentApiKeyData {
   usage: number;
   is_free_tier: boolean;
   limit_remaining: number;
+  limit_reset: string;
   is_provisioning_key: boolean;
+  usage_daily: number;
+  usage_weekly: number;
+  usage_monthly: number;
+  byok_usage: number;
+  byok_usage_daily: number;
+  byok_usage_weekly: number;
+  byok_usage_monthly: number;
+  include_byok_in_limit: boolean;
+  expires_at: string;
 }
 
 export interface OpenRouterCreateKeyResponse {

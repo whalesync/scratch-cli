@@ -27,5 +27,11 @@ export interface UpdateAiAgentCredentialDto {
 
 export interface CreditUsage {
   limit: number;
+  limitRemaining: number;
+  limitReset: string;
   usage: number;
+  usageDaily: number;
+  usageWeekly: number;
+  usageMonthly: number;
+  isFreeTier: boolean;
 }

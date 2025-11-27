@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { AiAgentCredential } from '@prisma/client';
 import { AiAgentCredentialId, createAiAgentCredentialId } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
+import { WSLogger } from 'src/logger';
+import { OpenRouterService } from 'src/openrouter/openrouter.service';
+import { isErr } from 'src/types/results';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 
@@ -11,6 +14,7 @@ export class AgentCredentialsService {
     private readonly db: DbService,
     private readonly posthogService: PostHogService,
     private readonly auditLogService: AuditLogService,
+    private readonly openRouterService: OpenRouterService,
   ) {}
 
   public async findOne(id: string): Promise<AiAgentCredential | null> {
@@ -119,6 +123,18 @@ export class AgentCredentialsService {
 
     if (!credential) {
       return null;
+    }
+
+    if (credential.source === 'SYSTEM' && credential.service === 'openrouter' && credential.externalApiKeyId) {
+      // attempt to delete the api key from OpenRouter
+      const result = await this.openRouterService.deleteApiKey(credential.externalApiKeyId);
+      if (isErr(result)) {
+        WSLogger.error({
+          source: AgentCredentialsService.name,
+          message: `Failed to delete OpenRouter key for ${credential.id}`,
+          error: result.error,
+        });
+      }
     }
 
     this.posthogService.trackDeleteAgentCredential(userId, credential);

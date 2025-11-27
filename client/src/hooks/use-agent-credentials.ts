@@ -1,7 +1,11 @@
 import { agentCredentialsApi } from '@/lib/api/agent-credentials';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import {
+  AiAgentCredential,
+  CreateAiAgentCredentialDto,
+  UpdateAiAgentCredentialDto,
+} from '@/types/server-entities/agent-credentials';
 import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -59,5 +63,13 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     deleteCredentials,
     toggleDefaultCredential,
     activeOpenRouterCredentials,
+    isNearUsageLimit: isNearUsageLimit(activeOpenRouterCredentials),
   };
 };
+
+export function isNearUsageLimit(credential: AiAgentCredential | undefined): boolean {
+  if (!credential || !credential.usage) {
+    return false;
+  }
+  return credential.usage.limitRemaining / credential.usage.limit < 0.99;
+}

@@ -25,8 +25,17 @@ export class OpenRouterService {
   /**
    Key Management API
    https://openrouter.ai/docs/api-reference/keys
+   @param args.userId - The user ID for the API key
+   @param args.limit - The credit limit for the API key
+   @param args.limitReset - The limit reset period for the API key. `never` means no reset
+   @returns The new API key and hash. Both are required to perform additional key management operations.
    */
-  async createKey(userId: string): AsyncResult<{ key: string; hash: string }> {
+  async createKey(args: {
+    userId: string;
+    limit?: number;
+    limitReset?: 'daily' | 'weekly' | 'monthly' | 'never';
+  }): AsyncResult<{ key: string; hash: string }> {
+    const { userId, limit, limitReset } = args;
     const provisioningKey = this.configService.getOpenRouterProvisioningKey();
     if (!provisioningKey) {
       return generalError('OpenRouter provisioning key is not set');
@@ -34,10 +43,13 @@ export class OpenRouterService {
 
     const scratchpadEnvironment = this.configService.getScratchpadEnvironment();
 
+    /**
+     * NOTE: Generated api keys will get flagged as free tier if the there are no credits allocated to the organization that owns the Provisioning Key
+     */
     const payload = {
       name: `User ${userId} Starter Key${scratchpadEnvironment !== 'production' ? ` (${scratchpadEnvironment})` : ''}`,
-      limit: this.configService.getNewUserOpenRouterCreditLimit(),
-      include_byok_in_limit: true,
+      limit: limit ?? this.configService.getNewUserOpenRouterCreditLimit(),
+      limit_reset: !limitReset || limitReset === 'never' ? undefined : limitReset,
     };
 
     try {

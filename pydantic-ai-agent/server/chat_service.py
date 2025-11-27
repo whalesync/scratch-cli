@@ -598,6 +598,21 @@ class ChatService:
                 )
 
             try:
+                usage_context = {
+                    "session_id": session.id,
+                    "workbook_id": session.workbook_id,
+                    "active_table_id": active_table_id,
+                    "data_scope": data_scope,
+                    "record_id": record_id,
+                    "column_id": column_id,
+                    "agent_credentials": (
+                        "user" if user_open_router_credentials else "system"
+                    ),
+                }
+
+                if usage.details:
+                    usage_context.update(usage.details)
+
                 ScratchpadApi.track_token_usage(
                     user.userId,
                     model,
@@ -605,17 +620,7 @@ class ChatService:
                     usage.input_tokens,
                     usage.output_tokens,
                     usage.input_tokens + usage.output_tokens,
-                    usage_context={
-                        "session_id": session.id,
-                        "workbook_id": session.workbook_id,
-                        "active_table_id": active_table_id,
-                        "data_scope": data_scope,
-                        "record_id": record_id,
-                        "column_id": column_id,
-                        "agent_credentials": (
-                            "user" if user_open_router_credentials else "system"
-                        ),
-                    },
+                    usage_context=usage_context,
                 )
             except Exception as e:
                 logger.exception(f"❌ Failed to track token usage through Scratch API")
