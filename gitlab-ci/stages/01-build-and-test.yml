@@ -97,7 +97,7 @@ build client docker image for production:
       --build-arg NEXT_PUBLIC_AI_AGENT_API_URL=https://agent.scratch.md
       --build-arg NEXT_PUBLIC_GA_ID=G-GVXSMCZ3JR
       --build-arg POSTHOG_PROJECT_ID="${POSTHOG_PROJECT_ID_PRODUCTION}"
-      --build-arg POSTHOG_API_KEY="${POSTHOG_CLI_API_KEY_PRODUCTION}"
+      --build-arg POSTHOG_CLI_API_KEY="${POSTHOG_CLI_API_KEY_PRODUCTION}"
       -t spinner/spinner-client-production
       -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-production > client/image-production.tar
