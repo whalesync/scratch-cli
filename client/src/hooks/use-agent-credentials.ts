@@ -63,13 +63,12 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     deleteCredentials,
     toggleDefaultCredential,
     activeOpenRouterCredentials,
-    isNearUsageLimit: isNearUsageLimit(activeOpenRouterCredentials),
   };
 };
 
-export function isNearUsageLimit(credential: AiAgentCredential | undefined): boolean {
+export function isOverCreditLimit(credential: AiAgentCredential | undefined): boolean {
   if (!credential || !credential.usage) {
     return false;
   }
-  return credential.usage.limitRemaining / credential.usage.limit < 0.99;
+  return credential.usage.limitRemaining <= 0;
 }

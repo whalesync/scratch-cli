@@ -8,7 +8,7 @@ import {
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import { Alert, Center, Grid, Group, Loader, Progress, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -72,11 +72,11 @@ export const AgentCredentials = () => {
 
     // limit is 0 for unlimited, set arbitrary high max for the progress bar
     const max = credential.usage.limit === 0 ? 10000 : credential.usage.limit;
-    const value = credential.usage.limitRemaining === 0 ? 0 : (credential.usage.limitRemaining / max) * 100;
+    const value = credential.usage.usage === 0 ? 0 : (credential.usage.usage / max) * 100;
 
     return (
       <Stack gap="xs">
-        <Progress value={value} color={value < 10 ? 'red.6' : value < 25 ? 'yellow.6' : 'green.6'} />
+        <Progress value={value} color={isOverCreditLimit(credential) ? 'red.6' : 'green.6'} />
         <Text12Regular c="dimmed">
           {`$${Number(Math.max(credential.usage.usage, 0.01)).toFixed(2)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}{' '}
           {credential.usage.limitReset && `(${credential.usage.limitReset})`}

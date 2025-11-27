@@ -9,7 +9,7 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
-import { useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import {
   trackChangeAgentCapabilities,
@@ -23,7 +23,20 @@ import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/s
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import { ActionIcon, Alert, Box, Button, Center, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Anchor,
+  Box,
+  Button,
+  Center,
+  Group,
+  Modal,
+  Paper,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import {
   ChevronDownIcon,
@@ -45,19 +58,18 @@ import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ContextBadges } from './ContextBadges';
-import { CreditsWarningButton } from './CreditsWarningButton';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
 
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
-  const { activeOpenRouterCredentials, isNearUsageLimit } = useAgentCredentials(true);
+  const { activeOpenRouterCredentials } = useAgentCredentials(true);
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | React.ReactNode | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
   const [showDeleteSessionButton, setShowDeleteSessionButton] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
@@ -280,6 +292,20 @@ export default function AIChatPanel() {
       return;
     }
 
+    if (isOverCreditLimit(activeOpenRouterCredentials)) {
+      setError('Your current OpenRouter key is over its credit limit');
+      setErrorDetails(
+        <Group gap="2px">
+          You can switch credentials on the{' '}
+          <Anchor href={RouteUrls.settingsPageUrl} target="_blank" c="var(--fg-secondary)" size="xs">
+            Settings
+          </Anchor>{' '}
+          page.
+        </Group>,
+      );
+      return;
+    }
+
     setAgentTaskRunning(true);
     setError(null);
 
@@ -424,11 +450,7 @@ export default function AIChatPanel() {
         {/* Error Alert */}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
-            {errorDetails && (
-              <Text size="xs" c="dimmed">
-                {errorDetails}
-              </Text>
-            )}
+            {errorDetails && <Text12Regular c="dimmed">{errorDetails}</Text12Regular>}
           </Alert>
         )}
         {connectionError && (
@@ -524,9 +546,6 @@ export default function AIChatPanel() {
           />
 
           {activeTable && <TokenUseButton table={activeTable} />}
-          {activeOpenRouterCredentials && isNearUsageLimit && (
-            <CreditsWarningButton credential={activeOpenRouterCredentials} />
-          )}
 
           <Group gap="2px" ml="auto">
             <ActionIcon
