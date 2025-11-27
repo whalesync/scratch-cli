@@ -13,7 +13,7 @@ import { Workbook } from '@/types/server-entities/workbook';
 import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
 import { AtSignIcon, FileIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
-import { EditResourceModal, useEditResourceModal } from '../../../../components/EditResourceModal';
+import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/PromptAssetDetailModal';
 import styles from './PromptAssetSelector.module.css';
 
 export function PromptAssetSelector({
@@ -26,7 +26,7 @@ export function PromptAssetSelector({
   resetInputFocus: () => void;
 }) {
   const { promptAssets, mutate: refreshResourceList } = usePromptAssets();
-  const resourceModal = useEditResourceModal();
+  const resourceModal = useEditAssetModal();
   const combobox = useCombobox({
     onDropdownClose: () => {
       combobox.resetSelectedOption();
@@ -90,7 +90,7 @@ export function PromptAssetSelector({
     (resourceId: string) => {
       if (resourceId === 'new') {
         trackClickCreateResourceInChat(workbook);
-        resourceModal.open('new');
+        resourceModal.open('new-text'); // Could also be 'new-url'
       } else {
         trackAddResourceToChat(workbook);
         setActiveResources([...activeResources, resourceId]);
@@ -105,7 +105,7 @@ export function PromptAssetSelector({
 
   return (
     <>
-      <EditResourceModal
+      <PromptAssetDetailModal
         {...resourceModal}
         close={(result) => {
           resourceModal.close();

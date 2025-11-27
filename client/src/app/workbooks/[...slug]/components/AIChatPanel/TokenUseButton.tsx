@@ -1,4 +1,5 @@
 import { SnapshotTable } from '@/types/server-entities/workbook';
+import { DocsUrls } from '@/utils/docs-urls';
 import { Anchor, Divider, Popover, Stack } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';
 import pluralize from 'pluralize';
@@ -67,7 +68,7 @@ export const TokenUseButton = ({ table }: { table: SnapshotTable }) => {
           </DevToolPopover>
 
           <Divider mx={'-xs'} />
-          <Anchor href="https://www.google.com" target="_blank" c="var(--fg-secondary)">
+          <Anchor href={DocsUrls.howDoesTokenContextWork} target="_blank" c="var(--fg-secondary)">
             How to reduce tokens in context
           </Anchor>
         </Stack>

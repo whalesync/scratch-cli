@@ -1,27 +1,39 @@
 'use client';
 
-import { PlusIcon } from 'lucide-react';
+import { Menu } from '@mantine/core';
+import { ChevronDownIcon, DownloadIcon, PenLineIcon, PlusIcon } from 'lucide-react';
 import { ButtonPrimarySolid } from '../components/base/buttons';
-import { EditResourceModal, useEditResourceModal } from '../components/EditResourceModal';
 import MainContent from '../components/layouts/MainContent';
+import { PromptAssetDetailModal, useEditAssetModal } from '../components/PromptAssetDetailModal';
 import { PromptAssetTable } from './components/PromptAssetTable';
 
 export default function PromptAssetsPage() {
-  const resourceModal = useEditResourceModal();
+  const resourceModal = useEditAssetModal();
+
+  const newAssetMenu = (
+    <Menu>
+      <Menu.Target>
+        <ButtonPrimarySolid leftSection={<PlusIcon size={14} />} rightSection={<ChevronDownIcon size={14} />}>
+          New asset
+        </ButtonPrimarySolid>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item leftSection={<PenLineIcon size={14} />} onClick={() => resourceModal.open('new-text')}>
+          New blank asset
+        </Menu.Item>
+        <Menu.Item leftSection={<DownloadIcon size={14} />} onClick={() => resourceModal.open('new-url')}>
+          Import from URL
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
 
   return (
     <MainContent>
-      <MainContent.BasicHeader
-        title="Prompt assets"
-        actions={
-          <ButtonPrimarySolid onClick={() => resourceModal.open('new')} leftSection={<PlusIcon />}>
-            New asset
-          </ButtonPrimarySolid>
-        }
-      />
+      <MainContent.BasicHeader title="Prompt assets" actions={newAssetMenu} />
       <MainContent.Body>
         <PromptAssetTable openEditModal={resourceModal.open} />
-        <EditResourceModal {...resourceModal} />
+        <PromptAssetDetailModal {...resourceModal} />
       </MainContent.Body>
     </MainContent>
   );
