@@ -52,7 +52,7 @@ import { TextTitle1, TextTitle2, Text16Medium, Text13Regular, TextMono12Regular 
 import { ButtonPrimarySolid, ButtonSecondaryOutline, IconButtonGhost } from '@/components/base/buttons';
 
 // Badges
-import { BadgeOK, BadgeError } from '@/components/base/badges';
+import { Badge, BadgeOK, BadgeError } from '@/components/base/badge';
 
 // Action Icons
 import { ActionIconThreeDots } from '@/components/base/action-icons';

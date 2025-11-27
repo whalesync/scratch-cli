@@ -1,4 +1,5 @@
 import { ActionIconThreeDots } from '@/app/components/base/action-icons';
+import { Badge } from '@/app/components/base/badge';
 import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import {
@@ -12,7 +13,7 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import { Alert, Badge, Group, Menu, Paper, Table } from '@mantine/core';
+import { Alert, Group, Menu, Paper, Table } from '@mantine/core';
 import { StyleGuideId } from '@spinner/shared-types';
 import { capitalize } from 'lodash';
 import { DownloadIcon, Edit3Icon, FileTextIcon, LinkIcon, Trash2 } from 'lucide-react';
@@ -117,8 +118,13 @@ const PromptAssetRow = ({
         <Group gap="sm">
           <DecorativeBoxedIcon Icon={FileTextIcon} size="xs" />
           {styleGuide.name}
-          {styleGuide.autoInclude ? <Badge color="blue">Auto Include</Badge> : null}
-          {styleGuide.sourceUrl && <Badge leftSection={<LinkIcon size={12} />}>External</Badge>}
+          {styleGuide.autoInclude ? <Badge color="green">Auto Include</Badge> : null}
+          {styleGuide.sourceUrl && (
+            <Badge>
+              <LinkIcon size={12} />
+              External
+            </Badge>
+          )}
           {styleGuide.tags.map((tag) => (
             <Badge key={tag}>{tag}</Badge>
           ))}

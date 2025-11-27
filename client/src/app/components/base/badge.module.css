@@ -1,0 +1,33 @@
+.root {
+  font-weight: 425;
+  border: 0.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  width: fit-content;
+  padding-left: 6px;
+  padding-right: 6px;
+
+  &[data-badge-color='black'] {
+    background-color: var(--mantine-color-gray-0);
+    color: var(--mantine-color-gray-9);
+    border-color: var(--mantine-color-gray-4);
+  }
+  &[data-badge-color='gray'] {
+    background-color: var(--mantine-color-gray-0);
+    color: var(--mantine-color-gray-8);
+    border-color: var(--mantine-color-gray-4);
+  }
+  &[data-badge-color='green'] {
+    background-color: var(--mantine-color-green-1);
+    color: var(--mantine-color-green-8);
+    border-color: var(--mantine-color-green-4);
+  }
+  &[data-badge-color='red'] {
+    background-color: var(--mantine-color-red-1);
+    color: var(--mantine-color-red-8);
+    border-color: var(--mantine-color-red-4);
+  }
+  &[data-badge-color='devTool'] {
+    background-color: var(--mantine-color-devTool-1);
+    color: var(--mantine-color-devTool-8);
+    border-color: var(--mantine-color-devTool-4);
+  }
+}

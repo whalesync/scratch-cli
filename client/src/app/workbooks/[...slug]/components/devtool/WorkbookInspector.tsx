@@ -1,7 +1,7 @@
 import { CopyText } from '@/app/components/CopyText';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { BadgeOK } from '@/app/components/base/badges';
+import { Badge, BadgeOK } from '@/app/components/base/badge';
 import { Text12Regular, Text13Regular, TextTitle3 } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
@@ -13,7 +13,7 @@ import {
   TableSpec,
 } from '@/types/server-entities/workbook';
 import { formatDate } from '@/utils/helpers';
-import { Badge, Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
+import { Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
 
 export const WorkbookInspector = (props: ModalProps) => {
   const { isDevToolsEnabled } = useDevTools();

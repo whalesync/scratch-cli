@@ -1,4 +1,4 @@
-import { BadgeError, BadgeOK } from '@/app/components/base/badges';
+import { Badge, BadgeError, BadgeOK } from '@/app/components/base/badge';
 import { Text13Book, TextTitle2, TextTitle3 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
@@ -8,7 +8,7 @@ import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { getBuildFlavor } from '@/utils/build';
-import { Anchor, Badge, Card, CloseButton, Group, Stack, Table, Tooltip } from '@mantine/core';
+import { Anchor, Card, CloseButton, Group, Stack, Table, Tooltip } from '@mantine/core';
 import { CreditCardIcon, HatGlassesIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { clerkUserUrl, stripeCustomerUrl } from '../utils';

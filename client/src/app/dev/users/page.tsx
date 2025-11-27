@@ -1,12 +1,13 @@
 'use client';
 
+import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text16Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useUserDevTools } from '@/hooks/use-user-dev-tools';
 import { getBuildFlavor } from '@/utils/build';
-import { ActionIcon, Alert, Anchor, Badge, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Anchor, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
 import { AlertCircleIcon, CheckIcon, CopyIcon, HatGlassesIcon, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { UserDetailsCard } from './components/UserDetails';
@@ -99,7 +100,7 @@ const UsersPage = () => {
                             </Tooltip>
                           )}
                         </CopyButton>
-                        {user.isAdmin && <Badge size="xs">Admin</Badge>}
+                        {user.isAdmin && <Badge>Admin</Badge>}
                       </Table.Td>
                       <Table.Td>{user.name || '-'}</Table.Td>
 

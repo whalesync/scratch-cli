@@ -1,3 +1,4 @@
+import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
@@ -5,7 +6,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
-import { Alert, Badge, Center, Grid, Group, Loader, Modal, Progress, Stack, Text, useModalsStack } from '@mantine/core';
+import { Alert, Center, Grid, Group, Loader, Modal, Progress, Stack, Text, useModalsStack } from '@mantine/core';
 import { Edit3Icon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
@@ -100,11 +101,7 @@ export const AgentCredentials = () => {
           <Grid.Col span={2}>
             <Group gap="xs">
               <Text13Regular>{getServiceIcon(credential.service)}</Text13Regular>
-              {credential.default && (
-                <Badge color="primary" variant="light" size="xs">
-                  Default
-                </Badge>
-              )}
+              {credential.default && <Badge color="green">Default</Badge>}
             </Group>
           </Grid.Col>
           <Grid.Col span={7}>

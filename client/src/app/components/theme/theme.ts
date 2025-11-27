@@ -2,7 +2,6 @@
 
 import {
   ActionIcon,
-  Badge,
   Button,
   Checkbox,
   createTheme,
@@ -139,14 +138,8 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
       },
     }),
 
-    Badge: Badge.extend({
-      defaultProps: {
-        variant: 'light',
-        classNames: { root: classes.badgeRoot },
-        size: 'md',
-        color: 'surface',
-      },
-    }),
+    // NOTE! Badge fights attempts at custom styling really hard, use custom Badge instead.
+    // Badge: Badge.extend({ DO NOT EXTEND THIS COMPONENT, USE custom BADGE INSTEAD. });
 
     Button: Button.extend({
       classNames: { label: classes.buttonLabel },

@@ -7,9 +7,9 @@ import { serviceName } from '@/service-naming-conventions';
 import { AuthType, ConnectorAccount, ConnectorHealthStatus, Service } from '@/types/server-entities/connector-accounts';
 import { Group, Menu, Table } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { ArrowLeftRightIcon, Badge, Plus, RefreshCcwIcon, SquarePenIcon, Trash2 } from 'lucide-react';
+import { ArrowLeftRightIcon, Plus, RefreshCcwIcon, SquarePenIcon, Trash2 } from 'lucide-react';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
-import { BadgeError, BadgeOK } from '../../components/base/badges';
+import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import { RelativeDate } from '../../components/RelativeDate';
 import { CreateWorkbookModal } from './CreateWorkbookModal';
 

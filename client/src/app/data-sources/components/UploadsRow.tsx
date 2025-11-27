@@ -1,8 +1,9 @@
 'use client';
 
+import { Badge } from '@/app/components/base/badge';
 import { Text13Medium } from '@/app/components/base/text';
 import { Upload } from '@/lib/api/uploads';
-import { Badge, Group, Menu, Table } from '@mantine/core';
+import { Group, Menu, Table } from '@mantine/core';
 import { Download, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ActionIconThreeDots } from '../../components/base/action-icons';

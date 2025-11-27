@@ -3,23 +3,10 @@
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ModelOption, PersistedModelOption } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
-import {
-  Alert,
-  Badge,
-  Box,
-  Card,
-  Checkbox,
-  Group,
-  Loader,
-  Radio,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Box, Card, Checkbox, Group, Loader, Radio, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import { Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { BadgeOK } from './base/badges';
+import { Badge, BadgeOK } from './base/badge';
 
 // Popular model keys - these will be sorted to the top
 const POPULAR_MODEL_KEYS = [
@@ -213,17 +200,9 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
         </Text>
       </Box>
       <Stack gap="xs" align="flex-end">
-        {currentFavoriteModel === model.value && <BadgeOK size="xs">Default Model</BadgeOK>}
-        {model.contextLength && (
-          <Badge size="xs" variant="light">
-            {model.contextLength.toLocaleString()} tokens
-          </Badge>
-        )}
-        {isModelFree(model) && (
-          <Badge size="xs" variant="filled" color="green">
-            Free
-          </Badge>
-        )}
+        {currentFavoriteModel === model.value && <BadgeOK>Default Model</BadgeOK>}
+        {model.contextLength && <Badge>{model.contextLength.toLocaleString()} tokens</Badge>}
+        {isModelFree(model) && <Badge color="green">Free</Badge>}
       </Stack>
     </Group>
   );
@@ -316,11 +295,7 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
                   <Stack gap="xs">
                     {formatModelLabel(model)}
                     {formatModelDescription(model)}
-                    {model.isPopular && (
-                      <Badge size="xs" variant="filled" color="primary">
-                        Popular
-                      </Badge>
-                    )}
+                    {model.isPopular && <Badge color="green">Popular</Badge>}
                   </Stack>
                 </Card>
               ))}

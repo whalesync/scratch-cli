@@ -7,7 +7,6 @@ import MainContent from '@/app/components/layouts/MainContent';
 import {
   Alert,
   Anchor,
-  Badge,
   Box,
   Checkbox,
   Code,
@@ -42,7 +41,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
 import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
-import { BadgeError, BadgeOK } from '../../components/base/badges';
+import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import {
   AcceptSuggestionButton,
   ButtonDangerLight,
@@ -407,8 +406,17 @@ export default function DevComponentGalleryPage() {
           </GalleryItem>
 
           <GallerySection id="badges" title="Badges" />
-          <GalleryItem label="Badge">
-            <Badge>Neutral badge</Badge>
+          <GalleryItem
+            label="Badge"
+            notes="This is a custom badge, not the Mantine Badge component. It fights custom styling really hard, so use this instead."
+          >
+            <Group gap="xs">
+              <Badge color="black">Black badge</Badge>
+              <Badge color="gray">Gray badge</Badge>
+              <Badge color="green">Green badge</Badge>
+              <Badge color="red">Red badge</Badge>
+              <Badge color="devTool">Dev Tool badge</Badge>
+            </Group>
           </GalleryItem>
           <GalleryItem label="BadgeOK">
             <BadgeOK>Success</BadgeOK>

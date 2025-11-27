@@ -1,4 +1,5 @@
-import { Badge, Group, Text } from '@mantine/core';
+import { Badge } from '@/app/components/base/badge';
+import { Group } from '@mantine/core';
 import cx from 'classnames';
 import { JSX } from 'react';
 import styles from '../SyncStatus.module.css';
@@ -28,10 +29,8 @@ export const SyncDirectedFlowLine = ({
 
       {hasJobs ? (
         <>
-          <Badge size="md" mx="4px" variant="light" color="blue">
-            <Text fw={500}>
-              {direction === 'left' && '←'} {hideCounts ? '' : jobs.toLocaleString()} {direction === 'right' && '→'}
-            </Text>
+          <Badge mx="4px">
+            {direction === 'left' && '←'} {hideCounts ? '' : jobs.toLocaleString()} {direction === 'right' && '→'}
           </Badge>
           <div
             className={cx({

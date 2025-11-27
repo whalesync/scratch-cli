@@ -1,18 +1,8 @@
+import { Badge } from '@/app/components/base/badge';
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
-import {
-  ActionIcon,
-  Badge,
-  Checkbox,
-  CopyButton,
-  Divider,
-  Grid,
-  Group,
-  PasswordInput,
-  Stack,
-  Tooltip,
-} from '@mantine/core';
+import { ActionIcon, Checkbox, CopyButton, Divider, Grid, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
@@ -35,7 +25,7 @@ export const DevToolsPanel = () => {
               </Tooltip>
             )}
           </CopyButton>
-          {isAdmin && <Badge size="xs">Admin</Badge>}
+          {isAdmin && <Badge>Admin</Badge>}
         </Group>
         <Group wrap="nowrap" gap="xs">
           <Text13Regular miw={200}>Clerk ID</Text13Regular>

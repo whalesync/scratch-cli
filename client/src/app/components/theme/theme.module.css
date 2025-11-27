@@ -17,15 +17,6 @@
   }
 }
 
-/** CUSTOM BADGE STYLES */
-.badgeRoot {
-  font-weight: 425;
-
-  border: 0.5px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-radius: 0; /** Square corners */
-  text-transform: none; /** Override the all-caps default */
-}
-
 /** CUSTOM BUTTON STYLES */
 .buttonLabel {
   font-weight: 425;
