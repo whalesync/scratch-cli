@@ -1,4 +1,4 @@
-import './_ag-grid-variables.css';
+// import './_ag-grid-variables.css';
 import './ag-borders.css';
 import './ag-cell-background-image.css';
 import './ag-cell-text.css';

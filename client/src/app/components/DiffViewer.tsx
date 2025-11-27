@@ -2,7 +2,9 @@ import { Box, Group, Textarea } from '@mantine/core';
 import { useToggle } from '@mantine/hooks';
 import { MergeIcon, SplitIcon } from 'lucide-react';
 import { FC } from 'react';
-import { DiffText } from './DiffText';
+// import { DiffText } from './DiffText';
+import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
+import { diffWordsWithSpace } from 'diff';
 import { ToolIconButton } from './ToolIconButton';
 
 interface DiffViewerProps {
@@ -22,7 +24,7 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
   const suggestedValueSafe = suggestedValue ?? '';
 
   // Run the diff and included whitespace in the changes
-  // const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
+  const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
 
   const switchButton = (
     <Box style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
@@ -76,8 +78,8 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
   }
 
   return (
-    <Group p={0}>
-      <DiffText {...props} />
+    <Group p={p}>
+      <DiffText changes={changes} />
       {switchButton}
     </Group>
   );

@@ -1,0 +1,79 @@
+/* Base dot styles */
+
+.fieldValueWrapper {
+  display: flex;
+  height: 100%;
+  align-items: center;
+}
+
+.dotGroup {
+  margin-left: 3px;
+  margin-right: 3px;
+}
+
+.cellComponentAnyDot {
+  flex-shrink: 0;
+  width: 3px;
+  height: 3px;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* Left and right is not linked to accept and reject since we moved them around a few times
+and it is better to not mix the positional vs the functional properties */
+.cellComponentLeftDot {
+  margin-left: 4px;
+}
+
+.cellComponentRightDot {
+  margin-left: 3px;
+  margin-right: 2px;
+}
+
+/* Show green dot when cell has additions */
+.hasSuggestedAdditions .cellComponentAdditionDot {
+  background-color: var(--fg-added);
+  box-shadow: 0 0 0 1px var(--bg-added);
+}
+
+/* Show red dot when cell has deletions */
+.hasSuggestedDeletions .cellComponentDeletionDot {
+  background-color: var(--fg-removed);
+  box-shadow: 0 0 0 1px var(--bg-removed);
+}
+
+/* Show black dot when cell is edited but has no additions */
+.cellValueHasAcceptedAdditions:not(.hasSuggestedAdditions) .cellComponentAdditionDot {
+  background-color: black;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Show black dot when cell is edited but has no deletions */
+.cellValueHasAcceptedDeletions:not(.hasSuggestedDeletions) .cellComponentDeletionDot {
+  background-color: black;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.suggestionButtons {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.hasSuggestion:hover .suggestionButtons {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.diffTextContainer {
+  display: inline;
+  width: 100%;
+}
+
+/* Single-line mode - only applies when parent has .singleLine class */
+.singleLine .diffTextContainer {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}

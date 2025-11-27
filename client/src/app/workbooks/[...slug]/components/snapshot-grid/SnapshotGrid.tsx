@@ -17,6 +17,7 @@ import {
   CellDoubleClickedEvent,
   CellStyleFunc,
   ColDef,
+  ColumnState,
   GridApi,
   GridReadyEvent,
   ModuleRegistry,
@@ -59,6 +60,10 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const { savePendingChanges } = useUpdateRecordsContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
+
+  // Find title column and other columns
+  const headerColumnSpecs = getHeaderColumnSpec(table.tableSpec);
+  const otherColumnSpecs = getOtherColumnSpecs(table.tableSpec);
 
   // Record details mode state
   const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
@@ -123,7 +128,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       const titleColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === titleColumnWsId);
       const idColumn = gridApi.getColumns()?.find((col) => col.getColDef().field === ID_COLUMN_FIELD);
 
-      let pinnedColumnsWidth = AG.dotColumn.width;
+      let pinnedColumnsWidth = 0; //AG.dotColumn.width;
 
       if (idColumn) {
         pinnedColumnsWidth += idColumn.getActualWidth();
@@ -186,24 +191,45 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       setGridApi(params.api);
       // Apply saved column state immediately when grid is ready to prevent animation
       if (columnState && columnState.length > 0) {
+        // Ensure ID and Header columns are always first in the state
+        // This fixes an issue where local storage might have an old order
+        const idColId = ID_COLUMN_FIELD;
+        const headerColId = headerColumnSpecs?.id.wsId;
+
+        // Filter out ID and Header columns from the saved state
+        const otherColumnsState = columnState.filter((col) => col.colId !== idColId && col.colId !== headerColId);
+
+        // Find the saved state for ID and Header columns (to preserve width, etc.)
+        const idColState = columnState.find((col) => col.colId === idColId);
+        const headerColState = columnState.find((col) => col.colId === headerColId);
+
+        // Construct the new state with enforced order
+        const newState: ColumnState[] = [];
+
+        if (idColState) newState.push(idColState);
+        if (headerColState) newState.push(headerColState);
+
+        newState.push(...otherColumnsState);
+
         params.api.applyColumnState({
-          state: columnState,
+          state: newState,
           applyOrder: true,
         });
       }
     },
-    [columnState],
+    [columnState, headerColumnSpecs],
   );
 
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
   const { cellRenderer } = useCellRenderer(table.tableSpec, acceptCellValues, rejectCellValues);
-  const { idColumn, dotColumn } = useSpecialColDefs({
+  const { idColumn } = useSpecialColDefs({
     entityName: recordName(table.connectorService as Service),
     resizable: true,
     gridApi,
     recordDetailsVisible: !!activeCells?.recordId,
+    tableSpec: table.tableSpec,
   });
 
   // Context menu handlers
@@ -485,8 +511,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   }, [handleKeyDown]);
 
   // Find title column and other columns (moved up to be available in useEffect)
-  const headerColumnSpecs = getHeaderColumnSpec(table.tableSpec);
-  const otherColumnSpecs = getOtherColumnSpecs(table.tableSpec);
 
   // Always include all columns, but we'll control visibility via AG Grid API
   const columnsWithTitleFirst = headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
@@ -587,7 +611,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const headerColumnDef = dataColumns[0];
   const otherColumnDefs = dataColumns.slice(1);
   // Combine columns in order: dot, ID, Title (if exists), data columns, then menu column
-  const columnDefs: ColDef[] = [dotColumn, idColumn, headerColumnDef, ...otherColumnDefs];
+  const columnDefs: ColDef[] = [idColumn, headerColumnDef, ...otherColumnDefs];
 
   if (error) {
     return (

@@ -21,7 +21,7 @@
 }
 
 /* ----------- Vars for the edited border ------------ */
-.my-grid[class*='ag-theme'] .ag-cell {
+.my-grid[class*='ag-theme'] {
   --edited-border-color: var(--mantine-color-suggestion-9);
 }
 

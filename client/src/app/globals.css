@@ -19,6 +19,36 @@
     'calt' 1; /* fix for Chrome */
 }
 
+/* Suggestions and changes - set in theme-specific sections below */
+[data-mantine-color-scheme='light'] {
+  --fg-accept: var(--mantine-color-teal-9);
+  --bg-accept: var(--mantine-color-green-4);
+
+  --fg-reject: var(--mantine-color-red-6);
+  --bg-reject: var(--mantine-color-red-3);
+
+  --fg-added: var(--fg-accept);
+  --bg-added: var(--bg-accept);
+
+  --fg-removed: var(--fg-reject);
+  --bg-removed: var(--bg-reject);
+}
+
+/* Dark theme suggestion/change colors */
+[data-mantine-color-scheme='dark'] {
+  --fg-accept: var(--mantine-color-green-5);
+  --bg-accept: var(--mantine-color-green-8);
+
+  --fg-reject: var(--mantine-color-red-5);
+  --bg-reject: var(--mantine-color-red-8);
+
+  --fg-added: var(--fg-accept);
+  --bg-added: var(--bg-accept);
+
+  --fg-removed: var(--fg-reject);
+  --bg-removed: var(--bg-reject);
+}
+
 @supports (font-variation-settings: normal) {
   :root {
     font-family: InterVariable, sans-serif;

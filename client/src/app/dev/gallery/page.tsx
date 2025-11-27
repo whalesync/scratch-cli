@@ -1,7 +1,7 @@
 'use client';
 
-import { DiffText2 } from '@/app/components/DiffText2';
 import { DiffViewer } from '@/app/components/DiffViewer';
+import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import {
@@ -23,6 +23,7 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from '@mantine/core';
+import { diffWordsWithSpace } from 'diff';
 import {
   AlertTriangle,
   AlignEndHorizontal,
@@ -402,7 +403,7 @@ export default function DevComponentGalleryPage() {
             />
           </GalleryItem>
           <GalleryItem label="DiffText2">
-            <DiffText2 originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
+            <DiffText changes={diffWordsWithSpace('Hello, world!', 'Howdy, SCRATCH ROCKS, world! more text here!')} />
           </GalleryItem>
 
           <GallerySection id="badges" title="Badges" />

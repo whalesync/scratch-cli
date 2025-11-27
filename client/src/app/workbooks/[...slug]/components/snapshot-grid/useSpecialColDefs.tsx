@@ -1,6 +1,7 @@
+import { IdValueWrapper } from '@/app/components/field-value-wrappers/IdValueWrapper';
 import { AG, ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
-import { SnapshotRecord } from '@/types/server-entities/workbook';
-import { Box, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
+import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
+import { Box, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from './IdHeaderComponent';
 import { getCellClassFn } from './useCellClass';
@@ -10,6 +11,7 @@ interface UseIdColDefProps {
   resizable?: boolean;
   gridApi?: GridApi<SnapshotRecord> | null;
   recordDetailsVisible?: boolean;
+  tableSpec: TableSpec;
 }
 
 export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: UseIdColDefProps) => {
@@ -35,12 +37,7 @@ export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: Use
       return params.data?.id?.wsId || '';
     },
     cellRenderer: (params: ICellRendererParams<SnapshotRecord, unknown>) => {
-      // const value = params.value;
-      return (
-        <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-          <Text className="cell-text">{String(params.data?.id?.remoteId)}</Text>
-        </Box>
-      );
+      return <IdValueWrapper record={params.data} />;
     },
     // cellStyle,
     cellClass: getCellClassFn({ gridApi, activeCells: null, columnId: 'id' }),

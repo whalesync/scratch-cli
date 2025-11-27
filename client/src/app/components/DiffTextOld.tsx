@@ -11,7 +11,7 @@ interface DiffTextProps {
   splitMinRows?: number;
 }
 
-export const DiffText: FC<DiffTextProps> = ({
+export const DiffText_old: FC<DiffTextProps> = ({
   originalValue,
   suggestedValue,
   fz = '1rem',
