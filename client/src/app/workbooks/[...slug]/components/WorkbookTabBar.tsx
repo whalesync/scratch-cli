@@ -1,13 +1,14 @@
+import { IconButtonGhost } from '@/app/components/base/buttons';
+import { Text13Medium } from '@/app/components/base/text';
+import { CloseButtonInline } from '@/app/components/CloseButtonInline';
+import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { NewTabId, useWorkbookEditorUIStore, WorkbookEditorUIState } from '@/stores/workbook-editor-store';
+import { hasDeletedConnection, Workbook } from '@/types/server-entities/workbook';
 import { Box, Group, Menu, Tabs } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { EyeOff, Plus, Trash2 } from 'lucide-react';
-import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
-import { NewTabId, WorkbookEditorUIState, useWorkbookEditorUIStore } from '../../../../stores/workbook-editor-store';
-import { Workbook } from '../../../../types/server-entities/workbook';
-import { IconButtonGhost } from '../../../components/base/buttons';
-import { Text13Medium } from '../../../components/base/text';
-import { CloseButtonInline } from '../../../components/CloseButtonInline';
-import { ConnectorIcon } from '../../../components/ConnectorIcon';
 import classes from './WorkbookTabBar.module.css';
 
 export const WORKBOOK_TAB_BAR_HEIGHT = 40;
@@ -27,10 +28,10 @@ export const WorkbookTabBar = () => {
       variant="pills"
       value={activeTab}
       onChange={(value) => {
-        if(value){
+        if (value) {
           setActiveTab(value as SnapshotTableId | NewTabId);
         }
-     }}
+      }}
     >
       <Tabs.List>
         {tabs.map((tab) => (
@@ -112,11 +113,20 @@ const TableTab = ({
       />
     );
   }
-
+  const tabIcon = () => {
+    if (!table) {
+      return <></>;
+    }
+    const isConnectionDeleted = hasDeletedConnection(table);
+    if (isConnectionDeleted) {
+      return <DeletedConnectionIcon />;
+    }
+    return <ConnectorIcon connector={table.connectorService} size={28} />;
+  };
   return (
     <Tabs.Tab component={Box} value={tab.id} key={tab.id} rightSection={rightSection}>
       <Group gap="3" wrap="nowrap" maw={250}>
-        {table && <ConnectorIcon connector={table.connectorService} size={28} />}
+        {tabIcon()}
         <Text13Medium truncate="end">{tabName}</Text13Medium>
       </Group>
     </Tabs.Tab>

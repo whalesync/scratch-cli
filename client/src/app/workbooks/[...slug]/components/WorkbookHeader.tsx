@@ -1,12 +1,14 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
+import { Text13Regular } from '@/app/components/base/text';
+import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { hasAllConnectionsDeleted } from '@/types/server-entities/workbook';
 import { Group } from '@mantine/core';
 import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
-import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
-import { useLayoutManagerStore } from '../../../../stores/layout-manager-store';
-import { Text13Regular } from '../../../components/base/text';
-import { StyledLucideIcon } from '../../../components/Icons/StyledLucideIcon';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 
 export const WorkbookHeader = () => {
@@ -15,7 +17,7 @@ export const WorkbookHeader = () => {
   const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   const openChat = useWorkbookEditorUIStore((state) => state.openChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
-
+  const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
   return (
     <Group bg="var(--bg-panel)" h={36} justify="space-between" pos="relative" px="xs" gap="xs">
       <ToolIconButton icon={PanelLeftIcon} onClick={toggleNavDrawer} size="md" />
@@ -35,7 +37,12 @@ export const WorkbookHeader = () => {
           </ButtonSecondaryInline>
         )}
         {/* TODO: Move the publish button here, after figuring out how it should behave */}
-        <ButtonSecondaryInline size="xs" leftSection={<CloudUploadIcon size={14} />} onClick={openPublishConfirmation}>
+        <ButtonSecondaryInline
+          disabled={allConnectionsDeleted}
+          size="xs"
+          leftSection={allConnectionsDeleted ? <DeletedConnectionIcon size={14} /> : <CloudUploadIcon size={14} />}
+          onClick={openPublishConfirmation}
+        >
           Publish
         </ButtonSecondaryInline>
         <WorkbookActionsMenu />

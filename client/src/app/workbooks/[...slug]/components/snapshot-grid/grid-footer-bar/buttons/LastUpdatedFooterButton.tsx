@@ -1,14 +1,15 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { serviceName } from '@/service-naming-conventions';
+import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
+import { hasDeletedConnection, SnapshotTable } from '@/types/server-entities/workbook';
+import { formatDate, timeAgo } from '@/utils/helpers';
 import { Tooltip } from '@mantine/core';
 import { CloudDownloadIcon, RefreshCwIcon } from 'lucide-react';
-import { serviceName } from '../../../../../../../service-naming-conventions';
-import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../../stores/workbook-editor-store';
-import { formatDate, timeAgo } from '../../../../../../../utils/helpers';
 
 export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => {
   const showModal = useWorkbookEditorUIStore((state) => state.showModal);
-
+  const isConnectionDeleted = hasDeletedConnection(table);
   if (!table.lastSyncTime) {
     return null;
   }
@@ -17,10 +18,11 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
   } on ${formatDate(table.lastSyncTime)}.`;
 
   return (
-    <Tooltip label={tooltipLabel}>
+    <Tooltip label={isConnectionDeleted ? 'Connection deleted' : tooltipLabel}>
       <ButtonSecondaryInline
-        leftSection={<CloudDownloadIcon size={16} />}
-        rightSection={<RefreshCwIcon size={16} />}
+        leftSection={isConnectionDeleted ? <DeletedConnectionIcon size={16} /> : <CloudDownloadIcon size={16} />}
+        rightSection={isConnectionDeleted ? <></> : <RefreshCwIcon size={16} />}
+        disabled={isConnectionDeleted}
         onClick={() => showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE })}
       >
         {timeAgo(table.lastSyncTime)}

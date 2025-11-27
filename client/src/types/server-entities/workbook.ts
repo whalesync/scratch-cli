@@ -282,3 +282,39 @@ export function getActiveRecordSqlFilterById(workbook: Workbook, tableId: string
   const table = getSnapshotTableById(workbook, tableId);
   return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
 }
+
+/**
+ * Checks if all connections in a workbook are deleted.
+ * Returns true if:
+ * - The workbook has at least one snapshot table with a connector account
+ * - All snapshot tables with connector accounts have a deleted connection.
+ * Returns false otherwise.
+ */
+export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolean {
+  if (!workbook) {
+    return false;
+  }
+  // Check if all tables have a deleted connection
+  return (
+    workbook.snapshotTables?.every((table) => {
+      // CSV tables can't have a deleted connection, so we return false
+      if (table.connectorService === Service.CSV) {
+        return false;
+      }
+      return table.connectorAccountId === null && table.connectorService !== null;
+    }) ?? false
+  );
+}
+
+/**
+ * Checks if a snapshot table has a connection deleted.
+ * A deleted connection is when the connector account was removed but the table still exists.
+ * This is indicated by connectorAccountId being null while connectorService is not null.
+ */
+export function hasDeletedConnection(table: SnapshotTable): boolean {
+  // CSV tables can't have a deleted connection, so we return false
+  if (table.connectorService === Service.CSV) {
+    return false;
+  }
+  return table.connectorAccountId === null && table.connectorService !== null;
+}

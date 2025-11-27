@@ -1,17 +1,18 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { RelativeDate } from '@/app/components/RelativeDate';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
-import { Workbook } from '@/types/server-entities/workbook';
+import { hasAllConnectionsDeleted, Workbook } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
-import { RelativeDate } from '../../components/RelativeDate';
-import { ToolbarIconButton } from '../../components/ToolbarIconButton';
 
 export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
   const router = useRouter();
@@ -24,6 +25,8 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
     ...new Set(workbook.snapshotTables?.map((table) => table.connectorService).filter((service) => !!service)),
   ];
 
+  // Check connection health status
+  const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
   const handleAbandon = async () => {
     if (!workbook) return;
     try {
@@ -103,9 +106,11 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <Table.Td>
           {/* Icons are stacked on top of each other with an offset */}
           <Group gap={3}>
-            {connectorList.map((table, index) => (
-              <ConnectorIcon key={index} connector={table} size={21} withBorder />
-            ))}
+            {allConnectionsDeleted ? (
+              <DeletedConnectionIcon />
+            ) : (
+              connectorList.map((table, index) => <ConnectorIcon key={index} connector={table} size={21} withBorder />)
+            )}
           </Group>
         </Table.Td>
         <Table.Td>
