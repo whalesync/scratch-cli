@@ -1,9 +1,9 @@
-import { Group, Text } from '@mantine/core';
+import { Text13Regular } from '@/app/components/base/text';
+import { Box, Group } from '@mantine/core';
 
 export const FieldRow = ({
   fieldName,
   showLabel = true,
-  align = 'flex-start',
   children,
   onLabelClick,
 }: {
@@ -11,27 +11,20 @@ export const FieldRow = ({
   showLabel?: boolean;
   hasEditedValue?: boolean;
   isReadOnly?: boolean;
-  align?: React.CSSProperties['alignItems'];
   children: React.ReactNode;
   onLabelClick?: () => void;
 }) => {
+  if (!showLabel) {
+    return <Box py="sm">{children}</Box>;
+  }
   return (
-    <Group align={align} wrap="nowrap" gap="xs" w="100%" p="0">
-      {showLabel && (
-        <Group
-          w="15%"
-          align="center"
-          justify="flex-start"
-          gap="xs"
-          onClick={onLabelClick}
-          style={{ cursor: onLabelClick ? 'pointer' : 'default' }}
-        >
-          <Text size="fit-content" fw={450}>
-            {fieldName}
-          </Text>
-        </Group>
-      )}
-      <div style={{ flex: 1 }}>{children}</div>
+    <Group wrap="nowrap" gap="0" w="100%" p="0" justify="stretch" align="flex-start">
+      <Box w="20%" p="sm" onClick={onLabelClick} style={{ cursor: onLabelClick ? 'pointer' : 'default' }}>
+        <Text13Regular c="var(--fg-secondary)">{fieldName}</Text13Regular>
+      </Box>
+      <Box style={{ flex: 1 }} p="sm">
+        {children}
+      </Box>
     </Group>
   );
 };

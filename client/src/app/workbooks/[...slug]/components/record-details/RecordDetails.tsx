@@ -160,9 +160,7 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
   } else if (currentRecord) {
     const fieldsToShow = orderedColumns.map((column) => column.id.wsId);
     content = (
-      <Stack p="3rem" gap="sm">
-        {fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, tableSpec, false))}
-      </Stack>
+      <Stack gap={0}>{fieldsToShow.map((fieldName) => fieldToInputAndSuggestion(fieldName, tableSpec, false))}</Stack>
     );
   }
 

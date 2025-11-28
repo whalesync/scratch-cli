@@ -1,7 +1,7 @@
 'use client';
 
 import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
-import { Box, Paper, ScrollArea } from '@mantine/core';
+import { Box, Divider, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useEffect } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
@@ -89,10 +89,13 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
             table={table.tableSpec}
             columnId={activeCells.columnId}
             onSwitchColumn={handleFieldFocus}
-            v2
             onClose={handleCloseRecordDetails}
           />
-          <Box p="sm" style={{ position: 'relative', height: '100%' }}>
+
+          <Box p={0} style={{ position: 'relative', height: '100%' }}>
+            {selectedRecord && !activeCells.columnId && (
+              <Divider orientation="vertical" left="20%" top={0} bottom={0} pos="absolute" />
+            )}
             <ScrollArea h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`} type="hover" scrollbars="y">
               <RecordDetails
                 workbookId={workbookId}

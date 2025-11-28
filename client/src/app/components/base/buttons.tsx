@@ -67,6 +67,19 @@ export const ButtonDangerLight = Button.withProps({
   classNames: { root: customBordersClasses.cornerBorders },
 });
 
+export const IconButtonPrimaryOutline = Button.withProps({
+  variant: 'light',
+  size: 'sm',
+  color: 'green.6',
+  c: 'green.8',
+  p: 0,
+  classNames: { root: customBordersClasses.cornerBorders },
+  styles: {
+    root: { aspectRatio: '1', backgroundColor: 'var(--mantine-color-green-2)' },
+    inner: { color: 'var(--mantine-color-gray-9)' },
+  },
+});
+
 export const IconButtonOutline = Button.withProps({
   variant: 'outline',
   size: 'sm',

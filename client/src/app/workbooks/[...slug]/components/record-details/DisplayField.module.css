@@ -1,5 +1,8 @@
 .recordValueDisplay {
-  font-size: 1rem;
+  font-size: var(--mantine-font-size-sm);
+  font-family: var(--mantine-font-family);
+  color: var(--fg-primary);
+  font-weight: 425;
   &::selection {
     background-color: #ffff00;
     color: black;

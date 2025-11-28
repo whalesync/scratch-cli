@@ -1,4 +1,4 @@
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { IconButtonOutline, IconButtonPrimaryOutline } from '@/app/components/base/buttons';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/types/server-entities/workbook';
 import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
-import { CircleArrowRightIcon } from 'lucide-react';
+import { CheckIcon, CircleArrowRightIcon, XIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 
@@ -36,7 +36,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
     record,
     columnId,
     mode,
-    align = 'flex-start',
     updateField,
     onFieldLabelClick,
     onAcceptSuggestion,
@@ -54,12 +53,12 @@ export const DisplayField = (props: DisplayFieldProps) => {
   const suggestValueColor = '#284283';
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="flex-end">
-      <ButtonSecondaryOutline onClick={onRejectSuggestion} loading={saving}>
-        Reject
-      </ButtonSecondaryOutline>
-      <ButtonPrimaryLight onClick={onAcceptSuggestion} loading={saving}>
-        Accept
-      </ButtonPrimaryLight>
+      <IconButtonOutline onClick={onRejectSuggestion} loading={saving} size="compact-sm">
+        <XIcon size={13} />
+      </IconButtonOutline>
+      <IconButtonPrimaryOutline onClick={onAcceptSuggestion} loading={saving} size="compact-sm">
+        <CheckIcon size={13} />
+      </IconButtonPrimaryOutline>
     </Group>
   ) : null;
 
@@ -94,7 +93,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
-        align={align}
         onLabelClick={onFieldLabelClick}
       >
         {hasSuggestion ? (
@@ -148,7 +146,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
-        align={align}
         onLabelClick={onFieldLabelClick}
       >
         {hasSuggestion ? (
@@ -194,7 +191,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
-        align={align}
         onLabelClick={onFieldLabelClick}
       >
         {hasSuggestion ? (
@@ -229,7 +225,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
           fieldName={column.name}
           hasEditedValue={hasEditedValue}
           isReadOnly={column.readonly}
-          align={align}
           onLabelClick={onFieldLabelClick}
         >
           {hasSuggestion ? (
@@ -336,7 +331,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
       fieldName={column.name}
       showLabel={mode === 'multiple'}
       hasEditedValue={hasEditedValue}
-      align={align}
       onLabelClick={onFieldLabelClick}
     >
       {hasSuggestion ? (
