@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
@@ -9,7 +9,6 @@ import {
   useDeleteConfirmationModal,
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
@@ -287,7 +286,7 @@ export const AddTableTab = () => {
                         }}
                       >
                         <Group gap="sm" wrap="nowrap">
-                          <ConnectorIcon connector={table.connectorService} size={16} />
+                          <ConnectorIcon connector={table.connectorService} size={20} />
                           <Text13Regular style={{ flex: 1 }}>{table.tableSpec.name}</Text13Regular>
                           {table.lastSyncTime && (
                             <Group gap="xs">
@@ -297,13 +296,14 @@ export const AddTableTab = () => {
                               </Text13Regular>
                             </Group>
                           )}
-                          <ToolIconButton
-                            icon={Trash2Icon}
+                          <IconButtonInline
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteTableModal.open(table.id, table.tableSpec.name);
                             }}
-                          />
+                          >
+                            <StyledLucideIcon Icon={Trash2Icon} size="sm" c="var(--fg-muted)" />
+                          </IconButtonInline>
                         </Group>
                       </Box>
                     );
@@ -350,7 +350,6 @@ export const AddTableTab = () => {
                         ) : (
                           <StyledLucideIcon Icon={RefreshCw} size="sm" c="var(--fg-muted)" />
                         )}
-                        <Text13Regular c="var(--fg-muted)">Refresh</Text13Regular>
                       </Group>
                     </Group>
 
@@ -376,7 +375,7 @@ export const AddTableTab = () => {
                               onClick={() => handleTableSelect(table, group)}
                             >
                               <Group gap="sm" wrap="nowrap">
-                                <ConnectorIcon connector={group.service} size={16} />
+                                <ConnectorIcon connector={group.service} size={20} />
                                 <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
                                 {matchingSnapshot?.lastSyncTime && (
                                   <Group gap="xs">
