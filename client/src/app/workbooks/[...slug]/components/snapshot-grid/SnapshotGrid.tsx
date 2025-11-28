@@ -3,8 +3,7 @@
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import {
-  getHeaderColumnSpec,
-  getOtherColumnSpecs,
+  getGridOrderedColumnSpecs,
   identifyRecordTitleColumn,
 } from '@/app/workbooks/[...slug]/components/snapshot-grid/header-column-utils';
 import { recordName } from '@/service-naming-conventions';
@@ -62,8 +61,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const clipboard = useClipboard({ timeout: 500 });
 
   // Find title column and other columns
-  const headerColumnSpecs = getHeaderColumnSpec(table.tableSpec);
-  const otherColumnSpecs = getOtherColumnSpecs(table.tableSpec);
+  const { columns: columnSpecs, titleColumnId } = getGridOrderedColumnSpecs(table.tableSpec, table.hiddenColumns);
 
   // Record details mode state
   const [overlayWidth, setOverlayWidth] = useState('50%'); // Default fallback
@@ -194,14 +192,13 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         // Ensure ID and Header columns are always first in the state
         // This fixes an issue where local storage might have an old order
         const idColId = ID_COLUMN_FIELD;
-        const headerColId = headerColumnSpecs?.id.wsId;
 
         // Filter out ID and Header columns from the saved state
-        const otherColumnsState = columnState.filter((col) => col.colId !== idColId && col.colId !== headerColId);
+        const otherColumnsState = columnState.filter((col) => col.colId !== idColId && col.colId !== titleColumnId);
 
         // Find the saved state for ID and Header columns (to preserve width, etc.)
         const idColState = columnState.find((col) => col.colId === idColId);
-        const headerColState = columnState.find((col) => col.colId === headerColId);
+        const headerColState = columnState.find((col) => col.colId === titleColumnId);
 
         // Construct the new state with enforced order
         const newState: ColumnState[] = [];
@@ -217,7 +214,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         });
       }
     },
-    [columnState, headerColumnSpecs],
+    [columnState, titleColumnId],
   );
 
   // Keep original records as row data to preserve __suggested_values
@@ -512,21 +509,18 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   // Find title column and other columns (moved up to be available in useEffect)
 
-  // Always include all columns, but we'll control visibility via AG Grid API
-  const columnsWithTitleFirst = headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
-
   // Control column visibility based on limited mode only (not record details mode)
   useEffect(() => {
     if (gridApi && limited) {
       // Hide all columns except ID and Title (only for limited mode)
-      const columnsToHide = otherColumnSpecs.map((col) => col.id.wsId);
+      const columnsToHide = columnSpecs.filter((c) => c.id.wsId !== titleColumnId).map((col) => col.id.wsId);
       gridApi.setColumnsVisible(columnsToHide, false);
     } else if (gridApi && !limited) {
       // Show all columns (for normal mode and record details mode)
-      const columnsToShow = otherColumnSpecs.map((col) => col.id.wsId);
+      const columnsToShow = columnSpecs.map((col) => col.id.wsId);
       gridApi.setColumnsVisible(columnsToShow, true);
     }
-  }, [gridApi, limited, otherColumnSpecs]);
+  }, [gridApi, limited, columnSpecs, titleColumnId]);
 
   // Show suggestion toolbar if there are suggestions and no record is active
   const showSuggestionToolbar = useMemo(() => {
@@ -538,26 +532,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   }, [records, activeCells?.recordId]);
 
   // Create column definitions from remaining table columns
-  const dataColumns: ColDef[] = columnsWithTitleFirst.map((column, index) => {
-    // const cellClass: CellClassFunc<SnapshotRecord, unknown> = (params) => {
-    //   const classes: string[] = [];
-
-    //   const focusedCell = gridApi?.getFocusedCell();
-    //   const isInFocusedColumn =
-    //     focusedCell && !activeRecord?.recordId && focusedCell.column.getColId() === column.id.wsId;
-
-    //   if (isInFocusedColumn) {
-    //     classes.push('ag-cell-focus-column');
-    //   }
-
-    //   // Add 'cell-edited' class if this field has been edited
-    //   if (params.data?.__edited_fields?.[column.id.wsId]) {
-    //     classes.push('cell-edited');
-    //   }
-
-    //   return classes;
-    // };
-
+  const dataColumns: ColDef[] = columnSpecs.map((column, index) => {
     const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
       const isReadOnly = column.readonly;
       const colors = isLightMode ? AG.colors.light : AG.colors.dark;
@@ -608,10 +583,8 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     return colDef;
   });
 
-  const headerColumnDef = dataColumns[0];
-  const otherColumnDefs = dataColumns.slice(1);
-  // Combine columns in order: dot, ID, Title (if exists), data columns, then menu column
-  const columnDefs: ColDef[] = [idColumn, headerColumnDef, ...otherColumnDefs];
+  // Always put the ID column first.
+  const columnDefs: ColDef[] = [idColumn, ...dataColumns];
 
   if (error) {
     return (

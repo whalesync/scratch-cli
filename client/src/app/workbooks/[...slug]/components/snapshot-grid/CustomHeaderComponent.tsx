@@ -230,18 +230,20 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       return;
     }
 
+    const shouldHide = !currentTable?.hiddenColumns?.includes(columnId);
+
     try {
       setIsProcessing(true);
       setIsMenuOpen(false);
-      if (currentTable?.hiddenColumns?.includes(columnId)) {
-        await unhideColumn(props.tableId, columnId);
-      } else {
+      if (shouldHide) {
         await hideColumn(props.tableId, columnId);
+      } else {
+        await unhideColumn(props.tableId, columnId);
       }
 
       ScratchpadNotifications.success({
         title: 'Column Visibility Changed',
-        message: `Column "${columnName}" is now ${currentTable?.hiddenColumns?.includes(columnId) ? 'hidden from ' : 'visible to '} the agent`,
+        message: `Column "${columnName}" is now ${shouldHide ? 'hidden from ' : 'visible to '} the agent`,
       });
     } catch (error) {
       console.error('Error changing column visibility:', error);

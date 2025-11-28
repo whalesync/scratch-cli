@@ -59,46 +59,41 @@ export function identifyRecordTitleColumn(table: TableSpec): string {
   return table.columns.find((column) => column.id.wsId !== 'id')?.id.wsId ?? table.columns[0].id.wsId;
 }
 
-export function getHeaderColumnSpec(table: TableSpec): ColumnSpec | undefined {
+function findTitleColumn(table: TableSpec, hiddenColumns: string[]): ColumnSpec | undefined {
+  let found: ColumnSpec | undefined;
   // If titleColumnRemoteId is explicitly set in the spec, use it
   if (table.titleColumnRemoteId) {
-    const headerColumnSpec = table.columns.find(
+    found = table.columns.find(
       (col) =>
         col.id.remoteId.length === table.titleColumnRemoteId!.length &&
         col.id.remoteId.every((val, idx) => val === table.titleColumnRemoteId![idx]),
     );
-    if (headerColumnSpec) {
-      return headerColumnSpec;
-    }
+  }
+  if (!found) {
+    // Fall back to checking for common title column patterns
+    found = table.columns.find((col) => commonTitleColumnPatterns.includes(col.name.toLowerCase()));
   }
 
-  // Fall back to checking for common title column patterns
-  const headerColumnSpec = table.columns.find((col) => commonTitleColumnPatterns.includes(col.name.toLowerCase()));
-  return headerColumnSpec;
-}
-
-export function getOtherColumnSpecs(table: TableSpec): ColumnSpec[] {
-  // First check if titleColumnRemoteId is explicitly set
-  if (table.titleColumnRemoteId) {
-    const otherColumnSpecs = table.columns.filter(
-      (col) =>
-        !(
-          col.id.remoteId.length === table.titleColumnRemoteId!.length &&
-          col.id.remoteId.every((val, idx) => val === table.titleColumnRemoteId![idx])
-        ),
-    );
-    return otherColumnSpecs;
+  if (found && hiddenColumns.includes(found.id.wsId)) {
+    return undefined;
   }
-
-  // Fall back to checking for common title column patterns
-  const otherColumnSpecs = table.columns.filter((col) => !commonTitleColumnPatterns.includes(col.name.toLowerCase()));
-  return otherColumnSpecs;
+  return found;
 }
 
-export function getGridOrderedColumnSpecs(table: TableSpec): ColumnSpec[] {
-  const headerColumnSpecs = getHeaderColumnSpec(table);
-  const otherColumnSpecs = getOtherColumnSpecs(table);
-  return headerColumnSpecs ? [headerColumnSpecs, ...otherColumnSpecs] : otherColumnSpecs;
+/**
+ * All columns that should be displayed in the grid.
+ * If there is a title column, it is ordered first.
+ */
+export function getGridOrderedColumnSpecs(
+  table: TableSpec,
+  hiddenColumns: string[],
+): { columns: ColumnSpec[]; titleColumnId: string | undefined } {
+  const title = findTitleColumn(table, hiddenColumns);
+  const columns = title ? [title] : [];
+  columns.push(
+    ...table.columns.filter((col) => !hiddenColumns.includes(col.id.wsId) && col.id.wsId !== title?.id.wsId),
+  );
+  return { columns, titleColumnId: title?.id?.wsId };
 }
 
 export function getDotColumn(gridApi: GridApi) {

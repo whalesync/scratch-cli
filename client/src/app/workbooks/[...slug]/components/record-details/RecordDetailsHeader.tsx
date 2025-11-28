@@ -14,13 +14,19 @@ interface RecordDetailsHeaderProps {
   onSwitchColumn: (columnId: string | undefined) => void;
   v2?: boolean;
   onClose?: () => void;
+  hiddenColumns: string[];
 }
 
-export const RecordDetailsHeader = ({ table, h, columnId, onSwitchColumn, onClose }: RecordDetailsHeaderProps) => {
+export const RecordDetailsHeader = ({
+  table,
+  h,
+  columnId,
+  onSwitchColumn,
+  onClose,
+  hiddenColumns,
+}: RecordDetailsHeaderProps) => {
   // Order the columns like they appear in the grid view
-  const orderedColumns = useMemo(() => {
-    return getGridOrderedColumnSpecs(table);
-  }, [table]);
+  const orderedColumns = useMemo(() => getGridOrderedColumnSpecs(table, hiddenColumns).columns, [table, hiddenColumns]);
 
   const { currentColumn, previousColumn, nextColumn } = useMemo(() => {
     if (columnId === undefined) {

@@ -37,9 +37,10 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
   const tableId = table.id;
 
   const currentColumn = tableSpec.columns.find((c) => c.id.wsId === currentColumnId);
-  const orderedColumns = useMemo(() => {
-    return getGridOrderedColumnSpecs(tableSpec);
-  }, [tableSpec]);
+  const orderedColumns = useMemo(
+    () => getGridOrderedColumnSpecs(tableSpec, table.hiddenColumns).columns,
+    [tableSpec, table.hiddenColumns],
+  );
 
   const updateField = useCallback(
     async (field: string, value: string | number | boolean) => {
