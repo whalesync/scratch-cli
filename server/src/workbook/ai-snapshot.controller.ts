@@ -12,8 +12,8 @@ import {
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
-import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
+import { userToActor } from '../users/types';
 import { WorkbookService } from './workbook.service';
 
 @Controller('ai-snapshot')
@@ -29,7 +29,7 @@ export class AiSnapshotController {
     @Query('cursor') cursor: string | undefined,
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; nextCursor?: string; filteredRecordsCount: number }> {
-    const result = await this.service.listRecordsForAi(workbookId, tableId, toActor(req.user), cursor);
+    const result = await this.service.listRecordsForAi(workbookId, tableId, userToActor(req.user), cursor);
     return {
       records: result.records,
       nextCursor: result.nextCursor,
@@ -44,6 +44,6 @@ export class AiSnapshotController {
     @Body() body: { recordIds: string[] },
     @Req() req: RequestWithUser,
   ): Promise<{ records: SnapshotRecord[]; totalCount: number }> {
-    return await this.service.getRecordsByIdsForAi(workbookId, tableId, body.recordIds, toActor(req.user));
+    return await this.service.getRecordsByIdsForAi(workbookId, tableId, body.recordIds, userToActor(req.user));
   }
 }

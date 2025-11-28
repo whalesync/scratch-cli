@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Service, Upload } from '@prisma/client';
-import { createCsvFileRecordId } from '@spinner/shared-types';
+import { ScratchpadPlanType, createCsvFileRecordId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
+import { Actor } from 'src/users/types';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
@@ -287,9 +288,14 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     if (!upload.organizationId) {
       throw new Error('Upload does not have an organization ID');
     }
-    return this.uploadsDbService.getUploadSchemaName({
+    const actor: Actor = {
       userId: upload.userId ?? '',
       organizationId: upload.organizationId ?? '',
-    });
+      subscriptionStatus: {
+        status: 'active',
+        planType: ScratchpadPlanType.FREE_PLAN,
+      },
+    };
+    return this.uploadsDbService.getUploadSchemaName(actor);
   }
 }

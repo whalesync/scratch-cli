@@ -64,9 +64,9 @@ Role-based access control function that checks if a user:
 - Has an ADMIN role
 - Authenticated via either JWT or API token
 
-### toActor()
+### userToActor()
 
-Converts authenticated users into actor objects with organization context, supporting the organization-based authorization model.
+Note: The `toActor()` function has been moved to `users/types.ts` as `userToActor()`. It converts authenticated users into actor objects with organization context and subscription status, supporting the organization-based authorization model.
 
 ## Integration
 

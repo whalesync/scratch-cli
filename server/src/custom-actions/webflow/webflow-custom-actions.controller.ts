@@ -1,7 +1,7 @@
 import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { userToActor } from 'src/users/types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
-import { toActor } from '../../auth/types';
 import { ValidatedWebflowPublishItemsDto, WebflowPublishItemsDto } from './dto/publish-items.dto';
 import { ValidatedWebflowPublishSiteDto, WebflowPublishSiteDto } from './dto/publish-site.dto';
 import { WebflowCustomActionsService } from './webflow-custom-actions.service';
@@ -15,12 +15,12 @@ export class WebflowCustomActionsController {
   @Post('publish-items')
   async publishItems(@Body() dtoParam: WebflowPublishItemsDto, @Req() req: RequestWithUser) {
     const dto = dtoParam as ValidatedWebflowPublishItemsDto;
-    return this.service.publishItems(dto, toActor(req.user));
+    return this.service.publishItems(dto, userToActor(req.user));
   }
 
   @Post('publish-site')
   async publishSite(@Body() dtoParam: WebflowPublishSiteDto, @Req() req: RequestWithUser) {
     const dto = dtoParam as ValidatedWebflowPublishSiteDto;
-    return this.service.publishSite(dto, toActor(req.user));
+    return this.service.publishSite(dto, userToActor(req.user));
   }
 }

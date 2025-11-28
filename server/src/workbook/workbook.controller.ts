@@ -29,8 +29,8 @@ import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
-import { toActor } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
+import { userToActor } from '../users/types';
 import {
   AcceptCellValueDto,
   ValidatedAcceptCellValueDto,
@@ -82,7 +82,7 @@ export class WorkbookController {
   @Post()
   async create(@Body() createWorkbookDto: CreateWorkbookDto, @Req() req: RequestWithUser): Promise<Workbook> {
     const dto = createWorkbookDto;
-    return new Workbook(await this.service.create(dto, toActor(req.user)));
+    return new Workbook(await this.service.create(dto, userToActor(req.user)));
   }
 
   @Get()
@@ -94,16 +94,16 @@ export class WorkbookController {
   ): Promise<Workbook[]> {
     if (connectorAccountId) {
       return (
-        await this.service.findAllForConnectorAccount(connectorAccountId, toActor(req.user), sortBy, sortOrder)
+        await this.service.findAllForConnectorAccount(connectorAccountId, userToActor(req.user), sortBy, sortOrder)
       ).map((s) => new Workbook(s));
     }
 
-    return (await this.service.findAllForUser(toActor(req.user), sortBy, sortOrder)).map((s) => new Workbook(s));
+    return (await this.service.findAllForUser(userToActor(req.user), sortBy, sortOrder)).map((s) => new Workbook(s));
   }
 
   @Get(':id')
   async findOne(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<Workbook | null> {
-    const workbook = await this.service.findOne(id, toActor(req.user));
+    const workbook = await this.service.findOne(id, userToActor(req.user));
     if (!workbook) {
       return null;
     }
@@ -117,7 +117,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
     const dto = updateWorkbookDto;
-    return new Workbook(await this.service.update(id, dto, toActor(req.user)));
+    return new Workbook(await this.service.update(id, dto, userToActor(req.user)));
   }
 
   @Post(':id/add-table')
@@ -127,7 +127,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<SnapshotTable> {
     const dto = addTableDto;
-    const actor = toActor(req.user);
+    const actor = userToActor(req.user);
 
     // Verify the user is an admin or owner of the workbookId
     const workbook = await this.service.findOne(id, actor);
@@ -146,7 +146,7 @@ export class WorkbookController {
     @Body('hidden') hidden: boolean,
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
-    return new Workbook(await this.service.setTableHidden(workbookId, tableId, hidden, toActor(req.user)));
+    return new Workbook(await this.service.setTableHidden(workbookId, tableId, hidden, userToActor(req.user)));
   }
 
   @Delete(':workbookId/tables/:tableId')
@@ -155,7 +155,7 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
-    return new Workbook(await this.service.deleteTable(workbookId, tableId, toActor(req.user)));
+    return new Workbook(await this.service.deleteTable(workbookId, tableId, userToActor(req.user)));
   }
 
   @Post(':id/publish')
@@ -165,7 +165,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
     const dto = publishDto;
-    return this.service.publish(id, toActor(req.user), dto.snapshotTableIds);
+    return this.service.publish(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
   @UseGuards(ScratchpadAuthGuard)
@@ -176,7 +176,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<PublishSummaryDto> {
     const dto = publishDto;
-    return await this.service.getPublishSummary(id, toActor(req.user), dto.snapshotTableIds);
+    return await this.service.getPublishSummary(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
   @Get(':id/operation-counts')
@@ -184,7 +184,7 @@ export class WorkbookController {
     @Param('id') id: WorkbookId,
     @Req() req: RequestWithUser,
   ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
-    return this.service.getOperationCounts(id, toActor(req.user));
+    return this.service.getOperationCounts(id, userToActor(req.user));
   }
 
   @Post(':id/download-without-job')
@@ -192,7 +192,7 @@ export class WorkbookController {
     @Param('id') id: WorkbookId,
     @Req() req: RequestWithUser,
   ): Promise<DownloadWorkbookWithoutJobResult> {
-    return this.service.downloadWithoutJob(id, toActor(req.user));
+    return this.service.downloadWithoutJob(id, userToActor(req.user));
   }
 
   @Post(':id/download')
@@ -202,13 +202,13 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<DownloadWorkbookResult> {
     const dto = downloadDto;
-    return this.service.download(id, toActor(req.user), dto.snapshotTableIds);
+    return this.service.download(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
-    await this.service.delete(id, toActor(req.user));
+    await this.service.delete(id, userToActor(req.user));
   }
 
   @Get(':id/tables/:tableId/records')
@@ -228,7 +228,7 @@ export class WorkbookController {
   }> {
     // If no skip provided and useStoredSkip is true, use the stored skip
     const shouldUseStoredSkip = useStoredSkip === 'true' && skip === undefined;
-    return this.service.listRecords(workbookId, tableId, toActor(req.user), skip, take, shouldUseStoredSkip);
+    return this.service.listRecords(workbookId, tableId, userToActor(req.user), skip, take, shouldUseStoredSkip);
   }
 
   @Get(':id/tables/:tableId/records/:recordId')
@@ -238,7 +238,7 @@ export class WorkbookController {
     @Param('recordId') recordId: string,
     @Req() req: RequestWithUser,
   ): Promise<SnapshotRecord> {
-    const record = await this.service.findOneRecord(workbookId, tableId, recordId, toActor(req.user));
+    const record = await this.service.findOneRecord(workbookId, tableId, recordId, userToActor(req.user));
     if (!record) {
       throw new NotFoundException('Record not found');
     }
@@ -254,7 +254,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = bulkUpdateRecordsDto;
-    await this.service.bulkUpdateRecords(workbookId, tableId, dto, toActor(req.user), 'accepted');
+    await this.service.bulkUpdateRecords(workbookId, tableId, dto, userToActor(req.user), 'accepted');
   }
 
   @Post(':id/tables/:tableId/records/bulk-suggest')
@@ -266,7 +266,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = bulkUpdateRecordsDto;
-    await this.service.bulkUpdateRecords(workbookId, tableId, dto, toActor(req.user), 'suggested');
+    await this.service.bulkUpdateRecords(workbookId, tableId, dto, userToActor(req.user), 'suggested');
   }
 
   @Post(':id/tables/:tableId/import-suggestions')
@@ -286,7 +286,7 @@ export class WorkbookController {
       throw new BadRequestException('File must be a CSV');
     }
 
-    return await this.service.importSuggestions(workbookId, tableId, file.buffer, toActor(req.user));
+    return await this.service.importSuggestions(workbookId, tableId, file.buffer, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/records/deep-fetch')
@@ -302,7 +302,7 @@ export class WorkbookController {
       tableId,
       dto.recordIds,
       dto.fields || null,
-      toActor(req.user),
+      userToActor(req.user),
     );
   }
 
@@ -315,7 +315,7 @@ export class WorkbookController {
   ): Promise<{ recordsUpdated: number }> {
     const dto = acceptCellValueDto as ValidatedAcceptCellValueDto;
     const items = dto.items as ValidatedAcceptCellValueItem[];
-    return await this.service.acceptCellValues(workbookId, tableId, items, toActor(req.user));
+    return await this.service.acceptCellValues(workbookId, tableId, items, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/accept-all-suggestions')
@@ -324,7 +324,7 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsUpdated: number; totalChangesAccepted: number }> {
-    return await this.service.acceptAllSuggestions(workbookId, tableId, toActor(req.user));
+    return await this.service.acceptAllSuggestions(workbookId, tableId, userToActor(req.user));
   }
 
   @Patch(':id/tables/:tableId/column-settings')
@@ -336,7 +336,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = updateColumnSettingsDto as ValidatedUpdateColumnSettingsDto;
-    await this.service.updateColumnSettings(workbookId, tableId, dto.columnSettings, toActor(req.user));
+    await this.service.updateColumnSettings(workbookId, tableId, dto.columnSettings, userToActor(req.user));
   }
 
   @Patch(':id/tables/:tableId/title-column')
@@ -348,7 +348,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = setTitleColumnDto as ValidatedSetTitleColumnDto;
-    await this.service.setTitleColumn(workbookId, tableId, dto.columnId, toActor(req.user));
+    await this.service.setTitleColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-values')
@@ -360,7 +360,7 @@ export class WorkbookController {
   ): Promise<{ recordsUpdated: number }> {
     const dto = rejectCellValueDto as ValidatedRejectCellValueDto;
     const items = dto.items as ValidatedRejectCellValueItem[];
-    return await this.service.rejectValues(workbookId, tableId, items, toActor(req.user));
+    return await this.service.rejectValues(workbookId, tableId, items, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-all-suggestions')
@@ -369,7 +369,7 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
-    return await this.service.rejectAllSuggestions(workbookId, tableId, toActor(req.user));
+    return await this.service.rejectAllSuggestions(workbookId, tableId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/resolve-remote-deletes')
@@ -385,7 +385,7 @@ export class WorkbookController {
       tableId,
       dto.recordWsIds,
       dto.action,
-      toActor(req.user),
+      userToActor(req.user),
     );
   }
 
@@ -398,7 +398,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = setActiveRecordsFilterDto;
-    await this.service.setActiveRecordsFilter(workbookId, tableId, dto, toActor(req.user));
+    await this.service.setActiveRecordsFilter(workbookId, tableId, dto, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/clear-active-record-filter')
@@ -408,7 +408,7 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.clearActiveRecordFilter(workbookId, tableId, toActor(req.user));
+    await this.service.clearActiveRecordFilter(workbookId, tableId, userToActor(req.user));
   }
 
   @Patch(':id/tables/:tableId/view-state')
@@ -424,7 +424,7 @@ export class WorkbookController {
       tableId,
       setTableViewStateDto.pageSize,
       setTableViewStateDto.currentSkip,
-      toActor(req.user),
+      userToActor(req.user),
     );
   }
 
@@ -442,7 +442,7 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<Observable<SnapshotRecordEvent>> {
-    const workbook = await this.service.findOne(workbookId, toActor(req.user));
+    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
 
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
@@ -469,7 +469,7 @@ export class WorkbookController {
     @Param('id') workbookId: WorkbookId,
     @Req() req: RequestWithUser,
   ): Promise<Observable<SnapshotEvent>> {
-    const workbook = await this.service.findOne(workbookId, toActor(req.user));
+    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
 
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
@@ -490,7 +490,7 @@ export class WorkbookController {
       throw new UnauthorizedException('Only admins can send test record events');
     }
 
-    const workbook = await this.service.findOne(workbookId, toActor(req.user));
+    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
     }
@@ -516,7 +516,7 @@ export class WorkbookController {
     @Res() res: Response,
   ): Promise<void> {
     // Verify user has access to the workbook
-    const workbook = await this.service.findOne(workbookId, toActor(req.user));
+    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
     }
@@ -596,7 +596,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = addScratchColumnDto as ValidatedAddScratchColumnDto;
-    await this.service.addScratchColumn(workbookId, tableId, dto, toActor(req.user));
+    await this.service.addScratchColumn(workbookId, tableId, dto, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/remove-scratch-column')
@@ -607,7 +607,7 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     const dto = removeScratchColumnDto as ValidatedRemoveScratchColumnDto;
-    await this.service.removeScratchColumn(workbookId, tableId, dto.columnId, toActor(req.user));
+    await this.service.removeScratchColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/hide-column')
@@ -617,7 +617,7 @@ export class WorkbookController {
     @Body() hideColumnDto: { columnId: string },
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.hideColumn(workbookId, tableId, hideColumnDto.columnId, toActor(req.user));
+    await this.service.hideColumn(workbookId, tableId, hideColumnDto.columnId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/unhide-column')
@@ -627,7 +627,7 @@ export class WorkbookController {
     @Body() unhideColumnDto: { columnId: string },
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.unhideColumn(workbookId, tableId, unhideColumnDto.columnId, toActor(req.user));
+    await this.service.unhideColumn(workbookId, tableId, unhideColumnDto.columnId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/clear-hidden-columns')
@@ -636,6 +636,6 @@ export class WorkbookController {
     @Param('tableId') tableId: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.clearHiddenColumns(workbookId, tableId, toActor(req.user));
+    await this.service.clearHiddenColumns(workbookId, tableId, userToActor(req.user));
   }
 }

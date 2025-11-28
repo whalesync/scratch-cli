@@ -22,7 +22,7 @@ import type { Response } from 'express';
 import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
-import { toActor } from '../auth/types';
+import { userToActor } from '../users/types';
 import {
   CreateWorkbookFromCsvDto,
   CreateWorkbookFromCsvResponseDto,
@@ -66,7 +66,7 @@ export class UploadsController {
       throw new Error('File must be a Markdown file');
     }
 
-    return this.uploadsService.previewMarkdown(file.buffer, toActor(req.user));
+    return this.uploadsService.previewMarkdown(file.buffer, userToActor(req.user));
   }
 
   @Post('csv')
@@ -96,7 +96,7 @@ export class UploadsController {
       }
     }
 
-    const result = await this.uploadsService.uploadCsv(file.buffer, toActor(req.user), body);
+    const result = await this.uploadsService.uploadCsv(file.buffer, userToActor(req.user), body);
 
     return {
       uploadId: result.uploadId,
@@ -116,7 +116,7 @@ export class UploadsController {
       throw new Error('File must be a Markdown file');
     }
 
-    const result = await this.uploadsService.uploadMarkdown(file.buffer, toActor(req.user), file.originalname);
+    const result = await this.uploadsService.uploadMarkdown(file.buffer, userToActor(req.user), file.originalname);
 
     return {
       uploadId: result.uploadId,
@@ -127,7 +127,7 @@ export class UploadsController {
 
   @Get()
   async listUploads(@Req() req: RequestWithUser): Promise<ListUploadsResponseDto> {
-    const uploads = await this.uploadsService.listUploads(toActor(req.user));
+    const uploads = await this.uploadsService.listUploads(userToActor(req.user));
     return { uploads };
   }
 
@@ -141,27 +141,27 @@ export class UploadsController {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
-    return this.uploadsService.getCsvData(uploadId, toActor(req.user), limitNum, offsetNum);
+    return this.uploadsService.getCsvData(uploadId, userToActor(req.user), limitNum, offsetNum);
   }
 
   @Get('csv/:id/columns')
   async getCsvColumns(@Param('id') uploadId: string, @Req() req: RequestWithUser): Promise<BaseColumnSpec[]> {
-    return this.uploadsService.getCsvColumnsForUpload(uploadId, toActor(req.user));
+    return this.uploadsService.getCsvColumnsForUpload(uploadId, userToActor(req.user));
   }
 
   @Get('csv/:id/download')
   async downloadCsv(@Param('id') uploadId: string, @Req() req: RequestWithUser, @Res() res: Response): Promise<void> {
-    await this.uploadsService.downloadCsv(uploadId, toActor(req.user), res);
+    await this.uploadsService.downloadCsv(uploadId, userToActor(req.user), res);
   }
 
   @Get('md/:id/data')
   async getMdData(@Param('id') uploadId: string, @Req() req: RequestWithUser) {
-    return this.uploadsService.getMdData(uploadId, toActor(req.user));
+    return this.uploadsService.getMdData(uploadId, userToActor(req.user));
   }
 
   @Delete(':id')
   async deleteUpload(@Param('id') uploadId: string, @Req() req: RequestWithUser): Promise<{ message: string }> {
-    await this.uploadsService.deleteUpload(uploadId, toActor(req.user));
+    await this.uploadsService.deleteUpload(uploadId, userToActor(req.user));
     return { message: 'Upload deleted successfully' };
   }
 
@@ -174,7 +174,7 @@ export class UploadsController {
     const dto = body as ValidatedCreateWorkbookFromCsvDto;
     return await this.uploadsService.createWorkbookFromCsvUpload(
       uploadId,
-      toActor(req.user),
+      userToActor(req.user),
       dto.name,
       dto.titleColumnRemoteId,
     );

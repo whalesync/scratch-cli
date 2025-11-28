@@ -17,3 +17,7 @@ export function isActiveSubscriptionOwnedByUser(subscriptions: Subscription[], u
   }
   return activeSub.userId === userId;
 }
+
+export function isSubscriptionExpired(subscription: Subscription): boolean {
+  return subscription.expiration < new Date();
+}

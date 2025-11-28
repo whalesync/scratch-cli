@@ -1,17 +1,31 @@
+import { ScratchpadPlanType, SubscriptionId } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
+import { getLastestExpiringSubscription, isSubscriptionExpired } from 'src/payment/helpers';
+import { getPlanTypeFromString } from 'src/payment/plans';
 
 /**
- * Defines the user that is performing and action and the organization they are acting on behalf of
+ * Defines the subscription status of the Actor for use to validate actions
+ */
+export interface SubscriptionStatus {
+  status: 'active' | 'expired' | 'payment_failed';
+  planType: ScratchpadPlanType;
+  subscriptionId?: SubscriptionId;
+}
+
+/**
+ *
+ * An Actor defines the user that is performing and action and the organization they are acting on behalf
+ * of, including the subscription status of the account. Actors are meant to be passed to services to identify the caller.
  */
 export interface Actor {
   userId: string;
   organizationId: string;
+  subscriptionStatus?: SubscriptionStatus;
 }
 
 export function userToActor(user: UserCluster.User): Actor {
   if (!user.organizationId) {
-    // TODO (DEV-8628): can be removed once migration to organizations is complete -- just here to warn about potential issues during switchover
     WSLogger.error({
       source: 'users.userToActor',
       message: 'User does not have an organization id',
@@ -19,9 +33,41 @@ export function userToActor(user: UserCluster.User): Actor {
     });
   }
 
+  let subscriptionStatus: SubscriptionStatus | undefined;
+  if (user.organization && user.organization.subscriptions.length > 0) {
+    const latestSubscription = getLastestExpiringSubscription(user.organization.subscriptions);
+    if (latestSubscription) {
+      const planType = getPlanTypeFromString(latestSubscription.productType);
+      if (planType) {
+        subscriptionStatus = {
+          status: isSubscriptionExpired(latestSubscription) ? 'expired' : 'active',
+          planType,
+          subscriptionId: latestSubscription.id as SubscriptionId,
+        };
+      } else {
+        WSLogger.error({
+          source: 'users.userToActor',
+          message: 'Unable to extract product type from subscription',
+          userId: user.id,
+          planType: latestSubscription.productType,
+          subscriptionId: latestSubscription.id,
+        });
+      }
+    }
+  }
+
+  if (!subscriptionStatus) {
+    // Fallback to the Free Plan
+    subscriptionStatus = {
+      status: 'active',
+      planType: ScratchpadPlanType.FREE_PLAN,
+    };
+  }
+
   return {
     userId: user.id,
     organizationId: user.organizationId ?? '<empty org id>',
+    subscriptionStatus,
   };
 }
 

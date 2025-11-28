@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { WorkbookId } from '@spinner/shared-types';
+import { type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { JsonSafeObject } from '../../../utils/objects';
@@ -7,6 +7,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { Actor } from 'src/users/types';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 import { WorkbookService } from '../../../workbook/workbook.service';
@@ -199,10 +200,11 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
 
       let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
       if (snapshotTable.connectorAccountId) {
-        decryptedConnectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, {
+        const actor: Actor = {
           userId: data.userId,
           organizationId: data.organizationId,
-        });
+        };
+        decryptedConnectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, actor);
         if (!decryptedConnectorAccount) {
           throw new Error(`Connector account ${snapshotTable.connectorAccountId} not found`);
         }

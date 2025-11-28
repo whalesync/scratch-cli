@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
-import { toActor } from '../auth/types';
+import { userToActor } from '../users/types';
 import { OAuthInitiateOptionsDto, ValidatedOAuthInitiateOptionsDto } from './oauth-initiate-options.dto';
 import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.service';
 import { OAuthService } from './oauth.service';
@@ -31,7 +31,7 @@ export class OAuthController {
     @Body() body: OAuthInitiateOptionsDto,
   ): OAuthInitiateResponse {
     const dto = body as ValidatedOAuthInitiateOptionsDto;
-    return this.oauthService.initiateOAuth(service, toActor(req.user), dto);
+    return this.oauthService.initiateOAuth(service, userToActor(req.user), dto);
   }
 
   @Post(':service/callback')
@@ -40,7 +40,7 @@ export class OAuthController {
     @Req() req: RequestWithUser,
     @Body() callbackData: OAuthCallbackRequest,
   ): Promise<{ connectorAccountId: string }> {
-    return this.oauthService.handleOAuthCallback(service, toActor(req.user), callbackData);
+    return this.oauthService.handleOAuthCallback(service, userToActor(req.user), callbackData);
   }
 
   @Post('refresh')

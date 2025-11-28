@@ -2,7 +2,7 @@ import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, Use
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
-import { toActor } from 'src/auth/types';
+import { userToActor } from 'src/users/types';
 import { MentionsSearchRecordsRequestDto, ValidatedMentionsSearchRecordsRequestDto } from './dto/record-search.dto';
 import {
   MentionsSearchResourcesRequestDto,
@@ -24,7 +24,7 @@ export class MentionsController {
   ): Promise<ResourceMentionEntity[]> {
     const dto = body as ValidatedMentionsSearchResourcesRequestDto;
     const { text } = dto;
-    return await this.mentionsService.searchResources({ actor: toActor(req.user), queryText: text });
+    return await this.mentionsService.searchResources({ actor: userToActor(req.user), queryText: text });
   }
 
   @Post('search/records')
@@ -36,7 +36,7 @@ export class MentionsController {
     const { text, workbookId, tableId } = dto;
     return await this.mentionsService.searchRecords({
       workbookId: workbookId as WorkbookId,
-      actor: toActor(req.user),
+      actor: userToActor(req.user),
       queryText: text,
       tableId,
     });

@@ -13,10 +13,10 @@ import {
 import type { WorkbookId } from '@spinner/shared-types';
 import { Server } from 'socket.io';
 import type { SocketWithUser } from 'src/auth/types';
-import { toActor } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
+import { userToActor } from 'src/users/types';
 import { SnapshotEventService } from './snapshot-event.service';
 import { WorkbookService } from './workbook.service';
 
@@ -106,7 +106,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     }
 
     const workbookId = data.workbookId;
-    const snapshot = await this.snapshotService.findOne(workbookId, toActor(client.user));
+    const snapshot = await this.snapshotService.findOne(workbookId, userToActor(client.user));
     if (!snapshot) {
       WSLogger.error({
         message: 'Snapshot not found',
