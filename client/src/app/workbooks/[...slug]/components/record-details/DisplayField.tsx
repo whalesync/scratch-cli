@@ -1,4 +1,5 @@
 import { IconButtonOutline, IconButtonPrimaryOutline } from '@/app/components/base/buttons';
+import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import {
@@ -11,7 +12,7 @@ import {
   SnapshotRecord,
   TableSpec,
 } from '@/types/server-entities/workbook';
-import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack, Text } from '@mantine/core';
+import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { CheckIcon, CircleArrowRightIcon, XIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
@@ -62,8 +63,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
     </Group>
   ) : null;
 
-  const basicFieldPadding = !hasSuggestion ? (mode === 'multiple' ? '0' : '3rem') : undefined;
-
   if (column.pgType === PostgresColumnType.NUMERIC) {
     // this needs to be handled differently
     const currentValue = getSafeNumberValue(record.fields, columnId);
@@ -82,7 +81,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
           input: {
             borderColor: 'transparent',
             fontSize: '1rem',
-            padding: basicFieldPadding,
           },
         }}
       />
@@ -108,7 +106,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text className={styles.recordValueDisplay}>{currentValueString}</Text>
+          <Text13Regular>{currentValueString}</Text13Regular>
         ) : (
           numberInputField
         )}
@@ -135,7 +133,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
           input: {
             borderColor: 'transparent',
             fontSize: '1rem',
-            padding: basicFieldPadding,
           },
         }}
       />
@@ -161,7 +158,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text className={styles.recordValueDisplay}>{currentValueString}</Text>
+          <Text13Regular>{currentValueString}</Text13Regular>
         ) : (
           dateInputField
         )}
@@ -181,7 +178,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
         checked={currentValue}
         onChange={(e) => updateField(columnId, e.target.checked)}
         readOnly={column.readonly || hasSuggestion || mode === 'multiple'}
-        p={basicFieldPadding}
       />
     );
 
@@ -246,14 +242,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
               readOnly={true}
-              styles={{
-                input: {
-                  borderColor: 'transparent',
-                  fontSize: '1rem',
-                  padding: '0',
-                  backgroundColor: 'transparent',
-                },
-              }}
+              classNames={{ input: styles.textAreaDisplay }}
             />
           )}
         </FieldRow>
@@ -279,13 +268,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
               readOnly={column.readonly || hasSuggestion}
-              styles={{
-                input: {
-                  borderColor: 'transparent',
-                  fontSize: '1rem',
-                  padding: '3rem',
-                },
-              }}
+              classNames={{ input: styles.textAreaDisplay }}
             />
           )}
         </Stack>
@@ -304,14 +287,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
       resize="vertical"
       onChange={(e) => updateField(columnId, e.target.value)}
       readOnly={column.readonly || hasSuggestion}
-      classNames={styles}
-      styles={{
-        input: {
-          borderColor: 'transparent',
-          fontSize: '1rem',
-          padding: basicFieldPadding,
-        },
-      }}
+      classNames={{ input: styles.textAreaDisplay }}
     />
   );
 
@@ -321,7 +297,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         {currentValue}
       </Anchor>
     ) : mode === 'multiple' ? (
-      <Text className={styles.recordValueDisplay}>{currentValue}</Text>
+      <Text13Regular>{currentValue}</Text13Regular>
     ) : (
       textInputField
     );

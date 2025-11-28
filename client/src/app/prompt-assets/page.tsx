@@ -1,14 +1,17 @@
 'use client';
 
 import { Menu } from '@mantine/core';
-import { ChevronDownIcon, DownloadIcon, PenLineIcon, PlusIcon } from 'lucide-react';
-import { ButtonPrimarySolid } from '../components/base/buttons';
+import { ChevronDownIcon, DownloadIcon, PenLineIcon, PlusIcon, UploadIcon } from 'lucide-react';
+import { useRef } from 'react';
+import { ButtonPrimarySolid, ButtonSecondaryOutline } from '../components/base/buttons';
+import { PromptAssetDropzone } from '../components/dropzone/PromptAssetDropzone';
 import MainContent from '../components/layouts/MainContent';
 import { PromptAssetDetailModal, useEditAssetModal } from '../components/PromptAssetDetailModal';
 import { PromptAssetTable } from './components/PromptAssetTable';
 
 export default function PromptAssetsPage() {
   const resourceModal = useEditAssetModal();
+  const openFileInputRef = useRef<() => void>(null);
 
   const newAssetMenu = (
     <Menu>
@@ -30,9 +33,21 @@ export default function PromptAssetsPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Prompt assets" actions={newAssetMenu} />
+      <MainContent.BasicHeader
+        title="Prompt assets"
+        actions={
+          <>
+            <ButtonSecondaryOutline leftSection={<UploadIcon size={14} />} onClick={() => openFileInputRef.current?.()}>
+              Upload file
+            </ButtonSecondaryOutline>
+            {newAssetMenu}
+          </>
+        }
+      />
       <MainContent.Body>
-        <PromptAssetTable openEditModal={resourceModal.open} />
+        <PromptAssetDropzone openRef={openFileInputRef}>
+          <PromptAssetTable openEditModal={resourceModal.open} />
+        </PromptAssetDropzone>
         <PromptAssetDetailModal {...resourceModal} />
       </MainContent.Body>
     </MainContent>

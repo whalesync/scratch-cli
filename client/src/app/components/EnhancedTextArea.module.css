@@ -1,4 +1,10 @@
 .input {
+  font-size: 13px;
+  font-weight: 425;
+  line-height: 19px;
+  letter-spacing: 0%;
+  border-color: transparent;
+
   &::selection {
     background-color: #ffff00;
     color: black;

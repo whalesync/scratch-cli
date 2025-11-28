@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import { usePersistedSort } from '../../../hooks/use-persisted-sort';
 import { TextMono13Regular } from '../../components/base/text';
-import { FileUploadDropzone } from '../../components/dropzone/FileUploadDropzone';
+import { UploadsTableDropZone } from '../../components/dropzone/UploadsTableDropZone';
 import { CsvViewModal } from '../../components/modals/CsvViewModal';
 import { MdViewModal } from '../../components/modals/MdViewModal';
 import { SelectTitleColumnModal } from '../../components/modals/SelectTitleColumnModal';
@@ -229,7 +229,7 @@ export default function UploadsTable() {
         onConfirm={handleConfirmCreateWorkbook}
       />
 
-      <FileUploadDropzone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
+      <UploadsTableDropZone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
         <Group justify="space-between" align="top">
           <TextMono13Regular c="dimmed">UPLOADED TABLES</TextMono13Regular>
           <ButtonSecondaryOutline leftSection={<UploadIcon />} onClick={() => openFileInputRef.current?.()}>
@@ -244,7 +244,7 @@ export default function UploadsTable() {
             <Info.Description>Drag and drop a CSV to get started</Info.Description>
           </Info>
         )}
-      </FileUploadDropzone>
+      </UploadsTableDropZone>
     </>
   );
 }

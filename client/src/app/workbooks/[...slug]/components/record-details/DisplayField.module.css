@@ -1,5 +1,5 @@
 .recordValueDisplay {
-  font-size: var(--mantine-font-size-sm);
+  font-size: 130px;
   font-family: var(--mantine-font-family);
   color: var(--fg-primary);
   font-weight: 425;

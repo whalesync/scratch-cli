@@ -119,12 +119,7 @@ const PromptAssetRow = ({
           <DecorativeBoxedIcon Icon={FileTextIcon} size="xs" />
           {styleGuide.name}
           {styleGuide.autoInclude ? <Badge color="green">Auto Include</Badge> : null}
-          {styleGuide.sourceUrl && (
-            <Badge>
-              <LinkIcon size={12} />
-              External
-            </Badge>
-          )}
+          {styleGuide.sourceUrl && <Badge icon={LinkIcon}>External</Badge>}
           {styleGuide.tags.map((tag) => (
             <Badge key={tag}>{tag}</Badge>
           ))}

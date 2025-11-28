@@ -1,23 +1,21 @@
 'use client';
 import { CsvPreviewResponse, MdPreviewResponse, uploadsApi } from '@/lib/api/uploads';
-import { Center, MantineStyleProps, Stack } from '@mantine/core';
-import { Dropzone, DropzoneProps } from '@mantine/dropzone';
-import { Upload, X } from 'lucide-react';
+import { MantineStyleProps } from '@mantine/core';
+import { DropzoneProps } from '@mantine/dropzone';
 import { useMemo, useState } from 'react';
-import { Text13Regular, Text16Medium } from '../base/text';
-import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 import { CsvPreviewModal } from '../modals/CsvPreviewModal';
 import { MdPreviewModal } from '../modals/MdPreviewModal';
 import { ScratchpadNotifications } from '../ScratchpadNotifications';
-import customBorderStyles from '../theme/custom-borders.module.css';
-import styles from './FileUploadDropzone.module.css';
+import { FileDropzone } from './FileDropzone';
 
-export const FileUploadDropzone = ({
+export const UploadsTableDropZone = ({
   children,
   allowedTypes,
   openRef,
   disableNavigation = false,
   onUploadComplete,
+  acceptContent,
+  rejectContent,
   ...props
 }: {
   allowedTypes: ('csv' | 'md')[];
@@ -25,6 +23,8 @@ export const FileUploadDropzone = ({
   children: React.ReactNode;
   disableNavigation?: boolean;
   onUploadComplete?: () => void;
+  acceptContent?: React.ReactNode;
+  rejectContent?: React.ReactNode;
 } & MantineStyleProps) => {
   // CSV preview state
   const [csvPreviewData, setCsvPreviewData] = useState<CsvPreviewResponse | null>(null);
@@ -144,37 +144,18 @@ export const FileUploadDropzone = ({
         />
       )}
 
-      <Dropzone
-        enablePointerEvents
-        activateOnClick={false}
+      <FileDropzone
         openRef={openRef}
         onDrop={handleDrop}
         onReject={handleReject}
         accept={accept}
-        multiple={false}
-        classNames={{ root: styles.dropzoneRoot }}
+        fileTypeDescription={allowedTypes.join(' or ')}
+        acceptContent={acceptContent}
+        rejectContent={rejectContent}
         {...props}
       >
         {children}
-        <Dropzone.Accept>
-          <Center className={styles.dropzoneFeedbackOuter}>
-            <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
-              <DecorativeBoxedIcon Icon={Upload} />
-              <Text16Medium>Drop {allowedTypes.join(' or ')} file here to upload</Text16Medium>
-            </Stack>
-          </Center>
-        </Dropzone.Accept>
-
-        <Dropzone.Reject>
-          <Center className={styles.dropzoneFeedbackOuter}>
-            <Stack className={`${customBorderStyles.cornerBorders} ${styles.dropzoneFeedbackInner}`}>
-              <DecorativeBoxedIcon Icon={X} c="var(--mantine-color-red-8)" bg="var(--mantine-color-red-2)" />
-              <Text16Medium>Unsupported file</Text16Medium>
-              <Text13Regular c="dimmed">Only {allowedTypes.join(' or ')} files can be uploaded</Text13Regular>
-            </Stack>
-          </Center>
-        </Dropzone.Reject>
-      </Dropzone>
+      </FileDropzone>
     </div>
   );
 };

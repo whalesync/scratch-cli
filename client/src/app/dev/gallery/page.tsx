@@ -409,6 +409,11 @@ export default function DevComponentGalleryPage() {
               <Badge color="devTool">Dev Tool badge</Badge>
             </Group>
           </GalleryItem>
+          <GalleryItem label="Badge with Icon">
+            <Badge color="green" icon={CircleCheckBigIcon}>
+              Success
+            </Badge>
+          </GalleryItem>
           <GalleryItem label="BadgeOK">
             <BadgeOK>Success</BadgeOK>
           </GalleryItem>

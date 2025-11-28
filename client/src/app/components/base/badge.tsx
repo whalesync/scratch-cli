@@ -1,18 +1,22 @@
-import { MantineStyleProps } from '@mantine/core';
+import { Group, MantineStyleProps } from '@mantine/core';
+import { LucideIcon } from 'lucide-react';
 import { JSX } from 'react';
+import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 import classes from './badge.module.css';
 import { Text13Regular } from './text';
 
 type BadgeProps = {
   children?: React.ReactNode;
+  icon?: LucideIcon;
   color?: 'black' | 'gray' | 'green' | 'red' | 'devTool';
 } & MantineStyleProps;
 
-export const Badge = ({ children, color = 'gray', ...props }: BadgeProps): JSX.Element => {
+export const Badge = ({ children, color = 'gray', icon, ...styleProps }: BadgeProps): JSX.Element => {
   return (
-    <Text13Regular className={classes.root} data-badge-color={color} {...props}>
-      {children}
-    </Text13Regular>
+    <Group gap={6} className={classes.root} data-badge-color={color} {...styleProps}>
+      {icon && <StyledLucideIcon Icon={icon} size={12} />}
+      <Text13Regular>{children}</Text13Regular>
+    </Group>
   );
 };
 
