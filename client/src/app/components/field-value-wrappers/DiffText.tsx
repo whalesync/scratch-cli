@@ -1,19 +1,19 @@
-import { Box, Text } from '@mantine/core';
+import { Box, MantineStyleProps, Text } from '@mantine/core';
 import { ChangeObject } from 'diff';
 import { FC } from 'react';
 import styles from './FieldValueWrapper.module.css';
 
-interface DiffTextProps {
+type DiffTextProps = MantineStyleProps & {
   changes: ChangeObject<string>[];
-}
+};
 
 /**
  * This is a fork of DiffViewer to be used as the content of the grid cell.
  * We should probably merge the 2, but for the initial release it is quicker to keep them separate.
  */
-export const DiffText: FC<DiffTextProps> = ({ changes }: DiffTextProps) => {
+export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffTextProps) => {
   return (
-    <Box className={styles.diffTextContainer}>
+    <Box className={styles.diffTextContainer} {...styleProps}>
       {changes.map((change, idx) => {
         // do this to preserve newlines in the diff viewer
         const value = change.value.replaceAll('\n', '<br/>');
@@ -23,7 +23,6 @@ export const DiffText: FC<DiffTextProps> = ({ changes }: DiffTextProps) => {
             <Text
               span
               key={idx}
-              // c="var(--mantine-color-devTool-9)"
               c="var(--fg-added)"
               bg="var(--bg-added)"
               className="cell-text"

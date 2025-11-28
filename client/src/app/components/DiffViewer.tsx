@@ -1,23 +1,15 @@
-import { Box, Group, Textarea } from '@mantine/core';
-import { useToggle } from '@mantine/hooks';
-import { MergeIcon, SplitIcon } from 'lucide-react';
 import { FC } from 'react';
 // import { DiffText } from './DiffText';
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { diffWordsWithSpace } from 'diff';
-import { ToolIconButton } from './ToolIconButton';
 
 interface DiffViewerProps {
   originalValue: string;
   suggestedValue: string;
-  fz?: string;
-  p?: string;
-  splitMinRows?: number;
 }
 
 export const DiffViewer: FC<DiffViewerProps> = (props) => {
-  const { originalValue, suggestedValue, fz = '1rem', p = '2rem', splitMinRows = 5 } = props;
-  const [mode, toggleMode] = useToggle(['diff', 'split']);
+  const { originalValue, suggestedValue } = props;
 
   // diff functions don't work with null values or undefined values
   const originalValueSafe = originalValue ?? '';
@@ -26,61 +18,5 @@ export const DiffViewer: FC<DiffViewerProps> = (props) => {
   // Run the diff and included whitespace in the changes
   const changes = diffWordsWithSpace(originalValueSafe, suggestedValueSafe);
 
-  const switchButton = (
-    <Box style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
-      <ToolIconButton
-        icon={mode === 'split' ? MergeIcon : SplitIcon}
-        onClick={() => toggleMode()}
-        tooltip={mode === 'split' ? 'Show Diff' : 'Show Split'}
-        size="lg"
-      />
-    </Box>
-  );
-
-  if (mode === 'split') {
-    return (
-      <Group align="flex-start" gap="xs" p={p}>
-        <Textarea
-          label="Original"
-          value={originalValueSafe}
-          autosize
-          minRows={splitMinRows}
-          readOnly
-          flex={1}
-          styles={{
-            input: {
-              fontSize: fz,
-              padding: '1rem',
-              borderColor: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))',
-              borderRadius: '0px',
-            },
-          }}
-        />
-        <Textarea
-          label="Suggested"
-          value={suggestedValueSafe}
-          autosize
-          minRows={splitMinRows}
-          readOnly
-          flex={1}
-          styles={{
-            input: {
-              fontSize: fz,
-              padding: '1rem',
-              borderColor: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))',
-              borderRadius: '0px',
-            },
-          }}
-        />
-        {switchButton}
-      </Group>
-    );
-  }
-
-  return (
-    <Group p={p}>
-      <DiffText changes={changes} />
-      {switchButton}
-    </Group>
-  );
+  return <DiffText changes={changes} px={12} py={5} />;
 };

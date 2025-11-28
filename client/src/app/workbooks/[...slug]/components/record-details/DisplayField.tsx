@@ -96,12 +96,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-              <DiffViewer
-                originalValue={currentValueString}
-                suggestedValue={suggestedValueString}
-                p={mode === 'multiple' ? '0' : '3rem'}
-                splitMinRows={1}
-              />
+              <DiffViewer originalValue={currentValueString} suggestedValue={suggestedValueString} />
             </ScrollArea>
             {mode === 'multiple' && suggestionButtons}
           </Stack>
@@ -148,12 +143,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-              <DiffViewer
-                originalValue={currentValueString}
-                suggestedValue={suggestedValueString}
-                p={mode === 'multiple' ? '0' : '3rem'}
-                splitMinRows={1}
-              />
+              <DiffViewer originalValue={currentValueString} suggestedValue={suggestedValueString} />
             </ScrollArea>
             {mode === 'multiple' && suggestionButtons}
           </Stack>
@@ -226,7 +216,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" />
+                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
               </ScrollArea>
               {suggestionButtons}
             </Stack>
@@ -242,7 +232,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
               readOnly={true}
-              classNames={{ input: styles.textAreaDisplay }}
             />
           )}
         </FieldRow>
@@ -253,7 +242,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} p="0" splitMinRows={1} />
+                <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
               </ScrollArea>
             </Stack>
           ) : (
@@ -268,7 +257,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
               resize="vertical"
               onChange={(e) => updateField(columnId, e.target.value)}
               readOnly={column.readonly || hasSuggestion}
-              classNames={{ input: styles.textAreaDisplay }}
             />
           )}
         </Stack>
@@ -287,7 +275,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
       resize="vertical"
       onChange={(e) => updateField(columnId, e.target.value)}
       readOnly={column.readonly || hasSuggestion}
-      classNames={{ input: styles.textAreaDisplay }}
     />
   );
 
@@ -312,11 +299,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
       {hasSuggestion ? (
         <Stack h="auto" gap="xs" w="100%">
           <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
-            <DiffViewer
-              originalValue={currentValue}
-              suggestedValue={suggestedValue}
-              p={mode === 'multiple' ? '0' : '3rem'}
-            />
+            <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
           </ScrollArea>
           {mode === 'multiple' && suggestionButtons}
         </Stack>

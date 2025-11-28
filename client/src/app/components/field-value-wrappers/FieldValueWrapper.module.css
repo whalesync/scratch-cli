@@ -66,8 +66,12 @@ and it is better to not mix the positional vs the functional properties */
 }
 
 .diffTextContainer {
-  display: inline;
+  /* display: inline; */
   width: 100%;
+  font-size: 13px;
+  font-weight: 425;
+  line-height: 19px;
+  letter-spacing: 0%;
 }
 
 /* Single-line mode - only applies when parent has .singleLine class */

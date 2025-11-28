@@ -386,11 +386,7 @@ export default function DevComponentGalleryPage() {
             />
           </GalleryItem>
           <GalleryItem label="DiffViewer">
-            <DiffViewer
-              originalValue="Hello, world!"
-              suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!"
-              p="0"
-            />
+            <DiffViewer originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
           </GalleryItem>
           <GalleryItem label="DiffText2">
             <DiffText changes={diffWordsWithSpace('Hello, world!', 'Howdy, SCRATCH ROCKS, world! more text here!')} />
