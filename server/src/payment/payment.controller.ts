@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ClassSerializerInterceptor,
   Controller,
+  Get,
   InternalServerErrorException,
   Param,
   Post,
@@ -12,10 +13,12 @@ import {
 } from '@nestjs/common';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
-import { getPlanTypeFromString } from './plans';
+import { SubscriptionPlanEntity } from './entities/subscription-plan';
+import { getPlans, getPlanTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
@@ -25,7 +28,10 @@ const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
 @UseGuards(ScratchpadAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class StripePaymentController {
-  constructor(private readonly stripePaymentService: StripePaymentService) {}
+  constructor(
+    private readonly stripePaymentService: StripePaymentService,
+    private readonly configService: ScratchpadConfigService,
+  ) {}
 
   /**
    * Called by an authenticated user to get a link to their stripe page portal page.
@@ -77,5 +83,18 @@ export class StripePaymentController {
       });
     }
     return { url: result.v };
+  }
+
+  /**
+   * Called by an authenticated user to get a list of available plans.
+   * Returns a list of plans that the user can subscribe to.
+   */
+  @Get('plans')
+  listPlans(@Req() req: RequestWithUser): SubscriptionPlanEntity[] {
+    if (!req.user) {
+      throw new UnauthorizedException();
+    }
+    const plans = getPlans(this.configService.getScratchpadEnvironment());
+    return plans.filter((plan) => !plan.hidden).map((plan) => new SubscriptionPlanEntity(plan));
   }
 }

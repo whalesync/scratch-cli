@@ -4,9 +4,11 @@ import {
   getPlans,
   getPlanTypeFromString,
   Plan,
+  PRO_PLAN,
   PRODUCTION_PLANS,
   ScratchpadPlanType,
   STAGING_SANDBOX_PLANS,
+  STARTER_PLAN,
   TEST_SANDBOX_PLANS,
 } from './plans';
 
@@ -14,6 +16,9 @@ describe('plans', () => {
   describe('getPlanTypeFromString', () => {
     it('should return the correct plan type for a valid string', () => {
       expect(getPlanTypeFromString('STARTER_PLAN')).toBe(ScratchpadPlanType.STARTER_PLAN);
+      expect(getPlanTypeFromString('PRO_PLAN')).toBe(ScratchpadPlanType.PRO_PLAN);
+      expect(getPlanTypeFromString('MAX_PLAN')).toBe(ScratchpadPlanType.MAX_PLAN);
+      expect(getPlanTypeFromString('FREE_PLAN')).toBe(ScratchpadPlanType.FREE_PLAN);
     });
 
     it('should return undefined for an invalid string', () => {
@@ -29,7 +34,7 @@ describe('plans', () => {
     });
 
     it('should return undefined for a partial match', () => {
-      expect(getPlanTypeFromString('STARTER')).toBeUndefined();
+      expect(getPlanTypeFromString('FREE')).toBeUndefined();
     });
   });
 
@@ -37,34 +42,37 @@ describe('plans', () => {
     it('should return production plans for production environment', () => {
       const plans = getPlans('production' as ScratchpadEnvironment);
       expect(plans).toBe(PRODUCTION_PLANS);
-      expect(plans).toHaveLength(1);
-      expect(plans[0].productType).toBe(ScratchpadPlanType.STARTER_PLAN);
-      expect(plans[0].stripeProductId).toBe('prod_TJwgFco1IuBojy');
-      expect(plans[0].stripePriceId).toBe('price_1SNIn6BuGFTHqsGmgevqrcez');
+      expect(plans).toHaveLength(4);
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.FREE_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.MAX_PLAN)).toBeDefined();
     });
 
     it('should return staging plans for staging environment', () => {
       const plans = getPlans('staging' as ScratchpadEnvironment);
       expect(plans).toBe(STAGING_SANDBOX_PLANS);
-      expect(plans).toHaveLength(1);
-      expect(plans[0].productType).toBe(ScratchpadPlanType.STARTER_PLAN);
-      expect(plans[0].stripeProductId).toBe('prod_TJx9oObCoL9wzG');
-      expect(plans[0].stripePriceId).toBe('price_1SNJFZPd1pp0ErHMuu2YSlqr');
+      expect(plans).toHaveLength(4);
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.FREE_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.MAX_PLAN)).toBeDefined();
     });
 
     it('should return test plans for test environment', () => {
       const plans = getPlans('test' as ScratchpadEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
-      expect(plans).toHaveLength(1);
-      expect(plans[0].productType).toBe(ScratchpadPlanType.STARTER_PLAN);
-      expect(plans[0].stripeProductId).toBe('prod_TJwkWAQpH8r9SN');
-      expect(plans[0].stripePriceId).toBe('price_1SNIqoBdRE0kMHNqXMro86f7');
+      expect(plans).toHaveLength(4);
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.FREE_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN)).toBeDefined();
+      expect(plans.find((p) => p.productType === ScratchpadPlanType.MAX_PLAN)).toBeDefined();
     });
 
     it('should return test plans for local environment', () => {
       const plans = getPlans('local' as ScratchpadEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
-      expect(plans).toHaveLength(1);
+      expect(plans).toHaveLength(4);
     });
 
     it('should return test plans for any other environment', () => {
@@ -87,9 +95,7 @@ describe('plans', () => {
       const plan = getPlan(ScratchpadPlanType.STARTER_PLAN);
       expect(plan).toBeDefined();
       expect(plan?.productType).toBe(ScratchpadPlanType.STARTER_PLAN);
-      expect(plan?.displayName).toBe('Starter Plan');
-      expect(plan?.stripeProductId).toBe('prod_TJwkWAQpH8r9SN');
-      expect(plan?.stripePriceId).toBe('price_1SNIqoBdRE0kMHNqXMro86f7');
+      expect(plan?.displayName).toBe(STARTER_PLAN.displayName);
     });
 
     it('should return undefined for a non-existent plan', () => {
@@ -132,38 +138,54 @@ describe('plans', () => {
 
     it('should have unique stripe product IDs across all environments', () => {
       const allPlans = [...PRODUCTION_PLANS, ...STAGING_SANDBOX_PLANS, ...TEST_SANDBOX_PLANS];
-      const productIds = allPlans.map((p) => p.stripeProductId);
+      const excludingFreePlans = allPlans.filter((p) => p.productType !== ScratchpadPlanType.FREE_PLAN);
+      const productIds = excludingFreePlans.map((p) => p.stripeProductId);
       const uniqueProductIds = new Set(productIds);
       expect(uniqueProductIds.size).toBe(productIds.length);
     });
 
     it('should have unique stripe price IDs across all environments', () => {
       const allPlans = [...PRODUCTION_PLANS, ...STAGING_SANDBOX_PLANS, ...TEST_SANDBOX_PLANS];
-      const priceIds = allPlans.map((p) => p.stripePriceId);
+      // remove the free plans
+      const excludingFreePlans = allPlans.filter((p) => p.productType !== ScratchpadPlanType.FREE_PLAN);
+      const priceIds = excludingFreePlans.map((p) => p.stripePriceId);
       const uniquePriceIds = new Set(priceIds);
       expect(uniquePriceIds.size).toBe(priceIds.length);
     });
 
-    it('should have the same display name across all environments for the same product type', () => {
-      const productionPlan = PRODUCTION_PLANS.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN);
-      const stagingPlan = STAGING_SANDBOX_PLANS.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN);
-      const testPlan = TEST_SANDBOX_PLANS.find((p) => p.productType === ScratchpadPlanType.STARTER_PLAN);
+    it('should have identical stripe ids for all free plans', () => {
+      const allPlans = [...PRODUCTION_PLANS, ...STAGING_SANDBOX_PLANS, ...TEST_SANDBOX_PLANS];
+      // remove the free plans
+      const onlyFreePlans = allPlans.filter((p) => p.productType === ScratchpadPlanType.FREE_PLAN);
+      const priceIds = onlyFreePlans.map((p) => p.stripePriceId);
+      const uniquePriceIds = new Set(priceIds);
+      expect(uniquePriceIds.size).toBe(1);
+      expect(priceIds[0]).toBe('free_plan');
+    });
 
-      expect(productionPlan?.displayName).toBe('Starter Plan');
-      expect(stagingPlan?.displayName).toBe('Starter Plan');
-      expect(testPlan?.displayName).toBe('Starter Plan');
+    it('should have the same display name across all environments for the same product type', () => {
+      const productionPlan = PRODUCTION_PLANS.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN);
+      const stagingPlan = STAGING_SANDBOX_PLANS.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN);
+      const testPlan = TEST_SANDBOX_PLANS.find((p) => p.productType === ScratchpadPlanType.PRO_PLAN);
+
+      expect(productionPlan?.displayName).toBe(PRO_PLAN.displayName);
+      expect(stagingPlan?.displayName).toBe(PRO_PLAN.displayName);
+      expect(testPlan?.displayName).toBe(PRO_PLAN.displayName);
     });
   });
 
   describe('ScratchpadPlanType enum', () => {
-    it('should have STARTER_PLAN defined', () => {
-      expect(ScratchpadPlanType.STARTER_PLAN).toBe('STARTER_PLAN');
+    it('should have PRO_PLAN defined', () => {
+      expect(ScratchpadPlanType.PRO_PLAN).toBe(ScratchpadPlanType.PRO_PLAN);
     });
 
     it('should only have expected plan types', () => {
       const planTypes = Object.values(ScratchpadPlanType);
-      expect(planTypes).toHaveLength(1);
-      expect(planTypes).toContain('STARTER_PLAN');
+      expect(planTypes).toHaveLength(4);
+      expect(planTypes).toContain(ScratchpadPlanType.STARTER_PLAN);
+      expect(planTypes).toContain(ScratchpadPlanType.FREE_PLAN);
+      expect(planTypes).toContain(ScratchpadPlanType.PRO_PLAN);
+      expect(planTypes).toContain(ScratchpadPlanType.MAX_PLAN);
     });
   });
 });

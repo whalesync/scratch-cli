@@ -2,6 +2,7 @@ import { Subscription, TokenType, UserRole } from '@prisma/client';
 import { SubscriptionInfo } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { UserFlagValues } from 'src/experiments/experiments.service';
+import { SubscriptionPlanFeaturesEntity } from 'src/payment/entities/subscription-plan';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { Organization } from './organization.entity';
@@ -92,5 +93,6 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
     isTrial: latestSubscription.stripeStatus === 'trialing',
     canManageSubscription: latestSubscription.userId === userId,
     ownerId: latestSubscription.userId,
+    features: plan?.features ? new SubscriptionPlanFeaturesEntity(plan?.features) : undefined,
   };
 }

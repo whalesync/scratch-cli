@@ -62,4 +62,7 @@ export const SWR_KEYS = {
     list: () => ['style-guides', 'list'],
     detail: (id: StyleGuideId) => ['style-guides', 'detail', id],
   },
+  billing: {
+    plans: () => ['billing', 'plans'],
+  },
 };

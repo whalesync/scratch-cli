@@ -1,5 +1,16 @@
 export enum ScratchpadPlanType {
   STARTER_PLAN = 'STARTER_PLAN',
+  FREE_PLAN = 'FREE_PLAN',
+  PRO_PLAN = 'PRO_PLAN',
+  MAX_PLAN = 'MAX_PLAN',
+}
+
+export interface SubscriptionPlanFeatures {
+  availableModels: string[];
+  publishingLimit: number;
+  creditLimit: number;
+  allowPersonalKeys: boolean;
+  dataSourcePerServiceLimit: number;
 }
 
 export interface SubscriptionInfo {
@@ -10,4 +21,12 @@ export interface SubscriptionInfo {
   isTrial: boolean;
   canManageSubscription: boolean;
   ownerId: string;
+  features?: SubscriptionPlanFeatures;
+}
+
+export interface SubscriptionPlan {
+  productType: ScratchpadPlanType;
+  displayName: string;
+  popular: boolean;
+  features: SubscriptionPlanFeatures;
 }
