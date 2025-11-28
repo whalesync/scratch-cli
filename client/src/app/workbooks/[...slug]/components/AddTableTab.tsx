@@ -4,7 +4,12 @@ import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import {
+  GenericDeleteConfirmationModal,
+  useDeleteConfirmationModal,
+} from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
@@ -24,7 +29,17 @@ import {
   TextInput,
   useModalsStack,
 } from '@mantine/core';
-import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCw, SearchIcon, Upload } from 'lucide-react';
+import { SnapshotTableId } from '@spinner/shared-types';
+import {
+  ChevronDown,
+  ChevronRight,
+  CloudDownload,
+  PlusIcon,
+  RefreshCw,
+  SearchIcon,
+  Trash2Icon,
+  Upload,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
@@ -56,16 +71,21 @@ const findMatchingSnapshotTable = (
   return snapshotTables.find((st) => st.tableSpec.id.remoteId.every((r) => tableId.remoteId.includes(r)));
 };
 
+function createGroupKey(group: TableGroup) {
+  return `${group.service}-${group.connectorAccountId ?? ''}`;
+}
+
 export const AddTableTab = () => {
-  const { workbook, addTable } = useActiveWorkbook();
+  const { workbook, addTable, unhideTable, deleteTable } = useActiveWorkbook();
   const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
+  const deleteTableModal = useDeleteConfirmationModal<SnapshotTableId>();
   const modalStack = useModalsStack(['create', 'upload']);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
   const [refreshingGroups, setRefreshingGroups] = useState<Record<string, boolean>>({});
 
@@ -109,31 +129,14 @@ export const AddTableTab = () => {
     });
   }, [tableGroups, csvGroup, searchQuery]);
 
-  // Get tables that are already in the workbook (for "Available in workbook" section)
-  const tablesInWorkbook = useMemo(() => {
-    if (!workbook?.snapshotTables) return [];
-
-    // Flatten all groups and find tables that match snapshot tables
-    const matches: Array<{
-      table: TableGroup['tables'][0];
-      group: TableGroup;
-      snapshotTable: SnapshotTable;
-    }> = [];
-
-    for (const group of groupedTables) {
-      for (const table of group.tables) {
-        const snapshotTable = findMatchingSnapshotTable(table.id, workbook.snapshotTables);
-        if (snapshotTable) {
-          matches.push({ table, group, snapshotTable });
-        }
-      }
-    }
-
-    return matches;
-  }, [groupedTables, workbook?.snapshotTables]);
+  const recentlyClosedTables = useMemo(() => {
+    return (workbook?.snapshotTables || [])
+      .filter((table) => table.hidden)
+      .sort((a, b) => a.tableSpec.name.localeCompare(b.tableSpec.name));
+  }, [workbook?.snapshotTables]);
 
   const toggleGroup = (groupKey: string) => {
-    setCollapsedGroups((prev) => ({
+    setExpandedGroups((prev) => ({
       ...prev,
       [groupKey]: !prev[groupKey],
     }));
@@ -209,6 +212,11 @@ export const AddTableTab = () => {
         returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
       />
       <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} />
+      <GenericDeleteConfirmationModal
+        title="Delete table"
+        onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
+        {...deleteTableModal}
+      />
       <Stack gap="md" maw={600} mx="auto" py="xl">
         <Stack gap="xs" align="center">
           <DecorativeBoxedIcon Icon={PlusIcon} />
@@ -249,18 +257,18 @@ export const AddTableTab = () => {
             <Center py="xl">
               <Loader size="sm" />
             </Center>
-          ) : groupedTables.length > 0 || tablesInWorkbook.length > 0 ? (
+          ) : groupedTables.length > 0 || recentlyClosedTables.length > 0 ? (
             <Stack gap={0}>
               {/* Available in workbook section */}
-              {tablesInWorkbook.length > 0 && (
+              {recentlyClosedTables.length > 0 && (
                 <>
                   <Text13Book c="dimmed" px="sm" py="xs">
-                    Available in workbook
+                    Recently closed
                   </Text13Book>
-                  {tablesInWorkbook.map(({ table, group, snapshotTable }) => {
+                  {recentlyClosedTables.map((table) => {
                     return (
                       <Box
-                        key={table.id.wsId}
+                        key={table.id}
                         px="sm"
                         py="xs"
                         style={{
@@ -272,19 +280,30 @@ export const AddTableTab = () => {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = '';
                         }}
-                        onClick={() => handleTableSelect(table, group)}
+                        onClick={() => {
+                          unhideTable(table.id);
+                          setActiveTab(table.id);
+                          closeNewTabs();
+                        }}
                       >
                         <Group gap="sm" wrap="nowrap">
-                          <ConnectorIcon connector={group.service} size={16} />
-                          <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
-                          {snapshotTable.lastSyncTime && (
+                          <ConnectorIcon connector={table.connectorService} size={16} />
+                          <Text13Regular style={{ flex: 1 }}>{table.tableSpec.name}</Text13Regular>
+                          {table.lastSyncTime && (
                             <Group gap="xs">
                               <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
                               <Text13Regular c="var(--fg-muted)">
-                                {formatRelativeTime(snapshotTable.lastSyncTime)}
+                                {formatRelativeTime(table.lastSyncTime)}
                               </Text13Regular>
                             </Group>
                           )}
+                          <ToolIconButton
+                            icon={Trash2Icon}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTableModal.open(table.id, table.tableSpec.name);
+                            }}
+                          />
                         </Group>
                       </Box>
                     );
@@ -295,8 +314,8 @@ export const AddTableTab = () => {
 
               {/* Grouped tables by connector */}
               {groupedTables.map((group, groupIndex) => {
-                const groupKey = `${group.service}-${group.connectorAccountId ?? ''}`;
-                const isCollapsed = collapsedGroups[groupKey];
+                const groupKey = createGroupKey(group);
+                const isOpen = !!expandedGroups[groupKey];
                 const isLastGroup = groupIndex === groupedTables.length - 1;
                 const isRefreshing = refreshingGroups[groupKey];
 
@@ -313,7 +332,7 @@ export const AddTableTab = () => {
                       wrap="nowrap"
                     >
                       <Group gap="sm" style={{ flex: 1 }} onClick={() => toggleGroup(groupKey)} wrap="nowrap">
-                        <StyledLucideIcon Icon={isCollapsed ? ChevronRight : ChevronDown} size="sm" />
+                        <StyledLucideIcon Icon={isOpen ? ChevronDown : ChevronRight} size="sm" />
                         <Text13Regular>{group.displayName}</Text13Regular>
                       </Group>
                       <Group
@@ -336,7 +355,7 @@ export const AddTableTab = () => {
                     </Group>
 
                     {/* Group tables */}
-                    <Collapse in={!isCollapsed}>
+                    <Collapse in={isOpen}>
                       <ScrollArea.Autosize mah={150}>
                         {group.tables.map((table) => {
                           const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);

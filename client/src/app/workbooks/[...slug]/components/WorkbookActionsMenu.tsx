@@ -1,9 +1,8 @@
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { Loader, Menu } from '@mantine/core';
-import { Edit3Icon, EyeOffIcon, Trash2Icon } from 'lucide-react';
+import { Edit3Icon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import pluralize from 'pluralize';
 import { useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { Service } from '../../../../types/server-entities/connector-accounts';
@@ -13,7 +12,7 @@ import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webfl
 
 export const WorkbookActionsMenu = () => {
   const router = useRouter();
-  const { workbook, activeTable, isLoading, unhideTable } = useActiveWorkbook();
+  const { workbook, activeTable, isLoading } = useActiveWorkbook();
   const { isDevToolsEnabled } = useDevTools();
   const showModal = useWorkbookEditorUIStore((state) => state.showModal);
   const [saving, setSaving] = useState(false);
@@ -25,8 +24,6 @@ export const WorkbookActionsMenu = () => {
   };
 
   const menuItemsDisabled = isLoading || saving;
-
-  const hiddenTables = workbook?.snapshotTables?.filter((table) => table.hidden) ?? [];
 
   const renderConnectorCustomActions = () => {
     if (!workbook || !activeTable) return null;
@@ -63,18 +60,6 @@ export const WorkbookActionsMenu = () => {
         >
           Rename workbook
         </Menu.Item>
-
-        {hiddenTables.length > 0 && (
-          <>
-            <Menu.Divider />
-            <Menu.Label>{`${hiddenTables.length} hidden ${pluralize('table', hiddenTables.length)}`}</Menu.Label>
-            {hiddenTables.map((table) => (
-              <Menu.Item key={table.id} leftSection={<EyeOffIcon size={16} />} onClick={() => unhideTable(table.id)}>
-                Show {table.tableSpec.name}
-              </Menu.Item>
-            ))}
-          </>
-        )}
 
         {/* Connector-custom actions */}
         {renderConnectorCustomActions()}
