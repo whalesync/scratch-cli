@@ -105,6 +105,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
         </Stack>
         <Stack gap="xs">
           <LabelValuePair label="Hidden" value={String(table.hidden)} />
+          <LabelValuePair label="Dirty" value={String(table.dirty)} />
           <LabelValuePair
             label="Hidden Columns"
             value={table.hiddenColumns.length > 0 ? `[${table.hiddenColumns.join(', ')}]` : '[]'}

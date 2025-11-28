@@ -61,7 +61,11 @@ export const TableSelectionComponent = ({
 
       {mode === 'current' && currentTable && (
         <Text size="sm" c="dimmed">
-          Will process: <strong>{currentTable.tableSpec.name}</strong>
+          Will process:{' '}
+          <strong>
+            {currentTable.tableSpec.name}
+            {currentTable.dirty && ' (dirty)'}
+          </strong>
         </Text>
       )}
 
@@ -77,7 +81,10 @@ export const TableSelectionComponent = ({
               onChange={() => handleTableToggle(table.id)}
               label={
                 <Group gap="xs">
-                  <Text size="sm">{table.tableSpec.name}</Text>
+                  <Text size="sm">
+                    {table.tableSpec.name}
+                    {table.dirty && ' (dirty)'}
+                  </Text>
                   {table.id === currentTableId && (
                     <Text size="xs" c="dimmed">
                       (current)

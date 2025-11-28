@@ -666,6 +666,7 @@ export class WorkbookService {
     this.validateBulkUpdateOps(ops, tableSpec);
     await this.snapshotDbService.snapshotDb.bulkUpdateRecords(
       workbookId,
+      snapshotTable.id as `snt_${string}`,
       snapshotTable.tableName,
       ops,
       type,
@@ -837,6 +838,7 @@ export class WorkbookService {
 
     const recordsUpdated = await this.snapshotDbService.snapshotDb.acceptCellValues(
       workbookId,
+      snapshotTable.id as `snt_${string}`,
       snapshotTable.tableName,
       items,
       tableSpec,
@@ -2372,6 +2374,52 @@ export class WorkbookService {
         hiddenColumns: [],
       },
     });
+  }
+
+  async resolveRemoteDeletesWithLocalEdits(
+    workbookId: WorkbookId,
+    tableId: string,
+    recordWsIds: string[] | undefined,
+    action: 'create' | 'delete',
+    actor: Actor,
+  ): Promise<{ recordsProcessed: number }> {
+    const workbook = await this.findOneOrThrow(workbookId, actor);
+    const snapshotTable = getSnapshotTableById(workbook, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in workbook ${workbookId}`);
+    }
+
+    const recordsProcessed = await this.snapshotDbService.snapshotDb.resolveRemoteDeletesWithLocalEdits(
+      workbookId,
+      snapshotTable.tableName,
+      recordWsIds,
+      action,
+    );
+
+    this.snapshotEventService.sendRecordEvent(workbookId, tableId, {
+      type: 'record-changes',
+      data: {
+        tableId,
+        numRecords: recordsProcessed,
+        changeType: 'accepted',
+        source: 'user',
+      },
+    });
+
+    await this.auditLogService.logEvent({
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      eventType: 'update',
+      message: `Handled ${recordsProcessed} remote deletes with local edits (action: ${action})`,
+      entityId: workbookId,
+      context: {
+        tableId,
+        action,
+        recordsProcessed,
+      },
+    });
+
+    return { recordsProcessed };
   }
 }
 

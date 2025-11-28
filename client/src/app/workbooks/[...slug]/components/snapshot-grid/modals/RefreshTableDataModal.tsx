@@ -1,11 +1,12 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { Group, Modal, Stack } from '@mantine/core';
+import { Alert, Group, Modal, Stack } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
 import {
   DownloadWorkbookResult,
+  getSnapshotTableById,
   hasDeletedConnection,
   SnapshotTable,
   Workbook,
@@ -87,12 +88,25 @@ const ConfirmRefreshModal = ({
     }
   }, [isOpen, activeTable]);
 
+  const hasDirtyTables =
+    workbook &&
+    tableSelection.tableIds.some((id) => {
+      const table = getSnapshotTableById(workbook, id);
+      return table?.dirty;
+    });
+
   return (
     <Modal opened={isOpen} onClose={onClose} title="Download records" centered size="lg">
       <Stack gap="md">
         <Text13Regular>
           Download records from the remote source. Any unpublished changes and suggestions will be lost.
         </Text13Regular>
+
+        {hasDirtyTables && (
+          <Alert color="yellow" title="Warning">
+            Fields with unpublished changes will not be updated.
+          </Alert>
+        )}
 
         {workbook && activeTable && (
           <TableSelectionComponent

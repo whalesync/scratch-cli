@@ -9,4 +9,5 @@ export type TableProgress = {
   connector: string;
   records: number;
   status: 'pending' | 'active' | 'completed' | 'failed';
+  hasDirtyDiscoveredDeletes?: boolean;
 };

@@ -11,7 +11,7 @@ export class SnapshotDbService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     const knexInstance = this.dbService.knexClient();
-    this.snapshotDb.init(knexInstance);
+    this.snapshotDb.init(knexInstance, this.dbService.client);
 
     knexInstance.on('error', (err: Error) => {
       WSLogger.error({

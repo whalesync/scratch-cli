@@ -201,6 +201,9 @@ model SnapshotTable {
   // v1: uses {id}_{wsId} format
   version String @default("v0")
 
+  // Whether the table has any dirty records (records with local changes)
+  dirty Boolean @default(false)
+
   @@index([workbookId])
   @@index([connectorAccountId])
   @@index([version])

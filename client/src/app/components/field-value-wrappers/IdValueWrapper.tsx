@@ -13,11 +13,17 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
   let bottomColor = 'transparent';
   let topBoxShadow = 'none';
   let bottomBoxShadow = 'none';
+  let backgroundColor = 'transparent';
 
   if (record) {
     let hasAnyAdditions = false;
     let hasAnyDeletions = false;
     let hasAnyEdits = false;
+
+    // Check if record is marked as deleted
+    if (record.__edited_fields?.__deleted) {
+      backgroundColor = 'var(--bg-removed)';
+    }
 
     // Check for suggestions
     if (record.__suggested_values) {
@@ -57,7 +63,12 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
   }
 
   return (
-    <Box display="flex" h="100%" className="field-value-wrapper">
+    <Box
+      display="flex"
+      h="100%"
+      className="field-value-wrapper"
+      style={{ backgroundColor, overflow: 'hidden' }}
+    >
       {/* Lines stacked vertically on the left */}
       <Box
         display="flex"
@@ -94,12 +105,13 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
+          overflow: 'hidden',
         }}
         className="field-value-content"
       >
-        <Box display="flex" h="100%" style={{ alignItems: 'center' }}>
-          <Text className="cell-text">{String(record?.id?.remoteId)}</Text>
-        </Box>
+        <Text className="cell-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {String(record?.id?.remoteId)}
+        </Text>
       </Box>
     </Box>
   );

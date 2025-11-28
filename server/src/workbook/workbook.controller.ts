@@ -49,6 +49,7 @@ import {
   ValidatedRejectCellValueDto,
   ValidatedRejectCellValueItem,
 } from './dto/reject-cell-value.dto';
+import { ReesolveRemoteDeletesDto, ValidatedHandleRemoteDeletesDto } from './dto/resolve-remote-deletes.dto';
 import {
   AddScratchColumnDto,
   RemoveScratchColumnDto,
@@ -369,6 +370,23 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<{ recordsRejected: number; totalChangesRejected: number }> {
     return await this.service.rejectAllSuggestions(workbookId, tableId, toActor(req.user));
+  }
+
+  @Post(':id/tables/:tableId/resolve-remote-deletes')
+  async resolveRemoteDeletesWithLocalEdits(
+    @Param('id') workbookId: WorkbookId,
+    @Param('tableId') tableId: string,
+    @Body() handleRemoteDeletesDto: ReesolveRemoteDeletesDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ recordsProcessed: number }> {
+    const dto = handleRemoteDeletesDto as ValidatedHandleRemoteDeletesDto;
+    return await this.service.resolveRemoteDeletesWithLocalEdits(
+      workbookId,
+      tableId,
+      dto.recordWsIds,
+      dto.action,
+      toActor(req.user),
+    );
   }
 
   @Post(':id/tables/:tableId/set-active-records-filter')

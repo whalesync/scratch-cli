@@ -132,6 +132,8 @@ export type SnapshotRecord = {
   __dirty: boolean;
   __seen: boolean;
   __metadata: Record<string, unknown>;
+  __original: Record<string, unknown> | null;
+  __old_remote_id: string | null;
 };
 
 export type ExistingSnapshotRecord = SnapshotRecord & {

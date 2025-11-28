@@ -21,6 +21,7 @@ export type DownloadRecordsPublicProgress = {
     connector: string;
     records: number;
     status: 'pending' | 'active' | 'completed' | 'failed';
+    hasDirtyDiscoveredDeletes?: boolean; // Optional flag for tables that had dirty records preventing deletion
   }[];
 };
 export type DownloadRecordsJobDefinition = JobDefinitionBuilder<
@@ -49,69 +50,12 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
   /**
    * Resets the 'seen' flag to false for all records in a table before starting a download
+   * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
   private async resetSeenFlags(workbookId: WorkbookId, tableName: string) {
-    await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).update({
+    await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
       __seen: false,
     });
-  }
-
-  /**
-   * Deletes records that were not seen during the download (i.e., records with __seen=false)
-   */
-  private async deleteUnseenRecords(workbookId: WorkbookId, tableName: string) {
-    const batchSize = 1000;
-    let deletedCount = 0;
-
-    try {
-      while (true) {
-        // Find records where __seen is false (not seen during this sync)
-        const recordsToDelete = await this.snapshotDb
-          .getKnex()
-          .select<Array<{ wsId: string }>>('wsId')
-          .from(tableName)
-          .withSchema(workbookId)
-          .where('__seen', false)
-          .limit(batchSize);
-
-        if (recordsToDelete.length === 0) {
-          break;
-        }
-
-        const wsIds: string[] = recordsToDelete.map((r) => r.wsId);
-
-        // Delete in a transaction
-        await this.snapshotDb.getKnex().transaction(async (trx) => {
-          await this.snapshotDb.deleteRecords(workbookId, tableName, wsIds, trx);
-        });
-
-        deletedCount += recordsToDelete.length;
-
-        // If we got fewer records than batch size, we're done
-        if (recordsToDelete.length < batchSize) {
-          break;
-        }
-      }
-
-      if (deletedCount > 0) {
-        WSLogger.info({
-          source: 'DownloadRecordsJob',
-          message: 'Completed deletion of unseen records',
-          workbookId,
-          tableName,
-          totalDeleted: deletedCount,
-        });
-      }
-    } catch (error) {
-      WSLogger.error({
-        source: 'DownloadRecordsJob',
-        message: 'Failed to delete unseen records',
-        workbookId,
-        tableName,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      // Don't throw - we don't want to fail the entire job if cleanup fails
-    }
   }
 
   async run(params: {
@@ -176,6 +120,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       connector: string;
       records: number;
       status: 'pending' | 'active' | 'completed' | 'failed';
+      hasDirtyDiscoveredDeletes?: boolean;
     };
 
     // Create TableToProcess array for snapshot tables to process
@@ -315,7 +260,26 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         });
 
         // Delete records that weren't seen in this sync (__seen=false or undefined)
-        await this.deleteUnseenRecords(workbook.id as WorkbookId, snapshotTable.tableName);
+        const { hadDirtyRecords } = await this.snapshotDb.handleUnseenRecords(
+          workbook.id as WorkbookId,
+          snapshotTable.tableName,
+        );
+
+        // Track tables that had dirty discovered deletes
+        if (hadDirtyRecords) {
+          currentTable.hasDirtyDiscoveredDeletes = true;
+          // Checkpoint to update the UI with the dirty discovered deletes warning
+          await checkpoint({
+            publicProgress: {
+              totalRecords,
+              tables: tablesToProcess,
+            },
+            jobProgress: {
+              index: i + 1,
+            },
+            connectorProgress: {},
+          });
+        }
       } catch (error) {
         // Mark table as failed
         currentTable.status = 'failed';
