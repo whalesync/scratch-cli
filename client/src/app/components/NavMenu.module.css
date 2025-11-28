@@ -1,20 +1,15 @@
-.navButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: gray;
-  width: 28px;
-  height: 28px;
+.userAvatarLetter {
+  width: 19px;
+  height: 19px;
+  background-color: var(--bg-base);
+  color: var(--mantine-color-gray-8);
+  border: 0.5px solid var(--fg-divider);
+  border-radius: 4px;
+  font-weight: 475;
+  font-size: 11px;
+  text-transform: uppercase;
+}
 
-  &:hover {
-    color: var(--mantine-color-primary-filled);
-  }
-
-  &[data-active] {
-    color: var(--mantine-color-text);
-  }
-
-  &[data-dev-tool] {
-    color: var(--mantine-color-devTool-filled);
-  }
+.userButtonContainer:hover :global(.mantine-Button-root) {
+  background-color: var(--mantine-color-gray-light-hover);
 }

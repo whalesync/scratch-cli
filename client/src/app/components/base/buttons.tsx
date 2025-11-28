@@ -45,6 +45,7 @@ export const ButtonSecondaryGhost = Button.withProps({
   size: 'sm',
   color: 'gray.9',
   c: 'gray.9',
+  bd: 'none',
 });
 
 export const ButtonSecondaryInline = Button.withProps({

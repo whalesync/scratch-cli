@@ -1,16 +1,14 @@
 'use client';
 
-import { RouteUrls } from '@/utils/route-urls';
-import { UserButton } from '@clerk/nextjs';
-import { Group, Stack, useMantineColorScheme } from '@mantine/core';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { DocsUrls } from '@/utils/docs-urls';
+import { RouteUrls } from '@/utils/route-urls';
+import { UserButton } from '@clerk/nextjs';
+import { Box, Center, Stack, useMantineColorScheme } from '@mantine/core';
 import {
   BlocksIcon,
+  ChevronDown,
   CircleQuestionMarkIcon,
   CpuIcon,
   FileTextIcon,
@@ -20,10 +18,12 @@ import {
   SunIcon,
   Table2Icon,
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useDevTools } from '../../hooks/use-dev-tools';
 import { ButtonSecondaryGhost, ButtonSecondaryOutline, DevToolButtonGhost } from './base/buttons';
 import { Text13Regular } from './base/text';
-import { StyledLucideIcon } from './Icons/StyledLucideIcon';
+import styles from './NavMenu.module.css';
 
 type MenuItem = {
   label: string;
@@ -77,8 +77,6 @@ const lowerMenuItems: MenuItem[] = [
 ];
 
 export function NavMenu() {
-  const { user } = useScratchPadUser();
-
   const pathname = usePathname();
   const { isDevToolsEnabled } = useDevTools();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
@@ -94,11 +92,8 @@ export function NavMenu() {
   };
   return (
     <Stack h="100%" p="10px 8px" gap="10px" bg="var(--bg-panel)">
-      <Group justify="flex-start" w="100%" align="center" gap="xs">
-        <UserButton />
-        <Text13Regular>{user?.name || user?.email}</Text13Regular>
-      </Group>
       <Stack gap="2px" justify="flex-start" w="100%">
+        <NavMenuUserButton />
         {upperMenuItems
           .filter((item) => isDevToolsEnabled || !item.isDevTool)
           .map((item) => {
@@ -121,7 +116,11 @@ export function NavMenu() {
 }
 
 const NavMenuItem = ({ item, isActive }: { item: MenuItem; isActive: boolean }) => {
-  const icon = <StyledLucideIcon Icon={item.icon} size={16} />;
+  const icon = (
+    <Center w={19}>
+      <item.icon size={13} color="var(--mantine-color-gray-7)" />
+    </Center>
+  );
 
   const ButtonComponent = item.isDevTool
     ? DevToolButtonGhost
@@ -146,5 +145,42 @@ const NavMenuItem = ({ item, isActive }: { item: MenuItem; isActive: boolean }) 
     >
       {item.label}
     </ButtonComponent>
+  );
+};
+
+const NavMenuUserButton = () => {
+  const { user, clerkUser } = useScratchPadUser();
+
+  const name = user?.name || user?.email || clerkUser?.fullName || clerkUser?.primaryEmailAddress?.emailAddress || '';
+  const initial = name?.[0] || '';
+  const avatar = <Center className={styles.userAvatarLetter}>{initial}</Center>;
+
+  // Overlay UserButton to make the whole area clickable and trigger the menu
+  const userButtonOverlay = (
+    <Box pos="absolute" top={0} left={0} w="100%" h="100%" style={{ zIndex: 10, opacity: 0, overflow: 'hidden' }}>
+      <UserButton
+        appearance={{
+          elements: {
+            rootBox: { width: '100%', height: '100%' },
+            userButtonTrigger: { width: '100%', height: '100%', cursor: 'pointer' },
+          },
+        }}
+      />
+    </Box>
+  );
+
+  return (
+    <ButtonSecondaryGhost
+      justify="flex-start"
+      fullWidth
+      leftSection={avatar}
+      rightSection={<ChevronDown size={16} color="var(--mantine-color-gray-7)" />}
+      mb={12}
+    >
+      <Text13Regular style={{ color: 'var(--fg-primary)' }} truncate>
+        {name}
+      </Text13Regular>
+      {userButtonOverlay}
+    </ButtonSecondaryGhost>
   );
 };
