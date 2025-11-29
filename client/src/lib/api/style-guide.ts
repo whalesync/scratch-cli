@@ -1,9 +1,6 @@
-import {
-  CreateStyleGuideDto,
-  ExternalContent,
-  StyleGuide,
-  UpdateStyleGuideDto,
-} from '@/types/server-entities/style-guide';
+import { ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
+import { CreateStyleGuideDto } from '@spinner/shared-types';
+import { validate } from 'class-validator';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -35,14 +32,23 @@ export const styleGuideApi = {
   },
 
   // Create a new style guide
-  create: async (data: CreateStyleGuideDto): Promise<StyleGuide> => {
+  create: async (dto: CreateStyleGuideDto): Promise<StyleGuide> => {
+    // Validate the DTO.
+    const validationErrors = await validate(dto);
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors
+        .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
+        .join('; ');
+      throw new Error(`Validation failed: ${errorMessages}`);
+    }
+
     const res = await fetch(`${API_CONFIG.getApiUrl()}/style-guides`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(dto),
     });
     await checkForApiError(res, 'Failed to create new prompt asset');
     return res.json();

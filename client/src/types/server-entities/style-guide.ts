@@ -18,15 +18,6 @@ export interface StyleGuide {
   tags: string[];
 }
 
-export interface CreateStyleGuideDto {
-  name: string;
-  body: string;
-  autoInclude: boolean;
-  sourceUrl?: string;
-  contentType?: ResourceContentType;
-  tags: string[];
-}
-
 export interface UpdateStyleGuideDto {
   name?: string;
   body?: string;

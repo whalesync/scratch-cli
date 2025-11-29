@@ -2,9 +2,10 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { styleGuideApi } from '@/lib/api/style-guide';
-import { CreateStyleGuideDto, DEFAULT_CONTENT_TYPE } from '@/types/server-entities/style-guide';
+import { DEFAULT_CONTENT_TYPE } from '@/types/server-entities/style-guide';
 import { MantineStyleProps } from '@mantine/core';
 import { DropzoneProps } from '@mantine/dropzone';
+import { CreateStyleGuideDto } from '@spinner/shared-types';
 import { mutate } from 'swr';
 import { FileDropzone } from './FileDropzone';
 
@@ -24,14 +25,13 @@ export const PromptAssetDropzone = ({
       // Read file content
       const text = await file.text();
 
-      const newData: CreateStyleGuideDto = {
-        name: file.name,
-        body: text,
-        autoInclude: false,
-        sourceUrl: undefined,
-        contentType: DEFAULT_CONTENT_TYPE,
-        tags: [],
-      };
+      const newData = new CreateStyleGuideDto();
+      newData.name = file.name;
+      newData.body = text;
+      newData.autoInclude = false;
+      newData.sourceUrl = undefined;
+      newData.contentType = DEFAULT_CONTENT_TYPE;
+      newData.tags = [];
 
       await styleGuideApi.create(newData);
 

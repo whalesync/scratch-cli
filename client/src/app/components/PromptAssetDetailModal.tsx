@@ -4,7 +4,6 @@ import { SWR_KEYS } from '@/lib/api/keys';
 import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import {
-  CreateStyleGuideDto,
   DEFAULT_CONTENT_TYPE,
   ResourceContentType,
   StyleGuide,
@@ -13,7 +12,7 @@ import {
 import { Alert, Checkbox, Group, Modal, Stack, Textarea, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { StyleGuideId } from '@spinner/shared-types';
+import { CreateStyleGuideDto, StyleGuideId } from '@spinner/shared-types';
 import { CircleCheckBigIcon, CircleXIcon, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
@@ -139,14 +138,13 @@ export function PromptAssetDetailModal({ opened, close, initialValues }: PromptA
       let updatedStyleGuide: StyleGuide;
 
       if (isNewAsset) {
-        const newData: CreateStyleGuideDto = {
-          name: values.name.trim(),
-          body: values.content,
-          autoInclude: values.autoInclude,
-          sourceUrl: cleanedSourceUrl,
-          contentType: values.contentType,
-          tags: [],
-        };
+        const newData = new CreateStyleGuideDto();
+        newData.name = values.name.trim();
+        newData.body = values.content;
+        newData.autoInclude = values.autoInclude;
+        newData.sourceUrl = cleanedSourceUrl;
+        newData.contentType = values.contentType;
+        newData.tags = [];
         updatedStyleGuide = await styleGuideApi.create(newData);
       } else {
         const updateData: UpdateStyleGuideDto = {
