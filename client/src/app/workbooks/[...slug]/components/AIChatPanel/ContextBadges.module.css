@@ -1,11 +1,11 @@
 .badge {
-  border: 0px;
-  border-radius: 0px;
-  transition: background-color 0.2s ease;
-  font-family: monospace;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-4));
+  height: 22px;
+  padding-left: 4px;
+  padding-right: 4px;
+
+  color: var(--mantine-color-gray-6);
 }
 
 .badge:hover {
-  color: var(--mantine-color-primary-filled);
+  color: var(--mantine-color-gray-9);
 }

@@ -1,12 +1,17 @@
 import { getLogo } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { Image } from '@mantine/core';
+import { Image, MantineSpacing, StyleProp } from '@mantine/core';
 import { ImageProps } from 'next/image';
 
 export function ConnectorIcon(
-  props: { connector: string | null; size?: number } & Omit<ImageProps, 'src' | 'alt'> & { withBorder?: boolean },
+  props: { connector: string | null; size?: number; p?: StyleProp<MantineSpacing> } & Omit<
+    ImageProps,
+    'src' | 'alt'
+  > & {
+      withBorder?: boolean;
+    },
 ) {
-  const { connector, size, withBorder, ...rest } = props;
+  const { connector, size, withBorder, p, ...rest } = props;
   const iconUrl = getLogo(connector as Service);
 
   return (
@@ -17,7 +22,7 @@ export function ConnectorIcon(
       alt={connector || 'Connector icon'}
       bd={withBorder ? '0.5px solid var(--mantine-color-gray-4)' : 'none'}
       bg={withBorder ? 'var(--bg-base)' : 'transparent'}
-      p="3.5px"
+      p={p ?? '3.5px'}
       {...rest}
     />
   );

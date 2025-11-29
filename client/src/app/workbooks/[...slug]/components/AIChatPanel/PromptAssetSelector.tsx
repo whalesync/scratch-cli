@@ -1,3 +1,4 @@
+import { IconButtonOutline } from '@/app/components/base/buttons';
 import { Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
@@ -8,13 +9,12 @@ import {
   trackClickViewResourceFromChat,
   trackRemoveResourceFromChat,
 } from '@/lib/posthog';
-import { StyleGuide } from '@/types/server-entities/style-guide';
 import { Workbook } from '@/types/server-entities/workbook';
-import { ActionIcon, CloseButton, Combobox, Divider, Group, Stack, useCombobox } from '@mantine/core';
-import { AtSignIcon, FileIcon, PlusIcon } from 'lucide-react';
+import { Combobox, Divider, Group, useCombobox } from '@mantine/core';
+import { AtSignIcon, FileIcon, FileTextIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/PromptAssetDetailModal';
-import styles from './PromptAssetSelector.module.css';
+import { ContextBadge, ContextBadges } from './ContextBadges';
 
 export function PromptAssetSelector({
   disabled,
@@ -118,72 +118,42 @@ export function PromptAssetSelector({
         }}
       />
 
-      <Stack gap="xs">
-        <Group gap="xs">
-          <Combobox
-            store={combobox}
-            width={250}
-            withArrow
-            withinPortal={false}
-            onOptionSubmit={(val) => {
-              handleAdd(val);
-            }}
-            disabled={disabled}
-            zIndex={1001}
-          >
-            <Combobox.Target>
-              <ActionIcon
-                variant="transparent-hover"
-                size="sm"
-                color="gray"
-                onClick={() => combobox.toggleDropdown()}
-                disabled={disabled}
-              >
-                <StyledLucideIcon Icon={AtSignIcon} size={14} />
-              </ActionIcon>
-            </Combobox.Target>
+      <Group gap={6} p={6}>
+        <Combobox
+          store={combobox}
+          width={250}
+          withArrow
+          withinPortal={false}
+          onOptionSubmit={(val) => {
+            handleAdd(val);
+          }}
+          disabled={disabled}
+          zIndex={1001}
+        >
+          <Combobox.Target>
+            <IconButtonOutline size="compact-xs" onClick={() => combobox.toggleDropdown()} disabled={disabled}>
+              <AtSignIcon size={12} />
+            </IconButtonOutline>
+          </Combobox.Target>
 
-            <Combobox.Dropdown>
-              <Combobox.Options>{comboBoxOptions}</Combobox.Options>
-            </Combobox.Dropdown>
-          </Combobox>
-          {selectedResources.map((sg) => (
-            <ResourcePill
-              key={sg.id}
-              resource={sg}
-              onRemove={() => handleRemove(sg.id)}
-              onClick={() => {
-                trackClickViewResourceFromChat(workbook);
-                resourceModal.open(sg);
-              }}
-            />
-          ))}
-        </Group>
-      </Stack>
+          <Combobox.Dropdown>
+            <Combobox.Options>{comboBoxOptions}</Combobox.Options>
+          </Combobox.Dropdown>
+        </Combobox>
+        <ContextBadges />
+        {selectedResources.map((sg) => (
+          <ContextBadge
+            key={sg.id}
+            label={sg.name}
+            onClose={() => handleRemove(sg.id)}
+            onClick={() => {
+              trackClickViewResourceFromChat(workbook);
+              resourceModal.open(sg);
+            }}
+            icon={<FileTextIcon size={12} />}
+          />
+        ))}
+      </Group>
     </>
   );
 }
-
-export const ResourcePill = ({
-  resource,
-  onRemove,
-  onClick,
-}: {
-  resource: StyleGuide;
-  onRemove: () => void;
-  onClick: () => void;
-}) => {
-  return (
-    <Group p="2px" gap="2xs" wrap="nowrap" className={styles.pill} onClick={onClick}>
-      <StyledLucideIcon Icon={FileIcon} size={14} />
-      <Text12Regular>{resource.name}</Text12Regular>
-      <CloseButton
-        size="xs"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-      />
-    </Group>
-  );
-};

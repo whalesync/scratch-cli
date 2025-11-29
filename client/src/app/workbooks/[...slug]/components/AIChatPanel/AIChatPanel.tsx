@@ -49,7 +49,6 @@ import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
-import { ContextBadges } from './ContextBadges';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
@@ -480,15 +479,15 @@ export default function AIChatPanel() {
           </Center>
         )}
       </Box>
+
+      {/* Input section at the bottom */}
       <Box mih="150px" className={classes.chatPanelFooter}>
-        <Stack gap={2} m={6}>
-          <PromptAssetSelector
-            disabled={!activeOpenRouterCredentials}
-            workbook={workbook}
-            resetInputFocus={() => textInputRef.current?.focus()}
-          />
-          <ContextBadges />
-        </Stack>
+        {/* Context chips and badges */}
+        <PromptAssetSelector
+          disabled={!activeOpenRouterCredentials}
+          workbook={workbook}
+          resetInputFocus={() => textInputRef.current?.focus()}
+        />
         <Divider />
 
         {/* User Input for Chat */}
