@@ -14,3 +14,24 @@
     color: var(--mantine-color-gray-9);
   }
 }
+
+.IconButtonOutline {
+  aspect-ratio: 1;
+  color: var(--mantine-color-gray-9);
+
+  &:disabled {
+    color: var(--mantine-color-gray-4);
+    background-color: var(--mantine-color-gray-1);
+
+    /* Replace the custom border with a dull one.  */
+    border: 0.5px solid var(--mantine-color-gray-4) !important;
+    &::after {
+      display: none;
+    }
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--mantine-color-gray-2);
+    color: var(--mantine-color-gray-9);
+  }
+}

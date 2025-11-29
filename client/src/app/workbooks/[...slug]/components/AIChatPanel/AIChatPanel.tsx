@@ -2,7 +2,12 @@
 
 import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
 import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
-import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import {
+  ButtonSecondaryInline,
+  ButtonSecondaryOutline,
+  ButtonSecondarySolid,
+  IconButtonOutline,
+} from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
@@ -23,25 +28,12 @@ import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/s
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import {
-  ActionIcon,
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Center,
-  Group,
-  Modal,
-  Paper,
-  Stack,
-  Text,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Anchor, Box, Button, Center, Divider, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import {
   ChevronDownIcon,
+  CircleStopIcon,
   LucideFileKey,
-  OctagonMinusIcon,
   Plus,
   SendIcon,
   SparklesIcon,
@@ -450,14 +442,12 @@ export default function AIChatPanel() {
         {/* Error Alert */}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
-            {errorDetails && <Text12Regular c="dimmed">{errorDetails}</Text12Regular>}
+            {errorDetails && <Text12Regular>{errorDetails}</Text12Regular>}
           </Alert>
         )}
         {connectionError && (
           <Alert color="red" mb="sm" p="xs">
-            <Text size="xs" c="dimmed">
-              {connectionError}
-            </Text>
+            <Text size="xs">{connectionError}</Text>
           </Alert>
         )}
         {/* Messages */}
@@ -476,16 +466,12 @@ export default function AIChatPanel() {
                 onClick={createNewSession}
                 size="xs"
                 w="fit-content"
-                color="gray.7"
-                c="gray.7"
               >
                 Start new chat
               </Button>
             ) : (
               <Stack gap="xs" justify="center" align="center">
-                <Text size="xs" c="dimmed">
-                  You must configure your OpenRouter credentials to use the AI agent
-                </Text>
+                <Text size="xs">You must configure your OpenRouter credentials to use the AI agent</Text>
                 <ButtonSecondaryOutline component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">
                   Configure credentials
                 </ButtonSecondaryOutline>
@@ -495,7 +481,7 @@ export default function AIChatPanel() {
         )}
       </Box>
       <Box mih="150px" className={classes.chatPanelFooter}>
-        <Stack gap="2xs" my="2xs">
+        <Stack gap={2} m={6}>
           <PromptAssetSelector
             disabled={!activeOpenRouterCredentials}
             workbook={workbook}
@@ -503,6 +489,8 @@ export default function AIChatPanel() {
           />
           <ContextBadges />
         </Stack>
+        <Divider />
+
         {/* User Input for Chat */}
         <AdvancedAgentInput
           tableId={(activeTable?.id as SnapshotTableId) || ''}
@@ -514,63 +502,79 @@ export default function AIChatPanel() {
           commands={commands}
         />
 
-        {/* Model and Submit Row */}
-        <Group gap="4px">
+        {/* Footer row */}
+        <Group gap={0} mx={6} my={6} align="end" wrap="nowrap">
+          {/* Credentials picker */}
+          {/* TODO: Move this out of the footer: */}
           <Tooltip
             multiline
             w={220}
             label={`Using ${activeOpenRouterCredentials?.label} key. ${activeOpenRouterCredentials?.description}`}
           >
             <Box>
-              <StyledLucideIcon Icon={LucideFileKey} size="md" c="dimmed" strokeWidth={1} />
+              <StyledLucideIcon Icon={LucideFileKey} size="md" strokeWidth={1} />
             </Box>
           </Tooltip>
-          <Button
-            variant="transparent"
+
+          {/* Model picker */}
+          <ButtonSecondaryInline
             onClick={() => setShowModelSelector(true)}
             disabled={!activeOpenRouterCredentials}
-            c="gray"
-            size="xs"
-            p="0px"
-            rightSection={<ChevronDownIcon size={12} color="gray" />}
+            rightSection={<ChevronDownIcon size={12} />}
+            w="auto"
+            styles={{
+              // This is the longest and most variable text, so we want it to shrink if we run out of space. Everything else in this row has flexShrink: 0.
+              // To get the ellipsis we need to set display to block, which requires lineHeight for vertical centering.
+              root: { flexShrink: 1, minWidth: 0 },
+              label: {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+                lineHeight: '26px',
+              },
+              section: { flexShrink: 0 },
+            }}
           >
-            <Text12Regular component="span" c="dimmed">
-              {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
-            </Text12Regular>
-          </Button>
-          {/* Capabilities Selection */}
+            {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
+          </ButtonSecondaryInline>
+
+          {/* Tools Selection */}
           <CapabilitiesButton
             selectedCapabilities={selectedCapabilities}
             availableCapabilitiesCount={AGENT_CAPABILITIES.length}
             onClick={() => setShowToolsModal(true)}
           />
 
+          {/* Token usage */}
           {activeTable && <TokenUseButton table={activeTable} />}
 
-          <Group gap="2px" ml="auto">
-            <ActionIcon
-              onClick={() => {
-                if (runningAgentTaskId) {
-                  cancelAgentRun(runningAgentTaskId);
-                }
-              }}
-              size="md"
-              variant="transparent-hover"
-              title="Cancel task"
-              disabled={!runningAgentTaskId || !agentTaskRunning}
-            >
-              <StyledLucideIcon Icon={OctagonMinusIcon} size={16} />
-            </ActionIcon>
-            <ActionIcon
+          {/* Extra space */}
+          <div style={{ flex: 1 }} />
+
+          {/* Start button */}
+          {!agentTaskRunning && (
+            <IconButtonOutline
+              size="xs"
               onClick={sendMessage}
               disabled={!message.trim() || !chatInputEnabled}
-              loading={agentTaskRunning}
-              size="md"
-              variant="transparent-hover"
+              style={{ flexShrink: 0 }}
             >
-              <StyledLucideIcon Icon={SendIcon} size={16} />
-            </ActionIcon>
-          </Group>
+              <SendIcon size={16} />
+            </IconButtonOutline>
+          )}
+          {/* Stop button */}
+          {agentTaskRunning && (
+            <ButtonSecondarySolid
+              size="xs"
+              onClick={() => runningAgentTaskId && cancelAgentRun(runningAgentTaskId)}
+              disabled={!runningAgentTaskId || !agentTaskRunning}
+              leftSection={<CircleStopIcon size={16} />}
+              style={{ flexShrink: 0 }}
+            >
+              Stop
+            </ButtonSecondarySolid>
+          )}
         </Group>
       </Box>
       {/* Model Selector Modal */}

@@ -3,6 +3,10 @@
   padding: 10px;
   background-color: light-dark(#ffffff, #292929) !important;
   outline: none !important;
+
+  &::placeholder {
+    color: var(--fg-secondary);
+  }
 }
 
 .mentions__input:focus {

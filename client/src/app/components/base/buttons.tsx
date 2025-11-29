@@ -87,11 +87,7 @@ export const IconButtonOutline = Button.withProps({
   color: 'gray.9',
   c: 'gray.6',
   p: 0,
-  classNames: { root: customBordersClasses.cornerBorders },
-  styles: {
-    root: { aspectRatio: '1' },
-    inner: { color: 'var(--mantine-color-gray-9)' },
-  },
+  classNames: { root: `${customBordersClasses.cornerBorders} ${styles.IconButtonOutline}` },
 });
 
 export const IconButtonGhost = Button.withProps({

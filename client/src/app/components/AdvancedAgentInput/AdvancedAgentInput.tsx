@@ -4,7 +4,6 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi } from '@/lib/api/mentions';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { TableSpec, Workbook } from '@/types/server-entities/workbook';
-import { useMantineColorScheme } from '@mantine/core';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { FC, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
@@ -59,33 +58,6 @@ const renderFieldSuggestion = (suggestion: any) => {
   return <SuggestionItem title={suggestion.display} description={'Field'} />;
 };
 
-const MENTION_STYLES: Record<string, Record<string, React.CSSProperties>> = {
-  resource: {
-    dark: {
-      backgroundColor: 'var(--mantine-color-gray-3)',
-    },
-    light: {
-      backgroundColor: 'var(--mantine-color-gray-3)',
-    },
-  },
-  record: {
-    dark: {
-      backgroundColor: 'var(--mantine-color-green-3)',
-    },
-    light: {
-      backgroundColor: 'var(--mantine-color-green-3)',
-    },
-  },
-  table: {
-    dark: {
-      backgroundColor: 'var(--mantine-color-gray-3)',
-    },
-    light: {
-      backgroundColor: 'var(--mantine-color-gray-3)',
-    },
-  },
-};
-
 export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   tableId,
   workbook,
@@ -95,7 +67,6 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
   onFocus,
   commands = [],
 }) => {
-  const { colorScheme } = useMantineColorScheme();
   const [value, setValueState] = useState('');
   const previousValueRef = useRef('');
   const { handleUndo, handleRedo, setValue, setPreviousValue } = useUndoRedo(value, setValueState, previousValueRef);
@@ -216,7 +187,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
       }}
       onFocus={onFocus}
       disabled={disabled}
-      placeholder={`Type your message ...`}
+      placeholder={`Type a message ...`}
       style={{ height: 100 }}
       classNames={classNames}
       spellCheck={false}
@@ -227,7 +198,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="@"
         markup="@[__display__](__id__)"
         displayTransform={(id, display) => ` @${display} `}
-        style={MENTION_STYLES.resource[colorScheme]}
+        style={{ backgroundColor: 'var(--mantine-color-gray-3)' }}
         data={async (
           query: string,
           callback: (results: { id: string; display: string; title: string; preview: string }[]) => void,
@@ -263,7 +234,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="#"
         markup="#[__display__](__id__)"
         displayTransform={(id, display) => ` #${display} `}
-        style={MENTION_STYLES.record[colorScheme]}
+        style={{ backgroundColor: 'var(--mantine-color-gray-3)' }}
         data={async (query: string, callback: (results: { id: string; display: string; title: string }[]) => void) => {
           if (!workbook?.id) {
             callback([]);
@@ -319,7 +290,7 @@ export const AdvancedAgentInput: FC<AdvancedAgentInputProps> = ({
         trigger="$"
         markup="$[__display__](__id__)"
         displayTransform={(id, display) => ` $${display} `}
-        style={MENTION_STYLES.table[colorScheme]}
+        style={{ backgroundColor: 'var(--mantine-color-gray-3)' }}
         data={(query, callback) => {
           if (!workbook?.snapshotTables) {
             callback([]);

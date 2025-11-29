@@ -42,7 +42,7 @@ export const TokenUseButton = ({ table }: { table: SnapshotTable }) => {
   return (
     <Popover width="auto">
       <Popover.Target>
-        <ButtonSecondaryInline leftSection={icon}>
+        <ButtonSecondaryInline leftSection={icon} style={{ flexShrink: 0 }}>
           <Text13Regular>{`${stats.usagePercentage ?? '-'}%`}</Text13Regular>
         </ButtonSecondaryInline>
       </Popover.Target>
