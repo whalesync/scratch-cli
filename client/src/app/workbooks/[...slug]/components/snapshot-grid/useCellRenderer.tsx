@@ -20,7 +20,7 @@ export const useCellRenderer = (
     return (
       <FieldValueWrapper
         value={value}
-        columnDef={columnDef}
+        columnDef={columnDef!}
         record={record}
         showSuggestionButtons={true}
         acceptCellValues={acceptCellValues}

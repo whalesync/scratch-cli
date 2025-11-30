@@ -1,18 +1,27 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
-import { ColumnSpec, SnapshotRecord, formatFieldValue } from '@/types/server-entities/workbook';
-import { Box, Group, Text, useMantineColorScheme } from '@mantine/core';
-import { diffWordsWithSpace } from 'diff';
+import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
+import { Box, Text } from '@mantine/core';
 import { FC, ReactNode } from 'react';
+import { DotGroup } from './DotGroup/DotGroup';
 import styles from './FieldValueWrapper.module.css';
+import { processFieldValue } from './ProcessedFieldValue';
 import { SuggestionButtons } from './SuggestionButtons';
+
+/**
+ * The user of the component can attach the following classes to any parent element:
+ * .hasSuggestedAdditions
+ * .hasSuggestedDeletions
+ * .hasAcceptedAdditions
+ * .hasAcceptedDeletions
+ */
 
 type FieldValueWrapperProps = {
   children?: ReactNode;
   className?: string;
   // Props for automatic rendering
   value?: unknown;
-  columnDef?: ColumnSpec;
-  record?: SnapshotRecord;
+  columnDef: ColumnSpec;
+  record: SnapshotRecord;
   showSuggestionButtons?: boolean;
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
@@ -26,81 +35,30 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   acceptCellValues,
   rejectCellValues,
 }) => {
-  const { colorScheme } = useMantineColorScheme();
-  const isLightMode = colorScheme === 'light';
+  const processedFieldValue = processFieldValue(value, record, columnDef);
 
-  if (!columnDef) {
-    return null;
-  }
-
-  const formattedValue = formatFieldValue(value, columnDef);
-  const suggestedValue = record?.__suggested_values?.[columnDef.id.wsId];
-
-  const getContentAndClasses = () => {
-    if (!record) {
-      return {
-        classes: [],
-        content: <Text className="cell-text"></Text>,
-      };
-    }
-    const classes = [];
-    if (record?.__edited_fields?.[columnDef.id.wsId]) {
-      classes.push(styles.cellValueHasAcceptedDeletions);
-      classes.push(styles.cellValueHasAcceptedAdditions);
-    }
-
-    if (suggestedValue) {
-      const changes = diffWordsWithSpace(formattedValue, String(suggestedValue));
-      const hasSuggestedAdditions = changes.some((change) => change.added);
-      const hassuggestedDeletions = changes.some((change) => change.removed);
-      classes.push(styles.hasSuggestion);
-      if (hasSuggestedAdditions) {
-        classes.push(styles.hasSuggestedAdditions);
-      }
-      if (hassuggestedDeletions) {
-        classes.push(styles.hasSuggestedDeletions);
-      }
-      if (hasSuggestedAdditions || hassuggestedDeletions) {
-        classes.push(styles.hasSuggestion);
-      }
-      return {
-        content: (
-          <>
-            <DiffText changes={changes} />
-            {showSuggestionButtons && (
-              <SuggestionButtons
-                record={record}
-                columnDef={columnDef}
-                acceptCellValues={acceptCellValues}
-                rejectCellValues={rejectCellValues}
-                isLightMode={isLightMode}
-              />
-            )}
-          </>
-        ),
-        classes,
-      };
-    } else {
-      return {
-        content: <Text className="cell-text">{formattedValue}</Text>,
-        classes,
-      };
-    }
-  };
-
-  const { classes, content } = getContentAndClasses();
+  const content = processedFieldValue.changes ? (
+    <>
+      <DiffText changes={processedFieldValue.changes} />
+      {showSuggestionButtons && (
+        <SuggestionButtons
+          record={record}
+          columnDef={columnDef}
+          acceptCellValues={acceptCellValues}
+          rejectCellValues={rejectCellValues}
+        />
+      )}
+    </>
+  ) : (
+    <Text className="cell-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {processedFieldValue.formattedValue}
+    </Text>
+  );
 
   // Single return with all the structure
   return (
-    <Box className={`${styles.fieldValueWrapper} field-value-wrapper ${classes.join(' ')}`.trim()}>
-      <Group gap={1} className={styles.dotGroup}>
-        <Box
-          className={`${styles.cellComponentAnyDot} ${styles.cellComponentLeftDot} ${styles.cellComponentDeletionDot}`}
-        ></Box>
-        <Box
-          className={`${styles.cellComponentAnyDot} ${styles.cellComponentRightDot} ${styles.cellComponentAdditionDot}`}
-        ></Box>
-      </Group>
+    <Box className={styles.fieldValueWrapper}>
+      <DotGroup changeTypes={processedFieldValue.existingChangeTypes} />
       <Box
         style={{
           flex: 1,
@@ -109,7 +67,6 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
           display: 'flex',
           alignItems: 'center',
         }}
-        className="field-value-content"
       >
         {content}
       </Box>

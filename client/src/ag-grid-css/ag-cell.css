@@ -1,34 +1,9 @@
 /* Cell text colors for light and dark themes */
 
 .my-grid .ag-cell {
+  /* Padding is moved to the internal cell wrappers */
   padding-left: 0px;
-  padding-right: 10px;
-}
-
-/* Show green dot when cell has additions */
-.field-value-wrapper.cell-value-has-suggested-additions .cell-component-addition-dot {
-  background-color: var(--fg-added);
-  box-shadow: 0 0 0 1px var(--bg-added);
-}
-
-/* Show red dot when cell has deletions */
-.field-value-wrapper.cell-value-has-suggested-deletions .cell-component-deletion-dot {
-  background-color: var(--fg-removed);
-  box-shadow: 0 0 0 1px var(--bg-removed);
-}
-
-/* Show black dot when cell is edited but has no additions */
-.field-value-wrapper.cell-value-has-accepted-additions:not(.cell-value-has-suggested-additions)
-  .cell-component-addition-dot {
-  background-color: black;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
-}
-
-/* Show black dot when cell is edited but has no deletions */
-.field-value-wrapper.cell-value-has-accepted-deletions:not(.cell-value-has-suggested-deletions)
-  .cell-component-deletion-dot {
-  background-color: black;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  padding-right: 0px;
 }
 
 .my-grid.ag-theme-alpine .ag-cell.ag-cell-focus-column {

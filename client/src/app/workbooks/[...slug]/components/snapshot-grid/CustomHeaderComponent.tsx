@@ -3,7 +3,6 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { workbookApi } from '@/lib/api/workbook';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
-import { getColumnTypeIcon } from '@/utils/columns';
 import { Group, Radio, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
@@ -25,7 +24,6 @@ interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: SnapshotTableId;
   records?: SnapshotRecord[];
   columnSpec?: ColumnSpec;
-  showDataTypeInHeader?: boolean;
 }
 
 export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (props) => {
@@ -346,7 +344,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
 
   return (
     <div
-      className="ag-header-cell-comp-wrapper"
+      // className="ag-header-cell-comp-wrapper"
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -362,13 +360,6 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         }}
         onClick={props.enableSorting ? handleHeaderClick : undefined}
       >
-        {/* Column type icon */}
-        {props.columnSpec && props.showDataTypeInHeader && (
-          <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
-            {getColumnTypeIcon(props.columnSpec.pgType)}
-          </span>
-        )}
-
         <span className="ag-header-cell-text">{props.displayName}</span>
         {/* Column extra info, e.g. required */}
         {props.columnSpec?.required && (

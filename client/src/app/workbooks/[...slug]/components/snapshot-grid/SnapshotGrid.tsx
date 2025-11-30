@@ -570,7 +570,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
         tableId: table.id,
         records: records,
         columnSpec: column,
-        showDataTypeInHeader: false,
       },
       comparator: getComparatorFunctionForColumnSpec(column),
       cellDataType:

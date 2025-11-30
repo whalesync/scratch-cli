@@ -63,12 +63,7 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
   }
 
   return (
-    <Box
-      display="flex"
-      h="100%"
-      className="field-value-wrapper"
-      style={{ backgroundColor, overflow: 'hidden' }}
-    >
+    <Box display="flex" h="100%" className="field-value-wrapper" style={{ backgroundColor, overflow: 'hidden' }}>
       {/* Lines stacked vertically on the left */}
       <Box
         display="flex"
@@ -107,7 +102,6 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
           alignItems: 'center',
           overflow: 'hidden',
         }}
-        className="field-value-content"
       >
         <Text className="cell-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {String(record?.id?.remoteId)}

@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
-import { ActionIcon, Group } from '@mantine/core';
+import { ActionIcon, Group, useMantineColorScheme } from '@mantine/core';
 import { Check, X } from 'lucide-react';
 import { FC, useState } from 'react';
 import styles from './FieldValueWrapper.module.css';
@@ -10,7 +10,7 @@ type SuggestionButtonsProps = {
   columnDef: TableSpec['columns'][0];
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
-  isLightMode: boolean;
+  // isLightMode: boolean;
 };
 
 export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
@@ -18,8 +18,9 @@ export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
   columnDef,
   acceptCellValues,
   rejectCellValues,
-  isLightMode,
+  // isLightMode,
 }) => {
+  const isLightMode = useMantineColorScheme().colorScheme === 'light';
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAccept = async (e: React.MouseEvent) => {

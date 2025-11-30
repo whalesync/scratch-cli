@@ -1,0 +1,23 @@
+.dotGroup {
+  margin-left: 3px;
+  margin-right: 3px;
+}
+
+.cellComponentAnyDot {
+  flex-shrink: 0;
+  width: 3px;
+  height: 3px;
+  background-color: red;
+  box-shadow: 0 0 0 1px transparent;
+}
+
+/* Left and right is not linked to accept and reject since we moved them around a few times
+and it is better to not mix the positional vs the functional properties */
+.cellComponentLeftDot {
+  margin-left: 4px;
+}
+
+.cellComponentRightDot {
+  margin-left: 3px;
+  margin-right: 2px;
+}
