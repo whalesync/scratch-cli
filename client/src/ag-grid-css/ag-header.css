@@ -9,6 +9,7 @@
   background: transparent;
   padding-left: 10px;
   padding-right: 10px;
+  border-left: 1px solid var(--mantine-color-gray-4) !important;
 }
 
 .my-grid[class*='ag-theme'] .ag-header-row {
@@ -30,4 +31,10 @@
   color: var(--mantine-color-gray-6) !important;
 }
 
-/* Make header cells transparent and align padding with cells */
+.my-grid[class*='ag-theme'] .ag-header-cell-resize::after {
+  opacity: 0;
+}
+
+.my-grid[class*='ag-theme'] .ag-header-cell:hover .ag-header-cell-resize::after {
+  opacity: 1;
+}
