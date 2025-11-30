@@ -5,6 +5,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
+import { getFreePlan } from 'src/payment/plans';
 import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
@@ -143,30 +144,15 @@ export class UsersService {
   }
 
   public async addNewUserResources(newUser: UserCluster.User): Promise<UserCluster.User> {
-    let updatedUser = newUser;
-    if (this.scratchpadConfigService.getAutoCreateTrialSubscription()) {
-      const result = await this.stripePaymentService.createTrialSubscription(newUser);
-      if (isOk(result)) {
-        // reload the user so the subscription is attached
-        const reloadedUser = await this.findOne(newUser.id);
-        if (reloadedUser) {
-          updatedUser = reloadedUser;
-        }
-      } else {
-        WSLogger.error({
-          source: UsersService.name,
-          message: `Failed to create trial subscription for user ${newUser.id}`,
-          errorMessage: result.error,
-          error: result.cause,
-        });
-      }
-    }
+    const updatedUser = newUser;
+
+    const freePlan = getFreePlan();
 
     if (this.scratchpadConfigService.getGenerateOpenRouterKeyForNewUsers()) {
       const result = await this.openRouterService.createKey({
         userId: newUser.id,
-        limit: this.scratchpadConfigService.getNewUserOpenRouterCreditLimit(),
-        limitReset: 'monthly',
+        limit: freePlan.features.creditLimit,
+        limitReset: freePlan.features.creditReset,
       });
 
       if (isOk(result)) {
@@ -177,7 +163,7 @@ export class UsersService {
             service: 'openrouter',
             apiKey: result.v.key,
             externalApiKeyId: result.v.hash,
-            description: `Starter OpenRouter credentials for Scratch`,
+            description: `Free OpenRouter API key for Scratch`,
             enabled: true,
             source: AiAgentCredentialSource.SYSTEM,
             default: true,

@@ -42,8 +42,13 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
   };
 
   const activeOpenRouterCredentials = useMemo(() => {
-    // try to find the default credential
+    // try to find the default credential to use for the chat agent
     return data?.find((credential) => credential.default && credential.service === 'openrouter');
+  }, [data]);
+
+  const systemOpenRouterCredential = useMemo(() => {
+    // try to find the system generated open router credential
+    return data?.find((credential) => credential.source === 'SYSTEM' && credential.service === 'openrouter');
   }, [data]);
 
   const displayError = useMemo(() => {
@@ -63,6 +68,7 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     deleteCredentials,
     toggleDefaultCredential,
     activeOpenRouterCredentials,
+    systemOpenRouterCredential,
   };
 };
 

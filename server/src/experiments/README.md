@@ -21,9 +21,7 @@ Flags that apply globally across the application:
 Flags evaluated per-user:
 
 - `DEV_TOOLBOX`: Developer tools access
-- `REQUIRE_SUBSCRIPTION`: Subscription requirement enforcement
 - `CONNECTOR_LIST`: Available connector list configuration
-- `USE_JOBS`: Background job system enablement
 
 ## Core Service Methods
 
@@ -42,18 +40,6 @@ Flags evaluated per-user:
 - Automatically determined by user role
 - ADMIN users automatically get access
 - No external flag evaluation needed
-
-### REQUIRE_SUBSCRIPTION
-
-- Pulled from application configuration
-- Controlled via environment variables
-- Bypasses external flag providers
-
-### USE_JOBS
-
-- Configuration-based flag
-- Determines background job system usage
-- Environment-specific setting
 
 ## Backend Providers
 

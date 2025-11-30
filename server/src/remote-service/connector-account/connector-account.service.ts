@@ -75,7 +75,7 @@ export class ConnectorAccountService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
+      actor,
       eventType: 'create',
       message: `Created new connection ${connectorAccount.displayName}`,
       entityId: connectorAccount.id as ConnectorAccountId,
@@ -142,7 +142,7 @@ export class ConnectorAccountService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
+      actor,
       eventType: 'update',
       message: `Updated connection ${account.displayName}`,
       entityId: account.id as ConnectorAccountId,
@@ -169,7 +169,7 @@ export class ConnectorAccountService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
+      actor,
       eventType: 'delete',
       message: `Deleted connection ${account.displayName}`,
       entityId: account.id as ConnectorAccountId,

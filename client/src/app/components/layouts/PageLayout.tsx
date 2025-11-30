@@ -7,7 +7,6 @@ import Head from 'next/head';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { NavMenu } from '../NavMenu';
-import { SubscriptionVerifier } from '../SubscriptionVerifier';
 import classes from './PageLayout.module.css';
 
 export type PageLayoutProps = {
@@ -82,11 +81,9 @@ export const PageLayout = ({
         </div>
       )}
       <div className={classes.contentAreaWrapper} {...visibilityProps} data-internal-name="content-area-wrapper-outer">
-        <SubscriptionVerifier>
-          <Box h="100%" data-internal-name="content-area-wrapper-inner">
-            {children}
-          </Box>
-        </SubscriptionVerifier>
+        <Box h="100%" data-internal-name="content-area-wrapper-inner">
+          {children}
+        </Box>
       </div>
     </div>
   );

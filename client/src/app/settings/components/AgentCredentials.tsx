@@ -8,16 +8,19 @@ import {
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { useSubscription } from '@/hooks/use-subscription';
 import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
-import { Alert, Center, Grid, Group, Loader, Progress, Stack, Text } from '@mantine/core';
+import { Alert, Center, Grid, Group, Loader, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { AiAgentCredentialId } from '@spinner/shared-types';
 import { Edit3Icon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { CredentialLimit } from './CredentialLimit';
 import { SettingsPanel } from './SettingsPanel';
 
 export const AgentCredentials = () => {
+  const { canCreateCredentials } = useSubscription();
   const { agentCredentials, isLoading, error, deleteCredentials, toggleDefaultCredential } = useAgentCredentials(true);
   const deleteModal = useDeleteConfirmationModal<AiAgentCredentialId>();
   const [isEditModalOpen, { open: openEditModal, close: closeEditModal }] = useDisclosure(false);
@@ -64,27 +67,6 @@ export const AgentCredentials = () => {
         return serviceName;
     }
   };
-
-  const buildUsageElement = (credential: AiAgentCredential): React.ReactNode => {
-    if (!credential.usage) {
-      return null;
-    }
-
-    // limit is 0 for unlimited, set arbitrary high max for the progress bar
-    const max = credential.usage.limit === 0 ? 10000 : credential.usage.limit;
-    const value = credential.usage.usage === 0 ? 0 : (credential.usage.usage / max) * 100;
-
-    return (
-      <Stack gap="xs">
-        <Progress value={value} color={isOverCreditLimit(credential) ? 'red.6' : 'green.6'} />
-        <Text12Regular c="dimmed">
-          {`$${Number(Math.max(credential.usage.usage, 0.01)).toFixed(2)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}{' '}
-          {credential.usage.limitReset && `(${credential.usage.limitReset})`}
-        </Text12Regular>
-      </Stack>
-    );
-  };
-
   const list = isLoading ? (
     <Center mih={200}>
       <Group gap="xs">
@@ -109,7 +91,7 @@ export const AgentCredentials = () => {
               {credential.usage?.isFreeTier && (
                 <Text12Regular c="dimmed">This is a free tier API key with reduced rate limits.</Text12Regular>
               )}
-              {buildUsageElement(credential)}
+              <CredentialLimit credential={credential} />
             </Stack>
           </Grid.Col>
           <Grid.Col span={3}>
@@ -179,19 +161,21 @@ export const AgentCredentials = () => {
             {list}
           </Stack>
         )}
-        <Group justify="flex-end">
-          <ButtonPrimaryLight
-            size="xs"
-            w="fit-content"
-            onClick={() => {
-              setActiveCredential(null);
-              openEditModal();
-            }}
-            leftSection={<PlusIcon size={16} />}
-          >
-            New credential
-          </ButtonPrimaryLight>
-        </Group>
+        {canCreateCredentials && (
+          <Group justify="flex-end">
+            <ButtonPrimaryLight
+              size="xs"
+              w="fit-content"
+              onClick={() => {
+                setActiveCredential(null);
+                openEditModal();
+              }}
+              leftSection={<PlusIcon size={16} />}
+            >
+              New credential
+            </ButtonPrimaryLight>
+          </Group>
+        )}
       </SettingsPanel>
     </>
   );

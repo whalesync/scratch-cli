@@ -7,6 +7,7 @@ import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
+import { Actor } from './types';
 
 @Injectable()
 export class AgentCredentialsService {
@@ -33,33 +34,35 @@ export class AgentCredentialsService {
    * @deprecated - (Chris) Agent should not be using this anymore
    */
   public async findActiveServiceCredentials(
-    userId: string,
+    actor: Actor,
     service: string = 'openrouter',
   ): Promise<AiAgentCredential | null> {
     return this.db.client.aiAgentCredential.findFirst({
-      where: { userId, enabled: true, service },
+      where: { userId: actor.userId, enabled: true, service },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  public async create(data: {
-    userId: string;
-    service: string;
-    apiKey: string;
-    description?: string;
-    default?: boolean;
-  }): Promise<AiAgentCredential> {
+  public async create(
+    data: {
+      service: string;
+      apiKey: string;
+      description?: string;
+      default?: boolean;
+    },
+    actor: Actor,
+  ): Promise<AiAgentCredential> {
     const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({
-          where: { userId: data.userId },
+          where: { userId: actor.userId },
           data: { default: false },
         });
       }
       return tx.aiAgentCredential.create({
         data: {
           id: createAiAgentCredentialId(),
-          userId: data.userId,
+          userId: actor.userId,
           service: data.service,
           apiKey: data.apiKey,
           description: data.description,
@@ -69,10 +72,10 @@ export class AgentCredentialsService {
       });
     });
 
-    this.posthogService.trackCreateAgentCredential(data.userId, result);
+    this.posthogService.trackCreateAgentCredential(actor.userId, result);
 
     await this.auditLogService.logEvent({
-      userId: data.userId,
+      actor,
       eventType: 'create',
       message: `Created new credential`,
       entityId: result.id as AiAgentCredentialId,
@@ -86,25 +89,25 @@ export class AgentCredentialsService {
 
   public async update(
     id: string,
-    userId: string,
+    actor: Actor,
     data: { apiKey?: string; description?: string; default?: boolean },
   ): Promise<AiAgentCredential> {
     const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({
-          where: { userId },
+          where: { userId: actor.userId },
           data: { default: false },
         });
       }
 
       return tx.aiAgentCredential.update({
-        where: { id, userId },
+        where: { id, userId: actor.userId },
         data,
       });
     });
 
     await this.auditLogService.logEvent({
-      userId,
+      actor,
       eventType: 'update',
       message: `Updated credential`,
       entityId: id as AiAgentCredentialId,
@@ -116,9 +119,9 @@ export class AgentCredentialsService {
     return result;
   }
 
-  public async delete(id: string, userId: string): Promise<AiAgentCredential | null> {
+  public async delete(id: string, actor: Actor): Promise<AiAgentCredential | null> {
     const credential = await this.db.client.aiAgentCredential.delete({
-      where: { id, userId },
+      where: { id, userId: actor.userId },
     });
 
     if (!credential) {
@@ -137,10 +140,10 @@ export class AgentCredentialsService {
       }
     }
 
-    this.posthogService.trackDeleteAgentCredential(userId, credential);
+    this.posthogService.trackDeleteAgentCredential(actor.userId, credential);
 
     await this.auditLogService.logEvent({
-      userId,
+      actor,
       eventType: 'delete',
       message: `Deleted credential`,
       entityId: id as AiAgentCredentialId,

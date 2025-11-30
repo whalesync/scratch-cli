@@ -1,49 +1,52 @@
 'use client';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { Text13Regular } from '@/app/components/base/text';
-import { PROJECT_NAME } from '@/constants';
-import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { Text12Regular, Text13Regular } from '@/app/components/base/text';
+import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
-import { ScratchpadPlanType } from '@spinner/shared-types';
+import { Group, Stack } from '@mantine/core';
 import { CreditCardIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 import { SettingsPanel } from './SettingsPanel';
 
 export const SubscriptionCard = () => {
-  const { user } = useScratchPadUser();
-  const { isSubscribed, planDisplayName, daysRemaining, status, isTrial } = useSubscriptionStatus();
-
-  if (!user?.experimentalFlags?.REQUIRE_SUBSCRIPTION) {
-    return null;
-  }
+  const { subscription, isFreePlan } = useSubscription();
 
   const cardIcon = <CreditCardIcon size={16} />;
 
   let content = null;
-  if (isSubscribed) {
+  if (subscription.status === 'valid') {
     content = (
-      <>
-        <Text13Regular>
-          {planDisplayName} - {daysRemaining} {pluralize('day', daysRemaining)} remaining {isTrial ? ' in trial' : ''}
-        </Text13Regular>
-        <ButtonSecondaryOutline
-          size="xs"
-          component="a"
-          target="_blank"
-          leftSection={cardIcon}
-          href={RouteUrls.manageSubscriptionPage}
-          disabled={!user?.subscription?.canManageSubscription}
-        >
-          Manage Subscription
-        </ButtonSecondaryOutline>
-      </>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap="2px">
+          <Group gap="xs">
+            <Text13Regular>{subscription.planDisplayName} plan</Text13Regular>
+            {!isFreePlan && (
+              <Text12Regular c="dimmed">
+                {subscription.daysRemaining} {pluralize('day', subscription.daysRemaining)} remaining
+              </Text12Regular>
+            )}
+          </Group>
+          <Text13Regular>${subscription.costUSD} per month</Text13Regular>
+        </Stack>
+        {!isFreePlan && (
+          <ButtonSecondaryOutline
+            size="xs"
+            component="a"
+            target="_blank"
+            leftSection={cardIcon}
+            href={RouteUrls.manageSubscriptionPage}
+            disabled={!subscription.canManageSubscription}
+          >
+            Manage
+          </ButtonSecondaryOutline>
+        )}
+      </Group>
     );
-  } else if (status === 'expired' || status === 'payment_failed') {
+  } else if (subscription.status === 'expired' || subscription.status === 'payment_failed') {
     content = (
       <>
         <Text13Regular>
-          {planDisplayName} - {status}
+          {subscription.planDisplayName} - {subscription.status}
         </Text13Regular>
         <ButtonPrimaryLight
           size="xs"
@@ -51,27 +54,14 @@ export const SubscriptionCard = () => {
           target="_blank"
           leftSection={cardIcon}
           href={RouteUrls.manageSubscriptionPage}
-          disabled={!user?.subscription?.canManageSubscription}
+          disabled={!subscription.canManageSubscription}
         >
-          Manage subscription
+          Manage
         </ButtonPrimaryLight>
       </>
     );
   } else {
-    content = (
-      <>
-        <Text13Regular>Sign up for a 7 day free trial to {PROJECT_NAME}</Text13Regular>
-        <ButtonPrimaryLight
-          size="xs"
-          component="a"
-          target="_blank"
-          leftSection={cardIcon}
-          href={RouteUrls.productCheckoutPage(ScratchpadPlanType.STARTER_PLAN)}
-        >
-          Subscribe
-        </ButtonPrimaryLight>
-      </>
-    );
+    content = <Text13Regular>No plan configured</Text13Regular>;
   }
 
   return (

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuditLogEvent } from '@prisma/client';
 import { AnyId, createAuditLogEventId } from '@spinner/shared-types';
+import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
 import { AuditLogEventType } from './types';
 
@@ -10,8 +11,7 @@ export class AuditLogService {
 
   // TODO (DEV-8628): change signature to take Actor instead of userId and organizationId in args
   async logEvent(args: {
-    organizationId?: string;
-    userId: string;
+    actor: Actor;
     eventType: AuditLogEventType;
     message: string;
     entityId: AnyId;
@@ -21,8 +21,8 @@ export class AuditLogService {
     return this.dbService.client.auditLogEvent.create({
       data: {
         id: createAuditLogEventId(),
-        userId: args.userId,
-        organizationId: args.organizationId,
+        userId: args.actor.userId,
+        organizationId: args.actor.organizationId,
         eventType: args.eventType,
         message: args.message,
         entityId: args.entityId,

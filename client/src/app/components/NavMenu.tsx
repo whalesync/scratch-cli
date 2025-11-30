@@ -11,6 +11,7 @@ import {
   ChevronDown,
   CircleQuestionMarkIcon,
   CpuIcon,
+  CreditCardIcon,
   FileTextIcon,
   LucideIcon,
   MoonIcon,
@@ -67,6 +68,14 @@ const lowerMenuItems: MenuItem[] = [
     newTab: true,
     label: 'Docs',
     icon: CircleQuestionMarkIcon,
+  },
+  {
+    type: 'link',
+    href: RouteUrls.billingPageUrl,
+    label: 'Billing',
+    icon: CreditCardIcon,
+    // set as a dev tool until this is fully implemented
+    isDevTool: true,
   },
   {
     type: 'link',

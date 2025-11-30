@@ -2,9 +2,10 @@ import { Subscription, TokenType, UserRole } from '@prisma/client';
 import { SubscriptionInfo } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { UserFlagValues } from 'src/experiments/experiments.service';
+import { WSLogger } from 'src/logger';
 import { SubscriptionPlanFeaturesEntity } from 'src/payment/entities/subscription-plan';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
-import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
+import { getFreePlan, getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { Organization } from './organization.entity';
 
 export type { SubscriptionInfo } from '@spinner/shared-types';
@@ -58,19 +59,53 @@ export function findValidToken(user: UserCluster.User, type: TokenType): string 
   return user.apiTokens.find((token) => token.expiresAt > new Date() && token.type === type)?.token;
 }
 
+function buildFreePlanSubscriptionInfo(userId: string): SubscriptionInfo {
+  const plan = getFreePlan();
+  return {
+    status: 'valid',
+    planDisplayName: plan.displayName,
+    planType: plan.productType,
+    costUSD: plan.costUSD,
+    daysRemaining: 0,
+    isTrial: false,
+    canManageSubscription: true,
+    ownerId: userId,
+    features: new SubscriptionPlanFeaturesEntity(plan.features),
+  };
+}
+
 function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): SubscriptionInfo | undefined {
   const latestSubscription = getLastestExpiringSubscription(subscriptions);
   if (!latestSubscription) {
-    return undefined;
+    // If the user has no subscription at all, use the Free Plan
+    return buildFreePlanSubscriptionInfo(userId);
   }
 
   const planType = getPlanTypeFromString(latestSubscription.productType);
 
   if (!planType) {
-    return undefined;
+    WSLogger.error({
+      source: 'users.toSubscriptionInfo',
+      message: 'Unable to extract plan type from existing subscription',
+      userId: userId,
+      planType: latestSubscription.productType,
+      subscriptionId: latestSubscription.id,
+    });
+    return buildFreePlanSubscriptionInfo(userId);
   }
 
   const plan = getPlan(planType);
+
+  if (!plan) {
+    WSLogger.error({
+      source: 'users.toSubscriptionInfo',
+      message: 'Unable to find plan for plan type',
+      userId: userId,
+      planType: planType,
+      subscriptionId: latestSubscription.id,
+    });
+    return buildFreePlanSubscriptionInfo(userId);
+  }
 
   /* How much longer the subscription is valid in days. A negative number respresents how long since the 
   subscription expired */
@@ -87,12 +122,13 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
 
   return {
     status,
-    planDisplayName: plan?.displayName ?? 'Untitled Plan',
+    planDisplayName: plan.displayName,
     planType: planType,
+    costUSD: plan.costUSD,
     daysRemaining,
     isTrial: latestSubscription.stripeStatus === 'trialing',
     canManageSubscription: latestSubscription.userId === userId,
     ownerId: latestSubscription.userId,
-    features: plan?.features ? new SubscriptionPlanFeaturesEntity(plan?.features) : undefined,
+    features: new SubscriptionPlanFeaturesEntity(plan.features),
   };
 }

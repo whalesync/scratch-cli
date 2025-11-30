@@ -1,6 +1,5 @@
 'use client';
 
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
@@ -13,8 +12,6 @@ import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import MainContent from '../components/layouts/MainContent';
 
 export default function DevListPage() {
-  const { user } = useScratchPadUser();
-  const jobsEnabled = user?.experimentalFlags?.USE_JOBS ?? false;
   return (
     <MainContent>
       <MainContent.BasicHeader title="Dev tools" />
@@ -40,7 +37,6 @@ export default function DevListPage() {
             component={Link}
             href={RouteUrls.devToolsJobsPageUrl}
             leftSection={<StyledLucideIcon Icon={PickaxeIcon} size={16} />}
-            disabled={!jobsEnabled}
           >
             Jobs
           </DevToolButton>

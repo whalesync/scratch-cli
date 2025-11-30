@@ -23,6 +23,7 @@ export class RouteUrls {
   static workbooksPageUrl = '/workbooks';
   static promptAssetsPageUrl = '/prompt-assets';
   static settingsPageUrl = '/settings';
+  static billingPageUrl = '/billing';
   static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
   static manageSubscriptionPage = '/subscription/manage';
 

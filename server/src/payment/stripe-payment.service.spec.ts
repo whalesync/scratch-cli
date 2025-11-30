@@ -181,7 +181,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial123',
         status: 'trialing',
         customer: 'cus_existing123',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -196,7 +196,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.subscriptions.create = jest.fn().mockResolvedValue(mockSubscription);
       mockDbService.client.subscription.upsert.mockResolvedValue({});
 
-      const result = await service.createTrialSubscription(user);
+      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
 
       expect(isOk(result)).toBe(true);
       expect(mockStripeInstance.subscriptions.create).toHaveBeenCalledWith(
@@ -209,7 +209,7 @@ describe('StripePaymentService', () => {
           }),
         }),
       );
-      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchpadPlanType.STARTER_PLAN);
+      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchpadPlanType.PRO_PLAN);
     });
 
     it('should create new customer if user does not have one', async () => {
@@ -219,7 +219,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial456',
         status: 'trialing',
         customer: 'cus_newCustomer789',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -236,7 +236,7 @@ describe('StripePaymentService', () => {
       mockDbService.client.user.update.mockResolvedValue({});
       mockDbService.client.subscription.upsert.mockResolvedValue({});
 
-      const result = await service.createTrialSubscription(user);
+      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
 
       expect(isOk(result)).toBe(true);
       expect(mockDbService.client.user.update).toHaveBeenCalledWith(
@@ -253,7 +253,7 @@ describe('StripePaymentService', () => {
 
       mockStripeInstance.subscriptions.create = jest.fn().mockRejectedValue(stripeError);
 
-      const result = await service.createTrialSubscription(user);
+      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
@@ -278,7 +278,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
       jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -291,6 +291,49 @@ describe('StripePaymentService', () => {
           customer: 'cus_checkout123',
           success_url: 'https://app.scratch.md/?welcome',
           cancel_url: 'https://app.scratch.md/settings',
+          subscription_data: expect.objectContaining({
+            trial_period_days: 7,
+            metadata: expect.objectContaining({
+              application: 'scratchpad',
+              productType: ScratchpadPlanType.PRO_PLAN,
+            }),
+          }),
+          payment_method_collection: 'if_required',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should generate checkout URL without trial when createTrialSubscription is false', async () => {
+      const user = createMockUser({
+        stripeCustomerId: 'cus_notrial123',
+        organization: { id: 'org_123', subscriptions: [] },
+      });
+
+      const mockSession = {
+        id: 'cs_notrial123',
+        url: 'https://checkout.stripe.com/pay/cs_notrial123',
+      } as Stripe.Checkout.Session;
+
+      mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
+      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, false);
+
+      expect(isOk(result)).toBe(true);
+      if (isOk(result)) {
+        expect(result.v).toBe('https://checkout.stripe.com/pay/cs_notrial123');
+      }
+
+      expect(mockStripeInstance.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'subscription',
+          customer: 'cus_notrial123',
+          subscription_data: expect.objectContaining({
+            trial_period_days: 0,
+            trial_settings: undefined,
+          }),
+          payment_method_collection: 'always',
         }),
         expect.any(Object),
       );
@@ -321,7 +364,7 @@ describe('StripePaymentService', () => {
       const checkoutCreateSpy = jest.fn();
       mockStripeInstance.checkout.sessions.create = checkoutCreateSpy;
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -358,7 +401,7 @@ describe('StripePaymentService', () => {
 
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.STARTER_PLAN);
+      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {

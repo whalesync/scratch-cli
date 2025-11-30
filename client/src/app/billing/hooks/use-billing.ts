@@ -8,6 +8,10 @@ import useSWR from 'swr';
 export const useBillingDetails = () => {
   const { data, error, isLoading } = useSWR<SubscriptionPlan[]>(SWR_KEYS.billing.plans(), () => paymentApi.listPlans());
 
+  const sortedPlans = useMemo(() => {
+    return data ? data.sort((a, b) => a.costUSD - b.costUSD) : [];
+  }, [data]);
+
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {
       // ignore this error as it will be fixed after the token is refreshed
@@ -17,7 +21,7 @@ export const useBillingDetails = () => {
   }, [error]);
 
   return {
-    plans: data,
+    plans: sortedPlans,
     isLoading,
     error: displayError,
   };

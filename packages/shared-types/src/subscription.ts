@@ -14,19 +14,21 @@ export interface SubscriptionPlanFeatures {
 }
 
 export interface SubscriptionInfo {
-  status: 'valid' | 'expired' | 'payment_failed';
+  status: 'valid' | 'expired' | 'payment_failed' | 'none';
   planDisplayName: string;
   planType: ScratchpadPlanType;
+  costUSD: number;
   daysRemaining: number;
   isTrial: boolean;
   canManageSubscription: boolean;
   ownerId: string;
-  features?: SubscriptionPlanFeatures;
+  features: SubscriptionPlanFeatures;
 }
 
 export interface SubscriptionPlan {
   productType: ScratchpadPlanType;
   displayName: string;
   popular: boolean;
+  costUSD: number;
   features: SubscriptionPlanFeatures;
 }

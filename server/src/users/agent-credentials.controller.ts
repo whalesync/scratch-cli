@@ -27,6 +27,7 @@ import {
   ValidatedCreateAgentCredentialDto,
 } from './dto/create-agent-credential.dto';
 import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
+import { userToActor } from './types';
 
 @Controller('user/credentials')
 @UseGuards(ScratchpadAuthGuard)
@@ -76,7 +77,7 @@ export class AgentCredentialsController {
 
   @Get('active/:service')
   async findActive(@Param('service') service: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
-    const result = await this.service.findActiveServiceCredentials(req.user.id, service);
+    const result = await this.service.findActiveServiceCredentials(userToActor(req.user), service);
 
     if (!result) {
       throw new NotFoundException();
@@ -128,7 +129,7 @@ export class AgentCredentialsController {
     @Req() req: RequestWithUser,
   ): Promise<AiAgentCredential> {
     const dto = createAgentCredentialDto as ValidatedCreateAgentCredentialDto;
-    return new AiAgentCredential(await this.service.create({ ...dto, userId: req.user.id }));
+    return new AiAgentCredential(await this.service.create(dto, userToActor(req.user)));
   }
 
   @Post(':id')
@@ -139,12 +140,13 @@ export class AgentCredentialsController {
   ): Promise<AiAgentCredential> {
     const dto = updateAgentCredentialDto;
     const credential = await this.service.findOne(id);
+    const actor = userToActor(req.user);
 
     if (!credential) {
       throw new NotFoundException();
     }
 
-    if (credential.userId !== req.user.id) {
+    if (credential.userId !== actor.userId) {
       throw new ForbiddenException();
     }
 
@@ -158,7 +160,7 @@ export class AgentCredentialsController {
       throw new BadRequestException('At least one of description or default must be provided');
     }
 
-    const updatedCredential = await this.service.update(id, req.user.id, dto);
+    const updatedCredential = await this.service.update(id, actor, dto);
 
     if (!updatedCredential) {
       throw new NotFoundException();
@@ -180,7 +182,7 @@ export class AgentCredentialsController {
       throw new ForbiddenException();
     }
 
-    await this.service.delete(id, req.user.id);
+    await this.service.delete(id, userToActor(req.user));
   }
 
   @Post(':id/set-default')

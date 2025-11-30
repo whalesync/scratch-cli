@@ -87,12 +87,6 @@ export class ExperimentsService {
       if (key === UserFlag.DEV_TOOLBOX) {
         // Based ont he user's role, set the flag value
         flagValues[key] = user.role === UserRole.ADMIN ? true : false;
-      } else if (key === UserFlag.REQUIRE_SUBSCRIPTION) {
-        // get this from the config service for now
-        flagValues[key] = this.config.getRequireSubscription();
-      } else if (key === UserFlag.USE_JOBS) {
-        // get this from the config service for now
-        flagValues[key] = this.config.getUseJobs();
       } else if (dataType === 'boolean') {
         flagValues[key] = await this.getBooleanFlag(key, false, user);
       } else if (dataType === 'string') {

@@ -14,8 +14,6 @@ export enum SystemFeatureFlag {
  */
 export enum UserFlag {
   DEV_TOOLBOX = 'DEV_TOOLBOX',
-  REQUIRE_SUBSCRIPTION = 'REQUIRE_SUBSCRIPTION',
-  USE_JOBS = 'USE_JOBS',
   SAMPLE_USER_FLAG = 'sample_user_flag',
   CONNECTOR_LIST = 'CONNECTOR_LIST',
 }
@@ -35,8 +33,6 @@ export type AllFeatureFlags = SystemFeatureFlag | UserFlag;
 export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   // Special flags based on system flags or user role
   [UserFlag.DEV_TOOLBOX]: 'boolean',
-  [UserFlag.REQUIRE_SUBSCRIPTION]: 'boolean',
-  [UserFlag.USE_JOBS]: 'boolean',
   [UserFlag.CONNECTOR_LIST]: 'array',
   // User-scoped feature flags
   [UserFlag.SAMPLE_USER_FLAG]: 'boolean',

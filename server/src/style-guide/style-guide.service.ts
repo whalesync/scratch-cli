@@ -43,8 +43,7 @@ export class StyleGuideService {
 
     this.posthogService.trackCreateResource(actor.userId, styleGuide);
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'create',
       message: `Created resource ${styleGuide.name}`,
       entityId: styleGuide.id as StyleGuideId,
@@ -97,8 +96,7 @@ export class StyleGuideService {
     }
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Updated resource ${updatedStyleGuide.name}`,
       entityId: updatedStyleGuide.id as StyleGuideId,
@@ -123,8 +121,7 @@ export class StyleGuideService {
     if (result.count > 0) {
       this.posthogService.trackRemoveResource(actor.userId, styleGuide);
       await this.auditLogService.logEvent({
-        userId: actor.userId,
-        organizationId: actor.organizationId,
+        actor,
         eventType: 'delete',
         message: `Deleted resource ${styleGuide.name}`,
         entityId: styleGuide.id as StyleGuideId,

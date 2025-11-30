@@ -1,5 +1,6 @@
 import { ScratchpadPlanType } from '@spinner/shared-types';
 import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
+import { assertIsDefined } from 'src/utils/asserts';
 
 export { ScratchpadPlanType } from '@spinner/shared-types';
 
@@ -29,6 +30,7 @@ export interface PlanFeatures {
 
 export interface Plan {
   productType: ScratchpadPlanType;
+  costUSD: number;
   displayName: string;
   stripeProductId: string;
   stripePriceId: string;
@@ -46,6 +48,7 @@ export interface Plan {
  */
 export const FREE_PLAN: Plan = {
   productType: ScratchpadPlanType.FREE_PLAN,
+  costUSD: 0,
   displayName: 'Free',
   stripeProductId: 'free_plan',
   stripePriceId: 'free_plan',
@@ -66,6 +69,7 @@ export const FREE_PLAN: Plan = {
  */
 export const STARTER_PLAN: Plan = {
   productType: ScratchpadPlanType.STARTER_PLAN,
+  costUSD: 5,
   displayName: 'Starter',
   stripeProductId: '',
   stripePriceId: '',
@@ -88,6 +92,7 @@ export const STARTER_PLAN: Plan = {
  */
 export const PRO_PLAN: Plan = {
   productType: ScratchpadPlanType.PRO_PLAN,
+  costUSD: 20,
   displayName: 'Pro',
   stripeProductId: '', // Set differently for each environment
   stripePriceId: '', // Set differently for each environment
@@ -105,6 +110,7 @@ export const PRO_PLAN: Plan = {
 
 export const MAX_PLAN: Plan = {
   productType: ScratchpadPlanType.MAX_PLAN,
+  costUSD: 100,
   displayName: 'Max',
   stripeProductId: '', // Set differently for each environment
   stripePriceId: '', // Set differently for each environment
@@ -167,4 +173,10 @@ export function getPlans(environment: ScratchpadEnvironment): Plan[] {
 
 export function getPlan(productType: ScratchpadPlanType): Plan | undefined {
   return getPlans(ScratchpadConfigService.getScratchpadEnvironment()).find((p) => p.productType === productType);
+}
+
+export function getFreePlan(): Plan {
+  const freePlan = getPlan(ScratchpadPlanType.FREE_PLAN);
+  assertIsDefined<Plan>(freePlan, 'Unable to identify free plan in the system');
+  return freePlan;
 }

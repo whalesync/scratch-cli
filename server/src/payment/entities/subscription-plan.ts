@@ -21,12 +21,14 @@ export class SubscriptionPlanEntity implements SubscriptionPlan {
   productType: ScratchpadPlanType;
   displayName: string;
   popular: boolean;
+  costUSD: number;
   features: SubscriptionPlanFeatures;
 
   constructor(plan: Plan) {
     this.productType = plan.productType;
     this.displayName = plan.displayName;
     this.popular = plan.popular;
+    this.costUSD = plan.costUSD;
     this.features = new SubscriptionPlanFeaturesEntity(plan.features);
   }
 }

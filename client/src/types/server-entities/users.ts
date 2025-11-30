@@ -22,8 +22,6 @@ export type { SubscriptionInfo } from '@spinner/shared-types';
 /** User-scoped feature flag settings provided by the server */
 export interface UserExperimentFlags {
   DEV_TOOLBOX: boolean;
-  REQUIRE_SUBSCRIPTION: boolean;
-  USE_JOBS: boolean;
   CONNECTOR_LIST: string[];
 }
 

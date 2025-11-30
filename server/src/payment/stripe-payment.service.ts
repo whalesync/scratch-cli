@@ -93,15 +93,20 @@ export class StripePaymentService {
     return ok(response.id);
   }
 
-  async createTrialSubscription(user: UserCluster.User): AsyncResult<string> {
+  /**
+   * Creates a trial subscription on Stripe for a user withouth going through checkout or the billing portal
+   * @param user - The user to create the trial subscription for
+   * @returns A result indicating success or a failure message
+   */
+  async createTrialSubscription(user: UserCluster.User, planType: ScratchpadPlanType): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
       message: `Creating trial subscription for user ${user.id}`,
     });
 
-    const stripePriceId = this.getDefaultPriceId(ScratchpadPlanType.STARTER_PLAN);
+    const stripePriceId = this.getDefaultPriceId(planType);
     if (!stripePriceId) {
-      return unexpectedError(`No stripe product id for ${ScratchpadPlanType.STARTER_PLAN}`);
+      return unexpectedError(`No stripe product id for ${planType}`);
     }
 
     const stripeCustomerId = await this.upsertStripeCustomerId(user);
@@ -132,7 +137,7 @@ export class StripePaymentService {
         return result;
       }
 
-      this.postHogService.trackTrialStarted(user.id, ScratchpadPlanType.STARTER_PLAN);
+      this.postHogService.trackTrialStarted(user.id, planType);
 
       return ok('success');
     } catch (err) {
@@ -176,7 +181,11 @@ export class StripePaymentService {
     return ok(portalSession.url);
   }
 
-  async generateCheckoutUrl(user: UserCluster.User, productType: ScratchpadPlanType): AsyncResult<string> {
+  async generateCheckoutUrl(
+    user: UserCluster.User,
+    productType: ScratchpadPlanType,
+    createTrialSubscription: boolean = true,
+  ): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
       message: `Generating checkout URL for user ${user.id}, product ${productType}`,
@@ -213,20 +222,22 @@ export class StripePaymentService {
         customer: stripeCustomerId.v,
 
         subscription_data: {
-          trial_period_days: TRIAL_PERIOD_DAYS,
+          trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : 0,
           metadata: {
             application: METADATA_APPLICATION_NAME,
             productType: productType,
             environment: this.configService.getScratchpadEnvironment(),
           },
-          trial_settings: {
-            end_behavior: {
-              missing_payment_method: 'cancel',
-            },
-          },
+          trial_settings: createTrialSubscription
+            ? {
+                end_behavior: {
+                  missing_payment_method: 'cancel',
+                },
+              }
+            : undefined,
         },
         // Only collect payment method if the cost of the subscription is greater than $0 or if a free trial is not available.
-        payment_method_collection: this.configService.getTrialRequirePaymentMethod() ? 'always' : 'if_required',
+        payment_method_collection: createTrialSubscription ? 'if_required' : 'always',
 
         // We must enable this to properly auto-collect taxes for customers based on their location.
         automatic_tax: { enabled: automaticTaxEnabled },

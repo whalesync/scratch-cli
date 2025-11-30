@@ -159,8 +159,7 @@ export class WorkbookService {
 
     this.posthogService.trackCreateWorkbook(actor.userId, newWorkbook);
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'create',
       message: `Created workbook ${newWorkbook.name}`,
       entityId: newWorkbook.id as WorkbookId,
@@ -279,8 +278,7 @@ export class WorkbookService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Added table ${tableSpec.name} to workbook ${workbook.name}`,
       entityId: workbookId,
@@ -328,10 +326,9 @@ export class WorkbookService {
     }
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
-      message: `${hidden ? 'Hidden' : 'Unhidden'} table in workbook ${workbook.name}`,
+      message: `${hidden ? 'Hide' : 'Unhide'} table in workbook ${workbook.name}`,
       entityId: workbookId,
       context: {
         tableId,
@@ -393,8 +390,7 @@ export class WorkbookService {
     }
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'delete',
       message: `Deleted table ${snapshotTable.tableName} from workbook ${workbook.name}`,
       entityId: workbookId,
@@ -417,8 +413,7 @@ export class WorkbookService {
 
     this.posthogService.trackRemoveWorkbook(actor.userId, workbook);
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'delete',
       message: `Deleted workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
@@ -491,8 +486,7 @@ export class WorkbookService {
     this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Updated snapshot ${updatedWorkbook.name}`,
       entityId: updatedWorkbook.id as WorkbookId,
@@ -1257,8 +1251,7 @@ export class WorkbookService {
     // Track analytics and audit log when job is enqueued
     this.posthogService.trackPublishWorkbook(actor.userId, workbook);
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'publish',
       message: `Publishing workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
@@ -1276,8 +1269,7 @@ export class WorkbookService {
 
     this.posthogService.trackPublishWorkbook(actor.userId, workbook);
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'publish',
       message: `Published workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
@@ -2124,8 +2116,7 @@ export class WorkbookService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Set title column for table ${tableSpec.name} to ${column.name}`,
       entityId: workbookId,
@@ -2201,8 +2192,7 @@ export class WorkbookService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Added scratch column ${columnName} to table ${tableSpec.name}`,
       entityId: workbookId,
@@ -2281,8 +2271,7 @@ export class WorkbookService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Removed scratch column ${column.name} from table ${tableSpec.name}`,
       entityId: workbookId,
@@ -2407,8 +2396,7 @@ export class WorkbookService {
     });
 
     await this.auditLogService.logEvent({
-      userId: actor.userId,
-      organizationId: actor.organizationId,
+      actor,
       eventType: 'update',
       message: `Handled ${recordsProcessed} remote deletes with local edits (action: ${action})`,
       entityId: workbookId,
