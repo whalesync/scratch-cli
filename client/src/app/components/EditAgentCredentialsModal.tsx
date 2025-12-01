@@ -3,17 +3,14 @@ import { Text13Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import {
-  AiAgentCredential,
-  CreateAiAgentCredentialDto,
-  UpdateAiAgentCredentialDto,
-} from '@/types/server-entities/agent-credentials';
+import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { Alert, Checkbox, Group, Modal, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
+import { AgentCredential } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
 
 interface EditAgentCredentialsModalProps extends ModalProps {
-  credentials: AiAgentCredential | null;
+  credentials: AgentCredential | null;
   onSuccess?: () => void;
 }
 

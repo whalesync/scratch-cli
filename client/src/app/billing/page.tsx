@@ -3,6 +3,7 @@
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { Alert, Divider, SimpleGrid, Stack } from '@mantine/core';
 import { CreditCardIcon } from 'lucide-react';
+import { usePayments } from '../../hooks/use-payments';
 import { FullPageLoader } from '../components/FullPageLoader';
 import { Info } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
@@ -10,11 +11,10 @@ import { ActiveSubscriptionSection } from './components/ActiveSubscriptionSectio
 import { BillingSection } from './components/BillingSection';
 import { PlanCard } from './components/PlanCard';
 import { TokenUsageSection } from './components/TokenUsageSection';
-import { useBillingDetails } from './hooks/use-billing';
 
 const BillingPage = () => {
   const { isDevToolsEnabled } = useDevTools();
-  const { plans, isLoading, error } = useBillingDetails();
+  const { plans, isLoading, error, portalRedirectError } = usePayments();
 
   if (isLoading) {
     return <FullPageLoader />;
@@ -36,6 +36,7 @@ const BillingPage = () => {
       <MainContent.Body>
         <Stack gap="20px" maw={800}>
           {error && <Alert color="red">{error}</Alert>}
+          {portalRedirectError && <Alert color="red">{portalRedirectError}</Alert>}
           <ActiveSubscriptionSection />
           <Divider c="var(--mantine-color-gray-3)" />
           <TokenUsageSection />

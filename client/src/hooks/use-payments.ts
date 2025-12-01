@@ -1,0 +1,88 @@
+import { isUnauthorizedError } from '@/lib/api/error';
+import { SWR_KEYS } from '@/lib/api/keys';
+import { paymentApi } from '@/lib/api/payment';
+import { trackClickManageSubscription } from '@/lib/posthog';
+import { ScratchpadPlanType, SubscriptionPlan } from '@spinner/shared-types';
+import { useCallback, useMemo, useState } from 'react';
+import useSWR from 'swr';
+
+export const usePayments = () => {
+  const [portalRedirectInProgress, setPortalRedirectInProgress] = useState(false);
+  const [portalRedirectError, setPortalRedirectError] = useState<string | null>(null);
+  const { data, error, isLoading } = useSWR<SubscriptionPlan[]>(SWR_KEYS.billing.plans(), () => paymentApi.listPlans());
+
+  const sortedPlans = useMemo(() => {
+    return data ? data.sort((a, b) => a.costUSD - b.costUSD) : [];
+  }, [data]);
+
+  const displayError = useMemo(() => {
+    if (isUnauthorizedError(error)) {
+      // ignore this error as it will be fixed after the token is refreshed
+      return undefined;
+    }
+    return error?.message;
+  }, [error]);
+
+  const redirectToUpdateSubscription = useCallback(
+    async (planType: ScratchpadPlanType, returnPath: string) => {
+      try {
+        setPortalRedirectInProgress(true);
+        const result = await paymentApi.createCustomerPortalUrl({
+          portalType: 'update_subscription',
+          planType,
+          returnPath,
+        });
+        trackClickManageSubscription();
+        window.location.replace(result.url);
+      } catch (error) {
+        console.error('Failed to redirect to update subscription: ', error);
+        setPortalRedirectError(error instanceof Error ? error.message : 'Unknown error');
+        setPortalRedirectInProgress(false);
+      }
+    },
+    [setPortalRedirectInProgress, setPortalRedirectError],
+  );
+
+  const redirectToCancelSubscription = useCallback(
+    async (returnPath: string) => {
+      try {
+        setPortalRedirectInProgress(true);
+        const result = await paymentApi.createCustomerPortalUrl({ portalType: 'cancel_subscription', returnPath });
+        trackClickManageSubscription();
+        window.location.replace(result.url);
+      } catch (error) {
+        console.error('Failed to redirect to update subscription: ', error);
+        setPortalRedirectError(error instanceof Error ? error.message : 'Unknown error');
+        setPortalRedirectInProgress(false);
+      }
+    },
+    [setPortalRedirectInProgress, setPortalRedirectError],
+  );
+
+  const redirectToManageSubscription = useCallback(
+    async (returnPath: string) => {
+      try {
+        setPortalRedirectInProgress(true);
+        const result = await paymentApi.createCustomerPortalUrl({ returnPath });
+        trackClickManageSubscription();
+        window.location.replace(result.url);
+      } catch (error) {
+        console.error('Failed to redirect to manage subscription: ', error);
+        setPortalRedirectError(error instanceof Error ? error.message : 'Unknown error');
+        setPortalRedirectInProgress(false);
+      }
+    },
+    [setPortalRedirectInProgress, setPortalRedirectError],
+  );
+
+  return {
+    plans: sortedPlans,
+    isLoading,
+    error: displayError,
+    redirectToUpdateSubscription,
+    redirectToCancelSubscription,
+    redirectToManageSubscription,
+    portalRedirectInProgress,
+    portalRedirectError,
+  };
+};

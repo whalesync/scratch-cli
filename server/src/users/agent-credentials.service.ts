@@ -38,7 +38,7 @@ export class AgentCredentialsService {
     service: string = 'openrouter',
   ): Promise<AiAgentCredential | null> {
     return this.db.client.aiAgentCredential.findFirst({
-      where: { userId: actor.userId, enabled: true, service },
+      where: { userId: actor.userId, default: true, service },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -66,7 +66,6 @@ export class AgentCredentialsService {
           service: data.service,
           apiKey: data.apiKey,
           description: data.description,
-          enabled: true, // TODO(chris):default to true until we remove this deprecated column
           default: data.default,
         },
       });

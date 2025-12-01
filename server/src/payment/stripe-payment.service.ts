@@ -21,7 +21,8 @@ import {
   unexpectedError,
 } from 'src/types/results';
 import Stripe from 'stripe';
-import { getActiveSubscriptions, isActiveSubscriptionOwnedByUser } from './helpers';
+import { CreatePortalDto } from './dto/create-portal.dto';
+import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
 import { getPlans, ScratchpadPlanType } from './plans';
 
 /**
@@ -36,9 +37,9 @@ type StripeWebhookResult = 'success' | 'ignored';
 // Client path that we redirect to if the checkout is successful.
 const DEFAULT_SUCCESS_PATH = '/?welcome';
 // Client path that we redirect to if the checkout is cancelled.
-const DEFAULT_CANCEL_PATH = '/settings';
+const DEFAULT_CANCEL_PATH = '/billing';
 // Client path that we redirect to if the user clicks the "Manage Subscription" button in the settings page.
-const PORTAL_RETURN_PATH = '/settings';
+const PORTAL_RETURN_PATH = '/billing';
 
 // Attached to all subscriptions created by Scratchpad. IF you change this you have to change the StripePaymentService in Whalesync so that
 // the value matches. That is how Whalesync knows which webhooks to ignore.
@@ -147,10 +148,11 @@ export class StripePaymentService {
     }
   }
 
-  async createCustomerPortalUrl(user: UserCluster.User): AsyncResult<string> {
+  async createCustomerPortalUrl(user: UserCluster.User, dto: CreatePortalDto): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
       message: `Creating customer portal URL for user ${user.id}`,
+      config: dto,
     });
 
     // If the user has an active subscription on the organization, redirect them to the manage subscription page.
@@ -158,20 +160,49 @@ export class StripePaymentService {
       return badRequestError('You do not own the active subscription for this organization');
     }
 
+    const currentSubscription = getLastestExpiringSubscription(user.organization?.subscriptions ?? []);
+
     const stripeCustomerId = await this.upsertStripeCustomerId(user);
     if (isErr(stripeCustomerId)) {
       return stripeCustomerId;
     }
 
-    const portalSession = await this.stripe.billingPortal.sessions.create(
-      {
-        customer: stripeCustomerId.v,
-        return_url: `${ScratchpadConfigService.getClientBaseUrl()}${PORTAL_RETURN_PATH}`,
-      },
-      {
-        apiVersion: STRIPE_API_VERSION,
-      },
-    );
+    const portalSessionConfig: Stripe.BillingPortal.SessionCreateParams = {
+      customer: stripeCustomerId.v,
+      return_url: `${ScratchpadConfigService.getClientBaseUrl()}${PORTAL_RETURN_PATH}`,
+    };
+
+    if (dto.portalType === 'update_subscription') {
+      if (!currentSubscription) {
+        return badRequestError('You do not have an active subscription to cancel');
+      }
+
+      portalSessionConfig.flow_data = {
+        type: 'subscription_update',
+        subscription_update: {
+          subscription: currentSubscription.stripeSubscriptionId,
+        },
+      };
+    } else if (dto.portalType === 'cancel_subscription') {
+      if (!currentSubscription) {
+        return badRequestError('You do not have an active subscription to cancel');
+      }
+
+      portalSessionConfig.flow_data = {
+        type: 'subscription_cancel',
+        subscription_cancel: {
+          subscription: currentSubscription.stripeSubscriptionId,
+        },
+      };
+    } else if (dto.portalType === 'manage_payment_methods') {
+      portalSessionConfig.flow_data = {
+        type: 'payment_method_update',
+      };
+    }
+
+    const portalSession = await this.stripe.billingPortal.sessions.create(portalSessionConfig, {
+      apiVersion: STRIPE_API_VERSION,
+    });
 
     WSLogger.info({
       source: StripePaymentService.name,
@@ -184,7 +215,8 @@ export class StripePaymentService {
   async generateCheckoutUrl(
     user: UserCluster.User,
     productType: ScratchpadPlanType,
-    createTrialSubscription: boolean = true,
+    createTrialSubscription: boolean = false,
+    returnPath: string = DEFAULT_SUCCESS_PATH,
   ): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
@@ -194,7 +226,7 @@ export class StripePaymentService {
     // Never allow someone to checkout again if they already have a current subscription on the organization.
     // Instead send them to manage the existing one.
     if (getActiveSubscriptions(user.organization?.subscriptions ?? []).length > 0) {
-      return this.createCustomerPortalUrl(user);
+      return this.createCustomerPortalUrl(user, { returnPath: returnPath });
     }
 
     const stripePriceId = this.getDefaultPriceId(productType);
@@ -222,7 +254,7 @@ export class StripePaymentService {
         customer: stripeCustomerId.v,
 
         subscription_data: {
-          trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : 0,
+          trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : undefined,
           metadata: {
             application: METADATA_APPLICATION_NAME,
             productType: productType,
@@ -245,7 +277,7 @@ export class StripePaymentService {
 
         // In event of either success or failure, send them back to the dashboard root page to sort things
         // out. It has logic to redirect to an appropriate sub-view afterwards.
-        success_url: `${clientBaseUrl}${DEFAULT_SUCCESS_PATH}`,
+        success_url: `${clientBaseUrl}${returnPath}`,
         cancel_url: `${clientBaseUrl}${DEFAULT_CANCEL_PATH}`,
 
         // Allows the customer to enter their tax ID number.

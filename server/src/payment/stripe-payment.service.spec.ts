@@ -290,7 +290,7 @@ describe('StripePaymentService', () => {
           mode: 'subscription',
           customer: 'cus_checkout123',
           success_url: 'https://app.scratch.md/?welcome',
-          cancel_url: 'https://app.scratch.md/settings',
+          cancel_url: 'https://app.scratch.md/billing',
           subscription_data: expect.objectContaining({
             trial_period_days: 7,
             metadata: expect.objectContaining({
@@ -330,7 +330,7 @@ describe('StripePaymentService', () => {
           mode: 'subscription',
           customer: 'cus_notrial123',
           subscription_data: expect.objectContaining({
-            trial_period_days: 0,
+            trial_period_days: undefined,
             trial_settings: undefined,
           }),
           payment_method_collection: 'always',
@@ -436,7 +436,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.billingPortal.sessions.create = jest.fn().mockResolvedValue(mockPortalSession);
       jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
-      const result = await service.createCustomerPortalUrl(user);
+      const result = await service.createCustomerPortalUrl(user, {});
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -446,7 +446,7 @@ describe('StripePaymentService', () => {
       expect(mockStripeInstance.billingPortal.sessions.create).toHaveBeenCalledWith(
         {
           customer: 'cus_portal123',
-          return_url: 'https://app.scratch.md/settings',
+          return_url: 'https://app.scratch.md/billing',
         },
         expect.objectContaining({
           apiVersion: expect.any(String),
@@ -472,7 +472,7 @@ describe('StripePaymentService', () => {
         },
       });
 
-      const result = await service.createCustomerPortalUrl(user);
+      const result = await service.createCustomerPortalUrl(user, {});
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
@@ -490,7 +490,7 @@ describe('StripePaymentService', () => {
         },
       });
 
-      const result = await service.createCustomerPortalUrl(user);
+      const result = await service.createCustomerPortalUrl(user, {});
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {

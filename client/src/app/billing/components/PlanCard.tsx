@@ -3,10 +3,12 @@ import { Text13Book, Text13Medium, Text13Regular, Text16Medium } from '@/app/com
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useSubscription } from '@/hooks/use-subscription';
+import { RouteUrls } from '@/utils/route-urls';
 import { Badge, Box, Group, Stack } from '@mantine/core';
 import { ScratchpadPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback } from 'react';
+import { usePayments } from '../../../hooks/use-payments';
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
@@ -14,6 +16,7 @@ interface PlanCardProps {
 
 export const PlanCard = ({ plan }: PlanCardProps) => {
   const { subscription } = useSubscription();
+  const { redirectToUpdateSubscription, portalRedirectInProgress } = usePayments();
   const isCurrentPlan = subscription.planType === plan.productType;
 
   const handleDowngrade = useCallback(() => {
@@ -21,20 +24,25 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
     console.log('downgrade to ', plan.productType);
   }, [plan.productType]);
 
-  const handleUpgrade = useCallback(() => {
-    // TODO: Implement upgrade
-    console.log('upgrade to ', plan.productType);
-  }, [plan.productType]);
+  const handleSwitchToPlan = useCallback(() => {
+    redirectToUpdateSubscription(plan.productType, RouteUrls.billingPageUrl);
+  }, [plan.productType, redirectToUpdateSubscription]);
 
   let actionButton = null;
   if (isCurrentPlan) {
     actionButton = <ButtonPrimaryLight disabled>Current Plan</ButtonPrimaryLight>;
-  }
-  if (!isCurrentPlan && plan.productType !== ScratchpadPlanType.FREE_PLAN && plan.costUSD > subscription.costUSD) {
-    actionButton = <ButtonPrimaryLight onClick={handleUpgrade}>Upgrade</ButtonPrimaryLight>;
-  }
-  if (!isCurrentPlan && plan.productType === ScratchpadPlanType.FREE_PLAN && plan.costUSD < subscription.costUSD) {
-    actionButton = <ButtonPrimaryLight onClick={handleDowngrade}>Downgrade</ButtonPrimaryLight>;
+  } else if (!isCurrentPlan && plan.productType !== ScratchpadPlanType.FREE_PLAN) {
+    actionButton = (
+      <ButtonPrimaryLight onClick={handleSwitchToPlan} loading={portalRedirectInProgress}>
+        {subscription.costUSD > plan.costUSD ? 'Switch' : 'Upgrade'}
+      </ButtonPrimaryLight>
+    );
+  } else if (!isCurrentPlan && plan.productType === ScratchpadPlanType.FREE_PLAN) {
+    actionButton = (
+      <ButtonPrimaryLight onClick={handleDowngrade} loading={portalRedirectInProgress}>
+        Downgrade
+      </ButtonPrimaryLight>
+    );
   }
 
   return (
@@ -58,13 +66,13 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
         <Stack gap="xs" mt="xs">
           <Text13Book c="dimmed">Features:</Text13Book>
           <FeatureLineItem
-            key="availableModels"
+            id="availableModels"
             label={
               plan.features.availableModels.length > 0 ? `${plan.features.availableModels.length} models` : 'Any model'
             }
           />
           <FeatureLineItem
-            key="publishingLimit"
+            id="publishingLimit"
             label={
               plan.features.publishingLimit > 0
                 ? `${plan.features.publishingLimit} publishing actions`
@@ -72,21 +80,21 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
             }
           />
           {plan.productType === ScratchpadPlanType.FREE_PLAN && (
-            <FeatureLineItem key="creditLimit" label="Enough tokens for occasional use" />
+            <FeatureLineItem id="creditLimit" label="Enough tokens for occasional use" />
           )}
           {plan.productType === ScratchpadPlanType.PRO_PLAN && (
-            <FeatureLineItem key="creditLimit" label="Enough tokens for most use cases" />
+            <FeatureLineItem id="creditLimit" label="Enough tokens for most use cases" />
           )}
           {plan.productType === ScratchpadPlanType.MAX_PLAN && (
-            <FeatureLineItem key="creditLimit" label="Enough tokens for heavier use cases" />
+            <FeatureLineItem id="creditLimit" label="Enough tokens for heavier use cases" />
           )}
           {plan.features.allowPersonalKeys && (
-            <FeatureLineItem key="allowPersonalKeys" label="Bring your own OpenRouter API key" />
+            <FeatureLineItem id="allowPersonalKeys" label="Bring your own OpenRouter API key" />
           )}
           {plan.features.dataSourcePerServiceLimit === 0 ? (
-            <FeatureLineItem key="dataSourcePerServiceLimit" label="Multiple accounts per external service" />
+            <FeatureLineItem id="dataSourcePerServiceLimit" label="Multiple accounts per external service" />
           ) : (
-            <FeatureLineItem key="dataSourcePerServiceLimit" label="Single account per external service" />
+            <FeatureLineItem id="dataSourcePerServiceLimit" label="Single account per external service" />
           )}
         </Stack>
       </Stack>
@@ -94,9 +102,9 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
   );
 };
 
-const FeatureLineItem = ({ key, label }: { key: string; label: string }) => {
+const FeatureLineItem = ({ id, label }: { id: string; label: string }) => {
   return (
-    <Group key={key} gap="xs" align="flex-start" justify="flex-start" wrap="nowrap">
+    <Group id={id} gap="xs" align="flex-start" justify="flex-start" wrap="nowrap">
       <StyledLucideIcon Icon={Check} size={16} c="gray" />
       <Text13Regular>{label}</Text13Regular>
     </Group>

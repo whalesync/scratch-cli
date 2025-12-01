@@ -26,7 +26,7 @@ import {
   UpdateAgentCredentialDto,
   ValidatedCreateAgentCredentialDto,
 } from './dto/create-agent-credential.dto';
-import { AiAgentCredential, CreditUsage } from './entities/credentials.entity';
+import { AgentCredentialEntity, CreditUsageEntity } from './entities/credentials.entity';
 import { userToActor } from './types';
 
 @Controller('user/credentials')
@@ -42,14 +42,14 @@ export class AgentCredentialsController {
   async findAll(
     @Query('includeUsage') includeUsage: boolean = false,
     @Req() req: RequestWithUser,
-  ): Promise<AiAgentCredential[]> {
+  ): Promise<AgentCredentialEntity[]> {
     const creds = await this.service.findByUserId(req.user.id);
-    const results: AiAgentCredential[] = [];
+    const results: AgentCredentialEntity[] = [];
     if (creds && creds.length > 0) {
       if (includeUsage) {
         for (const cred of creds) {
           if (cred.service === 'openrouter' && cred.apiKey) {
-            let usageData: CreditUsage | undefined;
+            let usageData: CreditUsageEntity | undefined;
             const apiKeyData = await this.openRouterService.getCurrentApiKeyData(cred.apiKey);
             if (isErr(apiKeyData)) {
               WSLogger.error({
@@ -59,16 +59,16 @@ export class AgentCredentialsController {
                 cause: apiKeyData.cause,
               });
             } else {
-              usageData = new CreditUsage(apiKeyData.v);
+              usageData = new CreditUsageEntity(apiKeyData.v);
             }
 
-            results.push(new AiAgentCredential(cred, true, usageData));
+            results.push(new AgentCredentialEntity(cred, true, usageData));
           } else {
-            results.push(new AiAgentCredential(cred));
+            results.push(new AgentCredentialEntity(cred));
           }
         }
       } else {
-        results.push(...creds.map((s) => new AiAgentCredential(s)));
+        results.push(...creds.map((s) => new AgentCredentialEntity(s)));
       }
     }
 
@@ -76,7 +76,7 @@ export class AgentCredentialsController {
   }
 
   @Get('active/:service')
-  async findActive(@Param('service') service: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
+  async findActive(@Param('service') service: string, @Req() req: RequestWithUser): Promise<AgentCredentialEntity> {
     const result = await this.service.findActiveServiceCredentials(userToActor(req.user), service);
 
     if (!result) {
@@ -85,7 +85,7 @@ export class AgentCredentialsController {
 
     // TODO - lock this endpoint down so only internal API keys can access it with the full api key in the response
     // only the Pydantic agent should be able to access this endpoint with the full api key in the response
-    return new AiAgentCredential(result, true);
+    return new AgentCredentialEntity(result, true);
   }
 
   @Get(':id')
@@ -93,7 +93,7 @@ export class AgentCredentialsController {
     @Param('id') id: string,
     @Query('includeUsage') includeUsage: boolean = false,
     @Req() req: RequestWithUser,
-  ): Promise<AiAgentCredential | null> {
+  ): Promise<AgentCredentialEntity | null> {
     const credential = await this.service.findOne(id);
 
     if (!credential) {
@@ -106,7 +106,7 @@ export class AgentCredentialsController {
 
     // only include the api key if the request is authenticated with an agent token
     const includeApiKey = req.user.authType === 'agent-token';
-    let usageData: CreditUsage | undefined;
+    let usageData: CreditUsageEntity | undefined;
     if (includeUsage && credential.service === 'openrouter' && credential.apiKey) {
       const usageResult = await this.openRouterService.getCurrentApiKeyData(credential.apiKey);
       if (isErr(usageResult)) {
@@ -117,19 +117,19 @@ export class AgentCredentialsController {
           cause: usageResult.cause,
         });
       } else {
-        usageData = new CreditUsage(usageResult.v);
+        usageData = new CreditUsageEntity(usageResult.v);
       }
     }
-    return new AiAgentCredential(credential, includeApiKey, usageData);
+    return new AgentCredentialEntity(credential, includeApiKey, usageData);
   }
 
   @Post('new')
   async create(
     @Body() createAgentCredentialDto: CreateAgentCredentialDto,
     @Req() req: RequestWithUser,
-  ): Promise<AiAgentCredential> {
+  ): Promise<AgentCredentialEntity> {
     const dto = createAgentCredentialDto as ValidatedCreateAgentCredentialDto;
-    return new AiAgentCredential(await this.service.create(dto, userToActor(req.user)));
+    return new AgentCredentialEntity(await this.service.create(dto, userToActor(req.user)));
   }
 
   @Post(':id')
@@ -137,7 +137,7 @@ export class AgentCredentialsController {
     @Param('id') id: string,
     @Body() updateAgentCredentialDto: UpdateAgentCredentialDto,
     @Req() req: RequestWithUser,
-  ): Promise<AiAgentCredential> {
+  ): Promise<AgentCredentialEntity> {
     const dto = updateAgentCredentialDto;
     const credential = await this.service.findOne(id);
     const actor = userToActor(req.user);
@@ -166,7 +166,7 @@ export class AgentCredentialsController {
       throw new NotFoundException();
     }
 
-    return new AiAgentCredential(updatedCredential);
+    return new AgentCredentialEntity(updatedCredential);
   }
 
   @Delete(':id')
@@ -186,7 +186,7 @@ export class AgentCredentialsController {
   }
 
   @Post(':id/set-default')
-  async setDefaultKey(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AiAgentCredential> {
-    return new AiAgentCredential(await this.service.setDefaultKey(id, req.user.id));
+  async setDefaultKey(@Param('id') id: string, @Req() req: RequestWithUser): Promise<AgentCredentialEntity> {
+    return new AgentCredentialEntity(await this.service.setDefaultKey(id, req.user.id));
   }
 }

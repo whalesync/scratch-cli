@@ -150,7 +150,6 @@ class AgentCredential:
     createdAt: str
     updatedAt: str
     source: str
-    enabled: bool
     default: bool
 
 

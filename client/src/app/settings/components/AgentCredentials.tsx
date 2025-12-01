@@ -10,10 +10,9 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useSubscription } from '@/hooks/use-subscription';
-import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import { Alert, Center, Grid, Group, Loader, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { AiAgentCredentialId } from '@spinner/shared-types';
+import { AgentCredential, AiAgentCredentialId } from '@spinner/shared-types';
 import { Edit3Icon, PlusIcon, ToggleLeftIcon, ToggleRightIcon, Trash2Icon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CredentialLimit } from './CredentialLimit';
@@ -24,13 +23,13 @@ export const AgentCredentials = () => {
   const { agentCredentials, isLoading, error, deleteCredentials, toggleDefaultCredential } = useAgentCredentials(true);
   const deleteModal = useDeleteConfirmationModal<AiAgentCredentialId>();
   const [isEditModalOpen, { open: openEditModal, close: closeEditModal }] = useDisclosure(false);
-  const [activeCredential, setActiveCredential] = useState<AiAgentCredential | null>(null);
+  const [activeCredential, setActiveCredential] = useState<AgentCredential | null>(null);
   const [saving, setSaving] = useState(false);
 
   const sortedCredentials = useMemo(() => {
     return (
       agentCredentials?.sort((a, b) => {
-        return a.createdAt.localeCompare(b.createdAt);
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }) || []
     );
   }, [agentCredentials]);

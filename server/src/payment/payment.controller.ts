@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   ClassSerializerInterceptor,
   Controller,
   Get,
@@ -17,6 +18,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
+import { CreatePortalDto } from './dto/create-portal.dto';
 import { SubscriptionPlanEntity } from './entities/subscription-plan';
 import { getPlans, getPlanTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
@@ -39,12 +41,15 @@ export class StripePaymentController {
    * Returns a URL that the user should be redirected to.
    */
   @Post('portal')
-  async createCustomerPortalUrl(@Req() req: RequestWithUser): Promise<CreateCustomerPortalUrlResponse> {
+  async createCustomerPortalUrl(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreatePortalDto,
+  ): Promise<CreateCustomerPortalUrlResponse> {
     if (!req.user) {
       throw new UnauthorizedException();
     }
 
-    const result = await this.stripePaymentService.createCustomerPortalUrl(req.user);
+    const result = await this.stripePaymentService.createCustomerPortalUrl(req.user, dto);
     if (isErr(result)) {
       throw new InternalServerErrorException({
         userFacingMessage: STRIPE_PAGE_ERROR_USER_FACING_MESSAGE,

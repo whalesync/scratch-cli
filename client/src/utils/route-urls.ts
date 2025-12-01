@@ -24,8 +24,8 @@ export class RouteUrls {
   static promptAssetsPageUrl = '/prompt-assets';
   static settingsPageUrl = '/settings';
   static billingPageUrl = '/billing';
-  static productCheckoutPage = (productType: string) => `/subscription/checkout/${productType}`;
-  static manageSubscriptionPage = '/subscription/manage';
+  static productCheckoutPage = (productType: string, returnPath?: string) =>
+    `/subscription/checkout/${productType}${returnPath ? `?returnPath=${returnPath}` : ''}`;
 
   // Dev Tools routes
   static devToolsPageUrl = '/dev';

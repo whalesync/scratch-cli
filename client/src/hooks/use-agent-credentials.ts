@@ -1,11 +1,8 @@
 import { agentCredentialsApi } from '@/lib/api/agent-credentials';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import {
-  AiAgentCredential,
-  CreateAiAgentCredentialDto,
-  UpdateAiAgentCredentialDto,
-} from '@/types/server-entities/agent-credentials';
+import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { AgentCredential } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -72,7 +69,7 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
   };
 };
 
-export function isOverCreditLimit(credential: AiAgentCredential | undefined): boolean {
+export function isOverCreditLimit(credential: AgentCredential | undefined): boolean {
   if (!credential || !credential.usage) {
     return false;
   }

@@ -1,13 +1,10 @@
-import {
-  AiAgentCredential,
-  CreateAiAgentCredentialDto,
-  UpdateAiAgentCredentialDto,
-} from '@/types/server-entities/agent-credentials';
+import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { AgentCredential } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';
 
 export const agentCredentialsApi = {
-  list: async (includeUsage: boolean = false): Promise<AiAgentCredential[]> => {
+  list: async (includeUsage: boolean = false): Promise<AgentCredential[]> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials${includeUsage ? '?includeUsage=true' : ''}`, {
       method: 'GET',
       headers: {
@@ -18,7 +15,7 @@ export const agentCredentialsApi = {
     await checkForApiError(res, 'Failed to fetch agent credentials');
     return res.json();
   },
-  create: async (data: CreateAiAgentCredentialDto): Promise<AiAgentCredential> => {
+  create: async (data: CreateAiAgentCredentialDto): Promise<AgentCredential> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/new`, {
       method: 'POST',
       headers: {
@@ -30,7 +27,7 @@ export const agentCredentialsApi = {
     if (!res.ok) throw new ScratchpadApiError('Failed to create agent credential', res.status, res.statusText);
     return res.json();
   },
-  update: async (id: string, data: UpdateAiAgentCredentialDto): Promise<AiAgentCredential> => {
+  update: async (id: string, data: UpdateAiAgentCredentialDto): Promise<AgentCredential> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}`, {
       method: 'POST',
       headers: {
@@ -52,7 +49,7 @@ export const agentCredentialsApi = {
     });
     await checkForApiError(res, 'Failed to delete agent credential');
   },
-  setDefaultKey: async (id: string): Promise<AiAgentCredential> => {
+  setDefaultKey: async (id: string): Promise<AgentCredential> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}/set-default`, {
       method: 'POST',
       headers: {

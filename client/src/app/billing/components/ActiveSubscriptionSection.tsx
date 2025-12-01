@@ -4,11 +4,12 @@ import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Stack } from '@mantine/core';
 import { ArrowUpRightIcon } from 'lucide-react';
+import { usePayments } from '../../../hooks/use-payments';
 import { BillingSection } from './BillingSection';
 
 export const ActiveSubscriptionSection = () => {
   const { subscription, isFreePlan } = useSubscription();
-
+  const { redirectToManageSubscription, portalRedirectInProgress } = usePayments();
   let content = null;
   if (subscription.status === 'valid') {
     content = (
@@ -21,9 +22,10 @@ export const ActiveSubscriptionSection = () => {
           <ButtonSecondaryOutline
             component="a"
             target="_blank"
+            onClick={() => redirectToManageSubscription(RouteUrls.billingPageUrl)}
             leftSection={<ArrowUpRightIcon size={16} />}
-            href={RouteUrls.manageSubscriptionPage}
             disabled={!subscription.canManageSubscription}
+            loading={portalRedirectInProgress}
           >
             Manage
           </ButtonSecondaryOutline>
@@ -41,7 +43,7 @@ export const ActiveSubscriptionSection = () => {
           component="a"
           target="_blank"
           leftSection={<ArrowUpRightIcon size={16} />}
-          href={RouteUrls.manageSubscriptionPage}
+          onClick={() => redirectToManageSubscription(RouteUrls.billingPageUrl)}
           disabled={!subscription.canManageSubscription}
         >
           Manage

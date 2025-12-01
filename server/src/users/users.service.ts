@@ -164,7 +164,6 @@ export class UsersService {
             apiKey: result.v.key,
             externalApiKeyId: result.v.hash,
             description: `Free OpenRouter API key for Scratch`,
-            enabled: true,
             source: AiAgentCredentialSource.SYSTEM,
             default: true,
           },

@@ -80,7 +80,6 @@ model AiAgentCredential {
   description      String?
   externalApiKeyId String? // used to store the external ID or hash for an api key when generated via an SDK
   source           AiAgentCredentialSource @default(USER) // where the api key came from user or system generated 
-  enabled          Boolean                 @default(true)
   default          Boolean                 @default(false)
 
   @@index([userId])

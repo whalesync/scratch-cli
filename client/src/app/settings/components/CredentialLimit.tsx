@@ -1,9 +1,9 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { isOverCreditLimit } from '@/hooks/use-agent-credentials';
-import { AiAgentCredential } from '@/types/server-entities/agent-credentials';
 import { Progress, Stack } from '@mantine/core';
+import { AgentCredential } from '@spinner/shared-types';
 
-export const CredentialLimit = ({ credential }: { credential: AiAgentCredential }) => {
+export const CredentialLimit = ({ credential }: { credential: AgentCredential }) => {
   if (!credential.usage) {
     return null;
   }
