@@ -210,6 +210,10 @@ export function formatFieldValue(value: unknown, column: ColumnSpec): string {
   }
 
   if (column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT_ARRAY) {
+    // if it's a string most likely it's already a stringified JSON object, so we return it as is.
+    if (typeof value === 'string') {
+      return value;
+    }
     try {
       return JSON.stringify(value, null, 2);
     } catch (error) {

@@ -610,9 +610,43 @@ export class SnapshotDb {
   ): Promise<void> {
     const readOnlyColumns = new Set(tableSpec.columns.filter((c) => c.readonly).map((c) => c.id.wsId));
 
+    // Create a map of column ID to column type for proper parsing
+    const columnTypes = new Map<string, PostgresColumnType>();
+    for (const column of tableSpec.columns) {
+      columnTypes.set(column.id.wsId, column.pgType);
+    }
+
+    // Helper to parse JSON strings into objects/arrays for Knex to handle efficiently
+    const parseJsonFields = (data: Record<string, unknown> | undefined): Record<string, unknown> => {
+      const parsed = { ...data };
+      for (const [key, value] of Object.entries(parsed)) {
+        const colType = columnTypes.get(key);
+        // Only parse if it's a JSON-type column and the value is a string
+        if (
+          (colType === PostgresColumnType.JSONB || colType === PostgresColumnType.TEXT_ARRAY) &&
+          typeof value === 'string'
+        ) {
+          try {
+            parsed[key] = JSON.parse(value);
+          } catch (error) {
+            WSLogger.warn({
+              source: 'SnapshotDb.bulkUpdateRecords',
+              message: `Failed to parse JSON for column ${key}, keeping as string`,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            // Keep original string value if parse fails
+          }
+        }
+      }
+      return parsed;
+    };
+
     for (const op of ops) {
       if (op.op === 'create' || op.op === 'update') {
         if (!op.data) continue;
+
+        // Parse JSON strings to objects so Knex can handle them efficiently
+        op.data = parseJsonFields(op.data);
 
         for (const field of Object.keys(op.data)) {
           if (readOnlyColumns.has(field)) {
@@ -642,13 +676,14 @@ export class SnapshotDb {
                   ? // Set the fields that were edited.
                     // Set the dirty column to true.
                     // Set timestamps in __edited_fields.
+                    // op.data already has parsed JSON objects, Knex will handle serialization
                     {
                       ...op.data,
                       [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
                       [DIRTY_COLUMN]: true,
                     }
                   : // No fields actually edited
-                    // Set the suggested values on the __suggested_values json fied .
+                    // Set the suggested values on the __suggested_values json field.
                     {
                       [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
                       [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({
@@ -670,6 +705,7 @@ export class SnapshotDb {
               );
 
               const updatePayload: Record<string, any> = {
+                // op.data already has parsed JSON objects, Knex will handle serialization
                 ...op.data,
                 [DIRTY_COLUMN]: true,
               };
