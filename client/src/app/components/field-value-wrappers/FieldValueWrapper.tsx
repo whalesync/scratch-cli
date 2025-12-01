@@ -2,7 +2,7 @@ import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Text } from '@mantine/core';
 import { FC, ReactNode } from 'react';
-import { DotGroup } from './DotGroup/DotGroup';
+import { ChangeDotsGroup } from './ChangeDotsGroup/ChangeDotsGroup';
 import styles from './FieldValueWrapper.module.css';
 import { processFieldValue } from './ProcessedFieldValue';
 import { SuggestionButtons } from './SuggestionButtons';
@@ -58,7 +58,7 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   // Single return with all the structure
   return (
     <Box className={styles.fieldValueWrapper}>
-      <DotGroup changeTypes={processedFieldValue.existingChangeTypes} />
+      <ChangeDotsGroup changeTypes={processedFieldValue.existingChangeTypes} />
       <Box
         style={{
           flex: 1,

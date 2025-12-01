@@ -56,7 +56,6 @@ export const processFieldValue = (
 export const getExistingChangeTypes = (value: unknown, record: SnapshotRecord, columnDef: ColumnSpec) => {
   const formattedValue = formatFieldValue(value, columnDef);
   const suggestedValue = record?.__suggested_values?.[columnDef.id.wsId];
-  debugger;
   const existingChangeTypes: ExistingChangeTypes = {};
   if (record?.__edited_fields?.[columnDef.id.wsId]) {
     existingChangeTypes.hasAcceptedAdditions = true;
