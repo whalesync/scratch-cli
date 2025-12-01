@@ -1,6 +1,7 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
+import { SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useCallback, useMemo, useState } from 'react';
@@ -10,7 +11,7 @@ import { DisplayField } from './DisplayField';
 
 interface RecordDetailsProps {
   workbookId: WorkbookId;
-  currentRecord: SnapshotRecord;
+  currentRecord: ProcessedSnapshotRecord;
   table: SnapshotTable;
   currentColumnId: string | undefined;
   acceptCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;

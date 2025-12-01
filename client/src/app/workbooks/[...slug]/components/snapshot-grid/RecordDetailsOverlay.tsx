@@ -1,10 +1,12 @@
 'use client';
 
-import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
+import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Divider, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useEffect } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
+import { RECORD_DETILE_SIDEBAR_W } from '../record-details/record-detail-constants';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
 import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
@@ -12,7 +14,7 @@ import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
 type Props = {
   width: string;
   workbookId: WorkbookId;
-  selectedRecord: SnapshotRecord;
+  selectedRecord: ProcessedSnapshotRecord;
   activeCells: ActiveCells;
   table: SnapshotTable;
   handleFieldFocus: (columnId: string | undefined) => void;
@@ -95,7 +97,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
 
           <Box p={0} style={{ position: 'relative', height: '100%' }}>
             {selectedRecord && !activeCells.columnId && (
-              <Divider orientation="vertical" left="20%" top={0} bottom={0} pos="absolute" />
+              <Divider orientation="vertical" left={RECORD_DETILE_SIDEBAR_W} top={0} bottom={0} pos="absolute" />
             )}
             <ScrollArea h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`} type="hover" scrollbars="y">
               <RecordDetails

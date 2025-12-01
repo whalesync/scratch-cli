@@ -2,6 +2,8 @@ import { IconButtonOutline, IconButtonPrimaryOutline } from '@/app/components/ba
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
+import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import {
   formatFieldValue,
   getSafeBooleanValue,
@@ -9,18 +11,18 @@ import {
   isLargeTextColumn,
   isUrlColumn,
   PostgresColumnType,
-  SnapshotRecord,
   TableSpec,
 } from '@/types/server-entities/workbook';
 import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
+import { diffWordsWithSpace } from 'diff';
 import { CheckIcon, CircleArrowRightIcon, XIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 
 interface DisplayFieldProps {
   table: TableSpec;
-  record: SnapshotRecord;
+  record: ProcessedSnapshotRecord;
   columnId: string;
   mode: 'multiple' | 'single';
   align?: React.CSSProperties['alignItems'];
@@ -51,6 +53,23 @@ export const DisplayField = (props: DisplayFieldProps) => {
 
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
+  const processedFieldValue = record.__processed_fields[columnId];
+
+  // Calculate aggregate changes for the entire record (similar to IdValueWrapper)
+  const recordChangeTypes: ExistingChangeTypes = {};
+  if (record.__suggested_values) {
+    Object.entries(record.__suggested_values).forEach(([fieldId, suggestedValue]) => {
+      const currentValue = record.fields?.[fieldId];
+      const changes = diffWordsWithSpace(String(currentValue ?? ''), String(suggestedValue ?? ''));
+      if (changes.some((c) => c.added)) recordChangeTypes.suggestedAdditions = true;
+      if (changes.some((c) => c.removed)) recordChangeTypes.suggestedDeletions = true;
+    });
+  }
+  if (record.__edited_fields && Object.keys(record.__edited_fields).length > 0) {
+    recordChangeTypes.acceptedAdditions = true;
+    recordChangeTypes.acceptedDeletions = true;
+  }
+
   const suggestValueColor = '#284283';
   const suggestionButtons = hasSuggestion ? (
     <Group gap="xs" justify="flex-end">
@@ -92,6 +111,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
         onLabelClick={onFieldLabelClick}
+        changeTypes={processedFieldValue.existingChangeTypes}
+        recordChangeTypes={recordChangeTypes}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
@@ -139,6 +160,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
         onLabelClick={onFieldLabelClick}
+        changeTypes={processedFieldValue.existingChangeTypes}
+        recordChangeTypes={recordChangeTypes}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
@@ -178,6 +201,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
         hasEditedValue={hasEditedValue}
         isReadOnly={column.readonly}
         onLabelClick={onFieldLabelClick}
+        changeTypes={processedFieldValue.existingChangeTypes}
+        recordChangeTypes={recordChangeTypes}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
@@ -212,6 +237,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
           hasEditedValue={hasEditedValue}
           isReadOnly={column.readonly}
           onLabelClick={onFieldLabelClick}
+          changeTypes={processedFieldValue.existingChangeTypes}
+          recordChangeTypes={recordChangeTypes}
         >
           {hasSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
@@ -295,6 +322,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
       showLabel={mode === 'multiple'}
       hasEditedValue={hasEditedValue}
       onLabelClick={onFieldLabelClick}
+      changeTypes={processedFieldValue.existingChangeTypes}
+      recordChangeTypes={recordChangeTypes}
     >
       {hasSuggestion ? (
         <Stack h="auto" gap="xs" w="100%">
