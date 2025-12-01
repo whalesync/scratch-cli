@@ -14,9 +14,17 @@ interface UseIdColDefProps {
   recordDetailsVisible?: boolean;
   tableSpec: TableSpec;
   columnChangeTypes?: Record<string, ExistingChangeTypes>;
+  onOpenOverlay?: (recordId: string) => void;
 }
 
-export const useSpecialColDefs = ({ entityName, resizable = true, gridApi, columnChangeTypes }: UseIdColDefProps) => {
+export const useSpecialColDefs = ({
+  entityName,
+  resizable = true,
+  gridApi,
+  columnChangeTypes,
+  onOpenOverlay,
+  recordDetailsVisible,
+}: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
 
@@ -40,7 +48,15 @@ export const useSpecialColDefs = ({ entityName, resizable = true, gridApi, colum
       return params.data?.id?.wsId || '';
     },
     cellRenderer: (params: ICellRendererParams<SnapshotRecord, unknown>) => {
-      return <IdValueWrapper record={params.data} />;
+      return (
+        <IdValueWrapper
+          record={params.data}
+          onOpenOverlay={
+            onOpenOverlay && params.data?.id?.wsId ? () => onOpenOverlay(params.data!.id.wsId) : undefined
+          }
+          isOverlayOpen={recordDetailsVisible}
+        />
+      );
     },
     // cellStyle,
     cellClass: getCellClassFn({ gridApi, activeCells: null, columnId: 'id' }),

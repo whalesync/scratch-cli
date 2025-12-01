@@ -9,6 +9,21 @@
   gap: 8px;
 }
 
+.idValueWrapper {
+  height: 100%;
+  gap: 0px;
+  overflow: hidden;
+}
+
+.fieldValueWrapper {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  padding-left: 8px;
+  padding-right: 8px;
+  gap: 8px;
+}
+
 .fieldValueContentWrapper {
   flex: 1;
   min-width: 0;

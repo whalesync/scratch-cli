@@ -222,6 +222,16 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const rowData = records || [];
 
   const { cellRenderer } = useCellRenderer(table.tableSpec, columnChangeTypes, acceptCellValues, rejectCellValues);
+
+  // Handler to open overlay from ID cell
+  const handleOpenOverlayFromId = useCallback(
+    (recordId: string) => {
+      recalculateOverlayWidth();
+      setActiveCells({ recordId, columnId: undefined });
+    },
+    [recalculateOverlayWidth, setActiveCells],
+  );
+
   const { idColumn } = useSpecialColDefs({
     entityName: recordName(table.connectorService as Service),
     resizable: true,
@@ -229,6 +239,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     recordDetailsVisible: !!activeCells?.recordId,
     tableSpec: table.tableSpec,
     columnChangeTypes,
+    onOpenOverlay: handleOpenOverlayFromId,
   });
 
   // Context menu handlers

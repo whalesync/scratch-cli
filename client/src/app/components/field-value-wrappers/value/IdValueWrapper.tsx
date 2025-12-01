@@ -1,14 +1,19 @@
 import { SnapshotRecord } from '@/types/server-entities/workbook';
-import { Box, Text } from '@mantine/core';
+import { ActionIcon, Box, Group, Text } from '@mantine/core';
 import { ChangeObject, diffWordsWithSpace } from 'diff';
-import { FC } from 'react';
+import { Maximize2Icon } from 'lucide-react';
+import { FC, useState } from 'react';
 import { ChangeLinesStack } from '../ChangeLinesStack/ChangeLinesStack';
 import { ExistingChangeTypes } from '../ProcessedFieldValue';
+import styles from './FieldValueWrapper.module.css';
 type IdValueWrapperProps = {
   record?: SnapshotRecord;
+  onOpenOverlay?: () => void;
+  isOverlayOpen?: boolean;
 };
 
-export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
+export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record, onOpenOverlay, isOverlayOpen }) => {
+  const [isHovered, setIsHovered] = useState(false);
   const existingChangeTypes: ExistingChangeTypes = {};
   const backgroundColor = record?.__edited_fields?.__deleted ? 'var(--bg-removed)' : 'transparent';
 
@@ -33,24 +38,47 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
   }
 
   return (
-    <Box display="flex" h="100%" className="field-value-wrapper" style={{ backgroundColor, overflow: 'hidden' }}>
+    <Group
+      className={styles.idValueWrapper}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ backgroundColor }}
+    >
       {/* Lines stacked vertically on the left */}
       <ChangeLinesStack changeTypes={existingChangeTypes} />
 
       <Box
+        className={styles.fieldValueContentWrapper}
         style={{
-          flex: 1,
-          minWidth: 0,
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
           overflow: 'hidden',
         }}
       >
-        <Text className="cell-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {String(record?.id?.remoteId)}
         </Text>
       </Box>
-    </Box>
+
+      {/* Hover button */}
+      {isHovered && onOpenOverlay && !isOverlayOpen && (
+        <ActionIcon
+          size="sm"
+          variant="filled"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenOverlay();
+          }}
+          style={{
+            position: 'absolute',
+            right: 4,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            backgroundColor: 'var(--mantine-color-gray-0)',
+            color: 'var(--mantine-color-gray-7)',
+          }}
+        >
+          <Maximize2Icon size={16} />
+        </ActionIcon>
+      )}
+    </Group>
   );
 };
