@@ -4,39 +4,55 @@ import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { CloseButton, Group, Text, Tooltip } from '@mantine/core';
-import _ from 'lodash';
-import { Disc3Icon, RectangleEllipsisIcon } from 'lucide-react';
+import { useMemo } from 'react';
 import styles from './ContextBadges.module.css';
 
 export const ContextBadges = () => {
-  const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
   const { activeTable } = useActiveWorkbook();
 
+  const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
+  const { records } = useSnapshotTableRecords({
+    workbookId: activeTable?.workbookId ?? null,
+    tableId: activeTable?.id ?? null,
+  });
+
+  const text = useMemo(() => {
+    if (!activeTable) {
+      return null;
+    }
+
+    const activeRecord = activeRecordId ? records?.find((r) => r.id.wsId === activeRecordId) : null;
+
+    switch (dataScope) {
+      case 'table':
+        return {
+          label: activeTable?.tableSpec?.name || 'Table',
+          tooltip: `The agent can work with all visible records in the table "${activeTable?.tableSpec?.name || ''}"`,
+        };
+      case 'record':
+        return {
+          label: activeRecord?.id.remoteId ?? 'Record',
+          tooltip: `The agent is focusing on only this record`,
+        };
+      case 'column':
+        return {
+          label: activeColumnId ?? 'Column',
+          tooltip: `The agent is focusing on only this field`,
+        };
+    }
+  }, [dataScope, activeTable, activeRecordId, activeColumnId, records]);
+
+  if (!text) {
+    return null;
+  }
   return (
-    <Group gap="xs">
-      {dataScope === 'table' && activeTable && (
-        <ContextBadge
-          label={_.truncate(activeTable.tableSpec?.name || 'Table', { length: 15 })}
-          tooltip={`The agent can work with all visible records in the table "${activeTable?.tableSpec?.name || ''}"`}
-          icon={<ConnectorIcon connector={activeTable.connectorService} size={14} p={0} />}
-        />
-      )}
-      {dataScope === 'record' || dataScope === 'column' ? (
-        <ContextBadge
-          label={_.capitalize(activeRecordId || '')}
-          tooltip="The agent is working on only this record"
-          icon={<Disc3Icon size={12} />}
-        />
-      ) : null}
-      {dataScope === 'column' && (
-        <ContextBadge
-          label={_.capitalize(activeColumnId || '')}
-          icon={<RectangleEllipsisIcon size={12} />}
-          tooltip="The agent is focusing on only this field"
-        />
-      )}
-    </Group>
+    <ContextBadge
+      label={text.label}
+      tooltip={text.tooltip}
+      icon={activeTable && <ConnectorIcon connector={activeTable.connectorService} size={14} p={0} />}
+    />
   );
 };
 
