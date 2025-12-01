@@ -4,6 +4,17 @@
   display: flex;
   height: 100%;
   align-items: center;
+  padding-left: 8px;
+  padding-right: 8px;
+  gap: 8px;
+}
+
+.fieldValueContentWrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .suggestionButtons {
@@ -12,13 +23,12 @@
   transition: opacity 0.2s ease;
 }
 
-.hasSuggestion:hover .suggestionButtons {
+.fieldValueWrapper:hover .suggestionButtons {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
 
 .diffTextContainer {
-  /* display: inline; */
   width: 100%;
   font-size: 13px;
   font-weight: 425;

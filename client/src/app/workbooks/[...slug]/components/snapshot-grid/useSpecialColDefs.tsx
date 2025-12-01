@@ -1,9 +1,10 @@
-import { IdValueWrapper } from '@/app/components/field-value-wrappers/IdValueWrapper';
+import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
+import { IdValueWrapper } from '@/app/components/field-value-wrappers/value/IdValueWrapper';
 import { AG, ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
-import { IdHeaderComponent } from './IdHeaderComponent';
+import { IdHeaderComponent } from '../../../../components/field-value-wrappers/header/IdHeaderComponent';
 import { getCellClassFn } from './useCellClass';
 
 interface UseIdColDefProps {
@@ -12,9 +13,10 @@ interface UseIdColDefProps {
   gridApi?: GridApi<SnapshotRecord> | null;
   recordDetailsVisible?: boolean;
   tableSpec: TableSpec;
+  columnChangeTypes?: Record<string, ExistingChangeTypes>;
 }
 
-export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: UseIdColDefProps) => {
+export const useSpecialColDefs = ({ entityName, resizable = true, gridApi, columnChangeTypes }: UseIdColDefProps) => {
   const { colorScheme } = useMantineColorScheme();
   const isLightMode = colorScheme === 'light';
 
@@ -32,6 +34,7 @@ export const useSpecialColDefs = ({ entityName, resizable = true, gridApi }: Use
     headerComponent: IdHeaderComponent,
     headerComponentParams: {
       entityName,
+      columnChangeTypes,
     },
     valueGetter: (params) => {
       return params.data?.id?.wsId || '';

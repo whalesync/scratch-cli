@@ -4,6 +4,11 @@ import { workbookApi } from '@/lib/api/workbook';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
 
 import {
+  ExistingChangeTypes,
+  ProcessedFieldValue,
+  processFieldValue,
+} from '@/app/components/field-value-wrappers/ProcessedFieldValue';
+import {
   AcceptAllSuggestionsResult,
   getSnapshotTableById,
   RejectAllSuggestionsResult,
@@ -17,8 +22,14 @@ import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWorkbook } from './use-workbook';
 
+export type ProcessedSnapshotRecord = SnapshotRecord & {
+  __processed_fields: Record<string, ProcessedFieldValue>;
+  isTableDirty: boolean;
+};
+
 export interface UseSnapshotRecordsReturn {
-  records: SnapshotRecord[] | undefined;
+  records: ProcessedSnapshotRecord[] | undefined;
+  columnChangeTypes: Record<string, ExistingChangeTypes>;
   recordDataHash: number;
   isLoading: boolean;
   error: Error | undefined;
@@ -210,6 +221,81 @@ export const useSnapshotTableRecords = (args: {
     return error?.message;
   }, [error]);
 
+  // Process records to calculate field changes and aggregate column change types
+  const { processedRecords, columnChangeTypes } = useMemo(() => {
+    if (!data?.records || !workbook || !tableId) {
+      return { processedRecords: undefined, columnChangeTypes: {} };
+    }
+
+    const snapshotTable = getSnapshotTableById(workbook, tableId);
+    if (!snapshotTable?.tableSpec) {
+      // If no table spec available, return records with empty processed fields
+      return {
+        processedRecords: data.records.map(
+          (record): ProcessedSnapshotRecord => ({
+            ...record,
+            __processed_fields: {},
+            isTableDirty: false,
+          }),
+        ),
+        columnChangeTypes: {},
+      };
+    }
+
+    const tableSpec = snapshotTable.tableSpec;
+    const columnChanges: Record<string, ExistingChangeTypes> = {};
+
+    // Initialize column change tracking for all columns
+    tableSpec.columns.forEach((columnDef) => {
+      const fieldId = columnDef.id.wsId;
+      if (fieldId !== 'id') {
+        columnChanges[fieldId] = {
+          suggestedAdditions: false,
+          suggestedDeletions: false,
+          acceptedAdditions: false,
+          acceptedDeletions: false,
+        };
+      }
+    });
+
+    const records = data.records.map((record): ProcessedSnapshotRecord => {
+      const processedFields: Record<string, ProcessedFieldValue> = {};
+
+      // Process each column in the table spec
+      tableSpec.columns.forEach((columnDef) => {
+        const fieldId = columnDef.id.wsId;
+        if (fieldId === 'id') return; // Skip the ID column
+
+        const value = record.fields?.[fieldId];
+        const processed = processFieldValue(value, record, columnDef);
+        processedFields[fieldId] = processed;
+
+        // Aggregate change types for this column (OR operation - if any record has it, column has it)
+        const columnChange = columnChanges[fieldId];
+        if (processed.existingChangeTypes.suggestedAdditions) {
+          columnChange.suggestedAdditions = true;
+        }
+        if (processed.existingChangeTypes.suggestedDeletions) {
+          columnChange.suggestedDeletions = true;
+        }
+        if (processed.existingChangeTypes.acceptedAdditions) {
+          columnChange.acceptedAdditions = true;
+        }
+        if (processed.existingChangeTypes.acceptedDeletions) {
+          columnChange.acceptedDeletions = true;
+        }
+      });
+
+      return {
+        ...record,
+        __processed_fields: processedFields,
+        isTableDirty: false,
+      };
+    });
+
+    return { processedRecords: records, columnChangeTypes: columnChanges };
+  }, [data?.records, workbook, tableId]);
+
   // Calculate pagination info
   const currentSkip = data?.skip ?? 0;
   const currentTake = data?.take ?? take;
@@ -221,7 +307,8 @@ export const useSnapshotTableRecords = (args: {
   const hasPrevPage = currentSkip > 0;
 
   return {
-    records: data?.records ?? undefined,
+    records: processedRecords,
+    columnChangeTypes,
     recordDataHash,
     skip: currentSkip,
     take: currentTake,

@@ -7,8 +7,9 @@
 
 .my-grid[class*='ag-theme'] .ag-header-cell {
   background: transparent;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 0px;
+  padding-right: 8px;
+  margin-left: 0px;
   border-left: 1px solid var(--mantine-color-gray-4) !important;
 }
 

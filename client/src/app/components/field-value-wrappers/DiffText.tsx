@@ -1,7 +1,7 @@
 import { Box, MantineStyleProps, Text } from '@mantine/core';
 import { ChangeObject } from 'diff';
 import { FC } from 'react';
-import styles from './FieldValueWrapper.module.css';
+import styles from './value/FieldValueWrapper.module.css';
 
 type DiffTextProps = MantineStyleProps & {
   changes: ChangeObject<string>[];

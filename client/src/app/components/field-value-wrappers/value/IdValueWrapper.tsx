@@ -2,8 +2,8 @@ import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Text } from '@mantine/core';
 import { ChangeObject, diffWordsWithSpace } from 'diff';
 import { FC } from 'react';
-import { ChangeLinesStack } from './ChangeLinesStack/ChangeLinesStack';
-import { ExistingChangeTypes } from './ProcessedFieldValue';
+import { ChangeLinesStack } from '../ChangeLinesStack/ChangeLinesStack';
+import { ExistingChangeTypes } from '../ProcessedFieldValue';
 type IdValueWrapperProps = {
   record?: SnapshotRecord;
 };
@@ -20,15 +20,15 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record }) => {
         const currentValue = record.fields?.[fieldId];
         // We don't have column defs here so we do a raw string comparison
         const changes = diffWordsWithSpace(String(currentValue ?? ''), String(suggestedValue ?? ''));
-        if (changes.some((c: ChangeObject<unknown>) => c.added)) existingChangeTypes.hasSuggestedAdditions = true;
-        if (changes.some((c: ChangeObject<unknown>) => c.removed)) existingChangeTypes.hasSuggestedDeletions = true;
+        if (changes.some((c: ChangeObject<unknown>) => c.added)) existingChangeTypes.suggestedAdditions = true;
+        if (changes.some((c: ChangeObject<unknown>) => c.removed)) existingChangeTypes.suggestedDeletions = true;
       });
     }
 
     // Check for edits
     if (record.__edited_fields && Object.keys(record.__edited_fields).length > 0) {
-      existingChangeTypes.hasAcceptedAdditions = true;
-      existingChangeTypes.hasAcceptedDeletions = true;
+      existingChangeTypes.acceptedAdditions = true;
+      existingChangeTypes.acceptedDeletions = true;
     }
   }
 

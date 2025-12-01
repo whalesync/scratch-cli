@@ -3,7 +3,7 @@ import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
 import { ActionIcon, Group, useMantineColorScheme } from '@mantine/core';
 import { Check, X } from 'lucide-react';
 import { FC, useState } from 'react';
-import styles from './FieldValueWrapper.module.css';
+import styles from './value/FieldValueWrapper.module.css';
 
 type SuggestionButtonsProps = {
   record: SnapshotRecord;

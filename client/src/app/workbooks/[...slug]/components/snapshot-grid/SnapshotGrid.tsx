@@ -28,13 +28,13 @@ import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
+import { CustomHeaderComponent } from '../../../../components/field-value-wrappers/header/FieldHeaderComponent';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG, ID_COLUMN_FIELD } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
-import { CustomHeaderComponent } from './CustomHeaderComponent';
 import RecordDetailsOverlay from './RecordDetailsOverlay';
 import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
@@ -48,11 +48,12 @@ import { useStoreColumnState } from './useStoreColumnState';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTableGridProps) => {
-  const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash } = useSnapshotTableRecords({
-    workbookId: workbook.id,
-    tableId: table.id,
-    generateHash: true,
-  });
+  const { records, error, isLoading, acceptCellValues, rejectCellValues, recordDataHash, columnChangeTypes } =
+    useSnapshotTableRecords({
+      workbookId: workbook.id,
+      tableId: table.id,
+      generateHash: true,
+    });
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
@@ -220,13 +221,14 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
-  const { cellRenderer } = useCellRenderer(table.tableSpec, acceptCellValues, rejectCellValues);
+  const { cellRenderer } = useCellRenderer(table.tableSpec, columnChangeTypes, acceptCellValues, rejectCellValues);
   const { idColumn } = useSpecialColDefs({
     entityName: recordName(table.connectorService as Service),
     resizable: true,
     gridApi,
     recordDetailsVisible: !!activeCells?.recordId,
     tableSpec: table.tableSpec,
+    columnChangeTypes,
   });
 
   // Context menu handlers
