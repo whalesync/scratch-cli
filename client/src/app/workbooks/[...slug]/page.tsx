@@ -14,7 +14,8 @@ import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manag
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
-import { Box, Group, Stack } from '@mantine/core';
+import { Split } from '@gfazioli/mantine-split-pane';
+import { Box, Stack } from '@mantine/core';
 import _ from 'lodash';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -34,8 +35,9 @@ import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
 import { useWorkbookParams } from './hooks/use-workbook-params';
 
-const CONTENT_CHAT_SPACING = '6px';
 const DEFAULT_CHAT_WIDTH = '500px';
+const MIN_CHAT_WIDTH = 300;
+const MAX_CHAT_WIDTH = 800;
 
 function WorkbookPageContent() {
   const { isDevToolsEnabled } = useDevTools();
@@ -79,12 +81,9 @@ function WorkbookPageContent() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [contentWidth, chatWidth] = useMemo(() => {
-    if (activeTable && chatOpen) {
-      return [`calc(100vw - ${DEFAULT_CHAT_WIDTH} - ${CONTENT_CHAT_SPACING})`, DEFAULT_CHAT_WIDTH];
-    }
-    // set width to 0px instead of unmounting so it still renders and can run AI tasks in the background
-    return ['100%', '0px'];
+  // Track whether chat should be visible
+  const chatVisible = useMemo(() => {
+    return activeTable && chatOpen;
   }, [activeTable, chatOpen]);
 
   // Only show loader on initial load, not during revalidation
@@ -129,18 +128,33 @@ function WorkbookPageContent() {
     <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer">
       <MainContent bg="var(--bg-panel)">
         <WorkbookHeader />
-        <Group p="0 6 6 6" gap={CONTENT_CHAT_SPACING} w="100%" h="calc(100vh - 36px)" wrap="nowrap" align="flex-start">
-          <Stack gap="0" w={contentWidth} h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
-            <WorkbookTabBar />
-            <MainContent.Body p="0">{content}</MainContent.Body>
-            {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
-          </Stack>
-          {activeTable && (
-            <Box w={chatWidth} h="100%">
-              <AIChatPanel />
-            </Box>
-          )}
-        </Group>
+        {chatVisible ? (
+          <Box p="0 6 6 6" w="100%" h="calc(100vh - 36px)" style={{ overflow: 'hidden' }}>
+            <Split h="100%">
+              <Split.Pane grow>
+                <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
+                  <WorkbookTabBar />
+                  <MainContent.Body p="0">{content}</MainContent.Body>
+                  {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
+                </Stack>
+              </Split.Pane>
+
+              <Split.Resizer w="6px" m={0} hoverColor="transparent" />
+
+              <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
+                <AIChatPanel />
+              </Split.Pane>
+            </Split>
+          </Box>
+        ) : (
+          <Box p="0 6 6 6" w="100%" h="calc(100vh - 36px)">
+            <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
+              <WorkbookTabBar />
+              <MainContent.Body p="0">{content}</MainContent.Body>
+              {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
+            </Stack>
+          </Box>
+        )}
       </MainContent>
 
       {/* Workbook Scoped Modals and workflow components */}
@@ -171,7 +185,7 @@ export default function WorkbookPage() {
 
   useEffect(() => {
     openWorkbook(params);
-    
+
     return () => {
       closeWorkbook();
       closeNavDrawer();
