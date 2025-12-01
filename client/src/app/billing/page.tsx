@@ -1,23 +1,20 @@
 'use client';
 
-import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { useSubscription } from '@/hooks/use-subscription';
-import { Alert, Group, Stack } from '@mantine/core';
-import { BadgeOK } from '../components/base/badge';
-import { Text13Regular, TextTitle2 } from '../components/base/text';
+import { Alert, Divider, SimpleGrid, Stack } from '@mantine/core';
+import { CreditCardIcon } from 'lucide-react';
 import { FullPageLoader } from '../components/FullPageLoader';
 import { Info } from '../components/InfoPanel';
 import MainContent from '../components/layouts/MainContent';
-import { CredentialLimit } from '../settings/components/CredentialLimit';
-import { SubscriptionCard } from '../settings/components/SubscriptionCard';
+import { ActiveSubscriptionSection } from './components/ActiveSubscriptionSection';
+import { BillingSection } from './components/BillingSection';
+import { PlanCard } from './components/PlanCard';
+import { TokenUsageSection } from './components/TokenUsageSection';
 import { useBillingDetails } from './hooks/use-billing';
 
 const BillingPage = () => {
   const { isDevToolsEnabled } = useDevTools();
   const { plans, isLoading, error } = useBillingDetails();
-  const { subscription } = useSubscription();
-  const { systemOpenRouterCredential } = useAgentCredentials(true);
 
   if (isLoading) {
     return <FullPageLoader />;
@@ -35,30 +32,21 @@ const BillingPage = () => {
   }
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Billing" />
+      <MainContent.BasicHeader title="Billing" Icon={CreditCardIcon} />
       <MainContent.Body>
-        <Stack gap={0} miw={800}>
+        <Stack gap="20px" maw={800}>
           {error && <Alert color="red">{error}</Alert>}
-          <SubscriptionCard />
-          {systemOpenRouterCredential && (
-            <Stack gap="xs">
-              <Group>
-                <Text13Regular>System OpenRouter credential</Text13Regular>
-                <Text13Regular>{systemOpenRouterCredential.label}</Text13Regular>
-              </Group>
-              <CredentialLimit credential={systemOpenRouterCredential} />
-            </Stack>
-          )}
-          <TextTitle2>Plans</TextTitle2>
-          {plans?.map((plan) => (
-            <Group key={plan.productType}>
-              <Text13Regular key={plan.productType}>
-                {plan.displayName} - ${plan.costUSD} per month
-              </Text13Regular>
-              {plan.popular && <BadgeOK>Popular</BadgeOK>}
-              {subscription.planType === plan.productType && <BadgeOK>Active</BadgeOK>}
-            </Group>
-          ))}
+          <ActiveSubscriptionSection />
+          <Divider c="var(--mantine-color-gray-3)" />
+          <TokenUsageSection />
+          <Divider c="var(--mantine-color-gray-3)" />
+          <BillingSection title="Plans" subtitle="Upgrade or change your plan" hasBorder={false} p="0">
+            <SimpleGrid cols={3} spacing="xs">
+              {plans?.map((plan) => (
+                <PlanCard key={plan.productType} plan={plan} />
+              ))}
+            </SimpleGrid>
+          </BillingSection>
         </Stack>
       </MainContent.Body>
     </MainContent>

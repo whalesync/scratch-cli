@@ -1,7 +1,9 @@
 import { Box, Group, MantineStyleProps, Stack } from '@mantine/core';
+import { LucideIcon } from 'lucide-react';
 import { JSX, PropsWithChildren } from 'react';
 import { WithRequired } from '../../../../utils/utility-types';
 import { TextTitle2 } from '../../base/text';
+import { DecorativeBoxedIcon } from '../../Icons/DecorativeBoxedIcon';
 import classes from './MainContent.module.css';
 
 const MainContent = ({ children, ...styleProps }: PropsWithChildren & MantineStyleProps): JSX.Element => {
@@ -38,10 +40,19 @@ const ContentFooter = ({ children, ...styleProps }: WithRequired<ChildrenWithSty
   );
 };
 
-const BasicHeader = ({ title, actions }: { title?: string; actions?: React.ReactNode }): JSX.Element => {
+const BasicHeader = ({
+  title,
+  Icon,
+  actions,
+}: {
+  title?: string;
+  Icon?: LucideIcon;
+  actions?: React.ReactNode;
+}): JSX.Element => {
   return (
     <ContentHeader>
-      <Group align="center" h="100%">
+      <Group align="center" h="100%" gap="xs">
+        {Icon && <DecorativeBoxedIcon Icon={Icon} />}
         {title && <TextTitle2>{title}</TextTitle2>}
         {actions && (
           <Group h="100%" align="center" ml="auto">
