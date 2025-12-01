@@ -1,13 +1,14 @@
-import { SnapshotRecord } from '@/types/server-entities/workbook';
-import { ActionIcon, Box, Group, Text } from '@mantine/core';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
+import { ActionIcon, Box, Group } from '@mantine/core';
 import { ChangeObject, diffWordsWithSpace } from 'diff';
 import { Maximize2Icon } from 'lucide-react';
 import { FC, useState } from 'react';
+import { Text13Regular } from '../../base/text';
 import { ChangeLinesStack } from '../ChangeLinesStack/ChangeLinesStack';
 import { ExistingChangeTypes } from '../ProcessedFieldValue';
 import styles from './FieldValueWrapper.module.css';
 type IdValueWrapperProps = {
-  record?: SnapshotRecord;
+  record?: ProcessedSnapshotRecord;
   onOpenOverlay?: () => void;
   isOverlayOpen?: boolean;
 };
@@ -53,9 +54,12 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record, onOpenOverlay,
           overflow: 'hidden',
         }}
       >
-        <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Text13Regular
+          c={!record?.isTableDirty || record.__dirty ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
           {String(record?.id?.remoteId)}
-        </Text>
+        </Text13Regular>
       </Box>
 
       {/* Hover button */}
@@ -72,8 +76,8 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record, onOpenOverlay,
             right: 4,
             top: '50%',
             transform: 'translateY(-50%)',
-            backgroundColor: 'var(--mantine-color-gray-0)',
-            color: 'var(--mantine-color-gray-7)',
+            backgroundColor: 'var(--bg-panel)',
+            color: 'var(--fg-secondary)',
           }}
         >
           <Maximize2Icon size={16} />

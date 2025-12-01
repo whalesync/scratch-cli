@@ -1,8 +1,12 @@
-import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { ColumnState, GridApi } from 'ag-grid-community';
 import { useCallback, useEffect, useState } from 'react';
 
-export const useStoreColumnState = (workbookId: string, tableId: string, gridApi: GridApi<SnapshotRecord> | null) => {
+export const useStoreColumnState = (
+  workbookId: string,
+  tableId: string,
+  gridApi: GridApi<ProcessedSnapshotRecord> | null,
+) => {
   const [columnState, setColumnState] = useState<ColumnState[]>([]);
   const [mounted, setMounted] = useState(false);
   const storageKey = `ag-grid-column-state-${workbookId}-${tableId}`;

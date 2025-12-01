@@ -289,7 +289,7 @@ export const useSnapshotTableRecords = (args: {
       return {
         ...record,
         __processed_fields: processedFields,
-        isTableDirty: false,
+        isTableDirty: snapshotTable.dirty,
       };
     });
 

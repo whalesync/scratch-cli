@@ -1,9 +1,10 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { Text13Regular } from '@/app/components/base/text';
 import { ChangeDotsGroup } from '@/app/components/field-value-wrappers/ChangeDotsGroup/ChangeDotsGroup';
 import { hasAnyChange } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
-import { Group, Text, Tooltip } from '@mantine/core';
+import { Box, Group, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
 import { AlertCircle, EyeOff } from 'lucide-react';
@@ -108,10 +109,10 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         </span>
       )}
       {props.enableSorting && (
-        <span className="ag-header-icon ag-sort-icon" style={{ marginLeft: '2px' }}>
+        <Box c="var(--fg-secondary)" style={{ margin: '2px' }}>
           {currentSort === 'asc' && '↑'}
           {currentSort === 'desc' && '↓'}
-        </span>
+        </Box>
       )}
     </>
   );
@@ -128,7 +129,8 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     >
       {/* Column change indicators */}
       {hasAnyChange(columnChangeTypes[columnId]) && <ChangeDotsGroup changeTypes={columnChangeTypes[columnId]} />}
-      <Text>{props.displayName}</Text>
+      <Text13Regular c="var(--fg-secondary)">{props.displayName}</Text13Regular>
+      {/* <Text>{props.displayName}</Text> */}
       {infoIcons}
 
       <HeaderMenu

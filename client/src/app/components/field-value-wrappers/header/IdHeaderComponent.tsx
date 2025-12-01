@@ -1,8 +1,8 @@
 import { ChangeLinesStack } from '@/app/components/field-value-wrappers/ChangeLinesStack/ChangeLinesStack';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
-import { Text } from '@mantine/core';
 import { IHeaderParams } from 'ag-grid-community';
 import { useEffect, useMemo, useState } from 'react';
+import { Text13Regular } from '../../base/text';
 
 interface IdHeaderComponentProps extends IHeaderParams {
   entityName: string;
@@ -75,9 +75,7 @@ export const IdHeaderComponent = (props: IdHeaderComponentProps) => {
       onClick={handleSort}
     >
       <ChangeLinesStack changeTypes={aggregatedChangeTypes} />
-      <Text size="sm" className="ag-header-cell-text" fw={600}>
-        {`${props.entityName.charAt(0).toUpperCase()}${props.entityName.slice(1)} ID`}
-      </Text>
+      <Text13Regular c="var(--fg-secondary)">{`${props.entityName.charAt(0).toUpperCase()}${props.entityName.slice(1)} ID`}</Text13Regular>
 
       {/* Sort indicator */}
       {currentSort && (

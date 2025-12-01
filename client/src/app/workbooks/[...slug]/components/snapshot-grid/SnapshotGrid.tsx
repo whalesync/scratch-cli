@@ -26,7 +26,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
+import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '../../../../../hooks/use-snapshot-table-records';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { CustomHeaderComponent } from '../../../../components/field-value-wrappers/header/FieldHeaderComponent';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
@@ -56,7 +56,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     });
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
-  const [gridApi, setGridApi] = useState<GridApi<SnapshotRecord> | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi<ProcessedSnapshotRecord> | null>(null);
   const { savePendingChanges } = useUpdateRecordsContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
@@ -186,7 +186,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   // Handle grid ready to store API reference and apply column state immediately
   const onGridReady = useCallback(
-    (params: GridReadyEvent<SnapshotRecord>) => {
+    (params: GridReadyEvent<ProcessedSnapshotRecord>) => {
       setGridApi(params.api);
       // Apply saved column state immediately when grid is ready to prevent animation
       if (columnState && columnState.length > 0) {
@@ -454,7 +454,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   // Handle double click to open record view
   const handleCellDoubleClicked = useCallback(
-    (event: CellDoubleClickedEvent<SnapshotRecord>) => {
+    (event: CellDoubleClickedEvent<ProcessedSnapshotRecord>) => {
       const record = event.data;
       const columnId = event.colDef?.field;
 
@@ -565,7 +565,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     };
     const colDef: ColDef = {
       field: column.id.wsId,
-      headerName: column.name.toUpperCase(),
+      headerName: column.name,
       sortable: true,
       filter: false,
       resizable: true,
@@ -629,7 +629,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
           event.stopPropagation();
         }}
       >
-        <AgGridReact<SnapshotRecord>
+        <AgGridReact<ProcessedSnapshotRecord>
           rowData={rowData}
           columnDefs={columnDefs}
           getRowId={(params) => {

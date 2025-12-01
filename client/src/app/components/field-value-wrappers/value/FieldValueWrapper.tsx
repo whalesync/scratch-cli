@@ -1,8 +1,9 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec } from '@/types/server-entities/workbook';
-import { Box, Group, Text } from '@mantine/core';
+import { Box, Group } from '@mantine/core';
 import { FC } from 'react';
+import { Text13Regular } from '../../base/text';
 import { ChangeDotsGroup } from '../ChangeDotsGroup/ChangeDotsGroup';
 import { SuggestionButtons } from '../SuggestionButtons';
 import styles from './FieldValueWrapper.module.css';
@@ -43,9 +44,12 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
       )}
     </>
   ) : (
-    <Text className="cell-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <Text13Regular
+      c={!record.isTableDirty || record.__dirty ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
+      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+    >
       {processedFieldValue.formattedValue}
-    </Text>
+    </Text13Regular>
   );
 
   // Single return with all the structure

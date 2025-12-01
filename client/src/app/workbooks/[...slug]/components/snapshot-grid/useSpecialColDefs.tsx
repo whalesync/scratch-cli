@@ -1,6 +1,7 @@
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { IdValueWrapper } from '@/app/components/field-value-wrappers/value/IdValueWrapper';
 import { AG, ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
@@ -10,7 +11,7 @@ import { getCellClassFn } from './useCellClass';
 interface UseIdColDefProps {
   entityName: string;
   resizable?: boolean;
-  gridApi?: GridApi<SnapshotRecord> | null;
+  gridApi?: GridApi<ProcessedSnapshotRecord> | null;
   recordDetailsVisible?: boolean;
   tableSpec: TableSpec;
   columnChangeTypes?: Record<string, ExistingChangeTypes>;
@@ -47,13 +48,11 @@ export const useSpecialColDefs = ({
     valueGetter: (params) => {
       return params.data?.id?.wsId || '';
     },
-    cellRenderer: (params: ICellRendererParams<SnapshotRecord, unknown>) => {
+    cellRenderer: (params: ICellRendererParams<ProcessedSnapshotRecord, unknown>) => {
       return (
         <IdValueWrapper
           record={params.data}
-          onOpenOverlay={
-            onOpenOverlay && params.data?.id?.wsId ? () => onOpenOverlay(params.data!.id.wsId) : undefined
-          }
+          onOpenOverlay={onOpenOverlay && params.data?.id?.wsId ? () => onOpenOverlay(params.data!.id.wsId) : undefined}
           isOverlayOpen={recordDetailsVisible}
         />
       );

@@ -1,6 +1,6 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { SnapshotTableId } from '@spinner/shared-types';
@@ -18,10 +18,10 @@ interface TableContextMenuProps {
   isOpen: boolean;
   position: { x: number; y: number };
   onClose: () => void;
-  gridApi: GridApi<SnapshotRecord> | null;
+  gridApi: GridApi<ProcessedSnapshotRecord> | null;
   tableColumns: Array<{ id: { wsId: string }; name: string }>;
   tableId: SnapshotTableId;
-  onShowRecordJson?: (record: SnapshotRecord) => void;
+  onShowRecordJson?: (record: ProcessedSnapshotRecord) => void;
 }
 
 export const TableContextMenu: React.FC<TableContextMenuProps> = ({
@@ -125,7 +125,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   if (!isOpen) return null;
 
   const selectedNodes = gridApi?.getSelectedNodes() || [];
-  const selectedRows = selectedNodes.map((node) => node.data).filter(Boolean) as SnapshotRecord[];
+  const selectedRows = selectedNodes.map((node) => node.data).filter(Boolean) as ProcessedSnapshotRecord[];
 
   // Find selected rows that have suggestions
   const selectedRowsWithSuggestions = selectedRows.filter((record) => {

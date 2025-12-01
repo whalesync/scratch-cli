@@ -1,3 +1,4 @@
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { CellClassFunc, GridApi } from 'ag-grid-community';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
@@ -7,7 +8,7 @@ import { ActiveCells } from '../../../../../stores/workbook-editor-store';
  * our wrappers so that we can use them outside of the grid too.
  */
 export const getCellClassFn = (params: {
-  gridApi: GridApi<SnapshotRecord> | null | undefined;
+  gridApi: GridApi<ProcessedSnapshotRecord> | null | undefined;
   activeCells: ActiveCells | null | undefined;
   columnId: string;
 }) => {
