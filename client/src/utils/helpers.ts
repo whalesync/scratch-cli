@@ -112,7 +112,7 @@ export function getErrorFromOAuth(error: string, connectorType: string): string 
 
 export function timeAgo(input: Date | string): string {
   const date = input instanceof Date ? input : new Date(input);
-  const formatter = new Intl.RelativeTimeFormat('en');
+  const formatter = new Intl.RelativeTimeFormat('en', { style: 'narrow' });
   const ranges = {
     years: 3600 * 24 * 365,
     months: 3600 * 24 * 30,

@@ -15,51 +15,39 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
 import { SnapshotTable } from '@/types/server-entities/workbook';
+import { timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
-  Box,
   Center,
-  Collapse,
-  Divider,
   Group,
   Loader,
+  RenderTreeNodePayload,
   ScrollArea,
   Stack,
   TextInput,
+  Tree,
+  TreeNodeData,
   useModalsStack,
+  useTree,
 } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
+import cx from 'classnames';
 import {
   ChevronDown,
   ChevronRight,
   CloudDownload,
   PlusIcon,
-  RefreshCw,
+  RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
   Upload,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
 import { UploadFileModal } from '../../../components/modals/UploadFileModal';
 import { CreateConnectionModal } from '../../../data-sources/components/CreateConnectionModal';
-
-// Helper to format relative time
-const formatRelativeTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-};
+import styles from './AddTableTab.module.css';
 
 // Helper to find matching snapshot table by comparing EntityIds
 const findMatchingSnapshotTable = (
@@ -83,8 +71,9 @@ export const AddTableTab = () => {
   const deleteTableModal = useDeleteConfirmationModal<SnapshotTableId>();
   const modalStack = useModalsStack(['create', 'upload']);
 
+  const tree = useTree();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
   const [refreshingGroups, setRefreshingGroups] = useState<Record<string, boolean>>({});
 
@@ -106,6 +95,16 @@ export const AddTableTab = () => {
       })),
     };
   }, [uploads]);
+
+  // Adjust the tree expansion in response to the search query
+  useEffect(() => {
+    if (searchQuery.length > 0) {
+      tree.expandAllNodes();
+    } else {
+      tree.collapseAllNodes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Tree causes infinite re-renders
+  }, [searchQuery]);
 
   // Combine backend groups with CSV group and filter by search
   const groupedTables = useMemo(() => {
@@ -133,13 +132,6 @@ export const AddTableTab = () => {
       .filter((table) => table.hidden)
       .sort((a, b) => a.tableSpec.name.localeCompare(b.tableSpec.name));
   }, [workbook?.snapshotTables]);
-
-  const toggleGroup = (groupKey: string) => {
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [groupKey]: !prev[groupKey],
-    }));
-  };
 
   const handleTableSelect = async (table: TableGroup['tables'][0], group: TableGroup) => {
     if (!workbook) return;
@@ -191,6 +183,131 @@ export const AddTableTab = () => {
     modalStack.open('upload');
   };
 
+  const treeData: TreeNodeData[] = useMemo(() => {
+    const result: TreeNodeData[] = [];
+
+    if (recentlyClosedTables.length > 0) {
+      result.push({
+        value: 'recently-closed',
+        label: 'Recently closed',
+        nodeProps: { type: 'recently-closed-header' },
+        children: recentlyClosedTables.map((table) => ({
+          value: table.id,
+          label: table.tableSpec.name,
+          nodeProps: { type: 'recently-closed-item', table },
+        })),
+      });
+    }
+
+    for (const group of groupedTables) {
+      const groupKey = createGroupKey(group);
+      result.push({
+        value: groupKey,
+        label: group.displayName,
+        nodeProps: { type: 'group-header', group, groupKey },
+        children: group.tables.map((table) => {
+          const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
+          return {
+            value: table.id.wsId,
+            label: table.displayName,
+            nodeProps: { type: 'group-item', table, group, matchingSnapshot },
+          };
+        }),
+      });
+    }
+    return result;
+  }, [recentlyClosedTables, groupedTables, workbook?.snapshotTables]);
+
+  const renderNode = ({
+    node,
+    expanded,
+    elementProps: { className: treeClassName, onClick: treeOnClick, ...restElementProps },
+  }: RenderTreeNodePayload) => {
+    const { type, table, group, groupKey, matchingSnapshot } = node.nodeProps || {};
+
+    if (type === 'recently-closed-header') {
+      return (
+        <Group className={cx([styles.listSectionHeader, treeClassName])} onClick={treeOnClick} {...restElementProps}>
+          <StyledLucideIcon Icon={expanded ? ChevronDown : ChevronRight} size="sm" />
+          <Text13Book>Recently closed</Text13Book>
+        </Group>
+      );
+    }
+
+    if (type === 'recently-closed-item' && table) {
+      return (
+        <Group
+          className={cx([styles.listSectionItem, treeClassName])}
+          onClick={() => {
+            unhideTable(table.id);
+            setActiveTab(table.id);
+            closeNewTabs();
+          }}
+        >
+          <ConnectorIcon connector={table.connectorService} size={20} withBorder />
+          <Text13Regular style={{ flex: 1 }}>{table.tableSpec.name}</Text13Regular>
+          {table.lastSyncTime && (
+            <Group gap="xs">
+              <StyledLucideIcon Icon={CloudDownload} size="sm" />
+              <Text13Regular>{timeAgo(table.lastSyncTime)}</Text13Regular>
+            </Group>
+          )}
+          <IconButtonInline
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteTableModal.open(table.id, table.tableSpec.name);
+            }}
+          >
+            <StyledLucideIcon Icon={Trash2Icon} size="sm" />
+          </IconButtonInline>
+        </Group>
+      );
+    }
+
+    if (type === 'group-header' && group) {
+      const isRefreshing = refreshingGroups[groupKey];
+      return (
+        <Group className={cx([styles.listSectionHeader, treeClassName])} onClick={treeOnClick} {...restElementProps}>
+          <StyledLucideIcon Icon={expanded ? ChevronDown : ChevronRight} size="sm" />
+          <Text13Regular style={{ flex: 1 }}>{group.displayName}</Text13Regular>
+          <IconButtonInline
+            size="compact-xs"
+            disabled={isRefreshing}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isRefreshing && groupKey) {
+                handleRefresh(groupKey);
+              }
+            }}
+          >
+            {isRefreshing ? <Loader size={13} /> : <RefreshCwIcon size={13} />}
+          </IconButtonInline>
+        </Group>
+      );
+    }
+
+    if (type === 'group-item' && table && group) {
+      return (
+        <Group
+          className={cx([styles.listSectionItem, treeClassName])}
+          onClick={() => handleTableSelect(table, group)}
+          {...restElementProps}
+        >
+          <ConnectorIcon connector={group.service} size={20} withBorder />
+          <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
+          {matchingSnapshot?.lastSyncTime && (
+            <Group gap="xs">
+              <StyledLucideIcon Icon={CloudDownload} size="sm" />
+              <Text13Regular>{timeAgo(matchingSnapshot.lastSyncTime)}</Text13Regular>
+            </Group>
+          )}
+        </Group>
+      );
+    }
+
+    return null;
+  };
+
   if (!workbook) {
     return <Loader />;
   }
@@ -216,24 +333,23 @@ export const AddTableTab = () => {
         onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
         {...deleteTableModal}
       />
-      <Stack gap="md" maw={600} mx="auto" py="xl">
+      <Stack gap="md" maw={600} mx="auto" h="90%" py="xl">
         <Stack gap="xs" align="center">
           <DecorativeBoxedIcon Icon={PlusIcon} />
           <Text13Medium ta="center">Import table into workbook</Text13Medium>
           <Text13Book c="dimmed" ta="center">
-            Select which table you want to import
-            <br />
-            into the workbook.
+            Select a table to open in the workbook.
           </Text13Book>
         </Stack>
 
         {/* Bordered container with search and table list */}
-        <Box
+        <div
           style={{
-            border: '1px solid var(--mantine-color-gray-3)',
-            borderRadius: 'var(--mantine-radius-sm)',
+            border: '0.5px solid var(--fg-divider)',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: '1 1 0%',
             overflow: 'hidden',
-            minHeight: 422,
           }}
         >
           {/* Search bar inside container */}
@@ -245,7 +361,7 @@ export const AddTableTab = () => {
             variant="unstyled"
             styles={{
               input: {
-                borderBottom: '1px solid var(--mantine-color-gray-3)',
+                borderBottom: '0.5px solid var(--fg-divider)',
                 borderRadius: 0,
                 paddingLeft: 'var(--mantine-spacing-xl)',
               },
@@ -256,148 +372,10 @@ export const AddTableTab = () => {
             <Center py="xl">
               <Loader size="sm" />
             </Center>
-          ) : groupedTables.length > 0 || recentlyClosedTables.length > 0 ? (
-            <Stack gap={0}>
-              {/* Available in workbook section */}
-              {recentlyClosedTables.length > 0 && (
-                <>
-                  <Text13Book c="dimmed" px="sm" py="xs">
-                    Recently closed
-                  </Text13Book>
-                  {recentlyClosedTables.map((table) => {
-                    return (
-                      <Box
-                        key={table.id}
-                        px="sm"
-                        py="xs"
-                        style={{
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '';
-                        }}
-                        onClick={() => {
-                          unhideTable(table.id);
-                          setActiveTab(table.id);
-                          closeNewTabs();
-                        }}
-                      >
-                        <Group gap="sm" wrap="nowrap">
-                          <ConnectorIcon connector={table.connectorService} size={20} />
-                          <Text13Regular style={{ flex: 1 }}>{table.tableSpec.name}</Text13Regular>
-                          {table.lastSyncTime && (
-                            <Group gap="xs">
-                              <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
-                              <Text13Regular c="var(--fg-muted)">
-                                {formatRelativeTime(table.lastSyncTime)}
-                              </Text13Regular>
-                            </Group>
-                          )}
-                          <IconButtonInline
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteTableModal.open(table.id, table.tableSpec.name);
-                            }}
-                          >
-                            <StyledLucideIcon Icon={Trash2Icon} size="sm" c="var(--fg-muted)" />
-                          </IconButtonInline>
-                        </Group>
-                      </Box>
-                    );
-                  })}
-                  <Divider />
-                </>
-              )}
-
-              {/* Grouped tables by connector */}
-              {groupedTables.map((group, groupIndex) => {
-                const groupKey = createGroupKey(group);
-                const isOpen = !!expandedGroups[groupKey];
-                const isLastGroup = groupIndex === groupedTables.length - 1;
-                const isRefreshing = refreshingGroups[groupKey];
-
-                return (
-                  <div key={groupKey}>
-                    {/* Group header */}
-                    <Group
-                      gap="sm"
-                      px="sm"
-                      py="xs"
-                      style={{
-                        cursor: 'pointer',
-                      }}
-                      wrap="nowrap"
-                    >
-                      <Group gap="sm" style={{ flex: 1 }} onClick={() => toggleGroup(groupKey)} wrap="nowrap">
-                        <StyledLucideIcon Icon={isOpen ? ChevronDown : ChevronRight} size="sm" />
-                        <Text13Regular>{group.displayName}</Text13Regular>
-                      </Group>
-                      <Group
-                        gap="xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isRefreshing) {
-                            handleRefresh(groupKey);
-                          }
-                        }}
-                        style={{ cursor: isRefreshing ? 'default' : 'pointer' }}
-                      >
-                        {isRefreshing ? (
-                          <Loader size="xs" />
-                        ) : (
-                          <StyledLucideIcon Icon={RefreshCw} size="sm" c="var(--fg-muted)" />
-                        )}
-                      </Group>
-                    </Group>
-
-                    {/* Group tables */}
-                    <Collapse in={isOpen}>
-                      <ScrollArea.Autosize mah={150}>
-                        {group.tables.map((table) => {
-                          const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
-                          return (
-                            <Box
-                              key={table.id.wsId}
-                              px="sm"
-                              py="xs"
-                              style={{
-                                cursor: 'pointer',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'var(--bg-selected)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '';
-                              }}
-                              onClick={() => handleTableSelect(table, group)}
-                            >
-                              <Group gap="sm" wrap="nowrap">
-                                <ConnectorIcon connector={group.service} size={20} />
-                                <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>
-                                {matchingSnapshot?.lastSyncTime && (
-                                  <Group gap="xs">
-                                    <StyledLucideIcon Icon={CloudDownload} size="sm" c="var(--fg-muted)" />
-                                    <Text13Regular c="var(--fg-muted)">
-                                      {formatRelativeTime(matchingSnapshot.lastSyncTime)}
-                                    </Text13Regular>
-                                  </Group>
-                                )}
-                              </Group>
-                            </Box>
-                          );
-                        })}
-                      </ScrollArea.Autosize>
-                    </Collapse>
-
-                    {/* Divider between groups */}
-                    {!isLastGroup && <Divider />}
-                  </div>
-                );
-              })}
-            </Stack>
+          ) : treeData.length > 0 ? (
+            <ScrollArea style={{ flex: 1 }}>
+              <Tree data={treeData} tree={tree} renderNode={renderNode} classNames={{ node: styles.treeNode }} />
+            </ScrollArea>
           ) : searchQuery ? (
             <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
               No tables found matching &quot;{searchQuery}&quot;
@@ -407,10 +385,10 @@ export const AddTableTab = () => {
               No tables available from your connections.
             </Text13Regular>
           )}
-        </Box>
+        </div>
 
-        {/* Bottom action buttons */}
-        <Group justify="center" gap="sm">
+        {/* Action buttons */}
+        <Group justify="center" gap="sm" my="md">
           <ButtonSecondaryOutline
             leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
             onClick={() => modalStack.open('create')}
