@@ -21,6 +21,7 @@ export interface PendingRecordUpdate {
   workbookId: WorkbookId;
   tableId: SnapshotTableId;
   operation: EnqueueableRecordOperation;
+  retryCount?: number; // Track retries per change
 }
 
 interface UpdateRecordsValue {
@@ -100,12 +101,39 @@ export const UpdateRecordsProvider = ({ children }: { children: ReactNode }) => 
     changesArrivedDuringFlushRef.current = false;
     setSavingPendingChanges(true);
 
-    // workbook the current pending changes to flush
-    const changesToFlush = [...pendingChanges];
+    // Filter out changes that have failed too many times (max 5 retries)
+    const MAX_RETRIES = 5;
+    const changesToAttempt = pendingChanges.filter((c) => (c.retryCount || 0) < MAX_RETRIES);
+    const droppedChanges = pendingChanges.filter((c) => (c.retryCount || 0) >= MAX_RETRIES);
+
+    // Notify user about dropped changes
+    if (droppedChanges.length > 0) {
+      console.warn(`Dropping ${droppedChanges.length} change(s) after ${MAX_RETRIES} failed retries`, droppedChanges);
+      const count = droppedChanges.length;
+      ScratchpadNotifications.error({
+        title: count === 1 ? 'Change could not be saved' : 'Changes could not be saved',
+        message:
+          count === 1
+            ? `1 change was dropped after ${MAX_RETRIES} failed attempts. Please review your change and try again.`
+            : `${count} changes were dropped after ${MAX_RETRIES} failed attempts. Please review your changes and try again.`,
+      });
+
+      // Remove dropped changes from pending
+      setPendingChanges((current) => {
+        const droppedIds = new Set(droppedChanges.map((c) => getChangeId(c)));
+        return current.filter((c) => !droppedIds.has(getChangeId(c)));
+      });
+    }
+
+    if (changesToAttempt.length === 0) {
+      flushInProgressRef.current = false;
+      setSavingPendingChanges(false);
+      return;
+    }
 
     try {
       // Step 1: Coalesce operations by record (last write wins for same field)
-      const coalescedOps = coalesceOperations(changesToFlush);
+      const coalescedOps = coalesceOperations(changesToAttempt);
 
       // Step 2: Group by workbook+table
       const groupedByTable = groupByTable(coalescedOps);
@@ -125,21 +153,35 @@ export const UpdateRecordsProvider = ({ children }: { children: ReactNode }) => 
         }),
       );
 
-      // Step 4: Only clear the changes that were flushed
-      // If new changes arrived during flush, keep them
+      // Step 4: Only clear the changes that were successfully flushed
       setPendingChanges((current) => {
-        // Remove only the changes we just flushed
-        const flushedIds = new Set(changesToFlush.map((c) => getChangeId(c)));
+        const flushedIds = new Set(changesToAttempt.map((c) => getChangeId(c)));
         return current.filter((c) => !flushedIds.has(getChangeId(c)));
       });
     } catch (e) {
       const error = e as Error;
       console.error('Error flushing pending updates', error);
+
+      // Increment retry count for failed changes
+      setPendingChanges((current) => {
+        const attemptedIds = new Set(changesToAttempt.map((c) => getChangeId(c)));
+        return current.map((c) => {
+          if (attemptedIds.has(getChangeId(c))) {
+            const newRetryCount = (c.retryCount || 0) + 1;
+            return { ...c, retryCount: newRetryCount };
+          }
+          return c;
+        });
+      });
+
+      // Get max retry count from failed changes for notification
+      const maxRetryCount = Math.max(...changesToAttempt.map((c) => (c.retryCount || 0) + 1));
+
+      // Only show error notification if it's been more than 10 seconds since last error
       ScratchpadNotifications.error({
         title: 'Error updating fields',
-        message: error.message,
+        message: `${error.message}${maxRetryCount > 1 ? ` (retry ${maxRetryCount}/${MAX_RETRIES})` : ''}`,
       });
-      // Don't clear pending changes on error - they'll be retried
     } finally {
       flushInProgressRef.current = false;
       setSavingPendingChanges(false);

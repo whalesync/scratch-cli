@@ -184,13 +184,24 @@ export const DisplayField = (props: DisplayFieldProps) => {
     const suggestedValue = record.__suggested_values?.[columnId];
     const suggestedValueString = suggestedValue?.toString() ?? '';
 
+    const isReadOnly = column.readonly || hasSuggestion || mode === 'multiple';
+    // Use this approach as the style is better for UX, using disabled prop would be worse for UX
     const booleanField = (
       <Checkbox
         key={columnId}
         label={mode === 'single' ? column.name : undefined}
         checked={currentValue}
-        onChange={(e) => updateField(columnId, e.target.checked)}
-        readOnly={column.readonly || hasSuggestion || mode === 'multiple'}
+        onChange={(e) => {
+          if (!isReadOnly) {
+            updateField(columnId, e.target.checked);
+          }
+        }}
+        readOnly={isReadOnly}
+        styles={{
+          input: {
+            cursor: isReadOnly ? 'not-allowed' : 'pointer',
+          },
+        }}
       />
     );
 
