@@ -47,7 +47,7 @@ export class OpenRouterService {
      * NOTE: Generated api keys will get flagged as free tier if the there are no credits allocated to the organization that owns the Provisioning Key
      */
     const payload = {
-      name: `User ${userId} Starter Key${scratchpadEnvironment !== 'production' ? ` (${scratchpadEnvironment})` : ''}`,
+      name: `User ${userId} System Key${scratchpadEnvironment !== 'production' ? ` (${scratchpadEnvironment})` : ''}`,
       limit: limit ?? this.configService.getNewUserOpenRouterCreditLimit(),
       limit_reset: !limitReset || limitReset === 'never' ? undefined : limitReset,
     };
@@ -88,7 +88,6 @@ export class OpenRouterService {
     if (!provisioningKey) {
       return generalError('OpenRouter provisioning key is not set');
     }
-
     try {
       const response = await axios.patch(`${this.openRouterApiUrl}/keys/${hash}`, dto, {
         headers: {
@@ -106,9 +105,9 @@ export class OpenRouterService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = (error.response?.data as { message?: string })?.message || error.message;
-        return generalError(`Failed to delete OpenRouter key: ${errorMessage}`);
+        return generalError(`Failed to update OpenRouter key: ${errorMessage}`);
       }
-      return generalError(`Failed to delete OpenRouter key: ${String(error)}`);
+      return generalError(`Failed to update OpenRouter key: ${String(error)}`);
     }
   }
 
@@ -145,16 +144,11 @@ export class OpenRouterService {
    * https://openrouter.ai/docs/api-reference/api-keys/delete-api-key
    * @param hash - The hash of the API key to delete
    */
-  async deleteApiKey(hash: string): AsyncResult<void> {
-    const provisioningKey = this.configService.getOpenRouterProvisioningKey();
-    if (!provisioningKey) {
-      return generalError('OpenRouter provisioning key is not set');
-    }
-
+  async deleteApiKey(apiKey: string, hash: string): AsyncResult<void> {
     try {
       const response = await axios.delete(`${this.openRouterApiUrl}/keys/${hash}`, {
         headers: {
-          Authorization: `Bearer ${provisioningKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': this.httpReferer,
           'X-Title': this.httpXTitle,

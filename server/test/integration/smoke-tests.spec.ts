@@ -55,7 +55,7 @@ describe('Smoke Tests', () => {
       throw new Error('No agent credentials found for the current user');
     }
 
-    const credential = credentials.find((c) => c.service === 'openrouter' && c.enabled && c.default);
+    const credential = credentials.find((c) => c.service === 'openrouter' && c.default);
 
     if (!credential) {
       throw new Error('No active openrouter credential found for the current user');

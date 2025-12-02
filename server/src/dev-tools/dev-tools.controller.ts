@@ -7,7 +7,6 @@ import {
   NotFoundException,
   Param,
   Patch,
-  Post,
   Query,
   Req,
   UnauthorizedException,
@@ -92,23 +91,5 @@ export class DevToolsController {
     }
 
     await this.usersService.updateUserSettings(targetUser, dto);
-  }
-
-  /* Admin tool to add "new user" resources to the target user like a trial subscription and openrouter key */
-  @Post('users/:id/add-new-user-resources')
-  async addNewUserResources(@Req() req: RequestWithUser, @Param('id') id: string): Promise<boolean> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can add new user resources');
-    }
-
-    const user = await this.usersService.findOne(id);
-
-    if (!user) {
-      throw new NotFoundException(`User ${id} not found`);
-    }
-
-    await this.usersService.addNewUserResources(user);
-
-    return true;
   }
 }

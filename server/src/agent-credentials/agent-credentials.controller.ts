@@ -20,6 +20,7 @@ import type { RequestWithUser } from 'src/auth/types';
 import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
+import { userToActor } from '../users/types';
 import { AgentCredentialsService } from './agent-credentials.service';
 import {
   CreateAgentCredentialDto,
@@ -27,7 +28,6 @@ import {
   ValidatedCreateAgentCredentialDto,
 } from './dto/create-agent-credential.dto';
 import { AgentCredentialEntity, CreditUsageEntity } from './entities/credentials.entity';
-import { userToActor } from './types';
 
 @Controller('user/credentials')
 @UseGuards(ScratchpadAuthGuard)

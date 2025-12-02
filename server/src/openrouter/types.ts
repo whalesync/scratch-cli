@@ -55,6 +55,7 @@ export interface OpenRouterUpdateRequest {
   disabled?: boolean;
   include_byok_in_limit?: boolean;
   limit?: number;
+  limit_reset?: 'daily' | 'weekly' | 'monthly' | 'never';
 }
 
 export interface OpenRouterUpdateApiKeyResponse {

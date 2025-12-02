@@ -1,16 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { AiAgentCredentialSource, TokenType, UserRole } from '@prisma/client';
-import { createAiAgentCredentialId, createApiTokenId, createOrganizationId, createUserId } from '@spinner/shared-types';
+import { TokenType, UserRole } from '@prisma/client';
+import { createApiTokenId, createOrganizationId, createUserId } from '@spinner/shared-types';
+import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
-import { WSLogger } from 'src/logger';
-import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { getFreePlan } from 'src/payment/plans';
-import { StripePaymentService } from 'src/payment/stripe-payment.service';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
-import { isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { generateApiToken, generateTokenExpirationDate, generateWebsocketTokenExpirationDate } from './tokens';
@@ -22,8 +19,7 @@ export class UsersService {
     private readonly db: DbService,
     private readonly postHogService: PostHogService,
     private readonly scratchpadConfigService: ScratchpadConfigService,
-    private readonly openRouterService: OpenRouterService,
-    private readonly stripePaymentService: StripePaymentService,
+    private readonly agentCredentialsService: AgentCredentialsService,
     private readonly slackNotificationService: SlackNotificationService,
   ) {}
 
@@ -106,7 +102,7 @@ export class UsersService {
       return user;
     }
 
-    let newUser: UserCluster.User = await this.db.client.user.create({
+    const newUser: UserCluster.User = await this.db.client.user.create({
       data: {
         id: createUserId(),
         clerkId: clerkUserId,
@@ -135,50 +131,12 @@ export class UsersService {
 
     this.postHogService.identifyNewUser(newUser);
 
-    // add any additional resources to the user like subscriptions and api keys
-    newUser = await this.addNewUserResources(newUser);
+    // add the Free Plan OpenRouter credentials to the new user
+    await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(newUser.id, getFreePlan());
 
     await this.slackNotificationService.sendMessage(SlackFormatters.newUserSignup(newUser));
 
     return newUser;
-  }
-
-  public async addNewUserResources(newUser: UserCluster.User): Promise<UserCluster.User> {
-    const updatedUser = newUser;
-
-    const freePlan = getFreePlan();
-
-    if (this.scratchpadConfigService.getGenerateOpenRouterKeyForNewUsers()) {
-      const result = await this.openRouterService.createKey({
-        userId: newUser.id,
-        limit: freePlan.features.creditLimit,
-        limitReset: freePlan.features.creditReset,
-      });
-
-      if (isOk(result)) {
-        await this.db.client.aiAgentCredential.create({
-          data: {
-            id: createAiAgentCredentialId(),
-            userId: newUser.id,
-            service: 'openrouter',
-            apiKey: result.v.key,
-            externalApiKeyId: result.v.hash,
-            description: `Free OpenRouter API key for Scratch`,
-            source: AiAgentCredentialSource.SYSTEM,
-            default: true,
-          },
-        });
-      } else {
-        WSLogger.error({
-          // just log the error for now
-          source: UsersService.name,
-          message: `Failed to create OpenRouter key for user ${newUser.id}`,
-          errorMessage: result.error,
-          error: result.cause,
-        });
-      }
-    }
-    return updatedUser;
   }
 
   public async search(query: string): Promise<UserCluster.User[]> {

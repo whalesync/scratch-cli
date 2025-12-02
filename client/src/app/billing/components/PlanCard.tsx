@@ -1,4 +1,4 @@
-import { ButtonPrimaryLight } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular, Text16Medium } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
@@ -30,7 +30,7 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
 
   let actionButton = null;
   if (isCurrentPlan) {
-    actionButton = <ButtonPrimaryLight disabled>Current Plan</ButtonPrimaryLight>;
+    actionButton = <ButtonSecondaryOutline disabled>Current Plan</ButtonSecondaryOutline>;
   } else if (!isCurrentPlan && plan.productType !== ScratchpadPlanType.FREE_PLAN) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleSwitchToPlan} loading={portalRedirectInProgress}>

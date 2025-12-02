@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AgentCredentialsModule } from 'src/agent-credentials/agent-credentials.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
@@ -9,7 +10,7 @@ import { StripePaymentService } from './stripe-payment.service';
 
 @Module({
   providers: [StripePaymentService],
-  imports: [ScratchpadConfigModule, DbModule, PosthogModule, SlackNotificationModule],
+  imports: [ScratchpadConfigModule, DbModule, PosthogModule, SlackNotificationModule, AgentCredentialsModule],
   exports: [StripePaymentService], //export this service to use in other modules
   controllers: [StripePaymentController, StripePaymentWebhookController],
 })

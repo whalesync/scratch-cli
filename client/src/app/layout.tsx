@@ -1,8 +1,8 @@
+import '@gfazioli/mantine-split-pane/styles.css';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/dropzone/styles.css';
 import '@mantine/notifications/styles.css';
-import '@gfazioli/mantine-split-pane/styles.css';
 
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <MantineProvider theme={SCRATCHPAD_MANTINE_THEME} defaultColorScheme="light">
           <Notifications />
+
           <ClerkProvider>
             <ClerkAuthContextProvider>
               <ScratchpadPostHogProvider>{children}</ScratchpadPostHogProvider>

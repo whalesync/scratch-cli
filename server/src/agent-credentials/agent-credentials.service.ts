@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { AiAgentCredential } from '@prisma/client';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { AiAgentCredential, AiAgentCredentialSource } from '@prisma/client';
 import { AiAgentCredentialId, createAiAgentCredentialId } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
-import { isErr } from 'src/types/results';
+import { Plan } from 'src/payment/plans';
+import { isErr, isOk } from 'src/types/results';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
-import { Actor } from './types';
+import { Actor } from '../users/types';
 
 @Injectable()
 export class AgentCredentialsService {
@@ -22,6 +23,24 @@ export class AgentCredentialsService {
     return this.db.client.aiAgentCredential.findUnique({
       where: { id },
     });
+  }
+
+  public async findSystemOpenRouterCredential(userId: string): Promise<AiAgentCredential | null> {
+    const results = await this.db.client.aiAgentCredential.findMany({
+      where: { userId, source: AiAgentCredentialSource.SYSTEM, service: 'openrouter' },
+    });
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    if (results.length > 1) {
+      throw new InternalServerErrorException(
+        `Unexpected error: Multiple system open router credentials found for user ${userId}`,
+      );
+    }
+
+    return results[0];
   }
 
   public async findByUserId(userId: string): Promise<AiAgentCredential[]> {
@@ -129,7 +148,7 @@ export class AgentCredentialsService {
 
     if (credential.source === 'SYSTEM' && credential.service === 'openrouter' && credential.externalApiKeyId) {
       // attempt to delete the api key from OpenRouter
-      const result = await this.openRouterService.deleteApiKey(credential.externalApiKeyId);
+      const result = await this.openRouterService.deleteApiKey(credential.apiKey, credential.externalApiKeyId);
       if (isErr(result)) {
         WSLogger.error({
           source: AgentCredentialsService.name,
@@ -170,6 +189,76 @@ export class AgentCredentialsService {
         where: { id, userId },
         data: { default: true },
       });
+    });
+  }
+
+  public async createSystemOpenRouterCredentialsForUser(userId: string, plan: Plan): Promise<AiAgentCredential> {
+    const result = await this.openRouterService.createKey({
+      userId,
+      limit: plan.features.creditLimit,
+      limitReset: plan.features.creditReset,
+    });
+
+    if (isOk(result)) {
+      return await this.db.client.aiAgentCredential.create({
+        data: {
+          id: createAiAgentCredentialId(),
+          userId,
+          service: 'openrouter',
+          apiKey: result.v.key,
+          externalApiKeyId: result.v.hash,
+          description: `OpenRouter API key provided by Scratch (${plan.displayName})`,
+          source: AiAgentCredentialSource.SYSTEM,
+          default: true,
+        },
+      });
+    } else {
+      throw new Error(`Failed to create OpenRouter key for user ${userId} for plan ${plan.displayName}`);
+    }
+  }
+
+  public async updateSystemOpenRouterCredentialLimit(userId: string, plan: Plan): Promise<void> {
+    const credential = await this.findSystemOpenRouterCredential(userId);
+    if (!credential) {
+      throw new NotFoundException(`System open router credential not found for user ${userId}`);
+    }
+
+    if (!credential.externalApiKeyId) {
+      throw new InternalServerErrorException(`OpenRounter API key hash not found on credential ${credential.id}`);
+    }
+
+    const result = await this.openRouterService.updateApiKey(credential.externalApiKeyId, {
+      limit: plan.features.creditLimit,
+      limit_reset: plan.features.creditReset === 'never' ? undefined : plan.features.creditReset,
+    });
+    if (isErr(result)) {
+      throw new InternalServerErrorException(`Failed to update OpenRouter key for user ${userId}: ${result.error}`);
+    }
+
+    await this.db.client.aiAgentCredential.update({
+      where: { id: credential.id },
+      data: {
+        description: `OpenRouter API key provided by Scratch (${plan.displayName})`,
+      },
+    });
+  }
+
+  public async disableSystemOpenRouterCredential(userId: string): Promise<void> {
+    const credential = await this.findSystemOpenRouterCredential(userId);
+    if (!credential) {
+      throw new NotFoundException(`System open router credential not found for user ${userId}`);
+    }
+    if (!credential.externalApiKeyId) {
+      throw new InternalServerErrorException(`OpenRounter API key hash not found on credential ${credential.id}`);
+    }
+
+    await this.openRouterService.disableApiKey(credential.externalApiKeyId);
+
+    await this.db.client.aiAgentCredential.update({
+      where: { id: credential.id },
+      data: {
+        description: `Deactivated - ${credential.description}`,
+      },
     });
   }
 }

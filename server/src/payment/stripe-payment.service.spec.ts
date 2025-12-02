@@ -41,6 +41,11 @@ const mockDbService = {
   },
 } as unknown as DbService;
 
+const mockAgentCredentialsService = {
+  updateSystemOpenRouterCredentialLimit: jest.fn(),
+  disableSystemOpenRouterCredential: jest.fn(),
+} as unknown as AgentCredentialsService;
+
 const mockPostHogService = {
   trackTrialStarted: jest.fn(),
 } as unknown as PostHogService;
@@ -86,6 +91,7 @@ describe('StripePaymentService', () => {
       mockDbService,
       mockPostHogService,
       mockSlackNotificationService,
+      mockAgentCredentialsService,
     );
 
     // Access private stripe instance for mocking
@@ -658,6 +664,7 @@ describe('StripePaymentService', () => {
       );
       mockDbService.client.subscription.upsert.mockResolvedValue({});
       mockDbService.client.invoiceResult.create.mockResolvedValue({});
+      mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue({});
 
       const result = await service.handleWebhookCallback(requestBody, signatureHeader);
 
@@ -760,6 +767,7 @@ describe('StripePaymentService', () => {
         createMockUser({ stripeCustomerId: 'cus_upsert123', organizationId: 'org_upsert' }),
       );
       mockDbService.client.subscription.upsert.mockResolvedValue({});
+      mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
       const result = await service.upsertSubscription('sub_upsert123', true, mockSubscription);
 

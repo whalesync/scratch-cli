@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { createInvoiceResultId, createSubscriptionId } from '@spinner/shared-types';
 import _ from 'lodash';
+import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
@@ -23,7 +24,7 @@ import {
 import Stripe from 'stripe';
 import { CreatePortalDto } from './dto/create-portal.dto';
 import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
-import { getPlans, ScratchpadPlanType } from './plans';
+import { getPlan, getPlans, ScratchpadPlanType } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -55,6 +56,7 @@ export class StripePaymentService {
     private readonly dbService: DbService,
     private readonly postHogService: PostHogService,
     private readonly slackNotificationService: SlackNotificationService,
+    private readonly agentCredentialsService: AgentCredentialsService,
   ) {
     this.stripe = new Stripe(this.configService.getStripeApiKey(), {
       apiVersion: STRIPE_API_VERSION,
@@ -646,6 +648,11 @@ export class StripePaymentService {
       });
     }
 
+    const plan = getPlan(productType as ScratchpadPlanType);
+    if (!plan) {
+      return unexpectedError('No plan found for product type', { context: { productType } });
+    }
+
     const stripeCustomerId = subscription.customer as string;
     const expiration = this.findExpirationFromSubscription(subscription);
     const priceInDollars = this.findPriceInDollarsForSubscription(subscription);
@@ -696,6 +703,14 @@ export class StripePaymentService {
           stripeStatus: subscription.status,
         },
       });
+
+      if (subscription.status === 'active' || subscription.status === 'trialing') {
+        // update the system open router credential limit based on the new plan
+        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
+      } else if (subscription.status === 'canceled') {
+        // delete the system open router credential
+        await this.agentCredentialsService.disableSystemOpenRouterCredential(user.id);
+      }
     } catch (err) {
       WSLogger.error({
         source: StripePaymentService.name,

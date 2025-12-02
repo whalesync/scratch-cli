@@ -40,6 +40,5 @@ export interface RecordsResponse {
 export interface AgentCredential {
   id: string;
   default: boolean;
-  enabled: boolean;
   service: string;
 }
