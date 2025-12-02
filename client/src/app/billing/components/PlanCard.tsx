@@ -4,7 +4,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
-import { Badge, Box, Group, Stack } from '@mantine/core';
+import { Badge, Box, Group, Stack, Tooltip } from '@mantine/core';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback } from 'react';
@@ -16,13 +16,12 @@ interface PlanCardProps {
 
 export const PlanCard = ({ plan }: PlanCardProps) => {
   const { subscription } = useSubscription();
-  const { redirectToUpdateSubscription, portalRedirectInProgress } = usePayments();
+  const { redirectToUpdateSubscription, redirectToCancelSubscription, portalRedirectInProgress } = usePayments();
   const isCurrentPlan = subscription.planType === plan.planType;
 
   const handleDowngrade = useCallback(() => {
-    // TODO: Implement downgrade
-    console.log('downgrade to ', plan.planType);
-  }, [plan.planType]);
+    redirectToCancelSubscription(RouteUrls.billingPageUrl);
+  }, [redirectToCancelSubscription]);
 
   const handleSwitchToPlan = useCallback(() => {
     redirectToUpdateSubscription(plan.planType, RouteUrls.billingPageUrl);
@@ -38,11 +37,25 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
       </ButtonPrimaryLight>
     );
   } else if (!isCurrentPlan && plan.planType === ScratchPlanType.FREE_PLAN) {
-    actionButton = (
-      <ButtonPrimaryLight onClick={handleDowngrade} loading={portalRedirectInProgress}>
-        Downgrade
-      </ButtonPrimaryLight>
-    );
+    if (subscription.isCancelled) {
+      actionButton = (
+        <Tooltip
+          label={`You have already cancelled your subscription, your account will switch to the ${plan.displayName} plan on the next billing cycle.`}
+          multiline
+          w={300}
+        >
+          <ButtonPrimaryLight onClick={handleDowngrade} disabled={true}>
+            Downgrade
+          </ButtonPrimaryLight>
+        </Tooltip>
+      );
+    } else {
+      actionButton = (
+        <ButtonPrimaryLight onClick={handleDowngrade} loading={portalRedirectInProgress}>
+          Downgrade
+        </ButtonPrimaryLight>
+      );
+    }
   }
 
   return (

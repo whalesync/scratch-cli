@@ -13,10 +13,16 @@ export const ActiveSubscriptionSection = () => {
   let content = null;
   if (subscription.status === 'valid') {
     content = (
-      <Group px="12px" py="10px" justify="space-between">
+      <Group px="12px" py="10px" justify="space-between" align="flex-start">
         <Stack gap="2px">
           <Text13Regular>{subscription.planDisplayName} plan</Text13Regular>
           <Text13Book c="dimmed">${subscription.costUSD} per month</Text13Book>
+          {subscription.isCancelled && (
+            <Text13Regular c="dimmed">
+              Cancelled - your account will revert to the Free plan on the next billing cycle, in{' '}
+              {subscription.daysRemaining} days.
+            </Text13Regular>
+          )}
         </Stack>
         {!isFreePlan && (
           <ButtonSecondaryOutline

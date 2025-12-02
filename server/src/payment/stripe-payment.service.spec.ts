@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -57,6 +58,10 @@ const mockSlackNotificationService = {
   sendMessage: jest.fn().mockResolvedValue(undefined),
 } as unknown as SlackNotificationService;
 
+const mockAuditLogService = {
+  logEvent: jest.fn().mockResolvedValue(undefined),
+} as unknown as AuditLogService;
+
 // Helper to create mock user
 
 function createMockUser(overrides?: Partial<any>): any {
@@ -98,6 +103,7 @@ describe('StripePaymentService', () => {
       mockPostHogService,
       mockSlackNotificationService,
       mockAgentCredentialsService,
+      mockAuditLogService,
     );
 
     // Access private stripe instance for mocking

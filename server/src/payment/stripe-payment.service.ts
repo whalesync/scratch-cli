@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { createInvoiceResultId, createSubscriptionId } from '@spinner/shared-types';
+import { createInvoiceResultId, createSubscriptionId, SubscriptionId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
+import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
@@ -21,10 +22,11 @@ import {
   unauthorizedError,
   unexpectedError,
 } from 'src/types/results';
+import { userToActor } from 'src/users/types';
 import Stripe from 'stripe';
 import { CreatePortalDto } from './dto/create-portal.dto';
 import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
-import { getPlan, getPlans, ScratchPlanType } from './plans';
+import { getFreePlan, getPlan, getPlans, ScratchPlanType } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -57,6 +59,7 @@ export class StripePaymentService {
     private readonly postHogService: PostHogService,
     private readonly slackNotificationService: SlackNotificationService,
     private readonly agentCredentialsService: AgentCredentialsService,
+    private readonly auditLogService: AuditLogService,
   ) {
     this.stripe = new Stripe(this.configService.getStripeApiKey(), {
       apiVersion: STRIPE_API_VERSION,
@@ -718,7 +721,7 @@ export class StripePaymentService {
         (s) => s.stripeSubscriptionId === stripeSubscriptionId,
       );
 
-      await this.dbService.client.subscription.upsert({
+      const updatedDbSubscription = await this.dbService.client.subscription.upsert({
         where: { stripeSubscriptionId },
         create: {
           id: createSubscriptionId(),
@@ -750,15 +753,20 @@ export class StripePaymentService {
           await this.slackNotificationService.sendMessage(
             `💳 User ${user.id} has switch plans: ${existingSubscription?.planType} -> ${plan.planType}!`,
           );
+          await this.auditLogService.logEvent({
+            actor: userToActor(user),
+            eventType: 'update',
+            message: `Switched plans: ${existingSubscription?.planType} -> ${plan.planType}!`,
+            entityId: updatedDbSubscription.id as SubscriptionId,
+          });
         }
 
         if (!existingSubscription) {
           await this.slackNotificationService.sendMessage(`💳 User ${user.id} has subscribe to the ${plan.planType}!`);
         }
       } else if (subscription.status === 'canceled') {
-        // disable the system open router credential
-        // cancel is sent by Stripe when the subscription reaches the cancelAt date
-        await this.agentCredentialsService.disableSystemOpenRouterCredential(user.id);
+        // downgrade the user's system open router credential limit to the free plan
+        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, getFreePlan());
       }
 
       if (cancelAt) {
@@ -766,6 +774,12 @@ export class StripePaymentService {
         await this.slackNotificationService.sendMessage(
           `😿 User ${user.id} has cancelled their subscription for the ${plan.planType}`,
         );
+        await this.auditLogService.logEvent({
+          actor: userToActor(user),
+          eventType: 'update',
+          message: `Downgraded to the free plan`,
+          entityId: updatedDbSubscription.id as SubscriptionId,
+        });
       }
     } catch (err) {
       WSLogger.error({
