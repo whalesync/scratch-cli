@@ -37,7 +37,10 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   const { activeTable } = useActiveWorkbook();
   const { addPendingChange } = useUpdateRecordsContext();
   const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
-  const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({ workbookId, tableId });
+  const { acceptCellValues, rejectCellValues, refreshRecords, columnChangeTypes } = useSnapshotTableRecords({
+    workbookId,
+    tableId,
+  });
 
   const selectedNodes = gridApi?.getSelectedNodes() || [];
   const selectedRows = selectedNodes.map((node) => node.data).filter(Boolean) as ProcessedSnapshotRecord[];
@@ -86,6 +89,11 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       };
     }
   }
+
+  const hasColumnSuggestions =
+    focusedCellInfo &&
+    (columnChangeTypes[focusedCellInfo.fieldId]?.suggestedAdditions ||
+      columnChangeTypes[focusedCellInfo.fieldId]?.suggestedDeletions);
 
   const handleAcceptSelectedRows = async () => {
     if (selectedRowsWithSuggestions.length === 0) return;
@@ -534,7 +542,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               onClick={handleAcceptCellSuggestion}
               disabled={isProcessing}
             >
-              Accept change in this cell
+              Accept change in cell
             </Menu.Item>
             <Menu.Item
               data-delete
@@ -542,7 +550,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               onClick={handleRejectCellSuggestion}
               disabled={isProcessing}
             >
-              Reject change in this cell
+              Reject change in cell
             </Menu.Item>
             <Menu.Divider />
           </>
@@ -573,8 +581,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
         )}
 
         {/* Column Suggestions */}
-        {/* TODO: Only show if there was a suggestion for this column. */}
-        {selectedRows.length === 1 && focusedCellInfo && (
+        {focusedCellInfo && hasColumnSuggestions && (
           <>
             <Menu.Label>Column changes</Menu.Label>
             <Menu.Item
@@ -583,7 +590,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               onClick={handleAcceptColumn}
               disabled={isProcessing}
             >
-              Accept column &ldquo;{focusedCellInfo.fieldName}&rdquo;
+              Accept all changes in column
             </Menu.Item>
             <Menu.Item
               data-delete
@@ -591,7 +598,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
               onClick={handleRejectColumn}
               disabled={isProcessing}
             >
-              Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;
+              Reject all changes in column
             </Menu.Item>
             <Menu.Divider />
           </>
