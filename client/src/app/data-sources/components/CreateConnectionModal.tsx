@@ -1,6 +1,7 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadApiError } from '@/lib/api/error';
 import { getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
@@ -46,6 +47,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [customClientSecret, setCustomClientSecret] = useState('');
   const [showOAuthCustom, setShowOAuthCustom] = useState(false);
   const { user } = useScratchPadUser();
+  const { canCreateDataSource } = useSubscription();
 
   const { createConnectorAccount } = useConnectorAccounts();
 
@@ -133,6 +135,12 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const handleCreate = async () => {
     if (!newService) {
       setError('Service is required.');
+      return;
+    }
+    if (!canCreateDataSource(newService)) {
+      setError(
+        `You have reached the limit for ${serviceName(newService)} connections. Please upgrade your plan to add more.`,
+      );
       return;
     }
     if (
