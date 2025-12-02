@@ -166,6 +166,12 @@ export class PostHogService implements OnModuleDestroy {
       planType,
     });
   }
+
+  trackSubscriptionCancelled(userId: string, planType: ScratchpadPlanType): void {
+    this.captureEvent(PostHogEventName.SUBSCRIPTION_CANCELLED, userId, {
+      planType,
+    });
+  }
 }
 
 export enum PostHogEventName {
@@ -181,4 +187,5 @@ export enum PostHogEventName {
   AGENT_CREDENTIAL_CREATED = 'agent_credential_created',
   AGENT_CREDENTIAL_DELETED = 'agent_credential_deleted',
   TRIAL_STARTED = 'trial_started',
+  SUBSCRIPTION_CANCELLED = 'subscription_cancelled',
 }

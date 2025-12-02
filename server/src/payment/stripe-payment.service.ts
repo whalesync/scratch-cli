@@ -655,6 +655,7 @@ export class StripePaymentService {
 
     const stripeCustomerId = subscription.customer as string;
     const expiration = this.findExpirationFromSubscription(subscription);
+    const cancelAt = this.findCancelDateFromSubscription(subscription);
     const priceInDollars = this.findPriceInDollarsForSubscription(subscription);
 
     // Ignore payloads for an unknown user in staging and test instances.
@@ -682,6 +683,10 @@ export class StripePaymentService {
         return unexpectedError('User does not have an organization id', { context: { userId: user.id } });
       }
 
+      const existingSubscription = user.organization?.subscriptions.find(
+        (s) => s.stripeSubscriptionId === stripeSubscriptionId,
+      );
+
       await this.dbService.client.subscription.upsert({
         where: { stripeSubscriptionId },
         create: {
@@ -694,6 +699,7 @@ export class StripePaymentService {
           priceInDollars,
           lastInvoicePaid,
           stripeStatus: subscription.status,
+          cancelAt: cancelAt,
         },
         update: {
           expiration,
@@ -701,15 +707,36 @@ export class StripePaymentService {
           priceInDollars,
           lastInvoicePaid,
           stripeStatus: subscription.status,
+          cancelAt: cancelAt,
         },
       });
 
       if (subscription.status === 'active' || subscription.status === 'trialing') {
         // update the system open router credential limit based on the new plan
-        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
+        // only update if the subscription is new or the plan has changed
+        if (!existingSubscription || existingSubscription.productType !== productType) {
+          await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
+          await this.slackNotificationService.sendMessage(
+            `💳 User ${user.id} has switch plans: ${existingSubscription?.productType} -> ${plan.productType}!`,
+          );
+        }
+
+        if (!existingSubscription) {
+          await this.slackNotificationService.sendMessage(
+            `💳 User ${user.id} has subscribe to the ${plan.productType}!`,
+          );
+        }
       } else if (subscription.status === 'canceled') {
-        // delete the system open router credential
+        // disable the system open router credential
+        // cancel is sent by Stripe when the subscription reaches the cancelAt date
         await this.agentCredentialsService.disableSystemOpenRouterCredential(user.id);
+      }
+
+      if (cancelAt) {
+        this.postHogService.trackSubscriptionCancelled(user.id, plan.productType);
+        await this.slackNotificationService.sendMessage(
+          `😿 User ${user.id} has cancelled their subscription for the ${plan.productType}`,
+        );
       }
     } catch (err) {
       WSLogger.error({
@@ -751,6 +778,12 @@ export class StripePaymentService {
     return new Date(subscription.items.data[0].current_period_end * 1000);
   }
 
+  private findCancelDateFromSubscription(subscription: Stripe.Subscription): Date | null {
+    if (subscription.cancel_at) {
+      return new Date(subscription.cancel_at * 1000);
+    }
+    return null;
+  }
   private async isKnownStripeCustomerId(stripeCustomerId: string): Promise<boolean> {
     const user = await this.getUserFromStripeCustomerId(stripeCustomerId);
     if (user) {

@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/unbound-method */
+import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -48,9 +49,12 @@ const mockAgentCredentialsService = {
 
 const mockPostHogService = {
   trackTrialStarted: jest.fn(),
+  trackSubscriptionCancelled: jest.fn(),
 } as unknown as PostHogService;
 
-const mockSlackNotificationService = {} as unknown as SlackNotificationService;
+const mockSlackNotificationService = {
+  sendMessage: jest.fn().mockResolvedValue(undefined),
+} as unknown as SlackNotificationService;
 
 // Helper to create mock user
 
@@ -62,6 +66,7 @@ function createMockUser(overrides?: Partial<any>): any {
     clerkId: 'clerk_123',
     stripeCustomerId: overrides?.stripeCustomerId ?? null,
     organizationId: overrides?.organizationId ?? 'org_123',
+    apiTokens: [],
     organization: overrides?.organization ?? {
       id: 'org_123',
       subscriptions: [],
@@ -534,6 +539,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue(mockEvent.data.object);
       mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ stripeCustomerId: 'cus_webhook123' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
+      mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
       const result = await service.handleWebhookCallback(requestBody, signatureHeader);
 
@@ -611,6 +617,7 @@ describe('StripePaymentService', () => {
       } as any);
       mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ stripeCustomerId: 'cus_checkout123' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
+      mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
       const result = await service.handleWebhookCallback(requestBody, signatureHeader);
 
@@ -931,6 +938,7 @@ describe('StripePaymentService', () => {
         createMockUser({ stripeCustomerId: 'cus_fetch123', organizationId: 'org_fetch' }),
       );
       mockDbService.client.subscription.upsert.mockResolvedValue({});
+      mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
       const result = await service.upsertSubscription('sub_fetch123', undefined);
 

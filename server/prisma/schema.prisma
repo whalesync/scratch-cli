@@ -260,8 +260,8 @@ model Subscription {
   expiration           DateTime
   priceInDollars       Int          @default(0)
   stripeStatus         String?
-  /// Set when we receive invoice.paid or invoice.payment_failed webhooks.
-  lastInvoicePaid      Boolean?
+  cancelAt             DateTime? // set when the user has cancelled the subscription and the date it takes effect
+  lastInvoicePaid      Boolean? /// Set when we receive invoice.paid or invoice.payment_failed webhooks.
 
   @@index([userId])
   @@index([organizationId])

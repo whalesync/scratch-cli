@@ -9,6 +9,7 @@ import { getFreePlan, getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { Organization } from './organization.entity';
 
 export type { SubscriptionInfo } from '@spinner/shared-types';
+
 export class User {
   createdAt: Date;
   updatedAt: Date;
@@ -68,6 +69,7 @@ function buildFreePlanSubscriptionInfo(userId: string): SubscriptionInfo {
     costUSD: plan.costUSD,
     daysRemaining: 0,
     isTrial: false,
+    isCancelled: false,
     canManageSubscription: true,
     ownerId: userId,
     features: new SubscriptionPlanFeaturesEntity(plan.features),
@@ -127,6 +129,7 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
     costUSD: plan.costUSD,
     daysRemaining,
     isTrial: latestSubscription.stripeStatus === 'trialing',
+    isCancelled: latestSubscription.cancelAt !== null, // if cancelled the days remaining will also represent when the subscription ends
     canManageSubscription: latestSubscription.userId === userId,
     ownerId: latestSubscription.userId,
     features: new SubscriptionPlanFeaturesEntity(plan.features),

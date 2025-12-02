@@ -20,6 +20,7 @@ export interface SubscriptionInfo {
   costUSD: number;
   daysRemaining: number;
   isTrial: boolean;
+  isCancelled: boolean;
   canManageSubscription: boolean;
   ownerId: string;
   features: SubscriptionPlanFeatures;
