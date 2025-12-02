@@ -147,7 +147,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
       onClick={props.enableSorting ? handleHeaderClick : undefined}
     >
       {/* Column change indicators */}
-      {hasAnyChange(columnChangeTypes[columnId]) && (
+      {columnChangeTypes[columnId] && hasAnyChange(columnChangeTypes[columnId]) && (
         <Box style={{ flexShrink: 0 }}>
           <ChangeDotsGroup changeTypes={columnChangeTypes[columnId]} />
         </Box>
