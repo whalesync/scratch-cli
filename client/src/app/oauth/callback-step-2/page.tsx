@@ -189,9 +189,8 @@ export default function OAuthCallbackPage() {
             </Text>
             <Group gap="sm" mt="md">
               <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
-                Back to Connections
+                Back to Data Sources
               </ButtonSecondaryOutline>
-              {/* <PrimaryButton onClick={() => router.push('/oauth/test')}>Try Again</PrimaryButton> */}
             </Group>
           </>
         )}

@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import { ConnectorAccountId, createConnectorAccountId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { WSLogger } from 'src/logger';
+import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
 import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
@@ -41,6 +42,12 @@ export class ConnectorAccountService {
   }
 
   async create(createDto: ValidatedCreateConnectorAccountDto, actor: Actor): Promise<ConnectorAccount> {
+    if (!canCreateDataSource(actor.subscriptionStatus, await this.countForType(createDto.service, actor))) {
+      throw new ForbiddenException(
+        `You have reached the maximum number of ${getServiceDisplayName(createDto.service)} data sources for your subscription`,
+      );
+    }
+
     const { credentials: parsedCredentials, extras } = await this.parseUserProvidedParams(
       createDto.userProvidedParams || {},
       createDto.service,
@@ -91,6 +98,12 @@ export class ConnectorAccountService {
   async findAll(actor: Actor): Promise<ConnectorAccount[]> {
     return this.db.client.connectorAccount.findMany({
       where: { organizationId: actor.organizationId },
+    });
+  }
+
+  async countForType(type: Service, actor: Actor): Promise<number> {
+    return this.db.client.connectorAccount.count({
+      where: { organizationId: actor.organizationId, service: type },
     });
   }
 

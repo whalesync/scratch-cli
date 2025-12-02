@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { AiAgentCredential, AiAgentCredentialSource } from '@prisma/client';
 import { AiAgentCredentialId, createAiAgentCredentialId } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -6,6 +6,7 @@ import { WSLogger } from 'src/logger';
 import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { Plan } from 'src/payment/plans';
 import { isErr, isOk } from 'src/types/results';
+import { canCreatePersonalAgentCredentials } from 'src/users/subscription-utils';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 import { Actor } from '../users/types';
@@ -71,6 +72,12 @@ export class AgentCredentialsService {
     },
     actor: Actor,
   ): Promise<AiAgentCredential> {
+    if (!canCreatePersonalAgentCredentials(actor.subscriptionStatus)) {
+      throw new ForbiddenException(
+        `You are not allowed to create personal OpenRouter API keys at this subscription level. Please upgrade your subscription to create personal keys.`,
+      );
+    }
+
     const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({

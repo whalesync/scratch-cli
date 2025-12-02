@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
 import { createConnectorAccountId } from '@spinner/shared-types';
 import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
+import { getServiceDisplayName } from 'src/remote-service/connectors/display-names';
+import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
 import { DecryptedCredentials } from '../remote-service/connector-account/types/encrypted-credentials.interface';
@@ -229,6 +231,16 @@ export class OAuthService {
     };
 
     const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(credentials);
+
+    const numExistingDataSources = await this.db.client.connectorAccount.count({
+      where: { organizationId: actor.organizationId, service: serviceEnum },
+    });
+
+    if (!canCreateDataSource(actor.subscriptionStatus, numExistingDataSources)) {
+      throw new ForbiddenException(
+        `You have reached the maximum number of ${getServiceDisplayName(serviceEnum)} data sources for your subscription`,
+      );
+    }
 
     // Create new account
     const newConnectorAccount = await this.db.client.connectorAccount.create({
