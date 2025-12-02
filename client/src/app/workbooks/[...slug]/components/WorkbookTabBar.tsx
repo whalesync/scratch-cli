@@ -73,15 +73,18 @@ const TableTab = ({
       />
     );
   } else {
+    const hasTables = workbook?.snapshotTables?.filter((t) => !t.hidden)?.length ?? 0 > 0;
     table = null;
     tabName = 'New tab';
-    rightSection = (
+    rightSection = hasTables ? (
       <CloseButtonInline
         onClick={(e) => {
           e.stopPropagation();
           closeBlankTab(tab.id);
         }}
       />
+    ) : (
+      <></>
     );
   }
   const tabIcon = () => {
