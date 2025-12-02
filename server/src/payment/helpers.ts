@@ -7,7 +7,12 @@ export function getActiveSubscriptions(subscriptions: Subscription[]): Subscript
 }
 
 export function getLastestExpiringSubscription(subscriptions: Subscription[]): Subscription | null {
-  return _.maxBy(subscriptions, (s) => s.expiration) ?? null;
+  // ignore cancelled subscriptions
+  const validSubscriptions = subscriptions.filter((s) => s.stripeStatus !== 'canceled');
+  if (validSubscriptions.length === 0) {
+    return null;
+  }
+  return _.maxBy(validSubscriptions, (s) => s.expiration) ?? null;
 }
 
 export function isActiveSubscriptionOwnedByUser(subscriptions: Subscription[], userId: string): boolean {

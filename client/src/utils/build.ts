@@ -25,3 +25,7 @@ export function getBuildFlavor(): Flavor {
 export function isLocalBuild(): boolean {
   return getBuildFlavor() === Flavor.Local;
 }
+
+export function isTestBuild(): boolean {
+  return getBuildFlavor() === Flavor.Test;
+}

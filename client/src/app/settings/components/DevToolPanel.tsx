@@ -1,15 +1,37 @@
 import { Badge } from '@/app/components/base/badge';
+import { DevToolButton } from '@/app/components/base/buttons';
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
+import { useSubscription } from '@/hooks/use-subscription';
+import { useUserDevTools } from '@/hooks/use-user-dev-tools';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { isLocalBuild, isTestBuild } from '@/utils/build';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
-import { ActionIcon, Checkbox, CopyButton, Divider, Grid, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Checkbox,
+  CopyButton,
+  Divider,
+  Grid,
+  Group,
+  PasswordInput,
+  SimpleGrid,
+  Stack,
+  Tooltip,
+} from '@mantine/core';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
 import { SettingsPanel } from './SettingsPanel';
 
 export const DevToolsPanel = () => {
   const { user, isAdmin } = useScratchPadUser();
-
+  const { subscription } = useSubscription();
+  const {
+    updateActiveUserSubscription,
+    forceExpireActiveUserSubscription,
+    forceCancelActiveUserSubscription,
+    isLoading,
+  } = useUserDevTools();
   return (
     <SettingsPanel title="Dev Tools" subtitle="Developer tools and information.">
       <Stack gap="xs">
@@ -83,20 +105,8 @@ export const DevToolsPanel = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <Text13Regular miw={200}>Flags</Text13Regular>
+          <Text13Regular miw={200}>Feature Flags</Text13Regular>
           <Grid w="100%">
-            <Grid.Col span={4}>
-              <Text12Regular>Skip paywall on localhost</Text12Regular>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FlagCheckboxOption flag={FLAGS.SKIP_PAYWALL_FOR_LOCALHOST} />
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <Text12Regular>Dev tools visible</Text12Regular>
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <FlagCheckboxOption flag={FLAGS.DEV_TOOLS_VISIBLE} />
-            </Grid.Col>
             {user?.experimentalFlags &&
               Object.entries(user.experimentalFlags).map(([flag, value]) => (
                 <Fragment key={flag}>
@@ -108,6 +118,18 @@ export const DevToolsPanel = () => {
                   </Grid.Col>
                 </Fragment>
               ))}
+          </Grid>
+        </Group>
+        <Divider />
+        <Group wrap="nowrap" gap="xs" align="flex-start">
+          <Text13Regular miw={200}>Local Flags</Text13Regular>
+          <Grid w="100%">
+            <Grid.Col span={4}>
+              <Text12Regular>Dev tools visible</Text12Regular>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <FlagCheckboxOption flag={FLAGS.DEV_TOOLS_VISIBLE} />
+            </Grid.Col>
           </Grid>
         </Group>
         <Divider />
@@ -127,6 +149,62 @@ export const DevToolsPanel = () => {
               ))}
           </Grid>
         </Group>
+        {(isLocalBuild() || isTestBuild()) && (
+          <>
+            <Divider />
+            <Group wrap="nowrap" gap="xs" align="flex-start">
+              <Text13Regular miw={200}>Subscription Tools</Text13Regular>
+              <Stack w="100%">
+                <SimpleGrid cols={3}>
+                  <DevToolButton
+                    onClick={() => updateActiveUserSubscription(ScratchPlanType.FREE_PLAN)}
+                    loading={isLoading}
+                    disabled={subscription.planType === ScratchPlanType.FREE_PLAN}
+                    leftSection={null}
+                  >
+                    Switch to Free Plan
+                  </DevToolButton>
+                  <DevToolButton
+                    onClick={() => updateActiveUserSubscription(ScratchPlanType.PRO_PLAN)}
+                    loading={isLoading}
+                    disabled={subscription.planType === ScratchPlanType.PRO_PLAN}
+                    leftSection={null}
+                  >
+                    Switch to Pro Plan
+                  </DevToolButton>
+                  <DevToolButton
+                    onClick={() => updateActiveUserSubscription(ScratchPlanType.MAX_PLAN)}
+                    loading={isLoading}
+                    disabled={subscription.planType === ScratchPlanType.MAX_PLAN}
+                    leftSection={null}
+                  >
+                    Switch to Max Plan
+                  </DevToolButton>
+                  <DevToolButton
+                    onClick={() => forceExpireActiveUserSubscription()}
+                    loading={isLoading}
+                    disabled={subscription.planType === ScratchPlanType.FREE_PLAN}
+                    leftSection={null}
+                  >
+                    Expire Current Subscription
+                  </DevToolButton>
+                  <DevToolButton
+                    onClick={() => forceCancelActiveUserSubscription()}
+                    loading={isLoading}
+                    disabled={subscription.planType === ScratchPlanType.FREE_PLAN}
+                    leftSection={null}
+                  >
+                    Cancel Subscription (in 14 days)
+                  </DevToolButton>
+                </SimpleGrid>
+                <Text13Regular c="dimmed">
+                  Only use these tools in the development environment. They will hack your Subscription records in the
+                  local database and modify your Scratch Open Router API key but not interact with Stripe.
+                </Text13Regular>
+              </Stack>
+            </Group>
+          </>
+        )}
       </Stack>
     </SettingsPanel>
   );

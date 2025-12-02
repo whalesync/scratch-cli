@@ -19,6 +19,7 @@ export interface ScratchPadUser {
   updateUserSetting: (key: UserSetting, value: UserSettingValue) => Promise<void>;
   clearUserSetting: (key: UserSetting) => Promise<void>;
   getUserSetting: (key: UserSetting, defaultValue?: UserSettingValue) => UserSettingValue | null;
+  refreshCurrentUser: () => Promise<void>;
 }
 
 export const useScratchPadUser = (): ScratchPadUser => {
@@ -99,6 +100,10 @@ export const useScratchPadUser = (): ScratchPadUser => {
     [user],
   );
 
+  const refreshCurrentUser = useCallback(async () => {
+    await mutate();
+  }, [mutate]);
+
   return {
     isLoading: isLoading || !isLoaded,
     user: user || null,
@@ -109,5 +114,6 @@ export const useScratchPadUser = (): ScratchPadUser => {
     updateUserSetting,
     clearUserSetting,
     getUserSetting,
+    refreshCurrentUser,
   };
 };

@@ -36,6 +36,5 @@ export class LocalStorageFlag {
 
 /** Flags that are stashed in local storage. Use `UserExperimentFlags` for anything used in production */
 export const FLAGS = {
-  SKIP_PAYWALL_FOR_LOCALHOST: new LocalStorageFlag('Skip paywall on localhost', 'skip_paywall_locally', true),
   DEV_TOOLS_VISIBLE: new LocalStorageFlag('Dev tools visible', 'dev_tools_visible', true),
 };

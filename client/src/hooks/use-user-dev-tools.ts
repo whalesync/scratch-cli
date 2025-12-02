@@ -1,12 +1,16 @@
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { useState } from 'react';
+import { useScratchPadUser } from './useScratchpadUser';
 
 /**
  * @returns A hook with dev tools for user management
  */
 export const useUserDevTools = () => {
+  const { refreshCurrentUser } = useScratchPadUser();
   const [results, setResults] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
@@ -42,6 +46,45 @@ export const useUserDevTools = () => {
     }
   };
 
+  const updateActiveUserSubscription = async (newPlan: ScratchPlanType) => {
+    try {
+      setIsLoading(true);
+      await devToolsApi.updateUserSubscription(newPlan);
+      await refreshCurrentUser();
+      ScratchpadNotifications.success({ message: `Your subscription was successfully updated to ${newPlan}` });
+    } catch (error) {
+      setError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forceExpireActiveUserSubscription = async () => {
+    try {
+      setIsLoading(true);
+      await devToolsApi.forceExpireSubscription();
+      await refreshCurrentUser();
+      ScratchpadNotifications.success({ message: `Your subscription was successfully expired` });
+    } catch (error) {
+      setError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forceCancelActiveUserSubscription = async () => {
+    try {
+      setIsLoading(true);
+      await devToolsApi.forceCancelSubscription();
+      await refreshCurrentUser();
+      ScratchpadNotifications.success({ message: `Your subscription was marked for cancellation` });
+    } catch (error) {
+      setError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     users: results,
     isLoading,
@@ -50,5 +93,8 @@ export const useUserDevTools = () => {
     retrieveUserDetails,
     currentUserDetails,
     clearCurrentUserDetails: () => setCurrentUserDetails(undefined),
+    updateActiveUserSubscription,
+    forceExpireActiveUserSubscription,
+    forceCancelActiveUserSubscription,
   };
 };

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { AgentCredentialsModule } from 'src/agent-credentials/agent-credentials.module';
 import { AuditLogModule } from 'src/audit/audit-log.module';
+import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
@@ -11,7 +13,17 @@ import { DevToolsService } from './dev-tools.service';
 
 @Module({
   providers: [DevToolsService],
-  imports: [DbModule, UserModule, PaymentModule, WorkbookModule, ConnectorAccountModule, AuditLogModule, UploadsModule],
+  imports: [
+    ScratchpadConfigModule,
+    DbModule,
+    UserModule,
+    PaymentModule,
+    WorkbookModule,
+    ConnectorAccountModule,
+    AuditLogModule,
+    UploadsModule,
+    AgentCredentialsModule,
+  ],
   exports: [], //export this service to use in other modules
   controllers: [DevToolsController],
 })

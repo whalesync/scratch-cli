@@ -1,5 +1,6 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
@@ -35,5 +36,27 @@ export const devToolsApi = {
       body: JSON.stringify(dto),
     });
     await checkForApiError(res, 'Failed to update user settings for user: ' + userId);
+  },
+  updateUserSubscription: async (newPlan: ScratchPlanType): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/update`, {
+      method: 'POST',
+      headers: API_CONFIG.getAuthHeaders(),
+      body: JSON.stringify({ planType: newPlan }),
+    });
+    await checkForApiError(res, 'Failed to update user subscription');
+  },
+  forceExpireSubscription: async (): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/expire`, {
+      method: 'POST',
+      headers: API_CONFIG.getAuthHeaders(),
+    });
+    await checkForApiError(res, 'Failed to force expire subscription');
+  },
+  forceCancelSubscription: async (): Promise<void> => {
+    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/cancel`, {
+      method: 'POST',
+      headers: API_CONFIG.getAuthHeaders(),
+    });
+    await checkForApiError(res, 'Failed to force cancel subscription');
   },
 };
