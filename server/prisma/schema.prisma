@@ -373,4 +373,25 @@ model Organization {
   uploads           Upload[]
   subscriptions     Subscription[]
   invoiceResults    InvoiceResult[]
+  actions           Action[]
+}
+
+enum ActionType {
+  PUBLISH
+}
+
+/// org's actions that are billable and we need to account for.
+model Action {
+  id             String       @id // type: ActionId
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String // User who initiated the action (no FK to avoid orphans)
+  actionType     ActionType
+  metadata       Json? // Dynamic data per action type
+
+  @@index([organizationId, actionType, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
 }

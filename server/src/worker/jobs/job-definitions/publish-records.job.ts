@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
-import { type WorkbookId } from '@spinner/shared-types';
+import { InputJsonObject } from '@prisma/client/runtime/library';
+import { type WorkbookId, createActionId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { JsonSafeObject } from '../../../utils/objects';
@@ -424,5 +425,39 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
       workbookId: workbook.id,
       totalRecordsPublished,
     });
+
+    // If we fail for some reason we don't want to block the job from completing.
+    try {
+      // Track the publish creates, updates, and deletes for historical info
+      const totalCreates = tablesToProcess.reduce((sum, table) => sum + table.creates, 0);
+      const totalUpdates = tablesToProcess.reduce((sum, table) => sum + table.updates, 0);
+      const totalDeletes = tablesToProcess.reduce((sum, table) => sum + table.deletes, 0);
+      const metadata: InputJsonObject = {
+        workbookId: data.workbookId,
+        snapshotTableIds: data.snapshotTableIds ?? [],
+        creates: totalCreates,
+        updates: totalUpdates,
+        deletes: totalDeletes,
+      };
+      // track the publish action for billing purposes
+      await this.prisma.action.create({
+        data: {
+          id: createActionId(),
+          organizationId: data.organizationId,
+          userId: data.userId,
+          actionType: 'PUBLISH',
+          metadata,
+        },
+      });
+    } catch (error) {
+      // Log error but don't fail the job if action tracking fails
+      WSLogger.error({
+        source: 'PublishRecordsJob',
+        message: 'Failed to track action for publish',
+        workbookId: workbook.id,
+        organizationId: data.organizationId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
