@@ -106,10 +106,73 @@
       color: var(--mantine-color-red-8);
     }
   }
+
+  &[data-accept] {
+    color: var(--mantine-color-green-8);
+
+    .menuItemSection {
+      color: var(--mantine-color-green-8);
+    }
+  }
+}
+
+.menuLabel {
+  color: var(--fg-secondary);
 }
 
 .menuItemSection {
   color: var(--fg-muted);
+}
+
+/** 
+  DARK OVERLAY MENU OVERRIDES!
+  Menus on the grid are always styled dark. This is like a variant, but Menu doesn't support variants, so we
+  fake it using a data attribute.
+  These colors need to be hard-coded since we are officially in light mode and CSS vars will resolve to light values.
+*/
+.menuDropdown[data-always-dark] {
+  background-color: #1a1c1f;
+  color: #f5f6f9f5;
+
+  .menuItem {
+    color: #f5f6f9f5;
+
+    &[data-disabled] {
+      color: #dce0e9b8;
+    }
+
+    &:hover {
+      background-color: #383a3f;
+    }
+
+    &[data-delete] {
+      color: var(--mantine-color-red-7);
+
+      .menuItemSection {
+        color: var(--mantine-color-red-7);
+      }
+    }
+
+    &[data-accept] {
+      color: var(--mantine-color-green-7);
+
+      .menuItemSection {
+        color: var(--mantine-color-green-7);
+      }
+    }
+  }
+
+  .menuDivider {
+    background-color: #e2e8f333;
+  }
+
+  .menuItemSection {
+    color: #dce0e999;
+  }
+
+  .menuLabel {
+    color: #dce0e999;
+  }
 }
 
 /** CUSTOM POPOVER STYLES */

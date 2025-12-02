@@ -1,6 +1,6 @@
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
+import { Menu } from '@mantine/core';
 import { Upload } from 'lucide-react';
 import React from 'react';
 import { customWixActionsApi } from '../../../../../../../lib/api/custom-actions/wix';
@@ -83,31 +83,8 @@ export const WixPublishMenuItem: React.FC<WixPublishMenuItemProps> = ({
   };
 
   return (
-    <div
-      onClick={handlePublishDraftPosts}
-      style={{
-        padding: '8px 12px',
-        cursor: isProcessing ? 'not-allowed' : 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        opacity: isProcessing ? 0.5 : 1,
-        backgroundColor: 'transparent',
-        transition: 'background-color 0.1s',
-      }}
-      onMouseEnter={(e) => {
-        if (!isProcessing) {
-          e.currentTarget.style.backgroundColor = '#3a3a3a';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
-      }}
-    >
-      <StyledLucideIcon Icon={Upload} size={16} c="#00aa00" />
-      <span>
-        Publish to Wix Blog ({selectedRows.length} {selectedRows.length === 1 ? 'post' : 'posts'})
-      </span>
-    </div>
+    <Menu.Item leftSection={<Upload size={14} />} onClick={handlePublishDraftPosts} disabled={isProcessing}>
+      Publish to Wix
+    </Menu.Item>
   );
 };

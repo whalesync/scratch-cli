@@ -2,11 +2,13 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
 import { ColumnSpec, SnapshotColumnSettingsMap, SnapshotRecord, Workbook } from '@/types/server-entities/workbook';
-import { Group, Radio } from '@mantine/core';
+import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
-import { EyeIcon, EyeOffIcon, List, ListChecks, MoreVertical, Star, TrashIcon } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
-import styles from './FieldHeaderMenu.module.css';
+import _ from 'lodash';
+import { CheckIcon, EyeOffIcon, MoreVertical, StarIcon, TrashIcon, XIcon } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { IconButtonInline } from '../../base/buttons';
+
 interface HeaderMenuProps {
   isHovered: boolean;
   tableId?: SnapshotTableId;
@@ -15,11 +17,13 @@ interface HeaderMenuProps {
   columnSpec?: ColumnSpec;
   records?: SnapshotRecord[];
   enableSorting?: boolean;
+  currentSort: 'asc' | 'desc' | null;
   setSort: (sort: 'asc' | 'desc' | null) => void;
 
   // State from parent
   isColumnHidden: boolean;
   isScratchColumn: boolean;
+  isTitleColumn: boolean;
   currentDataConverter: string;
 
   // Actions/Objects from hooks
@@ -40,9 +44,11 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   columnSpec,
   records,
   enableSorting,
+  currentSort,
   setSort,
   isColumnHidden,
   isScratchColumn,
+  isTitleColumn,
   currentDataConverter,
   workbook,
   updateColumnSettings,
@@ -53,10 +59,7 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   refreshRecords,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Check if any record has suggestions for this column
   const recordsWithSuggestions = (records || []).filter((record) => {
@@ -67,61 +70,17 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
 
   const hasDataConverterTypes = columnSpec?.dataConverterTypes && columnSpec.dataConverterTypes.length > 0;
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        buttonRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMenuOpen]);
-
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering header sort
-    if (!isMenuOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + 2,
-        right: window.innerWidth - rect.right,
-      });
-    }
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const onSortChanged = () => {
-    setSort('asc');
-  };
-
-  const onSortRemoved = () => {
-    setSort(null);
-  };
-
   const handleAcceptColumn = async () => {
     if (recordsWithSuggestions.length === 0) {
       ScratchpadNotifications.warning({
         title: 'Accept Column',
         message: `No suggestions found for column "${columnName}"`,
       });
-      setIsMenuOpen(false);
       return;
     }
 
     try {
       setIsProcessing(true);
-      setIsMenuOpen(false);
 
       const items = recordsWithSuggestions.map((record) => ({
         wsId: record.id.wsId,
@@ -151,13 +110,11 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
         title: 'Reject Column',
         message: `No suggestions found for column "${columnName}"`,
       });
-      setIsMenuOpen(false);
       return;
     }
 
     try {
       setIsProcessing(true);
-      setIsMenuOpen(false);
 
       const items = recordsWithSuggestions.map((record) => ({
         wsId: record.id.wsId,
@@ -215,7 +172,6 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
 
     try {
       setIsProcessing(true);
-      setIsMenuOpen(false);
       if (shouldHide) {
         await hideColumn(tableId, columnId);
       } else {
@@ -240,7 +196,6 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   const handleSetTitleColumn = async () => {
     try {
       setIsProcessing(true);
-      setIsMenuOpen(false);
 
       if (!workbook || !tableId) {
         ScratchpadNotifications.error({
@@ -271,7 +226,6 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   const handleRemoveScratchColumn = async () => {
     try {
       setIsProcessing(true);
-      setIsMenuOpen(false);
 
       if (!workbook || !tableId) {
         ScratchpadNotifications.error({
@@ -299,258 +253,122 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
     }
   };
 
+  const dataConverterOptions = useMemo(() => {
+    if (!hasDataConverterTypes || !columnSpec?.dataConverterTypes) {
+      return [];
+    }
+    return [
+      { value: '', label: 'Default' },
+      ...columnSpec.dataConverterTypes.map((type) => ({ value: type, label: _.capitalize(type) })),
+    ];
+  }, [hasDataConverterTypes, columnSpec?.dataConverterTypes]);
+
   if (!(isHovered || isMenuOpen)) {
     return null;
   }
 
   return (
-    <>
-      <button ref={buttonRef} onClick={handleMenuClick} className={styles.menuButtonWrapper}>
-        <StyledLucideIcon Icon={MoreVertical} size={14} />
-      </button>
+    <Menu opened={isMenuOpen} onChange={setIsMenuOpen} withinPortal>
+      <Menu.Target>
+        <IconButtonInline size="compact-xs" onClick={(e) => e.stopPropagation()}>
+          <StyledLucideIcon Icon={MoreVertical} size={14} />
+        </IconButtonInline>
+      </Menu.Target>
 
-      {/* Dropdown menu - rendered outside the positioned container */}
-      {isMenuOpen && (
-        <div
-          ref={menuRef}
-          className={styles.dropdownMenu}
-          style={{
-            top: menuPosition.top,
-            right: menuPosition.right,
-            backgroundColor: '#2d2d2d', // Investigate why moving to a css class breaks it
-          }}
+      <Menu.Dropdown data-always-dark onClick={(e) => e.stopPropagation()}>
+        {hasColumnSuggestions && (
+          <>
+            <Menu.Label>Changes</Menu.Label>
+            <Menu.Item
+              data-accept
+              leftSection={<CheckIcon size={14} />}
+              onClick={handleAcceptColumn}
+              disabled={isProcessing}
+            >
+              Accept all changes in column
+            </Menu.Item>
+            <Menu.Item
+              data-delete
+              leftSection={<XIcon size={14} />}
+              onClick={handleRejectColumn}
+              disabled={isProcessing}
+            >
+              Reject all changes in column
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+
+        {enableSorting && (
+          <>
+            <Menu.Label>Sorting</Menu.Label>
+            <Menu.Item
+              leftSection={currentSort === 'asc' ? <CheckIcon size={14} /> : undefined}
+              onClick={() => setSort(currentSort === 'asc' ? null : 'asc')}
+            >
+              Sort ascending
+            </Menu.Item>
+            <Menu.Item
+              leftSection={currentSort === 'desc' ? <CheckIcon size={14} /> : undefined}
+              onClick={() => setSort(currentSort === 'desc' ? null : 'desc')}
+            >
+              Sort descending
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+
+        <Menu.Label>Column</Menu.Label>
+        <Menu.Item
+          leftSection={<StarIcon size={14} fill={isTitleColumn ? 'currentColor' : 'none'} />}
+          onClick={handleSetTitleColumn}
+          disabled={isProcessing || isTitleColumn}
         >
-          {/* Sort options */}
-          {enableSorting && (
-            <>
-              <button
-                onClick={onSortChanged}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                Sort Ascending
-              </button>
-              <button
-                onClick={onSortRemoved}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                Clear Sort
-              </button>
-              <div style={{ height: '1px', backgroundColor: '#444', margin: '4px 0' }} />
-            </>
-          )}
-
-          {hasDataConverterTypes && (
-            <>
-              <div style={{ padding: '4px 12px' }}>Data Converter Types</div>
-              <Radio.Group
-                style={{ padding: '4px 12px' }}
-                name="dataConverterType"
-                description="Choose which format you want to convert the column to"
-                withAsterisk
-                value={currentDataConverter}
-                onChange={handleDataConverterChange}
-              >
-                <Group mt="xs">
-                  <Radio key={'default'} value={''} label={'Default'} />
-                  {columnSpec?.dataConverterTypes?.map((type) => (
-                    <Radio key={type} value={type} label={type} />
-                  ))}
-                </Group>
-              </Radio.Group>
-            </>
-          )}
-          {/* Accept/Reject Column Actions */}
-          {hasColumnSuggestions && (
-            <>
-              <div style={{ height: '1px', backgroundColor: '#444', margin: '4px 0' }} />
-              <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>
-                Accept/Reject Changes
-              </div>
-              <button
-                onClick={handleAcceptColumn}
-                disabled={isProcessing}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: isProcessing ? '#666' : '#ffffff',
-                  textAlign: 'left',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isProcessing) {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <StyledLucideIcon Icon={ListChecks} size={14} c="#00aa00" />
-                Accept Column
-              </button>
-              <button
-                onClick={handleRejectColumn}
-                disabled={isProcessing}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: isProcessing ? '#666' : '#ffffff',
-                  textAlign: 'left',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isProcessing) {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <StyledLucideIcon Icon={List} size={14} c="#ff0000" />
-                Reject Column
-              </button>
-            </>
-          )}
-
-          {/* Column View Actions */}
-          <div style={{ height: '1px', backgroundColor: '#444', margin: '4px 0' }} />
-          <div style={{ padding: '4px 12px', color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Column View</div>
-          <button
+          Use as title
+        </Menu.Item>
+        {!isColumnHidden && (
+          <Menu.Item
+            leftSection={<EyeOffIcon size={14} />}
             onClick={handleToggleColumnVisibility}
             disabled={isProcessing}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              background: 'none',
-              border: 'none',
-              color: isProcessing ? '#666' : '#ffffff',
-              textAlign: 'left',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
           >
-            {isColumnHidden ? (
-              <StyledLucideIcon Icon={EyeIcon} size={14} c="#888" />
-            ) : (
-              <StyledLucideIcon Icon={EyeOffIcon} size={14} c="#888" />
-            )}
-            {isColumnHidden ? 'Show Column' : 'Hide Column'}
-          </button>
-
-          <button
-            onClick={handleSetTitleColumn}
+            Hide column
+          </Menu.Item>
+        )}
+        {isScratchColumn && (
+          <Menu.Item
+            data-delete
+            leftSection={<StyledLucideIcon Icon={TrashIcon} size={14} />}
+            onClick={handleRemoveScratchColumn}
             disabled={isProcessing}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              background: 'none',
-              border: 'none',
-              color: isProcessing ? '#666' : '#ffffff',
-              textAlign: 'left',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
+            color="red"
           >
-            <StyledLucideIcon Icon={Star} size={14} c="#ffd700" />
-            Set as Title Column
-          </button>
-          {isScratchColumn && (
-            <button
-              onClick={handleRemoveScratchColumn}
-              disabled={isProcessing}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'none',
-                border: 'none',
-                color: isProcessing ? '#666' : '#ffffff',
-                textAlign: 'left',
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseEnter={(e) => {
-                if (!isProcessing) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <StyledLucideIcon Icon={TrashIcon} size={14} c="red" />
-              Remove Scratch Column
-            </button>
-          )}
-        </div>
-      )}
-    </>
+            Remove scratch column
+          </Menu.Item>
+        )}
+
+        {hasDataConverterTypes && (
+          <>
+            <Menu.Divider />
+            <Menu.Sub>
+              <Menu.Sub.Target>
+                <Menu.Sub.Item>Data format</Menu.Sub.Item>
+              </Menu.Sub.Target>
+              <Menu.Sub.Dropdown data-always-dark>
+                {dataConverterOptions.map((option) => (
+                  <Menu.Item
+                    key={option.value}
+                    leftSection={currentDataConverter === option.value ? <CheckIcon size={14} /> : undefined}
+                    onClick={() => handleDataConverterChange(option.value)}
+                  >
+                    {option.label}
+                  </Menu.Item>
+                ))}
+              </Menu.Sub.Dropdown>
+            </Menu.Sub>
+          </>
+        )}
+      </Menu.Dropdown>
+    </Menu>
   );
 };

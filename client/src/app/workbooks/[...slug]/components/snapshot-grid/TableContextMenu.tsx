@@ -1,12 +1,12 @@
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { GridApi } from 'ag-grid-community';
-import { Columns3, FileText, Filter, FilterX, List, ListChecks, Rows3, Square, Trash2, Undo2 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { CheckIcon, FileText, Filter, FilterX, TrashIcon, Undo2, XIcon } from 'lucide-react';
+import React, { useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
 import { Service } from '../../../../../types/server-entities/connector-accounts';
@@ -33,96 +33,11 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
   tableId,
   onShowRecordJson,
 }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [adjustedPosition, setAdjustedPosition] = useState(position);
-  const [isPositionCalculated, setIsPositionCalculated] = useState(false);
   const { activeTable } = useActiveWorkbook();
   const { addPendingChange } = useUpdateRecordsContext();
   const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({ workbookId, tableId });
-
-  // Calculate smart position to keep menu visible
-  const calculateMenuPosition = (x: number, y: number) => {
-    if (!menuRef.current) return { x, y };
-
-    const menu = menuRef.current;
-    const menuRect = menu.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    let adjustedX = x;
-    let adjustedY = y;
-
-    // Check horizontal overflow
-    if (x + menuRect.width > viewportWidth) {
-      adjustedX = viewportWidth - menuRect.width - 10; // 10px margin
-    }
-
-    // Check vertical overflow
-    if (y + menuRect.height > viewportHeight) {
-      adjustedY = viewportHeight - menuRect.height - 10; // 10px margin
-    }
-
-    // Ensure menu doesn't go off the left edge
-    if (adjustedX < 10) {
-      adjustedX = 10;
-    }
-
-    // Ensure menu doesn't go off the top edge
-    if (adjustedY < 10) {
-      adjustedY = 10;
-    }
-
-    return { x: adjustedX, y: adjustedY };
-  };
-
-  // Update adjusted position when menu opens or position changes
-  useEffect(() => {
-    if (isOpen && menuRef.current) {
-      // Start invisible
-      setIsPositionCalculated(false);
-
-      // Small delay to ensure menu is rendered and has dimensions
-      const timer = setTimeout(() => {
-        const newPosition = calculateMenuPosition(position.x, position.y);
-        setAdjustedPosition(newPosition);
-        setIsPositionCalculated(true); // Show menu after position is calculated
-      }, 0);
-
-      return () => clearTimeout(timer);
-    } else {
-      setAdjustedPosition(position);
-      setIsPositionCalculated(false);
-    }
-  }, [isOpen, position]);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const selectedNodes = gridApi?.getSelectedNodes() || [];
   const selectedRows = selectedNodes.map((node) => node.data).filter(Boolean) as ProcessedSnapshotRecord[];
@@ -557,26 +472,32 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     // Webflow-specific actions
     if (currentTable.connectorService === Service.WEBFLOW) {
       return (
-        <WebflowPublishMenuItem
-          selectedRows={selectedRows}
-          currentTable={currentTable}
-          isProcessing={isProcessing}
-          onClose={onClose}
-          setIsProcessing={setIsProcessing}
-        />
+        <>
+          <Menu.Label>Webflow actions</Menu.Label>
+          <WebflowPublishMenuItem
+            selectedRows={selectedRows}
+            currentTable={currentTable}
+            isProcessing={isProcessing}
+            onClose={onClose}
+            setIsProcessing={setIsProcessing}
+          />
+        </>
       );
     }
 
     // Wix Blog-specific actions
     if (currentTable.connectorService === Service.WIX_BLOG) {
       return (
-        <WixPublishMenuItem
-          selectedRows={selectedRows}
-          currentTable={currentTable}
-          isProcessing={isProcessing}
-          onClose={onClose}
-          setIsProcessing={setIsProcessing}
-        />
+        <>
+          <Menu.Label>Wix actions</Menu.Label>
+          <WixPublishMenuItem
+            selectedRows={selectedRows}
+            currentTable={currentTable}
+            isProcessing={isProcessing}
+            onClose={onClose}
+            setIsProcessing={setIsProcessing}
+          />
+        </>
       );
     }
 
@@ -585,392 +506,140 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
     return null;
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div
-      ref={menuRef}
-      style={{
-        position: 'fixed',
-        top: adjustedPosition.y,
-        left: adjustedPosition.x,
-        backgroundColor: '#2d2d2d',
-        border: '1px solid #444',
-        borderRadius: '6px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-        zIndex: 10000,
-        minWidth: '250px',
-        maxWidth: '400px',
-        padding: '8px 0',
-        fontSize: '13px',
-        color: '#ffffff',
-        opacity: isPositionCalculated ? 1 : 0,
-        visibility: isPositionCalculated ? 'visible' : 'hidden',
-        transition: 'opacity 0.1s ease-in-out',
+    <Menu
+      opened={isOpen}
+      onChange={(opened) => {
+        if (!opened) onClose();
       }}
+      withinPortal
+      shadow="md"
     >
-      {/* Row Actions */}
-      {selectedRows.length > 0 && (
-        <div style={{ padding: '4px 0' }}>
-          <div
-            style={{
-              padding: '4px 12px',
-              color: '#888',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <StyledLucideIcon Icon={Rows3} size={12} c="#888" />
-            Row Actions
-          </div>
+      <Menu.Target>
+        <div
+          style={{ position: 'fixed', top: position.y, left: position.x, width: 0, height: 0, visibility: 'hidden' }}
+        />
+      </Menu.Target>
 
-          {/* Suggestion actions - only show if there are suggestions */}
-          {selectedRowsWithSuggestions.length > 0 && (
-            <>
-              <div
-                onClick={handleAcceptSelectedRows}
-                style={{
-                  padding: '8px 12px',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: isProcessing ? 0.5 : 1,
-                  backgroundColor: 'transparent',
-                  transition: 'background-color 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isProcessing) {
-                    e.currentTarget.style.backgroundColor = '#3a3a3a';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+      <Menu.Dropdown data-always-dark onClick={(e) => e.stopPropagation()}>
+        {/* Cell suggestion */}
+        {selectedRows.length === 1 && focusedCellInfo && focusedCellInfo.hasSuggestion && (
+          <>
+            <Menu.Label>Cell changes</Menu.Label>
+            <Menu.Item
+              data-accept
+              leftSection={<CheckIcon size={14} />}
+              onClick={handleAcceptCellSuggestion}
+              disabled={isProcessing}
+            >
+              Accept change in this cell
+            </Menu.Item>
+            <Menu.Item
+              data-delete
+              leftSection={<XIcon size={14} />}
+              onClick={handleRejectCellSuggestion}
+              disabled={isProcessing}
+            >
+              Reject change in this cell
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+
+        {/* Row suggestions */}
+        {selectedRows.length > 0 && selectedRowsWithSuggestions.length > 0 && (
+          <>
+            <Menu.Label>Row changes</Menu.Label>
+            <Menu.Item
+              data-accept
+              leftSection={<CheckIcon size={14} />}
+              onClick={handleAcceptSelectedRows}
+              disabled={isProcessing}
+            >
+              Accept all changes in row
+            </Menu.Item>
+            <Menu.Item
+              data-delete
+              leftSection={<XIcon size={14} />}
+              onClick={handleRejectSelectedRows}
+              disabled={isProcessing}
+            >
+              Reject all changes in row
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+
+        {/* Column Suggestions */}
+        {/* TODO: Only show if there was a suggestion for this column. */}
+        {selectedRows.length === 1 && focusedCellInfo && (
+          <>
+            <Menu.Label>Column changes</Menu.Label>
+            <Menu.Item
+              data-accept
+              leftSection={<CheckIcon size={14} />}
+              onClick={handleAcceptColumn}
+              disabled={isProcessing}
+            >
+              Accept column &ldquo;{focusedCellInfo.fieldName}&rdquo;
+            </Menu.Item>
+            <Menu.Item
+              data-delete
+              leftSection={<XIcon size={14} />}
+              onClick={handleRejectColumn}
+              disabled={isProcessing}
+            >
+              Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+
+        {/* Filter actions */}
+        <Menu.Label>Filter</Menu.Label>
+        <Menu.Item leftSection={<FilterX size={14} />} onClick={handleFilterOutRecords} disabled={isProcessing}>
+          {selectedRows.length === 1 ? 'Exclude this record' : 'Exclude these records'}
+        </Menu.Item>
+        <Menu.Item leftSection={<Filter size={14} />} onClick={handleFilterInRecords} disabled={isProcessing}>
+          {selectedRows.length === 1 ? 'Show only this record' : 'Show only these records'}
+        </Menu.Item>
+        <Menu.Divider />
+
+        {selectedRows.length === 1 && (
+          <>
+            <Menu.Label>Record actions</Menu.Label>
+            {selectedRows[0].__edited_fields?.__deleted ? (
+              <Menu.Item
+                data-accept
+                leftSection={<Undo2 size={14} />}
+                onClick={handleUndeleteRecords}
+                disabled={isProcessing}
               >
-                <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
-                <span>
-                  Accept {totalSuggestionsForSelectedRows}{' '}
-                  {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
-                  {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
-                </span>
-              </div>
-              <div
-                onClick={handleRejectSelectedRows}
-                style={{
-                  padding: '8px 12px',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: isProcessing ? 0.5 : 1,
-                  backgroundColor: 'transparent',
-                  transition: 'background-color 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isProcessing) {
-                    e.currentTarget.style.backgroundColor = '#3a3a3a';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                Restore Record
+              </Menu.Item>
+            ) : (
+              <Menu.Item
+                data-delete
+                leftSection={<TrashIcon size={14} />}
+                onClick={handleDeleteRecords}
+                disabled={isProcessing}
               >
-                <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
-                <span>
-                  Reject {totalSuggestionsForSelectedRows}{' '}
-                  {totalSuggestionsForSelectedRows === 1 ? 'suggestion' : 'suggestions'} in{' '}
-                  {selectedRowsWithSuggestions.length} {selectedRowsWithSuggestions.length === 1 ? 'record' : 'records'}
-                </span>
-              </div>
-            </>
-          )}
+                Delete Record
+              </Menu.Item>
+            )}
+            {/* TODO: Is this a dev option? */}
+            <Menu.Item leftSection={<FileText size={14} />} onClick={handleShowRecordJson}>
+              View record as JSON
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
 
-          {/* Filter actions - always show for any selected rows */}
-          <div
-            onClick={handleFilterOutRecords}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={FilterX} size={16} c="#888" />
-            <span>Filter Out Records</span>
-          </div>
-          <div
-            onClick={handleFilterInRecords}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={Filter} size={16} c="#888" />
-            <span>Filter In Records</span>
-          </div>
-
-          {/* Connector-custom actions */}
-          {renderConnectorCustomActions()}
-
-          {/* Record actions - only show for single row selection */}
-          {selectedRows.length === 1 && (
-            <>
-              <div
-                onClick={handleShowRecordJson}
-                style={{
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: 'transparent',
-                  transition: 'background-color 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#3a3a3a';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <StyledLucideIcon Icon={FileText} size={16} c="#888" />
-                <span>View Record as JSON</span>
-              </div>
-              {selectedRows[0].__edited_fields?.__deleted ? (
-                <div
-                  onClick={handleUndeleteRecords}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    opacity: isProcessing ? 0.5 : 1,
-                    backgroundColor: 'transparent',
-                    transition: 'background-color 0.1s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isProcessing) {
-                      e.currentTarget.style.backgroundColor = '#3a3a3a';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <StyledLucideIcon Icon={Undo2} size={16} c="#00aa00" />
-                  <span>Restore Record</span>
-                </div>
-              ) : (
-                <div
-                  onClick={handleDeleteRecords}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    opacity: isProcessing ? 0.5 : 1,
-                    backgroundColor: 'transparent',
-                    transition: 'background-color 0.1s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isProcessing) {
-                      e.currentTarget.style.backgroundColor = '#3a3a3a';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <StyledLucideIcon Icon={Trash2} size={16} c="#ff0000" />
-                  <span>Delete Record</span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Cell-specific actions for single row selection with focused cell */}
-      {selectedRows.length === 1 && focusedCellInfo && focusedCellInfo.hasSuggestion && (
-        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div
-            style={{
-              padding: '4px 12px',
-              color: '#888',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <StyledLucideIcon Icon={Square} size={12} c="#888" />
-            Cell Actions
-          </div>
-          <div
-            onClick={handleAcceptCellSuggestion}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
-            <span>Accept suggestion</span>
-          </div>
-          <div
-            onClick={handleRejectCellSuggestion}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
-            <span>Reject suggestion</span>
-          </div>
-        </div>
-      )}
-
-      {/* Column Actions */}
-      {selectedRows.length === 1 && focusedCellInfo && (
-        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div
-            style={{
-              padding: '4px 12px',
-              color: '#888',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <StyledLucideIcon Icon={Columns3} size={12} c="#888" />
-            Column Actions
-          </div>
-          <div
-            onClick={handleAcceptColumn}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={ListChecks} size={16} c="#00aa00" />
-            <span>Accept column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
-          </div>
-          <div
-            onClick={handleRejectColumn}
-            style={{
-              padding: '8px 12px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: isProcessing ? 0.5 : 1,
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isProcessing) {
-                e.currentTarget.style.backgroundColor = '#3a3a3a';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <StyledLucideIcon Icon={List} size={16} c="#ff0000" />
-            <span>Reject column &ldquo;{focusedCellInfo.fieldName}&rdquo;</span>
-          </div>
-        </div>
-      )}
-
-      {/* Show message when no suggestions available */}
-      {selectedRows.length > 0 && selectedRowsWithSuggestions.length === 0 && (
-        <div style={{ borderTop: '1px solid #444', padding: '4px 0' }}>
-          <div
-            style={{
-              padding: '8px 12px',
-              color: '#888',
-              fontSize: '12px',
-              fontStyle: 'italic',
-            }}
-          >
-            No suggestions available for selected rows
-          </div>
-        </div>
-      )}
-    </div>
+        {/* Connector-custom actions */}
+        {renderConnectorCustomActions()}
+      </Menu.Dropdown>
+    </Menu>
   );
 };

@@ -29,6 +29,7 @@ import {
   Ambulance,
   Bird,
   BookMarked,
+  CheckIcon,
   CircleCheckBigIcon,
   Home,
   MoonStar,
@@ -145,7 +146,6 @@ export default function DevComponentGalleryPage() {
               <Anchor href="#patterns">Complete Patterns & Examples</Anchor>
             </List.Item>
           </List>
-
           <GallerySection id="shades" title="Key shades" />
           <Text12Book c="dimmed">
             These are single-color shades that adjust for light/dark mode. Use these for all panels and text.
@@ -189,7 +189,6 @@ export default function DevComponentGalleryPage() {
           >
             <ColorChip cssName="--fg-divider" modeAware />
           </GalleryItem>
-
           <GallerySection id="colors" title="Colors" />
           <Text12Book c="dimmed">
             These are the full 10-shade colors from Mantine. Their numbers don&apos;t exactly match the design system,
@@ -212,7 +211,6 @@ export default function DevComponentGalleryPage() {
               'green/12',
             ]}
           />
-
           <GalleryColor
             color="gray"
             modeAware
@@ -236,7 +234,6 @@ export default function DevComponentGalleryPage() {
           />
           <GalleryColor color="blue" />
           <GalleryColor color="devTool" notes="Use for anything dev-only." />
-
           <GallerySection id="title-text" title="Text: title" />
           <TypeGalleryItem label="TextTitle1" figmaName="title/24">
             <TextTitle1>Brown fox is quick</TextTitle1>
@@ -250,7 +247,6 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="TextTitle4" figmaName="title/14">
             <TextTitle4>Brown fox is quick</TextTitle4>
           </TypeGalleryItem>
-
           <GallerySection id="body-text" title="Text: body" />
           <Text12Book c="dimmed">All of these support c=&apos;dimmed&apos;</Text12Book>
           <TypeGalleryItem label="Text16Medium" figmaName="text/16-medium">
@@ -293,7 +289,6 @@ export default function DevComponentGalleryPage() {
               <Text13Regular>Item 2</Text13Regular>
             </Group>
           </GalleryItem>
-
           <GallerySection id="mono-text" title="Text: monospace" />
           <TypeGalleryItem label="TextMono13Regular" figmaName="mono/13-regular">
             <TextMono13Regular>Brown fox is quick</TextMono13Regular>
@@ -304,7 +299,6 @@ export default function DevComponentGalleryPage() {
           <TypeGalleryItem label="Code">
             <Code>Brown fox is quick</Code>
           </TypeGalleryItem>
-
           <GallerySection id="buttons" title="Buttons" />
           <GalleryItem label="ButtonPrimarySolid">
             <ButtonPrimarySolid leftSection={<Plus />}>Click</ButtonPrimarySolid>
@@ -348,12 +342,10 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="ToolIconButton" notes="ActionIcon Button with tooltip. Use on toolbars and inline rows. ">
             <ToolIconButton icon={Settings} onClick={() => console.debug('clicked')} tooltip="Settings" size="sm" />
           </GalleryItem>
-
           <GallerySection id="action-icons" title="Action Icons" />
           <GalleryItem label="ActionIconThreeDots">
             <ActionIconThreeDots />
           </GalleryItem>
-
           <GallerySection id="input-components" title="Input Components" />
           <GalleryItem
             label="Menu"
@@ -371,6 +363,32 @@ export default function DevComponentGalleryPage() {
                 <Menu.Divider />
                 <Menu.Item data-delete leftSection={<Trash2 size={16} />}>
                   Delete
+                </Menu.Item>
+                <Menu.Item data-accept leftSection={<CheckIcon size={16} />}>
+                  Accept
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </GalleryItem>{' '}
+          <GalleryItem
+            label="Always dark menu"
+            notes="In the grid we have a dark menu variant. Set data-always-dark on the dropdown"
+          >
+            <Menu>
+              <Menu.Target>
+                <ActionIconThreeDots />
+              </Menu.Target>
+              <Menu.Dropdown data-always-dark>
+                <Menu.Item leftSection={<AlignEndHorizontal size={16} />}>Item 1</Menu.Item>
+                <Menu.Item leftSection={<Bird size={16} />} rightSection={<Kbd>⌘B</Kbd>}>
+                  Bird
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item data-delete leftSection={<Trash2 size={16} />}>
+                  Delete
+                </Menu.Item>
+                <Menu.Item data-accept leftSection={<CheckIcon size={16} />}>
+                  Accept
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
@@ -391,7 +409,6 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="DiffText2">
             <DiffText changes={diffWordsWithSpace('Hello, world!', 'Howdy, SCRATCH ROCKS, world! more text here!')} />
           </GalleryItem>
-
           <GallerySection id="badges" title="Badges" />
           <GalleryItem
             label="Badge"
@@ -421,7 +438,6 @@ export default function DevComponentGalleryPage() {
               <Ambulance color="pink" />
             </Tooltip>
           </GalleryItem>
-
           <GalleryItem label="Popover">
             <Popover>
               <Popover.Target>
@@ -432,7 +448,6 @@ export default function DevComponentGalleryPage() {
               </Popover.Dropdown>
             </Popover>
           </GalleryItem>
-
           <GallerySection id="loaders" title="Loaders" />
           <GalleryItem label="Loader">
             <Loader size="sm" />
@@ -440,7 +455,6 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="LoaderWithMessage">
             <LoaderWithMessage message="Customize me..." />
           </GalleryItem>
-
           <GallerySection id="icons" title="Icons" />
           <GalleryItem label="StyledLucideIcon" notes="Adds standard mantine styling options to Lucide icons">
             <Group gap="sm">
@@ -487,14 +501,12 @@ export default function DevComponentGalleryPage() {
               ))}
             </Group>
           </GalleryItem>
-
           <GallerySection id="formatting" title="Formatting" />
           <GalleryItem label="RelativeDate (with tooltip)">
             <Text13Book c="dimmed">
               <RelativeDate date={'2025-10-05T00:25:10.892Z'} />
             </Text13Book>
           </GalleryItem>
-
           <GallerySection id="info-panels" title="Info Panels" />
           <GalleryItem label="Info.NotFoundIcon">
             <Info>
@@ -531,7 +543,6 @@ export default function DevComponentGalleryPage() {
               retry={() => console.debug('Retry clicked')}
             />
           </GalleryItem>
-
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
           <GalleryItem label="DevToolButton">
             <DevToolButton>Click</DevToolButton>
@@ -546,13 +557,11 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="LabelValuePair">
             <LabelValuePair label="Name" value="John Doe" canCopy />
           </GalleryItem>
-
           <GallerySection id="patterns" title="Complete Patterns & Examples" />
           <Text12Book c="dimmed" mb="md">
             These examples show how to properly compose base components for common use cases. Use these as templates
             when building new features.
           </Text12Book>
-
           <Box ml="md">
             <TextTitle3 mb="md">Table Row Pattern</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -578,7 +587,6 @@ export default function DevComponentGalleryPage() {
               </Group>
             </Box>
           </Box>
-
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Empty State Pattern</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -597,7 +605,6 @@ export default function DevComponentGalleryPage() {
               </Stack>
             </Box>
           </Box>
-
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Card with Header and Footer</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -622,7 +629,6 @@ export default function DevComponentGalleryPage() {
               </Stack>
             </Box>
           </Box>
-
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Form Field Pattern</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -645,7 +651,6 @@ export default function DevComponentGalleryPage() {
               </Stack>
             </Box>
           </Box>
-
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Status List Item</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -681,7 +686,6 @@ export default function DevComponentGalleryPage() {
               </Box>
             </Stack>
           </Box>
-
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Action Group Pattern</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
@@ -717,7 +721,6 @@ export default function DevComponentGalleryPage() {
               </div>
             </Stack>
           </Box>
-
           <Box ml="md" mt="xl" mb="xl">
             <TextTitle3 mb="md">&apos;⛔ Anti-Patterns (DON&apos;T DO THIS)&apos;</TextTitle3>
             <Text12Book c="dimmed" mb="sm">

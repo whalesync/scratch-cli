@@ -169,6 +169,7 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
         item: classes.menuItem,
         divider: classes.menuDivider,
         itemSection: classes.menuItemSection,
+        label: classes.menuLabel,
       },
     }),
 

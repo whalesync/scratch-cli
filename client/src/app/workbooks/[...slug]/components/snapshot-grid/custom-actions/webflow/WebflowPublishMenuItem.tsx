@@ -1,6 +1,6 @@
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SnapshotRecord, SnapshotTable } from '@/types/server-entities/workbook';
+import { Menu } from '@mantine/core';
 import { Upload } from 'lucide-react';
 import React from 'react';
 import { customWebflowActionsApi } from '../../../../../../../lib/api/custom-actions/webflow';
@@ -83,31 +83,8 @@ export const WebflowPublishMenuItem: React.FC<WebflowPublishMenuItemProps> = ({
   };
 
   return (
-    <div
-      onClick={handlePublishWebflowItems}
-      style={{
-        padding: '8px 12px',
-        cursor: isProcessing ? 'not-allowed' : 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        opacity: isProcessing ? 0.5 : 1,
-        backgroundColor: 'transparent',
-        transition: 'background-color 0.1s',
-      }}
-      onMouseEnter={(e) => {
-        if (!isProcessing) {
-          e.currentTarget.style.backgroundColor = '#3a3a3a';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
-      }}
-    >
-      <StyledLucideIcon Icon={Upload} size={16} c="#00aa00" />
-      <span>
-        Publish Live to Webflow ({selectedRows.length} {selectedRows.length === 1 ? 'item' : 'items'})
-      </span>
-    </div>
+    <Menu.Item leftSection={<Upload size={14} />} onClick={handlePublishWebflowItems} disabled={isProcessing}>
+      Publish live to Webflow
+    </Menu.Item>
   );
 };

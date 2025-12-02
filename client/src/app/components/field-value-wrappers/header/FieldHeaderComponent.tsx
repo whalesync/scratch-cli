@@ -7,6 +7,7 @@ import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Group, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
+import _ from 'lodash';
 import { AlertCircle, EyeOff, PenOffIcon } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
@@ -64,12 +65,13 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const columnName = props.displayName || columnId;
 
   // Get current column configuration
-  const { isColumnHidden, isScratchColumn, currentDataConverter } = useMemo(() => {
+  const { isColumnHidden, isScratchColumn, currentDataConverter, isTitleColumn } = useMemo(() => {
     const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
     const currentTable = props.tableId ? workbook?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
     const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
     const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
-    return { isScratchColumn, isColumnHidden, currentDataConverter };
+    const isTitleColumn = _.isEqual(currentTable?.tableSpec?.titleColumnRemoteId, props.columnSpec?.id?.remoteId);
+    return { isScratchColumn, isColumnHidden, currentDataConverter, isTitleColumn };
   }, [workbook, props.tableId, columnId, props.columnSpec]);
 
   const handleHeaderClick = () => {
@@ -134,7 +136,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
 
   return (
     <Group
-      className={styles.headereWrapper}
+      className={styles.headerWrapper}
       wrap="nowrap"
       gap="xs"
       style={{
@@ -168,9 +170,11 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         columnSpec={props.columnSpec}
         records={props.records}
         enableSorting={props.enableSorting}
+        currentSort={currentSort ?? null}
         setSort={props.setSort}
         isColumnHidden={isColumnHidden}
         isScratchColumn={isScratchColumn}
+        isTitleColumn={isTitleColumn}
         currentDataConverter={currentDataConverter}
         workbook={workbook}
         updateColumnSettings={updateColumnSettings}
