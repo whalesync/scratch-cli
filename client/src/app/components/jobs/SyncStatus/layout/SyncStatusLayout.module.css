@@ -43,3 +43,11 @@
   width: calc(100% / 3);
   justify-content: center;
 }
+
+/* Third row center - full width with centered content */
+.thirdRowCenter {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}

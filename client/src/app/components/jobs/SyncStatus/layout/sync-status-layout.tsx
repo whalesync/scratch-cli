@@ -11,6 +11,7 @@ type Props = {
   bottomLeftSlot: JSX.Element;
   bottomCenterSlot: JSX.Element;
   bottomRightSlot: JSX.Element;
+  thirdRowCenter?: JSX.Element;
 };
 export const SyncStatusLayout: FC<Props> = (props) => {
   const {
@@ -22,6 +23,7 @@ export const SyncStatusLayout: FC<Props> = (props) => {
     bottomLeftSlot,
     bottomCenterSlot,
     bottomRightSlot,
+    thirdRowCenter,
   } = props;
   return (
     <Stack gap={1} className={classes.syncStatusLayout}>
@@ -43,6 +45,7 @@ export const SyncStatusLayout: FC<Props> = (props) => {
         <Box className={classes.bottomBox}>{bottomCenterSlot}</Box>
         <Box className={classes.bottomBox}>{bottomRightSlot}</Box>
       </Group>
+      {thirdRowCenter && <Box className={classes.thirdRowCenter}>{thirdRowCenter}</Box>}
     </Stack>
   );
 };

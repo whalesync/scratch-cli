@@ -359,10 +359,13 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
           connectorProgress: {},
         });
 
-        // Set syncInProgress=false for this table on success
+        // Set syncInProgress=false and dirty=false for this table on success
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
-          data: { syncInProgress: false },
+          data: {
+            syncInProgress: false,
+            dirty: false,
+          },
         });
 
         this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {

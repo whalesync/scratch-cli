@@ -3,8 +3,10 @@ import { TableIndicator } from './components/base-avatar-with-indicator';
 
 import { getServiceName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
-import { Badge, Text } from '@mantine/core';
+import { ActionIcon, Text } from '@mantine/core';
+import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
 import { ConnectorIcon } from '../../ConnectorIcon';
+import { StyledLucideIcon } from '../../Icons/StyledLucideIcon';
 import { getStatusColor, getStatusText } from '../job-utils';
 import { TableStatus } from '../publish/PublishJobProgress';
 import { SyncDirectedFlowLine } from './components/sync-direction-flow-line';
@@ -24,16 +26,16 @@ type Props = {
 const getBadgeColor = (status: TableStatus) => {
   switch (status) {
     case 'in_progress':
-      return 'blue';
+      return { fg: 'blue', bg: 'blue' };
     case 'completed':
-      return 'green';
+      return { fg: 'var(--fg-accept)', bg: 'var(--bg-accept)' };
     case 'failed':
-      return 'red';
+      return { fg: 'var(--fg-reject)', bg: 'var(--bg-reject)' };
     case 'canceled':
-      return 'yellow';
+      return { fg: 'yellow', bg: 'yellow' };
     case 'pending':
     default:
-      return 'gray';
+      return { fg: 'gray', bg: 'gray' };
   }
 };
 
@@ -51,13 +53,13 @@ export const SyncStatus: FC<Props> = (props) => {
       leftIcon={<TableIndicator />}
       leftFlowLine={<SyncDirectedFlowLine direction={direction} moving={isMoving} />}
       centerIcon={
-        <Badge size="lg" mx="4px" variant="light" color={badgeColor}>
-          <Text fw={500}>
-            {direction === 'left' && '← '}
-            {totalCount !== undefined ? `${doneCount}/${totalCount}` : `${doneCount}`}
-            {direction === 'right' && ' →'}
-          </Text>
-        </Badge>
+        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg} style={{ pointerEvents: 'auto' }}>
+          {direction === 'left' ? (
+            <StyledLucideIcon Icon={ArrowLeftIcon} size="md" />
+          ) : (
+            <StyledLucideIcon Icon={ArrowRightIcon} size="md" />
+          )}
+        </ActionIcon>
       }
       rightFlowLine={<SyncDirectedFlowLine direction={direction} moving={isMoving} />}
       rightIcon={<ConnectorIcon connector={connector} />}
@@ -69,6 +71,13 @@ export const SyncStatus: FC<Props> = (props) => {
         </Text>
       }
       bottomRightSlot={<>{getServiceName(connector as Service)}</>}
+      thirdRowCenter={
+        <Text c="var(--fg-muted)" fw={500}>
+          {direction === 'left'
+            ? `${doneCount} records downloaded`
+            : `${doneCount} out of ${totalCount} records pushed`}
+        </Text>
+      }
     />
   );
 };

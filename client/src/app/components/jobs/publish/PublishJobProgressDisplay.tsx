@@ -18,25 +18,18 @@ export const PublishJobProgressDisplay: FC<Props> = (props) => {
   }
   const { publicProgress, state, failedReason } = job;
   return (
-    <Stack gap="sm">
-      {/* Total Records */}
-
-      {/* Tables List */}
-
-      <Stack gap="xs">
-        {publicProgress.tables.map((table) => (
-          <Stack key={table.id} gap="lg">
-            <SyncStatus
-              tableName={table.name}
-              connector={table.connector}
-              doneCount={table.creates + table.updates + table.deletes}
-              totalCount={table.expectedCreates + table.expectedUpdates + table.expectedDeletes}
-              status={getTerminalTableStatus(table.status, state)}
-              direction="right"
-            />
-          </Stack>
-        ))}
-      </Stack>
+    <Stack gap="lg">
+      {publicProgress.tables.map((table) => (
+        <SyncStatus
+          key={table.id}
+          tableName={table.name}
+          connector={table.connector}
+          doneCount={table.creates + table.updates + table.deletes}
+          totalCount={table.expectedCreates + table.expectedUpdates + table.expectedDeletes}
+          status={getTerminalTableStatus(table.status, state)}
+          direction="right"
+        />
+      ))}
 
       {failedReason && (
         <Alert icon={<AlertCircle size={16} />} title="Publish Failed" color="red" mt="md">

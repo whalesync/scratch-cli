@@ -15,11 +15,8 @@ export const AG = {
 
   // Grid configuration
   grid: {
-    defaultMinWidth: 200,
+    defaultMinWidth: 150,
     defaultFlex: 1,
-  },
-  dotColumn: {
-    width: 22,
   },
 } as const;
 

@@ -23,27 +23,24 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
   const { publicProgress, state, failedReason } = job;
 
   return (
-    <Stack gap="sm">
-      {/* Tables List */}
-      <Stack gap="xs">
-        {publicProgress.tables.map((table) => (
-          <Stack key={table.id} gap={4}>
-            <SyncStatus
-              tableName={table.name}
-              connector={table.connector}
-              doneCount={table.records}
-              status={getTerminalTableStatus(table.status as TableStatus, state)}
-              direction="left"
-            />
-            {table.hasDirtyDiscoveredDeletes && (
-              <Alert icon={<AlertCircle size={16} />} color="yellow" p="xs">
-                Records with unpublished scratch changes were deleted from {getServiceName(table.connector as Service)}
-              </Alert>
-            )}
-          </Stack>
-        ))}
-      </Stack>
+    <Stack gap="xl">
+      {publicProgress.tables.map((table) => (
+        <Stack key={table.id} gap="md">
+          <SyncStatus
+            tableName={table.name}
+            connector={table.connector}
+            doneCount={table.records}
+            status={getTerminalTableStatus(table.status as TableStatus, state)}
+            direction="left"
+          />
 
+          {table.hasDirtyDiscoveredDeletes && (
+            <Alert icon={<AlertCircle size={16} />} color="yellow" p="xs">
+              Records with unpublished scratch changes were deleted from {getServiceName(table.connector as Service)}
+            </Alert>
+          )}
+        </Stack>
+      ))}
       {failedReason && (
         <Alert icon={<AlertCircle size={16} />} title="Download Failed" color="red" mt="md">
           {failedReason}

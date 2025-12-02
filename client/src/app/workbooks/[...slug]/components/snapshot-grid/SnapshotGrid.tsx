@@ -14,7 +14,6 @@ import { useClipboard } from '@mantine/hooks';
 import {
   AllCommunityModule,
   CellDoubleClickedEvent,
-  CellStyleFunc,
   ColDef,
   ColumnState,
   GridApi,
@@ -159,7 +158,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   // Get theme from Mantine
   const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
-  const isLightMode = colorScheme === 'light';
+  // const isLightMode = colorScheme === 'light';
 
   // We'll use gridApi.getFocusedCell() instead of tracking state
 
@@ -546,16 +545,16 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnSpecs.map((column, index) => {
-    const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
-      const isReadOnly = column.readonly;
-      const colors = isLightMode ? AG.colors.light : AG.colors.dark;
-      const baseStyles = {
-        // backgroundColor,
-        color: isReadOnly ? colors.readOnlyText : colors.normalText,
-      };
+    // const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
+    //   // const isReadOnly = column.readonly;
+    //   // const colors = isLightMode ? AG.colors.light : AG.colors.dark;
+    //   const baseStyles = {
+    //     // backgroundColor,
+    //     // color: isReadOnly ? colors.readOnlyText : colors.normalText,
+    //   };
 
-      return baseStyles;
-    };
+    //   return baseStyles;
+    // };
     const valueGetter: ValueGetterFunc<SnapshotRecord, unknown> = (params) => {
       if (column.pgType === PostgresColumnType.TIMESTAMP && params.data?.fields?.[column.id.wsId]) {
         // SnapshotRecords get dates as ISO strings, so we need to convert them to dates to handle them natively in the grid
@@ -571,7 +570,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       resizable: true,
       valueGetter,
       cellRenderer,
-      cellStyle,
+      // cellStyle,
       cellClass: getCellClassFn({ gridApi, activeCells, columnId: column.id.wsId }),
       // Pin the title column to the left (like the ID column)
       pinned: index === 0 ? 'left' : undefined,
