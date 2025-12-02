@@ -20,6 +20,7 @@ const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
     costUSD: 0,
     daysRemaining: 0,
     isTrial: false,
+    isCancelled: false,
     canManageSubscription: false,
     ownerId: '',
     features: {
