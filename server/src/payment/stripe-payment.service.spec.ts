@@ -11,7 +11,7 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { ErrorCode, isErr, isOk } from 'src/types/results';
 import Stripe from 'stripe';
-import { ScratchpadPlanType, TEST_SANDBOX_PLANS } from './plans';
+import { ScratchPlanType, TEST_SANDBOX_PLANS } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 // Valid test price ID from plans.ts
@@ -23,6 +23,7 @@ const mockConfigService = {
   getStripeWebhookSecret: jest.fn().mockReturnValue('whsec_mock_secret'),
   getScratchpadEnvironment: jest.fn().mockReturnValue('test'),
   getTrialRequirePaymentMethod: jest.fn().mockReturnValue(false),
+  isProductionEnvironment: jest.fn().mockReturnValue(false),
 };
 
 const mockDbService = {
@@ -129,6 +130,7 @@ describe('StripePaymentService', () => {
         metadata: {
           source: 'scratch',
           internal_id: 'usr_test123',
+          environment: 'test',
         },
       });
     });
@@ -148,6 +150,7 @@ describe('StripePaymentService', () => {
         metadata: {
           source: 'scratch',
           internal_id: 'usr_test123',
+          environment: 'test',
         },
       });
     });
@@ -192,7 +195,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial123',
         status: 'trialing',
         customer: 'cus_existing123',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.PRO_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -207,7 +210,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.subscriptions.create = jest.fn().mockResolvedValue(mockSubscription);
       mockDbService.client.subscription.upsert.mockResolvedValue({});
 
-      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
+      const result = await service.createTrialSubscription(user, ScratchPlanType.PRO_PLAN);
 
       expect(isOk(result)).toBe(true);
       expect(mockStripeInstance.subscriptions.create).toHaveBeenCalledWith(
@@ -216,11 +219,12 @@ describe('StripePaymentService', () => {
           trial_period_days: 7,
           metadata: expect.objectContaining({
             application: 'scratchpad',
-            productType: ScratchpadPlanType.STARTER_PLAN,
+            planType: ScratchPlanType.PRO_PLAN,
+            environment: 'test',
           }),
         }),
       );
-      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchpadPlanType.PRO_PLAN);
+      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchPlanType.PRO_PLAN);
     });
 
     it('should create new customer if user does not have one', async () => {
@@ -230,7 +234,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial456',
         status: 'trialing',
         customer: 'cus_newCustomer789',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.PRO_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -247,7 +251,7 @@ describe('StripePaymentService', () => {
       mockDbService.client.user.update.mockResolvedValue({});
       mockDbService.client.subscription.upsert.mockResolvedValue({});
 
-      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
+      const result = await service.createTrialSubscription(user, ScratchPlanType.PRO_PLAN);
 
       expect(isOk(result)).toBe(true);
       expect(mockDbService.client.user.update).toHaveBeenCalledWith(
@@ -264,7 +268,7 @@ describe('StripePaymentService', () => {
 
       mockStripeInstance.subscriptions.create = jest.fn().mockRejectedValue(stripeError);
 
-      const result = await service.createTrialSubscription(user, ScratchpadPlanType.PRO_PLAN);
+      const result = await service.createTrialSubscription(user, ScratchPlanType.PRO_PLAN);
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
@@ -289,7 +293,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
       jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
+      const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, true);
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -306,7 +310,7 @@ describe('StripePaymentService', () => {
             trial_period_days: 7,
             metadata: expect.objectContaining({
               application: 'scratchpad',
-              productType: ScratchpadPlanType.PRO_PLAN,
+              planType: ScratchPlanType.PRO_PLAN,
             }),
           }),
           payment_method_collection: 'if_required',
@@ -329,7 +333,7 @@ describe('StripePaymentService', () => {
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
       jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, false);
+      const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, false);
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -375,7 +379,7 @@ describe('StripePaymentService', () => {
       const checkoutCreateSpy = jest.fn();
       mockStripeInstance.checkout.sessions.create = checkoutCreateSpy;
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
+      const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, true);
 
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
@@ -393,7 +397,7 @@ describe('StripePaymentService', () => {
         organization: { id: 'org_123', subscriptions: [] },
       });
 
-      const result = await service.generateCheckoutUrl(user, 'unknown_plan' as ScratchpadPlanType);
+      const result = await service.generateCheckoutUrl(user, 'unknown_plan' as ScratchPlanType);
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
@@ -412,7 +416,7 @@ describe('StripePaymentService', () => {
 
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
 
-      const result = await service.generateCheckoutUrl(user, ScratchpadPlanType.PRO_PLAN, true);
+      const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, true);
 
       expect(isErr(result)).toBe(true);
       if (isErr(result)) {
@@ -521,7 +525,7 @@ describe('StripePaymentService', () => {
             id: 'sub_webhook123',
             customer: 'cus_webhook123',
             status: 'active',
-            metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+            metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN },
             items: {
               data: [
                 {
@@ -604,7 +608,7 @@ describe('StripePaymentService', () => {
         id: 'sub_checkout123',
         customer: 'cus_checkout123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -615,7 +619,10 @@ describe('StripePaymentService', () => {
           ],
         },
       } as any);
-      mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ stripeCustomerId: 'cus_checkout123' }));
+      // Need to mock findFirst multiple times - for isKnownStripeCustomerId and getUserFromStripeCustomerId
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_checkout123' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_checkout123' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
       mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
@@ -655,7 +662,7 @@ describe('StripePaymentService', () => {
         id: 'sub_paid123',
         customer: 'cus_paid123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -666,9 +673,11 @@ describe('StripePaymentService', () => {
           ],
         },
       } as any);
-      mockDbService.client.user.findFirst.mockResolvedValue(
-        createMockUser({ stripeCustomerId: 'cus_paid123', organizationId: 'org_paid' }),
-      );
+      // Need to mock findFirst multiple times - for isKnownStripeCustomerId, getUserFromStripeCustomerId (in upsertSubscription), and getUserFromStripeCustomerId (in handleInvoicePaid)
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_paid123', organizationId: 'org_paid' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_paid123', organizationId: 'org_paid' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_paid123', organizationId: 'org_paid' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
       mockDbService.client.invoiceResult.create.mockResolvedValue({});
       mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue({});
@@ -703,7 +712,7 @@ describe('StripePaymentService', () => {
         id: 'sub_failed123',
         customer: 'cus_failed123',
         status: 'past_due',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -731,6 +740,7 @@ describe('StripePaymentService', () => {
   describe('getUserFromStripeCustomerId', () => {
     it('should return user when found', async () => {
       const mockUser = createMockUser({ stripeCustomerId: 'cus_found123' });
+      mockDbService.client.user.findFirst.mockReset();
       mockDbService.client.user.findFirst.mockResolvedValue(mockUser);
 
       const result = await service.getUserFromStripeCustomerId('cus_found123');
@@ -744,6 +754,7 @@ describe('StripePaymentService', () => {
     });
 
     it('should return null when user not found', async () => {
+      mockDbService.client.user.findFirst.mockReset();
       mockDbService.client.user.findFirst.mockResolvedValue(null);
 
       const result = await service.getUserFromStripeCustomerId('cus_notfound123');
@@ -758,7 +769,7 @@ describe('StripePaymentService', () => {
         id: 'sub_upsert123',
         customer: 'cus_upsert123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -770,9 +781,10 @@ describe('StripePaymentService', () => {
         },
       } as any;
 
-      mockDbService.client.user.findFirst.mockResolvedValue(
-        createMockUser({ stripeCustomerId: 'cus_upsert123', organizationId: 'org_upsert' }),
-      );
+      // Need to mock findFirst twice - once for isKnownStripeCustomerId check, once for getUserFromStripeCustomerId
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_upsert123', organizationId: 'org_upsert' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_upsert123', organizationId: 'org_upsert' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
       mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 
@@ -832,7 +844,7 @@ describe('StripePaymentService', () => {
         id: 'sub_nouser123',
         customer: 'cus_nouser123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -850,10 +862,10 @@ describe('StripePaymentService', () => {
 
       // Since priceId matches test plans, subscription is considered scratchpad
       // However user lookup fails, which should return error
-      // But in test/staging environments, unknown users return success to avoid webhook failures
+      // But in test/staging environments, unknown users return "ignored" to avoid webhook failures
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
-        expect(result.v).toBe('success');
+        expect(result.v).toBe('ignored');
       }
     });
 
@@ -862,7 +874,7 @@ describe('StripePaymentService', () => {
         id: 'sub_noorg123',
         customer: 'cus_noorg123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -874,7 +886,11 @@ describe('StripePaymentService', () => {
         },
       } as any;
 
-      mockDbService.client.user.findFirst.mockResolvedValue(createMockUser({ organizationId: null }));
+      // In non-production, if user is not known, it returns "ignored" before checking organization
+      // So we need to make sure the user is found but has no organization
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_noorg123', organizationId: null }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_noorg123', organizationId: null }));
 
       const result = await service.upsertSubscription('sub_noorg123', undefined, mockSubscription);
 
@@ -890,7 +906,7 @@ describe('StripePaymentService', () => {
         id: 'sub_dberror123',
         customer: 'cus_dberror123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -902,9 +918,10 @@ describe('StripePaymentService', () => {
         },
       } as any;
 
-      mockDbService.client.user.findFirst.mockResolvedValue(
-        createMockUser({ stripeCustomerId: 'cus_dberror123', organizationId: 'org_dberror' }),
-      );
+      // Need to mock findFirst twice - once for isKnownStripeCustomerId check, once for getUserFromStripeCustomerId
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_dberror123', organizationId: 'org_dberror' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_dberror123', organizationId: 'org_dberror' }));
       mockDbService.client.subscription.upsert.mockRejectedValue(new Error('Database error'));
 
       const result = await service.upsertSubscription('sub_dberror123', undefined, mockSubscription);
@@ -921,7 +938,7 @@ describe('StripePaymentService', () => {
         id: 'sub_fetch123',
         customer: 'cus_fetch123',
         status: 'active',
-        metadata: { application: 'scratchpad', productType: ScratchpadPlanType.STARTER_PLAN },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -934,9 +951,10 @@ describe('StripePaymentService', () => {
       } as any;
 
       mockStripeInstance.subscriptions.retrieve = jest.fn().mockResolvedValue(mockSubscription);
-      mockDbService.client.user.findFirst.mockResolvedValue(
-        createMockUser({ stripeCustomerId: 'cus_fetch123', organizationId: 'org_fetch' }),
-      );
+      // Need to mock findFirst twice - once for isKnownStripeCustomerId check, once for getUserFromStripeCustomerId
+      mockDbService.client.user.findFirst
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_fetch123', organizationId: 'org_fetch' }))
+        .mockResolvedValueOnce(createMockUser({ stripeCustomerId: 'cus_fetch123', organizationId: 'org_fetch' }));
       mockDbService.client.subscription.upsert.mockResolvedValue({});
       mockAgentCredentialsService.updateSystemOpenRouterCredentialLimit.mockResolvedValue(undefined);
 

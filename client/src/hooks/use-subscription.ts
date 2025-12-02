@@ -1,5 +1,5 @@
 import { Service } from '@/types/server-entities/connector-accounts';
-import { ScratchpadPlanType, SubscriptionInfo } from '@spinner/shared-types';
+import { ScratchPlanType, SubscriptionInfo } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import { useConnectorAccounts } from './use-connector-account';
 import { useScratchPadUser } from './useScratchpadUser';
@@ -16,7 +16,7 @@ const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
   subscription: {
     status: 'none',
     planDisplayName: 'No Plan',
-    planType: ScratchpadPlanType.FREE_PLAN,
+    planType: ScratchPlanType.FREE_PLAN,
     costUSD: 0,
     daysRemaining: 0,
     isTrial: false,
@@ -112,7 +112,7 @@ export function useSubscription(): UseSubscriptionReturn {
 
   return {
     subscription: user.subscription,
-    isFreePlan: user.subscription.planType === ScratchpadPlanType.FREE_PLAN,
+    isFreePlan: user.subscription.planType === ScratchPlanType.FREE_PLAN,
     canPublishWorkbook,
     canCreateDataSource,
     canCreateCredentials,

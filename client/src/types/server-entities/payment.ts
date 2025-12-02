@@ -1,4 +1,4 @@
-import { ScratchpadPlanType } from '@spinner/shared-types';
+import { ScratchPlanType } from '@spinner/shared-types';
 
 export interface CreateCustomerPortalUrlResponse {
   /** Url to redirect the user to. */
@@ -13,5 +13,5 @@ export interface CreateCheckoutSessionResponse {
 export interface CreatePortalDto {
   portalType?: 'cancel_subscription' | 'update_subscription' | 'manage_payment_methods';
   returnPath?: string;
-  planType?: ScratchpadPlanType;
+  planType?: ScratchPlanType;
 }

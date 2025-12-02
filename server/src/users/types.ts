@@ -1,4 +1,4 @@
-import { ScratchpadPlanType, SubscriptionId } from '@spinner/shared-types';
+import { ScratchPlanType, SubscriptionId } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { getLastestExpiringSubscription, isSubscriptionExpired } from 'src/payment/helpers';
@@ -9,7 +9,7 @@ import { getPlanTypeFromString } from 'src/payment/plans';
  */
 export interface SubscriptionStatus {
   status: 'active' | 'expired' | 'payment_failed';
-  planType: ScratchpadPlanType;
+  planType: ScratchPlanType;
   subscriptionId?: SubscriptionId;
 }
 
@@ -37,7 +37,7 @@ export function userToActor(user: UserCluster.User): Actor {
   if (user.organization && user.organization.subscriptions.length > 0) {
     const latestSubscription = getLastestExpiringSubscription(user.organization.subscriptions);
     if (latestSubscription) {
-      const planType = getPlanTypeFromString(latestSubscription.productType);
+      const planType = getPlanTypeFromString(latestSubscription.planType);
       if (planType) {
         subscriptionStatus = {
           status: isSubscriptionExpired(latestSubscription) ? 'expired' : 'active',
@@ -49,7 +49,7 @@ export function userToActor(user: UserCluster.User): Actor {
           source: 'users.userToActor',
           message: 'Unable to extract product type from subscription',
           userId: user.id,
-          planType: latestSubscription.productType,
+          planType: latestSubscription.planType,
           subscriptionId: latestSubscription.id,
         });
       }
@@ -60,7 +60,7 @@ export function userToActor(user: UserCluster.User): Actor {
     // Fallback to the Free Plan
     subscriptionStatus = {
       status: 'active',
-      planType: ScratchpadPlanType.FREE_PLAN,
+      planType: ScratchPlanType.FREE_PLAN,
     };
   }
 

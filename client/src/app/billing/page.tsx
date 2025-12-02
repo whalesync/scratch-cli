@@ -44,7 +44,7 @@ const BillingPage = () => {
           <BillingSection title="Plans" subtitle="Upgrade or change your plan" hasBorder={false} p="0">
             <SimpleGrid cols={3} spacing="xs">
               {plans?.map((plan) => (
-                <PlanCard key={plan.productType} plan={plan} />
+                <PlanCard key={plan.planType} plan={plan} />
               ))}
             </SimpleGrid>
           </BillingSection>

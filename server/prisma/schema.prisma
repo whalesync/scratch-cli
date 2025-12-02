@@ -255,7 +255,7 @@ model Subscription {
   userId               String // the subscription must be assocated with a user that has the customer ID in Stripe
   organizationId       String
   organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  productType          String
+  planType             String       @default("NOT_MIGRATED") // values should match the the ScratchPlanType enum
   stripeSubscriptionId String       @unique
   expiration           DateTime
   priceInDollars       Int          @default(0)

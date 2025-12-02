@@ -1,5 +1,5 @@
+import { ScratchPlanType } from '@spinner/shared-types';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ScratchpadPlanType } from '../plans';
 
 export class CreatePortalDto {
   @IsString()
@@ -10,7 +10,7 @@ export class CreatePortalDto {
   @IsOptional()
   returnPath?: string;
 
-  @IsEnum(ScratchpadPlanType)
+  @IsEnum(ScratchPlanType)
   @IsOptional()
-  planType?: ScratchpadPlanType;
+  planType?: ScratchPlanType;
 }

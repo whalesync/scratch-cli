@@ -10,7 +10,7 @@ function createTestSubscription(
     id: overrides.id,
     userId: overrides.userId,
     organizationId: overrides.organizationId || 'org_1',
-    productType: overrides.productType || 'pro',
+    planType: overrides.planType || 'pro',
     expiration: overrides.expiration,
     stripeSubscriptionId: overrides.stripeSubscriptionId || `stripe_${overrides.id}`,
     priceInDollars: overrides.priceInDollars ?? 10,
@@ -19,6 +19,7 @@ function createTestSubscription(
     createdAt: overrides.createdAt || now,
     updatedAt: overrides.updatedAt || now,
     version: overrides.version ?? 1,
+    cancelAt: overrides.cancelAt ?? null,
   };
 }
 

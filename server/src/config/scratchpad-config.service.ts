@@ -51,6 +51,10 @@ export class ScratchpadConfigService {
     return this.environment;
   }
 
+  isProductionEnvironment(): boolean {
+    return this.environment === 'production';
+  }
+
   getServiceType(): MicroserviceType {
     return this.serviceType;
   }

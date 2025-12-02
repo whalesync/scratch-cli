@@ -4,7 +4,7 @@ import { PostHog } from 'posthog-node';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WorkbookCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
-import { ScratchpadPlanType } from 'src/payment/plans';
+import { ScratchPlanType } from 'src/payment/plans';
 
 type PostHogEventProperties = Record<string, unknown>;
 
@@ -161,13 +161,13 @@ export class PostHogService implements OnModuleDestroy {
     });
   }
 
-  trackTrialStarted(userId: string, planType: ScratchpadPlanType): void {
+  trackTrialStarted(userId: string, planType: ScratchPlanType): void {
     this.captureEvent(PostHogEventName.TRIAL_STARTED, userId, {
       planType,
     });
   }
 
-  trackSubscriptionCancelled(userId: string, planType: ScratchpadPlanType): void {
+  trackSubscriptionCancelled(userId: string, planType: ScratchPlanType): void {
     this.captureEvent(PostHogEventName.SUBSCRIPTION_CANCELLED, userId, {
       planType,
     });

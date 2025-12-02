@@ -65,7 +65,7 @@ function buildFreePlanSubscriptionInfo(userId: string): SubscriptionInfo {
   return {
     status: 'valid',
     planDisplayName: plan.displayName,
-    planType: plan.productType,
+    planType: plan.planType,
     costUSD: plan.costUSD,
     daysRemaining: 0,
     isTrial: false,
@@ -83,14 +83,14 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
     return buildFreePlanSubscriptionInfo(userId);
   }
 
-  const planType = getPlanTypeFromString(latestSubscription.productType);
+  const planType = getPlanTypeFromString(latestSubscription.planType);
 
   if (!planType) {
     WSLogger.error({
       source: 'users.toSubscriptionInfo',
       message: 'Unable to extract plan type from existing subscription',
       userId: userId,
-      planType: latestSubscription.productType,
+      planType: latestSubscription.planType,
       subscriptionId: latestSubscription.id,
     });
     return buildFreePlanSubscriptionInfo(userId);

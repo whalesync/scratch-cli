@@ -5,7 +5,7 @@ import customBordersClasses from '@/app/components/theme/custom-borders.module.c
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
 import { Badge, Box, Group, Stack } from '@mantine/core';
-import { ScratchpadPlanType, SubscriptionPlan } from '@spinner/shared-types';
+import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback } from 'react';
 import { usePayments } from '../../../hooks/use-payments';
@@ -17,27 +17,27 @@ interface PlanCardProps {
 export const PlanCard = ({ plan }: PlanCardProps) => {
   const { subscription } = useSubscription();
   const { redirectToUpdateSubscription, portalRedirectInProgress } = usePayments();
-  const isCurrentPlan = subscription.planType === plan.productType;
+  const isCurrentPlan = subscription.planType === plan.planType;
 
   const handleDowngrade = useCallback(() => {
     // TODO: Implement downgrade
-    console.log('downgrade to ', plan.productType);
-  }, [plan.productType]);
+    console.log('downgrade to ', plan.planType);
+  }, [plan.planType]);
 
   const handleSwitchToPlan = useCallback(() => {
-    redirectToUpdateSubscription(plan.productType, RouteUrls.billingPageUrl);
-  }, [plan.productType, redirectToUpdateSubscription]);
+    redirectToUpdateSubscription(plan.planType, RouteUrls.billingPageUrl);
+  }, [plan.planType, redirectToUpdateSubscription]);
 
   let actionButton = null;
   if (isCurrentPlan) {
     actionButton = <ButtonSecondaryOutline disabled>Current Plan</ButtonSecondaryOutline>;
-  } else if (!isCurrentPlan && plan.productType !== ScratchpadPlanType.FREE_PLAN) {
+  } else if (!isCurrentPlan && plan.planType !== ScratchPlanType.FREE_PLAN) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleSwitchToPlan} loading={portalRedirectInProgress}>
         {subscription.costUSD > plan.costUSD ? 'Switch' : 'Upgrade'}
       </ButtonPrimaryLight>
     );
-  } else if (!isCurrentPlan && plan.productType === ScratchpadPlanType.FREE_PLAN) {
+  } else if (!isCurrentPlan && plan.planType === ScratchPlanType.FREE_PLAN) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleDowngrade} loading={portalRedirectInProgress}>
         Downgrade
@@ -79,13 +79,13 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
                 : 'Unlimited publishing'
             }
           />
-          {plan.productType === ScratchpadPlanType.FREE_PLAN && (
+          {plan.planType === ScratchPlanType.FREE_PLAN && (
             <FeatureLineItem id="creditLimit" label="Enough tokens for occasional use" />
           )}
-          {plan.productType === ScratchpadPlanType.PRO_PLAN && (
+          {plan.planType === ScratchPlanType.PRO_PLAN && (
             <FeatureLineItem id="creditLimit" label="Enough tokens for most use cases" />
           )}
-          {plan.productType === ScratchpadPlanType.MAX_PLAN && (
+          {plan.planType === ScratchPlanType.MAX_PLAN && (
             <FeatureLineItem id="creditLimit" label="Enough tokens for heavier use cases" />
           )}
           {plan.features.allowPersonalKeys && (

@@ -24,7 +24,7 @@ import {
 import Stripe from 'stripe';
 import { CreatePortalDto } from './dto/create-portal.dto';
 import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
-import { getPlan, getPlans, ScratchpadPlanType } from './plans';
+import { getPlan, getPlans, ScratchPlanType } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -79,6 +79,7 @@ export class StripePaymentService {
         metadata: {
           source: 'scratch', // used to identify new users created from Scratch vs Whalesync
           internal_id: user.id,
+          environment: this.configService.getScratchpadEnvironment(),
         },
       });
       WSLogger.info({
@@ -101,7 +102,7 @@ export class StripePaymentService {
    * @param user - The user to create the trial subscription for
    * @returns A result indicating success or a failure message
    */
-  async createTrialSubscription(user: UserCluster.User, planType: ScratchpadPlanType): AsyncResult<string> {
+  async createTrialSubscription(user: UserCluster.User, planType: ScratchPlanType): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
       message: `Creating trial subscription for user ${user.id}`,
@@ -124,7 +125,7 @@ export class StripePaymentService {
         trial_period_days: TRIAL_PERIOD_DAYS,
         metadata: {
           application: METADATA_APPLICATION_NAME,
-          productType: ScratchpadPlanType.STARTER_PLAN,
+          planType: planType,
           environment: this.configService.getScratchpadEnvironment(),
         },
         trial_settings: {
@@ -216,13 +217,13 @@ export class StripePaymentService {
 
   async generateCheckoutUrl(
     user: UserCluster.User,
-    productType: ScratchpadPlanType,
+    planType: ScratchPlanType,
     createTrialSubscription: boolean = false,
     returnPath: string = DEFAULT_SUCCESS_PATH,
   ): AsyncResult<string> {
     WSLogger.info({
       source: StripePaymentService.name,
-      message: `Generating checkout URL for user ${user.id}, product ${productType}`,
+      message: `Generating checkout URL for user ${user.id}, product ${planType}`,
     });
 
     // Never allow someone to checkout again if they already have a current subscription on the organization.
@@ -231,9 +232,9 @@ export class StripePaymentService {
       return this.createCustomerPortalUrl(user, { returnPath: returnPath });
     }
 
-    const stripePriceId = this.getDefaultPriceId(productType);
+    const stripePriceId = this.getDefaultPriceId(planType);
     if (!stripePriceId) {
-      return unexpectedError(`No stripe product id for ${productType}`);
+      return unexpectedError(`No stripe product id for ${planType}`);
     }
 
     const stripeCustomerId = await this.upsertStripeCustomerId(user);
@@ -259,7 +260,7 @@ export class StripePaymentService {
           trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : undefined,
           metadata: {
             application: METADATA_APPLICATION_NAME,
-            productType: productType,
+            planType: planType,
             environment: this.configService.getScratchpadEnvironment(),
           },
           trial_settings: createTrialSubscription
@@ -550,11 +551,22 @@ export class StripePaymentService {
         continue;
       }
 
-      if (!this.isScratchpadSubscription(subscription.v)) {
+      if (!this.isScratchSubscription(subscription.v)) {
         WSLogger.info({
           source: StripePaymentService.name,
-          message: `Skipping upsert for non-scratchpad subscription`,
+          message: `Skipping upsert for non-scratch subscription`,
           subscriptionId: stripeSubscriptionId,
+          environment: subscription.v.metadata.application,
+        });
+        continue;
+      }
+
+      if (!this.isCurrentScratchEnvironment(subscription.v)) {
+        WSLogger.info({
+          source: StripePaymentService.name,
+          message: `Skipping upsert for different scratch environment`,
+          subscriptionId: stripeSubscriptionId,
+          environment: subscription.v.metadata.environment,
         });
         continue;
       }
@@ -588,17 +600,22 @@ export class StripePaymentService {
     }
   }
 
-  private isScratchpadSubscription(subscription: Stripe.Subscription): boolean {
-    const productType = this.getProductTypeFromSubscription(subscription);
+  private isScratchSubscription(subscription: Stripe.Subscription): boolean {
+    const planType = this.getPlanTypeFromSubscription(subscription);
 
     WSLogger.debug({
       source: StripePaymentService.name,
-      message: `Checking if subscription is scratchpad`,
+      message: `Checking if subscription is for scratch`,
       subMetadata: JSON.stringify(subscription.metadata),
-      productType,
+      planType,
     });
 
-    return subscription.metadata.application === METADATA_APPLICATION_NAME && productType !== null;
+    return subscription.metadata.application === METADATA_APPLICATION_NAME && planType !== null;
+  }
+
+  private isCurrentScratchEnvironment(subscription: Stripe.Subscription): boolean {
+    const appEnv = this.configService.getScratchpadEnvironment();
+    return subscription.metadata.environment === appEnv;
   }
 
   /**
@@ -630,7 +647,7 @@ export class StripePaymentService {
       subscription = getSubscriptionResult.v;
     }
 
-    if (!this.isScratchpadSubscription(subscription)) {
+    if (!this.isScratchSubscription(subscription)) {
       WSLogger.info({
         source: StripePaymentService.name,
         message: `Skipping upsert for non-scratchpaper subscription`,
@@ -638,19 +655,29 @@ export class StripePaymentService {
       });
       return ok('ignored');
     }
+    // Make sure the subscription is for the correct scratch environment.
+    if (!this.isCurrentScratchEnvironment(subscription)) {
+      WSLogger.info({
+        source: StripePaymentService.name,
+        message: `Skipping upsert for different scratch environment`,
+        subscriptionId: stripeSubscriptionId,
+        environment: subscription.metadata.environment,
+      });
+      return ok('ignored');
+    }
 
     // Search for the first item with a plan we recognize, so we can record what plan they are on.
     // We currently only expect there to be one plan per subscription, but that's not guaranteed.
-    const productType = this.getProductTypeFromSubscription(subscription);
-    if (!productType) {
+    const planType = this.getPlanTypeFromSubscription(subscription);
+    if (!planType) {
       return unexpectedError('No subscription item attached with plan we recognized.', {
         context: { stripeSubscriptionId },
       });
     }
 
-    const plan = getPlan(productType as ScratchpadPlanType);
+    const plan = getPlan(planType as ScratchPlanType);
     if (!plan) {
-      return unexpectedError('No plan found for product type', { context: { productType } });
+      return unexpectedError('No plan found for product type', { context: { planType } });
     }
 
     const stripeCustomerId = subscription.customer as string;
@@ -658,17 +685,21 @@ export class StripePaymentService {
     const cancelAt = this.findCancelDateFromSubscription(subscription);
     const priceInDollars = this.findPriceInDollarsForSubscription(subscription);
 
-    // Ignore payloads for an unknown user in staging and test instances.
+    // This shouldn't happen, but if it does, we want to ignore the payload.
     // Our preprod environments all share a stripe developer account, so they both receive notifications for each
     // other's users. In prod, we want to return a failure to the webhook if the payload doesn't match our database, but
     // that is a regular occurence on the dev account. If we regularly return failures, it will get our webhooks
     // disabled.
-    const appEnv = this.configService.getScratchpadEnvironment();
-    if (appEnv === 'staging' || appEnv === 'test') {
+    if (!this.configService.isProductionEnvironment()) {
       const isKnown = await this.isKnownStripeCustomerId(stripeCustomerId);
       if (!isKnown) {
-        // It's okay, this is just the wrong instance.
-        return ok('success');
+        WSLogger.info({
+          source: StripePaymentService.name,
+          message: `Skipping upsert for unknown user in non-production environment`,
+          subscriptionId: stripeSubscriptionId,
+          stripeCustomerId: stripeCustomerId,
+        });
+        return ok('ignored');
       }
     }
 
@@ -695,7 +726,7 @@ export class StripePaymentService {
           organizationId: user.organizationId, // subscriptions belong to the organization, not the user
           stripeSubscriptionId,
           expiration,
-          productType,
+          planType,
           priceInDollars,
           lastInvoicePaid,
           stripeStatus: subscription.status,
@@ -703,7 +734,7 @@ export class StripePaymentService {
         },
         update: {
           expiration,
-          productType,
+          planType,
           priceInDollars,
           lastInvoicePaid,
           stripeStatus: subscription.status,
@@ -714,17 +745,15 @@ export class StripePaymentService {
       if (subscription.status === 'active' || subscription.status === 'trialing') {
         // update the system open router credential limit based on the new plan
         // only update if the subscription is new or the plan has changed
-        if (!existingSubscription || existingSubscription.productType !== productType) {
+        if (!existingSubscription || existingSubscription.planType !== planType) {
           await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
           await this.slackNotificationService.sendMessage(
-            `💳 User ${user.id} has switch plans: ${existingSubscription?.productType} -> ${plan.productType}!`,
+            `💳 User ${user.id} has switch plans: ${existingSubscription?.planType} -> ${plan.planType}!`,
           );
         }
 
         if (!existingSubscription) {
-          await this.slackNotificationService.sendMessage(
-            `💳 User ${user.id} has subscribe to the ${plan.productType}!`,
-          );
+          await this.slackNotificationService.sendMessage(`💳 User ${user.id} has subscribe to the ${plan.planType}!`);
         }
       } else if (subscription.status === 'canceled') {
         // disable the system open router credential
@@ -733,9 +762,9 @@ export class StripePaymentService {
       }
 
       if (cancelAt) {
-        this.postHogService.trackSubscriptionCancelled(user.id, plan.productType);
+        this.postHogService.trackSubscriptionCancelled(user.id, plan.planType);
         await this.slackNotificationService.sendMessage(
-          `😿 User ${user.id} has cancelled their subscription for the ${plan.productType}`,
+          `😿 User ${user.id} has cancelled their subscription for the ${plan.planType}`,
         );
       }
     } catch (err) {
@@ -792,11 +821,11 @@ export class StripePaymentService {
     return false;
   }
 
-  private getDefaultPriceId(productType: ScratchpadPlanType): string | null {
+  private getDefaultPriceId(planType: ScratchPlanType): string | null {
     const plans = getPlans(this.configService.getScratchpadEnvironment());
 
     for (const plan of plans) {
-      if (plan.productType === productType) {
+      if (plan.planType === planType) {
         return plan.stripePriceId;
       }
     }
@@ -804,13 +833,13 @@ export class StripePaymentService {
     return null;
   }
 
-  private getProductTypeFromPriceId(priceId: string): ScratchpadPlanType | null {
+  private getPlanTypeFromPriceId(priceId: string): ScratchPlanType | null {
     const plans = getPlans(this.configService.getScratchpadEnvironment());
 
     for (const plan of plans) {
       if (plan.stripePriceId === priceId) {
         if (plan.stripePriceId === priceId) {
-          return plan.productType;
+          return plan.planType;
         }
       }
     }
@@ -818,7 +847,7 @@ export class StripePaymentService {
     return null;
   }
 
-  private getProductTypeFromSubscription(subscription: Stripe.Subscription): string | null {
+  private getPlanTypeFromSubscription(subscription: Stripe.Subscription): string | null {
     WSLogger.debug({
       source: StripePaymentService.name,
       message: `Getting product id from subscription`,
@@ -842,8 +871,8 @@ export class StripePaymentService {
       return null;
     }
 
-    const productType = this.getProductTypeFromPriceId(priceId);
-    if (!productType) {
+    const planType = this.getPlanTypeFromPriceId(priceId);
+    if (!planType) {
       WSLogger.warn({
         source: StripePaymentService.name,
         message: `No product type found for price id`,
@@ -851,7 +880,7 @@ export class StripePaymentService {
       });
     }
 
-    return productType;
+    return planType;
   }
 
   private findPriceInDollarsForSubscription(subscription: Stripe.Subscription): number | undefined {

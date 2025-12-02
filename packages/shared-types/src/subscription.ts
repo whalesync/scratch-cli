@@ -1,4 +1,4 @@
-export enum ScratchpadPlanType {
+export enum ScratchPlanType {
   STARTER_PLAN = 'STARTER_PLAN',
   FREE_PLAN = 'FREE_PLAN',
   PRO_PLAN = 'PRO_PLAN',
@@ -16,7 +16,7 @@ export interface SubscriptionPlanFeatures {
 export interface SubscriptionInfo {
   status: 'valid' | 'expired' | 'payment_failed' | 'none';
   planDisplayName: string;
-  planType: ScratchpadPlanType;
+  planType: ScratchPlanType;
   costUSD: number;
   daysRemaining: number;
   isTrial: boolean;
@@ -27,7 +27,7 @@ export interface SubscriptionInfo {
 }
 
 export interface SubscriptionPlan {
-  productType: ScratchpadPlanType;
+  planType: ScratchPlanType;
   displayName: string;
   popular: boolean;
   costUSD: number;

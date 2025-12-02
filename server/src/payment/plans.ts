@@ -1,12 +1,12 @@
-import { ScratchpadPlanType } from '@spinner/shared-types';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
 import { assertIsDefined } from 'src/utils/asserts';
 
-export { ScratchpadPlanType } from '@spinner/shared-types';
+export { ScratchPlanType } from '@spinner/shared-types';
 
-export function getPlanTypeFromString(productTypeString: string): ScratchpadPlanType | undefined {
-  for (const [k, v] of Object.entries(ScratchpadPlanType)) {
-    if (k === productTypeString) {
+export function getPlanTypeFromString(typeString: string): ScratchPlanType | undefined {
+  for (const [k, v] of Object.entries(ScratchPlanType)) {
+    if (k === typeString) {
       return v;
     }
   }
@@ -29,7 +29,7 @@ export interface PlanFeatures {
 }
 
 export interface Plan {
-  productType: ScratchpadPlanType;
+  planType: ScratchPlanType;
   costUSD: number;
   displayName: string;
   stripeProductId: string;
@@ -47,7 +47,7 @@ export interface Plan {
  * Once a user has a subscription (active or expired), they never go back to the free plan.
  */
 export const FREE_PLAN: Plan = {
-  productType: ScratchpadPlanType.FREE_PLAN,
+  planType: ScratchPlanType.FREE_PLAN,
   costUSD: 0,
   displayName: 'Free',
   stripeProductId: 'free_plan',
@@ -68,7 +68,7 @@ export const FREE_PLAN: Plan = {
  * @deprecated
  */
 export const STARTER_PLAN: Plan = {
-  productType: ScratchpadPlanType.STARTER_PLAN,
+  planType: ScratchPlanType.STARTER_PLAN,
   costUSD: 5,
   displayName: 'Starter',
   stripeProductId: '',
@@ -91,7 +91,7 @@ export const STARTER_PLAN: Plan = {
  * This plan is a paid plan that allows users to use the product with unlimited publishing actions and credits.
  */
 export const PRO_PLAN: Plan = {
-  productType: ScratchpadPlanType.PRO_PLAN,
+  planType: ScratchPlanType.PRO_PLAN,
   costUSD: 20,
   displayName: 'Pro',
   stripeProductId: '', // Set differently for each environment
@@ -109,7 +109,7 @@ export const PRO_PLAN: Plan = {
 };
 
 export const MAX_PLAN: Plan = {
-  productType: ScratchpadPlanType.MAX_PLAN,
+  planType: ScratchPlanType.MAX_PLAN,
   costUSD: 100,
   displayName: 'Max',
   stripeProductId: '', // Set differently for each environment
@@ -171,12 +171,12 @@ export function getPlans(environment: ScratchpadEnvironment): Plan[] {
   return TEST_SANDBOX_PLANS;
 }
 
-export function getPlan(productType: ScratchpadPlanType): Plan | undefined {
-  return getPlans(ScratchpadConfigService.getScratchpadEnvironment()).find((p) => p.productType === productType);
+export function getPlan(planType: ScratchPlanType): Plan | undefined {
+  return getPlans(ScratchpadConfigService.getScratchpadEnvironment()).find((p) => p.planType === planType);
 }
 
 export function getFreePlan(): Plan {
-  const freePlan = getPlan(ScratchpadPlanType.FREE_PLAN);
+  const freePlan = getPlan(ScratchPlanType.FREE_PLAN);
   assertIsDefined<Plan>(freePlan, 'Unable to identify free plan in the system');
   return freePlan;
 }

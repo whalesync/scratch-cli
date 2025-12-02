@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Service, Upload } from '@prisma/client';
-import { ScratchpadPlanType, createCsvFileRecordId } from '@spinner/shared-types';
+import { ScratchPlanType, createCsvFileRecordId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';
@@ -293,7 +293,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       organizationId: upload.organizationId ?? '',
       subscriptionStatus: {
         status: 'active',
-        planType: ScratchpadPlanType.FREE_PLAN,
+        planType: ScratchPlanType.FREE_PLAN,
       },
     };
     return this.uploadsDbService.getUploadSchemaName(actor);

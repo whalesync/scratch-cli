@@ -18,7 +18,7 @@ Creates a Stripe Billing Portal URL for authenticated users to manage existing s
 
 **Use Case**: Allow users to update payment methods, view invoices, cancel subscriptions.
 
-### `POST /payment/checkout/:productType`
+### `POST /payment/checkout/:planType`
 
 **Auth Required**: Yes (`ScratchpadAuthGuard`)
 
@@ -26,7 +26,7 @@ Generates a checkout session URL for initiating new subscriptions with a specifi
 
 **Parameters:**
 
-- `productType`: The subscription plan to purchase
+- `planType`: The subscription plan to purchase
 
 **Features:**
 
@@ -58,7 +58,7 @@ The payment module uses two controllers:
 Handles authenticated user endpoints:
 
 - `POST /payment/portal` - Customer portal URL generation
-- `POST /payment/checkout/:productType` - Checkout session creation
+- `POST /payment/checkout/:planType` - Checkout session creation
 
 **Security**: All endpoints are protected with `ScratchpadAuthGuard` at the controller level.
 

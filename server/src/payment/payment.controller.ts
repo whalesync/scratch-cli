@@ -62,25 +62,25 @@ export class StripePaymentController {
    * Called by an authenticated user to start a checkout session for them with stripe.
    * Returns a URL that the user should be redirected to.
    */
-  @Post('checkout/:productType')
+  @Post('checkout/:planType')
   async createCheckoutSession(
     @Req() req: RequestWithUser,
-    @Param('productType') productType: string,
+    @Param('planType') planType: string,
   ): Promise<CreateCheckoutSessionResponse> {
     if (!req.user) {
       throw new UnauthorizedException();
     }
 
-    const productTypeEnum = getPlanTypeFromString(productType);
+    const planTypeEnum = getPlanTypeFromString(planType);
 
     // TODO validate the product type enum
-    if (!productTypeEnum) {
+    if (!planTypeEnum) {
       throw new BadRequestException({
-        userFacingMessage: `Invalid product type: ${productType}`,
+        userFacingMessage: `Invalid product type: ${planType}`,
       });
     }
 
-    const result = await this.stripePaymentService.generateCheckoutUrl(req.user, productTypeEnum);
+    const result = await this.stripePaymentService.generateCheckoutUrl(req.user, planTypeEnum);
     if (isErr(result)) {
       throw new InternalServerErrorException({
         userFacingMessage: STRIPE_PAGE_ERROR_USER_FACING_MESSAGE,

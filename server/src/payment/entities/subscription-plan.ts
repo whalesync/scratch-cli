@@ -1,4 +1,4 @@
-import { ScratchpadPlanType, SubscriptionPlan, SubscriptionPlanFeatures } from '@spinner/shared-types';
+import { ScratchPlanType, SubscriptionPlan, SubscriptionPlanFeatures } from '@spinner/shared-types';
 import { Plan, PlanFeatures } from '../plans';
 
 export class SubscriptionPlanFeaturesEntity implements SubscriptionPlanFeatures {
@@ -18,14 +18,14 @@ export class SubscriptionPlanFeaturesEntity implements SubscriptionPlanFeatures 
 }
 
 export class SubscriptionPlanEntity implements SubscriptionPlan {
-  productType: ScratchpadPlanType;
+  planType: ScratchPlanType;
   displayName: string;
   popular: boolean;
   costUSD: number;
   features: SubscriptionPlanFeatures;
 
   constructor(plan: Plan) {
-    this.productType = plan.productType;
+    this.planType = plan.planType;
     this.displayName = plan.displayName;
     this.popular = plan.popular;
     this.costUSD = plan.costUSD;

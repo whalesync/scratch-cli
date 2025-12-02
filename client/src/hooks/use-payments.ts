@@ -2,7 +2,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { paymentApi } from '@/lib/api/payment';
 import { trackClickManageSubscription } from '@/lib/posthog';
-import { ScratchpadPlanType, SubscriptionPlan } from '@spinner/shared-types';
+import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { useCallback, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
@@ -24,7 +24,7 @@ export const usePayments = () => {
   }, [error]);
 
   const redirectToUpdateSubscription = useCallback(
-    async (planType: ScratchpadPlanType, returnPath: string) => {
+    async (planType: ScratchPlanType, returnPath: string) => {
       try {
         setPortalRedirectInProgress(true);
         const result = await paymentApi.createCustomerPortalUrl({
