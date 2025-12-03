@@ -26,8 +26,8 @@ export const DeleteWorkbookModal = () => {
       setSaving(true);
       await workbookApi.delete(workbook.id);
       ScratchpadNotifications.success({
-        title: 'Workbook abandoned',
-        message: 'The workbook and its data have been deleted.',
+        title: 'Workbook deleted',
+        message: 'The workbook and its data is now deleted.',
       });
 
       router.push(RouteUrls.workbooksPageUrl);

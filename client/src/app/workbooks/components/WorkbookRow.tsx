@@ -27,14 +27,14 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
 
   // Check connection health status
   const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
-  const handleAbandon = async () => {
+  const handleDelete = async () => {
     if (!workbook) return;
     try {
       setSaving(true);
       await deleteWorkbook(workbook.id);
       ScratchpadNotifications.success({
-        title: 'Workbook abandoned',
-        message: 'The workbook and its data have been deleted.',
+        title: 'Workbook deleted',
+        message: 'The workbook and its data is now deleted.',
       });
       modalStack.close('confirm-delete');
     } catch (e) {
@@ -70,12 +70,12 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Abandon workbook" centered size="lg">
+      <Modal {...modalStack.register('confirm-delete')} title="Delete workbook" centered size="lg">
         <Stack>
           <Text>Are you sure you want to abandon this workbook? All data will be deleted.</Text>
           <Group justify="flex-end">
             <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
-            <ButtonPrimaryLight onClick={handleAbandon} loading={saving}>
+            <ButtonPrimaryLight onClick={handleDelete} loading={saving}>
               Delete
             </ButtonPrimaryLight>
           </Group>
