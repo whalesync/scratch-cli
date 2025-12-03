@@ -17,6 +17,9 @@ import { StripePaymentService } from './stripe-payment.service';
 
 // Valid test price ID from plans.ts
 const VALID_TEST_PRICE_ID = TEST_SANDBOX_PLANS[0].stripePriceId;
+const VALID_TEST_PRO_PLAN_PRICE_ID =
+  TEST_SANDBOX_PLANS.find((p) => p.planType === ScratchPlanType.PRO_PLAN)?.stripePriceId ||
+  'price_1SYU4jBdRE0kMHNq4mMMjgWH';
 
 // Mock dependencies
 const mockConfigService = {
@@ -310,18 +313,36 @@ describe('StripePaymentService', () => {
         expect.objectContaining({
           mode: 'subscription',
           customer: 'cus_checkout123',
-          success_url: 'https://app.scratch.md/?welcome',
+          success_url: 'https://app.scratch.md/billing?welcome',
           cancel_url: 'https://app.scratch.md/billing',
+          line_items: expect.arrayContaining([
+            expect.objectContaining({
+              price: VALID_TEST_PRO_PLAN_PRICE_ID,
+              quantity: 1,
+            }),
+          ]),
           subscription_data: expect.objectContaining({
             trial_period_days: 7,
+            trial_settings: expect.objectContaining({
+              end_behavior: expect.objectContaining({
+                missing_payment_method: 'cancel',
+              }),
+            }),
             metadata: expect.objectContaining({
               application: 'scratchpad',
               planType: ScratchPlanType.PRO_PLAN,
+              environment: 'test',
             }),
           }),
           payment_method_collection: 'if_required',
+          automatic_tax: { enabled: false },
+          customer_update: { address: 'auto', name: 'auto' },
+          tax_id_collection: { enabled: true },
+          allow_promotion_codes: true,
         }),
-        expect.any(Object),
+        expect.objectContaining({
+          apiVersion: expect.any(String),
+        }),
       );
     });
 
@@ -350,13 +371,32 @@ describe('StripePaymentService', () => {
         expect.objectContaining({
           mode: 'subscription',
           customer: 'cus_notrial123',
+          line_items: expect.arrayContaining([
+            expect.objectContaining({
+              price: VALID_TEST_PRO_PLAN_PRICE_ID,
+              quantity: 1,
+            }),
+          ]),
           subscription_data: expect.objectContaining({
             trial_period_days: undefined,
             trial_settings: undefined,
+            metadata: expect.objectContaining({
+              application: 'scratchpad',
+              planType: ScratchPlanType.PRO_PLAN,
+              environment: 'test',
+            }),
           }),
           payment_method_collection: 'always',
+          automatic_tax: { enabled: false },
+          customer_update: { address: 'auto', name: 'auto' },
+          tax_id_collection: { enabled: true },
+          allow_promotion_codes: true,
+          success_url: 'https://app.scratch.md/billing?welcome',
+          cancel_url: 'https://app.scratch.md/billing',
         }),
-        expect.any(Object),
+        expect.objectContaining({
+          apiVersion: expect.any(String),
+        }),
       );
     });
 

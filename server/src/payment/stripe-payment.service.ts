@@ -38,8 +38,8 @@ const TRIAL_PERIOD_DAYS = 7;
 type StripeWebhookResult = 'success' | 'ignored';
 
 // Client path that we redirect to if the checkout is successful.
-const DEFAULT_SUCCESS_PATH = '/?welcome';
-// Client path that we redirect to if the checkout is cancelled.
+const DEFAULT_SUCCESS_PATH = '/billing?welcome';
+// Client path that we redirect to if the checkout is canceled.
 const DEFAULT_CANCEL_PATH = '/billing';
 // Client path that we redirect to if the user clicks the "Manage Subscription" button in the settings page.
 const PORTAL_RETURN_PATH = '/billing';
@@ -302,6 +302,7 @@ export class StripePaymentService {
           // out. It has logic to redirect to an appropriate sub-view afterwards.
           success_url: `${clientBaseUrl}${returnPath}`,
           cancel_url: `${clientBaseUrl}${DEFAULT_CANCEL_PATH}`,
+          allow_promotion_codes: true,
 
           // Allows the customer to enter their tax ID number.
           tax_id_collection: { enabled: true },
@@ -778,19 +779,16 @@ export class StripePaymentService {
         // only update if the subscription is new or the plan has changed
         if (!existingSubscription || existingSubscription.planType !== planType) {
           await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
+          const previousPlanType = existingSubscription ? existingSubscription.planType : ScratchPlanType.FREE_PLAN;
           await this.slackNotificationService.sendMessage(
-            `💳 User ${user.id} has switch plans: ${existingSubscription?.planType} -> ${plan.planType}!`,
+            `💳 User ${user.id} has switch plans: ${previousPlanType} -> ${plan.planType}!`,
           );
           await this.auditLogService.logEvent({
             actor: userToActor(user),
             eventType: 'update',
-            message: `Switched plans: ${existingSubscription?.planType} -> ${plan.planType}!`,
+            message: `Switched plans: ${previousPlanType} -> ${plan.planType}!`,
             entityId: updatedDbSubscription.id as SubscriptionId,
           });
-        }
-
-        if (!existingSubscription) {
-          await this.slackNotificationService.sendMessage(`💳 User ${user.id} has subscribe to the ${plan.planType}!`);
         }
       } else if (subscription.status === 'canceled') {
         // downgrade the user's system open router credential limit to the free plan
@@ -800,7 +798,7 @@ export class StripePaymentService {
       if (cancelAt) {
         this.postHogService.trackSubscriptionCancelled(user.id, plan.planType);
         await this.slackNotificationService.sendMessage(
-          `😿 User ${user.id} has cancelled their subscription for the ${plan.planType}`,
+          `😿 User ${user.id} has canceled their subscription for the ${plan.planType}`,
         );
         await this.auditLogService.logEvent({
           actor: userToActor(user),

@@ -15,3 +15,7 @@ export interface CreatePortalDto {
   returnPath?: string;
   planType?: ScratchPlanType;
 }
+
+export interface CreateCheckoutSessionDto {
+  returnPath?: string;
+}

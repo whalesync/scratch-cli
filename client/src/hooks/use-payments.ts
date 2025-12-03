@@ -2,6 +2,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { paymentApi } from '@/lib/api/payment';
 import { trackClickManageSubscription, trackClickNewPlanCheckout } from '@/lib/posthog';
+import { RouteUrls } from '@/utils/route-urls';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { useCallback, useMemo, useState } from 'react';
 import useSWR from 'swr';
@@ -27,7 +28,7 @@ export const usePayments = () => {
     async (planType: ScratchPlanType) => {
       try {
         setPortalRedirectInProgress(true);
-        const result = await paymentApi.createCheckoutSession(planType);
+        const result = await paymentApi.createCheckoutSession(planType, { returnPath: RouteUrls.billingPageUrl });
         trackClickNewPlanCheckout(planType);
         window.location.replace(result.url);
       } catch (error) {

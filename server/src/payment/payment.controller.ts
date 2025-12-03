@@ -17,6 +17,7 @@ import type { RequestWithUser } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { isErr } from 'src/types/results';
 import { CreateCheckoutSessionResponse } from './dto/create-checkout-session-response';
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { CreateCustomerPortalUrlResponse } from './dto/create-portal-response';
 import { CreatePortalDto } from './dto/create-portal.dto';
 import { SubscriptionPlanEntity } from './entities/subscription-plan';
@@ -66,6 +67,7 @@ export class StripePaymentController {
   async createCheckoutSession(
     @Req() req: RequestWithUser,
     @Param('planType') planType: string,
+    @Body() dto: CreateCheckoutSessionDto,
   ): Promise<CreateCheckoutSessionResponse> {
     if (!req.user) {
       throw new UnauthorizedException();
@@ -80,7 +82,7 @@ export class StripePaymentController {
       });
     }
 
-    const result = await this.stripePaymentService.generateCheckoutUrl(req.user, planTypeEnum);
+    const result = await this.stripePaymentService.generateCheckoutUrl(req.user, planTypeEnum, false, dto.returnPath);
     if (isErr(result)) {
       throw new InternalServerErrorException({
         userFacingMessage: STRIPE_PAGE_ERROR_USER_FACING_MESSAGE,

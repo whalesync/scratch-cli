@@ -1,4 +1,5 @@
 import {
+  CreateCheckoutSessionDto,
   CreateCheckoutSessionResponse,
   CreateCustomerPortalUrlResponse,
   CreatePortalDto,
@@ -21,13 +22,17 @@ export const paymentApi = {
     return res.json();
   },
 
-  createCheckoutSession: async (planType: string): Promise<CreateCheckoutSessionResponse> => {
+  createCheckoutSession: async (
+    planType: string,
+    dto: CreateCheckoutSessionDto,
+  ): Promise<CreateCheckoutSessionResponse> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/payment/checkout/${planType}`, {
       method: 'POST',
       headers: {
         ...API_CONFIG.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(dto),
     });
     await checkForApiError(res, `Failed to create checkout session for ${planType}`);
     return res.json();

@@ -229,7 +229,7 @@ export default function UploadsTable() {
         onConfirm={handleConfirmCreateWorkbook}
       />
 
-      <UploadsTableDropZone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
+      <UploadsTableDropZone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl" p="xl">
         <Group justify="space-between" align="top">
           <TextMono13Regular c="dimmed">UPLOADED TABLES</TextMono13Regular>
           <ButtonSecondaryOutline leftSection={<UploadIcon />} onClick={() => openFileInputRef.current?.()}>

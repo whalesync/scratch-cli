@@ -17,7 +17,7 @@ async function goToPaymentCheckoutUrl(args: { planType: string | string[] | unde
     const planType: ScratchPlanType = stringToEnum(rawplanType, ScratchPlanType, ScratchPlanType.PRO_PLAN);
     // Generate a URL and redirect to it.
     // This will either be a link to create a new subscription, or to update the current subscription if it exists.
-    const result = await paymentApi.createCheckoutSession(planType);
+    const result = await paymentApi.createCheckoutSession(planType, { returnPath: RouteUrls.billingPageUrl });
     window.location.replace(result.url);
   }
 }
