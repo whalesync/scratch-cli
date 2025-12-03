@@ -531,7 +531,7 @@ describe('StripePaymentService', () => {
             id: 'sub_webhook123',
             customer: 'cus_webhook123',
             status: 'active',
-            metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN },
+            metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
             items: {
               data: [
                 {
@@ -614,7 +614,7 @@ describe('StripePaymentService', () => {
         id: 'sub_checkout123',
         customer: 'cus_checkout123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -668,7 +668,7 @@ describe('StripePaymentService', () => {
         id: 'sub_paid123',
         customer: 'cus_paid123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -718,7 +718,7 @@ describe('StripePaymentService', () => {
         id: 'sub_failed123',
         customer: 'cus_failed123',
         status: 'past_due',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -775,7 +775,7 @@ describe('StripePaymentService', () => {
         id: 'sub_upsert123',
         customer: 'cus_upsert123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -850,7 +850,7 @@ describe('StripePaymentService', () => {
         id: 'sub_nouser123',
         customer: 'cus_nouser123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -880,7 +880,7 @@ describe('StripePaymentService', () => {
         id: 'sub_noorg123',
         customer: 'cus_noorg123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -912,7 +912,7 @@ describe('StripePaymentService', () => {
         id: 'sub_dberror123',
         customer: 'cus_dberror123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -944,7 +944,7 @@ describe('StripePaymentService', () => {
         id: 'sub_fetch123',
         customer: 'cus_fetch123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.STARTER_PLAN, environment: 'test' },
+        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {

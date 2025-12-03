@@ -65,27 +65,6 @@ export const FREE_PLAN: Plan = {
 };
 
 /**
- * @deprecated
- */
-export const STARTER_PLAN: Plan = {
-  planType: ScratchPlanType.STARTER_PLAN,
-  costUSD: 5,
-  displayName: 'Starter',
-  stripeProductId: '',
-  stripePriceId: '',
-  popular: false,
-  hidden: true,
-  features: {
-    availableModels: [],
-    publishingLimit: 10,
-    creditLimit: 5,
-    creditReset: 'monthly',
-    allowPersonalKeys: true,
-    dataSourcePerServiceLimit: 1,
-  },
-};
-
-/**
  * Pro Plan
  *
  * This plan is a paid plan that allows users to use the product with unlimited publishing actions and credits.
@@ -128,11 +107,6 @@ export const MAX_PLAN: Plan = {
 
 // Plans configured in the Scratch Test sandbox environment for developer testing
 export const TEST_SANDBOX_PLANS: Plan[] = [
-  {
-    ...STARTER_PLAN,
-    stripeProductId: 'prod_TJwkWAQpH8r9SN',
-    stripePriceId: 'price_1SNIqoBdRE0kMHNqXMro86f7',
-  },
   FREE_PLAN,
   { ...PRO_PLAN, stripeProductId: 'prod_TVV4n4JqTQnENy', stripePriceId: 'price_1SYU4jBdRE0kMHNq4mMMjgWH' },
   { ...MAX_PLAN, stripeProductId: 'prod_TVV6aVZ43QYJmO', stripePriceId: 'price_1SYU6CBdRE0kMHNqr7YRm7uu' },
@@ -140,11 +114,6 @@ export const TEST_SANDBOX_PLANS: Plan[] = [
 
 // Plans configured in the Scratch Staging sandbox environment
 export const STAGING_SANDBOX_PLANS: Plan[] = [
-  {
-    ...STARTER_PLAN,
-    stripeProductId: 'prod_TJx9oObCoL9wzG',
-    stripePriceId: 'price_1SNJFZPd1pp0ErHMuu2YSlqr',
-  },
   FREE_PLAN,
   { ...PRO_PLAN, stripeProductId: 'prod_TVXbDaLac1BeEs', stripePriceId: 'price_1SYWWVPd1pp0ErHMfWTsG55n' },
   { ...MAX_PLAN, stripeProductId: 'prod_TVXeZZtBUz1VRA', stripePriceId: 'price_1SYWZDPd1pp0ErHMwtBs7ycN' },
@@ -152,11 +121,6 @@ export const STAGING_SANDBOX_PLANS: Plan[] = [
 
 // Plans configured in the Stripe Production environment
 export const PRODUCTION_PLANS: Plan[] = [
-  {
-    ...STARTER_PLAN,
-    stripeProductId: 'prod_TJwgFco1IuBojy',
-    stripePriceId: 'price_1SNIn6BuGFTHqsGmgevqrcez',
-  },
   FREE_PLAN,
   { ...PRO_PLAN, stripeProductId: 'prod_TVXVbCVSdlGOjc', stripePriceId: 'price_1SYWQ2BuGFTHqsGmiLNoiPCv' },
   { ...MAX_PLAN, stripeProductId: 'prod_TVXUCHtF58Bzd2', stripePriceId: 'price_1SYWPuBuGFTHqsGmOtGqjM6E' },

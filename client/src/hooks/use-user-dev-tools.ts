@@ -4,6 +4,7 @@ import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { ScratchPlanType } from '@spinner/shared-types';
 import { useState } from 'react';
+import { useAgentCredentials } from './use-agent-credentials';
 import { useScratchPadUser } from './useScratchpadUser';
 
 /**
@@ -11,6 +12,7 @@ import { useScratchPadUser } from './useScratchpadUser';
  */
 export const useUserDevTools = () => {
   const { refreshCurrentUser } = useScratchPadUser();
+  const { refreshAgentCredentials } = useAgentCredentials(true);
   const [results, setResults] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
@@ -51,6 +53,7 @@ export const useUserDevTools = () => {
       setIsLoading(true);
       await devToolsApi.updateUserSubscription(newPlan);
       await refreshCurrentUser();
+      await refreshAgentCredentials();
       ScratchpadNotifications.success({ message: `Your subscription was successfully updated to ${newPlan}` });
     } catch (error) {
       setError(error as Error);
@@ -64,6 +67,7 @@ export const useUserDevTools = () => {
       setIsLoading(true);
       await devToolsApi.forceExpireSubscription();
       await refreshCurrentUser();
+      await refreshAgentCredentials();
       ScratchpadNotifications.success({ message: `Your subscription was successfully expired` });
     } catch (error) {
       setError(error as Error);
@@ -77,6 +81,7 @@ export const useUserDevTools = () => {
       setIsLoading(true);
       await devToolsApi.forceCancelSubscription();
       await refreshCurrentUser();
+      await refreshAgentCredentials();
       ScratchpadNotifications.success({ message: `Your subscription was marked for cancellation` });
     } catch (error) {
       setError(error as Error);

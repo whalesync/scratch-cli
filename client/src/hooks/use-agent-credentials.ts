@@ -38,6 +38,10 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     mutate(SWR_KEYS.agentCredentials.detail(id));
   };
 
+  const refreshAgentCredentials = async () => {
+    mutateList();
+  };
+
   const activeOpenRouterCredentials = useMemo(() => {
     // try to find the default credential to use for the chat agent
     return data?.find((credential) => credential.default && credential.service === 'openrouter');
@@ -66,6 +70,7 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     toggleDefaultCredential,
     activeOpenRouterCredentials,
     systemOpenRouterCredential,
+    refreshAgentCredentials,
   };
 };
 

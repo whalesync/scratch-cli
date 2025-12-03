@@ -1,5 +1,4 @@
 export enum ScratchPlanType {
-  STARTER_PLAN = 'STARTER_PLAN',
   FREE_PLAN = 'FREE_PLAN',
   PRO_PLAN = 'PRO_PLAN',
   MAX_PLAN = 'MAX_PLAN',

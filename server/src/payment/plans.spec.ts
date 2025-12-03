@@ -8,14 +8,12 @@ import {
   PRO_PLAN,
   PRODUCTION_PLANS,
   STAGING_SANDBOX_PLANS,
-  STARTER_PLAN,
   TEST_SANDBOX_PLANS,
 } from './plans';
 
 describe('plans', () => {
   describe('getPlanTypeFromString', () => {
     it('should return the correct plan type for a valid string', () => {
-      expect(getPlanTypeFromString('STARTER_PLAN')).toBe(ScratchPlanType.STARTER_PLAN);
       expect(getPlanTypeFromString('PRO_PLAN')).toBe(ScratchPlanType.PRO_PLAN);
       expect(getPlanTypeFromString('MAX_PLAN')).toBe(ScratchPlanType.MAX_PLAN);
       expect(getPlanTypeFromString('FREE_PLAN')).toBe(ScratchPlanType.FREE_PLAN);
@@ -42,8 +40,7 @@ describe('plans', () => {
     it('should return production plans for production environment', () => {
       const plans = getPlans('production' as ScratchpadEnvironment);
       expect(plans).toBe(PRODUCTION_PLANS);
-      expect(plans).toHaveLength(4);
-      expect(plans.find((p) => p.planType === ScratchPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.PRO_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.MAX_PLAN)).toBeDefined();
@@ -52,8 +49,7 @@ describe('plans', () => {
     it('should return staging plans for staging environment', () => {
       const plans = getPlans('staging' as ScratchpadEnvironment);
       expect(plans).toBe(STAGING_SANDBOX_PLANS);
-      expect(plans).toHaveLength(4);
-      expect(plans.find((p) => p.planType === ScratchPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.PRO_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.MAX_PLAN)).toBeDefined();
@@ -62,8 +58,7 @@ describe('plans', () => {
     it('should return test plans for test environment', () => {
       const plans = getPlans('test' as ScratchpadEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
-      expect(plans).toHaveLength(4);
-      expect(plans.find((p) => p.planType === ScratchPlanType.STARTER_PLAN)).toBeDefined();
+      expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.PRO_PLAN)).toBeDefined();
       expect(plans.find((p) => p.planType === ScratchPlanType.MAX_PLAN)).toBeDefined();
@@ -72,7 +67,7 @@ describe('plans', () => {
     it('should return test plans for local environment', () => {
       const plans = getPlans('local' as ScratchpadEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
-      expect(plans).toHaveLength(4);
+      expect(plans).toHaveLength(3);
     });
 
     it('should return test plans for any other environment', () => {
@@ -91,11 +86,11 @@ describe('plans', () => {
       jest.restoreAllMocks();
     });
 
-    it('should return the correct plan for STARTER_PLAN', () => {
-      const plan = getPlan(ScratchPlanType.STARTER_PLAN);
+    it('should return the correct plan for PRO_PLAN', () => {
+      const plan = getPlan(ScratchPlanType.PRO_PLAN);
       expect(plan).toBeDefined();
-      expect(plan?.planType).toBe(ScratchPlanType.STARTER_PLAN);
-      expect(plan?.displayName).toBe(STARTER_PLAN.displayName);
+      expect(plan?.planType).toBe(ScratchPlanType.PRO_PLAN);
+      expect(plan?.displayName).toBe(PRO_PLAN.displayName);
     });
 
     it('should return undefined for a non-existent plan', () => {
@@ -181,8 +176,7 @@ describe('plans', () => {
 
     it('should only have expected plan types', () => {
       const planTypes = Object.values(ScratchPlanType);
-      expect(planTypes).toHaveLength(4);
-      expect(planTypes).toContain(ScratchPlanType.STARTER_PLAN);
+      expect(planTypes).toHaveLength(3);
       expect(planTypes).toContain(ScratchPlanType.FREE_PLAN);
       expect(planTypes).toContain(ScratchPlanType.PRO_PLAN);
       expect(planTypes).toContain(ScratchPlanType.MAX_PLAN);

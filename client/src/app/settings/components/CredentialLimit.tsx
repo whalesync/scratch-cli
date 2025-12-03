@@ -16,7 +16,7 @@ export const CredentialLimit = ({ credential }: { credential: AgentCredential })
     <Stack gap="xs">
       <Progress value={value} color={isOverCreditLimit(credential) ? 'red.6' : 'green.6'} />
       <Text12Regular c="dimmed">
-        {`$${Number(Math.max(credential.usage.usage, 0.01)).toFixed(2)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}{' '}
+        {`$${Number(Math.max(credential.usage.usage, 0.0)).toFixed(2)} used out of ${credential.usage.limit === 0 ? 'unlimited' : '$' + credential.usage.limit} limit`}{' '}
         {credential.usage.limitReset && `(${credential.usage.limitReset})`}
       </Text12Regular>
     </Stack>

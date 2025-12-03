@@ -84,8 +84,6 @@ Provides primary business logic using Stripe API (version 2025-08-27.basil):
 
 ## Subscription Plans
 
-### STARTER_PLAN
-
 - Configured per environment
 - Different Stripe IDs for test, staging, and production
 - Enables safe sandbox development

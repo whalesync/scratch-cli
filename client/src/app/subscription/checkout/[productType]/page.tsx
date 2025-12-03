@@ -14,7 +14,7 @@ import { JSX, useEffect, useState } from 'react';
 async function goToPaymentCheckoutUrl(args: { planType: string | string[] | undefined }): Promise<void> {
   if (typeof args.planType === 'string' && typeof window !== 'undefined') {
     const rawplanType = args.planType;
-    const planType: ScratchPlanType = stringToEnum(rawplanType, ScratchPlanType, ScratchPlanType.STARTER_PLAN);
+    const planType: ScratchPlanType = stringToEnum(rawplanType, ScratchPlanType, ScratchPlanType.PRO_PLAN);
     // Generate a URL and redirect to it.
     // This will either be a link to create a new subscription, or to update the current subscription if it exists.
     const result = await paymentApi.createCheckoutSession(planType);

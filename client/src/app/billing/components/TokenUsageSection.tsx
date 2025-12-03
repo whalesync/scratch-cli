@@ -16,7 +16,7 @@ export const TokenUsageSection = () => {
   const max = systemOpenRouterCredential.usage.limit === 0 ? 10000 : systemOpenRouterCredential.usage.limit;
   const value = systemOpenRouterCredential.usage.usage === 0 ? 0 : (systemOpenRouterCredential.usage.usage / max) * 100;
 
-  const usedAmount = Number(Math.max(systemOpenRouterCredential.usage.usage, 0.01)).toFixed(2);
+  const usedAmount = Number(Math.max(systemOpenRouterCredential.usage.usage, 0.0)).toFixed(2);
   const limitAmount =
     systemOpenRouterCredential.usage.limit === 0
       ? 'unlimited'
@@ -29,6 +29,7 @@ export const TokenUsageSection = () => {
         <Progress value={value} color={isOverCreditLimit(systemOpenRouterCredential) ? 'red.6' : 'green.6'} />
         <Group gap="xs" align="center">
           <Text13Book c="dimmed">{`$${usedAmount} used out ${limitAmount} used this month`}</Text13Book>
+
           <Tooltip
             multiline
             w={300}
