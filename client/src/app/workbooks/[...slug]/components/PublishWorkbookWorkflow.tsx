@@ -1,6 +1,6 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { TableSelectorModal2 } from '@/app/components/TableSelectorModal2';
+import { TableSelectorModal } from '@/app/components/TableSelectorModal';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
@@ -60,14 +60,13 @@ export const PublishWorkbookWorkflow = () => {
   return (
     <>
       {workbook && activeTable && showTableSelector && (
-        <TableSelectorModal2
+        <TableSelectorModal
           isOpen={showTableSelector}
           onClose={() => setShowTableSelector(false)}
           onConfirm={handleTablesSelectedForPublish}
           tables={workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || []}
           currentTableId={activeTable.id}
           title="Select tables to publish"
-          description="Select the tables you want to publish:"
           // confirmButtonText="Continue"
           workbookId={workbook.id}
         />

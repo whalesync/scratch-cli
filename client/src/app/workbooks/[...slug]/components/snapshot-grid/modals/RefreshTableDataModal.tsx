@@ -1,20 +1,22 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { Alert, Group, Modal, Stack } from '@mantine/core';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
+import { SelectTableRow } from '@/app/components/SelectTableRow';
+import { Alert, Box, Text as MantineText, Stack } from '@mantine/core';
+import { AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
 import {
   DownloadWorkbookResult,
-  getSnapshotTableById,
   hasDeletedConnection,
   SnapshotTable,
   Workbook,
 } from '../../../../../../types/server-entities/workbook';
-import { Text13Regular } from '../../../../../components/base/text';
 import { DownloadProgressModal } from '../../../../../components/jobs/download/DownloadJobProgressModal';
 import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
-import { TableSelection, TableSelectionComponent } from '../../../../../components/TableSelectionComponent';
+import { TableSelection } from '../../../../../components/TableSelectionComponent';
 
 export const RefreshTableDataModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
@@ -73,57 +75,80 @@ const ConfirmRefreshModal = ({
   workbook: Workbook;
   activeTable: SnapshotTable;
 }) => {
-  const [tableSelection, setTableSelection] = useState<TableSelection>({
-    mode: 'current',
-    tableIds: activeTable ? [activeTable.id] : [],
-  });
+  const [selectedTableIds, setSelectedTableIds] = useState<string[]>([activeTable.id]);
 
-  // Iniitalize selection on open:
+  // Initialize selection on open
   useEffect(() => {
-    if (isOpen) {
-      setTableSelection({
-        mode: 'current',
-        tableIds: activeTable ? [activeTable.id] : [],
-      });
+    if (isOpen && activeTable) {
+      setSelectedTableIds([activeTable.id]);
     }
   }, [isOpen, activeTable]);
 
-  const hasDirtyTables =
-    workbook &&
-    tableSelection.tableIds.some((id) => {
-      const table = getSnapshotTableById(workbook, id);
-      return table?.dirty;
+  const toggleTable = (tableId: string) => {
+    setSelectedTableIds((prev) => (prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId]));
+  };
+
+  const handleConfirm = () => {
+    onConfirm({
+      mode: 'multiple',
+      tableIds: selectedTableIds,
     });
+  };
+
+  const availableTables = workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || [];
+
+  const hasDirtyTables = availableTables.some((table) => selectedTableIds.includes(table.id) && table.dirty);
 
   return (
-    <Modal opened={isOpen} onClose={onClose} title="Download records" centered size="lg">
+    <ModalWrapper
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={onClose}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleConfirm} disabled={selectedTableIds.length === 0}>
+              Download
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      opened={isOpen}
+      onClose={onClose}
+      title="Select tables to fetch"
+      centered
+      size="lg"
+    >
       <Stack gap="md">
-        <Text13Regular>
-          Download records from the remote source. Any unpublished changes and suggestions will be lost.
-        </Text13Regular>
+        <Stack gap="xs">
+          {availableTables.map((table) => {
+            const isSyncing = table.syncInProgress;
+            const isDirty = table.dirty;
+            const statusText = (
+              <MantineText size="sm" c={isDirty ? 'orange' : 'dimmed'}>
+                {isDirty ? 'Contains unpublished changes' : ''}
+              </MantineText>
+            );
 
-        {hasDirtyTables && (
-          <Alert color="yellow" title="Warning">
-            Fields with unpublished changes will not be updated.
-          </Alert>
-        )}
+            return (
+              <SelectTableRow
+                key={table.id}
+                table={table}
+                isSelected={selectedTableIds.includes(table.id)}
+                disabled={isSyncing}
+                onToggle={toggleTable}
+                statusText={statusText}
+              />
+            );
+          })}
+        </Stack>
 
-        {workbook && activeTable && (
-          <TableSelectionComponent
-            tables={workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || []}
-            currentTableId={activeTable.id}
-            onChange={setTableSelection}
-            initialSelection={tableSelection}
-          />
-        )}
-
-        <Group justify="flex-end">
-          <ButtonSecondaryOutline onClick={onClose}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={() => onConfirm(tableSelection)} disabled={tableSelection.tableIds.length === 0}>
-            Download
-          </ButtonPrimaryLight>
-        </Group>
+        <Box mih={40}>
+          {hasDirtyTables && (
+            <Alert icon={<StyledLucideIcon Icon={AlertCircle} size={16} />} color="yellow" p="xs">
+              Fields with unpublished changes will not be updated.
+            </Alert>
+          )}
+        </Box>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

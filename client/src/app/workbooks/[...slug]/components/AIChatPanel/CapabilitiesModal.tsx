@@ -2,8 +2,9 @@
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { TextTitle3 } from '@/app/components/base/text';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { capabilitiesForGroup, Capability } from '@/types/server-entities/agent';
-import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
+import { Checkbox, Group, Stack, Text } from '@mantine/core';
 import { capitalize } from 'lodash';
 import { useEffect, useState } from 'react';
 
@@ -59,7 +60,21 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
   };
 
   return (
-    <Modal opened={opened} onClose={handleCancel} title="Configure tools" size="lg" zIndex={1001}>
+    <ModalWrapper
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={handleCancel}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleSave}>Save changes</ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      opened={opened}
+      onClose={handleCancel}
+      title="Configure tools"
+      size="lg"
+      zIndex={1001}
+    >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Select which tools the AI agent should have access to:
@@ -72,12 +87,7 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
             {renderCapabilityGroup('other', capabilitiesForGroup('other'))}
           </Stack>
         </Group>
-
-        <Group justify="flex-end" gap="xs">
-          <ButtonSecondaryOutline onClick={handleCancel}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleSave}>Save changes</ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 }
