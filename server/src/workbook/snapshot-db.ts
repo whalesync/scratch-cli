@@ -651,7 +651,12 @@ export class SnapshotDb {
         for (const field of Object.keys(op.data)) {
           if (readOnlyColumns.has(field)) {
             if (type === 'accepted') {
-              throw new BadRequestException(`Cannot modify read-only column: ${field}`);
+              if (!op.data[field]) {
+                // Drop nulls and undefiened
+                delete op.data[field];
+              } else {
+                throw new BadRequestException(`Cannot modify read-only column: ${field}`);
+              }
             } else {
               delete op.data[field];
             }
