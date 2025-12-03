@@ -1,31 +1,50 @@
+import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular, Text16Medium } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
-import { Badge, Box, Center, Group, Stack, Tooltip } from '@mantine/core';
+import { Box, Center, Group, Stack, Tooltip } from '@mantine/core';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePayments } from '../../../hooks/use-payments';
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
+  onError: (error: string | null) => void;
 }
 
-export const PlanCard = ({ plan }: PlanCardProps) => {
-  const { subscription } = useSubscription();
-  const { redirectToUpdateSubscription, redirectToCancelSubscription, portalRedirectInProgress } = usePayments();
+export const PlanCard = ({ plan, onError }: PlanCardProps) => {
+  const { subscription, isFreePlan } = useSubscription();
+  const {
+    redirectToUpdateSubscription,
+    redirectToCancelSubscription,
+    portalRedirectInProgress,
+    redirectToPlanCheckout,
+    portalRedirectError,
+  } = usePayments();
   const isCurrentPlan = subscription.planType === plan.planType;
+
+  useEffect(() => {
+    onError(portalRedirectError);
+  }, [portalRedirectError, onError]);
 
   const handleDowngrade = useCallback(() => {
     redirectToCancelSubscription(RouteUrls.billingPageUrl);
   }, [redirectToCancelSubscription]);
 
-  const handleSwitchToPlan = useCallback(() => {
-    redirectToUpdateSubscription(plan.planType, RouteUrls.billingPageUrl);
-  }, [plan.planType, redirectToUpdateSubscription]);
+  const handleCheckout = useCallback(() => {
+    if (isFreePlan) {
+      // user doesn't have a subscription, so redirect to the checkout page
+      console.debug('redirecting to checkout page for plan type: ', plan.planType);
+      redirectToPlanCheckout(plan.planType);
+    } else {
+      console.debug('redirecting to update subscription page for plan type: ', plan.planType);
+      redirectToUpdateSubscription(plan.planType, RouteUrls.billingPageUrl);
+    }
+  }, [plan.planType, redirectToUpdateSubscription, redirectToPlanCheckout, isFreePlan]);
 
   let actionButton = null;
   if (isCurrentPlan) {
@@ -36,7 +55,7 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
     );
   } else if (!isCurrentPlan && plan.planType !== ScratchPlanType.FREE_PLAN) {
     actionButton = (
-      <ButtonPrimaryLight onClick={handleSwitchToPlan} loading={portalRedirectInProgress}>
+      <ButtonPrimaryLight onClick={handleCheckout} loading={portalRedirectInProgress}>
         {subscription.costUSD > plan.costUSD ? 'Switch' : 'Upgrade'}
       </ButtonPrimaryLight>
     );
@@ -67,11 +86,7 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <Text13Medium>{plan.displayName}</Text13Medium>
-          {plan.popular && !isCurrentPlan && (
-            <Badge color="blue" size="sm" w="fit-content">
-              Popular
-            </Badge>
-          )}
+          {plan.popular && !isCurrentPlan && <Badge w="fit-content">Popular</Badge>}
         </Group>
         <Group gap="2px">
           <Text16Medium>${plan.costUSD}</Text16Medium>

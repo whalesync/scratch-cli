@@ -1,7 +1,7 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { paymentApi } from '@/lib/api/payment';
-import { trackClickManageSubscription } from '@/lib/posthog';
+import { trackClickManageSubscription, trackClickNewPlanCheckout } from '@/lib/posthog';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { useCallback, useMemo, useState } from 'react';
 import useSWR from 'swr';
@@ -23,6 +23,21 @@ export const usePayments = () => {
     return error?.message;
   }, [error]);
 
+  const redirectToPlanCheckout = useCallback(
+    async (planType: ScratchPlanType) => {
+      try {
+        setPortalRedirectInProgress(true);
+        const result = await paymentApi.createCheckoutSession(planType);
+        trackClickNewPlanCheckout(planType);
+        window.location.replace(result.url);
+      } catch (error) {
+        console.error('Failed to redirect to checkout page for plan: ', planType, error);
+        setPortalRedirectError(error instanceof Error ? error.message : 'Unknown error');
+        setPortalRedirectInProgress(false);
+      }
+    },
+    [setPortalRedirectInProgress, setPortalRedirectError],
+  );
   const redirectToUpdateSubscription = useCallback(
     async (planType: ScratchPlanType, returnPath: string) => {
       try {
@@ -82,6 +97,7 @@ export const usePayments = () => {
     redirectToUpdateSubscription,
     redirectToCancelSubscription,
     redirectToManageSubscription,
+    redirectToPlanCheckout,
     portalRedirectInProgress,
     portalRedirectError,
   };

@@ -1,11 +1,13 @@
 import { ScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Workbook } from '@/types/server-entities/workbook';
+import { ScratchPlanType } from '@spinner/shared-types';
 import _ from 'lodash';
 import posthog from 'posthog-js';
 
 export enum PostHogEvents {
   PAGE_VIEW = '$pageview',
   CLICK_MANAGE_SUBSCRIPTION = 'click_manage_subscription',
+  CLICK_NEW_PLAN_CHECKOUT = 'click_new_plan_checkout',
   ACCEPT_SUGGESTIONS = 'accept_suggestions',
   REJECT_SUGGESTIONS = 'reject_suggestions',
   START_AGENT_SESSION = 'start_agent_session',
@@ -120,6 +122,10 @@ export function trackToggleDisplayMode(mode: 'light' | 'dark'): void {
 
 export function trackClickManageSubscription(): void {
   captureEvent(PostHogEvents.CLICK_MANAGE_SUBSCRIPTION, {});
+}
+
+export function trackClickNewPlanCheckout(planType: ScratchPlanType): void {
+  captureEvent(PostHogEvents.CLICK_NEW_PLAN_CHECKOUT, { planType });
 }
 
 export function trackClickDownloadResource(): void {

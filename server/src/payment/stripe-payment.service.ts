@@ -161,7 +161,8 @@ export class StripePaymentService {
       config: dto,
     });
 
-    // If the user has an active subscription on the organization, redirect them to the manage subscription page.
+    // If the user doesn't have an active subscription on the organization they can't access the billing portal.
+    // TODO: handle the case where a different user in the organization owns the subscription.
     if (!isActiveSubscriptionOwnedByUser(user.organization?.subscriptions ?? [], user.id)) {
       return badRequestError('You do not own the active subscription for this organization');
     }
@@ -206,9 +207,23 @@ export class StripePaymentService {
       };
     }
 
-    const portalSession = await this.stripe.billingPortal.sessions.create(portalSessionConfig, {
-      apiVersion: STRIPE_API_VERSION,
-    });
+    let portalSession: Stripe.BillingPortal.Session;
+
+    try {
+      portalSession = await this.stripe.billingPortal.sessions.create(portalSessionConfig, {
+        apiVersion: STRIPE_API_VERSION,
+      });
+    } catch (err) {
+      WSLogger.error({
+        source: StripePaymentService.name,
+        message: `Failed to create customer portal session`,
+        error: err,
+        context: { portalSessionConfig },
+      });
+      return stripeLibraryError(`Failed to create customer portal session: ${_.toString(err)}`, {
+        context: { portalSessionConfig },
+      });
+    }
 
     WSLogger.info({
       source: StripePaymentService.name,
@@ -231,6 +246,7 @@ export class StripePaymentService {
 
     // Never allow someone to checkout again if they already have a current subscription on the organization.
     // Instead send them to manage the existing one.
+    // TODO: handle the case where a different user in the organization owns the subscription.
     if (getActiveSubscriptions(user.organization?.subscriptions ?? []).length > 0) {
       return this.createCustomerPortalUrl(user, { returnPath: returnPath });
     }
@@ -248,61 +264,73 @@ export class StripePaymentService {
     const clientBaseUrl = ScratchpadConfigService.getClientBaseUrl();
 
     const automaticTaxEnabled = this.configService.getScratchpadEnvironment() === 'production';
-    const session = await this.stripe.checkout.sessions.create(
-      {
-        mode: 'subscription',
-        line_items: [
-          {
-            price: stripePriceId,
-            quantity: 1,
-          },
-        ],
-        customer: stripeCustomerId.v,
+    try {
+      const session = await this.stripe.checkout.sessions.create(
+        {
+          mode: 'subscription',
+          line_items: [
+            {
+              price: stripePriceId,
+              quantity: 1,
+            },
+          ],
+          customer: stripeCustomerId.v,
 
-        subscription_data: {
-          trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : undefined,
-          metadata: {
-            application: METADATA_APPLICATION_NAME,
-            planType: planType,
-            environment: this.configService.getScratchpadEnvironment(),
+          subscription_data: {
+            trial_period_days: createTrialSubscription ? TRIAL_PERIOD_DAYS : undefined,
+            metadata: {
+              application: METADATA_APPLICATION_NAME,
+              planType: planType,
+              environment: this.configService.getScratchpadEnvironment(),
+            },
+            trial_settings: createTrialSubscription
+              ? {
+                  end_behavior: {
+                    missing_payment_method: 'cancel',
+                  },
+                }
+              : undefined,
           },
-          trial_settings: createTrialSubscription
-            ? {
-                end_behavior: {
-                  missing_payment_method: 'cancel',
-                },
-              }
-            : undefined,
+          // Only collect payment method if the cost of the subscription is greater than $0 or if a free trial is not available.
+          payment_method_collection: createTrialSubscription ? 'if_required' : 'always',
+
+          // We must enable this to properly auto-collect taxes for customers based on their location.
+          automatic_tax: { enabled: automaticTaxEnabled },
+          customer_update: { address: 'auto', name: 'auto' },
+
+          // In event of either success or failure, send them back to the dashboard root page to sort things
+          // out. It has logic to redirect to an appropriate sub-view afterwards.
+          success_url: `${clientBaseUrl}${returnPath}`,
+          cancel_url: `${clientBaseUrl}${DEFAULT_CANCEL_PATH}`,
+
+          // Allows the customer to enter their tax ID number.
+          tax_id_collection: { enabled: true },
         },
-        // Only collect payment method if the cost of the subscription is greater than $0 or if a free trial is not available.
-        payment_method_collection: createTrialSubscription ? 'if_required' : 'always',
+        {
+          apiVersion: STRIPE_API_VERSION,
+        },
+      );
 
-        // We must enable this to properly auto-collect taxes for customers based on their location.
-        automatic_tax: { enabled: automaticTaxEnabled },
-        customer_update: { address: 'auto', name: 'auto' },
-
-        // In event of either success or failure, send them back to the dashboard root page to sort things
-        // out. It has logic to redirect to an appropriate sub-view afterwards.
-        success_url: `${clientBaseUrl}${returnPath}`,
-        cancel_url: `${clientBaseUrl}${DEFAULT_CANCEL_PATH}`,
-
-        // Allows the customer to enter their tax ID number.
-        tax_id_collection: { enabled: true },
-      },
-      {
-        apiVersion: STRIPE_API_VERSION,
-      },
-    );
-
-    if (session.url) {
-      WSLogger.info({
+      if (session.url) {
+        WSLogger.info({
+          source: StripePaymentService.name,
+          message: `Generated checkout URL for user ${user.id}`,
+          url: session.url,
+        });
+        return ok(session.url);
+      } else {
+        return stripeLibraryError('No URL returned from Stripe');
+      }
+    } catch (err) {
+      WSLogger.error({
         source: StripePaymentService.name,
-        message: `Generated checkout URL for user ${user.id}`,
-        url: session.url,
+        message: `Failed to create checkout session for user`,
+        error: err,
+        context: { stripePriceId, stripeCustomerId, userId: user.id, planType, createTrialSubscription, returnPath },
       });
-      return ok(session.url);
-    } else {
-      return stripeLibraryError('No URL returned from Stripe');
+      return stripeLibraryError(`Failed to create checkout session: ${_.toString(err)}`, {
+        context: { stripePriceId, stripeCustomerId },
+      });
     }
   }
 
