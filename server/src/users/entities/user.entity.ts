@@ -1,5 +1,5 @@
 import { Subscription, TokenType, UserRole } from '@prisma/client';
-import { SubscriptionInfo } from '@spinner/shared-types';
+import { BillableActions, SubscriptionInfo } from '@spinner/shared-types';
 import { UserCluster } from 'src/db/cluster-types';
 import { UserFlagValues } from 'src/experiments/experiments.service';
 import { WSLogger } from 'src/logger';
@@ -34,7 +34,12 @@ export class User {
 
   settings?: Record<string, string | number | boolean>;
 
-  constructor(user: UserCluster.User, agentJwt?: string, experiments?: UserFlagValues) {
+  constructor(
+    user: UserCluster.User,
+    agentJwt?: string,
+    experiments?: UserFlagValues,
+    billableActions?: BillableActions,
+  ) {
     this.id = user.id;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
@@ -50,7 +55,11 @@ export class User {
 
     this.agentJwt = agentJwt;
     this.experimentalFlags = experiments;
-    this.subscription = toSubscriptionInfo(user.id, user.organization?.subscriptions ?? []);
+    this.subscription = toSubscriptionInfo(
+      user.id,
+      user.organization?.subscriptions ?? [],
+      billableActions ?? { monthlyPublishCount: 0 },
+    );
     this.organization = user.organization ? new Organization(user.organization) : undefined;
     this.settings = user.settings as Record<string, string | number | boolean>;
   }
@@ -60,7 +69,7 @@ export function findValidToken(user: UserCluster.User, type: TokenType): string 
   return user.apiTokens.find((token) => token.expiresAt > new Date() && token.type === type)?.token;
 }
 
-function buildFreePlanSubscriptionInfo(userId: string): SubscriptionInfo {
+function buildFreePlanSubscriptionInfo(userId: string, billableActions: BillableActions): SubscriptionInfo {
   const plan = getFreePlan();
   return {
     status: 'valid',
@@ -73,14 +82,19 @@ function buildFreePlanSubscriptionInfo(userId: string): SubscriptionInfo {
     canManageSubscription: true,
     ownerId: userId,
     features: new SubscriptionPlanFeaturesEntity(plan.features),
+    billableActions,
   };
 }
 
-function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): SubscriptionInfo | undefined {
+function toSubscriptionInfo(
+  userId: string,
+  subscriptions: Subscription[],
+  billableActions: BillableActions,
+): SubscriptionInfo | undefined {
   const latestSubscription = getLastestExpiringSubscription(subscriptions);
   if (!latestSubscription) {
     // If the user has no subscription at all, use the Free Plan
-    return buildFreePlanSubscriptionInfo(userId);
+    return buildFreePlanSubscriptionInfo(userId, billableActions);
   }
 
   const planType = getPlanTypeFromString(latestSubscription.planType);
@@ -93,7 +107,7 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
       planType: latestSubscription.planType,
       subscriptionId: latestSubscription.id,
     });
-    return buildFreePlanSubscriptionInfo(userId);
+    return buildFreePlanSubscriptionInfo(userId, billableActions);
   }
 
   const plan = getPlan(planType);
@@ -106,7 +120,7 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
       planType: planType,
       subscriptionId: latestSubscription.id,
     });
-    return buildFreePlanSubscriptionInfo(userId);
+    return buildFreePlanSubscriptionInfo(userId, billableActions);
   }
 
   /* How much longer the subscription is valid in days. A negative number respresents how long since the 
@@ -133,5 +147,6 @@ function toSubscriptionInfo(userId: string, subscriptions: Subscription[]): Subs
     canManageSubscription: latestSubscription.userId === userId,
     ownerId: latestSubscription.userId,
     features: new SubscriptionPlanFeaturesEntity(plan.features),
+    billableActions,
   };
 }

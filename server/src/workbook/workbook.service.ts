@@ -10,10 +10,12 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotTableCluster, WorkbookCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
+import { getPlan } from 'src/payment/plans';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForColumnWsId, sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
+import { SubscriptionService } from 'src/users/subscription.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
@@ -57,6 +59,7 @@ export class WorkbookService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
@@ -1206,6 +1209,19 @@ export class WorkbookService {
   }
 
   async publish(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    // Check publish limit for the organization
+    if (actor.subscriptionStatus) {
+      const plan = getPlan(actor.subscriptionStatus.planType);
+      if (plan && plan.features.publishingLimit > 0) {
+        const monthlyPublishCount = await this.subscriptionService.countMonthlyPublishActions(actor.organizationId);
+        if (monthlyPublishCount >= plan.features.publishingLimit) {
+          throw new BadRequestException(
+            `Publishing limit reached. Your plan allows ${plan.features.publishingLimit} publishes per month.`,
+          );
+        }
+      }
+    }
+
     if (!this.configService.getUseJobs()) {
       // Fall back to synchronous publish when jobs are not available
       await this.publishWithoutJob(id, actor);

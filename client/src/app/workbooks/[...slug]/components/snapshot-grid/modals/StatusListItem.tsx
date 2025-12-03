@@ -7,10 +7,11 @@ type Props = {
   text1: string;
   text2?: string;
   iconProps: ComponentProps<typeof StyledLucideIcon>;
+  bgColor?: string;
 };
-export const StatusListItem: FC<Props> = ({ text1, text2, iconProps }) => {
+export const StatusListItem: FC<Props> = ({ text1, text2, iconProps, bgColor }) => {
   return (
-    <Box p="xs" bg="var(--bg-panel)" style={{ border: '1px solid var(--mantine-color-gray-3)' }}>
+    <Box p="xs" bg={bgColor ?? 'var(--bg-panel)'} style={{ border: '1px solid var(--mantine-color-gray-3)' }}>
       <Group align="flex-start" gap="sm">
         {/* 
         mt=1 since when the icon is truly alligned with the text it looks bad/unalligned to a human 

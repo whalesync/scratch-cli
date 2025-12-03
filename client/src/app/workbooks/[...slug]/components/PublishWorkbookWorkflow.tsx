@@ -1,7 +1,9 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { TableSelectorModal } from '@/app/components/TableSelectorModal';
+import { PublishLimitExceededModal } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/PublishLimitExceededModal';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useSubscription } from '@/hooks/use-subscription';
 import { workbookApi } from '@/lib/api/workbook';
 import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
@@ -20,7 +22,8 @@ export const PublishWorkbookWorkflow = () => {
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [selectedPublishTableIds, setSelectedPublishTableIds] = useState<string[]>([]);
   const [publishInProgress, setPublishInProgress] = useState<{ jobId: string } | null>(null);
-
+  const [limitExceeded, setLimitExceeded] = useState(false);
+  const { canPublishWorkbook } = useSubscription();
   // When the store's publishConfirmationOpen changes to true, show the table selector
   if (publishConfirmationOpen && !showTableSelector && !showPublishConfirmation) {
     setShowTableSelector(true);
@@ -34,8 +37,12 @@ export const PublishWorkbookWorkflow = () => {
   };
 
   const handleConfirmPublish = useCallback(async () => {
+    setLimitExceeded(false);
     if (!workbook) return;
-
+    if (!canPublishWorkbook) {
+      setLimitExceeded(true);
+      return;
+    }
     try {
       setShowPublishConfirmation(false);
       // TODO: This should use useWorkbook().publish() instead to get shared logic.
@@ -49,7 +56,7 @@ export const PublishWorkbookWorkflow = () => {
         autoClose: 5000,
       });
     }
-  }, [workbook, selectedPublishTableIds]);
+  }, [workbook, selectedPublishTableIds, canPublishWorkbook]);
 
   const handlePublishComplete = useCallback(async () => {
     setPublishInProgress(null);
@@ -71,7 +78,7 @@ export const PublishWorkbookWorkflow = () => {
           workbookId={workbook.id}
         />
       )}
-      {workbook && activeTable && showPublishConfirmation && (
+      {workbook && activeTable && showPublishConfirmation && !limitExceeded && (
         <PublishConfirmationModal
           isOpen={showPublishConfirmation}
           onClose={() => setShowPublishConfirmation(false)}
@@ -83,7 +90,16 @@ export const PublishWorkbookWorkflow = () => {
           snapshotTables={workbook.snapshotTables ?? []}
         />
       )}
-
+      {limitExceeded && activeTable && (
+        <PublishLimitExceededModal
+          isOpen={limitExceeded}
+          onClose={() => {
+            setLimitExceeded(false);
+            setShowPublishConfirmation(false);
+          }}
+          serviceName={activeTable.connectorService ? serviceName(activeTable.connectorService) : undefined}
+        />
+      )}
       {publishInProgress && <PublishJobProgressModal jobId={publishInProgress.jobId} onClose={handlePublishComplete} />}
     </>
   );

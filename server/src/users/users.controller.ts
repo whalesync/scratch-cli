@@ -11,12 +11,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { BillableActions } from '@spinner/shared-types';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
 import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
+import { SubscriptionService } from './subscription.service';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -27,6 +29,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly jwtGeneratorService: JwtGeneratorService,
     private readonly experimentsService: ExperimentsService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Get('current')
@@ -43,7 +46,14 @@ export class UsersController {
 
     const flagValues = await this.experimentsService.resolveClientFeatureFlagsForUser(req.user);
 
-    return new User(req.user, agentJwt, flagValues);
+    // Get monthly publish count for the organization
+    const billableActions: BillableActions = {
+      monthlyPublishCount: req.user.organizationId
+        ? await this.subscriptionService.countMonthlyPublishActions(req.user.organizationId)
+        : 0,
+    };
+
+    return new User(req.user, agentJwt, flagValues, billableActions);
   }
 
   @Patch('current/settings')

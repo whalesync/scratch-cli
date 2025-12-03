@@ -30,6 +30,9 @@ const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
       dataSourcePerServiceLimit: -1,
       publishingLimit: -1,
     },
+    billableActions: {
+      monthlyPublishCount: 0,
+    },
   },
   isFreePlan: false,
   canPublishWorkbook: false,
@@ -62,9 +65,7 @@ export function useSubscription(): UseSubscriptionReturn {
       return true;
     }
 
-    // TODO: get org monthly publishing count
-    const monthlyPublishCount = 0;
-
+    const monthlyPublishCount = user.subscription.billableActions?.monthlyPublishCount ?? 0;
     return monthlyPublishCount < limit;
   }, [user]);
 
