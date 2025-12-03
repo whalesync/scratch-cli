@@ -13,8 +13,8 @@ import { ConnectorsModule } from '../remote-service/connectors/connectors.module
 import { AiSnapshotController } from './ai-snapshot.controller';
 import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
-import { SnapshotPublicController } from './snapshot-public.controller';
 import { SnapshotDataGateway } from './snapshot.gateway';
+import { WorkbookPublicController } from './workbook-public.controller';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
 
@@ -33,7 +33,7 @@ import { WorkbookService } from './workbook.service';
     UploadsModule,
     AuditLogModule,
   ],
-  controllers: [WorkbookController, AiSnapshotController, SnapshotPublicController],
+  controllers: [WorkbookController, AiSnapshotController, WorkbookPublicController],
   providers: [WorkbookService, SnapshotEventService, SnapshotDataGateway],
   exports: [WorkbookService, SnapshotEventService],
 })

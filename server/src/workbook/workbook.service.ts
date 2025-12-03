@@ -1841,7 +1841,7 @@ export class WorkbookService {
       throw new NotFoundException(`Table ${tableId} not found in workbook ${workbookId}`);
     }
 
-    await this.streamCsvExport(workbook, snapshotTable, tableId, filteredOnly, res);
+    await this.streamCsvExport(workbook, snapshotTable, filteredOnly, res);
   }
 
   /**
@@ -1850,7 +1850,6 @@ export class WorkbookService {
   private async streamCsvExport(
     workbook: WorkbookCluster.Workbook,
     snapshotTable: SnapshotTable,
-    tableId: string,
     filteredOnly: boolean,
     res: Response,
   ): Promise<void> {
@@ -1860,8 +1859,8 @@ export class WorkbookService {
         SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = '${workbook.id}'
-        AND table_name = '${tableId}'
-        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty', '__seen')
+        AND table_name = '${snapshotTable.tableName}'
+        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty', '__seen', '__original')
         ORDER BY ordinal_position
       `;
 
@@ -1873,6 +1872,10 @@ export class WorkbookService {
       const columns = await this.snapshotDbService.snapshotDb.getKnex().raw<ColumnInfo>(columnQuery);
       const columnNames = columns.rows.map((row) => row.column_name);
 
+      if (columnNames.length === 0) {
+        throw new BadRequestException(`No columns found to export for table ${snapshotTable.id}`);
+      }
+
       // Check if we should apply the SQL filter
       const sqlWhereClause = filteredOnly ? snapshotTable.activeRecordSqlFilter : null;
 
@@ -1881,16 +1884,16 @@ export class WorkbookService {
         filteredOnly && sqlWhereClause && sqlWhereClause.trim() !== '' ? ` WHERE ${sqlWhereClause}` : '';
 
       // Clear __dirty and __edited_fields for all records being exported (only for "Export All", not filtered)
-      if (!filteredOnly) {
-        await this.snapshotDbService.snapshotDb.getKnex()(`${workbook.id}.${tableId}`).update({
-          __dirty: false,
-          __edited_fields: {},
-        });
-      }
+      // if (!filteredOnly) {
+      //   await this.snapshotDbService.snapshotDb.getKnex()(`${workbook.id}.${tableId}`).update({
+      //     __dirty: false,
+      //     __edited_fields: {},
+      //   });
+      // }
 
       // Set response headers
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      const filename = `${workbook.name || 'workbook'}_${tableId}.csv`;
+      const filename = `${workbook.name || 'workbook'}_${snapshotTable.id}.csv`;
       const encodedFilename = encodeURIComponent(filename);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`);
 
@@ -1898,7 +1901,7 @@ export class WorkbookService {
       const { stream, cleanup } = await createCsvStream({
         knex: this.snapshotDbService.snapshotDb.getKnex(),
         schema: workbook.id,
-        table: tableId,
+        table: snapshotTable.tableName,
         columnNames,
         whereClause,
       });
