@@ -1,6 +1,5 @@
 'use client';
 
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { DocsUrls } from '@/utils/docs-urls';
 import { RouteUrls } from '@/utils/route-urls';
@@ -19,6 +18,7 @@ import {
   SunIcon,
   Table2Icon,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDevTools } from '../../hooks/use-dev-tools';
@@ -156,11 +156,7 @@ const NavMenuItem = ({ item, isActive }: { item: MenuItem; isActive: boolean }) 
 };
 
 const NavMenuUserButton = () => {
-  const { user, clerkUser } = useScratchPadUser();
-
-  const name = user?.name || user?.email || clerkUser?.fullName || clerkUser?.primaryEmailAddress?.emailAddress || '';
-  const initial = name?.[0] || '';
-  const avatar = <Center className={styles.userAvatarLetter}>{initial}</Center>;
+  const avatar = <Image src="/logo-color.svg" alt="Scratch" width={19} height={19} className={styles.embadgedLogo} />;
 
   // Overlay UserButton to make the whole area clickable and trigger the menu
   const userButtonOverlay = (
@@ -185,7 +181,7 @@ const NavMenuUserButton = () => {
       mb={12}
     >
       <Text13Regular style={{ color: 'var(--fg-primary)' }} truncate>
-        {name}
+        Scratch
       </Text13Regular>
       {userButtonOverlay}
     </ButtonSecondaryGhost>
