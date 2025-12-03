@@ -3,11 +3,13 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { Text12Regular, TextMono12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';
-import { useWorkbookEditorUIStore } from '../../../../stores/workbook-editor-store';
+
+export const GRID_SUGGESTION_TOOLBAR_HEIGHT = 40;
 
 type GridSuggestionToolbarProps = {
   table: SnapshotTable;
@@ -65,8 +67,8 @@ export const GridSuggestionToolbar = (props: GridSuggestionToolbarProps): JSX.El
   }
 
   return (
-    <MainContent.Footer h={28} pos="absolute" bottom={0} left={0} right={0}>
-      <Group h="100%" align="center">
+    <MainContent.Footer h={GRID_SUGGESTION_TOOLBAR_HEIGHT} pos="absolute" bottom={0} left={0} right={0}>
+      <Group h="100%" align="center" px="sm">
         {saving ? (
           <>
             <Loader size="xs" />

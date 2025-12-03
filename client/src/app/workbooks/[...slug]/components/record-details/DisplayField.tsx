@@ -1,8 +1,8 @@
-import { IconButtonOutline, IconButtonPrimaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
+import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import {
   formatFieldValue,
@@ -13,10 +13,9 @@ import {
   PostgresColumnType,
   TableSpec,
 } from '@/types/server-entities/workbook';
-import { Anchor, Checkbox, Group, NumberInput, ScrollArea, Stack } from '@mantine/core';
+import { Anchor, Checkbox, NumberInput, ScrollArea, Stack } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { diffWordsWithSpace } from 'diff';
-import { CheckIcon, CircleArrowRightIcon, XIcon } from 'lucide-react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 
@@ -70,16 +69,8 @@ export const DisplayField = (props: DisplayFieldProps) => {
     recordChangeTypes.acceptedDeletions = true;
   }
 
-  const suggestValueColor = '#284283';
   const suggestionButtons = hasSuggestion ? (
-    <Group gap="xs" justify="flex-end">
-      <IconButtonOutline onClick={onRejectSuggestion} loading={saving} size="compact-sm">
-        <XIcon size={13} />
-      </IconButtonOutline>
-      <IconButtonPrimaryOutline onClick={onAcceptSuggestion} loading={saving} size="compact-sm">
-        <CheckIcon size={13} />
-      </IconButtonPrimaryOutline>
-    </Group>
+    <InlineSuggestionButtons onAcceptClick={onAcceptSuggestion} onRejectClick={onRejectSuggestion} disabled={saving} />
   ) : null;
 
   if (column.pgType === PostgresColumnType.NUMERIC) {
@@ -182,7 +173,6 @@ export const DisplayField = (props: DisplayFieldProps) => {
   if (column.pgType === PostgresColumnType.BOOLEAN) {
     const currentValue = getSafeBooleanValue(record.fields, columnId);
     const suggestedValue = record.__suggested_values?.[columnId];
-    const suggestedValueString = suggestedValue?.toString() ?? '';
 
     const isReadOnly = column.readonly || hasSuggestion || mode === 'multiple';
     // Use this approach as the style is better for UX, using disabled prop would be worse for UX
@@ -217,17 +207,10 @@ export const DisplayField = (props: DisplayFieldProps) => {
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
-            <Group gap="xs" align="flex-start">
-              {booleanField}
-              <CircleArrowRightIcon color={suggestValueColor} />
-              <Checkbox
-                key={`${columnId}-suggested`}
-                label={mode === 'single' ? column.name : undefined}
-                checked={suggestedValueString === 'true'}
-                readOnly={true}
-                c={suggestValueColor}
-              />
-            </Group>
+            <DiffViewer
+              originalValue={currentValue?.toString() ?? ''}
+              suggestedValue={suggestedValue?.toString() ?? ''}
+            />
             {suggestionButtons}
           </Stack>
         ) : (
@@ -282,6 +265,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
                 <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
               </ScrollArea>
+              {suggestionButtons}
             </Stack>
           ) : (
             <EnhancedTextArea
@@ -341,7 +325,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
           <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
             <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
           </ScrollArea>
-          {mode === 'multiple' && suggestionButtons}
+          {suggestionButtons}
         </Stack>
       ) : (
         displayField

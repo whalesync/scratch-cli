@@ -30,7 +30,7 @@ import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-
 import { CustomHeaderComponent } from '../../../../components/field-value-wrappers/header/FieldHeaderComponent';
 import { useAgentChatContext } from '../contexts/agent-chat-context';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
-import { GridSuggestionToolbar } from '../GridSuggestionToolbar';
+import { GRID_SUGGESTION_TOOLBAR_HEIGHT, GridSuggestionToolbar } from '../GridSuggestionToolbar';
 import { SnapshotTableGridProps } from '../types';
 import { AG, ID_COLUMN_FIELD } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
@@ -619,7 +619,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       <div
         className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
-          height: showSuggestionToolbar ? 'calc(100% - 28px)' : '100%',
+          height: showSuggestionToolbar ? `calc(100% - ${GRID_SUGGESTION_TOOLBAR_HEIGHT}px)` : '100%',
           width: '100%',
           overflow: 'auto',
         }}

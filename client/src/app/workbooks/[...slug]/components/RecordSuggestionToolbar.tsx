@@ -10,6 +10,8 @@ import pluralize from 'pluralize';
 import { JSX, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 
+export const RECORD_SUGGESTION_TOOLBAR_HEIGHT = 40;
+
 type RecordSuggestionToolbarProps = {
   table: SnapshotTable;
   record: SnapshotRecord;
@@ -133,8 +135,8 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
   }
 
   return (
-    <MainContent.Footer {...boxProps} h={28}>
-      <Group h="100%" align="center">
+    <MainContent.Footer {...boxProps} h={RECORD_SUGGESTION_TOOLBAR_HEIGHT}>
+      <Group h="100%" align="center" px="sm">
         {suggestionLabel}
         <Group ml="auto">
           <ButtonSecondaryOutline size="compact-xs" onClick={handleRejectSuggestions} loading={saving}>
