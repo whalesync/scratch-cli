@@ -1,3 +1,4 @@
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
 import { PersistedModelOption } from '../types/common';
 import { SnapshotTable } from '../types/server-entities/workbook';
@@ -33,7 +34,7 @@ const encodingCache = new Map<string, Tiktoken>();
 export function tokenUsageStats(
   model: PersistedModelOption,
   table: SnapshotTable,
-  records: unknown[],
+  records: ProcessedSnapshotRecord[],
 ): TokenUsageStats {
   const recordTokenCount = calculateTokensForRecords(records, model.value);
 
@@ -59,15 +60,25 @@ export function tokenUsageStats(
 
 /**
  * Count tokens for a list of records by JSON stringifying them
+ * TODO: This is super inefficient. We should probably calculate tokens ONCE per field
+ * on the server when it changes and then just aggregate the tokens here
+ * Or at least not clone them to just remove the __processed_fields (but that is cheaper compared to tokanization)
  */
-function calculateTokensForRecords(records: unknown[], model: string): TokenCountResult {
+function calculateTokensForRecords(records: ProcessedSnapshotRecord[], model: string): TokenCountResult {
   if (!records) return { tokenCount: 0, charCount: 0, method: 'missing_data', accuracy: 'exact' };
   if (records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
 
   const [provider, modelName] = model.split('/');
   const encoding = provider === 'openai' ? getEncoding(provider, modelName) : null;
 
-  const allRecordsStringified = JSON.stringify(records);
+  // Clone records and remove __processed_fields to avoid counting them
+  const cleanRecords = records.map((r) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { __processed_fields, ...rest } = r;
+    return rest;
+  });
+
+  const allRecordsStringified = JSON.stringify(cleanRecords);
 
   if (!encoding) {
     return {
@@ -80,7 +91,7 @@ function calculateTokensForRecords(records: unknown[], model: string): TokenCoun
 
   // For small arrays, use exact tiktoken counting
   if (records.length <= 10) {
-    const encoded = encoding.encode(JSON.stringify(records));
+    const encoded = encoding.encode(JSON.stringify(cleanRecords));
     return {
       tokenCount: encoded.length,
       charCount: allRecordsStringified.length,
@@ -93,11 +104,11 @@ function calculateTokensForRecords(records: unknown[], model: string): TokenCoun
   // Sample 10 records relatively equally spaced
   const sampleSize = 10;
   const sampledRecords: unknown[] = [];
-  const step = (records.length - 1) / (sampleSize - 1);
+  const step = (cleanRecords.length - 1) / (sampleSize - 1);
 
   for (let i = 0; i < sampleSize; i++) {
     const index = Math.round(i * step);
-    sampledRecords.push(records[index]);
+    sampledRecords.push(cleanRecords[index]);
   }
 
   // Calculate tokens for the sample
@@ -106,8 +117,7 @@ function calculateTokensForRecords(records: unknown[], model: string): TokenCoun
   const sampleTokens = sampleEncoded.length;
 
   // Calculate tokens for all records
-  const allJsonStr = JSON.stringify(records);
-  const allLength = allJsonStr.length;
+  const allLength = allRecordsStringified.length;
   const sampleLength = sampleJsonStr.length;
 
   // Extrapolate: tokens for all = (tokens for sample) * (length of all) / (length of sample)

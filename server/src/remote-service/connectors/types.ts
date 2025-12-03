@@ -127,12 +127,13 @@ export type SnapshotRecord = {
   // Columns, indexed by the wsId NOT the connector's native ID.
   fields: Record<string, unknown>;
 
+  // Per field meta information.
   __edited_fields: EditedFieldsMetadata;
   __suggested_values: Record<string, unknown>;
-  __dirty: boolean;
-  __seen: boolean;
   __metadata: Record<string, unknown>;
-  __original: Record<string, unknown> | null;
+
+  // Per record meta information.
+  __dirty: boolean;
   __old_remote_id: string | null;
 };
 

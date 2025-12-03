@@ -549,7 +549,7 @@ export class WorkbookService {
       effectiveTake,
       tableSpec,
       snapshotTable.activeRecordSqlFilter,
-      undefined,
+      snapshotTable.hiddenColumns,
     );
 
     return {

@@ -526,7 +526,7 @@ export class SnapshotDb {
       filteredCount = count;
     }
 
-    const records = result.map((r) => this.mapDbRecordToSnapshotRecord(r));
+    const records = result.map((r) => this.mapDbRecordToSnapshotRecord(r, hiddenColumns));
 
     return {
       records,
@@ -537,7 +537,7 @@ export class SnapshotDb {
     };
   }
 
-  private mapDbRecordToSnapshotRecord(record: DbRecord): SnapshotRecord {
+  private mapDbRecordToSnapshotRecord(record: DbRecord, hiddenColumns?: string[]): SnapshotRecord {
     const {
       wsId,
       id,
@@ -545,23 +545,55 @@ export class SnapshotDb {
       __suggested_values,
       __dirty,
       __metadata,
-      __seen,
-      __original,
       __old_remote_id,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      __original,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      __seen,
       ...fields
     } = record;
+
+    let editedFields = __edited_fields;
+    let suggestedValues = __suggested_values;
+
+    let metadata = __metadata;
+
+    if (hiddenColumns && hiddenColumns.length > 0) {
+      // Filter hidden columns from __edited_fields
+      if (editedFields) {
+        editedFields = { ...editedFields };
+        for (const col of hiddenColumns) {
+          delete editedFields[col];
+        }
+      }
+
+      // Filter hidden columns from __suggested_values
+      if (suggestedValues) {
+        suggestedValues = { ...suggestedValues };
+        for (const col of hiddenColumns) {
+          delete suggestedValues[col];
+        }
+      }
+
+      // Filter hidden columns from __metadata
+      if (metadata) {
+        metadata = { ...metadata };
+        for (const col of hiddenColumns) {
+          delete metadata[col];
+        }
+      }
+    }
+
     return {
       id: {
         wsId,
         remoteId: id,
       },
       fields,
-      __edited_fields,
-      __suggested_values,
+      __edited_fields: editedFields,
+      __suggested_values: suggestedValues,
+      __metadata: metadata,
       __dirty,
-      __metadata,
-      __seen,
-      __original,
       __old_remote_id,
     };
   }
@@ -597,7 +629,7 @@ export class SnapshotDb {
 
     const results = await query;
 
-    return results.map((result) => this.mapDbRecordToSnapshotRecord(result));
+    return results.map((result) => this.mapDbRecordToSnapshotRecord(result, hiddenColumns));
   }
 
   async bulkUpdateRecords(

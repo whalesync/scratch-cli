@@ -130,19 +130,31 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
               <Table.Td>ID</Table.Td>
               <Table.Td>Remote ID</Table.Td>
               <Table.Td>DB Type</Table.Td>
+              <Table.Td>Hidden</Table.Td>
               <Table.Td>Tags</Table.Td>
               <Table.Td maw="30%">Metadata</Table.Td>
               <Table.Td maw="100px">Data Converter</Table.Td>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {tableSpec.columns.map((column, index) => (
-              <ColumnSpecDetails
-                key={column.id.wsId || index}
-                column={column}
-                settings={columnSettings[column.id.wsId]}
-              />
-            ))}
+            {tableSpec.columns
+              .slice()
+              .sort((a, b) => {
+                const aHidden = table.hiddenColumns.includes(a.id.wsId);
+                const bHidden = table.hiddenColumns.includes(b.id.wsId);
+                // Sort hidden columns to the end
+                if (aHidden && !bHidden) return 1;
+                if (!aHidden && bHidden) return -1;
+                return 0;
+              })
+              .map((column, index) => (
+                <ColumnSpecDetails
+                  key={column.id.wsId || index}
+                  column={column}
+                  settings={columnSettings[column.id.wsId]}
+                  isHidden={table.hiddenColumns.includes(column.id.wsId)}
+                />
+              ))}
           </Table.Tbody>
         </Table>
       </Stack>
@@ -150,7 +162,15 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
   );
 };
 
-const ColumnSpecDetails = ({ column, settings }: { column: ColumnSpec; settings?: SnapshotColumnSettings }) => {
+const ColumnSpecDetails = ({
+  column,
+  settings,
+  isHidden,
+}: {
+  column: ColumnSpec;
+  settings?: SnapshotColumnSettings;
+  isHidden: boolean;
+}) => {
   const tags: string[] = [];
   if (column.readonly) {
     tags.push('Readonly');
@@ -163,7 +183,7 @@ const ColumnSpecDetails = ({ column, settings }: { column: ColumnSpec; settings?
   }
 
   return (
-    <Table.Tr>
+    <Table.Tr bg={isHidden ? 'var(--mantine-color-gray-1)' : undefined}>
       <Table.Td>{column.name}</Table.Td>
       <Table.Td>
         <CopyText value={column.id.wsId} />
@@ -171,6 +191,9 @@ const ColumnSpecDetails = ({ column, settings }: { column: ColumnSpec; settings?
       <Table.Td>{column.id.remoteId}</Table.Td>
 
       <Table.Td>{column.pgType}</Table.Td>
+      <Table.Td>
+        <Text c={isHidden ? 'orange' : 'dimmed'}>{isHidden ? 'Yes' : 'No'}</Text>
+      </Table.Td>
       <Table.Td>
         <Group gap="xs">{tags.length > 0 && tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</Group>
       </Table.Td>

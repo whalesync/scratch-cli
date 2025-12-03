@@ -266,6 +266,9 @@ export const useSnapshotTableRecords = (args: {
         const fieldId = columnDef.id.wsId;
         if (fieldId === 'id') return; // Skip the ID column
 
+        // Skip hidden columns
+        if (snapshotTable.hiddenColumns?.includes(fieldId)) return;
+
         const value = record.fields?.[fieldId];
         const processed = processFieldValue(value, record, columnDef);
         processedFields[fieldId] = processed;
