@@ -45,7 +45,7 @@ export const ActiveSubscriptionSection = () => {
   );
 
   return (
-    <BillingSection title="Subscription" subtitle="Manage your subscription">
+    <BillingSection title="Subscription" description="Manage your subscription">
       {content}
     </BillingSection>
   );

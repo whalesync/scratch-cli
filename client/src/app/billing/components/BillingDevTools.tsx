@@ -23,7 +23,7 @@ export const BillingDevTools = () => {
   }
 
   return (
-    <BillingSection title="Dev Tools" subtitle="Testing tools for subscriptions">
+    <BillingSection title="Dev Tools" description="Testing tools for subscriptions">
       <Stack gap="xs">
         <SimpleGrid cols={3}>
           <DevToolButton

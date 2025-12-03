@@ -23,7 +23,7 @@ export const TokenUsageSection = () => {
       : '$' + systemOpenRouterCredential.usage.limit.toFixed(2);
 
   return (
-    <BillingSection title="Token usage" subtitle="Your usage of OpenRouter tokens provided by Scratch">
+    <BillingSection title="Token usage" description="Your usage of OpenRouter tokens provided by Scratch">
       <Stack gap="xs">
         <Text13Regular>Token usage</Text13Regular>
         <Progress value={value} color={isOverCreditLimit(systemOpenRouterCredential) ? 'red.6' : 'green.6'} />

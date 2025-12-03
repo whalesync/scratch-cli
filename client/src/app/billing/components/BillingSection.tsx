@@ -4,13 +4,13 @@ import { Box, Stack } from '@mantine/core';
 
 export const BillingSection = ({
   title,
-  subtitle,
+  description,
   children,
   p = 'md',
   hasBorder = true,
 }: {
   title: string;
-  subtitle: string;
+  description: string;
   children: React.ReactNode;
   p?: string;
   hasBorder?: boolean;
@@ -19,7 +19,7 @@ export const BillingSection = ({
     <Stack gap="16px">
       <Stack gap="4px">
         <Text13Medium>{title}</Text13Medium>
-        <Text13Book c="dimmed">{subtitle}</Text13Book>
+        <Text13Book c="dimmed">{description}</Text13Book>
       </Stack>
       <Box w="100%" p={p} className={`${hasBorder ? customBordersClasses.cornerBorders : ''}`}>
         {children}

@@ -122,12 +122,3 @@ export const DevToolButtonGhost = Button.withProps({
   color: 'devTool',
   leftSection: <StyledLucideIcon Icon={Cpu} />,
 });
-
-/** @deprecated */
-export const ContentFooterButton = Button.withProps({
-  variant: 'subtle',
-  size: 'xs',
-  c: 'var(--fg-primary)',
-  fz: 13,
-  fw: 425,
-});

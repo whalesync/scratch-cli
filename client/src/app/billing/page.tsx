@@ -29,7 +29,7 @@ const BillingPage = () => {
           <Divider c="var(--mantine-color-gray-3)" />
           <TokenUsageSection />
           <Divider c="var(--mantine-color-gray-3)" />
-          <BillingSection title="Plans" subtitle="Upgrade or change your plan" hasBorder={false} p="0">
+          <BillingSection title="Plans" description="Upgrade or change your plan" hasBorder={false} p="0">
             <SimpleGrid cols={3} spacing="xs">
               {plans?.map((plan) => (
                 <PlanCard key={plan.planType} plan={plan} />

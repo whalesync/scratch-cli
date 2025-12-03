@@ -1,10 +1,10 @@
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular, Text16Medium } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
-import { Badge, Box, Group, Stack, Tooltip } from '@mantine/core';
+import { Badge, Box, Center, Group, Stack, Tooltip } from '@mantine/core';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback } from 'react';
@@ -29,7 +29,11 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
 
   let actionButton = null;
   if (isCurrentPlan) {
-    actionButton = <ButtonSecondaryOutline disabled>Current Plan</ButtonSecondaryOutline>;
+    actionButton = (
+      <Center w="100%" h="36px" bg="var(--bg-panel)" className={customBordersClasses.cornerBorders}>
+        <Text13Regular c="dimmed">Current Plan</Text13Regular>
+      </Center>
+    );
   } else if (!isCurrentPlan && plan.planType !== ScratchPlanType.FREE_PLAN) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleSwitchToPlan} loading={portalRedirectInProgress}>
