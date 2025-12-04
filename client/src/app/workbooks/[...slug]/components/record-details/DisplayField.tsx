@@ -314,6 +314,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
   return (
     <FieldRow
       fieldName={column.name}
+      isReadOnly={column.readonly}
       showLabel={mode === 'multiple'}
       hasEditedValue={hasEditedValue}
       onLabelClick={onFieldLabelClick}

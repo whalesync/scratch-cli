@@ -1,9 +1,10 @@
 import { IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { TableSpec } from '@/types/server-entities/workbook';
-import { Anchor, Breadcrumbs, Center, Group, StyleProp } from '@mantine/core';
+import { Anchor, Breadcrumbs, Center, Group, StyleProp, Tooltip } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
-import { ArrowLeftIcon, ArrowRightIcon, ChevronRightIcon, XIcon } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, ChevronRightIcon, PenOffIcon, XIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 
@@ -92,7 +93,16 @@ export const RecordDetailsHeader = ({
             <Anchor fz="13px" c="var(--fg-secondary)" onClick={() => onSwitchColumn(undefined)}>
               All fields
             </Anchor>
-            <Text13Regular>{currentColumn.name}</Text13Regular>
+            <Group gap={4} align="center" wrap="nowrap">
+              <Text13Regular>{currentColumn.name}</Text13Regular>
+              {currentColumn.readonly && (
+                <Tooltip label="This field is readonly" position="top" withArrow>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    <StyledLucideIcon Icon={PenOffIcon} size={12} />
+                  </span>
+                </Tooltip>
+              )}
+            </Group>
           </Breadcrumbs>
         ) : (
           <Text13Regular>All fields</Text13Regular>
