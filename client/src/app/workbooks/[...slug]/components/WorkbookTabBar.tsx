@@ -6,9 +6,10 @@ import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { NewTabId, useWorkbookEditorUIStore, WorkbookEditorUIState } from '@/stores/workbook-editor-store';
 import { hasDeletedConnection, Workbook } from '@/types/server-entities/workbook';
-import { Box, Group, Tabs } from '@mantine/core';
+import { Box, Group, ScrollArea, Tabs } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { Plus } from 'lucide-react';
+import { useRef } from 'react';
 import classes from './WorkbookTabBar.module.css';
 
 export const WORKBOOK_TAB_BAR_HEIGHT = 40;
@@ -20,30 +21,64 @@ export const WorkbookTabBar = () => {
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const openNewBlankTab = useWorkbookEditorUIStore((state) => state.openNewBlankTab);
   const closeTab = useWorkbookEditorUIStore((state) => state.closeTab);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   return (
-    <Tabs
-      classNames={classes}
-      h={WORKBOOK_TAB_BAR_HEIGHT}
-      variant="pills"
-      value={activeTab}
-      onChange={(value) => {
-        if (value) {
-          setActiveTab(value as SnapshotTableId | NewTabId);
-        }
-      }}
+    <Group
+      w="100%"
+      gap={0}
+      wrap="nowrap"
+      style={{ backgroundColor: 'var(--bg-panel)', borderBottom: '1px solid var(--mantine-color-gray-4)' }}
     >
-      <Tabs.List>
-        {tabs.map((tab) => (
-          <TableTab key={tab.id} tab={tab} workbook={workbook} hideTable={hideTable} closeBlankTab={closeTab} />
-        ))}
-        <Box key="new-tab-button">
-          <IconButtonGhost onClick={openNewBlankTab} h="100%">
-            <Plus size={16} />
-          </IconButtonGhost>
-        </Box>
-      </Tabs.List>
-    </Tabs>
+      <Tabs
+        classNames={classes}
+        h={WORKBOOK_TAB_BAR_HEIGHT}
+        variant="pills"
+        value={activeTab}
+        onChange={(value) => {
+          if (value) {
+            setActiveTab(value as SnapshotTableId | NewTabId);
+          }
+        }}
+        w="auto"
+        maw="calc(100% - 40px)"
+        miw={0}
+      >
+        <ScrollArea
+          h={WORKBOOK_TAB_BAR_HEIGHT}
+          scrollbars="x"
+          scrollbarSize={6}
+          styles={{
+            thumb: { backgroundColor: 'var(--mantine-color-gray-5)' },
+          }}
+          viewportRef={viewportRef}
+          onWheel={(e) => {
+            if (e.deltaY !== 0 && viewportRef.current) {
+              viewportRef.current.scrollLeft += e.deltaY;
+            }
+          }}
+        >
+          <Tabs.List>
+            {tabs.map((tab) => (
+              <TableTab key={tab.id} tab={tab} workbook={workbook} hideTable={hideTable} closeBlankTab={closeTab} />
+            ))}
+          </Tabs.List>
+        </ScrollArea>
+      </Tabs>
+      <Box
+        key="new-tab-button"
+        w={WORKBOOK_TAB_BAR_HEIGHT}
+        h={WORKBOOK_TAB_BAR_HEIGHT}
+        style={{
+          flexShrink: 0,
+          borderLeft: tabs.length > 0 ? '1px solid var(--mantine-color-gray-4)' : 'none',
+        }}
+      >
+        <IconButtonGhost onClick={openNewBlankTab} h="100%">
+          <Plus size={16} />
+        </IconButtonGhost>
+      </Box>
+    </Group>
   );
 };
 
@@ -98,7 +133,7 @@ const TableTab = ({
     return <ConnectorIcon connector={table.connectorService} size={28} />;
   };
   return (
-    <Tabs.Tab component={Box} value={tab.id} key={tab.id} rightSection={rightSection}>
+    <Tabs.Tab component={Box} value={tab.id} key={tab.id} rightSection={rightSection} h={WORKBOOK_TAB_BAR_HEIGHT}>
       <Group gap="3" wrap="nowrap" maw={250}>
         {tabIcon()}
         <Text13Medium truncate="end">{tabName}</Text13Medium>

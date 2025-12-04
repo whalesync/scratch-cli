@@ -53,7 +53,7 @@ export const SyncStatus: FC<Props> = (props) => {
       leftIcon={<TableIndicator />}
       leftFlowLine={<SyncDirectedFlowLine direction={direction} moving={isMoving} />}
       centerIcon={
-        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg} style={{ pointerEvents: 'auto' }}>
+        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg}>
           {direction === 'left' ? (
             <StyledLucideIcon Icon={ArrowLeftIcon} size="md" />
           ) : (

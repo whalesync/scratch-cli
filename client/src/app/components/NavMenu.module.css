@@ -1,13 +1,14 @@
 .embadgedLogo {
-  width: 19px;
-  height: 19px;
-  background-color: var(--bg-base);
-  color: var(--mantine-color-gray-8);
+  width: 21px;
+  height: 21px;
+  /* background-color: var(--bg-base); */
+  background-image: url('/logo-color.svg');
+  background-size: 32px 32px;
+  background-repeat: no-repeat;
+  background-position: center;
+  /* color: var(--mantine-color-gray-8);
   border: 0.5px solid var(--fg-divider);
-  border-radius: 4px;
-  font-weight: 475;
-  font-size: 11px;
-  text-transform: uppercase;
+  border-radius: 4px; */
 }
 
 .userButtonContainer:hover :global(.mantine-Button-root) {

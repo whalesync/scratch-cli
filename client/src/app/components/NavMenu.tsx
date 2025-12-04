@@ -18,7 +18,6 @@ import {
   SunIcon,
   Table2Icon,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDevTools } from '../../hooks/use-dev-tools';
@@ -156,8 +155,6 @@ const NavMenuItem = ({ item, isActive }: { item: MenuItem; isActive: boolean }) 
 };
 
 const NavMenuUserButton = () => {
-  const avatar = <Image src="/logo-color.svg" alt="Scratch" width={19} height={19} className={styles.embadgedLogo} />;
-
   // Overlay UserButton to make the whole area clickable and trigger the menu
   const userButtonOverlay = (
     <Box pos="absolute" top={0} left={0} w="100%" h="100%" style={{ zIndex: 10, opacity: 0, overflow: 'hidden' }}>
@@ -176,7 +173,7 @@ const NavMenuUserButton = () => {
     <ButtonSecondaryGhost
       justify="flex-start"
       fullWidth
-      leftSection={avatar}
+      leftSection={<Box className={styles.embadgedLogo} />}
       rightSection={<ChevronDown size={16} color="var(--mantine-color-gray-7)" />}
       mb={12}
     >
