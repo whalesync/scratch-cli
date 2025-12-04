@@ -4,13 +4,14 @@ import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { RelativeDate } from '@/app/components/RelativeDate';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { hasAllConnectionsDeleted, hasDeletedServiceConnection, Workbook } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
-import { Group, Modal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Group, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -71,28 +72,40 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
 
   return (
     <>
-      <Modal {...modalStack.register('confirm-delete')} title="Delete workbook" centered size="lg">
+      <ModalWrapper
+        title="Delete workbook"
+        customProps={{
+          footer: (
+            <>
+              <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleDelete} loading={saving}>
+                Delete
+              </ButtonPrimaryLight>
+            </>
+          ),
+        }}
+        {...modalStack.register('confirm-delete')}
+      >
         <Stack>
           <Text>Are you sure you want to abandon this workbook? All data will be deleted.</Text>
-          <Group justify="flex-end">
-            <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
-            <ButtonPrimaryLight onClick={handleDelete} loading={saving}>
-              Delete
-            </ButtonPrimaryLight>
-          </Group>
         </Stack>
-      </Modal>
-      <Modal {...modalStack.register('rename')} title="Rename workbook" centered size="lg">
-        <Stack>
-          <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
-          <Group justify="flex-end">
-            <ButtonSecondaryOutline onClick={() => modalStack.close('rename')}>Cancel</ButtonSecondaryOutline>
-            <ButtonPrimaryLight onClick={handleRename} loading={saving}>
-              Save
-            </ButtonPrimaryLight>
-          </Group>
-        </Stack>
-      </Modal>
+      </ModalWrapper>
+      <ModalWrapper
+        title="Rename workbook"
+        customProps={{
+          footer: (
+            <>
+              <ButtonSecondaryOutline onClick={() => modalStack.close('rename')}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleRename} loading={saving}>
+                Save
+              </ButtonPrimaryLight>
+            </>
+          ),
+        }}
+        {...modalStack.register('rename')}
+      >
+        <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
+      </ModalWrapper>
       <Table.Tr
         key={workbook.id}
         onClick={() => router.push(RouteUrls.workbookPageUrl(workbook.id))}

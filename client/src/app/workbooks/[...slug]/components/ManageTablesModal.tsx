@@ -2,9 +2,10 @@
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { Checkbox, Group, Modal, Stack, Text } from '@mantine/core';
+import { Checkbox, Group, Stack, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { useEffect, useState } from 'react';
 
@@ -65,7 +66,22 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, workbookId, tables 
   };
 
   return (
-    <Modal opened={isOpen} onClose={handleClose} title="Manage Tables" size="md" centered>
+    <ModalWrapper
+      title="Manage Tables"
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={handleClose}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleSave} loading={isSaving}>
+              Save Changes
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      opened={isOpen}
+      onClose={handleClose}
+      size="md"
+    >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Toggle which tables are visible in the workbook. Hidden tables are not deleted and can be unhidden at any
@@ -90,14 +106,7 @@ export const ManageTablesModal = ({ isOpen, onClose, onSave, workbookId, tables 
             </Group>
           ))}
         </Stack>
-
-        <Group justify="flex-end" mt="md">
-          <ButtonSecondaryOutline onClick={handleClose}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleSave} loading={isSaving}>
-            Save Changes
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

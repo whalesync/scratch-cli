@@ -1,8 +1,9 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
 import { PostgresColumnType } from '@/types/server-entities/workbook';
-import { Group, Modal, Select, Stack, TextInput } from '@mantine/core';
+import { Select, Stack, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { WorkbookModals, useWorkbookEditorUIStore } from '../../../../../../stores/workbook-editor-store';
 
@@ -67,7 +68,24 @@ export const CreateScratchColumnModal = () => {
   const isFormValid = columnName.trim().length > 0 && dataType !== null;
 
   return (
-    <Modal opened={isOpen} onClose={handleClose} title="Create Column" centered size="md">
+    <ModalWrapper
+      title="Create Column"
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={handleClose} disabled={isCreating}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleCreate} loading={isCreating} disabled={!isFormValid}>
+              Create
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      opened={isOpen}
+      onClose={handleClose}
+      size="md"
+    >
       <Stack gap="md">
         <TextInput
           label="Column Name"
@@ -88,16 +106,7 @@ export const CreateScratchColumnModal = () => {
           disabled={isCreating}
           required
         />
-
-        <Group justify="flex-end" gap="sm">
-          <ButtonSecondaryOutline onClick={handleClose} disabled={isCreating}>
-            Cancel
-          </ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleCreate} loading={isCreating} disabled={!isFormValid}>
-            Create
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

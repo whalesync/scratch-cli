@@ -66,8 +66,6 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       opened={true}
       onClose={onClose}
       title={<Text>{getStatusText()}</Text>}
-      centered
-      size="lg"
       closeOnClickOutside={false}
       closeOnEscape={job?.state === 'completed' || job?.state === 'failed'}
     >

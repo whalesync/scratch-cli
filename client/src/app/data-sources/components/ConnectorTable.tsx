@@ -1,11 +1,12 @@
 'use client';
 
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
 import { AuthType, ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
-import { Alert, Group, Loader, LoadingOverlay, Modal, Stack, Table, Text, useModalsStack } from '@mantine/core';
+import { Alert, Group, Loader, LoadingOverlay, Table, Text, useModalsStack } from '@mantine/core';
 import { ArrowDown, ArrowUp, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectorAccounts } from '../../../hooks/use-connector-account';
@@ -107,17 +108,23 @@ export default function ConnectorTable() {
     <>
       <CreateConnectionModal {...modalStack.register('create')} />
       <UpdateConnectionModal {...modalStack.register('update')} connectorAccount={selectedConnectorAccount} />
-      <Modal {...modalStack.register('confirm-delete')} title="Delete data source" centered size="lg">
-        <Stack>
-          <Text>Are you sure you want to delete this data source and associated workbooks?</Text>
-          <Group justify="flex-end">
-            <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
-            <ButtonPrimaryLight onClick={handleDelete} loading={isDeleting}>
-              Delete
-            </ButtonPrimaryLight>
-          </Group>
-        </Stack>
-      </Modal>
+      <ModalWrapper
+        title="Delete data source"
+        customProps={{
+          footer: (
+            <>
+              <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+              <ButtonPrimaryLight onClick={handleDelete} loading={isDeleting}>
+                Delete
+              </ButtonPrimaryLight>
+            </>
+          ),
+        }}
+        {...modalStack.register('confirm-delete')}
+        centered
+      >
+        <Text>Are you sure you want to delete this data source and associated workbooks?</Text>
+      </ModalWrapper>
       {oauthError && <Alert color="red">{oauthError}</Alert>}
 
       <LoadingOverlay

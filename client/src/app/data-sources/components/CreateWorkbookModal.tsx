@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { tableName, tablesName } from '@/service-naming-conventions';
@@ -157,7 +158,25 @@ export const CreateWorkbookModal = ({
   };
 
   return (
-    <Modal title="Start new workbook" size="xl" centered {...props}>
+    <ModalWrapper
+      title="Start new workbook"
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight
+              loading={isSaving}
+              onClick={handleCreateWorkbook}
+              disabled={!selectedTable || workbookName.length === 0 || !!error}
+            >
+              Create workbook
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      size="xl"
+      {...props}
+    >
       <Stack>
         <TextInput
           placeholder="Enter a name for the workbook"
@@ -213,17 +232,6 @@ export const CreateWorkbookModal = ({
             </ButtonSecondaryOutline>
           </Group>
         )}
-
-        <Group justify="flex-end">
-          <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight
-            loading={isSaving}
-            onClick={handleCreateWorkbook}
-            disabled={!selectedTable || workbookName.length === 0 || !!error}
-          >
-            Create workbook
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
 
       {/* Add Channel Modal */}
@@ -253,6 +261,6 @@ export const CreateWorkbookModal = ({
           </Group>
         </Stack>
       </Modal>
-    </Modal>
+    </ModalWrapper>
   );
 };

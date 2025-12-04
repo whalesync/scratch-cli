@@ -1,7 +1,8 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { AuthType, ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
-import { Alert, Group, Modal, ModalProps, Stack, TextInput } from '@mantine/core';
+import { Alert, ModalProps, Stack, TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
 
 interface UpdateConnectionModalProps extends ModalProps {
@@ -64,7 +65,23 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
   };
 
   return (
-    <Modal title="Edit Data Source" centered size="lg" {...modalProps}>
+    <ModalWrapper
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline variant="default" onClick={props.onClose}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight loading={isSaving} onClick={handleUpdate}>
+              Save
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      title="Edit Data Source"
+      centered
+      {...modalProps}
+    >
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
         <TextInput label="Display Name" value={updatedName} onChange={(e) => setUpdatedName(e.currentTarget.value)} />
@@ -98,16 +115,7 @@ export const UpdateConnectionModal = (props: UpdateConnectionModalProps) => {
               />
             </>
           )}
-
-        <Group justify="flex-end">
-          <ButtonSecondaryOutline variant="default" onClick={props.onClose}>
-            Cancel
-          </ButtonSecondaryOutline>
-          <ButtonPrimaryLight loading={isSaving} onClick={handleUpdate}>
-            Save
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

@@ -1,13 +1,14 @@
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
-import { Alert, Checkbox, Group, Modal, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
+import { Alert, Checkbox, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
 import { AgentCredential } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
+import { ModalWrapper } from './ModalWrapper';
 
 interface EditAgentCredentialsModalProps extends ModalProps {
   credentials: AgentCredential | null;
@@ -78,7 +79,22 @@ export const EditAgentCredentialsModal = ({
   }, [credentials, formData, updateCredentials, createCredentials, onSuccess]);
 
   return (
-    <Modal {...modalProps} title={credentials ? 'Edit credentials' : 'New credentials'} centered size="lg">
+    <ModalWrapper
+      title={credentials ? 'Edit credentials' : 'New credentials'}
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleSubmit} disabled={saving}>
+              {credentials ? 'Save' : 'Create'}
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      {...modalProps}
+    >
       <Stack gap="sm">
         {error && (
           <Alert color="red" mb="sm" withCloseButton onClose={() => setError(null)}>
@@ -110,15 +126,7 @@ export const EditAgentCredentialsModal = ({
           checked={formData.default}
           onChange={(event) => setFormData({ default: event.target.checked })}
         />
-        <Group justify="flex-end">
-          <ButtonSecondaryOutline variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>
-            Cancel
-          </ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleSubmit} disabled={saving}>
-            {credentials ? 'Save' : 'Create'}
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

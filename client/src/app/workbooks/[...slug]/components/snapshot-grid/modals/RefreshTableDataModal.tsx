@@ -114,8 +114,6 @@ const ConfirmRefreshModal = ({
       opened={isOpen}
       onClose={onClose}
       title="Select tables to fetch"
-      centered
-      size="lg"
     >
       <Stack gap="md">
         <Stack gap="xs">

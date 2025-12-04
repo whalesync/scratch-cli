@@ -1,8 +1,10 @@
 'use client';
 import { CsvDataResponse, uploadsApi } from '@/lib/api/uploads';
-import { Center, Group, Loader, Modal, ScrollArea, Stack, Table, Text } from '@mantine/core';
+import { Center, Group, Loader, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { FC, useEffect, useState } from 'react';
 import { formatNumber } from '../../../utils/helpers';
+import { ButtonSecondaryOutline } from '../base/buttons';
+import { ModalWrapper } from '../ModalWrapper';
 
 interface CsvViewModalProps {
   opened: boolean;
@@ -41,7 +43,15 @@ export const CsvViewModal: FC<CsvViewModalProps> = ({ opened, onClose, uploadId,
   const columnNames = data && data.rows.length > 0 ? Object.keys(data.rows[0]).filter((key) => key !== 'remoteId') : [];
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Preview: ${uploadName || 'CSV Upload'}`} size="xl" centered>
+    <ModalWrapper
+      customProps={{
+        footer: <ButtonSecondaryOutline onClick={onClose}>Close</ButtonSecondaryOutline>,
+      }}
+      opened={opened}
+      onClose={onClose}
+      title={`Preview: ${uploadName || 'CSV Upload'}`}
+      size="xl"
+    >
       <Stack gap="md" align="stretch" h={500} justify="center">
         {isLoading && (
           <Center>
@@ -95,6 +105,6 @@ export const CsvViewModal: FC<CsvViewModalProps> = ({ opened, onClose, uploadId,
           </>
         )}
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

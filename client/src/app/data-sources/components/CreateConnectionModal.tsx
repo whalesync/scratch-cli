@@ -1,5 +1,6 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -12,7 +13,6 @@ import {
   Alert,
   Group,
   Text as MantineText,
-  Modal,
   ModalProps,
   Radio,
   SimpleGrid,
@@ -198,10 +198,18 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const availableServices = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
 
   return (
-    <Modal
+    <ModalWrapper
       title="Create Connection"
-      size="lg"
-      centered
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading || isCreating}>
+              {authMethod === 'oauth' && newService ? 'Connect with ' + serviceName(newService) : 'Create'}
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
       {...modalProps}
       onExitTransitionEnd={() => {
         // clear the form when the modal is closed
@@ -352,14 +360,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               />
             )}
         </Stack>
-
-        <Group justify="flex-end">
-          <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
-          <ButtonPrimaryLight onClick={handleCreate} loading={isOAuthLoading || isCreating}>
-            {authMethod === 'oauth' && newService ? 'Connect with ' + serviceName(newService) : 'Create'}
-          </ButtonPrimaryLight>
-        </Group>
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

@@ -51,8 +51,6 @@ export const PublishJobProgressModal: FC<Props> = (props) => {
           )}
         </Group>
       }
-      centered
-      size="lg"
       closeOnClickOutside={false}
       closeOnEscape={job?.state === 'completed' || job?.state === 'failed'}
     >

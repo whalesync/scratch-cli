@@ -1,11 +1,12 @@
 import { Text12Book, Text13Regular } from '@/app/components/base/text';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import ModelPicker from '@/app/components/ModelPicker';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
-import { Grid, Group, Modal, Stack, UnstyledButton } from '@mantine/core';
+import { Grid, Group, Stack, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Edit3Icon } from 'lucide-react';
 import { useState } from 'react';
@@ -55,7 +56,14 @@ export const UserPreferencesCard = () => {
         </Grid.Col>
       </Grid>
 
-      <Modal opened={modelPickerOpen} onClose={closeModelPicker} title="Select Model" size="xl" centered>
+      <ModalWrapper
+        customProps={{ footer: null }}
+        opened={modelPickerOpen}
+        onClose={closeModelPicker}
+        title="Select Model"
+        size="xl"
+        centered
+      >
         <ModelPicker
           currentModelOption={{
             value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
@@ -65,7 +73,7 @@ export const UserPreferencesCard = () => {
             handleModelChange(value.value);
           }}
         />
-      </Modal>
+      </ModalWrapper>
     </SettingsPanel>
   );
 };

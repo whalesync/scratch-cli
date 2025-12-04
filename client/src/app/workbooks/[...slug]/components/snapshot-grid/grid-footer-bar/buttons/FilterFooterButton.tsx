@@ -1,12 +1,17 @@
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
+import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { Box, Button, Group, Menu, Modal, Textarea } from '@mantine/core';
+import { Box, Menu, Textarea } from '@mantine/core';
 import { CheckIcon, CodeIcon, FunnelIcon, FunnelPlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workbook';
-import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
+import {
+  ButtonPrimarySolid,
+  ButtonSecondaryInline,
+  ButtonSecondaryOutline,
+} from '../../../../../../components/base/buttons';
 
 /** Magic SQL query to filter only edited records. This is a hack to show only filtered records by setting special sql. */
 const ONLY_EDITED_SQL = `__edited_fields <> '{}'::jsonb`;
@@ -138,7 +143,24 @@ const CustomSqlFilterModal = ({
   }, [table.workbookId, table.id, sqlFilterText, onClose]);
 
   return (
-    <Modal opened={isOpen} onClose={onClose} title="Custom SQL Filter" size="md">
+    <ModalWrapper
+      title="Custom SQL Filter"
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline variant="subtle" onClick={onClose}>
+              Cancel
+            </ButtonSecondaryOutline>
+            <ButtonPrimarySolid onClick={handleSetSqlFilter} loading={false}>
+              Apply Filter
+            </ButtonPrimarySolid>
+          </>
+        ),
+      }}
+      opened={isOpen}
+      onClose={onClose}
+      size="md"
+    >
       <Box>
         <Text12Regular>Enter a SQL WHERE clause to filter records. Leave empty to clear the filter.</Text12Regular>
         <Text12Regular size="xs" c="dimmed" mb="md">
@@ -158,15 +180,7 @@ const CustomSqlFilterModal = ({
           error={sqlFilterError}
           mb="md"
         />
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSetSqlFilter} loading={false}>
-            Apply Filter
-          </Button>
-        </Group>
       </Box>
-    </Modal>
+    </ModalWrapper>
   );
 };

@@ -3,15 +3,27 @@ import { FC } from 'react';
 
 type Props = ModalProps & {
   customProps: {
-    footer: React.ReactNode;
+    footer: React.ReactNode | null;
   };
 };
+
+/**
+ * This wrapper can be improved.
+ * For now I used the 80/20 approach used since we are in pre-release mode.
+ * Current features:
+ * - scrollable content ares between header and footer
+ * - standard footer and standard dividers
+ * Possible imnprovements include default cancel button (so that the users of the component
+ * do not need to pass it each time, etc)
+ */
 
 export const ModalWrapper: FC<Props> = (props) => {
   const { children, customProps, ...modalProps } = props;
   console.log(customProps);
   return (
     <Modal
+      size="lg"
+      centered
       {...modalProps}
       styles={{
         body: {
@@ -27,10 +39,14 @@ export const ModalWrapper: FC<Props> = (props) => {
             {children}
           </Box>
         </ScrollArea.Autosize>
-        <Divider />
-        <Group pl={16} pr={16} justify="flex-end">
-          {customProps.footer}
-        </Group>
+        {customProps.footer && (
+          <>
+            <Divider />
+            <Group pl={16} pr={16} justify="flex-end">
+              {customProps.footer}
+            </Group>
+          </>
+        )}
       </Stack>
     </Modal>
   );

@@ -5,11 +5,9 @@ import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
 import { PostgresColumnType } from '@/types/server-entities/workbook';
 import { getColumnTypeIcon } from '@/utils/columns';
 import {
-  Button,
   Checkbox,
   ComboboxData,
   Group,
-  Modal,
   Select,
   Stack,
   Table,
@@ -23,6 +21,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FC, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { RouteUrls } from '../../../utils/route-urls';
+import { ModalWrapper } from '../ModalWrapper';
+import { ButtonPrimarySolid } from '../base/buttons';
 
 // Custom type for modal that includes IGNORE option
 type ModalColumnType = PostgresColumnType | 'IGNORE';
@@ -192,7 +192,30 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
           width: 150px !important;
         }
       `}</style>
-      <Modal opened={opened} onClose={onClose} title="Uploading CSV data source" size="80%" centered>
+      <ModalWrapper
+        customProps={{
+          footer: (
+            <>
+              <Text size="sm" fw={500} style={{ minWidth: '120px' }}>
+                Upload as:
+              </Text>
+              <TextInput
+                value={newFileName}
+                onChange={(event) => setNewFileName(event.currentTarget.value)}
+                placeholder="Enter new name"
+                style={{ flex: 1 }}
+              />
+              <ButtonPrimarySolid onClick={handleUpload} loading={isUploading} size="md">
+                Upload
+              </ButtonPrimarySolid>
+            </>
+          ),
+        }}
+        opened={opened}
+        onClose={onClose}
+        title="Uploading CSV data source"
+        size="80%"
+      >
         <Stack gap="xl">
           {/* Preview error - shows if CSV parsing failed */}
           {previewError && (
@@ -396,24 +419,8 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
               </Table.Tbody>
             </Table>
           </div>
-
-          {/* Import section */}
-          <Group align="center">
-            <Text size="sm" fw={500} style={{ minWidth: '120px' }}>
-              Upload as:
-            </Text>
-            <TextInput
-              value={newFileName}
-              onChange={(event) => setNewFileName(event.currentTarget.value)}
-              placeholder="Enter new name"
-              style={{ flex: 1 }}
-            />
-            <Button onClick={handleUpload} loading={isUploading} size="md">
-              Upload
-            </Button>
-          </Group>
         </Stack>
-      </Modal>
+      </ModalWrapper>
     </>
   );
 };

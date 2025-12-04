@@ -61,6 +61,7 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
 
   return (
     <ModalWrapper
+      title="Configure tools"
       customProps={{
         footer: (
           <>
@@ -71,8 +72,6 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
       }}
       opened={opened}
       onClose={handleCancel}
-      title="Configure tools"
-      size="lg"
       zIndex={1001}
     >
       <Stack gap="md">

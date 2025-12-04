@@ -69,7 +69,6 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
         ),
       }}
       {...props}
-      centered
       size="md"
     >
       <Stack>
