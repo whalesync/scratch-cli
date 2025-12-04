@@ -299,6 +299,9 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
   if (!workbook) {
     return false;
   }
+  if (workbook.snapshotTables?.length === 0) {
+    return false;
+  }
   // Check if all tables have a deleted connection
   return (
     workbook.snapshotTables?.every((table) => {

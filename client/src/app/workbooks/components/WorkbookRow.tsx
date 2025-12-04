@@ -1,3 +1,4 @@
+import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
@@ -106,7 +107,9 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <Table.Td>
           {/* Icons are stacked on top of each other with an offset */}
           <Group gap={3}>
-            {allConnectionsDeleted ? (
+            {connectorList.length === 0 ? (
+              <Badge color="black">Not set up</Badge>
+            ) : allConnectionsDeleted ? (
               <DeletedConnectionIcon />
             ) : (
               connectorList.map((table, index) => {
