@@ -1,6 +1,6 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
-import { EnhancedTextArea } from '@/app/components/EnhancedTextArea';
+import { EnhancedTextArea, TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
@@ -16,6 +16,7 @@ import {
 import { Anchor, Checkbox, NumberInput, ScrollArea, Stack } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { diffWordsWithSpace } from 'diff';
+import { RefObject } from 'react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 
@@ -30,6 +31,7 @@ interface DisplayFieldProps {
   onAcceptSuggestion: () => void;
   onRejectSuggestion: () => void;
   saving: boolean;
+  focusTargetRef?: RefObject<TextAreaRef | null>;
 }
 
 export const DisplayField = (props: DisplayFieldProps) => {
@@ -43,7 +45,10 @@ export const DisplayField = (props: DisplayFieldProps) => {
     onAcceptSuggestion,
     onRejectSuggestion,
     saving,
+    focusTargetRef /** place on an element that wants to get focus when user hits enter */,
   } = props;
+
+  // Early validation
   if (!record) return null;
   if (!table) return null;
 
@@ -269,6 +274,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
             </Stack>
           ) : (
             <EnhancedTextArea
+              ref={focusTargetRef}
               flex={1}
               inputWrapperOrder={['input', 'label', 'description', 'error']}
               key={columnId}
@@ -288,6 +294,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
 
   const textInputField = (
     <EnhancedTextArea
+      ref={focusTargetRef}
       flex={1}
       inputWrapperOrder={['input', 'label', 'description', 'error']}
       key={columnId}

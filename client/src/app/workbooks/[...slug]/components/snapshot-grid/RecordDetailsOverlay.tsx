@@ -1,10 +1,11 @@
 'use client';
 
+import { TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Divider, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
 import { RECORD_DETILE_SIDEBAR_W } from '../record-details/record-detail-constants';
 import { RecordDetails } from '../record-details/RecordDetails';
@@ -39,6 +40,10 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
     workbookId,
     handleRowNavigation,
   } = props;
+
+  // Ref to the focusable input element in the current field
+  const focusTargetRef = useRef<TextAreaRef | null>(null);
+
   const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
   const hasSuggestions =
     columnsWithSuggestions.length > 0 &&
@@ -46,6 +51,39 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Enter key to focus the input field
+      if (event.key === 'Enter') {
+        // If already focused on the input, do nothing
+        if (document.activeElement === focusTargetRef.current) {
+          return;
+        }
+        // Don't focus if already in an input/textarea
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        focusTargetRef.current?.focus();
+        return;
+      }
+
+      // Handle Escape key: first blur input, then close overlay
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // If input is focused, just blur it (arrows will now navigate fields/rows)
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          (event.target as HTMLElement).blur();
+          return;
+        }
+
+        // If input is not focused, close the overlay
+        handleCloseRecordDetails();
+        return;
+      }
+
       if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
           // ignore arrow keys in input and textarea
@@ -60,7 +98,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleRowNavigation]);
+  }, [handleRowNavigation, handleCloseRecordDetails]);
 
   const HEADER_HEIGHT = 36;
 
@@ -109,6 +147,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
                 rejectCellValues={rejectCellValues}
                 onFocusOnField={handleFieldFocus}
                 onRecordUpdate={handleRecordUpdate}
+                focusTargetRef={focusTargetRef}
               />
             </ScrollArea>
           </Box>

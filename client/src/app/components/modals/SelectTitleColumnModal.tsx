@@ -2,8 +2,9 @@
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { uploadsApi } from '@/lib/api/uploads';
-import { Alert, Center, Group, Loader, Modal, ModalProps, Radio, Stack, Text } from '@mantine/core';
+import { Alert, Center, Loader, ModalProps, Radio, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { ModalWrapper } from '../ModalWrapper';
 
 interface SelectTitleColumnModalProps extends Omit<ModalProps, 'children'> {
   uploadId: string;
@@ -55,7 +56,22 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
   };
 
   return (
-    <Modal {...props} title={`Create workbook from "${uploadName}"`} centered size="md">
+    <ModalWrapper
+      title={`Create workbook from "${uploadName}"`}
+      customProps={{
+        footer: (
+          <>
+            <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
+            <ButtonPrimaryLight onClick={handleConfirm} disabled={!selectedColumn}>
+              Create workbook
+            </ButtonPrimaryLight>
+          </>
+        ),
+      }}
+      {...props}
+      centered
+      size="md"
+    >
       <Stack>
         {error && (
           <Alert color="red" title="Error">
@@ -81,16 +97,9 @@ export const SelectTitleColumnModal = ({ uploadId, uploadName, onConfirm, ...pro
                 ))}
               </Stack>
             </Radio.Group>
-
-            <Group justify="flex-end" mt="md">
-              <ButtonSecondaryOutline onClick={props.onClose}>Cancel</ButtonSecondaryOutline>
-              <ButtonPrimaryLight onClick={handleConfirm} disabled={!selectedColumn}>
-                Create workbook
-              </ButtonPrimaryLight>
-            </Group>
           </>
         )}
       </Stack>
-    </Modal>
+    </ModalWrapper>
   );
 };

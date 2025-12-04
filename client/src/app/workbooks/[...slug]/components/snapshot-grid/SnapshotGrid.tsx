@@ -264,9 +264,13 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     // Reset data scope back to table
     setActiveCells(null);
     setTableScope();
-    // Clear grid selection
+
+    // Return browser focus to the grid's currently focused cell
     if (gridApi) {
-      gridApi.deselectAll();
+      const focusedCell = gridApi.getFocusedCell();
+      if (focusedCell) {
+        gridApi.setFocusedCell(focusedCell.rowIndex, focusedCell.column);
+      }
     }
   }, [gridApi, setActiveCells, setTableScope, savePendingChanges]);
 
@@ -274,7 +278,18 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Handle Esc key to close record view or clear selection
+      // Note: When overlay is open, RecordDetailsOverlay handles Escape for two-stage behavior
+      // (first blur input, then close). We only handle Escape here when no overlay or when
+      // focus is not in an input (meaning overlay's first stage already happened).
       if (event.key === 'Escape') {
+        // Skip if focus is in input/textarea - let RecordDetailsOverlay handle it
+        if (
+          activeCells?.recordId &&
+          (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+        ) {
+          return;
+        }
+
         if (activeCells?.recordId) {
           // Close record details overlay
           handleCloseRecordDetails();
