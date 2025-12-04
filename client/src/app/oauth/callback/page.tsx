@@ -1,15 +1,17 @@
 'use client';
 
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { Text13Regular, TextTitle2 } from '@/app/components/base/text';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { RouteUrls } from '@/utils/route-urls';
-import { Alert, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { CircleXIcon } from 'lucide-react';
+import { Alert, Container, Group, Loader, Stack } from '@mantine/core';
+import { CircleXIcon, InfoIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { OAuthStatePayload } from '../../../types/server-entities/oauth';
 
 interface OAuthCallbackState {
-  status: 'loading' | 'error';
+  status: 'loading' | 'error' | 'denied';
   message?: string;
   connectorAccountId?: string;
 }
@@ -40,12 +42,13 @@ export default function OAuthCallbackPage() {
         // Extract OAuth parameters from URL
         const code = searchParams.get('code');
         const oAuthStateString = searchParams.get('state');
+        const error = searchParams.get('error');
 
-        // Validate required parameters.
-        if (!code || !oAuthStateString) {
+        // If there's no state param at all, we can't redirect properly
+        if (!oAuthStateString) {
           setState({
             status: 'error',
-            message: 'Missing required OAuth parameters (code or state)',
+            message: 'Missing required OAuth state parameter',
           });
           return;
         }
@@ -55,6 +58,26 @@ export default function OAuthCallbackPage() {
           setState({
             status: 'error',
             message: 'Error parsing required OAuth param (state)',
+          });
+          return;
+        }
+
+        if (error) {
+          // Check if user cancelled/denied the OAuth authorization
+          const isDeniedError = error === 'access_denied' || error === 'user_cancelled_login';
+
+          setState({
+            status: isDeniedError ? 'denied' : 'error',
+            message: isDeniedError ? undefined : error,
+          });
+          return;
+        }
+
+        // Validate code is present for successful OAuth
+        if (!code) {
+          setState({
+            status: 'error',
+            message: 'Missing required OAuth authorization code',
           });
           return;
         }
@@ -76,7 +99,7 @@ export default function OAuthCallbackPage() {
 
   const decodeOAuthStatePayload = (oAuthStateString: string): OAuthStatePayload | null => {
     try {
-      if (!state) return null;
+      if (!oAuthStateString) return null;
 
       // Decode the base64 state parameter.
       return (JSON.parse(Buffer.from(oAuthStateString, 'base64').toString()) as OAuthStatePayload) || null;
@@ -91,25 +114,38 @@ export default function OAuthCallbackPage() {
         {state.status === 'loading' && (
           <>
             <Loader size="lg" />
-            <Title order={2}>Connecting your account...</Title>
-            <Text c="dimmed" ta="center">
+            <TextTitle2>Connecting your account...</TextTitle2>
+            <Text13Regular c="dimmed" ta="center">
               Please wait while we complete the OAuth connection.
-            </Text>
+            </Text13Regular>
           </>
         )}
 
         {state.status === 'error' && (
           <>
-            <CircleXIcon size={64} color="var(--mantine-color-red-6)" />
-            <Title order={2} c="red">
-              Connection Failed
-            </Title>
+            <StyledLucideIcon Icon={CircleXIcon} size={64} c="var(--mantine-color-red-6)" />
+            <TextTitle2 c="red">Connection Failed</TextTitle2>
             <Alert color="red" title="Error">
               {state.message}
             </Alert>
-            <Text size="sm" c="dimmed" ta="center">
+            <Text13Regular c="dimmed" ta="center">
               You can try again or contact support if the problem persists.
-            </Text>
+            </Text13Regular>
+            <Group gap="sm" mt="md">
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
+                Back to Data Sources
+              </ButtonSecondaryOutline>
+            </Group>
+          </>
+        )}
+        {state.status === 'denied' && (
+          <>
+            <StyledLucideIcon Icon={InfoIcon} size={64} c="var(--mantine-color-gray-6)" />
+            <TextTitle2>Connection Cancelled</TextTitle2>
+            <Alert color="gray">
+              You cancelled the process of creating a new connection. If this was unintended, please go back to data
+              sources and create a new connection.
+            </Alert>
             <Group gap="sm" mt="md">
               <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
                 Back to Data Sources
