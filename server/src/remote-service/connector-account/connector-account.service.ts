@@ -191,18 +191,25 @@ export class ConnectorAccountService {
 
   async listAllUserTables(actor: Actor): Promise<TableGroup[]> {
     const allAccounts = await this.db.client.connectorAccount.findMany({
-      // Ignore accounts with failed health status
-      where: { organizationId: actor.organizationId, healthStatus: 'OK' },
+      where: { organizationId: actor.organizationId },
     });
 
     // Fetch tables from all connector accounts in parallel
     const tablePromises = allAccounts.map((account) =>
-      this.listTables(account.service, account.id, actor).then((tables) => ({
-        service: account.service,
-        connectorAccountId: account.id,
-        displayName: account.displayName,
-        tables,
-      })),
+      this.listTables(account.service, account.id, actor)
+        .then((tables) => ({
+          service: account.service,
+          connectorAccountId: account.id,
+          displayName: account.displayName,
+          tables,
+        }))
+        .catch(() => ({
+          // Return empty tables if listTables fails
+          service: account.service,
+          connectorAccountId: account.id,
+          displayName: account.displayName,
+          tables: [] as TablePreview[],
+        })),
     );
 
     try {

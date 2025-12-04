@@ -111,16 +111,18 @@ export const AddTableTab = () => {
     // Combine all groups
     const allGroups = csvGroup ? [...tableGroups, csvGroup] : tableGroups;
 
-    // Filter groups by search query
-    const filteredGroups = allGroups
-      .map((group) => ({
-        ...group,
-        tables: group.tables.filter((table) => table.displayName.toLowerCase().includes(searchQuery.toLowerCase())),
-      }))
-      .filter((group) => group.tables.length > 0);
+    // Filter tables by search query
+    const filteredGroups = allGroups.map((group) => ({
+      ...group,
+      tables: group.tables.filter((table) => table.displayName.toLowerCase().includes(searchQuery.toLowerCase())),
+    }));
+
+    // When searching, hide groups with no matching tables
+    // When not searching, show all groups (including empty ones for unhealthy connections)
+    const visibleGroups = searchQuery ? filteredGroups.filter((group) => group.tables.length > 0) : filteredGroups;
 
     // Sort groups: CSV uploads last
-    return filteredGroups.sort((a, b) => {
+    return visibleGroups.sort((a, b) => {
       if (a.service === Service.CSV) return 1;
       if (b.service === Service.CSV) return -1;
       return 0;
@@ -201,18 +203,28 @@ export const AddTableTab = () => {
 
     for (const group of groupedTables) {
       const groupKey = createGroupKey(group);
+      const children =
+        group.tables.length > 0
+          ? group.tables.map((table) => {
+              const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
+              return {
+                value: table.id.wsId,
+                label: table.displayName,
+                nodeProps: { type: 'group-item', table, group, matchingSnapshot },
+              };
+            })
+          : [
+              {
+                value: `${groupKey}-empty`,
+                label: 'No tables for this connection',
+                nodeProps: { type: 'group-empty', group },
+              },
+            ];
       result.push({
         value: groupKey,
         label: group.displayName,
         nodeProps: { type: 'group-header', group, groupKey },
-        children: group.tables.map((table) => {
-          const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
-          return {
-            value: table.id.wsId,
-            label: table.displayName,
-            nodeProps: { type: 'group-item', table, group, matchingSnapshot },
-          };
-        }),
+        children,
       });
     }
     return result;
@@ -301,6 +313,16 @@ export const AddTableTab = () => {
               <Text13Regular>{timeAgo(matchingSnapshot.lastSyncTime)}</Text13Regular>
             </Group>
           )}
+        </Group>
+      );
+    }
+
+    if (type === 'group-empty' && group) {
+      return (
+        <Group className={cx([styles.listSectionItem, treeClassName])} {...restElementProps}>
+          <Text13Regular c="dimmed" fs="italic">
+            No tables for {group.displayName} connection
+          </Text13Regular>
         </Group>
       );
     }
