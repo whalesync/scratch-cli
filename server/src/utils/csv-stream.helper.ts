@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Knex } from 'knex';
 import { to as copyTo } from 'pg-copy-streams';
+import { CSV_INDEX_COLUMN } from 'src/uploads/csvMetaFields';
 import { Readable } from 'stream';
 
 type KnexClientPool = {
@@ -35,7 +36,10 @@ export async function createCsvStream(options: CsvStreamOptions): Promise<CsvStr
 
   const sql = `
     COPY (
-      SELECT ${escapedColumns} FROM "${schema}"."${table}"${whereClause}
+      SELECT ${escapedColumns} 
+      FROM "${schema}"."${table}"
+      ${whereClause} 
+      ORDER BY "${CSV_INDEX_COLUMN}" ASC
     ) TO STDOUT WITH (FORMAT CSV, HEADER TRUE, QUOTE '"', ESCAPE '"', DELIMITER ',')
   `;
 

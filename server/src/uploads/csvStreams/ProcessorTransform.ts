@@ -3,6 +3,7 @@ import { Transform, TransformCallback } from 'stream';
 
 export class ProcessorTransform extends Transform {
   private recordCount = 0;
+  private rowIndex = 0;
   private isFirstRow = true;
 
   constructor(
@@ -14,6 +15,8 @@ export class ProcessorTransform extends Transform {
 
   _transform(chunk: string[], encoding: BufferEncoding, callback: TransformCallback) {
     try {
+      const currentIndex = this.rowIndex++;
+
       // Skip header row if firstRowIsHeader is true
       if (this.firstRowIsHeader && this.isFirstRow) {
         this.isFirstRow = false;
@@ -30,8 +33,8 @@ export class ProcessorTransform extends Transform {
       // Generate a unique remoteId for this record (CSV upload table represents the remote source)
       const remoteId = createCsvFileRecordId();
 
-      // Create the full record with remoteId as first column, then the filtered data columns
-      const fullRecord = [remoteId, ...filteredRecord];
+      // Create the full record with remoteId as first column, then index, then the filtered data columns
+      const fullRecord = [remoteId, currentIndex, ...filteredRecord];
 
       this.recordCount++;
 

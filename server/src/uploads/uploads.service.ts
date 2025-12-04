@@ -22,6 +22,7 @@ import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { pipeline, Readable } from 'stream';
 import { DbService } from '../db/db.service';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
+import { CSV_META_COLUMNS, CSV_REMOTE_ID_COLUMN } from './csvMetaFields';
 import { FormatterTransform } from './csvStreams/FormatterTransform';
 import { ParserTransform } from './csvStreams/ParserTransform';
 import { PgCopyFromWritableStream } from './csvStreams/PgCopyFromWritableStream';
@@ -366,9 +367,8 @@ export class UploadsService {
 
     const schemaParser = new CsvSchemaParser();
     // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
-    const columnNames = Object.keys(columnInfo).filter(
-      (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
-    );
+    const allColumnNames = Object.keys(columnInfo);
+    const columnNames = allColumnNames.filter((col) => !CSV_META_COLUMNS.includes(col));
 
     const columns = columnNames.map((name) => {
       const colInfo = columnInfo[name];
@@ -434,12 +434,13 @@ export class UploadsService {
       const tableId = upload.typeId;
 
       // Get column names from the table, excluding metadata columns
+      // We should probbaly store this is uhe Uploads entity
       const columnQuery = `
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_schema = '${schemaName}' 
         AND table_name = '${tableId}'
-        AND column_name NOT IN ('remoteId', 'createdAt', 'updatedAt')
+        AND column_name NOT IN (${CSV_META_COLUMNS.map((col) => `'${col}'`).join(', ')})
         ORDER BY ordinal_position
       `;
 
@@ -671,9 +672,8 @@ export class UploadsService {
 
       const schemaParser = new CsvSchemaParser();
       // Convert table structure to table spec (exclude remoteId and timestamps - those are metadata)
-      const columnNames = Object.keys(tableInfo).filter(
-        (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
-      );
+      const allColumnNames = Object.keys(tableInfo);
+      const columnNames = allColumnNames.filter((col) => !CSV_META_COLUMNS.includes(col));
 
       const columns = columnNames.map((name) => {
         const colInfo = tableInfo[name];
@@ -740,7 +740,7 @@ export class UploadsService {
         INSERT INTO "${workbookId}"."${tableName}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
         SELECT
           'csr_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) as "wsId",
-          "remoteId" as "id",
+          "${CSV_REMOTE_ID_COLUMN}" as "id",
           ${columnNames.map((c) => `"${c}"`).join(', ')}
         FROM "${uploadSchemaName}"."${uploadTableName}"
       `;

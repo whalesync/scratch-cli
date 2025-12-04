@@ -5,6 +5,7 @@ import { WSLogger } from 'src/logger';
 import { Actor } from 'src/users/types';
 import { assertUnreachable } from 'src/utils/asserts';
 import { PostgresColumnType } from '../remote-service/connectors/types';
+import { CSV_CREATED_COLUMN, CSV_INDEX_COLUMN, CSV_REMOTE_ID_COLUMN } from './csvMetaFields';
 
 export interface CsvColumnSpec {
   name: string;
@@ -119,8 +120,9 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
     await this.getKnex()
       .schema.withSchema(schemaName)
       .createTable(tableId, (t) => {
-        t.text('remoteId').primary(); // Remote record ID (this table represents the remote source)
-
+        t.text(CSV_REMOTE_ID_COLUMN).primary(); // Remote record ID (this table represents the remote source)
+        t.integer(CSV_INDEX_COLUMN).notNullable().defaultTo(0); // Original row index in the CSV file
+        t.timestamp(CSV_CREATED_COLUMN).defaultTo(this.getKnex().fn.now());
         for (const col of columns) {
           switch (col.pgType) {
             case PostgresColumnType.TEXT:
@@ -151,8 +153,6 @@ export class UploadsDbService implements OnModuleInit, OnModuleDestroy {
               assertUnreachable(col.pgType);
           }
         }
-
-        t.timestamp('createdAt').defaultTo(this.getKnex().fn.now());
       });
 
     WSLogger.debug({

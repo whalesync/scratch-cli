@@ -74,7 +74,8 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Filter out metadata columns
     const dataColumns = Object.keys(tableInfo).filter(
-      (col) => col !== 'remoteId' && col !== 'createdAt' && col !== 'updatedAt',
+      (col) =>
+        col !== 'remoteId' && col !== '__remoteId' && col !== '__index' && col !== 'createdAt' && col !== 'updatedAt',
     );
 
     const schemaParser = new CsvSchemaParser();
@@ -129,14 +130,18 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     const tableName = upload.typeId;
 
     // Read records from the upload table
-    const records = await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).select('*');
+    const records = await this.uploadsDbService
+      .getKnex()(tableName)
+      .withSchema(schemaName)
+      .select('*')
+      .orderBy('__index', 'asc');
 
     // Convert to ConnectorRecord format
     const connectorRecords: ConnectorRecord[] = records.map((record: any) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { remoteId, createdAt, updatedAt, ...fields } = record;
+      const { __remoteId, __index, createdAt, updatedAt, ...fields } = record;
       return {
-        id: remoteId as string,
+        id: __remoteId as string,
         fields,
       };
     });
@@ -190,7 +195,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
       const remoteId = createCsvFileRecordId();
       return {
-        remoteId,
+        __remoteId: remoteId,
         ...record.fields,
       };
     });
@@ -200,7 +205,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
     // Return the mapping of wsId to remoteId
     return records.map((record, index) => ({
       wsId: record.wsId,
-      remoteId: recordsToInsert[index].remoteId,
+      remoteId: recordsToInsert[index].__remoteId,
     }));
   }
 
@@ -245,7 +250,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
       await this.uploadsDbService
         .getKnex()(tableName)
         .withSchema(schemaName)
-        .where({ remoteId: record.id.remoteId })
+        .where({ __remoteId: record.id.remoteId })
         .update(record.partialFields);
     }
   }
@@ -274,7 +279,7 @@ export class CsvConnector extends Connector<typeof Service.CSV> {
 
     // Delete records by remoteId
     const remoteIds = recordIds.map((r) => r.remoteId);
-    await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).whereIn('remoteId', remoteIds).delete();
+    await this.uploadsDbService.getKnex()(tableName).withSchema(schemaName).whereIn('__remoteId', remoteIds).delete();
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

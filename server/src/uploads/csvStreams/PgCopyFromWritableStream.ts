@@ -26,7 +26,7 @@ export class PgCopyFromWritableStream extends Writable {
       // Create the COPY stream
       this.copyStream = this.connection.query(
         copyFrom(
-          `COPY ${this.table} ("remoteId", ${this.columnNames.map((name: string) => `"${name}"`).join(', ')})
+          `COPY ${this.table} ("__remoteId", "__index", ${this.columnNames.map((name: string) => `"${name}"`).join(', ')})
             FROM STDIN
             WITH (FORMAT CSV)`,
         ),
