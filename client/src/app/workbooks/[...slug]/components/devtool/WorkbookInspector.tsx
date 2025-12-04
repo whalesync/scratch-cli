@@ -115,9 +115,10 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
           <LabelValuePair label="Page Size" value={String(table.pageSize)} />
           <LabelValuePair label="Active SQL Filter" value={<code>{table.activeRecordSqlFilter ?? ''}</code>} />
 
-          {tableSpec.titleColumnRemoteId && (
-            <LabelValuePair label="Title Column Remote ID" value={tableSpec.titleColumnRemoteId.join(', ')} />
-          )}
+          <LabelValuePair
+            label="Title Column Remote ID"
+            value={tableSpec.titleColumnRemoteId ? tableSpec.titleColumnRemoteId.join(', ') : 'N/A'}
+          />
         </Stack>
       </Group>
 
@@ -127,7 +128,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
           <Table.Thead>
             <Table.Tr>
               <Table.Td>Name</Table.Td>
-              <Table.Td>ID</Table.Td>
+              <Table.Td>Scratch ID</Table.Td>
               <Table.Td>Remote ID</Table.Td>
               <Table.Td>DB Type</Table.Td>
               <Table.Td>Hidden</Table.Td>
@@ -153,6 +154,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
                   column={column}
                   settings={columnSettings[column.id.wsId]}
                   isHidden={table.hiddenColumns.includes(column.id.wsId)}
+                  titleColumnRemoteId={tableSpec.titleColumnRemoteId}
                 />
               ))}
           </Table.Tbody>
@@ -166,11 +168,17 @@ const ColumnSpecDetails = ({
   column,
   settings,
   isHidden,
+  titleColumnRemoteId,
 }: {
   column: ColumnSpec;
   settings?: SnapshotColumnSettings;
   isHidden: boolean;
+  titleColumnRemoteId?: string[];
 }) => {
+  const isTitleColumn =
+    titleColumnRemoteId &&
+    column.id.remoteId.length === titleColumnRemoteId.length &&
+    column.id.remoteId.every((val, idx) => val === titleColumnRemoteId[idx]);
   const tags: string[] = [];
   if (column.readonly) {
     tags.push('Readonly');
@@ -184,7 +192,14 @@ const ColumnSpecDetails = ({
 
   return (
     <Table.Tr bg={isHidden ? 'var(--mantine-color-gray-1)' : undefined}>
-      <Table.Td>{column.name}</Table.Td>
+      <Table.Td>
+        {column.name}
+        {isTitleColumn && (
+          <Text component="span" c="green" ml={4}>
+            ★
+          </Text>
+        )}
+      </Table.Td>
       <Table.Td>
         <CopyText value={column.id.wsId} />
       </Table.Td>

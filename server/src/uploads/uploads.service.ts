@@ -21,6 +21,7 @@ import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { pipeline, Readable } from 'stream';
 import { DbService } from '../db/db.service';
+import { REMOTE_ID_COLUMN, SCRATCH_ID_COLUMN } from '../workbook/reserved-coluns';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 import { CSV_META_COLUMNS, CSV_REMOTE_ID_COLUMN } from './csvMetaFields';
 import { FormatterTransform } from './csvStreams/FormatterTransform';
@@ -737,10 +738,10 @@ export class UploadsService {
       // Generate csr_ prefixed IDs (CSV Snapshot Record) for wsId column
       // Copy remoteId from upload table to id column in snapshot
       const copyQuery = `
-        INSERT INTO "${workbookId}"."${tableName}" ("wsId", "id", ${columnNames.map((c) => `"${c}"`).join(', ')})
+        INSERT INTO "${workbookId}"."${tableName}" ("${SCRATCH_ID_COLUMN}", "${REMOTE_ID_COLUMN}", ${columnNames.map((c) => `"${c}"`).join(', ')})
         SELECT
-          'csr_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) as "wsId",
-          "${CSV_REMOTE_ID_COLUMN}" as "id",
+          'csr_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10) as "${SCRATCH_ID_COLUMN}",
+          "${CSV_REMOTE_ID_COLUMN}" as "${REMOTE_ID_COLUMN}",
           ${columnNames.map((c) => `"${c}"`).join(', ')}
         FROM "${uploadSchemaName}"."${uploadTableName}"
       `;

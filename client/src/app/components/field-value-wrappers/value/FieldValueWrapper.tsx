@@ -30,6 +30,7 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   // const processedFieldValue = processFieldValue(value, record, columnDef);
 
   const processedFieldValue = record.__processed_fields[columnDef.id.wsId];
+
   const changes = processedFieldValue.changes;
   const content = changes ? (
     <>

@@ -64,6 +64,14 @@ import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { SnapshotTable } from './entities/snapshot-table.entity';
+import {
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  SCRATCH_ID_COLUMN,
+  SEEN_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+} from './reserved-coluns';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { getSnapshotTableById } from './util';
@@ -533,7 +541,7 @@ export class WorkbookController {
         FROM information_schema.columns
         WHERE table_schema = '${workbookId}'
         AND table_name = '${tableId}'
-        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty', '__seen')
+        AND column_name NOT IN ('${SCRATCH_ID_COLUMN}', '${EDITED_FIELDS_COLUMN}', '${SUGGESTED_FIELDS_COLUMN}', '${METADATA_COLUMN}', '${DIRTY_COLUMN}', '${SEEN_COLUMN}')
         ORDER BY ordinal_position
       `;
 

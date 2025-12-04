@@ -40,7 +40,17 @@ import { ValidatedAddScratchColumnDto } from './dto/scratch-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
-import { CREATED_FIELD, DELETED_FIELD } from './entities/reserved-coluns';
+import {
+  CREATED_FIELD,
+  DELETED_FIELD,
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  REMOTE_ID_COLUMN,
+  SCRATCH_ID_COLUMN,
+  SEEN_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+} from './reserved-coluns';
 import { DEFAULT_COLUMNS } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
@@ -1860,7 +1870,7 @@ export class WorkbookService {
         FROM information_schema.columns
         WHERE table_schema = '${workbook.id}'
         AND table_name = '${snapshotTable.tableName}'
-        AND column_name NOT IN ('wsId', '__edited_fields', '__suggested_values', '__metadata', '__dirty', '__seen', '__original')
+        AND column_name NOT IN ('${SCRATCH_ID_COLUMN}', '${EDITED_FIELDS_COLUMN}', '${SUGGESTED_FIELDS_COLUMN}', '${METADATA_COLUMN}', '${DIRTY_COLUMN}', '${SEEN_COLUMN}', '__original')
         ORDER BY ordinal_position
       `;
 
@@ -1994,15 +2004,17 @@ export class WorkbookService {
               const dbRecords = await this.snapshotDbService.snapshotDb
                 .getKnex()(tableId)
                 .withSchema(workbookId)
-                .whereIn('id', remoteIds)
-                .select<Array<{ id: string; wsId: string }>>('id', 'wsId');
+                .whereIn(REMOTE_ID_COLUMN, remoteIds)
+                .select<
+                  Array<{ [REMOTE_ID_COLUMN]: string; [SCRATCH_ID_COLUMN]: string }>
+                >(REMOTE_ID_COLUMN, SCRATCH_ID_COLUMN);
 
               // Create a map of remote ID (user-visible) to wsId (internal primary key)
               // Currently bulkUpdateRecords expects wsIds but the user works with remoteIds
               // so we do the mapping here. We could get bulkUpdateRecords to accept either id in the future
               const remoteIdToWsId = new Map<string, string>();
               for (const dbRecord of dbRecords) {
-                remoteIdToWsId.set(dbRecord.id, dbRecord.wsId);
+                remoteIdToWsId.set(dbRecord[REMOTE_ID_COLUMN], dbRecord[SCRATCH_ID_COLUMN]);
               }
 
               const operations: UpdateRecordOperation[] = [];

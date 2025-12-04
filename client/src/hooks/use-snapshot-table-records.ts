@@ -260,11 +260,9 @@ export const useSnapshotTableRecords = (args: {
 
     const records = data.records.map((record): ProcessedSnapshotRecord => {
       const processedFields: Record<string, ProcessedFieldValue> = {};
-
       // Process each column in the table spec
       tableSpec.columns.forEach((columnDef) => {
         const fieldId = columnDef.id.wsId;
-        if (fieldId === 'id') return; // Skip the ID column
 
         // Skip hidden columns
         if (snapshotTable.hiddenColumns?.includes(fieldId)) return;

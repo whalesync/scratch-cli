@@ -9,36 +9,26 @@ import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
-import { CREATED_FIELD, DELETED_FIELD, EDITED_FIELDS_COLUMN } from './entities/reserved-coluns';
+import {
+  CREATED_FIELD,
+  DELETED_FIELD,
+  DELETED_PREFIX,
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  OLD_REMOTE_ID_COLUMN,
+  ORIGINAL_COLUMN,
+  REMOTE_ID_COLUMN,
+  SCRATCH_ID_COLUMN,
+  SEEN_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+  UNPUBLISHED_PREFIX,
+} from './reserved-coluns';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC
 types.setTypeParser(20, 'text', parseInt); // INT8
 types.setTypeParser(23, 'text', parseInt); // INT4
-
-// Design!
-// There isn't a system yet for tracking versions of edits that are made to the snapshot, so instead, we use a column
-// of metadata in each snapshotted table. It contains the fields that have been edited since last download, plus whether
-// the record was created or deleted.
-// export const EDITED_FIELDS_COLUMN = '__edited_fields';
-// Same as the above, but for edits that are suggested by the AI.
-export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
-// Connector specific optional per record metadata
-export const METADATA_COLUMN = '__metadata';
-
-export const DIRTY_COLUMN = '__dirty';
-
-// A special field that is used to mark a record as deleted in the EDITED_FIELDS_COLUMN and SUGGESTED_FIELDS_COLUMN
-// export const DELETED_FIELD = '__deleted';
-
-export const SEEN_COLUMN = '__seen';
-
-export const ORIGINAL_COLUMN = '__original';
-export const OLD_REMOTE_ID_COLUMN = '__old_remote_id';
-
-// Prefixes for internal record IDs
-export const UNPUBLISHED_PREFIX = 'unpublished_';
-export const DELETED_PREFIX = 'deleted_';
 
 /**
  * Represents a table for database operations.
@@ -50,8 +40,8 @@ export type TableForDb = {
 };
 
 export const DEFAULT_COLUMNS = [
-  'wsId',
-  'id',
+  SCRATCH_ID_COLUMN,
+  REMOTE_ID_COLUMN,
   EDITED_FIELDS_COLUMN,
   SUGGESTED_FIELDS_COLUMN,
   DIRTY_COLUMN,
@@ -61,17 +51,17 @@ export const DEFAULT_COLUMNS = [
 
 export type EditedFieldsMetadata = {
   /** Timestamps when the record was created locally. */
-  __created?: string;
+  [CREATED_FIELD]?: string;
   /** Timestamps when the record was deleted locally. */
-  __deleted?: string;
+  [DELETED_FIELD]?: string;
 } & {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
 };
 
 type DbRecord = {
-  wsId: SnapshotRecordId;
-  id: string | null;
+  [SCRATCH_ID_COLUMN]: SnapshotRecordId;
+  [REMOTE_ID_COLUMN]: string | null;
   [EDITED_FIELDS_COLUMN]: EditedFieldsMetadata;
   [SUGGESTED_FIELDS_COLUMN]: Record<string, unknown>;
   [METADATA_COLUMN]: Record<string, unknown>;
@@ -162,10 +152,10 @@ export class SnapshotDb {
         await this.getKnex()
           .schema.withSchema(workbookId)
           .createTable(tableName, (t) => {
-            t.text('wsId').primary();
-            t.text('id').nullable().unique();
+            t.text(SCRATCH_ID_COLUMN).primary();
+            t.text(REMOTE_ID_COLUMN).nullable().unique();
             for (const col of table.columns) {
-              if (col.id.wsId === 'id') {
+              if (col.id.wsId === REMOTE_ID_COLUMN) {
                 continue;
               }
               switch (col.pgType) {
@@ -208,15 +198,17 @@ export class SnapshotDb {
           });
       } else {
         // The table exists, so we need to check if we need to migrate it.
-        const hasWsId = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, 'wsId');
+        const hasWsId = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, SCRATCH_ID_COLUMN);
         if (!hasWsId) {
           // Add wsId column, populate it, and set it as the new primary key.
           await this.getKnex()
             .schema.withSchema(workbookId)
             .alterTable(tableName, (t) => {
-              t.uuid('wsId').nullable();
+              t.uuid(SCRATCH_ID_COLUMN).nullable();
             });
-          await this.getKnex().raw(`UPDATE "${workbookId}"."${tableName}" SET "wsId" = gen_random_uuid()`);
+          await this.getKnex().raw(
+            `UPDATE "${workbookId}"."${tableName}" SET "${SCRATCH_ID_COLUMN}" = gen_random_uuid()`,
+          );
           await this.getKnex()
             .schema.withSchema(workbookId)
             .alterTable(tableName, (t) => {
@@ -226,9 +218,9 @@ export class SnapshotDb {
           await this.getKnex()
             .schema.withSchema(workbookId)
             .alterTable(tableName, (t) => {
-              t.uuid('wsId').notNullable().alter();
-              t.primary(['wsId']);
-              t.unique(['id']);
+              t.uuid(SCRATCH_ID_COLUMN).notNullable().alter();
+              t.primary([SCRATCH_ID_COLUMN]);
+              t.unique([REMOTE_ID_COLUMN]);
             });
         }
 
@@ -290,10 +282,10 @@ export class SnapshotDb {
     await this.getKnex()
       .schema.withSchema(workbookId)
       .createTable(table.tableName, (t) => {
-        t.text('wsId').primary();
-        t.text('id').nullable().unique();
+        t.text(SCRATCH_ID_COLUMN).primary();
+        t.text(REMOTE_ID_COLUMN).nullable().unique();
         for (const col of table.spec.columns) {
-          if (col.id.wsId === 'id') {
+          if (col.id.wsId === REMOTE_ID_COLUMN) {
             continue;
           }
           switch (col.pgType) {
@@ -357,14 +349,14 @@ export class SnapshotDb {
     // 1. Find which of these records are already in the DB and are dirty.
     const dirtyRecordsInDb = await this.getKnex()<DbRecord>(table.tableName)
       .withSchema(workbookId)
-      .whereIn('id', remoteIds)
+      .whereIn(REMOTE_ID_COLUMN, remoteIds)
       .andWhere(DIRTY_COLUMN, true)
       .select('*');
 
     const dirtyMap = new Map<string, DbRecord>();
     for (const dr of dirtyRecordsInDb) {
-      if (dr.id) {
-        dirtyMap.set(dr.id, dr);
+      if (dr[REMOTE_ID_COLUMN]) {
+        dirtyMap.set(dr[REMOTE_ID_COLUMN], dr);
       }
     }
 
@@ -397,8 +389,8 @@ export class SnapshotDb {
         }
 
         return {
-          wsId: existingDirtyRecord.wsId, // Keep existing wsId
-          id: r.id,
+          [SCRATCH_ID_COLUMN]: existingDirtyRecord[SCRATCH_ID_COLUMN], // Keep existing wsId
+          [REMOTE_ID_COLUMN]: r.id,
           ...mergedFields,
           [SEEN_COLUMN]: true,
           [METADATA_COLUMN]: r.metadata,
@@ -412,10 +404,10 @@ export class SnapshotDb {
         // CLEAN RECORD (New or Existing Clean) - Just overwrite
         const sanitizedFields = this.sanitizeFieldsForKnexInput(r.fields, table.spec.columns);
         return {
-          wsId: createSnapshotRecordId(), // Will be ignored on merge if exists (but we want to use existing if possible? No, onConflict 'id' will handle it)
+          [SCRATCH_ID_COLUMN]: createSnapshotRecordId(), // Will be ignored on merge if exists (but we want to use existing if possible? No, onConflict 'id' will handle it)
           // Wait, if it exists but is clean, onConflict will update. We don't need the old wsId.
           // BUT if we want to be safe, we could fetch it. But for clean records, replacing is fine.
-          id: r.id,
+          [REMOTE_ID_COLUMN]: r.id,
           ...sanitizedFields,
           [SEEN_COLUMN]: true,
           [METADATA_COLUMN]: r.metadata,
@@ -443,7 +435,7 @@ export class SnapshotDb {
     await this.getKnex()(table.tableName)
       .withSchema(workbookId)
       .insert(upsertRecordsInput)
-      .onConflict('id')
+      .onConflict(REMOTE_ID_COLUMN)
       .merge(columnsToUpdateOnMerge);
   }
 
@@ -490,7 +482,7 @@ export class SnapshotDb {
   ): Promise<{ records: SnapshotRecord[]; count: number; filteredCount: number; skip: number; take: number }> {
     const query = this.getKnex()<DbRecord>(tableName)
       .withSchema(workbookId)
-      .orderBy('id', 'asc')
+      .orderBy(REMOTE_ID_COLUMN, 'asc')
       .limit(take)
       .offset(skip);
 
@@ -539,8 +531,8 @@ export class SnapshotDb {
 
   private mapDbRecordToSnapshotRecord(record: DbRecord, hiddenColumns?: string[]): SnapshotRecord {
     const {
-      wsId,
-      id,
+      [SCRATCH_ID_COLUMN]: wsId,
+      [REMOTE_ID_COLUMN]: id,
       __edited_fields,
       __suggested_values,
       __dirty,
@@ -601,7 +593,7 @@ export class SnapshotDb {
   async getRecord(workbookId: WorkbookId, tableName: string, wsId: string): Promise<SnapshotRecord | null> {
     const result = await this.getKnex()<DbRecord>(tableName)
       .withSchema(workbookId)
-      .where('wsId', wsId)
+      .where(SCRATCH_ID_COLUMN, wsId)
       .select('*')
       .first();
 
@@ -623,7 +615,7 @@ export class SnapshotDb {
       return [];
     }
 
-    const query = this.getKnex()<DbRecord>(tableName).withSchema(workbookId).whereIn('wsId', wsIds);
+    const query = this.getKnex()<DbRecord>(tableName).withSchema(workbookId).whereIn(SCRATCH_ID_COLUMN, wsIds);
 
     query.select(this.getSelectColumns(tableSpec, hiddenColumns));
 
@@ -707,8 +699,8 @@ export class SnapshotDb {
             await trx(tableName)
               .withSchema(workbookId)
               .insert({
-                wsId: snapshotRecordId,
-                id: tempRemoteId,
+                [SCRATCH_ID_COLUMN]: snapshotRecordId,
+                [REMOTE_ID_COLUMN]: tempRemoteId,
                 ...(type === 'accepted'
                   ? // Set the fields that were edited.
                     // Set the dirty column to true.
@@ -756,7 +748,7 @@ export class SnapshotDb {
               }
 
               if (Object.keys(updatePayload).length > 0) {
-                await trx(tableName).withSchema(workbookId).where('wsId', op.wsId).update(updatePayload);
+                await trx(tableName).withSchema(workbookId).where(SCRATCH_ID_COLUMN, op.wsId).update(updatePayload);
               }
             } else {
               const updatePayload: Record<string, any> = {};
@@ -764,7 +756,7 @@ export class SnapshotDb {
                 SUGGESTED_FIELDS_COLUMN,
                 JSON.stringify(op.data),
               ]);
-              await trx(tableName).withSchema(workbookId).where('wsId', op.wsId).update(updatePayload);
+              await trx(tableName).withSchema(workbookId).where(SCRATCH_ID_COLUMN, op.wsId).update(updatePayload);
             }
 
             break;
@@ -773,13 +765,16 @@ export class SnapshotDb {
             // First, check if the record has a temporary remote ID or is a discovered delete
             const record = await trx(tableName)
               .withSchema(workbookId)
-              .where('wsId', op.wsId)
-              .first<{ id: string | null; wsId: string }>();
+              .where(SCRATCH_ID_COLUMN, op.wsId)
+              .first<{ [REMOTE_ID_COLUMN]: string | null; [SCRATCH_ID_COLUMN]: string }>();
 
-            if (record?.id?.startsWith(UNPUBLISHED_PREFIX) || record?.id?.startsWith(DELETED_PREFIX)) {
+            if (
+              record?.[REMOTE_ID_COLUMN]?.startsWith(UNPUBLISHED_PREFIX) ||
+              record?.[REMOTE_ID_COLUMN]?.startsWith(DELETED_PREFIX)
+            ) {
               // Record hasn't been synced yet (unpublished_) or is a discovered delete (deleted_)
               // Delete it immediately - no need to track for publishing
-              await trx(tableName).withSchema(workbookId).where('wsId', op.wsId).delete();
+              await trx(tableName).withSchema(workbookId).where(SCRATCH_ID_COLUMN, op.wsId).delete();
             } else {
               // Record has been synced, mark it for deletion on next publish
               if (type === 'accepted') {
@@ -787,7 +782,7 @@ export class SnapshotDb {
                 // Keep the remote ID so we can push the delete on next publish
                 await trx(tableName)
                   .withSchema(workbookId)
-                  .where('wsId', op.wsId)
+                  .where(SCRATCH_ID_COLUMN, op.wsId)
                   .update({
                     [EDITED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
                     [DIRTY_COLUMN]: true,
@@ -795,7 +790,7 @@ export class SnapshotDb {
               } else {
                 await trx(tableName)
                   .withSchema(workbookId)
-                  .where('wsId', op.wsId)
+                  .where(SCRATCH_ID_COLUMN, op.wsId)
                   .update({
                     [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({ __deleted: now }),
                     [DIRTY_COLUMN]: true,
@@ -809,12 +804,12 @@ export class SnapshotDb {
             if (type === 'accepted') {
               await trx(tableName)
                 .withSchema(workbookId)
-                .where('wsId', op.wsId)
+                .where(SCRATCH_ID_COLUMN, op.wsId)
                 .update({ [EDITED_FIELDS_COLUMN]: JSON.stringify({}) });
             } else {
               await trx(tableName)
                 .withSchema(workbookId)
-                .where('wsId', op.wsId)
+                .where(SCRATCH_ID_COLUMN, op.wsId)
                 .update({ [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({}) });
             }
             break;
@@ -954,7 +949,7 @@ export class SnapshotDb {
         updatePayload[DIRTY_COLUMN] = true;
 
         // Execute the update for this record
-        await trx(tableId).withSchema(workbookId).where('wsId', wsId).update(updatePayload);
+        await trx(tableId).withSchema(workbookId).where(SCRATCH_ID_COLUMN, wsId).update(updatePayload);
         count++;
       }
       return count;
@@ -1007,7 +1002,7 @@ export class SnapshotDb {
         }
 
         // Execute the update for this record
-        await trx(tableId).withSchema(workbookId).where('wsId', wsId).update(updatePayload);
+        await trx(tableId).withSchema(workbookId).where(SCRATCH_ID_COLUMN, wsId).update(updatePayload);
         numRecordsUpdated++;
       }
       return numRecordsUpdated;
@@ -1031,7 +1026,7 @@ export class SnapshotDb {
 
       if (recordWsIds && recordWsIds.length > 0) {
         // Filter by specific record IDs
-        query = query.whereIn('wsId', recordWsIds);
+        query = query.whereIn(SCRATCH_ID_COLUMN, recordWsIds);
       } else {
         // Filter by presence of old remote ID (discovered deletes)
         query = query.whereNotNull(OLD_REMOTE_ID_COLUMN);
@@ -1046,7 +1041,7 @@ export class SnapshotDb {
         // Convert to unpublished records by updating the ID with unpublished_ prefix
         // Use raw SQL to concatenate the prefix with wsId
         const count = await query.update({
-          id: this.getKnex().raw(`'${UNPUBLISHED_PREFIX}' || ??`, ['wsId']),
+          [REMOTE_ID_COLUMN]: this.getKnex().raw(`'${UNPUBLISHED_PREFIX}' || ??`, [SCRATCH_ID_COLUMN]),
           // Keep the old remote ID in __old_remote_id (it should already be set, but this ensures it)
         });
         return count;
@@ -1101,7 +1096,7 @@ export class SnapshotDb {
         .withSchema(workbookId)
         .select('*')
         .where(DIRTY_COLUMN, true)
-        .orderBy('wsId')
+        .orderBy(SCRATCH_ID_COLUMN)
         .forUpdate()
         .skipLocked();
 
@@ -1131,8 +1126,8 @@ export class SnapshotDb {
           await callback(
             batch.map(
               ({
-                wsId,
-                id: remoteId,
+                __remoteId,
+                __scratchId,
                 __edited_fields,
                 __dirty,
                 __suggested_values,
@@ -1142,7 +1137,7 @@ export class SnapshotDb {
                 __old_remote_id,
                 ...fields
               }) => ({
-                id: { wsId, remoteId },
+                id: { wsId: __scratchId, remoteId: __remoteId },
                 __edited_fields,
                 __dirty,
                 __seen,
@@ -1162,8 +1157,8 @@ export class SnapshotDb {
           await trx(tableName)
             .withSchema(workbookId)
             .whereIn(
-              'wsId',
-              allDbRecords.map((r) => r.wsId),
+              SCRATCH_ID_COLUMN,
+              allDbRecords.map((r) => r[SCRATCH_ID_COLUMN]),
             )
             .update({ [DIRTY_COLUMN]: false, [EDITED_FIELDS_COLUMN]: '{}' });
         }
@@ -1179,12 +1174,15 @@ export class SnapshotDb {
     trx: Knex.Transaction,
   ) {
     for (const record of records) {
-      await trx(table.tableName).withSchema(workbookId).where('wsId', record.wsId).update({ id: record.remoteId });
+      await trx(table.tableName)
+        .withSchema(workbookId)
+        .where(SCRATCH_ID_COLUMN, record.wsId)
+        .update({ [REMOTE_ID_COLUMN]: record.remoteId });
     }
   }
 
   async deleteRecords(workbookId: WorkbookId, tableName: string, wsIds: string[], trx: Knex.Transaction) {
-    await trx(tableName).withSchema(workbookId).whereIn('wsId', wsIds).delete();
+    await trx(tableName).withSchema(workbookId).whereIn(SCRATCH_ID_COLUMN, wsIds).delete();
   }
 
   /**
@@ -1285,15 +1283,17 @@ export class SnapshotDb {
         .withSchema(workbookId)
         .where(SEEN_COLUMN, false)
         .limit(batchSize)
-        .select('wsId', 'id', DIRTY_COLUMN, EDITED_FIELDS_COLUMN);
+        .select(SCRATCH_ID_COLUMN, REMOTE_ID_COLUMN, DIRTY_COLUMN, EDITED_FIELDS_COLUMN);
 
       if (recordsToProcess.length === 0) {
         break;
       }
 
       const cleanWsIds: string[] = [];
-      const dirtyRecordsToConvert: Pick<DbRecord, 'wsId' | 'id' | typeof DIRTY_COLUMN | typeof EDITED_FIELDS_COLUMN>[] =
-        [];
+      const dirtyRecordsToConvert: Pick<
+        DbRecord,
+        typeof SCRATCH_ID_COLUMN | typeof REMOTE_ID_COLUMN | typeof DIRTY_COLUMN | typeof EDITED_FIELDS_COLUMN
+      >[] = [];
       const dirtyRecordsToDelete: string[] = [];
 
       for (const r of recordsToProcess) {
@@ -1301,13 +1301,13 @@ export class SnapshotDb {
           const editedFields = r[EDITED_FIELDS_COLUMN] || {};
           // If the record is marked as deleted locally, delete it completely (both sides agree to delete)
           if (editedFields.__deleted) {
-            dirtyRecordsToDelete.push(r.wsId);
+            dirtyRecordsToDelete.push(r[SCRATCH_ID_COLUMN]);
           } else {
             // Record has local edits that are not deletions - convert to discovered delete
             dirtyRecordsToConvert.push(r);
           }
         } else {
-          cleanWsIds.push(r.wsId);
+          cleanWsIds.push(r[SCRATCH_ID_COLUMN]);
         }
       }
 
@@ -1336,13 +1336,13 @@ export class SnapshotDb {
           }
 
           // Use deleted_ prefix for records that were deleted remotely but have local edits
-          const deletedId = `${DELETED_PREFIX}${dr.wsId}`;
+          const deletedId = `${DELETED_PREFIX}${dr[SCRATCH_ID_COLUMN]}`;
           await trx(tableName)
             .withSchema(workbookId)
-            .where('wsId', dr.wsId)
+            .where(SCRATCH_ID_COLUMN, dr[SCRATCH_ID_COLUMN])
             .update({
-              id: deletedId, // Use deleted_ prefix
-              [OLD_REMOTE_ID_COLUMN]: dr.id, // Save old remote ID
+              [REMOTE_ID_COLUMN]: deletedId, // Use deleted_ prefix
+              [OLD_REMOTE_ID_COLUMN]: dr[SCRATCH_ID_COLUMN], // Save old remote ID
               [SEEN_COLUMN]: true, // Mark as seen so we don't process it again
               [EDITED_FIELDS_COLUMN]: JSON.stringify(editedFields),
               [DIRTY_COLUMN]: true, // Ensure it stays dirty
