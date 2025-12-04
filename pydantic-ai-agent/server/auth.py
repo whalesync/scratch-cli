@@ -46,7 +46,7 @@ def decode_and_validate_agent_jwt(jwt_token: str) -> Optional[AgentUser]:
         return AgentUser(**payload)
     except jwt.ExpiredSignatureError as e:
         # Token has expired
-        logger.exception(f"Agent JWT token expired: {jwt_token} {e}")
+        logger.warning(f"Agent JWT token expired: {jwt_token} {e}")
         return None
     except jwt.InvalidTokenError as e:
         # Token is invalid for any other reason
