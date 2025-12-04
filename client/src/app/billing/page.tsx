@@ -4,11 +4,11 @@ import { Alert, Divider, SimpleGrid, Stack } from '@mantine/core';
 import { CreditCardIcon } from 'lucide-react';
 import { useState } from 'react';
 import { usePayments } from '../../hooks/use-payments';
+import { ConfigSection } from '../components/ConfigSection';
 import { FullPageLoader } from '../components/FullPageLoader';
 import MainContent from '../components/layouts/MainContent';
 import { ActiveSubscriptionSection } from './components/ActiveSubscriptionSection';
 import { BillingDevTools } from './components/BillingDevTools';
-import { BillingSection } from './components/BillingSection';
 import { PlanCard } from './components/PlanCard';
 import { TokenUsageSection } from './components/TokenUsageSection';
 
@@ -31,13 +31,13 @@ const BillingPage = () => {
           <Divider c="var(--mantine-color-gray-3)" />
           <TokenUsageSection />
           <Divider c="var(--mantine-color-gray-3)" />
-          <BillingSection title="Plans" description="Upgrade or change your plan" hasBorder={false} p="0">
+          <ConfigSection title="Plans" description="Upgrade or change your plan" hasBorder={false} p="0">
             <SimpleGrid cols={3} spacing="xs">
               {plans?.map((plan) => (
                 <PlanCard key={plan.planType} plan={plan} onError={setPlanError} />
               ))}
             </SimpleGrid>
-          </BillingSection>
+          </ConfigSection>
           <BillingDevTools />
         </Stack>
       </MainContent.Body>

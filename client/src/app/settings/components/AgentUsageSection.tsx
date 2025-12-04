@@ -1,17 +1,17 @@
 import { Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
 import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
 import { Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
 import { ArrowDownIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { SettingsPanel } from './SettingsPanel';
 
-export const AgentUsageInfoCard = () => {
+export const AgentUsageSection = () => {
   const { events, summary, isLoading } = useAgentTokenUsage();
 
   return (
-    <SettingsPanel title="Monthly AI Usage" subtitle="Review your requests and token usage.">
+    <ConfigSection title="Monthly AI Usage" description="Review your requests and token usage.">
       {isLoading ? (
         <Center mih={200}>
           <Loader />
@@ -31,7 +31,7 @@ export const AgentUsageInfoCard = () => {
           </Tabs.Panel>
         </Tabs>
       )}
-    </SettingsPanel>
+    </ConfigSection>
   );
 };
 

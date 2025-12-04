@@ -1,26 +1,34 @@
 'use client';
 
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { Button, Stack, Tooltip } from '@mantine/core';
+import { Button, Divider, Stack, Tooltip } from '@mantine/core';
+import { SettingsIcon } from 'lucide-react';
 import MainContent from '../components/layouts/MainContent';
-import { AgentCredentials } from './components/AgentCredentials';
-import { AgentUsageInfoCard } from './components/AgentUsageInfoCard';
-import { DevToolsPanel } from './components/DevToolPanel';
-import { UserPreferencesCard } from './components/UserPreferencesCard';
+import { AgentCredentialsSection } from './components/AgentCredentialsSection';
+import { AgentUsageSection } from './components/AgentUsageSection';
+import { DefaultModelSection } from './components/DefaultModelSection';
+import { UserDevToolsSection } from './components/UserDevToolsSection';
 
 const SettingsPage = () => {
   const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Settings" />
+      <MainContent.BasicHeader title="Settings" Icon={SettingsIcon} />
       <MainContent.Body>
-        <Stack gap={0} miw={800}>
-          <UserPreferencesCard />
-          <AgentCredentials />
-          <AgentUsageInfoCard />
+        <Stack gap="20px" maw={800}>
+          <DefaultModelSection />
+          <Divider c="var(--mantine-color-gray-3)" />
+          <AgentCredentialsSection />
+          <Divider c="var(--mantine-color-gray-3)" />
+          <AgentUsageSection />
 
-          {isDevToolsEnabled && <DevToolsPanel />}
+          {isDevToolsEnabled && (
+            <>
+              <Divider c="var(--mantine-color-gray-3)" />
+              <UserDevToolsSection />
+            </>
+          )}
           {showSecretButton && (
             <Tooltip label={isDevToolsEnabled ? 'Hide dev tools' : 'Show dev tools'}>
               <Button

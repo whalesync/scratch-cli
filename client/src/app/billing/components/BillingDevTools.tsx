@@ -1,12 +1,12 @@
 import { DevToolButton } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useUserDevTools } from '@/hooks/use-user-dev-tools';
 import { isLocalBuild, isTestBuild } from '@/utils/build';
 import { SimpleGrid, Stack } from '@mantine/core';
 import { ScratchPlanType } from '@spinner/shared-types';
-import { BillingSection } from './BillingSection';
 
 export const BillingDevTools = () => {
   const { isDevToolsEnabled } = useDevTools();
@@ -23,7 +23,7 @@ export const BillingDevTools = () => {
   }
 
   return (
-    <BillingSection title="Dev Tools" description="Testing tools for subscriptions">
+    <ConfigSection title="Dev Tools" description="Testing tools for subscriptions">
       <Stack gap="xs">
         <SimpleGrid cols={3}>
           <DevToolButton
@@ -76,6 +76,6 @@ export const BillingDevTools = () => {
           to update properly, which will require some a few refreshes to see the correct usage.
         </Text13Regular>
       </Stack>
-    </BillingSection>
+    </ConfigSection>
   );
 };

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { isString } from 'lodash';
+import { WSLogger } from 'src/logger';
 import { ErrorCode, isErr } from 'src/types/results';
 import { StripePaymentService } from './stripe-payment.service';
 
@@ -46,6 +47,12 @@ export class StripePaymentWebhookController {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const result = await this.stripePaymentService.handleWebhookCallback(req.body.toString(), signature);
     if (isErr(result)) {
+      WSLogger.error({
+        source: StripePaymentWebhookController.name,
+        message: `Stripe webhook callback failed`,
+        error: result.error,
+      });
+
       if (result.code === ErrorCode.UnauthorizedError || result.code === ErrorCode.StripeLibraryError) {
         throw new UnauthorizedException({
           userFacingMessage: 'stripe signature verification failed',
@@ -57,6 +64,7 @@ export class StripePaymentWebhookController {
           userFacingMessage: `stripe payload has problems: ${result.error}`,
         });
       }
+
       throw new InternalServerErrorException({
         userFacingMessage: `internal issue processing webhook: ${result.error}`,
       });

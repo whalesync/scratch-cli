@@ -1,18 +1,19 @@
-import { Text12Book, Text13Regular } from '@/app/components/base/text';
-import { ModalWrapper } from '@/app/components/ModalWrapper';
+import { IconButtonGhost } from '@/app/components/base/buttons';
+import { Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
+import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import ModelPicker from '@/app/components/ModelPicker';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
-import { Grid, Group, Stack, UnstyledButton } from '@mantine/core';
+import { Group, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Edit3Icon } from 'lucide-react';
+import { BrainIcon, PenLineIcon } from 'lucide-react';
 import { useState } from 'react';
-import { SettingsPanel } from './SettingsPanel';
 
-export const UserPreferencesCard = () => {
+export const DefaultModelSection = () => {
   const { updateUserSetting, getUserSetting } = useScratchPadUser();
   const [saving, setSaving] = useState(false);
   const [modelPickerOpen, { open: openModelPicker, close: closeModelPicker }] = useDisclosure();
@@ -36,34 +37,22 @@ export const UserPreferencesCard = () => {
   };
 
   return (
-    <SettingsPanel title="Preferences" subtitle="Manage your user preferences.">
-      <Grid align="flex-start">
-        <Grid.Col span={2}>
-          <Text13Regular>Default Model</Text13Regular>
-        </Grid.Col>
-        <Grid.Col span={10}>
-          <Stack gap="xs">
-            <Group>
-              <UnstyledButton onClick={openModelPicker}>
-                <Text13Regular>
-                  {getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string}
-                </Text13Regular>
-              </UnstyledButton>
-              <ToolIconButton size="md" icon={Edit3Icon} onClick={openModelPicker} loading={saving} />
-            </Group>
-            <Text12Book c="dimmed">Set the default LLM to use in your conversations in new workbooks</Text12Book>
-          </Stack>
-        </Grid.Col>
-      </Grid>
-
-      <ModalWrapper
-        customProps={{ footer: null }}
-        opened={modelPickerOpen}
-        onClose={closeModelPicker}
-        title="Select Model"
-        size="xl"
-        centered
-      >
+    <ConfigSection
+      title="Default Model"
+      description="Set the default LLM to use in your conversations in new workbooks."
+    >
+      <Group justify="space-between">
+        <Group gap="xs" wrap="nowrap">
+          <DecorativeBoxedIcon Icon={BrainIcon} size="sm" />
+          <Text13Regular>
+            {getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string}
+          </Text13Regular>
+        </Group>
+        <IconButtonGhost onClick={openModelPicker} loading={saving} size="xs">
+          <StyledLucideIcon Icon={PenLineIcon} size={13} />
+        </IconButtonGhost>
+      </Group>
+      <Modal opened={modelPickerOpen} onClose={closeModelPicker} title="Select Model" size="xl" centered>
         <ModelPicker
           currentModelOption={{
             value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
@@ -73,7 +62,7 @@ export const UserPreferencesCard = () => {
             handleModelChange(value.value);
           }}
         />
-      </ModalWrapper>
-    </SettingsPanel>
+      </Modal>
+    </ConfigSection>
   );
 };

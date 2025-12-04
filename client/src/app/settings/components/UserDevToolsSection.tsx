@@ -1,17 +1,17 @@
 import { Badge } from '@/app/components/base/badge';
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
 import { ActionIcon, Checkbox, CopyButton, Divider, Grid, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
-import { SettingsPanel } from './SettingsPanel';
 
-export const DevToolsPanel = () => {
+export const UserDevToolsSection = () => {
   const { user, isAdmin } = useScratchPadUser();
 
   return (
-    <SettingsPanel title="Dev Tools" subtitle="Developer tools and information.">
+    <ConfigSection title="Dev Tools" description="Developer tools and information.">
       <Stack gap="xs">
         <Group wrap="nowrap" gap="xs">
           <Text13Regular miw={200}>User ID</Text13Regular>
@@ -128,7 +128,7 @@ export const DevToolsPanel = () => {
           </Grid>
         </Group>
       </Stack>
-    </SettingsPanel>
+    </ConfigSection>
   );
 };
 

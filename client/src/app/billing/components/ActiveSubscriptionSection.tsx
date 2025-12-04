@@ -1,11 +1,11 @@
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Book, Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Stack } from '@mantine/core';
 import { ArrowUpRightIcon } from 'lucide-react';
 import { usePayments } from '../../../hooks/use-payments';
-import { BillingSection } from './BillingSection';
 
 export const ActiveSubscriptionSection = () => {
   const { subscription, isFreePlan } = useSubscription();
@@ -45,8 +45,8 @@ export const ActiveSubscriptionSection = () => {
   );
 
   return (
-    <BillingSection title="Subscription" description="Manage your subscription">
+    <ConfigSection title="Subscription" description="Manage your subscription">
       {content}
-    </BillingSection>
+    </ConfigSection>
   );
 };

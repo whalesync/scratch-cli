@@ -1,18 +1,21 @@
 import { Text13Book, Text13Medium } from '@/app/components/base/text';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
-import { Box, Stack } from '@mantine/core';
+import { Box, MantineSpacing, Stack, StyleProp } from '@mantine/core';
 
-export const BillingSection = ({
+/**
+ * A vertically layed out section that displays a title, description and a box containing children for use on Settings/Billing pages
+ */
+export const ConfigSection = ({
   title,
   description,
   children,
-  p = 'md',
+  p = '10px 12px',
   hasBorder = true,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
-  p?: string;
+  p?: StyleProp<MantineSpacing>;
   hasBorder?: boolean;
 }) => {
   return (

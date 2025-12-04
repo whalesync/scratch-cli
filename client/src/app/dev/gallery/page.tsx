@@ -1,5 +1,6 @@
 'use client';
 
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
@@ -29,10 +30,12 @@ import {
   Ambulance,
   Bird,
   BookMarked,
+  BrainIcon,
   CheckIcon,
   CircleCheckBigIcon,
   Home,
   MoonStar,
+  PenLineIcon,
   Plus,
   Settings,
   Trash2,
@@ -718,6 +721,31 @@ export default function DevComponentGalleryPage() {
                     Delete
                   </ButtonDangerLight>
                 </Group>
+              </div>
+            </Stack>
+          </Box>
+          <Box ml="md" mt="xl">
+            <TextTitle3 mb="md">Config Section </TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              A stacked layout with a title, description and a borderedbox containing children - either some information
+              or a form.
+            </Text12Book>
+            <Stack gap="md">
+              <div>
+                <ConfigSection
+                  title="Default Model"
+                  description="Set the default LLM to use in your conversations in new workbooks."
+                >
+                  <Group justify="space-between">
+                    <Group gap="xs" wrap="nowrap">
+                      <DecorativeBoxedIcon Icon={BrainIcon} size="sm" />
+                      <Text13Regular>openai/chat-gpt-4d</Text13Regular>
+                    </Group>
+                    <IconButtonGhost size="xs">
+                      <StyledLucideIcon Icon={PenLineIcon} size={13} />
+                    </IconButtonGhost>
+                  </Group>
+                </ConfigSection>
               </div>
             </Stack>
           </Box>

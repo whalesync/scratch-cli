@@ -1,9 +1,9 @@
 import { Text13Book, Text13Regular } from '@/app/components/base/text';
+import { ConfigSection } from '@/app/components/ConfigSection';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { Box, Group, Progress, Stack, Tooltip } from '@mantine/core';
 import { InfoIcon } from 'lucide-react';
-import { BillingSection } from './BillingSection';
 
 export const TokenUsageSection = () => {
   const { systemOpenRouterCredential } = useAgentCredentials(true);
@@ -23,7 +23,7 @@ export const TokenUsageSection = () => {
       : '$' + systemOpenRouterCredential.usage.limit.toFixed(2);
 
   return (
-    <BillingSection title="Token usage" description="Your usage of OpenRouter tokens provided by Scratch">
+    <ConfigSection title="Token usage" description="Your usage of OpenRouter tokens provided by Scratch">
       <Stack gap="xs">
         <Text13Regular>Token usage</Text13Regular>
         <Progress value={value} color={isOverCreditLimit(systemOpenRouterCredential) ? 'red.6' : 'green.6'} />
@@ -41,6 +41,6 @@ export const TokenUsageSection = () => {
           </Tooltip>
         </Group>
       </Stack>
-    </BillingSection>
+    </ConfigSection>
   );
 };
