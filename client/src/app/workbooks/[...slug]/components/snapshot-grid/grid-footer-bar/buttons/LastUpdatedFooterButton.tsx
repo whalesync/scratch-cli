@@ -10,12 +10,10 @@ import { CloudDownloadIcon, RefreshCwIcon } from 'lucide-react';
 export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => {
   const showModal = useWorkbookEditorUIStore((state) => state.showModal);
   const isConnectionDeleted = hasDeletedConnection(table);
-  if (!table.lastSyncTime) {
-    return null;
-  }
+
   const tooltipLabel = `Records were last synced ${
     table.connectorService ? `from ${serviceName(table.connectorService)}` : ''
-  } on ${formatDate(table.lastSyncTime)}.`;
+  } on ${table.lastSyncTime ? formatDate(table.lastSyncTime) : '??'}.`;
 
   return (
     <Tooltip label={isConnectionDeleted ? 'Connection deleted' : tooltipLabel}>
@@ -31,7 +29,11 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
         disabled={isConnectionDeleted}
         onClick={() => showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE })}
       >
-        {timeAgo(table.lastSyncTime)}
+        {
+          table.lastSyncTime
+            ? timeAgo(table.lastSyncTime)
+            : 'Refresh data' /* lastSyncTime is null on old workbooks or if it's never been downloaded */
+        }
       </ButtonSecondaryInline>
     </Tooltip>
   );
