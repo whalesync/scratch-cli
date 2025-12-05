@@ -1,7 +1,8 @@
-import { AiAgentTokenUsageEventId } from './ids';
+import { AiAgentCredentialId, AiAgentTokenUsageEventId } from './ids';
 
 export interface AgentUsageEvent {
   id: AiAgentTokenUsageEventId;
+  credentialId?: AiAgentCredentialId;
   createdAt: Date;
   updatedAt: Date;
   userId: string;

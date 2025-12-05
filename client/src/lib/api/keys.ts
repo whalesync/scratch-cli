@@ -44,8 +44,15 @@ export const SWR_KEYS = {
     activeUser: () => ['users', 'activeUser'],
   },
   agentUsage: {
-    list: (cursor?: string, take?: number) => ['agent-usage', 'list', cursor, take],
-    summary: () => ['agent-usage', 'summary'],
+    list: (cursor?: string, take?: number, credentialId?: string, month?: string) => [
+      'agent-usage',
+      'list',
+      cursor,
+      take,
+      credentialId,
+      month,
+    ],
+    summary: (credentialId?: string, month?: string) => ['agent-usage', 'summary', credentialId, month],
   },
   agentSessions: {
     list: (workbookId: WorkbookId) => ['agent-sessions', 'list', workbookId],

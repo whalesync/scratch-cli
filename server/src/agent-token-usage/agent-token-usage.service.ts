@@ -26,25 +26,41 @@ export class AgentTokenUsageService {
     take?: number,
     cursor?: string,
     credentialId?: string,
+    monthISOString?: string,
   ): Promise<AgentTokenUsageEventEntity[]> {
+    const month = monthISOString ? new Date(monthISOString) : undefined;
+    const startOfMonth = month ? new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1)) : undefined;
+    const endOfMonth = month ? new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1)) : undefined;
+
+    console.log('credentialId: ', credentialId);
+    console.log('month: ', month);
+    console.log('start of month: ', startOfMonth);
+    console.log('end of month: ', endOfMonth);
+
     const aiAgentTokenUsageEvents = await this.db.client.aiAgentTokenUsageEvent.findMany({
-      where: { userId, credentialId },
+      where: { userId, credentialId, createdAt: month ? { gte: startOfMonth, lt: endOfMonth } : undefined },
       orderBy: { createdAt: 'desc' },
       take,
       skip: cursor ? 1 : undefined,
     });
 
+    console.log('aiAgentTokenUsageEvents: ', aiAgentTokenUsageEvents.length);
     return aiAgentTokenUsageEvents.map((event) => new AgentTokenUsageEventEntity(event));
   }
 
-  async getUsageSummary(userId: string): Promise<UsageSummaryEntity> {
-    const currentMonthUsage = await this.db.client.aiAgentTokenUsageEvent.groupBy({
+  async getUsageSummary(userId: string, credentialId?: string, monthISOString?: string): Promise<UsageSummaryEntity> {
+    const month = monthISOString ? new Date(monthISOString) : new Date();
+    const startOfMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1));
+
+    const usageByModel = await this.db.client.aiAgentTokenUsageEvent.groupBy({
       by: ['model'],
       where: {
         userId,
+        credentialId,
         createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
-          lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), // First day of next month
+          gte: startOfMonth,
+          lt: endOfMonth,
         },
       },
       _sum: {
@@ -57,7 +73,7 @@ export class AgentTokenUsageService {
     });
 
     // cleanup the data and add default values
-    const usage = currentMonthUsage.map((item) => ({
+    const usage = usageByModel.map((item) => ({
       model: item.model,
       usage: {
         requests: item._sum.requests ?? 0,

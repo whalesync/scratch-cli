@@ -1,8 +1,9 @@
 import { AiAgentTokenUsageEvent as PrismaAiAgentTokenUsageEvent } from '@prisma/client';
-import { AgentUsageEvent, AiAgentTokenUsageEventId } from '@spinner/shared-types';
+import { AgentUsageEvent, AiAgentCredentialId, AiAgentTokenUsageEventId } from '@spinner/shared-types';
 
 export class AgentTokenUsageEventEntity implements AgentUsageEvent {
   id: AiAgentTokenUsageEventId;
+  credentialId?: AiAgentCredentialId;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
@@ -15,6 +16,7 @@ export class AgentTokenUsageEventEntity implements AgentUsageEvent {
 
   constructor(aiAgentTokenUsageEvent: PrismaAiAgentTokenUsageEvent) {
     this.id = aiAgentTokenUsageEvent.id as AiAgentTokenUsageEventId;
+    this.credentialId = aiAgentTokenUsageEvent.credentialId as AiAgentCredentialId | undefined;
     this.createdAt = aiAgentTokenUsageEvent.createdAt;
     this.updatedAt = aiAgentTokenUsageEvent.updatedAt;
     this.userId = aiAgentTokenUsageEvent.userId;

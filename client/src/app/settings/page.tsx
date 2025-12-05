@@ -5,8 +5,8 @@ import { Button, Divider, Stack, Tooltip } from '@mantine/core';
 import { SettingsIcon } from 'lucide-react';
 import MainContent from '../components/layouts/MainContent';
 import { AgentCredentialsSection } from './components/AgentCredentialsSection';
-import { AgentUsageSection } from './components/AgentUsageSection';
 import { DefaultModelSection } from './components/DefaultModelSection';
+import { TokenUsageSection } from './components/TokenUsageSection';
 import { UserDevToolsSection } from './components/UserDevToolsSection';
 
 const SettingsPage = () => {
@@ -21,7 +21,7 @@ const SettingsPage = () => {
           <Divider c="var(--mantine-color-gray-3)" />
           <AgentCredentialsSection />
           <Divider c="var(--mantine-color-gray-3)" />
-          <AgentUsageSection />
+          <TokenUsageSection />
 
           {isDevToolsEnabled && (
             <>

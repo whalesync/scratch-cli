@@ -1,10 +1,18 @@
-import { Center, Group, Loader } from '@mantine/core';
+import { Center, Group, Loader, MantineSize } from '@mantine/core';
 import { Text13Regular } from './base/text';
 
-export const LoaderWithMessage = ({ message, centered = false }: { message?: string; centered?: boolean }) => {
+export const LoaderWithMessage = ({
+  message,
+  centered = false,
+  size = 'md',
+}: {
+  message?: string;
+  centered?: boolean;
+  size?: MantineSize | (string & {}) | number;
+}) => {
   const content = (
     <Group gap="xs" align="center">
-      <Loader />
+      <Loader size={size} />
       <Text13Regular>{message ?? 'Loading...'}</Text13Regular>
     </Group>
   );

@@ -35,12 +35,23 @@ export class AgentTokenUsageController {
     @Query('take') take?: string,
     @Query('cursor') cursor?: string,
     @Query('credentialId') credentialId?: string,
+    @Query('month') monthIsoString?: string,
   ) {
-    return this.agentTokenUsageService.findAll(req.user.id, take ? parseInt(take) : undefined, cursor, credentialId);
+    return this.agentTokenUsageService.findAll(
+      req.user.id,
+      take ? parseInt(take) : undefined,
+      cursor,
+      credentialId,
+      monthIsoString,
+    );
   }
 
   @Get('/stats/summary')
-  getSummary(@Req() req: RequestWithUser) {
-    return this.agentTokenUsageService.getUsageSummary(req.user.id);
+  getSummary(
+    @Req() req: RequestWithUser,
+    @Query('credentialId') credentialId?: string,
+    @Query('month') monthIsoString?: string,
+  ) {
+    return this.agentTokenUsageService.getUsageSummary(req.user.id, credentialId, monthIsoString);
   }
 }
