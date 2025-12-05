@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import axios, { HttpStatusCode } from 'axios';
+import axios from 'axios';
 
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
@@ -40,7 +40,8 @@ export class SlackNotificationService {
           'User-Agent': 'Scratchpaper/1.0 (compatible; ScratchpaperSlackNotification/1.0)',
         },
       });
-      if (responseData.status in [HttpStatusCode.Ok, HttpStatusCode.Created, HttpStatusCode.Accepted]) {
+
+      if (responseData.status === 200 || responseData.status === 201 || responseData.status === 202) {
         return ok();
       }
 

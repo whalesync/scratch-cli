@@ -66,7 +66,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user);
-      expect(result).toBe('New user signup: test@example.com  -- user_123');
+      expect(result).toBe('👤 New user signup: test@example.com (user_123) ');
     });
 
     it('should format new user with email and offer code', () => {
@@ -77,7 +77,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user, 'PROMO2024');
-      expect(result).toBe('New user signup: test@example.com with offer code PROMO2024 -- user_123');
+      expect(result).toBe('👤 New user signup: test@example.com (user_123) with offer code PROMO2024');
     });
 
     it('should use name when email is not available', () => {
@@ -88,7 +88,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user);
-      expect(result).toBe('New user signup: Test User  -- user_123');
+      expect(result).toBe('👤 New user signup: Test User (user_123) ');
     });
 
     it('should use "no email" when neither email nor name is available', () => {
@@ -99,7 +99,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user);
-      expect(result).toBe('New user signup: no email  -- user_123');
+      expect(result).toBe('👤 New user signup: no email (user_123) ');
     });
 
     it('should use "no email" when email and name are empty strings', () => {
@@ -110,7 +110,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user);
-      expect(result).toBe('New user signup: no email  -- user_123');
+      expect(result).toBe('👤 New user signup: no email (user_123) ');
     });
 
     it('should prefer email over name when both are available', () => {
@@ -133,7 +133,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user, 'PROMO-2024_V2');
-      expect(result).toBe('New user signup: test@example.com with offer code PROMO-2024_V2 -- user_123');
+      expect(result).toBe('👤 New user signup: test@example.com (user_123) with offer code PROMO-2024_V2');
     });
 
     it('should handle empty offer code string', () => {
@@ -144,7 +144,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user, '');
-      expect(result).toBe('New user signup: test@example.com  -- user_123');
+      expect(result).toBe('👤 New user signup: test@example.com (user_123) ');
     });
 
     it('should handle user with only undefined properties', () => {
@@ -155,7 +155,7 @@ describe('SlackFormatters', () => {
       });
 
       const result = SlackFormatters.newUserSignup(user);
-      expect(result).toBe('New user signup: no email  -- user_123');
+      expect(result).toBe('👤 New user signup: no email (user_123) ');
     });
 
     it('should include user ID in all cases', () => {
@@ -177,12 +177,92 @@ describe('SlackFormatters', () => {
     });
   });
 
+  describe('userIdentifier', () => {
+    const createTestUser = (overrides: Partial<Pick<UserCluster.User, 'id' | 'email' | 'name'>>): UserCluster.User => {
+      return {
+        id: overrides.id || 'user_123',
+        email: overrides.email,
+        name: overrides.name,
+        apiTokens: [],
+        organization: null,
+      } as unknown as UserCluster.User;
+    };
+
+    it('should format user with email using default emoji', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      const result = SlackFormatters.userIdentifier(user);
+      expect(result).toBe('👤 test@example.com ');
+    });
+
+    it('should format user with email and custom emoji', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      const result = SlackFormatters.userIdentifier(user, '🚀');
+      expect(result).toBe('🚀 test@example.com ');
+    });
+
+    it('should format user with email and include ID', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      const result = SlackFormatters.userIdentifier(user, '👤', true);
+      expect(result).toBe('👤 test@example.com (user_123)');
+    });
+
+    it('should use name when email is not available', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: null,
+        name: 'Test User',
+      });
+
+      const result = SlackFormatters.userIdentifier(user);
+      expect(result).toBe('👤 Test User ');
+    });
+
+    it('should use ID when neither email nor name is available', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: null,
+        name: null,
+      });
+
+      const result = SlackFormatters.userIdentifier(user);
+      expect(result).toBe('👤 user_123 ');
+    });
+
+    it('should prefer email over name when both are available', () => {
+      const user = createTestUser({
+        id: 'user_123',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      const result = SlackFormatters.userIdentifier(user);
+      expect(result).toContain('test@example.com');
+      expect(result).not.toContain('Test User');
+    });
+  });
+
   describe('SlackFormatters class', () => {
     it('should not be instantiable (utility class pattern)', () => {
       // The constructor is private, so we can't test instantiation directly
       // But we can verify all methods are static
       expect(typeof SlackFormatters.formatLink).toBe('function');
       expect(typeof SlackFormatters.newUserSignup).toBe('function');
+      expect(typeof SlackFormatters.userIdentifier).toBe('function');
     });
   });
 });

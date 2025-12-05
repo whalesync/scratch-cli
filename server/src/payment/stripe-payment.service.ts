@@ -9,6 +9,7 @@ import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
+import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import {
   AsyncResult,
@@ -781,7 +782,7 @@ export class StripePaymentService {
           await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
           const previousPlanType = existingSubscription ? existingSubscription.planType : ScratchPlanType.FREE_PLAN;
           await this.slackNotificationService.sendMessage(
-            `💳 User ${user.id} has switch plans: ${previousPlanType} -> ${plan.planType}!`,
+            `${SlackFormatters.userIdentifier(user, '💳')} has switch plans: ${previousPlanType} -> ${plan.planType}!`,
           );
           await this.auditLogService.logEvent({
             actor: userToActor(user),
@@ -798,7 +799,7 @@ export class StripePaymentService {
       if (cancelAt) {
         this.postHogService.trackSubscriptionCancelled(user.id, plan.planType);
         await this.slackNotificationService.sendMessage(
-          `😿 User ${user.id} has canceled their subscription for the ${plan.planType}`,
+          `${SlackFormatters.userIdentifier(user, '😿')} has canceled their subscription for the ${plan.planType}`,
         );
         await this.auditLogService.logEvent({
           actor: userToActor(user),

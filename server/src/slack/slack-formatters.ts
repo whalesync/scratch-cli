@@ -14,6 +14,10 @@ export class SlackFormatters {
   }
 
   static newUserSignup(user: UserCluster.User, offerCode?: string): string {
-    return `New user signup: ${user.email || user.name || 'no email'} ${offerCode ? `with offer code ${offerCode}` : ''} -- ${user.id}`;
+    return `👤 New user signup: ${user.email || user.name || 'no email'} (${user.id}) ${offerCode ? `with offer code ${offerCode}` : ''}`;
+  }
+
+  static userIdentifier(user: UserCluster.User, emoji: string = '👤', includeId: boolean = false): string {
+    return `${emoji} ${user.email ?? user.name ?? user.id} ${includeId ? `(${user.id})` : ''}`;
   }
 }
