@@ -10,7 +10,7 @@ import { Connector } from '../../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, TablePreview } from '../../../types';
 import { WixBlogTableSpec } from '../../custom-spec-registry';
 import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
-import { createMarkdownParser, createTurndownService } from '../rich-content/markdown-helpers';
+import { createMarkdownParser, createWixTurndownService } from '../rich-content/markdown-helpers';
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
 import { WixDocument } from '../rich-content/types';
 import { WixBlogSchemaParser } from './wix-blog-schema-parser';
@@ -24,7 +24,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
 
   private readonly htmlToRicosConverter = new HtmlToWixConverter();
   private readonly ricosToHtmlConverter = new WixToHtmlConverter();
-  private readonly turndownService = createTurndownService();
+  private readonly turndownService = createWixTurndownService();
   private readonly wixClient: ReturnType<
     typeof createClient<
       undefined,

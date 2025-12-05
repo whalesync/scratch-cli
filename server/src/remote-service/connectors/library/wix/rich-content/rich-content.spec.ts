@@ -1,7 +1,7 @@
 import MarkdownIt from 'markdown-it';
-import TurndownService from 'turndown';
+import { createTurndownService, TurndownService } from 'src/wrappers/turndown';
 import { HtmlToWixConverter } from './html-to-ricos';
-import { createMarkdownParser, createTurndownService, htmlToMarkdown, markdownToHtml } from './markdown-helpers';
+import { createMarkdownParser, htmlToMarkdown, markdownToHtml } from './markdown-helpers';
 import { WixToHtmlConverter } from './ricos-to-html';
 import type {
   WixBlockquoteNode,
@@ -1859,7 +1859,7 @@ describe('Markdown conversion pipeline', () => {
     htmlToWix = new HtmlToWixConverter();
     wixToHtml = new WixToHtmlConverter({ prettify: false });
     markdownIt = new MarkdownIt({});
-    turndownService = new TurndownService({ headingStyle: 'atx' });
+    turndownService = createTurndownService();
   });
 
   it('should preserve line breaks within paragraphs (br tags)', () => {
@@ -2356,8 +2356,8 @@ describe('Markdown helpers with image preservation', () => {
     expect(imageNode.imageData.altText).toBe('Test Image');
   });
 
-  it('createTurndownService should preserve all image attributes', () => {
-    const turndown = createTurndownService();
+  it('createTurndownService should preserve all image attributes when preserveImageAttributes is true', () => {
+    const turndown = createTurndownService({ preserveImageAttributes: true });
     const html =
       '<img src="wix:image://v1/test.jpg" alt="My Image" width="1920" height="1080" data-wix-container=\'{"alignment":"CENTER"}\'>';
 
