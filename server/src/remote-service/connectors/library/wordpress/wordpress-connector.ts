@@ -2,7 +2,7 @@ import { Service } from '@prisma/client';
 import { isAxiosError } from 'axios';
 import MarkdownIt from 'markdown-it';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
-import { createTurndownService, TurndownService } from 'src/wrappers/turndown';
+import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { extractErrorMessageFromAxiosError } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
@@ -23,7 +23,9 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   static readonly displayName = 'WordPress';
 
   private client: WordPressHttpClient;
-  private readonly turndownService: TurndownService = createTurndownService();
+  private readonly turndownService: TurndownService = new TurndownService({
+    headingStyle: 'atx',
+  });
 
   constructor(username: string, password: string, endpoint: string) {
     super();

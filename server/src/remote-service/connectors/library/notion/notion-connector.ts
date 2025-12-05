@@ -11,7 +11,7 @@ import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/buil
 import { Service } from '@prisma/client';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { createTurndownService, TurndownService } from 'src/wrappers/turndown';
+import TurndownService from 'turndown';
 import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
@@ -40,7 +40,9 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
-  private readonly turndownService: TurndownService = createTurndownService();
+  private readonly turndownService: TurndownService = new TurndownService({
+    headingStyle: 'atx',
+  });
 
   constructor(apiKey: string) {
     super();

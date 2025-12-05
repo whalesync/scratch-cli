@@ -3,7 +3,7 @@ import _ from 'lodash';
 import MarkdownIt from 'markdown-it';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
-import { createTurndownService, TurndownService } from 'src/wrappers/turndown';
+import TurndownService from 'turndown';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
@@ -18,7 +18,9 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   readonly service = Service.WEBFLOW;
   static readonly displayName = 'Webflow';
 
-  private readonly turndownService: TurndownService = createTurndownService();
+  private readonly turndownService: TurndownService = new TurndownService({
+    headingStyle: 'atx',
+  });
   private readonly client: WebflowClient;
   private readonly schemaParser = new WebflowSchemaParser();
 
