@@ -22,11 +22,8 @@ import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
 import { userToActor } from '../users/types';
 import { AgentCredentialsService } from './agent-credentials.service';
-import {
-  CreateAgentCredentialDto,
-  UpdateAgentCredentialDto,
-  ValidatedCreateAgentCredentialDto,
-} from './dto/create-agent-credential.dto';
+import { CreateAgentCredentialDto, ValidatedCreateAgentCredentialDto } from './dto/create-agent-credential.dto';
+import { UpdateAgentCredentialDto } from './dto/update-agent-credential.dto';
 import { AgentCredentialEntity, CreditUsageEntity } from './entities/credentials.entity';
 
 @Controller('user/credentials')
@@ -143,27 +140,27 @@ export class AgentCredentialsController {
     const actor = userToActor(req.user);
 
     if (!credential) {
-      throw new NotFoundException();
+      throw new NotFoundException('Agent credential not found');
     }
 
     if (credential.userId !== actor.userId) {
-      throw new ForbiddenException();
+      throw new ForbiddenException('You are not authorized to update this agent credential');
     }
 
-    if (credential.source === 'SYSTEM' && dto.description) {
+    if (credential.source === 'SYSTEM' && dto.name) {
       // users cannot update the details of the system generated credentials, only the default flag
-      throw new ForbiddenException();
+      throw new ForbiddenException('You are not authorized to update the name of a system generated credential');
     }
 
     // No values provided, throw error
-    if (dto.default === undefined && dto.description === undefined) {
-      throw new BadRequestException('At least one of description or default must be provided');
+    if (dto.default === undefined && dto.name === undefined && dto.tokenUsageWarningLimit === undefined) {
+      throw new BadRequestException('At least one of name, tokenUsageWarningLimit, or default must be provided');
     }
 
     const updatedCredential = await this.service.update(id, actor, dto);
 
     if (!updatedCredential) {
-      throw new NotFoundException();
+      throw new NotFoundException('Failed to update agent credential');
     }
 
     return new AgentCredentialEntity(updatedCredential);
@@ -175,11 +172,11 @@ export class AgentCredentialsController {
     const credential = await this.service.findOne(id);
 
     if (!credential) {
-      throw new NotFoundException();
+      throw new NotFoundException('Agent credential not found');
     }
 
     if (credential.userId !== req.user.id || credential.source === 'SYSTEM') {
-      throw new ForbiddenException();
+      throw new ForbiddenException('You are not authorized to delete a system OpenRouter API key');
     }
 
     await this.service.delete(id, userToActor(req.user));

@@ -11,6 +11,10 @@ import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 import { Actor } from '../users/types';
 
+const SYSTEM_OPENROUTER_NAME = 'OpenRouter API key provided by Scratch';
+
+export type AgentCredentialMetadata = Record<string, string | number | boolean | null>;
+
 @Injectable()
 export class AgentCredentialsService {
   constructor(
@@ -23,6 +27,12 @@ export class AgentCredentialsService {
   public async findOne(id: string): Promise<AiAgentCredential | null> {
     return this.db.client.aiAgentCredential.findUnique({
       where: { id },
+    });
+  }
+
+  public async findOneForUser(id: string, userId: string): Promise<AiAgentCredential | null> {
+    return this.db.client.aiAgentCredential.findFirst({
+      where: { id, userId },
     });
   }
 
@@ -67,8 +77,10 @@ export class AgentCredentialsService {
     data: {
       service: string;
       apiKey: string;
-      description?: string;
+      name?: string;
       default?: boolean;
+      tokenUsageWarningLimit?: number;
+      metadata?: AgentCredentialMetadata;
     },
     actor: Actor,
   ): Promise<AiAgentCredential> {
@@ -91,8 +103,10 @@ export class AgentCredentialsService {
           userId: actor.userId,
           service: data.service,
           apiKey: data.apiKey,
-          description: data.description,
+          name: data.name,
           default: data.default,
+          tokenUsageWarningLimit: data.tokenUsageWarningLimit,
+          metadata: data.metadata,
         },
       });
     });
@@ -106,6 +120,7 @@ export class AgentCredentialsService {
       entityId: result.id as AiAgentCredentialId,
       context: {
         service: result.service,
+        name: result.name,
       },
     });
 
@@ -115,8 +130,31 @@ export class AgentCredentialsService {
   public async update(
     id: string,
     actor: Actor,
-    data: { apiKey?: string; description?: string; default?: boolean },
+    data: {
+      apiKey?: string;
+      name?: string;
+      tokenUsageWarningLimit?: number;
+      default?: boolean;
+      metadata?: AgentCredentialMetadata;
+    },
   ): Promise<AiAgentCredential> {
+    const credential = await this.findOneForUser(id, actor.userId);
+    if (!credential) {
+      throw new NotFoundException(`Credential not found for id ${id}`);
+    }
+    const existingMetadata = (credential.metadata ?? {}) as AgentCredentialMetadata;
+    const updatedMetadata = {
+      ...existingMetadata,
+      ...data.metadata,
+    };
+
+    if (data.default) {
+      await this.db.client.aiAgentCredential.updateMany({
+        where: { userId: actor.userId },
+        data: { default: false },
+      });
+    }
+
     const result = await this.db.client.$transaction(async (tx) => {
       if (data.default) {
         await tx.aiAgentCredential.updateMany({
@@ -127,7 +165,13 @@ export class AgentCredentialsService {
 
       return tx.aiAgentCredential.update({
         where: { id, userId: actor.userId },
-        data,
+        data: {
+          apiKey: data.apiKey,
+          name: data.name,
+          tokenUsageWarningLimit: data.tokenUsageWarningLimit,
+          default: data.default,
+          metadata: updatedMetadata,
+        },
       });
     });
 
@@ -145,13 +189,32 @@ export class AgentCredentialsService {
   }
 
   public async delete(id: string, actor: Actor): Promise<AiAgentCredential | null> {
-    const credential = await this.db.client.aiAgentCredential.delete({
+    const credential = await this.db.client.aiAgentCredential.findFirst({
       where: { id, userId: actor.userId },
     });
-
     if (!credential) {
       return null;
     }
+
+    await this.db.client.$transaction(async (tx) => {
+      await tx.aiAgentCredential.delete({
+        where: { id, userId: actor.userId },
+      });
+
+      if (credential.default) {
+        // set the first non-default credential as the default
+        const firstNonDefaultCredential = await tx.aiAgentCredential.findFirst({
+          where: { userId: actor.userId },
+          orderBy: { source: 'asc' }, // system credentials should be first
+        });
+        if (firstNonDefaultCredential) {
+          await tx.aiAgentCredential.update({
+            where: { id: firstNonDefaultCredential.id },
+            data: { default: true },
+          });
+        }
+      }
+    });
 
     if (credential.source === 'SYSTEM' && credential.service === 'openrouter' && credential.externalApiKeyId) {
       // attempt to delete the api key from OpenRouter
@@ -214,9 +277,14 @@ export class AgentCredentialsService {
           service: 'openrouter',
           apiKey: result.v.key,
           externalApiKeyId: result.v.hash,
-          description: `OpenRouter API key provided by Scratch (${plan.displayName})`,
+          name: SYSTEM_OPENROUTER_NAME,
           source: AiAgentCredentialSource.SYSTEM,
           default: true,
+          metadata: {
+            plan: plan.planType,
+            creditLimit: plan.features.creditLimit,
+            creditReset: plan.features.creditReset,
+          },
         },
       });
     } else {
@@ -242,10 +310,20 @@ export class AgentCredentialsService {
       throw new InternalServerErrorException(`Failed to update OpenRouter key for user ${userId}: ${result.error}`);
     }
 
+    const existingMetadata = (credential.metadata ?? {}) as AgentCredentialMetadata;
+
+    const updatedMetadata = {
+      ...existingMetadata,
+      plan: plan.planType,
+      creditLimit: plan.features.creditLimit,
+      creditReset: plan.features.creditReset,
+    };
+
     await this.db.client.aiAgentCredential.update({
       where: { id: credential.id },
       data: {
-        description: `OpenRouter API key provided by Scratch (${plan.displayName})`,
+        name: SYSTEM_OPENROUTER_NAME,
+        metadata: updatedMetadata,
       },
     });
   }
@@ -264,7 +342,7 @@ export class AgentCredentialsService {
     await this.db.client.aiAgentCredential.update({
       where: { id: credential.id },
       data: {
-        description: `Deactivated - ${credential.description}`,
+        name: `Deactivated - ${credential.name}`,
       },
     });
   }

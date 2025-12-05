@@ -1,13 +1,15 @@
 export type AgentService = 'openrouter';
 
-export interface CreateAiAgentCredentialDto {
+export interface CreateAgentCredentialDto {
   service: AgentService;
   apiKey: string;
-  description?: string;
+  name?: string;
+  tokenUsageWarningLimit?: number;
   default?: boolean;
 }
 
-export interface UpdateAiAgentCredentialDto {
-  description?: string;
+export interface UpdateAgentCredentialDto {
+  name?: string;
+  tokenUsageWarningLimit?: number;
   default?: boolean;
 }

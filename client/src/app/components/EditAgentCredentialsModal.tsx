@@ -1,9 +1,7 @@
-import { Text13Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { PROJECT_NAME } from '@/constants';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
-import { Alert, Checkbox, ModalProps, PasswordInput, Stack, TextInput } from '@mantine/core';
+import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { Alert, Checkbox, Divider, ModalProps, NumberInput, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
 import { AgentCredential } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
@@ -23,11 +21,12 @@ export const EditAgentCredentialsModal = ({
   const { createCredentials, updateCredentials } = useAgentCredentials(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useSetState<CreateAiAgentCredentialDto>({
+  const [formData, setFormData] = useSetState<CreateAgentCredentialDto>({
     service: 'openrouter',
     apiKey: '',
-    description: '',
+    name: '',
     default: false,
+    tokenUsageWarningLimit: undefined,
   });
 
   useEffect(() => {
@@ -40,16 +39,18 @@ export const EditAgentCredentialsModal = ({
       setFormData({
         service: credentials.service,
         apiKey: '',
-        description: credentials.description ?? '',
+        name: credentials.name ?? '',
         default: credentials.default,
+        tokenUsageWarningLimit: credentials.tokenUsageWarningLimit ?? undefined,
       });
     } else {
       // setup for create
       setFormData({
         service: 'openrouter',
         apiKey: '',
-        description: '',
+        name: '',
         default: false,
+        tokenUsageWarningLimit: undefined,
       });
     }
   }, [credentials, modalProps.opened, setFormData]);
@@ -60,7 +61,11 @@ export const EditAgentCredentialsModal = ({
       setError(null);
 
       if (credentials) {
-        const updateDto: UpdateAiAgentCredentialDto = { description: formData.description, default: formData.default };
+        const updateDto: UpdateAgentCredentialDto = {
+          name: credentials.source === 'USER' ? formData.name : undefined,
+          default: formData.default,
+          tokenUsageWarningLimit: formData.tokenUsageWarningLimit,
+        };
         await updateCredentials(credentials.id, updateDto);
       } else {
         await createCredentials(formData);
@@ -80,7 +85,7 @@ export const EditAgentCredentialsModal = ({
 
   return (
     <ModalWrapper
-      title={credentials ? 'Edit credentials' : 'New credentials'}
+      title={`${credentials ? 'Edit' : 'Add'} OpenRouter API Key`}
       customProps={{
         footer: (
           <>
@@ -88,41 +93,65 @@ export const EditAgentCredentialsModal = ({
               Cancel
             </ButtonSecondaryOutline>
             <ButtonPrimaryLight onClick={handleSubmit} disabled={saving}>
-              {credentials ? 'Save' : 'Create'}
+              {credentials ? 'Save' : 'Add API Key'}
             </ButtonPrimaryLight>
           </>
         ),
       }}
       {...modalProps}
     >
-      <Stack gap="sm">
-        {error && (
-          <Alert color="red" mb="sm" withCloseButton onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-        <Text13Regular c="dimmed">
-          {credentials
-            ? `Edit the credentials here to enable the ${PROJECT_NAME} agent to use it.`
-            : `Register an OpenRouter.ai API key here to enable the ${PROJECT_NAME} agent to use it.`}
-        </Text13Regular>
+      {error && (
+        <Alert color="red" mb="sm" withCloseButton onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      <Stack gap="16px">
+        <TextInput
+          size="xs"
+          label="Name"
+          required
+          value={formData.name}
+          onChange={(event) => setFormData({ name: event.target.value })}
+          disabled={credentials?.source === 'SYSTEM'}
+        />
         <PasswordInput
+          size="xs"
           label="API Key"
           required
-          placeholder="Your OpenRouter API key"
           value={credentials ? credentials.label : formData.apiKey}
           onChange={(event) => setFormData({ apiKey: event.target.value })}
           disabled={!!credentials}
         />
-        <TextInput
-          label="Description"
-          placeholder="Optional description"
-          value={formData.description}
-          onChange={(event) => setFormData({ description: event.target.value })}
-          disabled={credentials?.source === 'SYSTEM'}
+        <Divider label="Settings" labelPosition="left" />
+        <Checkbox
+          label="Token usage warning"
+          description="Get notified if a chat session exceeds the specified token limit."
+          checked={formData.tokenUsageWarningLimit !== undefined && formData.tokenUsageWarningLimit > 0}
+          onChange={(event) => {
+            if (event.target.checked) {
+              setFormData({ tokenUsageWarningLimit: 1000 });
+            } else {
+              setFormData({ tokenUsageWarningLimit: undefined });
+            }
+          }}
+        />
+        <NumberInput
+          ml="28px"
+          size="xs"
+          min={0}
+          hideControls
+          value={formData.tokenUsageWarningLimit ?? ''}
+          onChange={(value) => {
+            if (typeof value === 'number') {
+              setFormData({ tokenUsageWarningLimit: value });
+            } else {
+              setFormData({ tokenUsageWarningLimit: undefined });
+            }
+          }}
         />
         <Checkbox
-          label="Make default?"
+          label="Default model provider default"
+          description="Use this model provider as default in new workbooks."
           checked={formData.default}
           onChange={(event) => setFormData({ default: event.target.checked })}
         />

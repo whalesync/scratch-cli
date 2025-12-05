@@ -508,7 +508,7 @@ export default function AIChatPanel() {
           <Tooltip
             multiline
             w={220}
-            label={`Using ${activeOpenRouterCredentials?.label} key. ${activeOpenRouterCredentials?.description}`}
+            label={`Using ${activeOpenRouterCredentials?.label} key. ${activeOpenRouterCredentials?.name}`}
           >
             <Box>
               <StyledLucideIcon Icon={LucideFileKey} size="md" strokeWidth={1} />

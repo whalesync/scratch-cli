@@ -43,9 +43,29 @@ export const AgentCredentialsSection = () => {
     );
   }, [agentCredentials]);
 
+  const grayBorder = '0.5px solid var(--mantine-color-gray-4)';
+
   const buildApiKeyElement = (credential: AgentCredential, isLast: boolean) => {
-    const isScratchCredential = credential.source === 'SYSTEM';
+    const isSystemCredential = credential.source === 'SYSTEM';
     const tokenUsageWarning = null;
+
+    let infoStack = null;
+
+    if (isSystemCredential && tokenUsageWarning) {
+      infoStack = (
+        <Stack gap="2px">
+          <Text13Book c="dimmed">{tokenUsageWarning}</Text13Book>
+        </Stack>
+      );
+    } else if (!isSystemCredential) {
+      infoStack = (
+        <Stack gap="2px">
+          <Text13Regular>{credential.label}</Text13Regular>
+          {tokenUsageWarning && <Text13Book c="dimmed">{tokenUsageWarning}</Text13Book>}
+        </Stack>
+      );
+    }
+
     return (
       <Group
         key={credential.id}
@@ -54,36 +74,35 @@ export const AgentCredentialsSection = () => {
         styles={
           isLast
             ? {
-                root: { border: '0.5px solid var(--mantine-color-gray-4)' },
+                root: {
+                  borderTop: grayBorder,
+                  borderRight: grayBorder,
+                  borderBottom: grayBorder,
+                  borderLeft: grayBorder,
+                },
               }
             : {
-                root: { border: '0.5px solid var(--mantine-color-gray-4)', borderBottom: 'none' },
+                root: { borderTop: grayBorder, borderRight: grayBorder, borderBottom: 'none', borderLeft: grayBorder },
               }
         }
       >
         <Group gap="6px" w="200px">
-          <Text13Regular>{isScratchCredential ? 'Scratch' : credential.description}</Text13Regular>
+          <Text13Regular>{isSystemCredential ? 'Scratch' : credential.name}</Text13Regular>
           {credential.default && <Badge>Default</Badge>}
         </Group>
         <Stack gap="12px" flex="1">
-          <Stack gap="2px">
-            {!isScratchCredential && <Text13Regular>{credential.label}</Text13Regular>}
-            {tokenUsageWarning && <Text13Book c="dimmed">{tokenUsageWarning}</Text13Book>}
-          </Stack>
+          {infoStack}
           <CredentialLimit credential={credential} />
         </Stack>
         <Group gap="4px" w="76px" justify="flex-end" align="flex-end">
-          {!isScratchCredential && (
-            <ToolIconButton
-              size="sm"
-              onClick={() => {
-                setActiveCredential(credential);
-                openEditModal();
-              }}
-              icon={Edit3Icon}
-              disabled={isScratchCredential}
-            />
-          )}
+          <ToolIconButton
+            size="sm"
+            onClick={() => {
+              setActiveCredential(credential);
+              openEditModal();
+            }}
+            icon={Edit3Icon}
+          />
           <Menu>
             <Menu.Target>
               <ActionIconThreeDots size="sm" />
@@ -112,12 +131,12 @@ export const AgentCredentialsSection = () => {
                 </Menu.Item>
               </>
 
-              {!isScratchCredential && (
+              {!isSystemCredential && (
                 <>
                   <Menu.Divider />
                   <Menu.Item
                     data-delete
-                    onClick={() => deleteModal.open(credential.id as AiAgentCredentialId, credential.label)}
+                    onClick={() => deleteModal.open(credential.id as AiAgentCredentialId, credential.name)}
                     leftSection={<Trash2Icon size={16} />}
                   >
                     Delete
@@ -189,7 +208,7 @@ export const AgentCredentialsSection = () => {
       />
 
       <GenericDeleteConfirmationModal
-        title="Delete credential"
+        title="Delete OpenRouter API Key"
         onConfirm={async (id: AiAgentCredentialId) => await deleteCredentials(id)}
         {...deleteModal}
       />

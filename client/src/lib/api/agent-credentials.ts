@@ -1,4 +1,4 @@
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { AgentCredential } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { checkForApiError, ScratchpadApiError } from './error';
@@ -15,7 +15,7 @@ export const agentCredentialsApi = {
     await checkForApiError(res, 'Failed to fetch agent credentials');
     return res.json();
   },
-  create: async (data: CreateAiAgentCredentialDto): Promise<AgentCredential> => {
+  create: async (data: CreateAgentCredentialDto): Promise<AgentCredential> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/new`, {
       method: 'POST',
       headers: {
@@ -27,7 +27,7 @@ export const agentCredentialsApi = {
     if (!res.ok) throw new ScratchpadApiError('Failed to create agent credential', res.status, res.statusText);
     return res.json();
   },
-  update: async (id: string, data: UpdateAiAgentCredentialDto): Promise<AgentCredential> => {
+  update: async (id: string, data: UpdateAgentCredentialDto): Promise<AgentCredential> => {
     const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}`, {
       method: 'POST',
       headers: {

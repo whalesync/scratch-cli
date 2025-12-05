@@ -1,7 +1,7 @@
 import { agentCredentialsApi } from '@/lib/api/agent-credentials';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { CreateAiAgentCredentialDto, UpdateAiAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { AgentCredential } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -16,12 +16,12 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     mutate: mutateList,
   } = useSWR(SWR_KEYS.agentCredentials.list(includeUsageStats), () => agentCredentialsApi.list(includeUsageStats));
 
-  const createCredentials = async (dto: CreateAiAgentCredentialDto) => {
+  const createCredentials = async (dto: CreateAgentCredentialDto) => {
     await agentCredentialsApi.create(dto);
     mutateList();
   };
 
-  const updateCredentials = async (id: string, dto: UpdateAiAgentCredentialDto) => {
+  const updateCredentials = async (id: string, dto: UpdateAgentCredentialDto) => {
     await agentCredentialsApi.update(id, dto);
     mutateList();
     mutate(SWR_KEYS.agentCredentials.detail(id));

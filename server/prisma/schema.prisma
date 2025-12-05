@@ -70,17 +70,19 @@ enum AiAgentCredentialSource {
 
 // Defines a set of credentials for the AI agent to use instead of the default ones, such as an OpenRouter API key
 model AiAgentCredential {
-  id               String                  @id // type: AiAgentCredentialId
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId           String
-  service          String
-  apiKey           String
-  description      String?
-  externalApiKeyId String? // used to store the external ID or hash for an api key when generated via an SDK
-  source           AiAgentCredentialSource @default(USER) // where the api key came from user or system generated 
-  default          Boolean                 @default(false)
+  id                     String                  @id // type: AiAgentCredentialId
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String
+  service                String
+  apiKey                 String
+  name                   String? // human readable name for the credential
+  tokenUsageWarningLimit Int? // the token usage warning limit for the credential
+  externalApiKeyId       String? // used to store the external ID or hash for an api key when generated via an SDK
+  source                 AiAgentCredentialSource @default(USER) // where the api key came from user or system generated 
+  default                Boolean                 @default(false)
+  metadata               Json?                   @default("{}") // additional optional metadata for the credential, key-value pairs
 
   @@index([userId])
 }

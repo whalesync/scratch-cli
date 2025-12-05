@@ -12,7 +12,8 @@ export class AgentCredentialEntity implements AgentCredential {
   service: AgentService;
   apiKey: string;
   label: string;
-  description?: string;
+  name: string;
+  tokenUsageWarningLimit?: number;
   source: 'USER' | 'SYSTEM';
   usage?: CreditUsageEntity;
   default: boolean;
@@ -25,7 +26,12 @@ export class AgentCredentialEntity implements AgentCredential {
     this.service = credential.service as AgentService;
     this.apiKey = includeApiKey ? credential.apiKey : '****************';
     this.label = obfuscateApiKey(credential.apiKey);
-    this.description = credential.description ?? undefined;
+    if (credential.source === 'SYSTEM') {
+      this.name = 'Scratch';
+    } else {
+      this.name = credential.name ?? 'User Provided';
+    }
+    this.tokenUsageWarningLimit = undefined;
     this.source = credential.source as 'USER' | 'SYSTEM';
     this.usage = usage;
     this.default = credential.default;

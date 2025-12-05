@@ -7,7 +7,8 @@ export interface AgentCredential {
   userId: string;
   service: AgentService;
   label: string;
-  description?: string;
+  name: string;
+  tokenUsageWarningLimit?: number;
   source: 'USER' | 'SYSTEM';
   createdAt: Date;
   updatedAt: Date;

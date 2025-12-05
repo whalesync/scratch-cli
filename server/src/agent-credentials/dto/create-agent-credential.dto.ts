@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAgentCredentialDto {
   @IsString()
@@ -8,24 +8,18 @@ export class CreateAgentCredentialDto {
   apiKey?: string;
 
   @IsString()
+  name?: string;
+
+  @IsNumber()
   @IsOptional()
-  description?: string;
+  tokenUsageWarningLimit?: number;
 
   @IsBoolean()
   @IsOptional()
   default?: boolean;
 }
 
-export class UpdateAgentCredentialDto {
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  default?: boolean;
-}
-
-export type ValidatedCreateAgentCredentialDto = Required<Pick<CreateAgentCredentialDto, 'service' | 'apiKey'>> &
-  Pick<CreateAgentCredentialDto, 'description' | 'default'>;
-export type ValidatedUpdateAgentCredentialDto = UpdateAgentCredentialDto;
+export type ValidatedCreateAgentCredentialDto = Required<
+  Pick<CreateAgentCredentialDto, 'service' | 'apiKey' | 'name'>
+> &
+  Pick<CreateAgentCredentialDto, 'tokenUsageWarningLimit' | 'default'>;
