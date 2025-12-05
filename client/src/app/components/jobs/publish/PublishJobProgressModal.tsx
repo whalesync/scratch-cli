@@ -24,7 +24,7 @@ export const PublishJobProgressModal: FC<Props> = (props) => {
       {/* Cancel button - show when job is active and not already cancelled */}
       {job?.state === 'active' && !cancellationRequested && (
         <ButtonSecondaryOutline onClick={cancelJob} loading={isCancelling} color="red" variant="outline">
-          {isCancelling ? 'Cancelling...' : 'Cancel Publish'}
+          {isCancelling ? 'Cancelling...' : 'Cancel'}
         </ButtonSecondaryOutline>
       )}
 
@@ -33,7 +33,7 @@ export const PublishJobProgressModal: FC<Props> = (props) => {
         <ButtonSecondaryOutline onClick={onClose}>Close</ButtonSecondaryOutline>
       )}
       {/* Close button - show when job is active */}
-      {job?.state === 'active' && <ButtonSecondaryOutline onClick={onClose}>Publishing...</ButtonSecondaryOutline>}
+      {job?.state === 'active' && <ButtonSecondaryOutline disabled={true}>Publishing...</ButtonSecondaryOutline>}
     </>
   );
   return (
