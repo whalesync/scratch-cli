@@ -4,7 +4,7 @@ import { TableIndicator } from './components/base-avatar-with-indicator';
 import { getServiceName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Text } from '@mantine/core';
-import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon } from 'lucide-react';
 import { ConnectorIcon } from '../../ConnectorIcon';
 import { StyledLucideIcon } from '../../Icons/StyledLucideIcon';
 import { getStatusColor, getStatusText } from '../job-utils';
@@ -50,19 +50,15 @@ export const SyncStatus: FC<Props> = (props) => {
   return (
     <SyncStatusLayout
       // Top slots
-      leftIcon={<TableIndicator />}
-      leftFlowLine={<SyncDirectedFlowLine direction={direction} moving={isMoving} />}
+      leftIcon={direction === 'right' ? <TableIndicator /> : <ConnectorIcon connector={connector} />}
+      leftFlowLine={<SyncDirectedFlowLine direction={'right'} moving={isMoving} />}
       centerIcon={
-        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg}>
-          {direction === 'left' ? (
-            <StyledLucideIcon Icon={ArrowLeftIcon} size="md" />
-          ) : (
-            <StyledLucideIcon Icon={ArrowRightIcon} size="md" />
-          )}
+        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg} >
+          <StyledLucideIcon Icon={ArrowRightIcon} size="md" />
         </ActionIcon>
       }
-      rightFlowLine={<SyncDirectedFlowLine direction={direction} moving={isMoving} />}
-      rightIcon={<ConnectorIcon connector={connector} />}
+      rightFlowLine={<SyncDirectedFlowLine direction={'right'} moving={isMoving} />}
+      rightIcon={direction === 'left' ? <TableIndicator /> : <ConnectorIcon connector={connector} />}
       // Bottom slots
       bottomLeftSlot={<>{truncatedTableName}</>}
       bottomCenterSlot={
