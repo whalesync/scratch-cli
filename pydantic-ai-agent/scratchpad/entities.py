@@ -146,11 +146,13 @@ class AgentCredential:
     service: str
     apiKey: str
     label: str
-    description: str
+    name: str
     createdAt: str
     updatedAt: str
     source: str
     default: bool
+    metadata: Optional[Dict[str, Any]] = None
+    tokenUsageWarningLimit: Optional[int] = None
 
 
 @dataclass
