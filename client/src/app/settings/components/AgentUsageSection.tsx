@@ -2,8 +2,9 @@ import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
-import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
+
 import { Center, Loader, Stack, Table, Tabs, Text } from '@mantine/core';
+import { AgentUsageEvent, UsageSummary } from '@spinner/shared-types';
 import { ArrowDownIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 

@@ -256,6 +256,7 @@ class ScratchpadApi:
     @staticmethod
     def track_token_usage(
         user_id: str,
+        credential_id: str,
         model: str,
         num_requests: int,
         request_tokens: int,
@@ -267,6 +268,7 @@ class ScratchpadApi:
         url = f"{API_CONFIG.get_api_url()}/agent-token-usage/track"
         payload = {
             "model": model,
+            "credentialId": credential_id,
             "requests": num_requests,
             "requestTokens": request_tokens,
             "responseTokens": response_tokens,

@@ -1,12 +1,15 @@
-import { AgentUsageEvent, UsageSummary } from '@/types/server-entities/agent-usage-events';
+import { AgentUsageEvent, UsageSummary } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { checkForApiError } from './error';
 
 export const agentUsageEventsApi = {
-  list: async (cursor?: string, take?: number): Promise<AgentUsageEvent[]> => {
+  list: async (cursor?: string, take?: number, credentialId?: string): Promise<AgentUsageEvent[]> => {
     const url = new URL(`${API_CONFIG.getApiUrl()}/agent-token-usage/events`);
     if (cursor) {
       url.searchParams.append('cursor', cursor);
+    }
+    if (credentialId) {
+      url.searchParams.append('credentialId', credentialId);
     }
     if (take) {
       url.searchParams.append('take', take.toString());

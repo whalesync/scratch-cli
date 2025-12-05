@@ -1,10 +1,18 @@
-export interface UsageSummaryItem {
+import { UsageSummary, UsageSummaryItem } from '@spinner/shared-types';
+
+export class UsageSummaryItemEntity implements UsageSummaryItem {
   model: string;
   totalTokens: number;
   totalRequests: number;
+
+  constructor(model: string, totalTokens: number, totalRequests: number) {
+    this.model = model;
+    this.totalTokens = totalTokens;
+    this.totalRequests = totalRequests;
+  }
 }
 
-export class UsageSummary {
+export class UsageSummaryEntity implements UsageSummary {
   totalTokens: number;
   items: UsageSummaryItem[];
 

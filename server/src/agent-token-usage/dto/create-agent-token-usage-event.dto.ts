@@ -1,6 +1,10 @@
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
-export class CreateAiAgentTokenUsageEventDto {
+export class CreateAgentTokenUsageEventDto {
+  @IsString()
+  @IsNotEmpty()
+  credentialId?: string;
+
   @IsString()
   @IsNotEmpty()
   model?: string;
@@ -25,7 +29,10 @@ export class CreateAiAgentTokenUsageEventDto {
   context?: Record<string, any>;
 }
 
-export type ValidatedCreateAiAgentTokenUsageEventDto = Required<
-  Pick<CreateAiAgentTokenUsageEventDto, 'model' | 'requests' | 'requestTokens' | 'responseTokens' | 'totalTokens'>
+export type ValidatedCreateAgentTokenUsageEventDto = Required<
+  Pick<
+    CreateAgentTokenUsageEventDto,
+    'credentialId' | 'model' | 'requests' | 'requestTokens' | 'responseTokens' | 'totalTokens'
+  >
 > &
-  Pick<CreateAiAgentTokenUsageEventDto, 'context'>;
+  Pick<CreateAgentTokenUsageEventDto, 'context'>;

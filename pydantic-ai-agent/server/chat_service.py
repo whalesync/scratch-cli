@@ -514,6 +514,7 @@ class ChatService:
                 try:
                     ScratchpadApi.track_token_usage(
                         user.userId,
+                        credential_id,
                         model,
                         cancelled_result.usage_stats.requests,
                         cancelled_result.usage_stats.request_tokens,
@@ -526,9 +527,6 @@ class ChatService:
                             "data_scope": data_scope,
                             "record_id": record_id,
                             "column_id": column_id,
-                            "agent_credentials": (
-                                "user" if user_open_router_credentials else "system"
-                            ),
                             "cancelled_by_user": True,
                         },
                     )
@@ -605,9 +603,6 @@ class ChatService:
                     "data_scope": data_scope,
                     "record_id": record_id,
                     "column_id": column_id,
-                    "agent_credentials": (
-                        "user" if user_open_router_credentials else "system"
-                    ),
                 }
 
                 if usage.details:
@@ -615,6 +610,7 @@ class ChatService:
 
                 ScratchpadApi.track_token_usage(
                     user.userId,
+                    credential_id,
                     model,
                     usage.requests,
                     usage.input_tokens,

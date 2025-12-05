@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { AgentCredentialsModule } from './agent-credentials/agent-credentials.module';
 import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
 import { AgentSessionModule } from './agent-session/agent-session.module';
-import { AiAgentTokenUsageModule } from './ai-agent-token-usage/ai-agent-token-usage.module';
+import { AgentTokenUsageModule } from './agent-token-usage/agent-token-usage.module';
 import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkModule } from './clerk/clerk.module';
@@ -55,7 +55,7 @@ import { WorkerModule } from './worker/workers.module';
     WorkbookModule,
     StyleGuideModule,
     UploadsModule,
-    AiAgentTokenUsageModule,
+    AgentTokenUsageModule,
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,

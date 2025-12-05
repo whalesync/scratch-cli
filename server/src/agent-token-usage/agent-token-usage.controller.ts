@@ -1,0 +1,46 @@
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import type { RequestWithUser } from '../auth/types';
+import { AgentTokenUsageService } from './agent-token-usage.service';
+import {
+  CreateAgentTokenUsageEventDto,
+  ValidatedCreateAgentTokenUsageEventDto,
+} from './dto/create-agent-token-usage-event.dto';
+
+@Controller('agent-token-usage')
+@UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
+export class AgentTokenUsageController {
+  constructor(private readonly agentTokenUsageService: AgentTokenUsageService) {}
+
+  @Post('/track')
+  create(@Body() usageEventDto: CreateAgentTokenUsageEventDto, @Req() req: RequestWithUser) {
+    const dto = usageEventDto as ValidatedCreateAgentTokenUsageEventDto;
+    return this.agentTokenUsageService.create(dto, req.user.id);
+  }
+
+  @Get('/events')
+  findAll(
+    @Req() req: RequestWithUser,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+    @Query('credentialId') credentialId?: string,
+  ) {
+    return this.agentTokenUsageService.findAll(req.user.id, take ? parseInt(take) : undefined, cursor, credentialId);
+  }
+
+  @Get('/stats/summary')
+  getSummary(@Req() req: RequestWithUser) {
+    return this.agentTokenUsageService.getUsageSummary(req.user.id);
+  }
+}

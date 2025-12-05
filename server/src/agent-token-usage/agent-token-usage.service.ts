@@ -1,41 +1,43 @@
 import { Injectable } from '@nestjs/common';
 import { createAiAgentTokenUsageEventId } from '@spinner/shared-types';
 import { DbService } from '../db/db.service';
-import { ValidatedCreateAiAgentTokenUsageEventDto } from './dto/create-ai-agent-token-usage-event.dto';
-import { AiAgentTokenUsageEvent } from './entities/ai-agent-token-usage-event.entity';
-import { UsageSummary } from './entities/usage-summary.entity';
+import { ValidatedCreateAgentTokenUsageEventDto } from './dto/create-agent-token-usage-event.dto';
+import { AgentTokenUsageEventEntity } from './entities/agent-token-usage-event.entity';
+import { UsageSummaryEntity } from './entities/usage-summary.entity';
 
 @Injectable()
-export class AiAgentTokenUsageService {
+export class AgentTokenUsageService {
   constructor(private readonly db: DbService) {}
 
-  async create(
-    createAiAgentTokenUsageEventDto: ValidatedCreateAiAgentTokenUsageEventDto,
-    userId: string,
-  ): Promise<AiAgentTokenUsageEvent> {
+  async create(dto: ValidatedCreateAgentTokenUsageEventDto, userId: string): Promise<AgentTokenUsageEventEntity> {
     const aiAgentTokenUsageEvent = await this.db.client.aiAgentTokenUsageEvent.create({
       data: {
         id: createAiAgentTokenUsageEventId(),
-        ...createAiAgentTokenUsageEventDto,
+        ...dto,
         userId,
       },
     });
 
-    return new AiAgentTokenUsageEvent(aiAgentTokenUsageEvent);
+    return new AgentTokenUsageEventEntity(aiAgentTokenUsageEvent);
   }
 
-  async findAll(userId: string, take?: number, cursor?: string): Promise<AiAgentTokenUsageEvent[]> {
+  async findAll(
+    userId: string,
+    take?: number,
+    cursor?: string,
+    credentialId?: string,
+  ): Promise<AgentTokenUsageEventEntity[]> {
     const aiAgentTokenUsageEvents = await this.db.client.aiAgentTokenUsageEvent.findMany({
-      where: { userId },
+      where: { userId, credentialId },
       orderBy: { createdAt: 'desc' },
       take,
       skip: cursor ? 1 : undefined,
     });
 
-    return aiAgentTokenUsageEvents.map((event) => new AiAgentTokenUsageEvent(event));
+    return aiAgentTokenUsageEvents.map((event) => new AgentTokenUsageEventEntity(event));
   }
 
-  async getUsageSummary(userId: string): Promise<UsageSummary> {
+  async getUsageSummary(userId: string): Promise<UsageSummaryEntity> {
     const currentMonthUsage = await this.db.client.aiAgentTokenUsageEvent.groupBy({
       by: ['model'],
       where: {
@@ -63,6 +65,6 @@ export class AiAgentTokenUsageService {
       },
     }));
 
-    return new UsageSummary(usage);
+    return new UsageSummaryEntity(usage);
   }
 }

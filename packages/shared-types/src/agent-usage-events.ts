@@ -1,5 +1,7 @@
+import { AiAgentTokenUsageEventId } from './ids';
+
 export interface AgentUsageEvent {
-  id: string;
+  id: AiAgentTokenUsageEventId;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
