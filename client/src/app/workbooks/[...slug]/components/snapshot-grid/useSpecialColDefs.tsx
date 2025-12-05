@@ -26,6 +26,7 @@ export const useSpecialColDefs = ({
 }: UseIdColDefProps) => {
   const idColumn: ColDef = {
     field: ID_COLUMN_FIELD,
+    colId: ID_COLUMN_FIELD,
     headerName: entityName + 'ID',
     sortable: true,
     filter: false,

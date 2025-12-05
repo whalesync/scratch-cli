@@ -2,7 +2,21 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
-import { createSnapshotTableId, createWorkbookId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import {
+  CREATED_FIELD,
+  createSnapshotTableId,
+  createWorkbookId,
+  DELETED_FIELD,
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  REMOTE_ID_COLUMN,
+  SCRATCH_ID_COLUMN,
+  SEEN_COLUMN,
+  SnapshotTableId,
+  SUGGESTED_FIELDS_COLUMN,
+  WorkbookId,
+} from '@spinner/shared-types';
 import type { Response } from 'express';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -40,17 +54,6 @@ import { ValidatedAddScratchColumnDto } from './dto/scratch-column.dto';
 import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
 import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
-import {
-  CREATED_FIELD,
-  DELETED_FIELD,
-  DIRTY_COLUMN,
-  EDITED_FIELDS_COLUMN,
-  METADATA_COLUMN,
-  REMOTE_ID_COLUMN,
-  SCRATCH_ID_COLUMN,
-  SEEN_COLUMN,
-  SUGGESTED_FIELDS_COLUMN,
-} from './reserved-coluns';
 import { DEFAULT_COLUMNS } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';

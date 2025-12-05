@@ -1,16 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { createSnapshotRecordId, SnapshotRecordId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
-import { Knex } from 'knex';
-import { types } from 'pg';
-import { WSLogger } from 'src/logger';
-import { assertUnreachable } from 'src/utils/asserts';
-import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
-import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
-import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
-import { RecordOperation } from './dto/bulk-update-records.dto';
 import {
   CREATED_FIELD,
+  createSnapshotRecordId,
   DELETED_FIELD,
   DELETED_PREFIX,
   DIRTY_COLUMN,
@@ -21,9 +13,20 @@ import {
   REMOTE_ID_COLUMN,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
+  SnapshotRecordId,
+  SnapshotTableId,
   SUGGESTED_FIELDS_COLUMN,
   UNPUBLISHED_PREFIX,
-} from './reserved-coluns';
+  WorkbookId,
+} from '@spinner/shared-types';
+import { Knex } from 'knex';
+import { types } from 'pg';
+import { WSLogger } from 'src/logger';
+import { assertUnreachable } from 'src/utils/asserts';
+import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
+import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
+import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC

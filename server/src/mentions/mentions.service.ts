@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { WorkbookId } from '@spinner/shared-types';
+import { SCRATCH_ID_COLUMN, type WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';
-import { SCRATCH_ID_COLUMN } from 'src/workbook/reserved-coluns';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { RecordMentionEntity, ResourceMentionEntity } from './entities/mentions.entity';
@@ -123,7 +122,7 @@ export class MentionsService {
       // Search records in the table using the title column
       const rows = await this.snapshotDbService.snapshotDb
         .getKnex()(`${workbookId}.${snapshotTable.tableName}`)
-        .select({ id: SCRATCH_ID_COLUMN })
+        .select(SCRATCH_ID_COLUMN)
         .select(titleColWsId)
         .whereILike(titleColWsId, `${queryText}%`)
         .limit(10);

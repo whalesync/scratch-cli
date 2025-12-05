@@ -7,6 +7,9 @@ import {
   createSnapshotTableId,
   createUploadId,
   createWorkbookId,
+  REMOTE_ID_COLUMN,
+  RESERVED_COLUMN_NAMES,
+  SCRATCH_ID_COLUMN,
   SnapshotTableId,
   WorkbookId,
 } from '@spinner/shared-types';
@@ -21,7 +24,6 @@ import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { pipeline, Readable } from 'stream';
 import { DbService } from '../db/db.service';
-import { REMOTE_ID_COLUMN, SCRATCH_ID_COLUMN } from '../workbook/reserved-coluns';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 import { CSV_META_COLUMNS, CSV_REMOTE_ID_COLUMN } from './csvMetaFields';
 import { FormatterTransform } from './csvStreams/FormatterTransform';
@@ -134,7 +136,7 @@ export class UploadsService {
     }
 
     // Validate column names - reject forbidden names
-    const forbiddenNames = ['wsId', 'remoteId'];
+    const forbiddenNames = ['__remoteId', '__scratchId'];
     const forbiddenColumns = dto.columnNames
       .map((name, index) => ({ name, index }))
       .filter(({ name }) => forbiddenNames.includes(name));
@@ -342,10 +344,19 @@ export class UploadsService {
     const countResult = await this.uploadsDbService.getKnex()(tableId).withSchema(schemaName).count('* as count');
     const total = Number(countResult[0].count);
 
-    // Get rows
+    // Get rows and filter out reserved columns
     const rows = await this.uploadsDbService.getKnex()(tableId).withSchema(schemaName).limit(limit).offset(offset);
+    const filteredRows = rows.map((row: Record<string, unknown>) => {
+      const filtered: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(row)) {
+        if (!RESERVED_COLUMN_NAMES.includes(key)) {
+          filtered[key] = value;
+        }
+      }
+      return filtered;
+    });
 
-    return { rows, total };
+    return { rows: filteredRows, total };
   }
 
   /**

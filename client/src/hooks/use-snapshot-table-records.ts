@@ -136,10 +136,7 @@ export const useSnapshotTableRecords = (args: {
     if (data?.records) {
       for (const record of data.records) {
         const columnsWithSuggestions = Object.keys(record.__suggested_values ?? {}).filter(
-          (key) =>
-            key === SNAPSHOT_RECORD_DELETED_FIELD ||
-            key === SNAPSHOT_RECORD_CREATED_FIELD ||
-            (!key.startsWith('__') && key !== 'id'),
+          (key) => key === SNAPSHOT_RECORD_DELETED_FIELD || key === SNAPSHOT_RECORD_CREATED_FIELD,
         );
         if (columnsWithSuggestions.length > 0) {
           recordsWithSuggestions++;
@@ -188,9 +185,7 @@ export const useSnapshotTableRecords = (args: {
     const newRecordData: Record<string, unknown> = {};
 
     tableSpec.columns.forEach((c) => {
-      if (c.id.wsId !== 'id') {
-        newRecordData[c.id.wsId] = null;
-      }
+      newRecordData[c.id.wsId] = null;
     });
 
     // Create the record on the server - this will trigger a workbook edited event
@@ -248,14 +243,12 @@ export const useSnapshotTableRecords = (args: {
     // Initialize column change tracking for all columns
     tableSpec.columns.forEach((columnDef) => {
       const fieldId = columnDef.id.wsId;
-      if (fieldId !== 'id') {
-        columnChanges[fieldId] = {
-          suggestedAdditions: false,
-          suggestedDeletions: false,
-          acceptedAdditions: false,
-          acceptedDeletions: false,
-        };
-      }
+      columnChanges[fieldId] = {
+        suggestedAdditions: false,
+        suggestedDeletions: false,
+        acceptedAdditions: false,
+        acceptedDeletions: false,
+      };
     });
 
     const records = data.records.map((record): ProcessedSnapshotRecord => {

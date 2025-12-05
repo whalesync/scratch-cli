@@ -23,6 +23,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { WorkbookId } from '@spinner/shared-types';
+import {
+  DIRTY_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  SCRATCH_ID_COLUMN,
+  SEEN_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+} from '@spinner/shared-types';
 import type { Response } from 'express';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
@@ -64,14 +72,6 @@ import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { SnapshotTable } from './entities/snapshot-table.entity';
-import {
-  DIRTY_COLUMN,
-  EDITED_FIELDS_COLUMN,
-  METADATA_COLUMN,
-  SCRATCH_ID_COLUMN,
-  SEEN_COLUMN,
-  SUGGESTED_FIELDS_COLUMN,
-} from './reserved-coluns';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { getSnapshotTableById } from './util';

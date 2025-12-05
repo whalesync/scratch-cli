@@ -191,13 +191,14 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       if (columnState && columnState.length > 0) {
         // Ensure ID and Header columns are always first in the state
         // This fixes an issue where local storage might have an old order
-        const idColId = ID_COLUMN_FIELD;
 
         // Filter out ID and Header columns from the saved state
-        const otherColumnsState = columnState.filter((col) => col.colId !== idColId && col.colId !== titleColumnId);
+        const otherColumnsState = columnState.filter(
+          (col) => col.colId !== ID_COLUMN_FIELD && col.colId !== titleColumnId,
+        );
 
         // Find the saved state for ID and Header columns (to preserve width, etc.)
-        const idColState = columnState.find((col) => col.colId === idColId);
+        const idColState = columnState.find((col) => col.colId === ID_COLUMN_FIELD);
         const headerColState = columnState.find((col) => col.colId === titleColumnId);
 
         // Construct the new state with enforced order
@@ -560,16 +561,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
   // Create column definitions from remaining table columns
   const dataColumns: ColDef[] = columnSpecs.map((column, index) => {
-    // const cellStyle: CellStyleFunc<SnapshotRecord, unknown> = () => {
-    //   // const isReadOnly = column.readonly;
-    //   // const colors = isLightMode ? AG.colors.light : AG.colors.dark;
-    //   const baseStyles = {
-    //     // backgroundColor,
-    //     // color: isReadOnly ? colors.readOnlyText : colors.normalText,
-    //   };
-
-    //   return baseStyles;
-    // };
     const valueGetter: ValueGetterFunc<SnapshotRecord, unknown> = (params) => {
       if (column.pgType === PostgresColumnType.TIMESTAMP && params.data?.fields?.[column.id.wsId]) {
         // SnapshotRecords get dates as ISO strings, so we need to convert them to dates to handle them natively in the grid

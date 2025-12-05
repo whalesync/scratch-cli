@@ -13,12 +13,14 @@ import {
   Table,
   Text,
   TextInput,
+  Tooltip,
   useMantineColorScheme,
   useMantineTheme,
 } from '@mantine/core';
+import { RESERVED_COLUMN_NAMES } from '@spinner/shared-types';
 import { X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { RouteUrls } from '../../../utils/route-urls';
 import { ModalWrapper } from '../ModalWrapper';
@@ -126,6 +128,16 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
     setColumnTypes(newColumnTypes);
   };
 
+  // Check for forbidden column names (excluding IGNORED columns)
+  const forbiddenColumnIndices = useMemo(() => {
+    return columnNames
+      .map((name, index) => ({ name, index, type: columnTypes[index] }))
+      .filter(({ name, type }) => type !== 'IGNORE' && RESERVED_COLUMN_NAMES.includes(name))
+      .map(({ index }) => index);
+  }, [columnNames, columnTypes]);
+
+  const hasForbiddenColumns = forbiddenColumnIndices.length > 0;
+
   const handleUpload = async () => {
     if (!file) return;
 
@@ -205,9 +217,22 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
                 placeholder="Enter new name"
                 style={{ flex: 1 }}
               />
-              <ButtonPrimarySolid onClick={handleUpload} loading={isUploading} size="md">
-                Upload
-              </ButtonPrimarySolid>
+              <Tooltip
+                label="Some column names are reserved and cannot be used. Please rename or ignore them."
+                disabled={!hasForbiddenColumns}
+                withArrow
+              >
+                <div>
+                  <ButtonPrimarySolid
+                    onClick={handleUpload}
+                    loading={isUploading}
+                    size="md"
+                    disabled={hasForbiddenColumns}
+                  >
+                    Upload
+                  </ButtonPrimarySolid>
+                </div>
+              </Tooltip>
             </>
           ),
         }}
@@ -296,78 +321,94 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
               <Table.Thead>
                 {/* Combined column type and name row */}
                 <Table.Tr>
-                  {columnNames.map((name, index) => (
-                    <Table.Th
-                      key={`header-${index}`}
-                      style={{
-                        padding: '4px',
-                        backgroundColor: colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[1],
-                        borderBottom: `2px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
-                        minWidth: '100px',
-                        maxWidth: '200px',
-                        width: '150px',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 1,
-                      }}
-                    >
-                      <Group gap={2} align="center" wrap="nowrap" style={{ width: '100%' }}>
-                        {/* Column name input */}
-                        <TextInput
-                          value={name}
-                          onChange={(event) => handleColumnNameChange(index, event.currentTarget.value)}
-                          size="xs"
-                          style={{ flex: 1, minWidth: 0 }}
-                          styles={{
-                            input: {
-                              border: 'none',
-                              backgroundColor: 'transparent',
-                              padding: '2px 4px',
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap',
-                            },
-                          }}
-                        />
-                        {/* Type selector with icon in dropdown only */}
-                        <Select
-                          value={columnTypes[index]}
-                          onChange={(value) => value && handleColumnTypeChange(index, value)}
-                          data={[
-                            ...Object.values(PostgresColumnType).map((type) => ({
-                              value: type,
-                              label: type,
-                              leftSection: getColumnTypeIcon(type),
-                            })),
-                            {
-                              value: 'IGNORE',
-                              label: 'ignore',
-                              leftSection: <StyledLucideIcon Icon={X} size={14} c="#ff0000" />,
-                            } as ComboboxData[0],
-                          ]}
-                          size="xs"
-                          renderOption={(option) => (
-                            <Group>
-                              {getModalColumnTypeIcon(option.option.value as ModalColumnType)} {option.option.label}
-                            </Group>
-                          )}
-                          w={50}
-                          styles={{
-                            input: {
-                              border: 'none',
-                              backgroundColor: 'transparent',
-                              padding: '2px 4px',
-                              color: 'transparent', // Hide the text
-                            },
-                          }}
-                          classNames={{
-                            dropdown: 'custom-select-dropdown',
-                          }}
-                          leftSection={getModalColumnTypeIcon(columnTypes[index])}
-                        />
-                      </Group>
-                    </Table.Th>
-                  ))}
+                  {columnNames.map((name, index) => {
+                    const isForbidden = forbiddenColumnIndices.includes(index);
+                    return (
+                      <Table.Th
+                        key={`header-${index}`}
+                        style={{
+                          padding: '4px',
+                          backgroundColor: isForbidden
+                            ? '#ffe5e5'
+                            : colorScheme === 'dark'
+                              ? theme.colors.dark[6]
+                              : theme.colors.gray[1],
+                          borderBottom: `2px solid ${isForbidden ? '#d63031' : colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
+                          minWidth: '100px',
+                          maxWidth: '200px',
+                          width: '150px',
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 1,
+                        }}
+                      >
+                        <Tooltip
+                          label={`"${name}" is a reserved column name. Please rename or set to ignore.`}
+                          disabled={!isForbidden}
+                          withArrow
+                          color="red"
+                        >
+                          <Group gap={2} align="center" wrap="nowrap" style={{ width: '100%' }}>
+                            {/* Column name input */}
+                            <TextInput
+                              value={name}
+                              onChange={(event) => handleColumnNameChange(index, event.currentTarget.value)}
+                              size="xs"
+                              style={{ flex: 1, minWidth: 0 }}
+                              styles={{
+                                input: {
+                                  border: 'none',
+                                  backgroundColor: 'transparent',
+                                  padding: '2px 4px',
+                                  textOverflow: 'ellipsis',
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap',
+                                  color: isForbidden ? '#d63031' : undefined,
+                                  fontWeight: isForbidden ? 600 : undefined,
+                                },
+                              }}
+                            />
+                            {/* Type selector with icon in dropdown only */}
+                            <Select
+                              value={columnTypes[index]}
+                              onChange={(value) => value && handleColumnTypeChange(index, value)}
+                              data={[
+                                ...Object.values(PostgresColumnType).map((type) => ({
+                                  value: type,
+                                  label: type,
+                                  leftSection: getColumnTypeIcon(type),
+                                })),
+                                {
+                                  value: 'IGNORE',
+                                  label: 'ignore',
+                                  leftSection: <StyledLucideIcon Icon={X} size={14} c="#ff0000" />,
+                                } as ComboboxData[0],
+                              ]}
+                              size="xs"
+                              renderOption={(option) => (
+                                <Group>
+                                  {getModalColumnTypeIcon(option.option.value as ModalColumnType)} {option.option.label}
+                                </Group>
+                              )}
+                              w={50}
+                              styles={{
+                                input: {
+                                  border: 'none',
+                                  backgroundColor: 'transparent',
+                                  padding: '2px 4px',
+                                  color: 'transparent', // Hide the text
+                                },
+                              }}
+                              classNames={{
+                                dropdown: 'custom-select-dropdown',
+                              }}
+                              leftSection={getModalColumnTypeIcon(columnTypes[index])}
+                            />
+                          </Group>
+                        </Tooltip>
+                      </Table.Th>
+                    );
+                  })}
                 </Table.Tr>
               </Table.Thead>
               {/* Data rows */}

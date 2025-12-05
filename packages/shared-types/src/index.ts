@@ -4,4 +4,5 @@ export * from './agent-credentials';
 export * from './agent-usage-events';
 export * from './dto/create-style-guide.dto';
 export * from './ids';
+export * from './meta-columns';
 export * from './subscription';

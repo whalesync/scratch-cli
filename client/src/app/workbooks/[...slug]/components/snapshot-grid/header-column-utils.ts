@@ -13,22 +13,6 @@
  */
 
 import { ColumnSpec, TableSpec } from '@/types/server-entities/workbook';
-import { GridApi } from 'ag-grid-community';
-
-export const getTitleColumn = (gridApi: GridApi) => {
-  let titleColumn = gridApi.getColumns()?.find((col) => {
-    const headerName = col.getColDef().headerName?.toLowerCase() ?? '';
-    return commonTitleColumnPatterns.includes(headerName);
-  });
-  if (!titleColumn) {
-    titleColumn = (gridApi.getColumns() ?? []).filter((col) => col.getColDef().headerName?.toLowerCase() !== 'id')[0];
-  }
-  return titleColumn;
-};
-
-export const getOtherColumns = (gridApi: GridApi) => {
-  return (gridApi.getColumns() ?? []).filter((col) => col.getColDef().headerName?.toLowerCase() !== 'id');
-};
 
 const commonTitleColumnPatterns = ['title', 'name'];
 
@@ -94,14 +78,4 @@ export function getGridOrderedColumnSpecs(
     ...table.columns.filter((col) => !hiddenColumns.includes(col.id.wsId) && col.id.wsId !== title?.id.wsId),
   );
   return { columns, titleColumnId: title?.id?.wsId };
-}
-
-export function getDotColumn(gridApi: GridApi) {
-  return gridApi.getColumns()?.find((col) => {
-    // dot column has no header name and field is empty
-    return (
-      (col.getColDef().headerName === undefined || col.getColDef().headerName === '') &&
-      (col.getColDef().field === undefined || col.getColDef().field === '')
-    );
-  });
 }

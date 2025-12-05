@@ -26,3 +26,16 @@ export const CREATED_FIELD = '__created';
 // Special remoteId values:
 export const UNPUBLISHED_PREFIX = 'unpublished_';
 export const DELETED_PREFIX = 'deleted_';
+
+// Reserved column names that cannot be used in user-provided data (e.g., CSV uploads)
+export const SNAPSHOT_META_COLUMNS = [
+  REMOTE_ID_COLUMN,
+  SCRATCH_ID_COLUMN,
+  OLD_REMOTE_ID_COLUMN,
+  EDITED_FIELDS_COLUMN,
+  SUGGESTED_FIELDS_COLUMN,
+  METADATA_COLUMN,
+  ORIGINAL_COLUMN,
+  DIRTY_COLUMN,
+  SEEN_COLUMN,
+];
