@@ -22,6 +22,7 @@ import { ClerkAuthContextProvider } from '@/contexts/auth';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ColorSchemeScript, mantineHtmlProps, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
+import { DatesProviderWrapper } from './components/DatesProviderWrapper';
 import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
 import { ScratchpadPostHogProvider } from './providers';
 
@@ -36,14 +37,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
       <body className={inter.className}>
         <MantineProvider theme={SCRATCHPAD_MANTINE_THEME} defaultColorScheme="light">
-          <Notifications />
+          <DatesProviderWrapper>
+            <Notifications />
 
-          <ClerkProvider>
-            <ClerkAuthContextProvider>
-              <ScratchpadPostHogProvider>{children}</ScratchpadPostHogProvider>
-              <div id="portal" />
-            </ClerkAuthContextProvider>
-          </ClerkProvider>
+            <ClerkProvider>
+              <ClerkAuthContextProvider>
+                <ScratchpadPostHogProvider>{children}</ScratchpadPostHogProvider>
+                <div id="portal" />
+              </ClerkAuthContextProvider>
+            </ClerkProvider>
+          </DatesProviderWrapper>
         </MantineProvider>
       </body>
     </html>

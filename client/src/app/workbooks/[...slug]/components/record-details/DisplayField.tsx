@@ -141,6 +141,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         value={currentValue}
         onChange={(value) => updateField(columnId, value ?? '')}
         readOnly={column.readonly || hasSuggestion}
+        valueFormat="L LT"
         styles={{
           input: {
             borderColor: 'transparent',
