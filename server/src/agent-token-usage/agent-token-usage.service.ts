@@ -32,11 +32,6 @@ export class AgentTokenUsageService {
     const startOfMonth = month ? new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1)) : undefined;
     const endOfMonth = month ? new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1)) : undefined;
 
-    console.log('credentialId: ', credentialId);
-    console.log('month: ', month);
-    console.log('start of month: ', startOfMonth);
-    console.log('end of month: ', endOfMonth);
-
     const aiAgentTokenUsageEvents = await this.db.client.aiAgentTokenUsageEvent.findMany({
       where: { userId, credentialId, createdAt: month ? { gte: startOfMonth, lt: endOfMonth } : undefined },
       orderBy: { createdAt: 'desc' },
@@ -44,7 +39,6 @@ export class AgentTokenUsageService {
       skip: cursor ? 1 : undefined,
     });
 
-    console.log('aiAgentTokenUsageEvents: ', aiAgentTokenUsageEvents.length);
     return aiAgentTokenUsageEvents.map((event) => new AgentTokenUsageEventEntity(event));
   }
 

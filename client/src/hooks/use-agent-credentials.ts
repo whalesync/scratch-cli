@@ -16,6 +16,21 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
     mutate: mutateList,
   } = useSWR(SWR_KEYS.agentCredentials.list(includeUsageStats), () => agentCredentialsApi.list(includeUsageStats));
 
+  const sortedCredentials = useMemo(() => {
+    return (
+      data?.sort((a, b) => {
+        if (a.source === 'SYSTEM') {
+          return -1;
+        }
+        if (b.source === 'SYSTEM') {
+          return 1;
+        }
+
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }) || []
+    );
+  }, [data]);
+
   const createCredentials = async (dto: CreateAgentCredentialDto) => {
     await agentCredentialsApi.create(dto);
     mutateList();
@@ -61,7 +76,7 @@ export const useAgentCredentials = (includeUsageStats: boolean = false) => {
   }, [error]);
 
   return {
-    agentCredentials: data,
+    agentCredentials: sortedCredentials,
     isLoading,
     error: displayError,
     createCredentials,

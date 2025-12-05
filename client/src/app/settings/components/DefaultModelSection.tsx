@@ -1,16 +1,16 @@
 import { IconButtonGhost } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
-import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import ModelPicker from '@/app/components/ModelPicker';
+import { ModelProviderIcon } from '@/app/components/ModelProvidericon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
 import { Group, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { BrainIcon, PenLineIcon } from 'lucide-react';
+import { PenLineIcon } from 'lucide-react';
 import { useState } from 'react';
 
 export const DefaultModelSection = () => {
@@ -43,7 +43,11 @@ export const DefaultModelSection = () => {
     >
       <Group justify="space-between">
         <Group gap="xs" wrap="nowrap">
-          <DecorativeBoxedIcon Icon={BrainIcon} size="sm" />
+          <ModelProviderIcon
+            model={getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string}
+            withBorder
+            size={24}
+          />
           <Text13Regular>
             {getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string}
           </Text13Regular>

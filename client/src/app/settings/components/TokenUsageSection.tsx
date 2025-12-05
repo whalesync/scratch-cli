@@ -2,6 +2,7 @@ import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
+import { ModelProviderIcon } from '@/app/components/ModelProvidericon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
@@ -31,7 +32,7 @@ export const TokenUsageSection = () => {
     }
   }, [monthFilter, credentialFilter, agentCredentials, setMonthFilter, setCredentialFilter]);
 
-  const modelProviders = useMemo(() => {
+  const openRouterApiCredentials = useMemo(() => {
     return agentCredentials?.map((credential) => ({
       label: credential.name,
       value: credential.id,
@@ -50,8 +51,8 @@ export const TokenUsageSection = () => {
             <Stack gap="12px">
               <Text13Regular>Model provider</Text13Regular>
               <Select
-                size="xs"
-                data={modelProviders}
+                size="sm"
+                data={openRouterApiCredentials}
                 value={credentialFilter}
                 onChange={(value) => setCredentialFilter(value ?? '')}
               />
@@ -77,9 +78,7 @@ export const TokenUsageSection = () => {
                 <UsagePerModelTable summary={summary} loading={isLoadingSummary} />
               </Tabs.Panel>
               <Tabs.Panel value="all-sessions">
-                <Text13Regular>
-                  <UsageEventListTable events={events} loading={isLoadingSummary} />
-                </Text13Regular>
+                <UsageEventListTable events={events} loading={isLoadingSummary} />
               </Tabs.Panel>
             </Tabs>
           </Box>
@@ -128,7 +127,12 @@ const UsagePerModelTable = ({ summary, loading }: { summary?: UsageSummary; load
         {sortedItems &&
           sortedItems?.map((item) => (
             <Table.Tr key={item.model}>
-              <Table.Td>{item.model}</Table.Td>
+              <Table.Td>
+                <Group gap="4px">
+                  <ModelProviderIcon model={item.model} size={24} withBorder />
+                  {item.model}
+                </Group>
+              </Table.Td>
               <Table.Td ta="right">{item.totalRequests.toLocaleString()}</Table.Td>
               <Table.Td ta="right">{item.totalTokens.toLocaleString()}</Table.Td>
             </Table.Tr>
@@ -195,7 +199,12 @@ const UsageEventListTable = ({ events, loading }: { events?: AgentUsageEvent[]; 
           <>
             {events?.map((event) => (
               <Table.Tr key={event.id}>
-                <Table.Td>{event.model}</Table.Td>
+                <Table.Td>
+                  <Group gap="4px">
+                    <ModelProviderIcon model={event.model} size={24} withBorder />
+                    {event.model}
+                  </Group>
+                </Table.Td>
                 <Table.Td>{new Date(event.createdAt).toLocaleDateString()}</Table.Td>
                 <Table.Td ta="right">{event.requests.toLocaleString()}</Table.Td>
                 <Table.Td ta="right">{event.totalTokens.toLocaleString()}</Table.Td>
@@ -241,7 +250,7 @@ const LAST_6_MONTHS = (() => {
     const isCurrentMonth = monthIndex === currentMonth && year === currentYear;
 
     monthsArray.push({
-      label: isCurrentMonth ? `Current month (${monthNames[monthIndex]} ${year})` : `${monthNames[monthIndex]} ${year}`,
+      label: isCurrentMonth ? `Current month` : `${monthNames[monthIndex]} ${year}`,
       value: date.toUTCString(),
     });
   }
