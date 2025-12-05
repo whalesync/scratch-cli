@@ -128,7 +128,7 @@ const TableTab = ({
     }
     const isConnectionDeleted = hasDeletedConnection(table);
     if (isConnectionDeleted) {
-      return <DeletedConnectionIcon />;
+      return <DeletedConnectionIcon decorative={false} />;
     }
     return <ConnectorIcon connector={table.connectorService} size={28} />;
   };

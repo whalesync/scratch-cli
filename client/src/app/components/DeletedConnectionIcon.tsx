@@ -1,19 +1,25 @@
+import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Box, Tooltip } from '@mantine/core';
 import { CloudOffIcon } from 'lucide-react';
-import { StyledLucideIcon } from './Icons/StyledLucideIcon';
 
 export function DeletedConnectionIcon({
-  size,
   tooltipEnabled = true,
   tooltipLabel,
+  decorative = true,
 }: {
   size?: number;
   tooltipEnabled?: boolean;
   tooltipLabel?: string;
+  decorative?: boolean;
 }) {
   const box = (
     <Box display="inline-flex">
-      <StyledLucideIcon Icon={CloudOffIcon} size={size ?? 21} c="red" />
+      {decorative ? (
+        <DecorativeBoxedIcon Icon={CloudOffIcon} size="xs" />
+      ) : (
+        <StyledLucideIcon Icon={CloudOffIcon} size={16} />
+      )}
     </Box>
   );
   return tooltipEnabled ? (

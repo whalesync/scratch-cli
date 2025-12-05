@@ -20,7 +20,7 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
       <ButtonSecondaryInline
         leftSection={
           isConnectionDeleted ? (
-            <DeletedConnectionIcon size={16} tooltipEnabled={false} />
+            <DeletedConnectionIcon decorative={false} tooltipEnabled={false} />
           ) : (
             <CloudDownloadIcon size={16} />
           )

@@ -40,7 +40,9 @@ export const WorkbookHeader = () => {
         <ButtonSecondaryInline
           disabled={allConnectionsDeleted}
           size="xs"
-          leftSection={allConnectionsDeleted ? <DeletedConnectionIcon size={14} /> : <CloudUploadIcon size={14} />}
+          leftSection={
+            allConnectionsDeleted ? <DeletedConnectionIcon decorative={false} /> : <CloudUploadIcon size={14} />
+          }
           onClick={openPublishConfirmation}
         >
           Publish
