@@ -144,7 +144,7 @@ export const DisplayField = (props: DisplayFieldProps) => {
         styles={{
           input: {
             borderColor: 'transparent',
-            fontSize: '1rem',
+            fontSize: '13px',
           },
         }}
       />
@@ -192,6 +192,9 @@ export const DisplayField = (props: DisplayFieldProps) => {
           }
         }}
         readOnly={isReadOnly}
+        px={mode === 'multiple' ? 0 : 'sm'}
+        py={mode === 'multiple' ? 0 : 'xs'}
+        size="sm"
         styles={{
           input: {
             cursor: isReadOnly ? 'not-allowed' : 'pointer',

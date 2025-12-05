@@ -19,7 +19,6 @@ type Props = ModalProps & {
 
 export const ModalWrapper: FC<Props> = (props) => {
   const { children, customProps, ...modalProps } = props;
-  console.log(customProps);
   return (
     <Modal
       size="lg"
