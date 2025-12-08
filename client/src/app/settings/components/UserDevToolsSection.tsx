@@ -1,5 +1,5 @@
 import { Badge } from '@/app/components/base/badge';
-import { Text12Regular, Text13Regular } from '@/app/components/base/text';
+import { Text12Book, Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
@@ -14,7 +14,7 @@ export const UserDevToolsSection = () => {
     <ConfigSection title="Dev Tools" description="Developer tools and information.">
       <Stack gap="xs">
         <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={200}>User ID</Text13Regular>
+          <Text13Regular miw={150}>User ID</Text13Regular>
           <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
           <CopyButton value={user?.id || ''} timeout={2000}>
             {({ copied, copy }) => (
@@ -28,7 +28,7 @@ export const UserDevToolsSection = () => {
           {isAdmin && <Badge>Admin</Badge>}
         </Group>
         <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={200}>Clerk ID</Text13Regular>
+          <Text13Regular miw={150}>Clerk ID</Text13Regular>
           <Text13Regular>{user?.clerkId || 'No clerk ID found'}</Text13Regular>
           <CopyButton value={user?.clerkId || ''} timeout={2000}>
             {({ copied, copy }) => (
@@ -42,7 +42,7 @@ export const UserDevToolsSection = () => {
         </Group>
 
         <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={200}>Agent Token</Text13Regular>
+          <Text13Regular miw={150}>Agent Token</Text13Regular>
           <PasswordInput
             variant="unstyled"
             value={user?.agentJwt}
@@ -62,7 +62,7 @@ export const UserDevToolsSection = () => {
           </CopyButton>
         </Group>
         <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={200}>UI Websocket Key</Text13Regular>
+          <Text13Regular miw={150}>UI Websocket Key</Text13Regular>
           <PasswordInput
             variant="unstyled"
             value={user?.websocketToken}
@@ -83,16 +83,20 @@ export const UserDevToolsSection = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <Text13Regular miw={200}>Feature Flags</Text13Regular>
+          <Text13Regular miw={150}>Feature Flags</Text13Regular>
           <Grid w="100%">
             {user?.experimentalFlags &&
               Object.entries(user.experimentalFlags).map(([flag, value]) => (
                 <Fragment key={flag}>
                   <Grid.Col span={4}>
-                    <Text12Regular>{flag}</Text12Regular>
+                    <Text12Book>{flag}</Text12Book>
                   </Grid.Col>
                   <Grid.Col span={8}>
-                    <Text12Regular>{value.toString()}</Text12Regular>
+                    <Text12Regular
+                      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
+                    >
+                      {value.toString()}
+                    </Text12Regular>
                   </Grid.Col>
                 </Fragment>
               ))}
@@ -100,7 +104,7 @@ export const UserDevToolsSection = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <Text13Regular miw={200}>Local Flags</Text13Regular>
+          <Text13Regular miw={150}>Local Flags</Text13Regular>
           <Grid w="100%">
             <Grid.Col span={4}>
               <Text12Regular>Dev tools visible</Text12Regular>
@@ -112,7 +116,7 @@ export const UserDevToolsSection = () => {
         </Group>
         <Divider />
         <Group wrap="nowrap" gap="xs" align="flex-start">
-          <Text13Regular miw={200}>User Settings</Text13Regular>
+          <Text13Regular miw={150}>User Settings</Text13Regular>
           <Grid w="100%">
             {user?.settings &&
               Object.entries(user.settings).map(([key, value]) => (

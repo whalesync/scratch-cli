@@ -1,6 +1,8 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
+import { isExperimentEnabled } from '@/types/server-entities/users';
 import { Alert, Checkbox, Divider, ModalProps, NumberInput, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
 import { AgentCredential } from '@spinner/shared-types';
@@ -18,6 +20,7 @@ export const EditAgentCredentialsModal = ({
   onSuccess,
   ...modalProps
 }: EditAgentCredentialsModalProps) => {
+  const { user } = useScratchPadUser();
   const { createCredentials, updateCredentials } = useAgentCredentials(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,33 +125,38 @@ export const EditAgentCredentialsModal = ({
           onChange={(event) => setFormData({ apiKey: event.target.value })}
           disabled={!!credentials}
         />
-        <Divider label="Settings" labelPosition="left" />
-        <Checkbox
-          label="Token usage warning"
-          description="Get notified if a chat session exceeds the specified token limit."
-          checked={formData.tokenUsageWarningLimit !== undefined && formData.tokenUsageWarningLimit > 0}
-          onChange={(event) => {
-            if (event.target.checked) {
-              setFormData({ tokenUsageWarningLimit: 1000 });
-            } else {
-              setFormData({ tokenUsageWarningLimit: undefined });
-            }
-          }}
-        />
-        <NumberInput
-          ml="28px"
-          size="xs"
-          min={0}
-          hideControls
-          value={formData.tokenUsageWarningLimit ?? ''}
-          onChange={(value) => {
-            if (typeof value === 'number') {
-              setFormData({ tokenUsageWarningLimit: value });
-            } else {
-              setFormData({ tokenUsageWarningLimit: undefined });
-            }
-          }}
-        />
+        {isExperimentEnabled('ENABLE_TOKEN_LIMIT_WARNINGS', user) && (
+          <>
+            <Divider label="Settings" labelPosition="left" />
+            <Checkbox
+              label="Token usage warning"
+              description="Get notified if a chat session exceeds the specified token limit."
+              checked={formData.tokenUsageWarningLimit !== undefined && formData.tokenUsageWarningLimit > 0}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  setFormData({ tokenUsageWarningLimit: 1000 });
+                } else {
+                  setFormData({ tokenUsageWarningLimit: undefined });
+                }
+              }}
+            />
+            <NumberInput
+              ml="28px"
+              size="xs"
+              min={0}
+              hideControls
+              value={formData.tokenUsageWarningLimit ?? ''}
+              onChange={(value) => {
+                if (typeof value === 'number') {
+                  setFormData({ tokenUsageWarningLimit: value });
+                } else {
+                  setFormData({ tokenUsageWarningLimit: undefined });
+                }
+              }}
+            />
+          </>
+        )}
+
         <Checkbox
           label="Default model provider default"
           description="Use this model provider as default in new workbooks."

@@ -16,6 +16,7 @@ export enum UserFlag {
   DEV_TOOLBOX = 'DEV_TOOLBOX',
   SAMPLE_USER_FLAG = 'sample_user_flag',
   CONNECTOR_LIST = 'CONNECTOR_LIST',
+  ENABLE_TOKEN_LIMIT_WARNINGS = 'ENABLE_TOKEN_LIMIT_WARNINGS',
 }
 
 /**
@@ -36,4 +37,5 @@ export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   [UserFlag.CONNECTOR_LIST]: 'array',
   // User-scoped feature flags
   [UserFlag.SAMPLE_USER_FLAG]: 'boolean',
+  [UserFlag.ENABLE_TOKEN_LIMIT_WARNINGS]: 'boolean',
 };

@@ -39,6 +39,10 @@ export const TokenUsageSection = () => {
     }));
   }, [agentCredentials]);
 
+  const selectedCredential = useMemo(() => {
+    return agentCredentials?.find((credential) => credential.id === credentialFilter);
+  }, [agentCredentials, credentialFilter]);
+
   return (
     <ConfigSection title="Usage" description="View usage for each model provider and model." hasBorder={false} p="0">
       {isLoadingCredentials ? (
@@ -55,6 +59,11 @@ export const TokenUsageSection = () => {
                 data={openRouterApiCredentials}
                 value={credentialFilter}
                 onChange={(value) => setCredentialFilter(value ?? '')}
+                leftSection={
+                  selectedCredential && selectedCredential.source === 'SYSTEM' ? (
+                    <ModelProviderIcon model={'scratch'} size={24} withBorder={false} />
+                  ) : undefined
+                }
               />
             </Stack>
             <Stack gap="12px">
