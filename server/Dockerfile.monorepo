@@ -18,18 +18,18 @@ COPY ./packages/shared-types/package.json /app/packages/shared-types/package.jso
 COPY ./packages/shared-types/tsconfig.json /app/packages/shared-types/tsconfig.json
 COPY ./packages/shared-types/src/ /app/packages/shared-types/src/
 
-WORKDIR /app/packages/shared-types/
-RUN yarn install --immutable
-RUN yarn build
-
-# Copy and install server dependencies
-WORKDIR /app
+# Copy server package files (needed for workspace resolution)
 COPY ./server/package.json /app/server/package.json
 COPY ./server/yarn.lock /app/server/yarn.lock
 COPY ./server/prisma/ /app/server/prisma/
 
-WORKDIR /app/server
+# Install all workspace dependencies at root level to properly hoist dependencies
+# This ensures packages like @wix/auto_sdk_blog_draft-posts are available in root node_modules
 RUN yarn install --frozen-lockfile
+
+# Build shared-types
+WORKDIR /app/packages/shared-types/
+RUN yarn build
 
 # Stage 2: Build the application
 FROM node:22.20.0-alpine AS builder
