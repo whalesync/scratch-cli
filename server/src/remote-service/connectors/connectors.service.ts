@@ -107,8 +107,11 @@ export class ConnectorsService {
           const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
           return new WebflowConnector(accessToken);
         } else {
-          // Webflow only supports OAuth authentication
-          throw new Error('Webflow only supports OAuth authentication');
+          // For API key accounts, use the apiKey field
+          if (!decryptedCredentials?.apiKey) {
+            throw new ConnectorInstantiationError('API key is required for Webflow', service);
+          }
+          return new WebflowConnector(decryptedCredentials.apiKey);
         }
       case Service.WIX_BLOG:
         if (!connectorAccount) {

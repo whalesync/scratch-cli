@@ -68,7 +68,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
 
   const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
     const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
-    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS];
+    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS, Service.WEBFLOW];
     const methods: AuthMethod[] = [];
     if (oauthSupportedServices.includes(service)) {
       methods.push('oauth');
