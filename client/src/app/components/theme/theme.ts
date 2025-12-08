@@ -153,6 +153,7 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
     Divider: Divider.extend({
       defaultProps: {
         color: 'var(--fg-divider)',
+        size: 0.5,
       },
     }),
 

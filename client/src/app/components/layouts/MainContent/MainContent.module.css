@@ -5,7 +5,7 @@
 }
 
 .contentFooter {
-  border-top: 1px solid var(--fg-divider);
+  border-top: 0.5px solid var(--fg-divider);
   flex-shrink: 0; /* Prevents it from shrinking */
 }
 

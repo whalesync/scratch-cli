@@ -16,7 +16,7 @@ export const DevToolPopover = ({ children }: { children: ReactNode }): ReactNode
           <BugIcon size={16} />
         </ActionIcon>
       </Popover.Target>
-      <Popover.Dropdown bd="1px dashed var(--mantine-color-devTool-9)" c="var(--mantine-color-devTool-9)">
+      <Popover.Dropdown bd="0.5px dashed var(--mantine-color-devTool-9)" c="var(--mantine-color-devTool-9)">
         {children}
       </Popover.Dropdown>
     </Popover>

@@ -3,7 +3,7 @@
   align-items: center;
   cursor: default;
   background-color: var(--mantine-color-white);
-  border: 1px solid var(--mantine-color-gray-4);
+  border: 0.5px solid var(--mantine-color-gray-4);
   padding-left: var(--mantine-spacing-xs);
   border-radius: var(--mantine-radius-sm);
 }

@@ -238,7 +238,7 @@ export default function DevGridPage() {
             style={{
               width: `${TOTAL_WIDTH}px`,
               minHeight: '60px',
-              border: '1px solid var(--ag-border-color)',
+              border: '0.5px solid var(--ag-border-color)',
               background: isDarkTheme ? 'var(--mantine-color-dark-7)' : 'white',
             }}
           >

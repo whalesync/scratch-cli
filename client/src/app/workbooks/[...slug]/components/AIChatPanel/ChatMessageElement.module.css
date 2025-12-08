@@ -17,7 +17,7 @@
 
   &[data-chat-role='user'] {
     background-color: var(--mantine-color-gray-0);
-    border: 1px solid var(--fg-divider);
+    border: 0.5px solid var(--fg-divider);
     /* text-align: right; */
     align-self: flex-end;
     width: fit-content;

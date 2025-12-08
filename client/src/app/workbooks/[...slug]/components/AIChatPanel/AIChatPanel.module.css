@@ -1,5 +1,5 @@
 .chatPanelHeader {
-  border-bottom: 1px solid var(--fg-divider);
+  border-bottom: 0.5px solid var(--fg-divider);
   padding: 2px 6px 2px 6px;
   flex-shrink: 0; /* Prevents it from shrinking */
 }
@@ -14,7 +14,7 @@
 }
 
 .chatPanelFooter {
-  border-top: 1px solid var(--fg-divider);
+  border-top: 0.5px solid var(--fg-divider);
   flex-shrink: 0; /* Prevents it from shrinking */
   flex-grow: 1;
 }

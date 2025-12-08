@@ -28,7 +28,7 @@ export const WorkbookTabBar = () => {
       w="100%"
       gap={0}
       wrap="nowrap"
-      style={{ backgroundColor: 'var(--bg-panel)', borderBottom: '1px solid var(--mantine-color-gray-4)' }}
+      style={{ backgroundColor: 'var(--bg-panel)', borderBottom: '0.5px solid var(--mantine-color-gray-4)' }}
     >
       <Tabs
         classNames={classes}
@@ -71,7 +71,7 @@ export const WorkbookTabBar = () => {
         h={WORKBOOK_TAB_BAR_HEIGHT}
         style={{
           flexShrink: 0,
-          borderLeft: tabs.length > 0 ? '1px solid var(--mantine-color-gray-4)' : 'none',
+          borderLeft: tabs.length > 0 ? '0.5px solid var(--mantine-color-gray-4)' : 'none',
         }}
       >
         <IconButtonGhost onClick={openNewBlankTab} h="100%">

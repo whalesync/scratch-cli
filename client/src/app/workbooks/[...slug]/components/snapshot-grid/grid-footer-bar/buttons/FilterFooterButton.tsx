@@ -46,7 +46,7 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
             rightSection={
               // Status widget to show a filter is active.
               currentFilterType && (
-                <Text13Regular c="var(--fg-muted)" bg="var(--bg-panel)" px={5} bd="1px solid var(--fg-divider)">
+                <Text13Regular c="var(--fg-muted)" bg="var(--bg-panel)" px={5} bd="0.5px solid var(--fg-divider)">
                   1
                 </Text13Regular>
               )

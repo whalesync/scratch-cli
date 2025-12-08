@@ -106,7 +106,7 @@ export const SortButton: React.FC<SortButtonProps> = ({ isHovered, currentSort, 
             top: menuPosition.top,
             right: menuPosition.right,
             backgroundColor: '#2d2d2d',
-            border: '1px solid #444',
+            border: '0.5px solid #444',
             borderRadius: '4px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
             zIndex: 10000,
@@ -130,7 +130,8 @@ export const SortButton: React.FC<SortButtonProps> = ({ isHovered, currentSort, 
               e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = currentSort === 'asc' ? 'rgba(255, 255, 255, 0.1)' : 'transparent';
+              e.currentTarget.style.backgroundColor =
+                currentSort === 'asc' ? 'rgba(255, 255, 255, 0.1)' : 'transparent';
             }}
           >
             Sort Ascending ↑

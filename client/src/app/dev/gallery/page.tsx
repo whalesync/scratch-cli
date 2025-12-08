@@ -570,7 +570,7 @@ export default function DevComponentGalleryPage() {
             <Text12Book c="dimmed" mb="sm">
               Example of a table row with proper text hierarchy and actions
             </Text12Book>
-            <Box p="md" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
+            <Box p="md" style={{ border: '0.5px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
               <Group justify="space-between" align="center">
                 <Stack gap={4}>
                   <Text13Regular>Database Connection</Text13Regular>

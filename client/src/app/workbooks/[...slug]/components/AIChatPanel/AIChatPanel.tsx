@@ -406,7 +406,7 @@ export default function AIChatPanel() {
         flexDirection: 'column',
       }}
       p={0}
-      bd="1px solid var(--fg-divider)"
+      bd="0.5px solid var(--fg-divider)"
     >
       <Box h={WORKBOOK_TAB_BAR_HEIGHT} className={classes.chatPanelHeader}>
         <Group

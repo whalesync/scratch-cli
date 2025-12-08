@@ -229,7 +229,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
                 key={service}
                 onClick={() => handleSelectNewService(service)}
                 style={{
-                  border: `1px solid ${isSelected ? 'var(--mantine-color-teal-4)' : 'var(--mantine-color-gray-3)'}`,
+                  border: `0.5px solid ${isSelected ? 'var(--mantine-color-teal-4)' : 'var(--mantine-color-gray-3)'}`,
                   padding: '6px 8px',
                   backgroundColor: isSelected ? 'var(--mantine-color-teal-0)' : 'transparent',
                   transition: 'all 0.2s ease',

@@ -24,7 +24,7 @@ export const TablePublishStats = ({
         gap="xs"
         p="md"
         style={{
-          border: '1px solid var(--mantine-color-gray-3)',
+          border: '0.5px solid var(--mantine-color-gray-3)',
         }}
       >
         <ConnectorIcon size={24} connector={service} />
@@ -35,7 +35,7 @@ export const TablePublishStats = ({
           gap={4}
           align="flex-start"
           p="md"
-          style={{ border: '1px solid var(--mantine-color-gray-3)', borderTop: 'none' }}
+          style={{ border: '0.5px solid var(--mantine-color-gray-3)', borderTop: 'none' }}
         >
           <Text>{newRecords}</Text>
           <Text>New records</Text>
@@ -45,7 +45,7 @@ export const TablePublishStats = ({
           gap={4}
           align="flex-start"
           p="md"
-          style={{ border: '1px solid var(--mantine-color-gray-3)', borderLeft: 'none', borderTop: 'none' }}
+          style={{ border: '0.5px solid var(--mantine-color-gray-3)', borderLeft: 'none', borderTop: 'none' }}
         >
           <Text>{updatedRecords}</Text>
           <Text>Updated records</Text>
@@ -55,7 +55,7 @@ export const TablePublishStats = ({
           gap={4}
           align="flex-start"
           p="md"
-          style={{ border: '1px solid var(--mantine-color-gray-3)', borderLeft: 'none', borderTop: 'none' }}
+          style={{ border: '0.5px solid var(--mantine-color-gray-3)', borderLeft: 'none', borderTop: 'none' }}
         >
           <Text>{deletedRecords}</Text>
           <Text>Deleted records</Text>

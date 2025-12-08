@@ -12,7 +12,7 @@
 /* Dividers only at the top level, and only between items */
 .treeNode[data-level='1'] {
   &:not(:last-child) {
-    border-bottom: 1px solid var(--fg-divider);
+    border-bottom: 0.5px solid var(--fg-divider);
   }
 }
 

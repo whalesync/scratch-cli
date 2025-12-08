@@ -132,7 +132,7 @@ function WorkbookPageContent() {
           <Box p="0 6 6 6" w="100%" h="calc(100vh - 36px)" style={{ overflow: 'hidden' }}>
             <Split h="100%">
               <Split.Pane grow>
-                <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
+                <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="0.5px solid var(--mantine-color-gray-4)">
                   <WorkbookTabBar />
                   <MainContent.Body p="0">{content}</MainContent.Body>
                   {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}
@@ -148,7 +148,7 @@ function WorkbookPageContent() {
           </Box>
         ) : (
           <Box p="0 6 6 6" w="100%" h="calc(100vh - 36px)">
-            <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="1px solid var(--mantine-color-gray-4)">
+            <Stack gap="0" w="100%" h="100%" bg="var(--bg-base)" bd="0.5px solid var(--mantine-color-gray-4)">
               <WorkbookTabBar />
               <MainContent.Body p="0">{content}</MainContent.Body>
               {contentFooter && <MainContent.Footer h={28}>{contentFooter}</MainContent.Footer>}

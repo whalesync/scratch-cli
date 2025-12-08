@@ -272,7 +272,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
 
           {/* Error summary for rows with parsing issues */}
           {errorRows.length > 0 && (
-            <div style={{ padding: '8px', border: '1px solid #ffeaa7' }}>
+            <div style={{ padding: '8px', border: '0.5px solid #ffeaa7' }}>
               <Text size="sm" fw={500}>
                 ⚠️ {errorRows.length} of {displayRows.length} rows had parsing issues and might be skipped during import
               </Text>
@@ -298,7 +298,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
 
           {/* Advanced settings section */}
           {showAdvancedSettings && (
-            <Stack gap="xs" p="md" style={{ border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+            <Stack gap="xs" p="md" style={{ border: '0.5px solid #e0e0e0', borderRadius: '4px' }}>
               <Text size="sm" fw={600}>
                 Advanced Settings
               </Text>

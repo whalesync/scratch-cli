@@ -36,7 +36,7 @@
 .kbdRoot {
   color: var(--fg-primary);
   background-color: var(--bg-base);
-  border: 1px solid var(--fg-divider);
+  border: 0.5px solid var(--fg-divider);
   border-radius: 0;
   font-family: var(--mantine-font-family-monospace);
   font-size: 12px;
@@ -85,7 +85,7 @@
 /** CUSTOM MENU STYLES */
 .menuDropdown {
   background-color: var(--bg-base);
-  border: 1px solid var(--mantine-color-gray-5);
+  border: 0.5px solid var(--mantine-color-gray-5);
 }
 
 .menuDivider {

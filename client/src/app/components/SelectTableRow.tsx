@@ -16,7 +16,7 @@ export const SelectTableRow: FC<Props> = ({ table, isSelected, disabled, onToggl
     <Group
       p="xs"
       style={{
-        border: '1px solid var(--mantine-color-gray-3)',
+        border: '0.5px solid var(--mantine-color-gray-3)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         backgroundColor: isSelected
           ? 'var(--mantine-color-teal-0)'

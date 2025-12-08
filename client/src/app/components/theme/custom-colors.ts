@@ -73,8 +73,8 @@ export const CUSTOM_GRAY_LIGHT: MantineColorsTuple = [
   // '#02051252', // Figma gray/8 (light)
   '#02051175', // Figma gray/9 (light)
   '#02051180', // Figma gray/10 (light)
-  '#0205109E', // Figma gray/11 (light)
-  '#03060DE5', // Figma gray/12 (light)
+  '#62646B', // Figma gray/11 (light)
+  '#1C1F25', // Figma gray/12 (light)
 ];
 
 export const CUSTOM_GRAY_DARK: MantineColorsTuple = [
@@ -88,8 +88,8 @@ export const CUSTOM_GRAY_DARK: MantineColorsTuple = [
   // '#DFE5F261', // Figma gray/8 (dark)
   '#DEE5F370', // Figma gray/9 (dark)
   '#DCE0E999', // Figma gray/10 (dark)
-  '#DCE0E9B8', // Figma gray/11 (dark)
-  '#F5F6F9F5', // Figma gray/12 (dark)
+  '#A6A9B0', // Figma gray/11 (dark)
+  '#ECEEF0', // Figma gray/12 (dark)
 ];
 
 // "Dark" is a built-in color that is used as background and foreground in dark mode.

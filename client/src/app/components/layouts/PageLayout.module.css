@@ -12,7 +12,7 @@
   top: 0;
   bottom: 0; /* Spans full height of the viewport */
   width: 200px;
-  border-right: 1px solid var(--mantine-color-gray-4);
+  border-right: 0.5px solid var(--mantine-color-gray-4);
   transition: width 0.2s ease-in-out;
   z-index: 100;
 }
@@ -32,7 +32,7 @@
   left: 0;
   right: 0; /* Spans full width of the viewport */
   height: 30px;
-  border-top: 1px solid var(--mantine-color-gray-4);
+  border-top: 0.5px solid var(--mantine-color-gray-4);
   z-index: 100; /* Ensure it's above other content if overlapping */
   padding: 0px;
 }
@@ -47,7 +47,7 @@
   flex-direction: column;
   padding: 0px;
   transition: width 0.1s ease-in-out;
-  border-left: 1px solid var(--mantine-color-gray-4);
+  border-left: 0.5px solid var(--mantine-color-gray-4);
   z-index: 100;
 }
 

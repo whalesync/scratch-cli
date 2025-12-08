@@ -120,7 +120,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
           width: '100%',
           borderRadius: 0,
           height: '100%',
-          borderLeft: '1px solid var(--mantine-color-gray-3)',
+          borderLeft: '0.5px solid var(--mantine-color-gray-3)',
         }}
       >
         <Box>
