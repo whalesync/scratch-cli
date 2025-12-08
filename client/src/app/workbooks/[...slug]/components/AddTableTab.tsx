@@ -4,6 +4,7 @@ import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/
 import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import {
   GenericDeleteConfirmationModal,
   useDeleteConfirmationModal,
@@ -74,8 +75,9 @@ export const AddTableTab = () => {
   const tree = useTree();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
+  // const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
   const [refreshingGroups, setRefreshingGroups] = useState<Record<string, boolean>>({});
+  const [isCreatingTable, setIsCreatingTable] = useState(false);
 
   // Transform CSV uploads into a TableGroup
   const csvGroup = useMemo((): TableGroup | null => {
@@ -138,16 +140,17 @@ export const AddTableTab = () => {
   const handleTableSelect = async (table: TableGroup['tables'][0], group: TableGroup) => {
     if (!workbook) return;
 
-    // Toggle selection
-    if (selectedTableId === table.id) {
-      setSelectedTableId(null);
-      return;
-    }
+    // // Toggle selection
+    // if (selectedTableId === table.id) {
+    //   setSelectedTableId(null);
+    //   return;
+    // }
 
-    setSelectedTableId(table.id);
+    // setSelectedTableId(table.id);
 
     // Automatically add the table when selected
     try {
+      setIsCreatingTable(true);
       const snapshotTableId = await addTable(table.id, group.service, group.connectorAccountId ?? undefined);
       setActiveTab(snapshotTableId);
       closeNewTabs();
@@ -158,7 +161,8 @@ export const AddTableTab = () => {
         message: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
-      setSelectedTableId(null);
+      setIsCreatingTable(false);
+      // setSelectedTableId(null);
     }
   };
 
@@ -394,18 +398,42 @@ export const AddTableTab = () => {
             <Center py="xl">
               <Loader size="sm" />
             </Center>
-          ) : treeData.length > 0 ? (
-            <ScrollArea style={{ flex: 1 }}>
-              <Tree data={treeData} tree={tree} renderNode={renderNode} classNames={{ node: styles.treeNode }} />
-            </ScrollArea>
-          ) : searchQuery ? (
-            <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-              No tables found matching &quot;{searchQuery}&quot;
-            </Text13Regular>
           ) : (
-            <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-              No tables available from your connections.
-            </Text13Regular>
+            <div
+              style={{ position: 'relative', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            >
+              {isCreatingTable && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <LoaderWithMessage centered message="Creating table..." />
+                </div>
+              )}
+              {treeData.length > 0 ? (
+                <ScrollArea style={{ flex: 1 }}>
+                  <Tree data={treeData} tree={tree} renderNode={renderNode} classNames={{ node: styles.treeNode }} />
+                </ScrollArea>
+              ) : searchQuery ? (
+                <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+                  No tables found matching &quot;{searchQuery}&quot;
+                </Text13Regular>
+              ) : (
+                <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+                  No tables available from your connections.
+                </Text13Regular>
+              )}
+            </div>
           )}
         </div>
 

@@ -16,7 +16,7 @@ export class SnapshotTable {
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
   hidden: boolean;
-  syncInProgress: boolean;
+  lock: string | null;
   hiddenColumns: string[];
   lastSyncTime: Date | null;
   dirty: boolean;
@@ -34,7 +34,7 @@ export class SnapshotTable {
     this.activeRecordSqlFilter = snapshotTable.activeRecordSqlFilter ?? null;
     this.pageSize = snapshotTable.pageSize ?? null;
     this.hidden = snapshotTable.hidden;
-    this.syncInProgress = snapshotTable.syncInProgress;
+    this.lock = snapshotTable.lock;
     this.hiddenColumns = snapshotTable.hiddenColumns ?? [];
     this.lastSyncTime = snapshotTable.lastSyncTime ?? null;
     this.dirty = snapshotTable.dirty;

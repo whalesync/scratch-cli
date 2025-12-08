@@ -4,7 +4,7 @@ import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { hasDeletedConnection, SnapshotTable } from '@/types/server-entities/workbook';
 import { formatDate, timeAgo } from '@/utils/helpers';
-import { Tooltip } from '@mantine/core';
+import { Loader, Tooltip } from '@mantine/core';
 import { CloudDownloadIcon, RefreshCwIcon } from 'lucide-react';
 
 export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => {
@@ -21,18 +21,22 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
         leftSection={
           isConnectionDeleted ? (
             <DeletedConnectionIcon decorative={false} tooltipEnabled={false} />
+          ) : table.lock === 'download' ? (
+            <Loader size={14} color="gray" />
           ) : (
             <CloudDownloadIcon size={16} />
           )
         }
-        rightSection={isConnectionDeleted ? <></> : <RefreshCwIcon size={16} />}
-        disabled={isConnectionDeleted}
+        rightSection={isConnectionDeleted || table.lock === 'download' ? <></> : <RefreshCwIcon size={16} />}
+        disabled={isConnectionDeleted || !!table.lock}
         onClick={() => showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE })}
       >
         {
-          table.lastSyncTime
-            ? timeAgo(table.lastSyncTime)
-            : 'Refresh data' /* lastSyncTime is null on old workbooks or if it's never been downloaded */
+          table.lock === 'download'
+            ? 'Downloading'
+            : table.lastSyncTime
+              ? timeAgo(table.lastSyncTime)
+              : 'Refresh data' /* lastSyncTime is null on old workbooks or if it's never been downloaded */
         }
       </ButtonSecondaryInline>
     </Tooltip>

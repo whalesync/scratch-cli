@@ -117,6 +117,7 @@ export class WorkbookService {
             columnSettings: {},
             tableName,
             version: 'v1',
+            lock: 'download',
           });
         } catch (error) {
           if (connector) {
@@ -250,6 +251,7 @@ export class WorkbookService {
         tableSpec: tableSpec,
         columnSettings: {},
         version: 'v1',
+        lock: 'download',
       },
       include: {
         connectorAccount: true,
@@ -1119,6 +1121,17 @@ export class WorkbookService {
       snapshotTableIds,
       initialPublicProgress,
     );
+
+    // Set lock='download' for all tables immediately after enqueuing
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        id: { in: snapshotTablesToProcess.map((t) => t.id) },
+      },
+      data: {
+        lock: 'download',
+      },
+    });
+
     return {
       jobId: job.id as string,
     };
@@ -1130,13 +1143,13 @@ export class WorkbookService {
   ): Promise<DownloadWorkbookWithoutJobResult> {
     const tables = workbook.snapshotTables ?? [];
 
-    // Set syncInProgress=true for all tables
+    // Set lock='download' for all tables
     await this.db.client.snapshotTable.updateMany({
       where: {
         id: { in: tables.map((t) => t.id) },
       },
       data: {
-        syncInProgress: true,
+        lock: 'download',
       },
     });
 
@@ -1179,11 +1192,11 @@ export class WorkbookService {
           },
         );
 
-        // Set syncInProgress=false and update lastSyncTime for this table on success
+        // Set lock=null and update lastSyncTime for this table on success
         await this.db.client.snapshotTable.update({
           where: { id: table.id },
           data: {
-            syncInProgress: false,
+            lock: null,
             lastSyncTime: new Date(),
           },
         });
@@ -1197,10 +1210,10 @@ export class WorkbookService {
           },
         });
       } catch (error) {
-        // Set syncInProgress=false for this table on failure
+        // Set lock=null for this table on failure
         await this.db.client.snapshotTable.update({
           where: { id: table.id },
-          data: { syncInProgress: false },
+          data: { lock: null },
         });
 
         throw exceptionForConnectorError(error, connector);
@@ -1276,6 +1289,16 @@ export class WorkbookService {
       snapshotTableIds,
       initialPublicProgress,
     );
+
+    // Set lock='publish' for all tables immediately after enqueuing
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        id: { in: snapshotTablesToProcess.map((t) => t.id) },
+      },
+      data: {
+        lock: 'publish',
+      },
+    });
 
     // Track analytics and audit log when job is enqueued
     this.posthogService.trackPublishWorkbook(actor.userId, workbook);

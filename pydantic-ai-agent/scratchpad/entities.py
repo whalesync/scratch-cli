@@ -76,7 +76,7 @@ class SnapshotTable:
     hiddenColumns: Optional[List[str]] = None
     pageSize: Optional[int] = None
     hidden: Optional[bool] = None
-    syncInProgress: Optional[bool] = None
+    lock: Optional[str] = None
     hiddenColumns: Optional[List[str]] = None
 
 

@@ -111,7 +111,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
             value={table.hiddenColumns.length > 0 ? `[${table.hiddenColumns.join(', ')}]` : '[]'}
           />
 
-          <LabelValuePair label="Sync In Progress" value={String(table.syncInProgress)} />
+          <LabelValuePair label="Lock" value={String(table.lock)} />
           <LabelValuePair label="Page Size" value={String(table.pageSize)} />
           <LabelValuePair label="Active SQL Filter" value={<code>{table.activeRecordSqlFilter ?? ''}</code>} />
 

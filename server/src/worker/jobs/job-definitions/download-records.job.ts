@@ -97,19 +97,19 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       }
     }
 
-    // Set syncInProgress=true for all tables being processed
-    await this.prisma.snapshotTable.updateMany({
-      where: {
-        id: { in: snapshotTablesToProcess.map((st) => st.id) },
-      },
-      data: {
-        syncInProgress: true,
-      },
-    });
+    // Lock is already set when enqueuing the job
+    // await this.prisma.snapshotTable.updateMany({
+    //   where: {
+    //     id: { in: snapshotTablesToProcess.map((st) => st.id) },
+    //   },
+    //   data: {
+    //     lock: 'download',
+    //   },
+    // });
 
     WSLogger.debug({
       source: 'DownloadRecordsJob',
-      message: 'Set syncInProgress=true for tables',
+      message: 'Set lock=download for tables',
       workbookId: workbook.id,
       tableCount: snapshotTablesToProcess.length,
     });
@@ -228,6 +228,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           callback,
           progress,
         );
+
         // Mark table as completed
         currentTable.status = 'completed';
 
@@ -243,20 +244,12 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           connectorProgress: {},
         });
 
-        // Set syncInProgress=false and update lastSyncTime for this table on success
-        await this.prisma.snapshotTable.update({
-          where: { id: snapshotTable.id },
+        this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+          type: 'snapshot-updated',
           data: {
-            syncInProgress: false,
-            lastSyncTime: new Date(),
+            tableId: snapshotTable.id,
+            source: 'agent',
           },
-        });
-
-        WSLogger.debug({
-          source: 'DownloadRecordsJob',
-          message: 'Download completed for table',
-          workbookId: workbook.id,
-          snapshotTableId: snapshotTable.id,
         });
 
         // Delete records that weren't seen in this sync (__seen=false or undefined)
@@ -280,6 +273,30 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
             connectorProgress: {},
           });
         }
+
+        // Set lock=null and update lastSyncTime for this table on success
+        await this.prisma.snapshotTable.update({
+          where: { id: snapshotTable.id },
+          data: {
+            lock: null,
+            lastSyncTime: new Date(),
+          },
+        });
+
+        WSLogger.debug({
+          source: 'DownloadRecordsJob',
+          message: 'Download completed for table',
+          workbookId: workbook.id,
+          snapshotTableId: snapshotTable.id,
+        });
+
+        this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
+          type: 'snapshot-updated',
+          data: {
+            tableId: snapshotTable.id,
+            source: 'agent',
+          },
+        });
       } catch (error) {
         // Mark table as failed
         currentTable.status = 'failed';
@@ -296,10 +313,10 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           connectorProgress: {},
         });
 
-        // Set syncInProgress=false for this table on failure
+        // Set lock=null for this table on failure
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
-          data: { syncInProgress: false },
+          data: { lock: null },
         });
 
         WSLogger.error({

@@ -183,8 +183,8 @@ model SnapshotTable {
   // Whether this table is hidden from the UI
   hidden Boolean @default(false)
 
-  // Whether records are currently being synced/downloaded for this table
-  syncInProgress Boolean @default(false)
+  // Lock indicating an operation in progress: "download", "publish", or null
+  lock String?
 
   // Timestamp of the last successful sync (download or publish)
   lastSyncTime DateTime?

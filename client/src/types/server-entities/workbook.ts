@@ -73,7 +73,7 @@ export interface SnapshotTable {
   activeRecordSqlFilter: string | null;
   pageSize: number | null;
   hidden: boolean;
-  syncInProgress: boolean;
+  lock: string | null;
   hiddenColumns: string[];
   lastSyncTime: string | null;
   dirty: boolean;

@@ -640,6 +640,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
           getRowId={(params) => {
             return params.data.id.wsId;
           }}
+          overlayNoRowsTemplate={table.lock ? '<span class="ag-overlay-loading-center"></span>' : undefined}
           defaultColDef={{
             flex: AG.grid.defaultFlex,
             minWidth: AG.grid.defaultMinWidth,
@@ -802,7 +803,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       Sync In Progress Overlay. Temp solution until we have design.
       Table will be stil clickable but the overlay will indicate that sync is in progress.
       */}
-      {table.syncInProgress && (
+      {table.lock && (
         <Box
           style={{
             position: 'absolute',
@@ -819,7 +820,13 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
           }}
         >
           <Center>
-            <LoaderWithMessage centered message="Syncing..." />
+            <LoaderWithMessage
+              centered
+              message={
+                table.lock === 'download' ? 'Downloading...' : table.lock === 'publish' ? 'Publishing...' : 'Syncing...'
+              }
+              size="xs"
+            />
           </Center>
         </Box>
       )}

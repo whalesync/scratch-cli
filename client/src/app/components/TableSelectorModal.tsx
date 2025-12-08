@@ -36,7 +36,7 @@ export const TableSelectorModal: FC<Props> = (props) => {
   }, [operationCounts]);
 
   const availableTables = useMemo(() => {
-    return tables.filter((table) => tablesWithChanges.has(table.id) || table.syncInProgress);
+    return tables.filter((table) => tablesWithChanges.has(table.id) || table.lock);
   }, [tables, tablesWithChanges]);
 
   // Initialize selection when availableTables changes
@@ -44,7 +44,7 @@ export const TableSelectorModal: FC<Props> = (props) => {
     if (availableTables.length > 0) {
       // If current table is in the list, select it. Otherwise select nothing (or maybe all?)
       // User said: "Essentially drop the option to use the current table, just preselect it."
-      if (currentTableId && availableTables.some((t) => t.id === currentTableId && !t.syncInProgress)) {
+      if (currentTableId && availableTables.some((t) => t.id === currentTableId && !t.lock)) {
         setSelectedTableIds([currentTableId]);
       } else {
         setSelectedTableIds([]);
@@ -73,7 +73,7 @@ export const TableSelectorModal: FC<Props> = (props) => {
   };
 
   const isSyncInProgress = useMemo(() => {
-    return tables.some((t) => t.syncInProgress);
+    return tables.some((t) => t.lock);
   }, [tables]);
 
   const footer = (
@@ -114,7 +114,7 @@ export const TableSelectorModal: FC<Props> = (props) => {
           <Stack gap="xs">
             {availableTables.map((table) => {
               const changeCount = getChangeCount(table.id);
-              const isSyncing = table.syncInProgress;
+              const isSyncing = !!table.lock;
               const statusText = (
                 <Text size="sm" c={isSyncing ? 'orange' : 'blue'}>
                   {isSyncing ? 'Publishing...' : `${changeCount} unpublished ${pluralize('change', changeCount)}`}

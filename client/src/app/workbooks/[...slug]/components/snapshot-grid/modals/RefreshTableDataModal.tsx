@@ -118,7 +118,7 @@ const ConfirmRefreshModal = ({
       <Stack gap="md">
         <Stack gap="xs">
           {availableTables.map((table) => {
-            const isSyncing = table.syncInProgress;
+            const isSyncing = !!table.lock;
             const isDirty = table.dirty;
             const statusText = (
               <MantineText size="sm" c={isDirty ? 'orange' : 'dimmed'}>

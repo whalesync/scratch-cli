@@ -94,15 +94,15 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
       }
     }
 
-    // Set syncInProgress=true for all tables being processed
-    await this.prisma.snapshotTable.updateMany({
-      where: {
-        id: { in: snapshotTablesToProcess.map((st) => st.id) },
-      },
-      data: {
-        syncInProgress: true,
-      },
-    });
+    // Lock is already set when enqueuing the job
+    // await this.prisma.snapshotTable.updateMany({
+    //   where: {
+    //     id: { in: snapshotTablesToProcess.map((st) => st.id) },
+    //   },
+    //   data: {
+    //     lock: 'publish',
+    //   },
+    // });
 
     this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
       type: 'sync-status-changed',
@@ -114,7 +114,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
 
     WSLogger.debug({
       source: 'PublishRecordsJob',
-      message: 'Set syncInProgress=true for tables',
+      message: 'Set lock=publish for tables',
       workbookId: workbook.id,
       tableCount: snapshotTablesToProcess.length,
     });
@@ -360,17 +360,17 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
           connectorProgress: {},
         });
 
-        // Set syncInProgress=false and dirty=false for this table on success
+        // Set lock=null and dirty=false for this table on success
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
           data: {
-            syncInProgress: false,
+            lock: null,
             dirty: false,
           },
         });
 
         this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
-          type: 'sync-status-changed',
+          type: 'snapshot-updated',
           data: {
             source: 'user',
             tableId: snapshotTable.id,
@@ -391,10 +391,10 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
         // Mark table as failed
         currentTable.status = 'failed';
 
-        // Set syncInProgress=false for this table on failure
+        // Set lock=null for this table on failure
         await this.prisma.snapshotTable.update({
           where: { id: snapshotTable.id },
-          data: { syncInProgress: false },
+          data: { lock: null },
         });
 
         this.snapshotEventService.sendSnapshotEvent(workbook.id as WorkbookId, {
