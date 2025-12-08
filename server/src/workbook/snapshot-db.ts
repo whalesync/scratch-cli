@@ -656,12 +656,13 @@ export class SnapshotDb {
           try {
             parsed[key] = JSON.parse(value);
           } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
             WSLogger.warn({
               source: 'SnapshotDb.bulkUpdateRecords',
-              message: `Failed to parse JSON for column ${key}, keeping as string`,
-              error: error instanceof Error ? error.message : String(error),
+              message: `Failed to parse JSON for column ${key}`,
+              error: msg,
             });
-            // Keep original string value if parse fails
+            throw new BadRequestException(`Failed to parse JSON for column ${key}. Details: ${msg}`);
           }
         }
       }

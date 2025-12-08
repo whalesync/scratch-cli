@@ -16,9 +16,10 @@ import {
 import { Anchor, Checkbox, NumberInput, ScrollArea, Stack } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { diffWordsWithSpace } from 'diff';
-import { RefObject } from 'react';
+import { FC, RefObject } from 'react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
+import { JsonFieldInput } from './JsonFieldInput';
 
 interface DisplayFieldProps {
   table: TableSpec;
@@ -34,7 +35,7 @@ interface DisplayFieldProps {
   focusTargetRef?: RefObject<TextAreaRef | null>;
 }
 
-export const DisplayField = (props: DisplayFieldProps) => {
+export const DisplayField: FC<DisplayFieldProps> = (props) => {
   const {
     table,
     record,
@@ -224,6 +225,44 @@ export const DisplayField = (props: DisplayFieldProps) => {
           </Stack>
         ) : (
           booleanField
+        )}
+      </FieldRow>
+    );
+  }
+
+  if (column.pgType === PostgresColumnType.JSONB) {
+    const rawValue = record.fields[columnId];
+    const currentValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+    const rawSuggestedValue = record.__suggested_values?.[columnId];
+    const suggestedValue =
+      typeof rawSuggestedValue === 'string' ? rawSuggestedValue : JSON.stringify(rawSuggestedValue, null, 2);
+
+    return (
+      <FieldRow
+        fieldName={column.name}
+        showLabel={mode === 'multiple'}
+        hasEditedValue={hasEditedValue}
+        isReadOnly={column.readonly}
+        onLabelClick={onFieldLabelClick}
+        changeTypes={processedFieldValue.existingChangeTypes}
+        recordChangeTypes={recordChangeTypes}
+      >
+        {hasSuggestion ? (
+          <Stack h="auto" gap="xs" w="100%">
+            <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
+              <DiffViewer originalValue={currentValue ?? ''} suggestedValue={suggestedValue ?? ''} />
+            </ScrollArea>
+            {mode === 'multiple' && suggestionButtons}
+          </Stack>
+        ) : mode === 'multiple' ? (
+          <Text13Regular style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{currentValue}</Text13Regular>
+        ) : (
+          <JsonFieldInput
+            columnId={columnId}
+            initialValue={currentValue ?? ''}
+            readOnly={column.readonly || hasSuggestion}
+            updateField={updateField}
+          />
         )}
       </FieldRow>
     );
