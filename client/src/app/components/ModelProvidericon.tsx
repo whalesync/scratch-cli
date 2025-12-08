@@ -1,6 +1,52 @@
 import { Image, MantineSpacing, StyleProp } from '@mantine/core';
 import { ImageProps } from 'next/image';
 
+interface ModelProvider {
+  icon: string;
+  patterns: string[];
+}
+
+const modelProviders: ModelProvider[] = [
+  {
+    icon: 'open-ai.svg',
+    patterns: ['openai'],
+  },
+  {
+    icon: 'gemini.svg',
+    patterns: ['google'],
+  },
+  {
+    icon: 'meta.svg',
+    patterns: ['meta', 'meta-ai', 'meta-llama'],
+  },
+  {
+    icon: 'ai21.svg',
+    patterns: ['ai21', 'ai21-labs'],
+  },
+  {
+    icon: 'aion.svg',
+    patterns: ['aion', 'aion-labs'],
+  },
+  {
+    // icon: 'anthropic.svg', // TODO: waiting on this icon
+    icon: 'open-router.svg',
+    patterns: ['anthropic', 'claude'],
+  },
+  {
+    // icon: 'x-ai.svg', // TODO: waiting on this icon
+    icon: 'open-router.svg',
+    patterns: ['xai', 'x-ai'],
+  },
+  {
+    icon: 'scratch.svg',
+    patterns: ['scratch'],
+  },
+  {
+    icon: 'open-router.svg',
+    patterns: ['open-router'],
+  },
+];
+
 function getModelIconPath(modelName: string | null | undefined): string {
   if (!modelName) {
     return '/model-icons/open-router.svg';
@@ -9,24 +55,13 @@ function getModelIconPath(modelName: string | null | undefined): string {
   // Extract the prefix (part before the first "/")
   const prefix = modelName.split('/')[0]?.toLowerCase() || '';
 
-  // Map prefixes to icon files
-  const iconMap: Record<string, string> = {
-    openai: 'open-ai.svg',
-    google: 'gemini.svg',
-    meta: 'meta.svg',
-    ai21: 'ai21.svg',
-    aion: 'aion.svg',
-    'aion-labs': 'aion.svg',
-    scratch: 'scratch.svg', // used in some special cases for system generated keys / creds
-  };
+  const provider = modelProviders.find((provider) => provider.patterns.includes(prefix));
 
-  const iconFile = iconMap[prefix];
-  if (iconFile) {
-    return `/model-icons/${iconFile}`;
+  if (!provider) {
+    return '/model-icons/open-router.svg';
   }
 
-  // Default to open-router.svg if no match
-  return '/model-icons/open-router.svg';
+  return `/model-icons/${provider.icon}`;
 }
 
 export function ModelProviderIcon(
