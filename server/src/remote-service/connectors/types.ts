@@ -113,6 +113,9 @@ export type ConnectorRecord = {
   // Columns, indexed by the wsId NOT the connector's native ID.
   fields: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+
+  /** Any errors or warning to associate with the record the user */
+  errors?: RecordErrorsMetadata;
 };
 
 export type SnapshotRecord = {
@@ -131,6 +134,7 @@ export type SnapshotRecord = {
   __edited_fields: EditedFieldsMetadata;
   __suggested_values: Record<string, unknown>;
   __metadata: Record<string, unknown>;
+  __errors: RecordErrorsMetadata;
 
   // Per record meta information.
   __dirty: boolean;
@@ -176,4 +180,9 @@ export type ConnectorErrorDetails = {
   userFriendlyMessage: string;
   description?: string;
   additionalContext?: Record<string, unknown>;
+};
+
+export type RecordErrorsMetadata = {
+  // TODO: Add record-level here if needed.
+  byField?: Record<string, string[]>;
 };

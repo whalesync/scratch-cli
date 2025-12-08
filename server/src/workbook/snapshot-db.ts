@@ -7,6 +7,7 @@ import {
   DELETED_PREFIX,
   DIRTY_COLUMN,
   EDITED_FIELDS_COLUMN,
+  ERRORS_COLUMN,
   METADATA_COLUMN,
   OLD_REMOTE_ID_COLUMN,
   ORIGINAL_COLUMN,
@@ -25,7 +26,12 @@ import { WSLogger } from 'src/logger';
 import { assertUnreachable } from 'src/utils/asserts';
 import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { AnyColumnSpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
-import { ConnectorRecord, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import {
+  ConnectorRecord,
+  PostgresColumnType,
+  RecordErrorsMetadata,
+  SnapshotRecord,
+} from '../remote-service/connectors/types';
 import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
@@ -72,6 +78,7 @@ type DbRecord = {
   [SEEN_COLUMN]: boolean;
   [ORIGINAL_COLUMN]: Record<string, unknown> | null;
   [OLD_REMOTE_ID_COLUMN]: string | null;
+  [ERRORS_COLUMN]: RecordErrorsMetadata;
   [key: string]: unknown;
 };
 
@@ -198,6 +205,7 @@ export class SnapshotDb {
             t.boolean(SEEN_COLUMN).defaultTo(true);
             t.jsonb(ORIGINAL_COLUMN).nullable();
             t.text(OLD_REMOTE_ID_COLUMN).nullable();
+            t.jsonb(ERRORS_COLUMN).defaultTo('{}');
           });
       } else {
         // The table exists, so we need to check if we need to migrate it.
@@ -228,7 +236,14 @@ export class SnapshotDb {
         }
 
         // The table exists, so we need to check if the metadata columns exist.
-        for (const col of [EDITED_FIELDS_COLUMN, DIRTY_COLUMN, SEEN_COLUMN, ORIGINAL_COLUMN, OLD_REMOTE_ID_COLUMN]) {
+        for (const col of [
+          EDITED_FIELDS_COLUMN,
+          DIRTY_COLUMN,
+          SEEN_COLUMN,
+          ORIGINAL_COLUMN,
+          OLD_REMOTE_ID_COLUMN,
+          ERRORS_COLUMN,
+        ]) {
           const hasColumn = await this.getKnex().schema.withSchema(workbookId).hasColumn(tableName, col);
           if (!hasColumn) {
             await this.getKnex()
@@ -244,6 +259,8 @@ export class SnapshotDb {
                   t.jsonb(ORIGINAL_COLUMN).nullable();
                 } else if (col === OLD_REMOTE_ID_COLUMN) {
                   t.text(OLD_REMOTE_ID_COLUMN).nullable();
+                } else if (col === ERRORS_COLUMN) {
+                  t.jsonb(ERRORS_COLUMN).defaultTo('{}');
                 }
               });
           }
@@ -328,6 +345,7 @@ export class SnapshotDb {
         t.boolean(DIRTY_COLUMN).defaultTo(true);
         t.jsonb(ORIGINAL_COLUMN).nullable();
         t.text(OLD_REMOTE_ID_COLUMN).nullable();
+        t.jsonb(ERRORS_COLUMN).defaultTo('{}');
       });
   }
 
@@ -402,6 +420,7 @@ export class SnapshotDb {
           [SUGGESTED_FIELDS_COLUMN]: existingDirtyRecord[SUGGESTED_FIELDS_COLUMN], // Keep suggestions
           [ORIGINAL_COLUMN]: JSON.stringify(originalValues),
           [OLD_REMOTE_ID_COLUMN]: existingDirtyRecord[OLD_REMOTE_ID_COLUMN],
+          [ERRORS_COLUMN]: r.errors,
         };
       } else {
         // CLEAN RECORD (New or Existing Clean) - Just overwrite
@@ -419,6 +438,7 @@ export class SnapshotDb {
           [SUGGESTED_FIELDS_COLUMN]: '{}',
           [ORIGINAL_COLUMN]: JSON.stringify(sanitizedFields), // Store original values from remote
           [OLD_REMOTE_ID_COLUMN]: null,
+          [ERRORS_COLUMN]: r.errors,
         };
       }
     });
@@ -433,6 +453,7 @@ export class SnapshotDb {
       SUGGESTED_FIELDS_COLUMN,
       ORIGINAL_COLUMN,
       OLD_REMOTE_ID_COLUMN,
+      ERRORS_COLUMN,
     ];
 
     await this.getKnex()(table.tableName)
@@ -545,6 +566,7 @@ export class SnapshotDb {
       __original,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       __seen,
+      __errors,
       ...fields
     } = record;
 
@@ -590,6 +612,7 @@ export class SnapshotDb {
       __metadata: metadata,
       __dirty,
       __old_remote_id,
+      __errors,
     };
   }
 
@@ -1139,6 +1162,7 @@ export class SnapshotDb {
                 __seen,
                 __original,
                 __old_remote_id,
+                __errors,
                 ...fields
               }) => ({
                 id: { wsId: __scratchId, remoteId: __remoteId },
@@ -1150,6 +1174,7 @@ export class SnapshotDb {
                 __metadata,
                 __original,
                 __old_remote_id,
+                __errors,
               }),
             ),
             trx,

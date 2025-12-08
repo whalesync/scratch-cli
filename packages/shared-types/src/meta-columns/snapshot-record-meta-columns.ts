@@ -27,6 +27,9 @@ export const CREATED_FIELD = '__created';
 export const UNPUBLISHED_PREFIX = 'unpublished_';
 export const DELETED_PREFIX = 'deleted_';
 
+// Stores a `RecordErrorsMetadata` object of problems with the record.
+export const ERRORS_COLUMN = '__errors';
+
 // Reserved column names that cannot be used in user-provided data (e.g., CSV uploads)
 export const SNAPSHOT_META_COLUMNS = [
   REMOTE_ID_COLUMN,

@@ -139,6 +139,7 @@ export type SnapshotRecord = {
   __edited_fields?: EditedFieldsMetadata;
   __suggested_values?: Record<string, unknown>;
   __dirty: boolean;
+  __errors: RecordErrorsMetadata;
 };
 
 export const SNAPSHOT_RECORD_DELETED_FIELD = '__deleted';
@@ -152,6 +153,10 @@ export type EditedFieldsMetadata = {
 } & {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
+};
+
+export type RecordErrorsMetadata = {
+  byField?: Record<string, string[]>;
 };
 
 export interface DownloadWorkbookWithoutJobResult {
