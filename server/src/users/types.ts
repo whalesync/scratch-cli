@@ -22,6 +22,7 @@ export interface Actor {
   userId: string;
   organizationId: string;
   subscriptionStatus?: SubscriptionStatus;
+  onboarding?: UserOnboarding;
 }
 
 export function userToActor(user: UserCluster.User): Actor {
@@ -68,9 +69,47 @@ export function userToActor(user: UserCluster.User): Actor {
     userId: user.id,
     organizationId: user.organizationId ?? '<empty org id>',
     subscriptionStatus,
+    onboarding: (user.onboarding ?? {}) as UserOnboarding,
   };
 }
 
 export interface UserSettings {
   [key: string]: string | number | boolean;
+}
+
+// ============================================================================
+// Onboarding Types
+// ============================================================================
+
+/**
+ * Onboarding flow codes - used as keys in UserOnboarding
+ */
+// export type OnboardingFlowCode = 'gettingStartedV1';
+
+/**
+ * GettingStartedV1 onboarding flow state
+ */
+export interface GettingStartedV1 {
+  dataSourceConnected: boolean;
+  contentEditedWithAi: boolean;
+  suggestionsAccepted: boolean;
+  dataPublished: boolean;
+}
+
+/**
+ * Default state for GettingStartedV1 flow
+ */
+export const DEFAULT_GETTING_STARTED_V1: GettingStartedV1 = {
+  dataSourceConnected: false,
+  contentEditedWithAi: false,
+  suggestionsAccepted: false,
+  dataPublished: false,
+};
+
+/**
+ * UserOnboarding - tracks user progress through various onboarding flows
+ * Each key is a flow code and the value is the flow-specific state
+ */
+export interface UserOnboarding {
+  gettingStartedV1?: GettingStartedV1;
 }

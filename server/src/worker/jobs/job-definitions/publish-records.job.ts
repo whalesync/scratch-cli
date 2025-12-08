@@ -8,6 +8,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { OnboardingService } from 'src/users/onboarding.service';
 import { Actor } from 'src/users/types';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
@@ -51,6 +52,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly workbookService: WorkbookService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   async run(params: {
@@ -456,6 +458,29 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
         message: 'Failed to track action for publish',
         workbookId: workbook.id,
         organizationId: data.organizationId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+
+    // Update onboarding flow if user hasn't completed this step yet
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { onboarding: true },
+      });
+      const onboarding = user?.onboarding as { gettingStartedV1?: { dataPublished?: boolean } } | null;
+      if (onboarding?.gettingStartedV1 && !onboarding.gettingStartedV1.dataPublished) {
+        await this.onboardingService.updateOnboardingFlow(data.userId, 'gettingStartedV1', {
+          dataPublished: true,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail the job if onboarding update fails
+      WSLogger.error({
+        source: 'PublishRecordsJob',
+        message: 'Failed to update onboarding for publish',
+        workbookId: workbook.id,
+        userId: data.userId,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }

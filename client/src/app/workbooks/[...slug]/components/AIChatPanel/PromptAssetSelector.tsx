@@ -1,5 +1,6 @@
 import { IconButtonOutline } from '@/app/components/base/buttons';
 import { Text12Regular } from '@/app/components/base/text';
+import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
@@ -14,7 +15,7 @@ import { Combobox, Divider, Group, useCombobox } from '@mantine/core';
 import { AtSignIcon, FileIcon, FileTextIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/PromptAssetDetailModal';
-import { ContextBadge, ContextBadges } from './ContextBadges';
+import { ContextBadges } from './ContextBadges';
 
 export function PromptAssetSelector({
   disabled,
@@ -142,7 +143,7 @@ export function PromptAssetSelector({
         </Combobox>
         <ContextBadges />
         {selectedResources.map((sg) => (
-          <ContextBadge
+          <CornerBoxedBadge
             key={sg.id}
             label={sg.name}
             onClose={() => handleRemove(sg.id)}

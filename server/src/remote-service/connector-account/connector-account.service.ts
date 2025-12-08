@@ -5,6 +5,7 @@ import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { WSLogger } from 'src/logger';
+import { OnboardingService } from 'src/users/onboarding.service';
 import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
@@ -29,6 +30,7 @@ export class ConnectorAccountService {
     private readonly posthogService: PostHogService,
     private readonly auditLogService: AuditLogService,
     private readonly credentialEncryptionService: CredentialEncryptionService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   private async getDecryptedAccount(account: ConnectorAccount): Promise<ConnectorAccount & DecryptedCredentials> {
@@ -91,6 +93,13 @@ export class ConnectorAccountService {
         authType: connectorAccount.authType,
       },
     });
+
+    // Update onboarding flow if user hasn't completed this step yet
+    if (actor.onboarding?.gettingStartedV1?.dataSourceConnected === false) {
+      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
+        dataSourceConnected: true,
+      });
+    }
 
     return connectorAccount;
   }

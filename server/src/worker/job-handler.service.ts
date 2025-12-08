@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
+import { OnboardingService } from 'src/users/onboarding.service';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -21,6 +22,7 @@ export class JobHandlerService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly workbookService: WorkbookService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -48,6 +50,7 @@ export class JobHandlerService {
           this.connectorAccountService,
           this.snapshotEventService,
           this.workbookService,
+          this.onboardingService,
         ) as JobHandler<JobDefinition>;
 
       default:

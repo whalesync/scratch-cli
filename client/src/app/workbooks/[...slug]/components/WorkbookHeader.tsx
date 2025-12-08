@@ -37,6 +37,7 @@ export const WorkbookHeader = () => {
           </ButtonSecondaryInline>
         )}
         {/* TODO: Move the publish button here, after figuring out how it should behave */}
+        {/* <CornerBoxedBadge label="11" tooltip={<MyOnboarding />} tooltipAlwaysVisible /> */}
         <ButtonSecondaryInline
           disabled={allConnectionsDeleted}
           size="xs"

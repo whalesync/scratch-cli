@@ -10,13 +10,14 @@ import { ExperimentsModule } from 'src/experiments/experiments.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { SlackNotificationModule } from 'src/slack/slack-notification.module';
+import { OnboardingService } from './onboarding.service';
 import { OrganizationsService } from './organizations.service';
 import { SubscriptionService } from './subscription.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService, SubscriptionService, OrganizationsService],
+  providers: [UsersService, SubscriptionService, OrganizationsService, OnboardingService],
   imports: [
     DbModule,
     AgentJwtModule,
@@ -28,7 +29,7 @@ import { UsersService } from './users.service';
     AuditLogModule,
     AgentCredentialsModule,
   ],
-  exports: [UsersService, SubscriptionService], //export this service to use in other modules
+  exports: [UsersService, SubscriptionService, OnboardingService], //export this service to use in other modules
   controllers: [UsersController],
 })
 export class UserModule {}

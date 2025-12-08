@@ -29,6 +29,7 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForColumnWsId, sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
+import { OnboardingService } from 'src/users/onboarding.service';
 import { SubscriptionService } from 'src/users/subscription.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
@@ -73,6 +74,7 @@ export class WorkbookService {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
@@ -694,6 +696,13 @@ export class WorkbookService {
         source: type === 'suggested' ? 'agent' : 'user',
       },
     });
+
+    // Update onboarding flow if AI made suggestions and user hasn't completed this step yet
+    if (type === 'suggested' && actor.onboarding?.gettingStartedV1?.contentEditedWithAi === false) {
+      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
+        contentEditedWithAi: true,
+      });
+    }
   }
 
   async getOperationCounts(
@@ -869,6 +878,13 @@ export class WorkbookService {
         source: 'user',
       },
     });
+
+    // Update onboarding flow if user hasn't completed this step yet
+    if (actor.onboarding?.gettingStartedV1?.suggestionsAccepted === false) {
+      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
+        suggestionsAccepted: true,
+      });
+    }
 
     return { recordsUpdated };
   }
@@ -1326,6 +1342,13 @@ export class WorkbookService {
       message: `Published workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
     });
+
+    // Update onboarding flow if user hasn't completed this step yet
+    if (actor.onboarding?.gettingStartedV1 && !actor.onboarding.gettingStartedV1.dataPublished) {
+      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
+        dataPublished: true,
+      });
+    }
   }
 
   async getPublishSummary(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<PublishSummaryDto> {
