@@ -60,7 +60,14 @@ export const PromptAssetTable = ({
   }
 
   if (error) {
-    return <ErrorInfo title="Failed to load prompt assets" error={error} retry={() => mutate()} />;
+    return (
+      <ErrorInfo
+        title="Failed to load prompt assets"
+        description="There was an issue loading your prompt assets. Click the retry button to try again."
+        error={error}
+        retry={() => mutate()}
+      />
+    );
   }
 
   return (

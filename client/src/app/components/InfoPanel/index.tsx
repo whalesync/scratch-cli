@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
-import { Text13Book, Text13Medium } from '../base/text';
+import { Text13Book, Text13Medium, TextMono13Regular } from '../base/text';
 import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 import styles from './Info.module.css';
 
@@ -101,6 +101,22 @@ const ViewDocsButton = ({ link }: { link?: string }): JSX.Element => {
   );
 };
 
+const ActionButton = ({
+  label,
+  onClick,
+  Icon,
+}: {
+  label: string;
+  onClick: () => void;
+  Icon: LucideIcon;
+}): JSX.Element => {
+  return (
+    <ButtonPrimaryLight leftSection={<Icon size={16} />} onClick={onClick} size="xs">
+      {label}
+    </ButtonPrimaryLight>
+  );
+};
+
 const ReloadPageButton = (): JSX.Element => {
   return (
     <ButtonPrimaryLight size="xs" leftSection={<RotateCw size={16} />} onClick={() => window.location.reload()}>
@@ -117,6 +133,14 @@ const AddEntityButton = ({ label, onClick }: { label: string; onClick: () => voi
   );
 };
 
+const RetryButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
+  return (
+    <ButtonPrimaryLight size="xs" leftSection={<RotateCw size={16} />} onClick={onClick}>
+      Retry
+    </ButtonPrimaryLight>
+  );
+};
+
 const Actions = ({ children, ...props }: PropsWithChildren<GroupProps>): JSX.Element => {
   return (
     <Group gap="sm" mt="md" {...props} justify="center" align="center">
@@ -125,10 +149,25 @@ const Actions = ({ children, ...props }: PropsWithChildren<GroupProps>): JSX.Ele
   );
 };
 
-const DetailsDisclosure = ({ children }: { children: ReactNode }): JSX.Element => {
-  const [detailsVisible, { toggle: toggleDetails }] = useDisclosure(false);
+const ErrorMessage = ({ error }: { error: unknown }): JSX.Element => {
+  const errorMessage = typeof error === 'string' ? error : error instanceof Error ? error.message : 'Unknown error';
   return (
-    <Stack m="xs" gap="xs">
+    <Box p="md" mt="md" bg="var(--mantine-color-red-light)">
+      <TextMono13Regular>{errorMessage}</TextMono13Regular>
+    </Box>
+  );
+};
+
+const DetailsDisclosure = ({
+  children,
+  expandedDetails = false,
+}: {
+  children: ReactNode;
+  expandedDetails?: boolean;
+}): JSX.Element => {
+  const [detailsVisible, { toggle: toggleDetails }] = useDisclosure(expandedDetails);
+  return (
+    <Stack m="xs" gap="xs" align="center">
       <Anchor underline="always" className={styles.dashedLink} onClick={toggleDetails}>
         {detailsVisible ? 'Hide details' : 'Show details'}
       </Anchor>
@@ -151,28 +190,41 @@ Info.Title = Title;
 Info.Description = Description;
 Info.Actions = Actions;
 
+Info.ActionButton = ActionButton;
 Info.ViewDocsButton = ViewDocsButton;
 Info.AddEntityButton = AddEntityButton;
 Info.ReloadPageButton = ReloadPageButton;
+Info.RetryButton = RetryButton;
 
 Info.DetailsDisclosure = DetailsDisclosure;
 
+/**
+ * Prebuilt info panel patterns
+ *
+ * Use these for common use cases instead of building a custom <Info> component
+ */
+
 export const ErrorInfo = ({
+  title,
+  description,
   error,
   retry,
   action,
-  title,
+  h,
 }: {
+  title?: string;
+  description?: string;
   error?: unknown;
   retry?: () => void;
   action?: ReactNode;
-  title?: ReactNode;
+  h?: CenterProps['h'];
 }) => {
   return (
-    <Info>
+    <Info h={h}>
       <Info.ErrorIcon />
       <Info.Title>{title}</Info.Title>
-      {!!error && <Info.DetailsDisclosure>{`${error}`}</Info.DetailsDisclosure>}
+      {description && <Info.Description>{description}</Info.Description>}
+      {!!error && <ErrorMessage error={error} />}
       <Info.Actions>
         {retry && (
           <ButtonPrimaryLight leftSection={<RotateCw size={16} />} onClick={retry} size="xs">

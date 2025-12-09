@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { ErrorInfo, Info } from '@/app/components/InfoPanel';
+import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { useUploads } from '@/hooks/use-uploads';
 import { Upload, uploadsApi } from '@/lib/api/uploads';
 import { RouteUrls } from '@/utils/route-urls';
@@ -143,7 +143,14 @@ export default function UploadsTable() {
   if (isLoading) {
     content = <Loader />;
   } else if (error) {
-    content = <ErrorInfo error={error} />;
+    content = (
+      <ErrorInfo
+        title="Failed to load tables"
+        description="There was an issue loading your uploaded tables. Click the retry button to try again."
+        retry={() => mutate()}
+        error={error}
+      />
+    );
   } else {
     content = (
       <Table ml="xs">
@@ -229,7 +236,7 @@ export default function UploadsTable() {
         onConfirm={handleConfirmCreateWorkbook}
       />
 
-      <UploadsTableDropZone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl" p="xl">
+      <UploadsTableDropZone allowedTypes={['csv']} openRef={openFileInputRef} mt="xl">
         <Group justify="space-between" align="top">
           <TextMono13Regular c="dimmed">UPLOADED TABLES</TextMono13Regular>
           <ButtonSecondaryOutline leftSection={<UploadIcon />} onClick={() => openFileInputRef.current?.()}>
@@ -238,11 +245,11 @@ export default function UploadsTable() {
         </Group>
         {content}
         {sortedCsvUploads.length === 0 && (
-          <Info>
-            <Info.FileIcon />
-            <Info.Title>No uploads yet</Info.Title>
-            <Info.Description>Drag and drop a CSV to get started</Info.Description>
-          </Info>
+          <EmptyListInfoPanel
+            title="No uploads yet"
+            description="Drag and drop a CSV to get started or click on the Upload CSV button."
+            actionButton={<Info.AddEntityButton label="Upload CSV" onClick={() => openFileInputRef.current?.()} />}
+          />
         )}
       </UploadsTableDropZone>
     </>

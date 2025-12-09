@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { serviceName } from '@/service-naming-conventions';
@@ -13,14 +14,14 @@ import { useConnectorAccounts } from '../../../hooks/use-connector-account';
 import { usePersistedSort } from '../../../hooks/use-persisted-sort';
 import { ButtonPrimaryLight, ButtonPrimarySolid, ButtonSecondaryOutline } from '../../components/base/buttons';
 import { TextMono13Regular } from '../../components/base/text';
-import { ErrorInfo } from '../../components/InfoPanel';
 import { ScratchpadNotifications } from '../../components/ScratchpadNotifications';
 import { ConnectorRow } from './ConnectorRow';
 import { CreateConnectionModal } from './CreateConnectionModal';
 import { UpdateConnectionModal } from './UpdateConnectionModal';
 
 export default function ConnectorTable() {
-  const { isLoading, error, connectorAccounts, deleteConnectorAccount, testConnection } = useConnectorAccounts();
+  const { isLoading, error, connectorAccounts, deleteConnectorAccount, testConnection, refreshConnectorAccounts } =
+    useConnectorAccounts();
 
   // State for the update modal
   const [selectedConnectorAccount, setSelectedConnectorAccount] = useState<ConnectorAccount | null>(null);
@@ -101,7 +102,14 @@ export default function ConnectorTable() {
   }
 
   if (error) {
-    return <ErrorInfo error={error} />;
+    return (
+      <ErrorInfo
+        title="Failed to load connected apps"
+        description="There was an issue loading your connected apps. Click the retry button to try again."
+        error={error}
+        retry={refreshConnectorAccounts}
+      />
+    );
   }
 
   return (
@@ -184,6 +192,19 @@ export default function ConnectorTable() {
               testingId={testingId}
             />
           ))}
+          {sortedConnectorAccounts.length === 0 && (
+            <Table.Tr>
+              <Table.Td colSpan={5}>
+                <EmptyListInfoPanel
+                  title="No connected apps found"
+                  description="Create a connection to a data source like Notion or Webflow to get started"
+                  actionButton={
+                    <Info.AddEntityButton label="New connection" onClick={() => modalStack.open('create')} />
+                  }
+                />
+              </Table.Td>
+            </Table.Tr>
+          )}
         </Table.Tbody>
       </Table>
     </>

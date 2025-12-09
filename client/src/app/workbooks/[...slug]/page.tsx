@@ -3,8 +3,7 @@
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
-import { ButtonPrimaryLight } from '@/app/components/base/buttons';
-import { ErrorInfo } from '@/app/components/InfoPanel';
+import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
@@ -93,15 +92,24 @@ function WorkbookPageContent() {
 
   if (!workbook) {
     return (
-      <ErrorInfo
-        title="Workbook not found."
-        error="We were unable to find the workbook you are looking for."
-        action={
-          <ButtonPrimaryLight leftSection={<ArrowLeftIcon />} onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
-            Return to workbooks
-          </ButtonPrimaryLight>
-        }
-      />
+      <PageLayout pageTitle={'Unknown Workbook'}>
+        <MainContent>
+          <MainContent.BasicHeader title="" />
+          <MainContent.Body>
+            <ErrorInfo
+              title="Workbook not found."
+              description="We were unable to find the workbook you are looking for."
+              action={
+                <Info.ActionButton
+                  label="Return to workbooks"
+                  Icon={ArrowLeftIcon}
+                  onClick={() => router.push(RouteUrls.workbooksPageUrl)}
+                />
+              }
+            />
+          </MainContent.Body>
+        </MainContent>
+      </PageLayout>
     );
   }
 

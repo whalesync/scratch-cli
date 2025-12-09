@@ -14,7 +14,12 @@ import { serviceName } from '../service-naming-conventions';
 
 export const useConnectorAccounts = () => {
   const { mutate } = useSWRConfig();
-  const { data, error, isLoading } = useSWR(SWR_KEYS.connectorAccounts.list(), connectorAccountsApi.list);
+  const {
+    data,
+    error,
+    isLoading,
+    mutate: mutateConnectorAccounts,
+  } = useSWR(SWR_KEYS.connectorAccounts.list(), connectorAccountsApi.list);
 
   const createConnectorAccount = async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
     const newAccount = await connectorAccountsApi.create(dto);
@@ -75,6 +80,7 @@ export const useConnectorAccounts = () => {
     updateConnectorAccount,
     deleteConnectorAccount,
     testConnection,
+    refreshConnectorAccounts: () => mutateConnectorAccounts(),
   };
 };
 

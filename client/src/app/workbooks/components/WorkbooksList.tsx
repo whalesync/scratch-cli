@@ -9,7 +9,7 @@ import { Center, Divider, Group, Loader, Table } from '@mantine/core';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SWRConfig } from 'swr';
-import { ErrorInfo } from '../../components/InfoPanel';
+import { EmptyListInfoPanel, ErrorInfo } from '../../components/InfoPanel';
 import { CreateWorkbookButton } from './CreateWorkbookButton';
 import { WorkbookRow } from './WorkbookRow';
 
@@ -31,7 +31,7 @@ export const WorkbooksList = () => {
   const sortBy: WorkbookSortBy = isValidSortBy(sortByParam) ? sortByParam : 'createdAt';
   const sortOrder: WorkbookSortOrder = isValidSortOrder(sortOrderParam) ? sortOrderParam : 'desc';
 
-  const { workbooks, isLoading, error } = useWorkbooks({ sortBy, sortOrder });
+  const { workbooks, isLoading, error, refreshWorkbooks } = useWorkbooks({ sortBy, sortOrder });
 
   const handleSort = (column: WorkbookSortBy) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -63,20 +63,17 @@ export const WorkbooksList = () => {
     );
   }
 
-  if (error) {
-    return <ErrorInfo error={error} title="Error loading workbooks" />;
-  }
-
   return (
     <SWRConfig
       value={{
         onErrorRetry: (err, key, config, revalidate, { retryCount }) => {
+          console.log('onErrorRetry', err, key, config, revalidate, retryCount);
           if (retryCount > 3) {
             return;
           }
 
           if (err instanceof ScratchpadApiError && err.statusCode === 401) {
-            // 401 is the error code for unauthorized
+            // 401 is the error code for unauthorized and can occure when the token expires
             setTimeout(() => {
               revalidate();
             }, 1000);
@@ -102,9 +99,33 @@ export const WorkbooksList = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
+              {error && (
+                <Table.Tr>
+                  <Table.Td colSpan={3}>
+                    <ErrorInfo
+                      error={error}
+                      title="Error loading workbooks"
+                      description="There was an issue loading your workbooks. Click the retry button to try again."
+                      retry={refreshWorkbooks}
+                    />
+                  </Table.Td>
+                </Table.Tr>
+              )}
+
               {workbooks?.map((w) => (
                 <WorkbookRow key={w.id} workbook={w} />
               ))}
+              {!error && workbooks?.length === 0 && (
+                <Table.Tr>
+                  <Table.Td colSpan={3}>
+                    <EmptyListInfoPanel
+                      title="No workbooks found"
+                      description="Create a new workbook to get started"
+                      actionButton={<CreateWorkbookButton size="xs" variant="light" />}
+                    />
+                  </Table.Td>
+                </Table.Tr>
+              )}
             </Table.Tbody>
           </Table>
         </MainContent.Body>

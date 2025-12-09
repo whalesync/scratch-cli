@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonPrimarySolid } from '@/app/components/base/buttons';
+import { ButtonPrimaryLight, ButtonPrimarySolid } from '@/app/components/base/buttons';
+import { ButtonProps } from '@mantine/core';
 import { PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
@@ -8,7 +9,13 @@ import { useWorkbooks } from '../../../hooks/use-workbooks';
 import { RouteUrls } from '../../../utils/route-urls';
 import { ScratchpadNotifications } from '../../components/ScratchpadNotifications';
 
-export const CreateWorkbookButton = () => {
+export const CreateWorkbookButton = ({
+  size = 'sm',
+  variant = 'solid',
+}: {
+  size?: ButtonProps['size'];
+  variant?: 'solid' | 'light';
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const { createWorkbook } = useWorkbooks();
   const router = useRouter();
@@ -27,14 +34,25 @@ export const CreateWorkbookButton = () => {
       setIsLoading(false);
     }
   }, [createWorkbook, router]);
-  return (
+  return variant === 'solid' ? (
     <ButtonPrimarySolid
       leftSection={<PlusIcon />}
       loading={isLoading}
       disabled={isLoading}
       onClick={handleCreateWorkbook}
+      size={size}
     >
       New workbook
     </ButtonPrimarySolid>
+  ) : (
+    <ButtonPrimaryLight
+      leftSection={<PlusIcon />}
+      loading={isLoading}
+      disabled={isLoading}
+      onClick={handleCreateWorkbook}
+      size={size}
+    >
+      New workbook
+    </ButtonPrimaryLight>
   );
 };

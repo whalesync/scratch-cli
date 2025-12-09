@@ -29,7 +29,6 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
     SWR_KEYS.workbook.list(sortBy, sortOrder),
     () => workbookApi.list(connectorAccountId, sortBy, sortOrder),
     {
-      refreshInterval: 10000,
       revalidateOnReconnect: true,
     },
   );
