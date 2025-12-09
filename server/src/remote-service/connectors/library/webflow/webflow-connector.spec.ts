@@ -180,7 +180,7 @@ describe('WebflowConnector', () => {
         id: 'item1',
         fields: {
           name: 'Test Item 1',
-          description: 'Test description 1',
+          description: '<p>Test description 1</p>',
           count: 42,
           isDraft: false,
         },
@@ -196,7 +196,7 @@ describe('WebflowConnector', () => {
         id: 'item2',
         fields: {
           name: 'Test Item 2',
-          description: 'Test description 2',
+          description: '<p>Test description 2</p>',
           count: 100,
           isDraft: true,
         },
@@ -264,7 +264,7 @@ describe('WebflowConnector', () => {
       expect((callback.mock.calls[1][0] as { records: ConnectorRecord[] }).records).toHaveLength(50);
     });
 
-    it('should convert rich text to markdown by default', async () => {
+    it('should convert rich text to markdown when requested', async () => {
       const mockItems = [
         {
           id: 'item1',
@@ -279,9 +279,15 @@ describe('WebflowConnector', () => {
         pagination: { total: 1, offset: 0, limit: 100 },
       });
 
+      const columnSettingsMapWithMarkdown = {
+        description: {
+          dataConverter: 'markdown',
+        },
+      };
+
       const callback = jest.fn().mockResolvedValue(undefined);
 
-      await connector.downloadTableRecords(mockTableSpec, mockColumnSettingsMap, callback);
+      await connector.downloadTableRecords(mockTableSpec, columnSettingsMapWithMarkdown, callback);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const record = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records[0];
@@ -289,7 +295,7 @@ describe('WebflowConnector', () => {
       expect(record.fields.description).toBe('# Heading\n\nParagraph with **bold** text');
     });
 
-    it('should keep rich text as HTML when dataConverter is html', async () => {
+    it('should keep rich text as HTML by default', async () => {
       const mockItems = [
         {
           id: 'item1',
@@ -304,15 +310,9 @@ describe('WebflowConnector', () => {
         pagination: { total: 1, offset: 0, limit: 100 },
       });
 
-      const columnSettingsMapWithHtml = {
-        description: {
-          dataConverter: 'html',
-        },
-      };
-
       const callback = jest.fn().mockResolvedValue(undefined);
 
-      await connector.downloadTableRecords(mockTableSpec, columnSettingsMapWithHtml, callback);
+      await connector.downloadTableRecords(mockTableSpec, mockColumnSettingsMap, callback);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const record = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records[0];

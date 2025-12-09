@@ -1,5 +1,6 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { workbookApi } from '@/lib/api/workbook';
 import { ColumnSpec, SnapshotColumnSettingsMap, SnapshotRecord, Workbook } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
@@ -60,6 +61,7 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { isDevToolsEnabled } = useDevTools();
 
   // Check if any record has suggestions for this column
   const recordsWithSuggestions = (records || []).filter((record) => {
@@ -347,19 +349,20 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
           </Menu.Item>
         )}
 
-        {hasDataConverterTypes && (
+        {hasDataConverterTypes && isDevToolsEnabled && (
           <>
             <Menu.Divider />
             <Menu.Sub>
               <Menu.Sub.Target>
-                <Menu.Sub.Item>Data format</Menu.Sub.Item>
+                <Menu.Sub.Item c="var(--mantine-color-devTool-4)">Data format</Menu.Sub.Item>
               </Menu.Sub.Target>
-              <Menu.Sub.Dropdown data-always-dark>
+              <Menu.Sub.Dropdown data-always-dark color="var(--mantine-color-devTool-9)">
                 {dataConverterOptions.map((option) => (
                   <Menu.Item
                     key={option.value}
                     leftSection={currentDataConverter === option.value ? <CheckIcon size={14} /> : undefined}
                     onClick={() => handleDataConverterChange(option.value)}
+                    c="var(--mantine-color-devTool-4)"
                   >
                     {option.label}
                   </Menu.Item>

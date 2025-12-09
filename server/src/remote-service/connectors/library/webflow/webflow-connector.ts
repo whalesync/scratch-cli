@@ -9,7 +9,7 @@ import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';
-import { WebflowSchemaParser } from './webflow-schema-parser';
+import { WEBFLOW_RICH_TEXT_TARGET, WebflowSchemaParser } from './webflow-schema-parser';
 import { WEBFLOW_METADATA_COLUMNS, WebflowItemMetadata } from './webflow-spec-types';
 
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
@@ -143,10 +143,14 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         if (fieldValue !== undefined) {
           if (column.webflowFieldType === Webflow.FieldType.RichText) {
             const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-            if (dataConverter === 'html') {
-              record.fields[fieldId] = fieldValue;
-            } else {
-              record.fields[fieldId] = this.turndownService.turndown(fieldValue as string);
+            switch (dataConverter) {
+              case WEBFLOW_RICH_TEXT_TARGET.MARKDOWN:
+                record.fields[fieldId] = this.turndownService.turndown(fieldValue as string);
+                break;
+              case WEBFLOW_RICH_TEXT_TARGET.HTML:
+              default:
+                record.fields[fieldId] = fieldValue;
+                break;
             }
           } else {
             record.fields[fieldId] = fieldValue;
@@ -242,10 +246,14 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         if (column.webflowFieldType === Webflow.FieldType.RichText) {
           const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
           let html: string = '';
-          if (dataConverter === 'html') {
-            html = wsValue as string;
-          } else {
-            html = MarkdownIt({}).render(wsValue as string);
+          switch (dataConverter) {
+            case WEBFLOW_RICH_TEXT_TARGET.MARKDOWN:
+              html = wsValue as string;
+              break;
+            case WEBFLOW_RICH_TEXT_TARGET.HTML:
+            default:
+              html = MarkdownIt({}).render(wsValue as string);
+              break;
           }
           webflowFields[column.slug] = await minifyHtml(html);
         } else {

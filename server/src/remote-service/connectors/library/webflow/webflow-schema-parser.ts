@@ -11,6 +11,12 @@ import {
   WEBFLOW_LAST_UPDATED_COLUMN_ID,
 } from './webflow-spec-types';
 
+export enum WEBFLOW_RICH_TEXT_TARGET {
+  // Default:
+  HTML = 'html',
+  MARKDOWN = 'markdown',
+}
+
 export class WebflowSchemaParser {
   parseTablePreview(
     site: Webflow.Site,
@@ -143,8 +149,11 @@ export class WebflowSchemaParser {
       case Webflow.FieldType.RichText:
         return {
           pgType: PostgresColumnType.TEXT,
-          metadata: { textFormat: 'html' },
-          dataConverterTypes: ['html'],
+          metadata: {
+            // BUG!! This is incorrect if we switch the data converter type to markdown.
+            textFormat: 'html',
+          },
+          dataConverterTypes: Object.values(WEBFLOW_RICH_TEXT_TARGET),
         };
 
       case Webflow.FieldType.Number: {

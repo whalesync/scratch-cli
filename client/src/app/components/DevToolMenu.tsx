@@ -2,7 +2,7 @@ import { Menu } from '@mantine/core';
 import { CpuIcon } from 'lucide-react';
 import { useDevTools } from '../../hooks/use-dev-tools';
 
-export function DevToolMenuItem({
+export const DevToolMenuItem = ({
   onClick,
   children,
   disabled = false,
@@ -10,7 +10,7 @@ export function DevToolMenuItem({
   onClick: () => void;
   children: React.ReactNode;
   disabled?: boolean;
-}): React.ReactNode {
+}): React.ReactNode => {
   const { isDevToolsEnabled } = useDevTools();
   if (!isDevToolsEnabled) {
     return null;
@@ -25,4 +25,26 @@ export function DevToolMenuItem({
       {children}
     </Menu.Item>
   );
-}
+};
+
+export const DevToolSubMenuItem = ({
+  children,
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}): React.ReactNode => {
+  const { isDevToolsEnabled } = useDevTools();
+  if (!isDevToolsEnabled) {
+    return null;
+  }
+  return (
+    <Menu.Sub.Item
+      leftSection={<CpuIcon size={16} color="var(--mantine-color-devTool-9)" />}
+      c="var(--mantine-color-devTool-9)"
+      disabled={disabled}
+    >
+      {children}
+    </Menu.Sub.Item>
+  );
+};
