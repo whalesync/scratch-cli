@@ -1,7 +1,7 @@
 'use client';
 
 import { SWR_KEYS } from '@/lib/api/keys';
-import { styleGuideApi } from '@/lib/api/style-guide';
+import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import {
   DEFAULT_CONTENT_TYPE,
@@ -115,7 +115,7 @@ export function PromptAssetDetailModal({ opened, close, initialValues }: PromptA
 
     try {
       console.log('Downloading asset from URL:', url);
-      const externalContent = await styleGuideApi.downloadResource(url);
+      const externalContent = await promptAssetApi.downloadResource(url);
       form.setFieldValue('contentType', externalContent.contentType);
       form.setFieldValue('content', externalContent.content);
       setContentUpdatedMessage(`Asset content downloaded successfully`);
@@ -145,7 +145,7 @@ export function PromptAssetDetailModal({ opened, close, initialValues }: PromptA
         newData.sourceUrl = cleanedSourceUrl;
         newData.contentType = values.contentType;
         newData.tags = [];
-        updatedStyleGuide = await styleGuideApi.create(newData);
+        updatedStyleGuide = await promptAssetApi.create(newData);
       } else {
         const updateData: UpdateStyleGuideDto = {
           body: values.content,
@@ -154,7 +154,7 @@ export function PromptAssetDetailModal({ opened, close, initialValues }: PromptA
           contentType: values.contentType,
           tags: [],
         };
-        updatedStyleGuide = await styleGuideApi.update(form.getValues().id, updateData);
+        updatedStyleGuide = await promptAssetApi.update(form.getValues().id, updateData);
       }
       await mutate(SWR_KEYS.styleGuides.detail(updatedStyleGuide.id));
       await mutate(SWR_KEYS.styleGuides.list());

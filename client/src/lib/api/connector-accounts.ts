@@ -6,114 +6,93 @@ import {
 } from '@/types/server-entities/connector-accounts';
 import { TableGroup, TableList } from '../../types/server-entities/table-list';
 import { API_CONFIG } from './config';
-import { checkForApiError } from './error';
+import { handleAxiosError } from './error';
 
 // TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const connectorAccountsApi = {
   list: async (): Promise<ConnectorAccount[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch connections');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<ConnectorAccount[]>('/connector-accounts');
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch connections');
+    }
   },
 
   // GET a single connection
   detail: async (id: string): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/${id}`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch connection');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<ConnectorAccount>(`/connector-accounts/${id}`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch connection');
+    }
   },
 
   // POST a new connection
   create: async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ...dto }),
-    });
-    await checkForApiError(res, 'Failed to create connection');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<ConnectorAccount>('/connector-accounts', dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create connection');
+    }
   },
 
   // PATCH an existing connection
   update: async (id: string, dto: UpdateConnectorAccountDto): Promise<ConnectorAccount> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/${id}`, {
-      method: 'PATCH',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ...dto }),
-    });
-    await checkForApiError(res, 'Failed to update connection');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.patch<ConnectorAccount>(`/connector-accounts/${id}`, dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update connection');
+    }
   },
 
   // DELETE a connection
   delete: async (id: string): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/${id}`, {
-      method: 'DELETE',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    if (res.status !== 204) {
-      await checkForApiError(res, 'Failed to delete connection');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/connector-accounts/${id}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete connection');
     }
   },
 
   // GET all tables from all user connections
   listAllTables: async (): Promise<TableGroup[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/all-tables`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to list all tables');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<TableGroup[]>('/connector-accounts/all-tables');
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list all tables');
+    }
   },
 
   // POST to list tables for a connection or service
   listTables: async (service: string, connectorAccountId: string | null): Promise<TableList> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/tables`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ service, connectorAccountId }),
-    });
-    await checkForApiError(res, 'Failed to list tables');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<TableList>('/connector-accounts/tables', { service, connectorAccountId });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list tables');
+    }
   },
 
   // POST to test a connection
   test: async (id: string): Promise<TestConnectionResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/connector-accounts/${id}/test`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to test connection');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<TestConnectionResponse>(`/connector-accounts/${id}/test`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to test connection');
+    }
   },
 };

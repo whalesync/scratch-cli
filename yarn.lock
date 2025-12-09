@@ -4280,6 +4280,15 @@ axios@^1.10.0, axios@^1.11.0, axios@^1.8.2:
     form-data "^4.0.4"
     proxy-from-env "^1.1.0"
 
+axios@^1.13.2:
+  version "1.13.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.13.2.tgz#9ada120b7b5ab24509553ec3e40123521117f687"
+  integrity sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.4"
+    proxy-from-env "^1.1.0"
+
 axobject-query@^4.1.0:
   version "4.1.0"
   resolved "https://registry.npmjs.org/axobject-query/-/axobject-query-4.1.0.tgz"

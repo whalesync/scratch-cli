@@ -35,6 +35,7 @@
     "@types/uuid": "^10.0.0",
     "ag-grid-community": "^34.2.0",
     "ag-grid-react": "^34.2.0",
+    "axios": "^1.13.2",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.18",
     "diff": "^8.0.2",

@@ -1,7 +1,7 @@
 import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { workbookApi } from '@/lib/api/workbook';
+import { recordApi } from '@/lib/api/record';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Menu, Textarea } from '@mantine/core';
 import { CheckIcon, CodeIcon, FunnelIcon, FunnelPlusIcon } from 'lucide-react';
@@ -67,7 +67,7 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
             leftSection={<FunnelPlusIcon size={16} />}
             rightSection={currentFilterType === 'only_edited' ? <CheckIcon size={16} /> : null}
             onClick={async () => {
-              await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_EDITED_SQL);
+              await recordApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_EDITED_SQL);
             }}
           >
             Unpublished changes
@@ -76,7 +76,7 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
             leftSection={<FunnelPlusIcon size={16} />}
             rightSection={currentFilterType === 'only_pending_suggestions' ? <CheckIcon size={16} /> : null}
             onClick={async () => {
-              await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_PENDING_SUGGESTIONS_SQL);
+              await recordApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_PENDING_SUGGESTIONS_SQL);
             }}
           >
             Pending suggestions
@@ -128,7 +128,7 @@ const CustomSqlFilterModal = ({
     setSqlFilterError(null); // Clear any previous errors
 
     try {
-      await workbookApi.setActiveRecordsFilter(table.workbookId, table.id, sqlFilterText || undefined);
+      await recordApi.setActiveRecordsFilter(table.workbookId, table.id, sqlFilterText || undefined);
       ScratchpadNotifications.success({
         title: 'Filter Updated',
         message: 'SQL filter has been applied',

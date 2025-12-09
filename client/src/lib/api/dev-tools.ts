@@ -2,61 +2,62 @@ import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
 import { ScratchPlanType } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
-import { checkForApiError } from './error';
+import { handleAxiosError } from './error';
 
 /**
  * API for developer tools
  */
 export const devToolsApi = {
   searchUsers: async (query: string): Promise<User[]> => {
-    const url = new URL(`${API_CONFIG.getApiUrl()}/dev-tools/users/search`);
-    url.searchParams.set('query', query);
-    const res = await fetch(url.toString(), {
-      method: 'GET',
-      headers: API_CONFIG.getAuthHeaders(),
-    });
-    await checkForApiError(res, 'Failed to search users with query: ' + query);
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<User[]>('/dev-tools/users/search', {
+        params: { query },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to search users with query: ' + query);
+    }
   },
   getUserDetails: async (userId: string): Promise<UserDetails> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/users/${userId}/details`, {
-      method: 'GET',
-      headers: API_CONFIG.getAuthHeaders(),
-    });
-    await checkForApiError(res, 'Failed to get user info for user: ' + userId);
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<UserDetails>(`/dev-tools/users/${userId}/details`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get user info for user: ' + userId);
+    }
   },
   updateUserSettings: async (userId: string, dto: UpdateSettingsDto): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/users/${userId}/settings`, {
-      method: 'PATCH',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(dto),
-    });
-    await checkForApiError(res, 'Failed to update user settings for user: ' + userId);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.patch(`/dev-tools/users/${userId}/settings`, dto);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update user settings for user: ' + userId);
+    }
   },
   updateUserSubscription: async (newPlan: ScratchPlanType): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/update`, {
-      method: 'POST',
-      headers: API_CONFIG.getAuthHeaders(),
-      body: JSON.stringify({ planType: newPlan }),
-    });
-    await checkForApiError(res, 'Failed to update user subscription');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post('/dev-tools/subscription/plan/update', { planType: newPlan });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update user subscription');
+    }
   },
   forceExpireSubscription: async (): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/expire`, {
-      method: 'POST',
-      headers: API_CONFIG.getAuthHeaders(),
-    });
-    await checkForApiError(res, 'Failed to force expire subscription');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post('/dev-tools/subscription/plan/expire');
+    } catch (error) {
+      handleAxiosError(error, 'Failed to force expire subscription');
+    }
   },
   forceCancelSubscription: async (): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/subscription/plan/cancel`, {
-      method: 'POST',
-      headers: API_CONFIG.getAuthHeaders(),
-    });
-    await checkForApiError(res, 'Failed to force cancel subscription');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post('/dev-tools/subscription/plan/cancel');
+    } catch (error) {
+      handleAxiosError(error, 'Failed to force cancel subscription');
+    }
   },
 };

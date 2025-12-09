@@ -1,7 +1,7 @@
 import { ColumnSpec } from '@/types/server-entities/workbook';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
-import { checkForApiError } from './error';
+import { handleAxiosError } from './error';
 
 export type CsvPreviewRow =
   | {
@@ -106,157 +106,154 @@ export interface TemplateCreateResponse {
 export const uploadsApi = {
   // CSV Preview
   previewCsv: async (file: File): Promise<CsvPreviewResponse> => {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/preview`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-      body: formData,
-    });
-
-    await checkForApiError(res, 'Failed to preview CSV');
-    return res.json();
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<CsvPreviewResponse>('/uploads/csv/preview', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to preview CSV');
+    }
   },
 
   // Markdown Preview
   previewMarkdown: async (file: File): Promise<MdPreviewResponse> => {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md/preview`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-      body: formData,
-    });
-
-    await checkForApiError(res, 'Failed to preview Markdown');
-    return res.json();
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<MdPreviewResponse>('/uploads/md/preview', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to preview Markdown');
+    }
   },
 
   // Upload CSV
   uploadCsv: async (request: CsvUploadRequest): Promise<CsvUploadResponse> => {
-    const formData = new FormData();
-    formData.append('file', request.file);
-    formData.append('uploadName', request.uploadName);
+    try {
+      const formData = new FormData();
+      formData.append('file', request.file);
+      formData.append('uploadName', request.uploadName);
 
-    request.columnNames.forEach((name, index) => {
-      formData.append(`columnNames[${index}]`, name);
-    });
+      request.columnNames.forEach((name, index) => {
+        formData.append(`columnNames[${index}]`, name);
+      });
 
-    request.columnTypes.forEach((type, index) => {
-      formData.append(`columnTypes[${index}]`, type);
-    });
+      request.columnTypes.forEach((type, index) => {
+        formData.append(`columnTypes[${index}]`, type);
+      });
 
-    request.columnIndices.forEach((colIndex, index) => {
-      formData.append(`columnIndices[${index}]`, colIndex.toString());
-    });
+      request.columnIndices.forEach((colIndex, index) => {
+        formData.append(`columnIndices[${index}]`, colIndex.toString());
+      });
 
-    formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
+      formData.append('firstRowIsHeader', request.firstRowIsHeader.toString());
 
-    if (request.advancedSettings) {
-      formData.append('advancedSettings', JSON.stringify(request.advancedSettings));
+      if (request.advancedSettings) {
+        formData.append('advancedSettings', JSON.stringify(request.advancedSettings));
+      }
+
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<CsvUploadResponse>('/uploads/csv', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to upload CSV');
     }
-
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-      body: formData,
-    });
-
-    await checkForApiError(res, 'Failed to upload CSV');
-    return res.json();
   },
 
   // Upload Markdown
   uploadMarkdown: async (file: File): Promise<MdUploadResponse> => {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-      body: formData,
-    });
-
-    await checkForApiError(res, 'Failed to upload Markdown');
-    return res.json();
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<MdUploadResponse>('/uploads/md', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to upload Markdown');
+    }
   },
 
   // List all uploads
   listUploads: async (): Promise<ListUploadsResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-
-    await checkForApiError(res, 'Failed to list uploads');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<ListUploadsResponse>('/uploads');
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list uploads');
+    }
   },
 
   // Get CSV data
   getCsvData: async (uploadId: string, limit = 100, offset = 0): Promise<CsvDataResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/data?limit=${limit}&offset=${offset}`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-
-    await checkForApiError(res, 'Failed to get CSV data');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<CsvDataResponse>(`/uploads/csv/${uploadId}/data`, {
+        params: { limit, offset },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get CSV data');
+    }
   },
 
   getCsvColumns: async (uploadId: string): Promise<ColumnSpec[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/columns`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to get CSV columns');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<ColumnSpec[]>(`/uploads/csv/${uploadId}/columns`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get CSV columns');
+    }
   },
 
   // Get Markdown data
   getMdData: async (uploadId: string): Promise<MdDataResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/md/${uploadId}/data`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-
-    await checkForApiError(res, 'Failed to get Markdown data');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<MdDataResponse>(`/uploads/md/${uploadId}/data`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get Markdown data');
+    }
   },
 
   // Delete upload
   deleteUpload: async (uploadId: string): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/${uploadId}`, {
-      method: 'DELETE',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-
-    await checkForApiError(res, 'Failed to delete upload');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/uploads/${uploadId}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete upload');
+    }
   },
 
   // Download CSV upload - triggers download without opening a new window
+  // NOTE: This uses a public endpoint that doesn't require authentication.
+  // Security relies on upload IDs being unguessable.
   downloadCsv: async (uploadId: string, uploadName: string): Promise<void> => {
-    // Use public endpoint that doesn't require authentication
-    // Security relies on upload IDs being unguessable
     const url = `${API_CONFIG.getApiUrl()}/uploads/public/csv/${uploadId}/download`;
 
     // Create a hidden anchor element and click it to trigger download
@@ -275,30 +272,25 @@ export const uploadsApi = {
     name: string,
     titleColumnRemoteId?: string[],
   ): Promise<{ workbookId: WorkbookId; tableId: SnapshotTableId }> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/uploads/csv/${uploadId}/create-scratchpaper`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, titleColumnRemoteId }),
-    });
-
-    await checkForApiError(res, 'Failed to create workbook from CSV');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ workbookId: WorkbookId; tableId: SnapshotTableId }>(
+        `/uploads/csv/${uploadId}/create-scratchpaper`,
+        { name, titleColumnRemoteId },
+      );
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create workbook from CSV');
+    }
   },
 
   createTemplate: async (request: TemplateCreateRequest): Promise<TemplateCreateResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/workbook/create-template`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-
-    await checkForApiError(res, 'Failed to create template');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<TemplateCreateResponse>('/workbook/create-template', request);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create template');
+    }
   },
 };

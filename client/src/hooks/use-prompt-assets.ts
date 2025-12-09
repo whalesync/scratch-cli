@@ -1,6 +1,6 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { styleGuideApi } from '@/lib/api/style-guide';
+import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { StyleGuideId } from '@spinner/shared-types';
 import { useMemo } from 'react';
@@ -9,7 +9,7 @@ import useSWR from 'swr';
 export function usePromptAssets() {
   const { data, error, isLoading, mutate } = useSWR<StyleGuide[]>(
     SWR_KEYS.styleGuides.list(),
-    () => styleGuideApi.getAll(),
+    () => promptAssetApi.getAll(),
     {},
   );
 
@@ -23,7 +23,7 @@ export function usePromptAssets() {
 
   const deleteAsset = async (id: StyleGuideId) => {
     try {
-      await styleGuideApi.delete(id);
+      await promptAssetApi.delete(id);
       await mutate();
     } catch (error) {
       console.log('Error deleting asset:', error);
@@ -42,7 +42,7 @@ export function usePromptAssets() {
 export function usePromptAsset(id: StyleGuideId) {
   const { data, error, isLoading, mutate } = useSWR<StyleGuide>(
     SWR_KEYS.styleGuides.detail(id),
-    () => styleGuideApi.getById(id),
+    () => promptAssetApi.getById(id),
     {},
   );
 

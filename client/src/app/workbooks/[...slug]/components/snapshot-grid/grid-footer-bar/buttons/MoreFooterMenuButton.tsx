@@ -1,4 +1,5 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
+import { recordApi } from '@/lib/api/record';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Loader, Menu } from '@mantine/core';
 import { EllipsisVerticalIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
@@ -7,7 +8,6 @@ import { mutate } from 'swr';
 import { useActiveWorkbook } from '../../../../../../../hooks/use-active-workbook';
 import { useExportAsCsv } from '../../../../../../../hooks/use-export-as-csv';
 import { SWR_KEYS } from '../../../../../../../lib/api/keys';
-import { workbookApi } from '../../../../../../../lib/api/workbook';
 import { ScratchpadNotifications } from '../../../../../../components/ScratchpadNotifications';
 
 export const MoreFooterMenuButton = ({ table }: { table: SnapshotTable }) => {
@@ -45,7 +45,7 @@ export const MoreFooterMenuButton = ({ table }: { table: SnapshotTable }) => {
 
     try {
       setUploadingSuggestions(true);
-      const result = await workbookApi.importSuggestions(workbook.id, table.id, file);
+      const result = await recordApi.importSuggestions(workbook.id, table.id, file);
       await mutate(SWR_KEYS.operationCounts.get(workbook.id));
       console.debug('handleImportSuggestions: success', result);
       ScratchpadNotifications.success({

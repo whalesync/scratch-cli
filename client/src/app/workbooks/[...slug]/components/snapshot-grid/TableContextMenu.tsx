@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { workbookApi } from '@/lib/api/workbook';
+import { recordApi } from '@/lib/api/record';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
@@ -243,7 +243,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" NOT IN (${recordIdsList})`;
 
-      await workbookApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
+      await recordApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -372,7 +372,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
       const sqlWhereClause = `"wsId" IN (${recordIdsList})`;
 
-      await workbookApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
+      await recordApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
       ScratchpadNotifications.success({
         title: 'Filter Updated',
@@ -406,7 +406,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
       onClose(); // Close menu immediately
 
       // Delete records via API call
-      await workbookApi.bulkUpdateRecords(workbookId, tableId, {
+      await recordApi.bulkUpdateRecords(workbookId, tableId, {
         creates: [],
         updates: [],
         deletes: selectedRows.map((record) => ({

@@ -1,5 +1,6 @@
 import { OAuthInitiateOptionsDto } from '@/types/server-entities/oauth';
 import { API_CONFIG } from './config';
+import { handleAxiosError } from './error';
 
 export interface OAuthInitiateResponse {
   authUrl: string;
@@ -20,57 +21,38 @@ export const oAuthApi = {
    * Initiate OAuth flow for a service
    */
   initiate: async (service: string, options?: OAuthInitiateOptionsDto): Promise<OAuthInitiateResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/${service}/initiate`, {
-      method: 'POST',
-      headers: { ...API_CONFIG.getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(options),
-    });
-
-    if (!res.ok) {
-      throw new Error(res.statusText ?? `Failed to initiate OAuth for ${service}`);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<OAuthInitiateResponse>(`/oauth/${service}/initiate`, options);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, `Failed to initiate OAuth for ${service}`);
     }
-
-    return res.json();
   },
 
   /**
    * Handle OAuth callback and exchange code for tokens
    */
   callback: async (service: string, callbackData: OAuthCallbackRequest): Promise<OAuthCallbackResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/${service}/callback`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(callbackData),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || res.statusText || `Failed to handle OAuth callback for ${service}`);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<OAuthCallbackResponse>(`/oauth/${service}/callback`, callbackData);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, `Failed to handle OAuth callback for ${service}`);
     }
-
-    return res.json();
   },
 
   /**
    * Refresh OAuth tokens for a connector account
    */
   refresh: async (connectorAccountId: string): Promise<{ success: boolean }> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/oauth/refresh`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ connectorAccountId }),
-    });
-
-    if (!res.ok) {
-      throw new Error(res.statusText ?? 'Failed to refresh OAuth tokens');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ success: boolean }>('/oauth/refresh', { connectorAccountId });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to refresh OAuth tokens');
     }
-
-    return res.json();
   },
 };

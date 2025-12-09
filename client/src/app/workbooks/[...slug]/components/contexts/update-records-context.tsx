@@ -11,7 +11,7 @@ import _ from 'lodash';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { SWR_KEYS } from '../../../../../lib/api/keys';
-import { workbookApi } from '../../../../../lib/api/workbook';
+import { recordApi } from '../../../../../lib/api/record';
 
 // This context is used to buffer updates to records and flush them in batches.
 // As `addPendingChange(...)` is called, the edits edits are accumulated in memory and immediately applied to the cache.
@@ -363,7 +363,7 @@ async function bulkUpdateRecordsForTable(
     );
 
     // Make the actual API call
-    await workbookApi.bulkUpdateRecords(workbookId, tableId, dto);
+    await recordApi.bulkUpdateRecords(workbookId, tableId, dto);
   } catch (e) {
     // Re-throw the error so the calling component can handle it.
     throw e;

@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../config';
-import { checkForApiError } from '../error';
+import { handleAxiosError } from '../error';
 
 export interface WixPublishDraftPostsDto {
   snapshotTableId: string;
@@ -22,15 +22,12 @@ export const customWixActionsApi = {
    * Publish draft posts in Wix Blog
    */
   publishDraftPosts: async (dto: WixPublishDraftPostsDto): Promise<PublishDraftPostsResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/custom-actions/wix/publish-draft-posts`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(dto),
-    });
-    await checkForApiError(res, 'Failed to publish draft posts');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<PublishDraftPostsResponse>('/custom-actions/wix/publish-draft-posts', dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to publish draft posts');
+    }
   },
 };

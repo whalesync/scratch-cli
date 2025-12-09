@@ -1,62 +1,53 @@
 import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { AgentCredential } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
-import { checkForApiError, ScratchpadApiError } from './error';
+import { handleAxiosError } from './error';
 
 export const agentCredentialsApi = {
   list: async (includeUsage: boolean = false): Promise<AgentCredential[]> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials${includeUsage ? '?includeUsage=true' : ''}`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch agent credentials');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<AgentCredential[]>('/user/credentials', {
+        params: includeUsage ? { includeUsage: 'true' } : {},
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch agent credentials');
+    }
   },
   create: async (data: CreateAgentCredentialDto): Promise<AgentCredential> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/new`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new ScratchpadApiError('Failed to create agent credential', res.status, res.statusText);
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<AgentCredential>('/user/credentials/new', data);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create agent credential');
+    }
   },
   update: async (id: string, data: UpdateAgentCredentialDto): Promise<AgentCredential> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    await checkForApiError(res, 'Failed to update agent credential');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<AgentCredential>(`/user/credentials/${id}`, data);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update agent credential');
+    }
   },
   delete: async (id: string): Promise<void> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}`, {
-      method: 'DELETE',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to delete agent credential');
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/user/credentials/${id}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete agent credential');
+    }
   },
   setDefaultKey: async (id: string): Promise<AgentCredential> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/user/credentials/${id}/set-default`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-      },
-    });
-    await checkForApiError(res, 'Failed to set default agent credential');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<AgentCredential>(`/user/credentials/${id}/set-default`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to set default agent credential');
+    }
   },
 };

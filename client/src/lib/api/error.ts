@@ -23,6 +23,7 @@ export class ScratchpadApiError extends Error {
  * @param fallbackMessage Error message to use if a network error occurs
  * @returns The Response object if fetch succeeds
  * @throws ScratchpadApiError if network error occurs or if fetch fails
+ * @deprecated Use handleAxiosError instead
  */
 export async function handleFetchError(fetchPromise: Promise<Response>, fallbackMessage?: string): Promise<Response> {
   try {
@@ -83,3 +84,44 @@ export async function checkForApiError(res: Response, fallbackMessage: string): 
 export const isUnauthorizedError = (error: unknown): boolean => {
   return !!(error && error instanceof ScratchpadApiError && error.statusCode === 401);
 };
+
+/**
+ * Handles axios errors and converts them to ScratchpadApiError
+ * @param error The error from axios
+ * @param fallbackMessage Error message to use if error details can't be extracted
+ * @throws ScratchpadApiError
+ */
+export function handleAxiosError(error: unknown, fallbackMessage: string): never {
+  // Check if it's an internal axios error
+  if (error && typeof error === 'object' && 'isAxiosError' in error && error.isAxiosError) {
+    const axiosError = error as {
+      response?: {
+        status: number;
+        statusText: string;
+        data?: ScratchpadApiErrorResponse;
+      };
+      code?: string;
+      message?: string;
+    };
+
+    // Network error (connection refused, DNS failure, etc.)
+    if (!axiosError.response) {
+      throw new ScratchpadApiError(
+        fallbackMessage || 'Scratch servers are currently unavailable. Please try again later.',
+        0,
+        axiosError.code || 'Connection Error',
+      );
+    }
+
+    // HTTP error response
+    const errorResponse = axiosError.response.data as ScratchpadApiErrorResponse | undefined;
+    throw new ScratchpadApiError(
+      errorResponse?.message || errorResponse?.error || fallbackMessage,
+      axiosError.response.status,
+      axiosError.response.statusText,
+    );
+  }
+
+  // Re-throw as-is if not an axios error
+  throw error;
+}

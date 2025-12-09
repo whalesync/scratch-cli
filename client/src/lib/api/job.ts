@@ -1,24 +1,17 @@
 import { JobEntity } from '../../types/server-entities/job';
 import { API_CONFIG } from './config';
+import { handleAxiosError } from './error';
 
 export const jobApi = {
   getJobs: async (limit?: number, offset?: number): Promise<JobEntity[]> => {
-    const params = new URLSearchParams();
-    if (limit !== undefined) params.append('limit', limit.toString());
-    if (offset !== undefined) params.append('offset', offset.toString());
-
-    const response = await fetch(`${API_CONFIG.getApiUrl()}/jobs?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch jobs: ${response.statusText}`);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<JobEntity[]>('/jobs', {
+        params: { limit, offset },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch jobs');
     }
-
-    return response.json();
   },
 };

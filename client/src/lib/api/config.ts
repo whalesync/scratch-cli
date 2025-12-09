@@ -1,3 +1,5 @@
+import axios, { AxiosInstance } from 'axios';
+
 /**
  * Singleton providing base configuration values for all the API calls.
  */
@@ -8,6 +10,7 @@ class ApiConfig {
   private authToken: string | null;
   private agentJwt: string | null;
   private snapshotWebsocketToken: string | null;
+  private axiosInstance: AxiosInstance | null = null;
 
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
@@ -24,6 +27,8 @@ class ApiConfig {
 
   public setAuthToken(token: string) {
     this.authToken = token;
+    // Reset axios instance to pick up new token
+    this.axiosInstance = null;
   }
 
   public getAuthToken() {
@@ -34,6 +39,29 @@ class ApiConfig {
     return {
       Authorization: `Bearer ${this.authToken}`,
     };
+  }
+
+  /**
+   * Get or create an axios instance configured with base URL and auth headers
+   */
+  public getAxiosInstance(): AxiosInstance {
+    if (!this.axiosInstance) {
+      this.axiosInstance = axios.create({
+        baseURL: this.apiUrl,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Add request interceptor to include auth token
+      this.axiosInstance.interceptors.request.use((config) => {
+        if (this.authToken) {
+          config.headers.Authorization = `Bearer ${this.authToken}`;
+        }
+        return config;
+      });
+    }
+    return this.axiosInstance;
   }
 
   public getAiAgentApiUrl() {

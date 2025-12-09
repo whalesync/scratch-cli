@@ -13,6 +13,10 @@ import { ScratchpadApiError } from './error';
 
 /**
  * SDK for interacting with the Scratch Agent server (not the Scratch API) via rest endpoints
+ *
+ * NOTE: This API uses fetch instead of axios because it connects to a different service
+ * (AI Agent server) with different authentication (API_CONFIG.getAiAgentAuthHeaders()).
+ * It does not use the standard API authentication headers.
  */
 export const aiAgentApi = {
   listSessions: async (workbookId: WorkbookId): Promise<SessionListResponse> => {

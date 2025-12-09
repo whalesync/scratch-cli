@@ -1,7 +1,7 @@
 'use client';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { styleGuideApi } from '@/lib/api/style-guide';
+import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { DEFAULT_CONTENT_TYPE } from '@/types/server-entities/style-guide';
 import { MantineStyleProps } from '@mantine/core';
 import { DropzoneProps } from '@mantine/dropzone';
@@ -33,7 +33,7 @@ export const PromptAssetDropzone = ({
       newData.contentType = DEFAULT_CONTENT_TYPE;
       newData.tags = [];
 
-      await styleGuideApi.create(newData);
+      await promptAssetApi.create(newData);
 
       // Invalidate queries to refresh the list
       await mutate(SWR_KEYS.styleGuides.list());

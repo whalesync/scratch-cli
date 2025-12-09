@@ -1,38 +1,27 @@
 import { JobEntity } from '../../types/server-entities/job';
 import { API_CONFIG } from './config';
+import { handleAxiosError } from './error';
 
 export const progressApi = {
   getJobProgress: async <TPublicProgress extends object = object>(
     jobId: string,
   ): Promise<JobEntity<TPublicProgress>> => {
-    const response = await fetch(`${API_CONFIG.getApiUrl()}/jobs/${jobId}/progress`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch job progress: ${response.statusText}`);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<JobEntity<TPublicProgress>>(`/jobs/${jobId}/progress`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch job progress');
     }
-
-    return response.json();
   },
 
   cancelJob: async (jobId: string): Promise<{ success: boolean; message: string }> => {
-    const response = await fetch(`${API_CONFIG.getApiUrl()}/jobs/${jobId}/cancel`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to cancel job: ${response.statusText}`);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ success: boolean; message: string }>(`/jobs/${jobId}/cancel`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to cancel job');
     }
-
-    return response.json();
   },
 };

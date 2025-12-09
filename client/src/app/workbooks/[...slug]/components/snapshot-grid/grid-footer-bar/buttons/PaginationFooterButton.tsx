@@ -3,7 +3,7 @@ import { Text13Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { workbookApi } from '@/lib/api/workbook';
+import { recordApi } from '@/lib/api/record';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Menu } from '@mantine/core';
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon } from 'lucide-react';
@@ -26,7 +26,7 @@ export const PaginationFooterButton = ({ table }: { table: SnapshotTable }) => {
   const handleSetPageSize = useCallback(
     async (pageSize: number | null) => {
       try {
-        await workbookApi.setTableViewState(table.workbookId, table.id, { pageSize, currentSkip: null });
+        await recordApi.setTableViewState(table.workbookId, table.id, { pageSize, currentSkip: null });
 
         // Invalidate caches to refetch data with new page size
         globalMutate(SWR_KEYS.workbook.detail(table.workbookId));
@@ -53,7 +53,7 @@ export const PaginationFooterButton = ({ table }: { table: SnapshotTable }) => {
   const handleNavigate = useCallback(
     async (newSkip: number) => {
       try {
-        await workbookApi.setTableViewState(table.workbookId, table.id, { currentSkip: newSkip });
+        await recordApi.setTableViewState(table.workbookId, table.id, { currentSkip: newSkip });
 
         // Invalidate caches to refetch data with new skip
         globalMutate(SWR_KEYS.workbook.recordsKeyMatcher(table.workbookId, table.id), undefined, {

@@ -1,50 +1,37 @@
 import { AgentUsageEvent, UsageSummary } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
-import { checkForApiError } from './error';
+import { handleAxiosError } from './error';
 
 export const agentUsageEventsApi = {
   list: async (cursor?: string, take?: number, credentialId?: string, month?: string): Promise<AgentUsageEvent[]> => {
-    const url = new URL(`${API_CONFIG.getApiUrl()}/agent-token-usage/events`);
-    if (cursor) {
-      url.searchParams.append('cursor', cursor);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<AgentUsageEvent[]>('/agent-token-usage/events', {
+        params: {
+          cursor,
+          credentialId,
+          month,
+          take,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch token usage events');
     }
-    if (credentialId) {
-      url.searchParams.append('credentialId', credentialId);
-    }
-    if (month) {
-      url.searchParams.append('month', month);
-    }
-    if (take) {
-      url.searchParams.append('take', take.toString());
-    }
-
-    const res = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch token usage events');
-    return res.json();
   },
 
   summary: async (credentialId?: string, month?: string): Promise<UsageSummary> => {
-    const url = new URL(`${API_CONFIG.getApiUrl()}/agent-token-usage/stats/summary`);
-    if (credentialId) {
-      url.searchParams.append('credentialId', credentialId);
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<UsageSummary>('/agent-token-usage/stats/summary', {
+        params: {
+          credentialId,
+          month,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch token usage summary');
     }
-    if (month) {
-      url.searchParams.append('month', month);
-    }
-    const res = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch token usage summary');
-    return res.json();
   },
 };

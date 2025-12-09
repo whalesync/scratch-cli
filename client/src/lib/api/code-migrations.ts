@@ -1,5 +1,5 @@
 import { API_CONFIG } from './config';
-import { checkForApiError } from './error';
+import { handleAxiosError } from './error';
 
 export interface AvailableMigrationsResponse {
   migrations: string[];
@@ -19,27 +19,22 @@ export interface RunMigrationRequest {
 
 export const codeMigrationsApi = {
   getAvailableMigrations: async (): Promise<AvailableMigrationsResponse> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/code-migrations/available`, {
-      method: 'GET',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-    });
-    await checkForApiError(res, 'Failed to fetch available migrations');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<AvailableMigrationsResponse>('/code-migrations/available');
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch available migrations');
+    }
   },
 
   runMigration: async (request: RunMigrationRequest): Promise<MigrationResult> => {
-    const res = await fetch(`${API_CONFIG.getApiUrl()}/code-migrations/run`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-    await checkForApiError(res, 'Failed to run migration');
-    return res.json();
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<MigrationResult>('/code-migrations/run', request);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to run migration');
+    }
   },
 };

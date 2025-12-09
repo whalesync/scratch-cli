@@ -1,6 +1,6 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { workbookApi } from '@/lib/api/workbook';
+import { recordApi } from '@/lib/api/record';
 import { trackAcceptChanges, trackRejectChanges } from '@/lib/posthog';
 
 import {
@@ -70,7 +70,7 @@ export const useSnapshotTableRecords = (args: {
     tableId ? swrKey : null,
     () =>
       workbookId && tableId
-        ? workbookApi.listRecords(workbookId, tableId, skip, take, skip === undefined) // Use stored skip when no skip provided
+        ? recordApi.listRecords(workbookId, tableId, skip, take, skip === undefined) // Use stored skip when no skip provided
         : undefined,
     {
       revalidateOnFocus: true,
@@ -97,7 +97,7 @@ export const useSnapshotTableRecords = (args: {
     async (items: { wsId: string; columnId: string }[]) => {
       if (!workbookId || !tableId) return;
       try {
-        await workbookApi.acceptCellValues(workbookId, tableId, items);
+        await recordApi.acceptCellValues(workbookId, tableId, items);
         trackAcceptChanges(items, workbook);
       } catch (e) {
         // Re-throw the error so the calling component can handle it.
@@ -115,7 +115,7 @@ export const useSnapshotTableRecords = (args: {
     async (items: { wsId: string; columnId: string }[]) => {
       if (!workbookId || !tableId) return;
       try {
-        await workbookApi.rejectCellValues(workbookId, tableId, items);
+        await recordApi.rejectCellValues(workbookId, tableId, items);
         trackRejectChanges(items, workbook);
       } catch (e) {
         // Re-throw the error so the calling component can handle it.
@@ -161,14 +161,14 @@ export const useSnapshotTableRecords = (args: {
 
   const acceptAllSuggestions = useCallback(async () => {
     if (!tableId || !workbookId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
-    const result = await workbookApi.acceptAllSuggestions(workbookId, tableId);
+    const result = await recordApi.acceptAllSuggestions(workbookId, tableId);
     await mutate(SWR_KEYS.operationCounts.get(workbookId));
     return result;
   }, [mutate, tableId, workbookId]);
 
   const rejectAllSuggestions = useCallback(async () => {
     if (!tableId || !workbookId) return { recordsRejected: 0, totalChangesRejected: 0 };
-    const result = await workbookApi.rejectAllSuggestions(workbookId, tableId);
+    const result = await recordApi.rejectAllSuggestions(workbookId, tableId);
     return result;
   }, [tableId, workbookId]);
 
@@ -189,7 +189,7 @@ export const useSnapshotTableRecords = (args: {
     });
 
     // Create the record on the server - this will trigger a workbook edited event
-    await workbookApi.bulkUpdateRecords(workbook.id, snapshotTable.id, {
+    await recordApi.bulkUpdateRecords(workbook.id, snapshotTable.id, {
       creates: [
         {
           op: 'create',

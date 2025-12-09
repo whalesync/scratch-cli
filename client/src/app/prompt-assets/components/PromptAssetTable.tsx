@@ -10,7 +10,7 @@ import {
 import { RelativeDate } from '@/app/components/RelativeDate';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
-import { styleGuideApi } from '@/lib/api/style-guide';
+import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
@@ -35,7 +35,7 @@ export const PromptAssetTable = ({
   const handleUpdateExternalResource = async (id: string) => {
     try {
       setIsExternalResourceUpdating(true);
-      await styleGuideApi.updateExternalResource(id);
+      await promptAssetApi.updateExternalResource(id);
       trackClickDownloadResource();
       await mutate();
       ScratchpadNotifications.success({
