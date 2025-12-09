@@ -236,7 +236,6 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     gridApi,
     recordDetailsVisible: !!activeCells?.recordId,
     tableSpec: table.tableSpec,
-    columnChangeTypes,
     onOpenOverlay: handleOpenOverlayFromId,
   });
 

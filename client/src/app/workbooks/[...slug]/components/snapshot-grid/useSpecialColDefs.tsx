@@ -1,4 +1,3 @@
-import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { IdValueWrapper } from '@/app/components/field-value-wrappers/value/IdValueWrapper';
 import { ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
@@ -13,17 +12,10 @@ interface UseIdColDefProps {
   gridApi?: GridApi<ProcessedSnapshotRecord> | null;
   recordDetailsVisible?: boolean;
   tableSpec: TableSpec;
-  columnChangeTypes?: Record<string, ExistingChangeTypes>;
   onOpenOverlay?: (recordId: string) => void;
 }
 
-export const useSpecialColDefs = ({
-  entityName,
-  gridApi,
-  columnChangeTypes,
-  onOpenOverlay,
-  recordDetailsVisible,
-}: UseIdColDefProps) => {
+export const useSpecialColDefs = ({ entityName, gridApi, onOpenOverlay, recordDetailsVisible }: UseIdColDefProps) => {
   const idColumn: ColDef = {
     field: ID_COLUMN_FIELD,
     colId: ID_COLUMN_FIELD,
@@ -39,7 +31,6 @@ export const useSpecialColDefs = ({
     headerComponent: IdHeaderComponent,
     headerComponentParams: {
       entityName,
-      columnChangeTypes,
     },
     valueGetter: (params) => {
       return params.data?.id?.wsId || '';
