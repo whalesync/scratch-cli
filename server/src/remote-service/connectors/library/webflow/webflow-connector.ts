@@ -124,7 +124,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       };
 
       for (const column of tableSpec.columns) {
-        const fieldId = column.id.remoteId[0];
+        const fieldId = column.id.wsId;
 
         // Handle predefined metadata columns
         if (WEBFLOW_METADATA_COLUMNS.includes(fieldId as keyof WebflowItemMetadata)) {

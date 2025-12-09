@@ -1,4 +1,4 @@
-import { Group, Text, Textarea, TextareaProps } from '@mantine/core';
+import { Group, Input, Text, Textarea, TextareaProps } from '@mantine/core';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 
 import mStyles from './EnhancedTextArea.module.css';
@@ -69,10 +69,39 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
       onCursorChange?.({ position: start });
     }, [textareaRef, onSelectionChange, onCursorChange]);
 
-    const label = props.label ? (
+    const {
+      label,
+      description,
+      error,
+      withAsterisk,
+      inputWrapperOrder,
+      className,
+      style,
+      flex,
+      w,
+      h,
+      m,
+      my,
+      mx,
+      mt,
+      mb,
+      ml,
+      mr,
+      p,
+      py,
+      px,
+      pt,
+      pb,
+      pl,
+      pr,
+      classNames,
+      ...inputProps
+    } = props;
+
+    const customLabel = label ? (
       <Group gap="xs" wrap="nowrap">
         <Text span fw="500">
-          {props.label}
+          {label}
         </Text>
         {currentSelection && currentSelection?.text.length > 0 ? (
           <Text fz="xs" c="dimmed">
@@ -87,20 +116,86 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
       </Group>
     ) : null;
 
+    const renderHighlights = (val: string | number | readonly string[] | undefined) => {
+      const text = String(val ?? '');
+      const regex = /<!-- POTENTIAL DATA LOSS: .*? -->/g;
+      const parts = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(text.substring(lastIndex, match.index));
+        }
+        parts.push(
+          <span key={match.index} className={mStyles.highlight}>
+            {match[0]}
+          </span>,
+        );
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+      }
+
+      if (text.endsWith('\n')) {
+        parts.push(<br key="last-br" />);
+      }
+
+      if (parts.length === 0) return text;
+
+      return parts;
+    };
+
     return (
-      <>
-        <Textarea
-          {...props}
-          label={label}
-          ref={textareaRef}
-          value={props.value}
-          onSelect={handleSelectionChange}
-          onMouseUp={handleSelectionChange}
-          onKeyUp={handleSelectionChange}
-          onClick={handleSelectionChange}
-          classNames={mStyles}
-        />
-      </>
+      <Input.Wrapper
+        label={customLabel}
+        description={description}
+        error={error}
+        withAsterisk={withAsterisk}
+        inputWrapperOrder={inputWrapperOrder}
+        className={className}
+        style={style}
+        flex={flex}
+        w={w}
+        h={h}
+        m={m}
+        my={my}
+        mx={mx}
+        mt={mt}
+        mb={mb}
+        ml={ml}
+        mr={mr}
+        p={p}
+        py={py}
+        px={px}
+        pt={pt}
+        pb={pb}
+        pl={pl}
+        pr={pr}
+      >
+        <div className={mStyles.container}>
+          <div className={mStyles.backdrop} aria-hidden="true">
+            {renderHighlights(props.value)}
+          </div>
+          <Textarea
+            {...inputProps}
+            label={null}
+            description={null}
+            error={null}
+            ref={textareaRef}
+            onSelect={handleSelectionChange}
+            onMouseUp={handleSelectionChange}
+            onKeyUp={handleSelectionChange}
+            onClick={handleSelectionChange}
+            classNames={{
+              ...(typeof classNames === 'object' ? classNames : {}),
+              input: `${mStyles.input} ${typeof classNames === 'object' ? classNames?.input : ''}`,
+            }}
+          />
+        </div>
+      </Input.Wrapper>
     );
   },
 );

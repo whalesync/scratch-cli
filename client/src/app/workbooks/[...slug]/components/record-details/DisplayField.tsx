@@ -103,6 +103,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     );
     return (
       <FieldRow
+        record={record}
+        columnDef={column}
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
@@ -160,6 +162,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
         onLabelClick={onFieldLabelClick}
         changeTypes={processedFieldValue.existingChangeTypes}
         recordChangeTypes={recordChangeTypes}
+        record={record}
+        columnDef={column}
       >
         {hasSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
@@ -207,6 +211,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
     return (
       <FieldRow
+        record={record}
+        columnDef={column}
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
@@ -239,6 +245,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
     return (
       <FieldRow
+        record={record}
+        columnDef={column}
         fieldName={column.name}
         showLabel={mode === 'multiple'}
         hasEditedValue={hasEditedValue}
@@ -255,7 +263,15 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text13Regular style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{currentValue}</Text13Regular>
+          <Text13Regular
+            style={{
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {currentValue}
+          </Text13Regular>
         ) : (
           <JsonFieldInput
             columnId={columnId}
@@ -275,6 +291,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     if (mode === 'multiple') {
       return (
         <FieldRow
+          record={record}
+          columnDef={column}
           fieldName={column.name}
           hasEditedValue={hasEditedValue}
           isReadOnly={column.readonly}
@@ -363,6 +381,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
   return (
     <FieldRow
+      record={record}
+      columnDef={column}
       fieldName={column.name}
       isReadOnly={column.readonly}
       showLabel={mode === 'multiple'}

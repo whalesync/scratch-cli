@@ -130,12 +130,10 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
 
       if (idColumn) {
         pinnedColumnsWidth += idColumn.getActualWidth();
-        console.debug('ID column width:', idColumn.getActualWidth());
       }
 
       if (titleColumn) {
         pinnedColumnsWidth += titleColumn.getActualWidth();
-        console.debug('Title column width:', titleColumn.getActualWidth());
       }
 
       // Calculate overlay width as 100% minus the pinned columns width, with extra pixels to show resize handle

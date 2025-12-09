@@ -79,10 +79,11 @@ describe('WebflowConnector', () => {
     const mockTableSpec: WebflowTableSpec = {
       id: MOCK_ENTITY_ID,
       name: 'Test Collection',
+      slug: 'test-collection',
       columns: [
         {
           id: {
-            wsId: 'name-field',
+            wsId: 'name',
             remoteId: ['name'],
           },
           name: 'Name',
@@ -92,7 +93,7 @@ describe('WebflowConnector', () => {
         },
         {
           id: {
-            wsId: 'description-field',
+            wsId: 'description',
             remoteId: ['description'],
           },
           name: 'Description',
@@ -102,7 +103,7 @@ describe('WebflowConnector', () => {
         },
         {
           id: {
-            wsId: 'count-field',
+            wsId: 'count',
             remoteId: ['count'],
           },
           name: 'Count',
@@ -304,7 +305,7 @@ describe('WebflowConnector', () => {
       });
 
       const columnSettingsMapWithHtml = {
-        'description-field': {
+        description: {
           dataConverter: 'html',
         },
       };

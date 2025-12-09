@@ -1,8 +1,11 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { ChangeDotsGroup } from '@/app/components/field-value-wrappers/ChangeDotsGroup/ChangeDotsGroup';
+import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
 import { ExistingChangeTypes, hasAnyChange } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { RECORD_DETILE_SIDEBAR_W } from '@/app/workbooks/[...slug]/components/record-details/record-detail-constants';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
+import { ColumnSpec } from '@/types/server-entities/workbook';
 import { Box, Group, Tooltip } from '@mantine/core';
 import { PenOffIcon } from 'lucide-react';
 import { FC } from 'react';
@@ -16,9 +19,21 @@ type Props = {
   onLabelClick?: () => void;
   changeTypes: ExistingChangeTypes;
   recordChangeTypes: ExistingChangeTypes;
+  record: ProcessedSnapshotRecord;
+  columnDef: ColumnSpec;
 };
 export const FieldRow: FC<Props> = (props) => {
-  const { fieldName, showLabel = true, isReadOnly, children, onLabelClick, changeTypes, recordChangeTypes } = props;
+  const {
+    fieldName,
+    showLabel = true,
+    isReadOnly,
+    children,
+    onLabelClick,
+    changeTypes,
+    recordChangeTypes,
+    record,
+    columnDef,
+  } = props;
   if (!showLabel) {
     return <Box py="sm">{children}</Box>;
   }
@@ -34,6 +49,7 @@ export const FieldRow: FC<Props> = (props) => {
         style={{ cursor: onLabelClick ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '8px' }}
       >
         {showDots && <ChangeDotsGroup changeTypes={changeTypes} />}
+        <FieldErrorIcon record={record} columnDef={columnDef} />
         <Text13Regular c="var(--fg-secondary)" style={{ flex: 1 }}>
           {fieldName}
         </Text13Regular>
@@ -45,7 +61,7 @@ export const FieldRow: FC<Props> = (props) => {
           </Tooltip>
         )}
       </Box>
-      <Box style={{ flex: 1 }} p="sm">
+      <Box style={{ flex: 1, minWidth: 0 }} p="sm">
         {children}
       </Box>
     </Group>

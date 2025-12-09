@@ -5,6 +5,7 @@ import { Box, Group } from '@mantine/core';
 import { FC } from 'react';
 import { Text13Regular } from '../../base/text';
 import { ChangeDotsGroup } from '../ChangeDotsGroup/ChangeDotsGroup';
+import { FieldErrorIcon } from '../FieldErrorIcon';
 import { SuggestionButtons } from '../SuggestionButtons';
 import styles from './FieldValueWrapper.module.css';
 
@@ -57,6 +58,7 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   return (
     <Group className={styles.fieldValueWrapper}>
       {showChangeIndicators && <ChangeDotsGroup changeTypes={processedFieldValue.existingChangeTypes} />}
+      <FieldErrorIcon record={record} columnDef={columnDef} />
       <Box className={styles.fieldValueContentWrapper}>{content}</Box>
     </Group>
   );

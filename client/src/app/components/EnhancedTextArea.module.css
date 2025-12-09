@@ -4,9 +4,45 @@
   line-height: 19px;
   letter-spacing: 0%;
   border-color: transparent;
+  padding: 8px 12px !important;
+  background-color: transparent !important;
 
   &::selection {
     background-color: #ffff00;
     color: black;
   }
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.backdrop {
+  font-family: inherit; /* Should match textarea font */
+  font-size: 13px;
+  font-weight: 425;
+  line-height: 19px;
+  letter-spacing: 0%;
+
+  position: absolute;
+  inset: 0;
+  padding: 8px 12px;
+  border: 1px solid transparent; /* To match typical input border offset */
+
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  background-color: transparent;
+  z-index: 0;
+  text-align: left; /* Ensure alignment */
+}
+
+.highlight {
+  background-color: rgba(255, 0, 0, 0.1); /* Light red background */
+  color: #d32f2f; /* Red text (visible because backdrop is transparent elsewhere) */
 }

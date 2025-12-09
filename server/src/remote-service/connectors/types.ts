@@ -114,7 +114,7 @@ export type ConnectorRecord = {
   fields: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 
-  /** Any errors or warning to associate with the record the user */
+  /** Any errors or warning to associate with the record the user. */
   errors?: RecordErrorsMetadata;
 };
 
@@ -184,5 +184,7 @@ export type ConnectorErrorDetails = {
 
 export type RecordErrorsMetadata = {
   // TODO: Add record-level here if needed.
+
+  /** Indexed by the WSID of the field */
   byField?: Record<string, string[]>;
 };
