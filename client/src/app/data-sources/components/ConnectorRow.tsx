@@ -1,7 +1,7 @@
 'use client';
 
 import { Text13Medium } from '@/app/components/base/text';
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { serviceName } from '@/service-naming-conventions';
 import { AuthType, ConnectorAccount, ConnectorHealthStatus, Service } from '@/types/server-entities/connector-accounts';

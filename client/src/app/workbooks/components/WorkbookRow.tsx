@@ -1,8 +1,8 @@
 import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Medium } from '@/app/components/base/text';
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
-import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
+import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { RelativeDate } from '@/app/components/RelativeDate';

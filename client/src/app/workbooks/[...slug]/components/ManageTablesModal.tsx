@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { workbookApi } from '@/lib/api/workbook';
 import { SnapshotTable } from '@/types/server-entities/workbook';

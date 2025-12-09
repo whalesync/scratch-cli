@@ -3,6 +3,8 @@
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
+import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
+import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import {
@@ -34,6 +36,7 @@ import {
   CheckIcon,
   CircleCheckBigIcon,
   Home,
+  MessageSquareIcon,
   MoonStar,
   PenLineIcon,
   Plus,
@@ -43,7 +46,6 @@ import {
 import Image from 'next/image';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Service } from '../../../types/server-entities/connector-accounts';
-import { AnimatedArrowsClockwise } from '../../components/AnimatedArrowsClockwise';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import {
@@ -79,13 +81,12 @@ import {
 } from '../../components/base/text';
 import { CircularProgress } from '../../components/CircularProgress';
 import { CloseButtonInline } from '../../components/CloseButtonInline';
-import { ConnectorIcon } from '../../components/ConnectorIcon';
 import { DebouncedTextArea } from '../../components/DebouncedTextArea';
 import { DevToolPopover } from '../../components/DevToolPopover';
 import { DotSpacer } from '../../components/DotSpacer';
+import { ConnectorIcon } from '../../components/Icons/ConnectorIcon';
 import { DecorativeBoxedIcon } from '../../components/Icons/DecorativeBoxedIcon';
 import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
-import { ErrorInfo, Info } from '../../components/InfoPanel';
 import { LoaderWithMessage } from '../../components/LoaderWithMessage';
 import { RelativeDate } from '../../components/RelativeDate';
 import { ToolIconButton } from '../../components/ToolIconButton';
@@ -480,9 +481,6 @@ export default function DevComponentGalleryPage() {
           >
             <CircularProgress fraction={0.75} />
           </GalleryItem>
-          <GalleryItem label="AnimatedArrowsClockwise">
-            <AnimatedArrowsClockwise size={32} />
-          </GalleryItem>
           <GalleryItem label="ConnectorIcon (40px, with border)">
             <Group gap="sm">
               {Object.values(Service).map((service) => (
@@ -504,47 +502,74 @@ export default function DevComponentGalleryPage() {
               ))}
             </Group>
           </GalleryItem>
+          <GalleryItem label="ModelProviderIcon (20px)">
+            <Group gap="sm">
+              {[
+                'openai/gpt-4o',
+                'google/gemini-2.5-flash',
+                'meta/llama-3.1-8b',
+                'ai21/j1-mini',
+                'aion/j1-mini',
+                'anthropic/claude-3-5-sonnet',
+                'xai/x-ai',
+                'open-router',
+                'scratch',
+              ].map((model) => (
+                <ModelProviderIcon key={model} model={model} size={24} withBorder={true} />
+              ))}
+            </Group>
+          </GalleryItem>
+          <GalleryItem label="ModelProviderIcon (20px, no border)">
+            <Group gap="sm">
+              {[
+                'openai/gpt-4o',
+                'google/gemini-2.5-flash',
+                'meta/llama-3.1-8b',
+                'ai21/j1-mini',
+                'aion/j1-mini',
+                'anthropic/claude-3-5-sonnet',
+                'xai/x-ai',
+                'open-router',
+                'scratch',
+              ].map((model) => (
+                <ModelProviderIcon key={model} model={model} size={24} />
+              ))}
+            </Group>
+          </GalleryItem>
           <GallerySection id="formatting" title="Formatting" />
           <GalleryItem label="RelativeDate (with tooltip)">
             <Text13Book c="dimmed">
               <RelativeDate date={'2025-10-05T00:25:10.892Z'} />
             </Text13Book>
           </GalleryItem>
-          <GallerySection id="info-panels" title="Info Panels" />
-          <GalleryItem label="Info.NotFoundIcon">
-            <Info>
-              <Info.NotFoundIcon />
-              <Info.Title>Not Found</Info.Title>
-              <Info.Description>The item you are looking for was not found.</Info.Description>
-            </Info>
+          <GallerySection id="info-panels" title="Info & Error Status Panels" />
+          <GalleryItem label="EmptyListInfoPanel">
+            <EmptyListInfoPanel
+              title="No items yet"
+              description="Get started by creating your first item"
+              actionButton={
+                <Info.AddEntityButton label="Create Item" onClick={() => console.debug('Create Item clicked')} />
+              }
+            />
           </GalleryItem>
-          <GalleryItem label="Info.EmptyStatus">
-            <Info>
-              <Info.FileIcon />
-              <Info.Title>No uploads yet</Info.Title>
-              <Info.Description>Drag and drop a CSV to get started</Info.Description>
-            </Info>
-          </GalleryItem>
-          <GalleryItem label="Info.ErrorIcon">
-            <Info>
-              <Info.ErrorIcon />
-              <Info.Title>Error Occurred</Info.Title>
-              <Info.Description>Something went wrong. Please try again.</Info.Description>
-            </Info>
-          </GalleryItem>
-          <GalleryItem label="Info.Loader">
-            <Info>
-              <Info.Loader />
-              <Info.Title>Loading</Info.Title>
-              <Info.Description>Please wait while we load your data...</Info.Description>
-            </Info>
-          </GalleryItem>
-          <GalleryItem label="ErrorInfo (complete)">
+          <GalleryItem label="Error Info Panel">
             <ErrorInfo
-              title="Failed to load data"
-              error={new Error('Network connection failed')}
+              title="Failed to upload CSV file"
+              error={new Error('A network error occurred while uploading the file. Please try again.')}
               retry={() => console.debug('Retry clicked')}
             />
+          </GalleryItem>
+          <GalleryItem label="Customized Info Panel">
+            <Info>
+              <Info.Icon Icon={MessageSquareIcon} />
+              <Info.Title>A custom title</Info.Title>
+              <Info.Description>Some information about the situation and notes about what to do next.</Info.Description>
+              <Info.Actions>
+                <Info.ViewDocsButton link="https://docs.scratch.md/getting-started/quick-start" />
+                <Info.AddEntityButton label="Create Item" onClick={() => console.debug('Create Item clicked')} />
+                <Info.ReloadPageButton />
+              </Info.Actions>
+            </Info>
           </GalleryItem>
           <GallerySection id="dev-tool-components" title="Dev Tool Components" />
           <GalleryItem label="DevToolButton">
@@ -593,20 +618,16 @@ export default function DevComponentGalleryPage() {
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Empty State Pattern</TextTitle3>
             <Text12Book c="dimmed" mb="sm">
-              Centered content with icon, title, description, and action
+              Centered content with icon, title, description, and action. Use the{' '}
+              <code>&gt;EmptyListInfoPanel&lt;</code> component for this.
             </Text12Book>
-            <Box p="xl" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '8px' }}>
-              <Stack align="center" gap="md">
-                <StyledLucideIcon Icon={Plus} size="xl" c="var(--fg-muted)" />
-                <Stack gap={4} align="center">
-                  <Text16Medium>No items yet</Text16Medium>
-                  <Text13Regular c="dimmed">Get started by creating your first item</Text13Regular>
-                </Stack>
-                <ButtonPrimarySolid leftSection={<StyledLucideIcon Icon={Plus} size="sm" />}>
-                  Create Item
-                </ButtonPrimarySolid>
-              </Stack>
-            </Box>
+            <EmptyListInfoPanel
+              title="No items yet"
+              description="Get started by creating your first item"
+              actionButton={
+                <Info.AddEntityButton label="Create Item" onClick={() => console.debug('Create Item clicked')} />
+              }
+            />
           </Box>
           <Box ml="md" mt="xl">
             <TextTitle3 mb="md">Card with Header and Footer</TextTitle3>

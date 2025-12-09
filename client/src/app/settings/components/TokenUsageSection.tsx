@@ -1,8 +1,8 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
+import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
-import { ModelProviderIcon } from '@/app/components/ModelProvidericon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';

@@ -51,7 +51,6 @@ const ProductCheckoutRedirect = (): JSX.Element => {
       <Info>
         <Info.ErrorIcon />
         <Info.Title>Unable to load Stripe billing portal.</Info.Title>
-        <Info.StatusPageDescription />
         <Info.Actions>
           <ButtonSecondaryOutline href={RouteUrls.homePageUrl} leftSection={<RotateCwIcon />} component="a">
             Return to Snapshots

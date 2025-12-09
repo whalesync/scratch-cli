@@ -1,9 +1,9 @@
 import { IconButtonGhost } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
+import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import ModelPicker from '@/app/components/ModelPicker';
-import { ModelProviderIcon } from '@/app/components/ModelProvidericon';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';

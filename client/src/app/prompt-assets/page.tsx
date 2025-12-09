@@ -46,7 +46,10 @@ export default function PromptAssetsPage() {
       />
       <MainContent.Body>
         <PromptAssetDropzone openRef={openFileInputRef}>
-          <PromptAssetTable openEditModal={resourceModal.open} />
+          <PromptAssetTable
+            openEditModal={resourceModal.open}
+            openNewAssetModal={() => resourceModal.open('new-text')}
+          />
         </PromptAssetDropzone>
         <PromptAssetDetailModal {...resourceModal} />
       </MainContent.Body>

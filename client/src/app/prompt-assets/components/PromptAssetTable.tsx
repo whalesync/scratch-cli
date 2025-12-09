@@ -1,6 +1,7 @@
 import { ActionIconThreeDots } from '@/app/components/base/action-icons';
 import { Badge } from '@/app/components/base/badge';
 import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
+import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import {
   GenericDeleteConfirmationModal,
@@ -13,19 +14,24 @@ import { styleGuideApi } from '@/lib/api/style-guide';
 import { trackClickDownloadResource } from '@/lib/posthog';
 import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
-import { Alert, Group, Menu, Paper, Table } from '@mantine/core';
+import { Group, Menu, Table } from '@mantine/core';
 import { StyleGuideId } from '@spinner/shared-types';
 import { capitalize } from 'lodash';
 import { DownloadIcon, Edit3Icon, FileTextIcon, LinkIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-export const PromptAssetTable = ({ openEditModal }: { openEditModal: (resource: StyleGuide) => void }) => {
+export const PromptAssetTable = ({
+  openEditModal,
+  openNewAssetModal,
+}: {
+  openEditModal: (resource: StyleGuide) => void;
+  openNewAssetModal: () => void;
+}) => {
   const { promptAssets, isLoading, error, mutate, deleteAsset } = usePromptAssets();
   const deleteModal = useDeleteConfirmationModal<StyleGuideId>();
 
   // TODO: Refactor.
   const [isExternalResourceUpdating, setIsExternalResourceUpdating] = useState(false);
-
   const handleUpdateExternalResource = async (id: string) => {
     try {
       setIsExternalResourceUpdating(true);
@@ -52,14 +58,9 @@ export const PromptAssetTable = ({ openEditModal }: { openEditModal: (resource: 
   if (isLoading) {
     return <LoaderWithMessage message="Loading..." />;
   }
+
   if (error) {
-    return (
-      <Paper p="md">
-        <Alert color="red" title="Error">
-          Failed to load Prompt assets
-        </Alert>
-      </Paper>
-    );
+    return <ErrorInfo title="Failed to load prompt assets" error={error} retry={() => mutate()} />;
   }
 
   return (
@@ -93,6 +94,17 @@ export const PromptAssetTable = ({ openEditModal }: { openEditModal: (resource: 
               isExternalResourceUpdating={isExternalResourceUpdating}
             />
           ))}
+          {sortedResources.length === 0 && (
+            <Table.Tr>
+              <Table.Td colSpan={5}>
+                <EmptyListInfoPanel
+                  title="No prompt assets found"
+                  description="Create a new prompt asset to get started"
+                  actionButton={<Info.AddEntityButton label="New blank asset" onClick={openNewAssetModal} />}
+                />
+              </Table.Td>
+            </Table.Tr>
+          )}
         </Table.Tbody>
       </Table>
     </>

@@ -7,8 +7,8 @@ import { Alert, Checkbox, Divider, ModalProps, NumberInput, PasswordInput, Stack
 import { useSetState } from '@mantine/hooks';
 import { AgentCredential } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
-import { ModalWrapper } from './ModalWrapper';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../../components/base/buttons';
+import { ModalWrapper } from '../../components/ModalWrapper';
 
 interface EditAgentCredentialsModalProps extends ModalProps {
   credentials: AgentCredential | null;

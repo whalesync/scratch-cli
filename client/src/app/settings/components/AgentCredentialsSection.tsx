@@ -3,7 +3,6 @@ import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text13Book, Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
-import { EditAgentCredentialsModal } from '@/app/components/EditAgentCredentialsModal';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import {
   GenericDeleteConfirmationModal,
@@ -11,6 +10,7 @@ import {
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
+import { EditAgentCredentialsModal } from '@/app/settings/components/EditAgentCredentialsModal';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useSubscription } from '@/hooks/use-subscription';
 import { Alert, Center, Group, Menu, Stack, Text } from '@mantine/core';

@@ -1,6 +1,6 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
-import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';

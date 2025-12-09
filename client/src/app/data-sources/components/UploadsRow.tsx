@@ -7,7 +7,7 @@ import { Group, Menu, Table } from '@mantine/core';
 import { Download, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
-import { ConnectorIcon } from '../../components/ConnectorIcon';
+import { ConnectorIcon } from '../../components/Icons/ConnectorIcon';
 import { RelativeDate } from '../../components/RelativeDate';
 import { ToolIconButton } from '../../components/ToolIconButton';
 

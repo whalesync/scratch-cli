@@ -1,26 +1,21 @@
-import {
-  ActionIcon,
-  ActionIconProps,
-  Anchor,
-  Box,
-  Button,
-  Center,
-  CenterProps,
-  Collapse,
-  Group,
-  GroupProps,
-  Loader,
-  Stack,
-  Text,
-  TextProps,
-} from '@mantine/core';
+import { Anchor, Box, Center, CenterProps, Collapse, Group, GroupProps, Stack, Text, TextProps } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { CircleAlert, FileText, RotateCw, Search, SquareArrowOutUpRight } from 'lucide-react';
-import Link from 'next/link';
+import {
+  CircleAlertIcon,
+  FileTextIcon,
+  GhostIcon,
+  LucideIcon,
+  PlusIcon,
+  RotateCw,
+  SquareArrowOutUpRight,
+} from 'lucide-react';
 import { JSX, PropsWithChildren, ReactNode } from 'react';
-import { ButtonPrimaryLight } from '../base/buttons';
-import { Text13Book, Text16Medium } from '../base/text';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
+import { Text13Book, Text13Medium } from '../base/text';
+import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 import styles from './Info.module.css';
+
+const INFO_PANEL_MAX_WIDTH = 400;
 
 /*
  A general information panel that can be used for not-found, empty, or error states.
@@ -32,65 +27,58 @@ import styles from './Info.module.css';
 export const Info = ({ children, ...props }: CenterProps): JSX.Element => {
   return (
     <Center {...props} m="xl">
-      <Stack align="center" maw="300px" gap="0px" className={styles.container}>
+      <Stack align="center" maw={INFO_PANEL_MAX_WIDTH} gap="0px">
         {children}
       </Stack>
     </Center>
   );
 };
 
-const Icon = (props: ActionIconProps): JSX.Element => {
-  return <ActionIcon {...props} variant="light" style={{ pointerEvents: 'none' }} mb="sm" />;
+const InfoIcon = ({ Icon }: { Icon: LucideIcon }): JSX.Element => {
+  return (
+    <Box mb="16px">
+      <DecorativeBoxedIcon Icon={Icon} size="sm" />
+    </Box>
+  );
 };
 
 const ErrorIcon = (): JSX.Element => {
   return (
-    <ActionIcon color="red" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
-      <CircleAlert />
-    </ActionIcon>
+    <Box mb="16px">
+      <DecorativeBoxedIcon Icon={CircleAlertIcon} size="sm" c="var(--mantine-color-red-8)" />
+    </Box>
   );
 };
 
 const NotFoundIcon = (): JSX.Element => {
   return (
-    <ActionIcon color="gray" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
-      <Search />
-    </ActionIcon>
+    <Box mb="16px">
+      <DecorativeBoxedIcon Icon={GhostIcon} size="sm" c="var(--fg-muted)" />
+    </Box>
   );
 };
 
 const FileIcon = (): JSX.Element => {
   return (
-    <ActionIcon color="gray" variant="light" style={{ pointerEvents: 'none' }} mb="sm">
-      <FileText />
-    </ActionIcon>
+    <Box mb="16px">
+      <DecorativeBoxedIcon Icon={FileTextIcon} size="sm" c="var(--fg-muted)" />
+    </Box>
   );
-};
-
-const LoaderWidget = (): JSX.Element => {
-  return <Loader size="lg" mb="sm" color="primary" />;
 };
 
 const Title = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
   return (
-    <Text16Medium mb="2px" {...props}>
+    <Text13Medium mb="2px" {...props}>
       {children}
-    </Text16Medium>
+    </Text13Medium>
   );
 };
 
 const Description = ({ children, ...props }: PropsWithChildren<TextProps>): JSX.Element => {
-  return <Text13Book {...props}>{children}</Text13Book>;
-};
-
-const StatusPageDescription = (): JSX.Element => {
   return (
-    <Description>
-      An error has occured. If the error persists, please visit our{' '}
-      <Link href="https://docs.whalesync.com/resources/support" target="_blank">
-        Support Page
-      </Link>
-    </Description>
+    <Text13Book ta="center" {...props}>
+      {children}
+    </Text13Book>
   );
 };
 
@@ -98,19 +86,34 @@ const StatusPageDescription = (): JSX.Element => {
   A button that links to the documentation. By default it goes to the quick-start guide.
   @param link - The link to go to.
 */
-const ReadDocsButton = ({ link }: { link?: string }): JSX.Element => {
-  const docsLink = link || 'https://docs.whalesync.com/start-here/quick-start';
+const ViewDocsButton = ({ link }: { link?: string }): JSX.Element => {
+  const docsLink = link || 'https://docs.scratch.md/';
   return (
-    <Button
+    <ButtonSecondaryOutline
       href={docsLink}
       leftSection={<SquareArrowOutUpRight />}
-      variant="outline"
       component="a"
-      size="sm"
+      size="xs"
       target="_blank"
     >
       Read docs
-    </Button>
+    </ButtonSecondaryOutline>
+  );
+};
+
+const ReloadPageButton = (): JSX.Element => {
+  return (
+    <ButtonPrimaryLight size="xs" leftSection={<RotateCw size={16} />} onClick={() => window.location.reload()}>
+      Reload
+    </ButtonPrimaryLight>
+  );
+};
+
+const AddEntityButton = ({ label, onClick }: { label: string; onClick: () => void }): JSX.Element => {
+  return (
+    <ButtonPrimaryLight leftSection={<PlusIcon size={16} />} onClick={onClick} size="xs">
+      {label}
+    </ButtonPrimaryLight>
   );
 };
 
@@ -139,16 +142,19 @@ const DetailsDisclosure = ({ children }: { children: ReactNode }): JSX.Element =
   );
 };
 
-Info.Icon = Icon;
+Info.Icon = InfoIcon;
 Info.NotFoundIcon = NotFoundIcon;
-Info.FileIcon = FileIcon;
 Info.ErrorIcon = ErrorIcon;
-Info.Loader = LoaderWidget;
+Info.FileIcon = FileIcon;
+
 Info.Title = Title;
 Info.Description = Description;
-Info.StatusPageDescription = StatusPageDescription;
 Info.Actions = Actions;
-Info.ReadDocsButton = ReadDocsButton;
+
+Info.ViewDocsButton = ViewDocsButton;
+Info.AddEntityButton = AddEntityButton;
+Info.ReloadPageButton = ReloadPageButton;
+
 Info.DetailsDisclosure = DetailsDisclosure;
 
 export const ErrorInfo = ({
@@ -161,20 +167,43 @@ export const ErrorInfo = ({
   retry?: () => void;
   action?: ReactNode;
   title?: ReactNode;
-}): ReactNode => {
+}) => {
   return (
     <Info>
       <Info.ErrorIcon />
       <Info.Title>{title}</Info.Title>
-      <Info.StatusPageDescription />
       {!!error && <Info.DetailsDisclosure>{`${error}`}</Info.DetailsDisclosure>}
       <Info.Actions>
         {retry && (
-          <ButtonPrimaryLight leftSection={<RotateCw />} onClick={retry}>
+          <ButtonPrimaryLight leftSection={<RotateCw size={16} />} onClick={retry} size="xs">
             Reload
           </ButtonPrimaryLight>
         )}
         {action}
+      </Info.Actions>
+    </Info>
+  );
+};
+
+export const EmptyListInfoPanel = ({
+  title,
+  description,
+  docsLink,
+  actionButton,
+}: {
+  title: string;
+  description: string;
+  docsLink?: string;
+  actionButton?: ReactNode;
+}) => {
+  return (
+    <Info>
+      <Info.NotFoundIcon />
+      <Info.Title>{title}</Info.Title>
+      <Info.Description>{description}</Info.Description>
+      <Info.Actions>
+        {docsLink && <ViewDocsButton link={docsLink} />}
+        {actionButton}
       </Info.Actions>
     </Info>
   );

@@ -2,7 +2,7 @@
 
 import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import {

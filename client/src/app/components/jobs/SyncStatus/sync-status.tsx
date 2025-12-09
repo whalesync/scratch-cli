@@ -5,7 +5,7 @@ import { getServiceName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Text } from '@mantine/core';
 import { ArrowRightIcon } from 'lucide-react';
-import { ConnectorIcon } from '../../ConnectorIcon';
+import { ConnectorIcon } from '../../Icons/ConnectorIcon';
 import { StyledLucideIcon } from '../../Icons/StyledLucideIcon';
 import { getStatusColor, getStatusText } from '../job-utils';
 import { TableStatus } from '../publish/PublishJobProgress';
@@ -53,7 +53,7 @@ export const SyncStatus: FC<Props> = (props) => {
       leftIcon={direction === 'right' ? <TableIndicator /> : <ConnectorIcon connector={connector} />}
       leftFlowLine={<SyncDirectedFlowLine direction={'right'} moving={isMoving} />}
       centerIcon={
-        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg} >
+        <ActionIcon size="lg" radius="xl" variant="filled" color={badgeColor.fg}>
           <StyledLucideIcon Icon={ArrowRightIcon} size="md" />
         </ActionIcon>
       }

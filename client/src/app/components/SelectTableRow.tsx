@@ -1,4 +1,4 @@
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Checkbox, Group, Text } from '@mantine/core';
 import { FC, ReactNode } from 'react';

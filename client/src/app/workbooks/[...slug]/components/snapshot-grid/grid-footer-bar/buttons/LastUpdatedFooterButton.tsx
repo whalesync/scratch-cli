@@ -1,5 +1,5 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
-import { DeletedConnectionIcon } from '@/app/components/DeletedConnectionIcon';
+import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { hasDeletedConnection, SnapshotTable } from '@/types/server-entities/workbook';

@@ -1,7 +1,7 @@
 'use client';
 
-import { ConnectorIcon } from '@/app/components/ConnectorIcon';
 import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
