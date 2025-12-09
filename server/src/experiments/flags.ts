@@ -17,6 +17,7 @@ export enum UserFlag {
   SAMPLE_USER_FLAG = 'sample_user_flag',
   CONNECTOR_LIST = 'CONNECTOR_LIST',
   ENABLE_TOKEN_LIMIT_WARNINGS = 'ENABLE_TOKEN_LIMIT_WARNINGS',
+  ENABLE_WEBFLOW_OAUTH = 'ENABLE_WEBFLOW_OAUTH',
 }
 
 /**
@@ -38,4 +39,5 @@ export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   // User-scoped feature flags
   [UserFlag.SAMPLE_USER_FLAG]: 'boolean',
   [UserFlag.ENABLE_TOKEN_LIMIT_WARNINGS]: 'boolean',
+  [UserFlag.ENABLE_WEBFLOW_OAUTH]: 'boolean',
 };

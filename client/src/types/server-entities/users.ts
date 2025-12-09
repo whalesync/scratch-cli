@@ -24,6 +24,7 @@ export interface UserExperimentFlags {
   DEV_TOOLBOX: boolean;
   CONNECTOR_LIST: string[];
   ENABLE_TOKEN_LIMIT_WARNINGS: boolean;
+  ENABLE_WEBFLOW_OAUTH: boolean;
 }
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {

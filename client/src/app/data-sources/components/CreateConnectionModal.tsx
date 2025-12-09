@@ -21,7 +21,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { Check } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
@@ -51,37 +51,63 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
 
   const { createConnectorAccount } = useConnectorAccounts();
 
-  const getDefaultAuthMethod = (service: Service): AuthMethod => {
-    // Services that support OAuth
-    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
+  const getDefaultAuthMethod = useCallback(
+    (service: Service): AuthMethod => {
+      // Services that support OAuth
+      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
 
-    // Services that use generic parameters
-    const genericParametersSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS, Service.CSV];
-    if (oauthSupportedServices.includes(service)) {
-      return 'oauth';
-    } else if (genericParametersSupportedServices.includes(service)) {
-      return 'user_provided_params';
-    } else {
-      return 'oauth'; // Default fallback
-    }
-  };
-
-  const getSupportedAuthMethods = (service: Service): AuthMethod[] => {
-    const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WEBFLOW, Service.WIX_BLOG];
-    const userProvidedParamsSupportedServices = [Service.NOTION, Service.AIRTABLE, Service.WORDPRESS, Service.WEBFLOW];
-    const methods: AuthMethod[] = [];
-    if (oauthSupportedServices.includes(service)) {
-      methods.push('oauth');
-      // Enable Private OAuth only for YouTube (generic-ready for future services)
-      if (service === Service.YOUTUBE) {
-        methods.push('oauth_custom');
+      if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
+        oauthSupportedServices.push(Service.WEBFLOW);
       }
-    }
-    if (userProvidedParamsSupportedServices.includes(service)) {
-      methods.push('user_provided_params');
-    }
-    return methods;
-  };
+
+      // Services that use generic parameters
+      const genericParametersSupportedServices = [
+        Service.NOTION,
+        Service.AIRTABLE,
+        Service.WORDPRESS,
+        Service.CSV,
+        Service.WEBFLOW,
+      ];
+      if (oauthSupportedServices.includes(service)) {
+        return 'oauth';
+      } else if (genericParametersSupportedServices.includes(service)) {
+        return 'user_provided_params';
+      } else {
+        return 'oauth'; // Default fallback
+      }
+    },
+    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH],
+  );
+
+  const getSupportedAuthMethods = useCallback(
+    (service: Service): AuthMethod[] => {
+      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
+
+      if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
+        oauthSupportedServices.push(Service.WEBFLOW);
+      }
+
+      const userProvidedParamsSupportedServices = [
+        Service.NOTION,
+        Service.AIRTABLE,
+        Service.WORDPRESS,
+        Service.WEBFLOW,
+      ];
+      const methods: AuthMethod[] = [];
+      if (oauthSupportedServices.includes(service)) {
+        methods.push('oauth');
+        // Enable Private OAuth only for YouTube (generic-ready for future services)
+        if (service === Service.YOUTUBE) {
+          methods.push('oauth_custom');
+        }
+      }
+      if (userProvidedParamsSupportedServices.includes(service)) {
+        methods.push('user_provided_params');
+      }
+      return methods;
+    },
+    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH],
+  );
 
   const handleSelectNewService = (service: Service) => {
     setNewService(service);

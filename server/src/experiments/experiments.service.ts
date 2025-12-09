@@ -38,6 +38,22 @@ const IN_MEMORY_FLAGS = {
     disabled: false,
     defaultVariant: 'on', // Or 'off' depending on your needs
   },
+  [UserFlag.ENABLE_TOKEN_LIMIT_WARNINGS]: {
+    variants: {
+      on: true,
+      off: false,
+    },
+    disabled: false,
+    defaultVariant: 'off',
+  },
+  [UserFlag.ENABLE_WEBFLOW_OAUTH]: {
+    variants: {
+      on: true,
+      off: false,
+    },
+    disabled: false,
+    defaultVariant: 'on',
+  },
 };
 
 @Injectable()
