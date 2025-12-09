@@ -86,6 +86,11 @@
 .menuDropdown {
   background-color: var(--bg-base);
   border: 0.5px solid var(--mantine-color-gray-5);
+
+  /* Ensure solid background in dark mode - Mantine's default may have transparency */
+  :global([data-mantine-color-scheme='dark']) & {
+    background-color: var(--bg-base);
+  }
 }
 
 .menuDivider {
