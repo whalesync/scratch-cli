@@ -10,7 +10,10 @@ class ApiConfig {
   private authToken: string | null;
   private agentJwt: string | null;
   private snapshotWebsocketToken: string | null;
-  private axiosInstance: AxiosInstance | null = null;
+  // Axios instance calls to the API server
+  private apiAxiosInstance: AxiosInstance | null = null;
+  // Axios instance calls to the Agent server
+  private agentAxiosInstance: AxiosInstance | null = null;
 
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
@@ -28,7 +31,7 @@ class ApiConfig {
   public setAuthToken(token: string) {
     this.authToken = token;
     // Reset axios instance to pick up new token
-    this.axiosInstance = null;
+    this.apiAxiosInstance = null;
   }
 
   public getAuthToken() {
@@ -45,8 +48,8 @@ class ApiConfig {
    * Get or create an axios instance configured with base URL and auth headers
    */
   public getAxiosInstance(): AxiosInstance {
-    if (!this.axiosInstance) {
-      this.axiosInstance = axios.create({
+    if (!this.apiAxiosInstance) {
+      this.apiAxiosInstance = axios.create({
         baseURL: this.apiUrl,
         headers: {
           'Content-Type': 'application/json',
@@ -54,14 +57,14 @@ class ApiConfig {
       });
 
       // Add request interceptor to include auth token
-      this.axiosInstance.interceptors.request.use((config) => {
+      this.apiAxiosInstance.interceptors.request.use((config) => {
         if (this.authToken) {
           config.headers.Authorization = `Bearer ${this.authToken}`;
         }
         return config;
       });
     }
-    return this.axiosInstance;
+    return this.apiAxiosInstance;
   }
 
   public getAiAgentApiUrl() {
@@ -70,6 +73,8 @@ class ApiConfig {
 
   public setAgentJwt(jwt: string) {
     this.agentJwt = jwt;
+    // Reset axios instance to pick up new token
+    this.agentAxiosInstance = null;
   }
 
   public getAgentJwt() {
@@ -80,6 +85,29 @@ class ApiConfig {
     return {
       Authorization: `Bearer ${this.agentJwt}`,
     };
+  }
+
+  /**
+   * Get or create an axios instance configured with AI agent base URL and auth headers
+   */
+  public getAgentAxiosInstance(): AxiosInstance {
+    if (!this.agentAxiosInstance) {
+      this.agentAxiosInstance = axios.create({
+        baseURL: this.aiAgentApiUrl,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Add request interceptor to include auth token
+      this.agentAxiosInstance.interceptors.request.use((config) => {
+        if (this.agentJwt) {
+          config.headers.Authorization = `Bearer ${this.agentJwt}`;
+        }
+        return config;
+      });
+    }
+    return this.agentAxiosInstance;
   }
 
   public getAiAgentWebSocketUrl() {

@@ -232,4 +232,26 @@ export const workbookApi = {
       handleAxiosError(error, 'Failed to clear hidden columns');
     }
   },
+
+  exportAsCSV: async (
+    workbook: Workbook,
+    tableId: SnapshotTableId,
+    tableName: string,
+    filteredOnly: boolean,
+  ): Promise<void> => {
+    // Use public endpoint that doesn't require authentication
+    // Security relies on snapshot IDs being unguessable
+
+    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbook.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
+    const filename = `${workbook.name || 'snapshot'}_${tableName}.csv`;
+
+    // Create a hidden anchor element and click it to trigger download
+    // Set the download attribute with the filename to avoid browser using page title
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+  },
 };

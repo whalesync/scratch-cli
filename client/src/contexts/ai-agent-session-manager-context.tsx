@@ -1,7 +1,7 @@
 'use client';
 
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { aiAgentApi } from '@/lib/api/ai-agent';
+import { agentApi } from '@/lib/api/agent';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { ChatMessage, ChatSession, ChatSessionSummary, CreateSessionResponse } from '@/types/server-entities/agent';
 import { WorkbookId } from '@spinner/shared-types';
@@ -51,7 +51,7 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
     error: loadSessionListError,
     isLoading: isLoadingSessions,
     mutate: refreshSessions,
-  } = useSWR(SWR_KEYS.agentSessions.list(workbookId), () => aiAgentApi.listSessions(workbookId), {
+  } = useSWR(SWR_KEYS.agentSessions.list(workbookId), () => agentApi.listSessions(workbookId), {
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   });
@@ -67,7 +67,7 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
     const reloadSession = async () => {
       if (activeSessionId) {
         // reload the session when sessions change
-        const fullSession = await aiAgentApi.getSession(activeSessionId);
+        const fullSession = await agentApi.getSession(activeSessionId);
         setActiveSession(fullSession);
       }
     };
@@ -78,12 +78,12 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
 
   const createSession = useCallback(
     async (workbookId: WorkbookId) => {
-      const { session: newSession, available_capabilities } = await aiAgentApi.createSession(workbookId);
+      const { session: newSession, available_capabilities } = await agentApi.createSession(workbookId);
       await refreshSessions();
 
       setActiveSessionId(newSession.id);
 
-      const fullSession = await aiAgentApi.getSession(newSession.id);
+      const fullSession = await agentApi.getSession(newSession.id);
       setActiveSession(fullSession);
 
       return {
@@ -96,13 +96,13 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
 
   const activateSession = useCallback(async (sessionId: string) => {
     setActiveSessionId(sessionId);
-    const session = await aiAgentApi.getSession(sessionId);
+    const session = await agentApi.getSession(sessionId);
     setActiveSession(session);
   }, []);
 
   const refreshActiveSession = useCallback(async () => {
     if (activeSessionId) {
-      const updatedSession = await aiAgentApi.getSession(activeSessionId);
+      const updatedSession = await agentApi.getSession(activeSessionId);
       setActiveSession(updatedSession);
       await refreshSessions();
     }
@@ -111,7 +111,7 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
-        await aiAgentApi.deleteSession(sessionId);
+        await agentApi.deleteSession(sessionId);
         await refreshSessions();
       } catch (error) {
         console.log('Error deleting session from server:', sessionId, error);
@@ -144,7 +144,7 @@ export const AIAgentSessionManagerProvider = ({ workbookId, children }: AIAgentS
           console.log('No active session - unable to cancel agent run');
           return;
         }
-        const response = await aiAgentApi.cancelAgentRun(activeSessionId, runId);
+        const response = await agentApi.cancelAgentRun(activeSessionId, runId);
         return response.message;
       } catch (error) {
         console.log('Error cancelling agent run:', error);

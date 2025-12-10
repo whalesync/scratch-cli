@@ -1,6 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
+import { workbookApi } from '@/lib/api/workbook';
 import { Workbook } from '@/types/server-entities/workbook';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { useSWRConfig } from 'swr';
@@ -19,19 +19,7 @@ export const useExportAsCsv = () => {
     try {
       setDownloading(tableId);
 
-      // Use public endpoint that doesn't require authentication
-      // Security relies on snapshot IDs being unguessable
-      const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbook.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
-      const filename = `${workbook.name || 'snapshot'}_${tableName}.csv`;
-
-      // Create a hidden anchor element and click it to trigger download
-      // This allows the browser to handle streaming natively
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
+      await workbookApi.exportAsCSV(workbook, tableId, tableName, filteredOnly);
 
       ScratchpadNotifications.success({
         message: 'CSV downloaded successfully.',
