@@ -3,7 +3,7 @@ import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-sn
 import { recordApi } from '@/lib/api/record';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { SnapshotTableId } from '@spinner/shared-types';
+import { SCRATCH_ID_COLUMN, SnapshotTableId } from '@spinner/shared-types';
 import { GridApi } from 'ag-grid-community';
 import { CheckIcon, FileText, Filter, FilterX, TrashIcon, Undo2, XIcon } from 'lucide-react';
 import React, { useState } from 'react';
@@ -241,7 +241,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
 
       // Create SQL WHERE clause to exclude selected records
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
-      const sqlWhereClause = `"wsId" NOT IN (${recordIdsList})`;
+      const sqlWhereClause = `"${SCRATCH_ID_COLUMN}" NOT IN (${recordIdsList})`;
 
       await recordApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
@@ -370,7 +370,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
 
       // Create SQL WHERE clause to include only selected records
       const recordIdsList = selectedRecordIds.map((id) => `'${id}'`).join(', ');
-      const sqlWhereClause = `"wsId" IN (${recordIdsList})`;
+      const sqlWhereClause = `"${SCRATCH_ID_COLUMN}" IN (${recordIdsList})`;
 
       await recordApi.setActiveRecordsFilter(workbookId, tableId, sqlWhereClause);
 
