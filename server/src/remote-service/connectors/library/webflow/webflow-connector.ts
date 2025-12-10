@@ -248,11 +248,11 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
           let html: string = '';
           switch (dataConverter) {
             case WEBFLOW_RICH_TEXT_TARGET.MARKDOWN:
-              html = wsValue as string;
+              html = MarkdownIt({}).render(wsValue as string);
               break;
             case WEBFLOW_RICH_TEXT_TARGET.HTML:
             default:
-              html = MarkdownIt({}).render(wsValue as string);
+              html = wsValue as string;
               break;
           }
           webflowFields[column.slug] = await minifyHtml(html);
