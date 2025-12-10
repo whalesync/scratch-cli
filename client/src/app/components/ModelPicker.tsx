@@ -56,9 +56,14 @@ interface ModelPickerProps {
   currentModelOption: PersistedModelOption;
   onChange: (modelOption: ModelOption) => void;
   placeholder?: string;
+  /**
+   * List of allowed model IDs. If empty, all models are allowed.
+   * When provided with values, only models matching these IDs will be shown.
+   */
+  allowedModels?: string[];
 }
 
-export default function ModelPicker({ currentModelOption, onChange }: ModelPickerProps) {
+export default function ModelPicker({ currentModelOption, onChange, allowedModels }: ModelPickerProps) {
   const { getUserSetting } = useScratchPadUser();
   const [allModels, setAllModels] = useState<ModelOption[]>([]);
   const [filteredModels, setFilteredModels] = useState<ModelOption[]>([]);
@@ -122,9 +127,19 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
     return getUserSetting(UserSetting.DEFAULT_LLM_MODEL);
   }, [getUserSetting]);
 
-  // Get unique providers from all models, with popular ones first
-  const popularProviders = [...new Set(allModels.filter((model) => model.isPopular).map((model) => model.provider))];
-  const allProviders = [...new Set(allModels.map((model) => model.provider))];
+  // Get models filtered by subscription restrictions only (not by search/provider/free filters)
+  const subscriptionFilteredModels = useMemo(() => {
+    if (!allowedModels || allowedModels.length === 0) {
+      return allModels; // Empty = all models allowed
+    }
+    return allModels.filter((model) => allowedModels.includes(model.id) || allowedModels.includes(model.canonicalSlug));
+  }, [allModels, allowedModels]);
+
+  // Get unique providers from subscription-filtered models, with popular ones first
+  const popularProviders = [
+    ...new Set(subscriptionFilteredModels.filter((model) => model.isPopular).map((model) => model.provider)),
+  ];
+  const allProviders = [...new Set(subscriptionFilteredModels.map((model) => model.provider))];
   const nonPopularProviders = allProviders.filter((provider) => !popularProviders.includes(provider)).sort();
   const providers = [...popularProviders.sort(), ...nonPopularProviders];
 
@@ -143,8 +158,9 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
   };
 
   // Filter models based on search query, provider, and free filter
+  // (subscription filtering is already applied in subscriptionFilteredModels)
   useEffect(() => {
-    let filtered = allModels;
+    let filtered = subscriptionFilteredModels;
 
     // Filter by provider
     if (selectedProvider) {
@@ -177,7 +193,7 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
     }
 
     setFilteredModels(filtered);
-  }, [searchQuery, selectedProvider, showFreeOnly, allModels]);
+  }, [searchQuery, selectedProvider, showFreeOnly, subscriptionFilteredModels]);
 
   const formatModelLabel = (model: ModelOption) => (
     <Group gap="xs" justify="space-between" w="100%">
@@ -304,7 +320,7 @@ export default function ModelPicker({ currentModelOption, onChange }: ModelPicke
 
           {filteredModels.length > 0 && (
             <Text size="xs" c="dimmed">
-              Showing {filteredModels.length} of {allModels.length} models
+              Showing {filteredModels.length} of {subscriptionFilteredModels.length} models
             </Text>
           )}
         </div>

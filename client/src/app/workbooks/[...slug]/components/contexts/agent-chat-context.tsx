@@ -1,6 +1,7 @@
 'use client';
 
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import {
   DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
@@ -45,10 +46,12 @@ interface AgentChatContextProviderProps {
 
 export const AgentChatContextProvider = ({ children, workbookId }: AgentChatContextProviderProps) => {
   const { getUserSetting } = useScratchPadUser();
+  const { isModelAllowed } = useSubscription();
   const [dataScope, setDataScope] = useState<DataScope>('table');
   const [activeRecordId, setActiveRecordId] = useState<string | undefined>(undefined);
   const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
   const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
+  const [modelValidated, setModelValidated] = useState<boolean>(false);
 
   const { promptAssets } = usePromptAssets();
 
@@ -61,6 +64,26 @@ export const AgentChatContextProvider = ({ children, workbookId }: AgentChatCont
     key: `agent-chat-context-model-v2-${workbookId}`,
     defaultValue: defaultModelValue,
   });
+
+  // Validate stored model against subscription restrictions
+  // If the stored model is no longer allowed (e.g., user downgraded), reset to default
+  useEffect(() => {
+    if (modelValidated) return;
+
+    if (!isModelAllowed(activeModel.value)) {
+      // The stored model is not allowed, reset to the user's default model
+      const userDefaultModel = getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string;
+
+      // Check if the user's default model is allowed, otherwise fall back to system default
+      const fallbackModel = isModelAllowed(userDefaultModel) ? userDefaultModel : DEFAULT_AGENT_MODEL_ID;
+
+      setActiveModel({
+        value: fallbackModel,
+        contextLength: DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
+      });
+    }
+    setModelValidated(true);
+  }, [activeModel.value, isModelAllowed, getUserSetting, setActiveModel, modelValidated]);
 
   const [activeResources, setActiveResources] = useLocalStorage<string[]>({
     key: `agent-chat-context-${workbookId}`,

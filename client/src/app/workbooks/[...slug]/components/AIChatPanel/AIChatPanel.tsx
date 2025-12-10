@@ -16,6 +16,7 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
+import { useSubscription } from '@/hooks/use-subscription';
 import {
   trackChangeAgentCapabilities,
   trackChangeAgentModel,
@@ -56,6 +57,7 @@ import { TokenUseButton } from './TokenUseButton';
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials(true);
+  const { allowedModels } = useSubscription();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
@@ -585,6 +587,7 @@ export default function AIChatPanel() {
             trackChangeAgentModel(activeModel.value, workbook);
             setShowModelSelector(false);
           }}
+          allowedModels={allowedModels}
         />
       </Modal>
       {/* Tools Modal */}

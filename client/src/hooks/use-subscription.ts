@@ -10,6 +10,10 @@ export interface UseSubscriptionReturn {
   canPublishWorkbook: boolean;
   canCreateDataSource: (service: Service) => boolean;
   canCreateCredentials: boolean;
+  /** Raw list of allowed model IDs. Empty array means all models are allowed. */
+  allowedModels: string[];
+  /** Check if a specific model ID is allowed for the current subscription. */
+  isModelAllowed: (modelId: string) => boolean;
 }
 
 const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
@@ -38,6 +42,8 @@ const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
   canPublishWorkbook: false,
   canCreateDataSource: () => false,
   canCreateCredentials: false,
+  allowedModels: ['none'],
+  isModelAllowed: () => false,
 };
 
 /**
@@ -103,6 +109,25 @@ export function useSubscription(): UseSubscriptionReturn {
     return user.subscription.features.allowPersonalKeys ?? false;
   }, [user]);
 
+  const allowedModels = useMemo(() => {
+    if (!user?.subscription) return ['none'];
+    return user.subscription.features.availableModels ?? [];
+  }, [user]);
+
+  const isModelAllowed = useCallback(
+    (modelId: string): boolean => {
+      if (!user?.subscription) return false;
+      if (user.subscription.status !== 'valid') return false;
+
+      const models = user.subscription.features.availableModels ?? [];
+      // Empty array means all models are allowed (for paid plans)
+      if (models.length === 0) return true;
+      // Otherwise, check if the model is in the allowed list
+      return models.includes(modelId);
+    },
+    [user],
+  );
+
   if (!user) {
     return UNKNOWN_SUBSCRIPTION_STATUS;
   }
@@ -117,5 +142,7 @@ export function useSubscription(): UseSubscriptionReturn {
     canPublishWorkbook,
     canCreateDataSource,
     canCreateCredentials,
+    allowedModels,
+    isModelAllowed,
   };
 }

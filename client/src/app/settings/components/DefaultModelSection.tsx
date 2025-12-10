@@ -5,6 +5,7 @@ import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import ModelPicker from '@/app/components/ModelPicker';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
@@ -15,6 +16,7 @@ import { useState } from 'react';
 
 export const DefaultModelSection = () => {
   const { updateUserSetting, getUserSetting } = useScratchPadUser();
+  const { allowedModels } = useSubscription();
   const [saving, setSaving] = useState(false);
   const [modelPickerOpen, { open: openModelPicker, close: closeModelPicker }] = useDisclosure();
 
@@ -65,6 +67,7 @@ export const DefaultModelSection = () => {
           onChange={(value) => {
             handleModelChange(value.value);
           }}
+          allowedModels={allowedModels}
         />
       </Modal>
     </ConfigSection>
