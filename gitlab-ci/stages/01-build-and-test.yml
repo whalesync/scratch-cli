@@ -240,7 +240,6 @@ dummy job:
         - terraform/**/*
         - .cursor/**/*
         - gitlab-ci/**/*
-        - mcp/**/*
         - .vscode/**/*
         - experimental/**/*
         - "*"

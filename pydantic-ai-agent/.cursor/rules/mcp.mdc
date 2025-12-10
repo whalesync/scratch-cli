@@ -1,7 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-
-At the moment the MCP part of the project is abandoned. We are focusing on building an internal pydantic agent instead of an MCP server.
