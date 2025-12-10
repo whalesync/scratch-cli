@@ -33,6 +33,7 @@ import { OnboardingService } from 'src/users/onboarding.service';
 import { SubscriptionService } from 'src/users/subscription.service';
 import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
+import { validateWhereClause } from 'src/utils/sql-validator';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
@@ -1705,6 +1706,15 @@ export class WorkbookService {
 
     // Validate SQL WHERE clause if provided
     if (dto.sqlWhereClause && dto.sqlWhereClause.trim() !== '') {
+      try {
+        // make sure the SQL WHERE clause is properly formatted and safe to use
+        validateWhereClause(dto.sqlWhereClause);
+      } catch (error) {
+        throw new BadRequestException(
+          `Invalid SQL WHERE clause. Please check your syntax and column names. ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+
       const errorMessage = await this.snapshotDbService.snapshotDb.validateSqlFilter(
         workbookId,
         snapshotTable.tableName,

@@ -2721,6 +2721,11 @@
   dependencies:
     undici-types "~6.21.0"
 
+"@types/pegjs@^0.10.0":
+  version "0.10.6"
+  resolved "https://registry.yarnpkg.com/@types/pegjs/-/pegjs-0.10.6.tgz#bc20fc4809fed4cddab8d0dbee0e568803741a82"
+  integrity sha512-eLYXDbZWXh2uxf+w8sXS8d6KSoXTswfps6fvCUuVAGN8eRpfe7h9eSRydxiSJvo9Bf+GzifsDOr9TMQlmJdmkw==
+
 "@types/pg-copy-streams@^1.2.5":
   version "1.2.5"
   resolved "https://registry.npmjs.org/@types/pg-copy-streams/-/pg-copy-streams-1.2.5.tgz"
@@ -4271,16 +4276,7 @@ axios-proxy-builder@^0.1.2:
   dependencies:
     tunnel "^0.0.6"
 
-axios@^1.10.0, axios@^1.11.0, axios@^1.8.2:
-  version "1.13.2"
-  resolved "https://registry.npmjs.org/axios/-/axios-1.13.2.tgz"
-  integrity sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==
-  dependencies:
-    follow-redirects "^1.15.6"
-    form-data "^4.0.4"
-    proxy-from-env "^1.1.0"
-
-axios@^1.13.2:
+axios@^1.10.0, axios@^1.11.0, axios@^1.13.2, axios@^1.8.2:
   version "1.13.2"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.13.2.tgz#9ada120b7b5ab24509553ec3e40123521117f687"
   integrity sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==
@@ -4437,6 +4433,11 @@ bcrypt-pbkdf@^1.0.0:
   integrity sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==
   dependencies:
     tweetnacl "^0.14.3"
+
+big-integer@^1.6.48:
+  version "1.6.52"
+  resolved "https://registry.yarnpkg.com/big-integer/-/big-integer-1.6.52.tgz#60a887f3047614a8e1bffe5d7173490a97dc8c85"
+  integrity sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==
 
 bignumber.js@^9.0.0:
   version "9.3.1"
@@ -9938,6 +9939,14 @@ node-releases@^2.0.27:
   version "2.0.27"
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.27.tgz"
   integrity sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==
+
+node-sql-parser@^5.3.13:
+  version "5.3.13"
+  resolved "https://registry.yarnpkg.com/node-sql-parser/-/node-sql-parser-5.3.13.tgz#a955e2309608cdab4521925d7f6488aa8ec69182"
+  integrity sha512-heyWv3lLjKHpcBDMUSR+R0DohRYZTYq+Ro3hJ4m9Ia8ccdKbL5UijIaWr2L4co+bmmFuvBVZ4v23QW2PqvBFAA==
+  dependencies:
+    "@types/pegjs" "^0.10.0"
+    big-integer "^1.6.48"
 
 normalize-path@^3.0.0:
   version "3.0.0"
