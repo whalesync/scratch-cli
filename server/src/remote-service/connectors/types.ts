@@ -60,10 +60,16 @@ export enum PostgresColumnType {
  * e.g. writeable: true would make the agent belive that the column is writable.
  */
 export type ColumnMetadata = {
-  // Defintes the flavor of the text in the column and influences how it is displayed in the UI.
-  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
+  // Defintes the flavor of the text in the column and influences how it is displayed in the UI and how it is processed by the agent.
+  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';
+
+  // Defines how the date is formatted and displayed in the UI and how it is processed by the agent.
   dateFormat?: 'date' | 'datetime' | 'time';
+
+  // Defines how the number is formatted and displayed in the UI and how it is processed by the agent.
   numberFormat?: 'decimal' | 'integer';
+
+  // Defines a list of options that are permitted values for the column
   options?: ColumnOptions[];
   /**
    * If true, any value is allowed for the column.

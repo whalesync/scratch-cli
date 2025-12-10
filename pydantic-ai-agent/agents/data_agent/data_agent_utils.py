@@ -28,6 +28,7 @@ class TableSpecForAi(BaseModel):
     tableSpecId: EntityId  # tableSpec.id (e.g., {wsId: "my_table", remoteId: [...]})
     name: str
     columns: List[ColumnSpecForAi]
+    hidden: bool = False
 
 
 class WorkbookForAi(BaseModel):
@@ -63,6 +64,10 @@ def convert_scratchpad_workbook_to_ai_workbook(
         logger.debug(f"🔍 Converting table: {snapshotTable}")
         table = snapshotTable["tableSpec"]  # type: ignore
 
+        if snapshotTable["hidden"]:
+            logger.debug(f"🔍 Skipping hidden table: {snapshotTable['id']}")
+            continue
+
         # Convert columns for this table
         converted_columns = []
         for j, col in enumerate(table["columns"]):  # type: ignore
@@ -91,6 +96,7 @@ def convert_scratchpad_workbook_to_ai_workbook(
             tableSpecId=EntityId(wsId=table["id"]["wsId"], remoteId=table["id"]["remoteId"]),  # type: ignore  # tableSpec.id
             name=table["name"],  # type: ignore
             columns=converted_columns,
+            hidden=snapshotTable["hidden"],
         )
         converted_tables.append(table_spec)
 

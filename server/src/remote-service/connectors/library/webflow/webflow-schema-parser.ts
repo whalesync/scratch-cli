@@ -143,7 +143,7 @@ export class WebflowSchemaParser {
       case Webflow.FieldType.PlainText:
         return {
           pgType: PostgresColumnType.TEXT,
-          metadata: { textFormat: 'long_text' },
+          metadata: {},
         };
 
       case Webflow.FieldType.RichText:

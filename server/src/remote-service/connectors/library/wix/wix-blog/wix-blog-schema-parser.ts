@@ -29,7 +29,7 @@ export class WixBlogSchemaParser {
         pgType: PostgresColumnType.TEXT,
         required: true,
         readonly: false,
-        metadata: { textFormat: 'long_text' },
+        metadata: {},
         wixFieldType: 'PlainText',
       },
       {
@@ -41,7 +41,7 @@ export class WixBlogSchemaParser {
         pgType: PostgresColumnType.TEXT,
         required: false,
         readonly: false,
-        metadata: { textFormat: 'long_text' },
+        metadata: {},
         wixFieldType: 'PlainText',
       },
       {
@@ -66,7 +66,7 @@ export class WixBlogSchemaParser {
         pgType: PostgresColumnType.TEXT,
         required: false,
         readonly: false,
-        metadata: { textFormat: 'long_text' },
+        metadata: {},
         wixFieldType: 'PlainText',
       },
       {

@@ -71,7 +71,7 @@ export class AirtableSchemaParser {
         return { textFormat: 'phone' };
 
       case AirtableDataType.MULTILINE_TEXT:
-        return { textFormat: 'long_text' };
+        return { textFormat: 'rich_text' };
 
       case AirtableDataType.RICH_TEXT:
         if (field.name.toLowerCase().endsWith('_md')) {

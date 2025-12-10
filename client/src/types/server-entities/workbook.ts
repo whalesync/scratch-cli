@@ -4,7 +4,7 @@ import { Service } from './connector-accounts';
 import { EntityId } from './table-list';
 
 export type ColumnMetadata = {
-  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text' | 'long_text';
+  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';
   dateFormat?: 'date' | 'datetime' | 'time';
   numberFormat?: 'decimal' | 'integer';
   options?: ColumnOption[];

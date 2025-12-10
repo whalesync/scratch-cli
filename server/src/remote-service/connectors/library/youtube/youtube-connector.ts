@@ -128,9 +128,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           name: 'Description',
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'snippet.description',
-          metadata: {
-            textFormat: 'long_text',
-          },
+          metadata: {},
         },
         {
           id: { wsId: 'transcript', remoteId: ['transcript'] },
@@ -138,9 +136,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
           // readonly: true,
           pgType: PostgresColumnType.TEXT,
           youtubeField: 'transcript',
-          metadata: {
-            textFormat: 'long_text',
-          },
+          metadata: {},
         },
         {
           id: { wsId: 'transcriptId', remoteId: ['transcriptId'] },
