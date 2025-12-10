@@ -101,7 +101,7 @@ export const WorkbooksList = () => {
             <Table.Tbody>
               {error && (
                 <Table.Tr>
-                  <Table.Td colSpan={3}>
+                  <Table.Td colSpan={4}>
                     <ErrorInfo
                       error={error}
                       title="Error loading workbooks"
@@ -117,7 +117,7 @@ export const WorkbooksList = () => {
               ))}
               {!error && workbooks?.length === 0 && (
                 <Table.Tr>
-                  <Table.Td colSpan={3}>
+                  <Table.Td colSpan={4}>
                     <EmptyListInfoPanel
                       title="No workbooks found"
                       description="Create a new workbook to get started"
