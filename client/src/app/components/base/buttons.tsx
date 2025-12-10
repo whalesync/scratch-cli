@@ -30,8 +30,8 @@ export const ButtonSecondarySolid = Button.withProps({
 export const ButtonSecondaryOutline = Button.withProps({
   variant: 'outline',
   size: 'sm',
-  color: 'var(--fg-muted)',
-  c: 'var(--fg-muted)', // text
+  color: 'var(--mantine-color-gray-5)',
+  c: 'var(--mantine-color-gray-5)',
   bg: 'var(--bg-base)',
   classNames: { root: customBordersClasses.cornerBorders },
   styles: {

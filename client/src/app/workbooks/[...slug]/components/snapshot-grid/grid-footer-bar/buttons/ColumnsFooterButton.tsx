@@ -33,7 +33,7 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
     <>
       <Menu>
         <Menu.Target>
-          <ButtonSecondaryInline rightSection={<ChevronDownIcon size={16} />}>{buttonText}</ButtonSecondaryInline>
+          <ButtonSecondaryInline rightSection={<ChevronDownIcon size={13} />}>{buttonText}</ButtonSecondaryInline>
         </Menu.Target>
         <Menu.Dropdown>
           {table.tableSpec.columns.map((column) => {
@@ -45,7 +45,7 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
                   isHidden ? unhideColumn(table.id, column.id.wsId) : hideColumn(table.id, column.id.wsId)
                 }
                 leftSection={getColumnTypeIcon(column.pgType)}
-                rightSection={!isHidden && <CheckIcon size={16} />}
+                rightSection={!isHidden && <CheckIcon size={13} />}
               >
                 {column.name}
               </Menu.Item>
@@ -54,7 +54,7 @@ export const ColumnsFooterButton = ({ table }: { table: SnapshotTable }) => {
           <Menu.Divider />
           <Menu.Item
             onClick={() => showModal({ type: WorkbookModals.CREATE_SCRATCH_COLUMN, tableId: table.id })}
-            leftSection={<CirclePlusIcon size={16} />}
+            leftSection={<CirclePlusIcon size={13} />}
           >
             New scratch column
           </Menu.Item>

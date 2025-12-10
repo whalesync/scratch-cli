@@ -6,7 +6,7 @@ import { SWR_KEYS } from '@/lib/api/keys';
 import { recordApi } from '@/lib/api/record';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Group, Menu } from '@mantine/core';
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import pluralize from 'pluralize';
 
 import { useCallback } from 'react';
@@ -85,19 +85,19 @@ export const PaginationFooterButton = ({ table }: { table: SnapshotTable }) => {
     <Group gap={0}>
       {!isAllRecords && (
         <IconButtonInline onClick={handlePrev} disabled={!hasPrevPage}>
-          <ChevronLeftIcon size={16} />
+          <ChevronLeftIcon size={13} />
         </IconButtonInline>
       )}
       {!isAllRecords && (
         <IconButtonInline onClick={handleNext} disabled={!hasNextPage}>
-          <ChevronRightIcon size={16} />
+          <ChevronRightIcon size={13} />
         </IconButtonInline>
       )}
       <Text13Regular pl={isAllRecords ? 'xs' : '0'}>{formattedRange}</Text13Regular>
       <Menu>
         <Menu.Target>
           <IconButtonInline>
-            <ChevronUpIcon size={16} />
+            <ChevronDownIcon size={13} />
           </IconButtonInline>
         </Menu.Target>
         <Menu.Dropdown>
@@ -106,7 +106,7 @@ export const PaginationFooterButton = ({ table }: { table: SnapshotTable }) => {
             <Menu.Item
               key={pageSize}
               onClick={() => handleSetPageSize(pageSize)}
-              rightSection={pageSize === table.pageSize ? <CheckIcon size={16} /> : null}
+              rightSection={pageSize === table.pageSize ? <CheckIcon size={13} /> : null}
             >
               {pageSize} records
             </Menu.Item>
@@ -114,7 +114,7 @@ export const PaginationFooterButton = ({ table }: { table: SnapshotTable }) => {
           <Menu.Divider />
           <Menu.Item
             onClick={() => handleSetPageSize(null)}
-            rightSection={table.pageSize === null ? <CheckIcon size={16} /> : null}
+            rightSection={table.pageSize === null ? <CheckIcon size={13} /> : null}
           >
             All records
           </Menu.Item>

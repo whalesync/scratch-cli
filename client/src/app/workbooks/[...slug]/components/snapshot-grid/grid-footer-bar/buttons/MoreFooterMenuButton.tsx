@@ -67,14 +67,14 @@ export const MoreFooterMenuButton = ({ table }: { table: SnapshotTable }) => {
     <Menu width="auto">
       <Menu.Target>
         <ButtonSecondaryInline>
-          <EllipsisVerticalIcon size={16} />
+          <EllipsisVerticalIcon size={13} />
         </ButtonSecondaryInline>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
           disabled={!!downloadingCsv}
           onClick={() => downloadCsv(false)}
-          leftSection={downloadingCsv ? <Loader size="xs" /> : <FileDownIcon size={16} />}
+          leftSection={downloadingCsv ? <Loader size="xs" /> : <FileDownIcon size={13} />}
         >
           Download all records as CSV
         </Menu.Item>
@@ -83,7 +83,7 @@ export const MoreFooterMenuButton = ({ table }: { table: SnapshotTable }) => {
           onClick={() => {
             downloadCsv(true);
           }}
-          leftSection={downloadingCsv ? <Loader size="xs" /> : <FileDownIcon size={16} />}
+          leftSection={downloadingCsv ? <Loader size="xs" /> : <FileDownIcon size={13} />}
         >
           Download current records as CSV
         </Menu.Item>
@@ -105,7 +105,7 @@ export const MoreFooterMenuButton = ({ table }: { table: SnapshotTable }) => {
               console.debug('File input ref not found for table:', table.id);
             }
           }}
-          leftSection={uploadingSuggestions ? <Loader size="xs" /> : <FileUpIcon size={16} />}
+          leftSection={uploadingSuggestions ? <Loader size="xs" /> : <FileUpIcon size={13} />}
           closeMenuOnClick={false}
         >
           Import Suggestions from CSV

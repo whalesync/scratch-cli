@@ -34,7 +34,7 @@ import { WorkbookHeader } from './components/WorkbookHeader';
 import { WorkbookTabBar } from './components/WorkbookTabBar';
 import { useWorkbookParams } from './hooks/use-workbook-params';
 
-const DEFAULT_CHAT_WIDTH = '500px';
+const DEFAULT_CHAT_WIDTH = '360px';
 const MIN_CHAT_WIDTH = 300;
 const MAX_CHAT_WIDTH = 800;
 

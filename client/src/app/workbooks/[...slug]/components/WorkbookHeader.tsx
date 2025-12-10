@@ -1,4 +1,4 @@
-import { ButtonSecondaryInline } from '@/app/components/base/buttons';
+import { ButtonSecondaryInline, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
@@ -38,16 +38,16 @@ export const WorkbookHeader = () => {
         )}
         {/* TODO: Move the publish button here, after figuring out how it should behave */}
         {/* <CornerBoxedBadge label="11" tooltip={<MyOnboarding />} tooltipAlwaysVisible /> */}
-        <ButtonSecondaryInline
+        <ButtonSecondaryOutline
           disabled={allConnectionsDeleted}
-          size="xs"
+          size="compact-xs"
           leftSection={
             allConnectionsDeleted ? <DeletedConnectionIcon decorative={false} /> : <CloudUploadIcon size={14} />
           }
           onClick={openPublishConfirmation}
         >
           Publish
-        </ButtonSecondaryInline>
+        </ButtonSecondaryOutline>
         <WorkbookActionsMenu />
       </Group>
     </Group>

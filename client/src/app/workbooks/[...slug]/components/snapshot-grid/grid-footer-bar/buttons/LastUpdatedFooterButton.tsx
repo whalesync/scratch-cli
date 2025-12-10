@@ -22,12 +22,12 @@ export const LastUpdatedFooterButton = ({ table }: { table: SnapshotTable }) => 
           isConnectionDeleted ? (
             <DeletedConnectionIcon decorative={false} tooltipEnabled={false} />
           ) : table.lock === 'download' ? (
-            <Loader size={14} color="gray" />
+            <Loader size={13} color="gray" />
           ) : (
-            <CloudDownloadIcon size={16} />
+            <CloudDownloadIcon size={13} />
           )
         }
-        rightSection={isConnectionDeleted || table.lock === 'download' ? <></> : <RefreshCwIcon size={16} />}
+        rightSection={isConnectionDeleted || table.lock === 'download' ? <></> : <RefreshCwIcon size={13} />}
         disabled={isConnectionDeleted || !!table.lock}
         onClick={() => showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE })}
       >

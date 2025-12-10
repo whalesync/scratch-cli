@@ -26,6 +26,6 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 0.5px;
-  background-color: var(--fg-divider);
+  width: 0;
+  border-right: 0.5px solid var(--fg-divider);
 }

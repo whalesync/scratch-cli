@@ -10,7 +10,7 @@ export const NewRecordFooterButton = ({ table }: { table: SnapshotTable }) => {
   });
 
   return (
-    <ButtonSecondaryInline leftSection={<PlusIcon size={16} />} onClick={createNewRecord}>
+    <ButtonSecondaryInline leftSection={<PlusIcon size={13} />} onClick={createNewRecord}>
       Row
     </ButtonSecondaryInline>
   );

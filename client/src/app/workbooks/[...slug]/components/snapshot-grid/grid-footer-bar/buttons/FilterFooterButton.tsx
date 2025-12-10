@@ -42,7 +42,7 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
       <Menu>
         <Menu.Target>
           <ButtonSecondaryInline
-            leftSection={<FunnelIcon size={16} />}
+            leftSection={<FunnelIcon size={13} />}
             rightSection={
               // Status widget to show a filter is active.
               currentFilterType && (
@@ -57,15 +57,15 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item
-            leftSection={<CodeIcon size={16} />}
-            rightSection={currentFilterType === 'custom' ? <CheckIcon size={16} /> : null}
+            leftSection={<CodeIcon size={13} />}
+            rightSection={currentFilterType === 'custom' ? <CheckIcon size={13} /> : null}
             onClick={() => setSqlFilterModalOpen(true)}
           >
             Custom SQL Filter
           </Menu.Item>
           <Menu.Item
-            leftSection={<FunnelPlusIcon size={16} />}
-            rightSection={currentFilterType === 'only_edited' ? <CheckIcon size={16} /> : null}
+            leftSection={<FunnelPlusIcon size={13} />}
+            rightSection={currentFilterType === 'only_edited' ? <CheckIcon size={13} /> : null}
             onClick={async () => {
               await recordApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_EDITED_SQL);
             }}
@@ -73,8 +73,8 @@ export const FilterFooterButton = ({ table }: { table: SnapshotTable }) => {
             Unpublished changes
           </Menu.Item>{' '}
           <Menu.Item
-            leftSection={<FunnelPlusIcon size={16} />}
-            rightSection={currentFilterType === 'only_pending_suggestions' ? <CheckIcon size={16} /> : null}
+            leftSection={<FunnelPlusIcon size={13} />}
+            rightSection={currentFilterType === 'only_pending_suggestions' ? <CheckIcon size={13} /> : null}
             onClick={async () => {
               await recordApi.setActiveRecordsFilter(table.workbookId, table.id, ONLY_PENDING_SUGGESTIONS_SQL);
             }}
