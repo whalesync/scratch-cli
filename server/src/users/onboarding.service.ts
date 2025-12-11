@@ -1,23 +1,98 @@
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
-import { UserOnboarding } from './types';
+import { DEFAULT_GETTING_STARTED_V1, DEFAULT_STEP_STATE, GettingStartedV1StepKey, UserOnboarding } from './types';
 
 @Injectable()
 export class OnboardingService {
   constructor(private readonly db: DbService) {}
 
   /**
-   * Updates a specific onboarding flow for a user.
-   * Loads the current onboarding state, applies the partial update, and saves.
+   * Resets the onboarding state for a user to the default values.
    *
    * @param userId - The user's ID
-   * @param flowCode - The onboarding flow code (e.g., 'gettingStartedV1')
-   * @param update - Partial update to apply to the flow state
    */
-  async updateOnboardingFlow<K extends keyof UserOnboarding>(
+  async resetOnboarding(userId: string): Promise<void> {
+    const defaultOnboarding: UserOnboarding = {
+      gettingStartedV1: DEFAULT_GETTING_STARTED_V1,
+    };
+
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { onboarding: defaultOnboarding as object },
+    });
+  }
+
+  /**
+   * Marks a step as completed in the specified onboarding flow.
+   *
+   * @param userId - The user's ID
+   * @param flow - The flow key (e.g., 'gettingStartedV1')
+   * @param stepKey - The step key to mark as completed
+   */
+  async markStepCompleted(userId: string, flow: keyof UserOnboarding, stepKey: GettingStartedV1StepKey): Promise<void> {
+    const user = await this.db.client.user.findUnique({
+      where: { id: userId },
+      select: { onboarding: true },
+    });
+
+    const currentOnboarding = (user?.onboarding ?? {}) as UserOnboarding;
+    const currentFlow = currentOnboarding[flow] ?? DEFAULT_GETTING_STARTED_V1;
+    const currentStepState = currentFlow[stepKey] ?? DEFAULT_STEP_STATE;
+
+    const updatedOnboarding: UserOnboarding = {
+      ...currentOnboarding,
+      [flow]: {
+        ...currentFlow,
+        [stepKey]: {
+          ...currentStepState,
+          completed: true,
+        },
+      },
+    };
+
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { onboarding: updatedOnboarding as object },
+    });
+  }
+
+  /**
+   * Completes a flow by removing it from the onboarding state.
+   *
+   * @param userId - The user's ID
+   * @param flow - The flow key (e.g., 'gettingStartedV1')
+   */
+  async completeFlow(userId: string, flow: keyof UserOnboarding): Promise<void> {
+    const user = await this.db.client.user.findUnique({
+      where: { id: userId },
+      select: { onboarding: true },
+    });
+
+    const currentOnboarding = (user?.onboarding ?? {}) as UserOnboarding;
+
+    // Remove the flow key from onboarding
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [flow]: _removed, ...updatedOnboarding } = currentOnboarding;
+
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { onboarding: updatedOnboarding as object },
+    });
+  }
+
+  /**
+   * Collapses or expands a step in the specified onboarding flow.
+   *
+   * @param userId - The user's ID
+   * @param flow - The flow key (e.g., 'gettingStartedV1')
+   * @param stepKey - The step key to collapse/expand
+   * @param collapsed - Whether the step should be collapsed
+   */
+  async setStepCollapsed(
     userId: string,
-    flowCode: K,
-    update: Partial<UserOnboarding[K]>,
+    flow: keyof UserOnboarding,
+    stepKey: GettingStartedV1StepKey,
+    collapsed: boolean,
   ): Promise<void> {
     const user = await this.db.client.user.findUnique({
       where: { id: userId },
@@ -25,13 +100,17 @@ export class OnboardingService {
     });
 
     const currentOnboarding = (user?.onboarding ?? {}) as UserOnboarding;
-    const currentFlowState = currentOnboarding[flowCode] ?? {};
+    const currentFlow = currentOnboarding[flow] ?? DEFAULT_GETTING_STARTED_V1;
+    const currentStepState = currentFlow[stepKey] ?? DEFAULT_STEP_STATE;
 
     const updatedOnboarding: UserOnboarding = {
       ...currentOnboarding,
-      [flowCode]: {
-        ...currentFlowState,
-        ...update,
+      [flow]: {
+        ...currentFlow,
+        [stepKey]: {
+          ...currentStepState,
+          collapsed,
+        },
       },
     };
 

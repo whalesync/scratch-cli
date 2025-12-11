@@ -29,6 +29,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from 'src/users/dto/update-settings.dto';
 import { User } from 'src/users/entities/user.entity';
+import { OnboardingService } from 'src/users/onboarding.service';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -53,6 +54,7 @@ export class DevToolsController {
     private readonly devToolsService: DevToolsService,
     private readonly uploadsDbService: UploadsDbService,
     private readonly agentCredentialsService: AgentCredentialsService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   @Get('users/search')
@@ -103,6 +105,22 @@ export class DevToolsController {
     }
 
     await this.usersService.updateUserSettings(targetUser, dto);
+  }
+
+  /* Reset user onboarding to default state */
+  @Post('users/:id/onboarding/reset')
+  @HttpCode(204)
+  async resetUserOnboarding(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can reset user onboarding');
+    }
+
+    const targetUser = await this.usersService.findOne(id);
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.onboardingService.resetOnboarding(id);
   }
 
   /* Subscription testing tools */

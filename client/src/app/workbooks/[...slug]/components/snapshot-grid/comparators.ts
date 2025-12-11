@@ -1,6 +1,6 @@
 import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
 import { IRowNode } from 'ag-grid-community';
-import _ from 'lodash';
+import toString from 'lodash/toString';
 
 type ColumnDefComparatorFn = (
   valueA: string,
@@ -26,9 +26,9 @@ export const getComparatorFunctionForColumnSpec = (columnSpec: ColumnSpec): Colu
     // Force conversion to string for all values, preserving null and undefined values
     // We can convert back to the original type for special comparisons after checking for undefined/null
     const valueToCompareA =
-      (suggestedValueA ? _.toString(suggestedValueA) : suggestedValueA) || (valueA ? _.toString(valueA) : valueA);
+      (suggestedValueA ? toString(suggestedValueA) : suggestedValueA) || (valueA ? toString(valueA) : valueA);
     const valueToCompareB =
-      (suggestedValueB ? _.toString(suggestedValueB) : suggestedValueB) || (valueB ? _.toString(valueB) : valueB);
+      (suggestedValueB ? toString(suggestedValueB) : suggestedValueB) || (valueB ? toString(valueB) : valueB);
 
     if (valueToCompareA === valueToCompareB) {
       // suggested values are lower priority than the base value, so use that to break ties

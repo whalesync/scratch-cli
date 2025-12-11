@@ -82,28 +82,46 @@ export interface UserSettings {
 // ============================================================================
 
 /**
- * Onboarding flow codes - used as keys in UserOnboarding
+ * State for a single onboarding step
  */
-// export type OnboardingFlowCode = 'gettingStartedV1';
+export interface OnboardingStepState {
+  completed: boolean;
+  collapsed: boolean;
+}
+
+/**
+ * Default state for a new onboarding step
+ */
+export const DEFAULT_STEP_STATE: OnboardingStepState = {
+  completed: false,
+  collapsed: false,
+};
+
+/**
+ * Step keys for GettingStartedV1 flow
+ */
+export type GettingStartedV1StepKey =
+  | 'dataSourceConnected'
+  | 'contentEditedWithAi'
+  | 'suggestionsAccepted'
+  | 'dataPublished';
 
 /**
  * GettingStartedV1 onboarding flow state
+ * Each step has completed and collapsed properties
  */
-export interface GettingStartedV1 {
-  dataSourceConnected: boolean;
-  contentEditedWithAi: boolean;
-  suggestionsAccepted: boolean;
-  dataPublished: boolean;
-}
+export type GettingStartedV1 = {
+  [K in GettingStartedV1StepKey]: OnboardingStepState;
+};
 
 /**
  * Default state for GettingStartedV1 flow
  */
 export const DEFAULT_GETTING_STARTED_V1: GettingStartedV1 = {
-  dataSourceConnected: false,
-  contentEditedWithAi: false,
-  suggestionsAccepted: false,
-  dataPublished: false,
+  dataSourceConnected: { completed: false, collapsed: false },
+  contentEditedWithAi: { completed: false, collapsed: false },
+  suggestionsAccepted: { completed: false, collapsed: false },
+  dataPublished: { completed: false, collapsed: false },
 };
 
 /**

@@ -11,7 +11,7 @@ import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { DbService } from '../db/db.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { generateApiToken, generateTokenExpirationDate, generateWebsocketTokenExpirationDate } from './tokens';
-import { UserSettings } from './types';
+import { DEFAULT_GETTING_STARTED_V1, UserOnboarding, UserSettings } from './types';
 
 @Injectable()
 export class UsersService {
@@ -102,6 +102,10 @@ export class UsersService {
       return user;
     }
 
+    const defaultOnboarding: UserOnboarding = {
+      gettingStartedV1: DEFAULT_GETTING_STARTED_V1,
+    };
+
     const newUser: UserCluster.User = await this.db.client.user.create({
       data: {
         id: createUserId(),
@@ -110,6 +114,7 @@ export class UsersService {
         role: UserRole.USER,
         name,
         email,
+        onboarding: defaultOnboarding as object,
         apiTokens: {
           create: {
             id: createApiTokenId(),

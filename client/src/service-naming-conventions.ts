@@ -1,5 +1,5 @@
 import { Service } from '@/types/server-entities/connector-accounts';
-import { capitalize } from 'lodash';
+import capitalize from 'lodash/capitalize';
 type ServiceNamingConvention = {
   service: string;
   table: string;

@@ -2,6 +2,7 @@ import { ButtonSecondaryInline, ButtonSecondaryOutline } from '@/app/components/
 import { Text13Regular } from '@/app/components/base/text';
 import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { OnboardingFlowBadge } from '@/app/components/onboarding/OnboardingFlowBadge';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
@@ -18,6 +19,7 @@ export const WorkbookHeader = () => {
   const openChat = useWorkbookEditorUIStore((state) => state.openChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
+
   return (
     <Group bg="var(--bg-panel)" h={36} justify="space-between" pos="relative" px="xs" gap="xs">
       <ToolIconButton icon={PanelLeftIcon} onClick={toggleNavDrawer} size="md" />
@@ -38,6 +40,7 @@ export const WorkbookHeader = () => {
         )}
         {/* TODO: Move the publish button here, after figuring out how it should behave */}
         {/* <CornerBoxedBadge label="11" tooltip={<MyOnboarding />} tooltipAlwaysVisible /> */}
+        <OnboardingFlowBadge />
         <ButtonSecondaryOutline
           disabled={allConnectionsDeleted}
           size="compact-xs"
@@ -48,6 +51,7 @@ export const WorkbookHeader = () => {
         >
           Publish
         </ButtonSecondaryOutline>
+
         <WorkbookActionsMenu />
       </Group>
     </Group>

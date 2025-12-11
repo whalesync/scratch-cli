@@ -5,7 +5,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { ColumnSpec, SnapshotColumnSettingsMap, SnapshotRecord, Workbook } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
-import _ from 'lodash';
+import capitalize from 'lodash/capitalize';
 import { CheckIcon, EyeOffIcon, MoreVertical, StarIcon, TrashIcon, XIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { IconButtonInline } from '../../base/buttons';
@@ -261,7 +261,7 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
     }
     return [
       { value: '', label: 'Default' },
-      ...columnSpec.dataConverterTypes.map((type) => ({ value: type, label: _.capitalize(type) })),
+      ...columnSpec.dataConverterTypes.map((type) => ({ value: type, label: capitalize(type) })),
     ];
   }, [hasDataConverterTypes, columnSpec?.dataConverterTypes]);
 

@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import findKey from 'lodash/findKey';
 import { customAlphabet } from 'nanoid';
 
 /**
@@ -60,7 +60,7 @@ export function createPlainId(length?: number): string {
 }
 
 export function typeForId(id: AnyId): IdType | null {
-  return (_.findKey(IdPrefixes, (value) => id.startsWith(value)) as IdType) ?? null;
+  return (findKey(IdPrefixes, (value) => id.startsWith(value)) as IdType) ?? null;
 }
 
 // ------- Users -------

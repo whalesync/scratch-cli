@@ -1,7 +1,7 @@
 import { ScratchPadUser } from '@/hooks/useScratchpadUser';
 import { Workbook } from '@/types/server-entities/workbook';
 import { ScratchPlanType } from '@spinner/shared-types';
-import _ from 'lodash';
+import { uniqBy } from 'lodash';
 import posthog from 'posthog-js';
 
 export enum PostHogEvents {
@@ -51,7 +51,7 @@ export function trackPageView(url: string): void {
 
 export function trackAcceptChanges(items: { wsId: string; columnId: string }[], snapshot: Workbook | undefined): void {
   const changeCount = items.length;
-  const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
+  const uniqueRecordCount = uniqBy(items, 'wsId').length;
   captureEvent(PostHogEvents.ACCEPT_SUGGESTIONS, {
     changeCount,
     recordCount: uniqueRecordCount,
@@ -61,7 +61,7 @@ export function trackAcceptChanges(items: { wsId: string; columnId: string }[], 
 
 export function trackRejectChanges(items: { wsId: string; columnId: string }[], snapshot: Workbook | undefined): void {
   const changeCount = items.length;
-  const uniqueRecordCount = _.uniqBy(items, 'wsId').length;
+  const uniqueRecordCount = uniqBy(items, 'wsId').length;
   captureEvent(PostHogEvents.REJECT_SUGGESTIONS, {
     changeCount,
     recordCount: uniqueRecordCount,

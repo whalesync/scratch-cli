@@ -5,11 +5,17 @@ import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
 import { ICellRendererParams } from 'ag-grid-community';
 // Custom cell renderer with diff support for suggested values
 
+export interface FirstSuggestionCell {
+  recordId: string;
+  columnId: string;
+}
+
 export const useCellRenderer = (
   table: TableSpec,
   columnChangeTypes: Record<string, ExistingChangeTypes>,
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
+  onboardingSuggestionsCell?: FirstSuggestionCell | null,
 ) => {
   type TValue = unknown;
   type TContext = unknown;
@@ -26,6 +32,12 @@ export const useCellRenderer = (
         columnChangeTypes[columnDef.id.wsId].acceptedAdditions ||
         columnChangeTypes[columnDef.id.wsId].acceptedDeletions);
 
+    // Check if this is the first cell with a suggestion
+    const isOnboardingSuggestionsCell =
+      onboardingSuggestionsCell &&
+      record?.id?.wsId === onboardingSuggestionsCell.recordId &&
+      columnDef?.id.wsId === onboardingSuggestionsCell.columnId;
+
     return (
       <FieldValueWrapper
         columnDef={columnDef!}
@@ -34,6 +46,7 @@ export const useCellRenderer = (
         showChangeIndicators={!!columnHasChanges}
         acceptCellValues={acceptCellValues}
         rejectCellValues={rejectCellValues}
+        showOnboardingTooltip={!!isOnboardingSuggestionsCell}
       />
     );
   };

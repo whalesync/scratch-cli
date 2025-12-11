@@ -1,13 +1,13 @@
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text13Regular } from '@/app/components/base/text';
 import { ChangeDotsGroup } from '@/app/components/field-value-wrappers/ChangeDotsGroup/ChangeDotsGroup';
 import { hasAnyChange } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Group, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { AlertCircle, EyeOff, PenOffIcon } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
@@ -70,7 +70,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
     const currentTable = props.tableId ? workbook?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
     const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
     const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
-    const isTitleColumn = _.isEqual(currentTable?.tableSpec?.titleColumnRemoteId, props.columnSpec?.id?.remoteId);
+    const isTitleColumn = isEqual(currentTable?.tableSpec?.titleColumnRemoteId, props.columnSpec?.id?.remoteId);
     return { isScratchColumn, isColumnHidden, currentDataConverter, isTitleColumn };
   }, [workbook, props.tableId, columnId, props.columnSpec]);
 

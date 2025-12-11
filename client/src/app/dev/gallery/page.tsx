@@ -1,12 +1,16 @@
 'use client';
 
 import { ConfigSection } from '@/app/components/ConfigSection';
+import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
+import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
+import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
+import { OnboardingStepLayout } from '@/app/components/onboarding/OnboardingStepLayout';
 import {
   Alert,
   Anchor,
@@ -476,6 +480,16 @@ export default function DevComponentGalleryPage() {
             <DecorativeBoxedIcon Icon={Home} />
           </GalleryItem>
           <GalleryItem
+            label="CornerBoxedBadge"
+            notes="This is a badge but in a corner box. Supports tooltip too. Similar to DecorativeBoxedIcon. Great for context badges, or onboarding progress."
+          >
+            <CornerBoxedBadge
+              label="Some Badge"
+              icon={<StyledLucideIcon Icon={Settings} size="sm" />}
+              tooltip={'Hello'}
+            />
+          </GalleryItem>
+          <GalleryItem
             label="CircularProgress"
             notes="A simple circular progress indicator. Mantine's is too complicated."
           >
@@ -825,6 +839,20 @@ import { Settings } from 'lucide-react'
                 </Text12Medium>
                 <Code block>{`<ButtonPrimarySolid>Click</ButtonPrimarySolid>`}</Code>
               </Box>
+            </Stack>
+          </Box>
+          <Box ml="md" mt="xl" mb="xl">
+            <TextTitle3 mb="md">Always Black</TextTitle3>
+            <Text12Book c="dimmed" mb="sm">
+              --
+            </Text12Book>
+            <Stack gap="md">
+              <Group>
+                <Box data-always-dark bg="black" style={{ display: 'flex', flexShrink: 1 }}>
+                  <OnboardingStepLayout data={gettingStartedFlowUI.steps[0].data} showDescription />
+                  <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />
+                </Box>
+              </Group>
             </Stack>
           </Box>
         </Stack>

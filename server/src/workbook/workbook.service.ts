@@ -699,10 +699,8 @@ export class WorkbookService {
     });
 
     // Update onboarding flow if AI made suggestions and user hasn't completed this step yet
-    if (type === 'suggested' && actor.onboarding?.gettingStartedV1?.contentEditedWithAi === false) {
-      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
-        contentEditedWithAi: true,
-      });
+    if (type === 'suggested' && actor.onboarding?.gettingStartedV1?.contentEditedWithAi?.completed === false) {
+      await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'contentEditedWithAi');
     }
   }
 
@@ -881,10 +879,8 @@ export class WorkbookService {
     });
 
     // Update onboarding flow if user hasn't completed this step yet
-    if (actor.onboarding?.gettingStartedV1?.suggestionsAccepted === false) {
-      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
-        suggestionsAccepted: true,
-      });
+    if (actor.onboarding?.gettingStartedV1?.suggestionsAccepted?.completed === false) {
+      await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'suggestionsAccepted');
     }
 
     return { recordsUpdated };
@@ -1345,10 +1341,8 @@ export class WorkbookService {
     });
 
     // Update onboarding flow if user hasn't completed this step yet
-    if (actor.onboarding?.gettingStartedV1 && !actor.onboarding.gettingStartedV1.dataPublished) {
-      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
-        dataPublished: true,
-      });
+    if (actor.onboarding?.gettingStartedV1?.dataPublished?.completed === false) {
+      await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'dataPublished');
     }
   }
 

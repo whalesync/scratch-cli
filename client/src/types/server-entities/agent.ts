@@ -2,7 +2,7 @@
  * Data types for interfacing with the Agent API
  */
 
-import { capitalize } from 'lodash';
+import capitalize from 'lodash/capitalize';
 
 export interface ChatSessionSummary {
   id: string;

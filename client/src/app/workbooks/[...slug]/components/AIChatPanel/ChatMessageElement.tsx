@@ -1,5 +1,7 @@
 'use client';
 
+import capitalize from 'lodash/capitalize';
+
 import { Text9Regular, TextMono12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/hooks/use-agent-chat-websocket';
@@ -9,7 +11,6 @@ import { timeAgo } from '@/utils/helpers';
 import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import _ from 'lodash';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -38,7 +39,7 @@ const BasicMessage = ({ msg }: { msg: string }) => {
 };
 
 const formatToolName = (toolName: string) => {
-  return _.capitalize(toolName.replaceAll('_', ' ').trim());
+  return capitalize(toolName.replaceAll('_', ' ').trim());
 };
 
 // interface ToolCallPayload {

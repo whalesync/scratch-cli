@@ -21,6 +21,7 @@ import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWorkbook } from './use-workbook';
+import { useOnboardingUpdate } from './useOnboardingUpdate';
 
 export type ProcessedSnapshotRecord = SnapshotRecord & {
   __processed_fields: Record<string, ProcessedFieldValue>;
@@ -65,6 +66,7 @@ export const useSnapshotTableRecords = (args: {
   const swrKey = workbookId && tableId ? SWR_KEYS.workbook.records(workbookId, tableId, skip, take) : null;
 
   const { mutate } = useSWRConfig();
+  const { markStepCompleted } = useOnboardingUpdate();
 
   const { data, error, isLoading } = useSWR(
     tableId ? swrKey : null,
@@ -99,6 +101,8 @@ export const useSnapshotTableRecords = (args: {
       try {
         await recordApi.acceptCellValues(workbookId, tableId, items);
         trackAcceptChanges(items, workbook);
+        // Mark suggestions accepted step as completed
+        markStepCompleted('gettingStartedV1', 'suggestionsAccepted');
       } catch (e) {
         // Re-throw the error so the calling component can handle it.
         throw e;
@@ -108,7 +112,7 @@ export const useSnapshotTableRecords = (args: {
         await mutate(SWR_KEYS.operationCounts.get(workbookId));
       }
     },
-    [workbookId, tableId, mutate, swrKey, workbook],
+    [workbookId, tableId, mutate, swrKey, workbook, markStepCompleted],
   );
 
   const rejectCellValues = useCallback(
@@ -163,8 +167,10 @@ export const useSnapshotTableRecords = (args: {
     if (!tableId || !workbookId) return { recordsUpdated: 0, totalChangesAccepted: 0 };
     const result = await recordApi.acceptAllSuggestions(workbookId, tableId);
     await mutate(SWR_KEYS.operationCounts.get(workbookId));
+    // Mark suggestions accepted step as completed
+    markStepCompleted('gettingStartedV1', 'suggestionsAccepted');
     return result;
-  }, [mutate, tableId, workbookId]);
+  }, [mutate, tableId, workbookId, markStepCompleted]);
 
   const rejectAllSuggestions = useCallback(async () => {
     if (!tableId || !workbookId) return { recordsRejected: 0, totalChangesRejected: 0 };

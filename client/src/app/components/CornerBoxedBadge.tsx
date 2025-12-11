@@ -46,7 +46,12 @@ export const CornerBoxedBadge = ({
 
   if (tooltip) {
     return (
-      <Tooltip label={tooltip} opened={tooltipAlwaysVisible ? true : undefined}>
+      <Tooltip
+        data-onboarding-tooltip
+        label={tooltip}
+        opened={tooltipAlwaysVisible ? true : undefined}
+        data-always-dark
+      >
         {content}
       </Tooltip>
     );

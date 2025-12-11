@@ -6,6 +6,7 @@ import {
   getGridOrderedColumnSpecs,
   identifyRecordTitleColumn,
 } from '@/app/workbooks/[...slug]/components/snapshot-grid/header-column-utils';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { recordName } from '@/service-naming-conventions';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
@@ -39,7 +40,7 @@ import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
 import { TableContextMenu } from './TableContextMenu';
 import { getCellClassFn } from './useCellClass';
-import { useCellRenderer } from './useCellRenderer';
+import { FirstSuggestionCell, useCellRenderer } from './useCellRenderer';
 import { useSpecialColDefs } from './useSpecialColDefs';
 import { useStoreColumnState } from './useStoreColumnState';
 
@@ -59,6 +60,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   const { savePendingChanges } = useUpdateRecordsContext();
   const { setRecordScope, setColumnScope, setTableScope } = useAgentChatContext();
   const clipboard = useClipboard({ timeout: 500 });
+  const { shouldShowStep } = useOnboarding();
 
   // Find title column and other columns
   const { columns: columnSpecs, titleColumnId } = getGridOrderedColumnSpecs(table.tableSpec, table.hiddenColumns);
@@ -219,7 +221,36 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
   // Keep original records as row data to preserve __suggested_values
   const rowData = records || [];
 
-  const { cellRenderer } = useCellRenderer(table.tableSpec, columnChangeTypes, acceptCellValues, rejectCellValues);
+  // Find the first cell with a suggestion (for onboarding tooltip)
+  // Only show if the suggestionsAccepted step is the current step and not collapsed
+  const showOnboardingTooltip = shouldShowStep('gettingStartedV1', 'suggestionsAccepted');
+
+  const onboardingSuggestionsCell = useMemo((): FirstSuggestionCell | null => {
+    if (!showOnboardingTooltip || !records || !columnSpecs.length) return null;
+
+    for (const record of records) {
+      if (record.__suggested_values && Object.keys(record.__suggested_values).length > 0) {
+        // Find the first column that has a suggestion for this record
+        for (const column of columnSpecs) {
+          if (record.__suggested_values[column.id.wsId] !== undefined) {
+            return {
+              recordId: record.id.wsId,
+              columnId: column.id.wsId,
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }, [showOnboardingTooltip, records, columnSpecs]);
+
+  const { cellRenderer } = useCellRenderer(
+    table.tableSpec,
+    columnChangeTypes,
+    acceptCellValues,
+    rejectCellValues,
+    onboardingSuggestionsCell,
+  );
 
   // Handler to open overlay from ID cell
   const handleOpenOverlayFromId = useCallback(

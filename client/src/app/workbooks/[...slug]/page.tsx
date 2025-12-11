@@ -1,5 +1,7 @@
 'use client';
 
+import isEqual from 'lodash/isEqual';
+
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
@@ -15,7 +17,6 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Stack } from '@mantine/core';
-import _ from 'lodash';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
@@ -59,8 +60,8 @@ function WorkbookPageContent() {
     const updatedTable = getSnapshotTables(workbook).find((t) => t.id === activeTable.id);
     if (
       updatedTable &&
-      (!_.isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
-        !_.isEqual(activeTable.columnSettings, updatedTable.columnSettings))
+      (!isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
+        !isEqual(activeTable.columnSettings, updatedTable.columnSettings))
     ) {
       // update the active table and table context with the newer version
       setActiveTab(updatedTable.id);

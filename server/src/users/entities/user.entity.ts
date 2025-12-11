@@ -6,6 +6,7 @@ import { WSLogger } from 'src/logger';
 import { SubscriptionPlanFeaturesEntity } from 'src/payment/entities/subscription-plan';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getFreePlan, getPlan, getPlanTypeFromString } from 'src/payment/plans';
+import { UserOnboarding } from '../types';
 import { Organization } from './organization.entity';
 
 export type { SubscriptionInfo } from '@spinner/shared-types';
@@ -33,6 +34,8 @@ export class User {
   organization?: Organization;
 
   settings?: Record<string, string | number | boolean>;
+
+  onboarding?: UserOnboarding;
 
   constructor(
     user: UserCluster.User,
@@ -62,6 +65,7 @@ export class User {
     );
     this.organization = user.organization ? new Organization(user.organization) : undefined;
     this.settings = user.settings as Record<string, string | number | boolean>;
+    this.onboarding = (user.onboarding ?? {}) as UserOnboarding;
   }
 }
 

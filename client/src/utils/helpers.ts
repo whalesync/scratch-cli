@@ -1,4 +1,4 @@
-import { capitalize } from 'lodash';
+import capitalize from 'lodash/capitalize';
 
 /**
  * Return the enum value in string enum `T` named `strVal`, or `defaultValue` if it isn't recognized.

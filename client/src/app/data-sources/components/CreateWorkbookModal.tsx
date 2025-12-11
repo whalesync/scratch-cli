@@ -1,5 +1,7 @@
 'use client';
 
+import startCase from 'lodash/startCase';
+
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useWorkbooks } from '@/hooks/use-workbooks';
@@ -22,7 +24,6 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import _ from 'lodash';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -92,7 +93,7 @@ export const CreateWorkbookModal = ({
     const table = tables.find((t) => t.id.wsId === selectedTable);
 
     if (!table) {
-      setError(`${_.startCase(tableTerm)} not found`);
+      setError(`${startCase(tableTerm)} not found`);
       return;
     }
 

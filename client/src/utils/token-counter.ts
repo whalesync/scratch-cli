@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
 import { PersistedModelOption } from '../types/common';
@@ -67,19 +68,14 @@ export function tokenUsageStats(
 function calculateTokensForRecords(records: ProcessedSnapshotRecord[], model: string): TokenCountResult {
   if (!records) return { tokenCount: 0, charCount: 0, method: 'missing_data', accuracy: 'exact' };
   if (records.length === 0) return { tokenCount: 0, charCount: 0, method: 'empty_array', accuracy: 'exact' };
-
   const [provider, modelName] = model.split('/');
   const encoding = provider === 'openai' ? getEncoding(provider, modelName) : null;
-
   // Clone records and remove __processed_fields to avoid counting them
   const cleanRecords = records.map((r) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { __processed_fields, ...rest } = r;
     return rest;
   });
-
   const allRecordsStringified = JSON.stringify(cleanRecords);
-
   if (!encoding) {
     return {
       tokenCount: estimateTokens(allRecordsStringified),
@@ -88,7 +84,6 @@ function calculateTokensForRecords(records: ProcessedSnapshotRecord[], model: st
       accuracy: 'estimate',
     };
   }
-
   // For small arrays, use exact tiktoken counting
   if (records.length <= 10) {
     const encoded = encoding.encode(JSON.stringify(cleanRecords));
@@ -99,31 +94,26 @@ function calculateTokensForRecords(records: ProcessedSnapshotRecord[], model: st
       accuracy: 'exact',
     };
   }
-
   // For large arrays, use sampling strategy
   // Sample 10 records relatively equally spaced
   const sampleSize = 10;
   const sampledRecords: unknown[] = [];
   const step = (cleanRecords.length - 1) / (sampleSize - 1);
-
   for (let i = 0; i < sampleSize; i++) {
     const index = Math.round(i * step);
     sampledRecords.push(cleanRecords[index]);
   }
-
   // Calculate tokens for the sample
   const sampleJsonStr = JSON.stringify(sampledRecords);
   const sampleEncoded = encoding.encode(sampleJsonStr);
   const sampleTokens = sampleEncoded.length;
-
   // Calculate tokens for all records
   const allLength = allRecordsStringified.length;
   const sampleLength = sampleJsonStr.length;
-
   // Extrapolate: tokens for all = (tokens for sample) * (length of all) / (length of sample)
   const estimatedTokens = Math.round((sampleTokens * allLength) / sampleLength);
-
   return { tokenCount: estimatedTokens, charCount: allLength, method: 'sampling', accuracy: 'estimate' };
+  // return { tokenCount: 0, charCount: 0, method: 'sampling', accuracy: 'estimate' };
 }
 
 /**

@@ -95,10 +95,8 @@ export class ConnectorAccountService {
     });
 
     // Update onboarding flow if user hasn't completed this step yet
-    if (actor.onboarding?.gettingStartedV1?.dataSourceConnected === false) {
-      await this.onboardingService.updateOnboardingFlow(actor.userId, 'gettingStartedV1', {
-        dataSourceConnected: true,
-      });
+    if (actor.onboarding?.gettingStartedV1?.dataSourceConnected?.completed === false) {
+      await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'dataSourceConnected');
     }
 
     return connectorAccount;

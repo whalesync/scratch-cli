@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CredentialEncryptionModule } from 'src/credential-encryption/credential-encryption.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
+import { UserModule } from 'src/users/users.module';
 import { DbModule } from '../db/db.module';
 import { OAuthController } from './oauth.controller';
 import { OAuthService } from './oauth.service';
@@ -11,7 +12,7 @@ import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 
 @Module({
-  imports: [ConfigModule, DbModule, PosthogModule, CredentialEncryptionModule],
+  imports: [ConfigModule, DbModule, PosthogModule, CredentialEncryptionModule, UserModule],
   controllers: [OAuthController],
   providers: [OAuthService, NotionOAuthProvider, WebflowOAuthProvider, WixOAuthProvider, YouTubeOAuthProvider],
   exports: [OAuthService],

@@ -1,4 +1,5 @@
 .badge {
+  width: fit-content;
   height: 22px;
   padding-left: 4px;
   padding-right: 4px;

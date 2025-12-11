@@ -34,6 +34,27 @@
   --bg-removed: var(--bg-reject);
 }
 
+/**
+  ALWAYS DARK OVERRIDE
+  Elements with data-always-dark are always styled with dark theme colors.
+  This only applies when the theme is light, overriding to use dark theme values.
+*/
+[data-mantine-color-scheme='light'] [data-always-dark] {
+  /* Use grayDark palette directly since virtualColor resolves to grayLight in light mode */
+  --fg-primary: rgba(236, 238, 240, 1);
+  --fg-secondary: var(--mantine-color-grayDark-8);
+  --fg-muted: rgba(166, 169, 176, 1);
+  --fg-divider: var(--mantine-color-grayDark-6);
+
+  --bg-base: black;
+  --bg-panel: var(--mantine-color-dark-7);
+  --bg-selected: var(--mantine-color-dark-6);
+  --tooltip-bg: black;
+
+  /* Override actual text color for Mantine components */
+  color: var(--mantine-color-grayDark-9);
+}
+
 /* Dark theme suggestion/change colors */
 [data-mantine-color-scheme='dark'] {
   --fg-accept: var(--mantine-color-green-5);

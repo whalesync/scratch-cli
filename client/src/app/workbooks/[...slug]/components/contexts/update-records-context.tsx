@@ -7,7 +7,7 @@ import {
   UpdateRecordOperation,
 } from '@/types/server-entities/records';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
-import _ from 'lodash';
+import concat from 'lodash/concat';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { SWR_KEYS } from '../../../../../lib/api/keys';
@@ -289,7 +289,7 @@ function optimisticDataForBulkUpdateRecords(
 
   const newRecords = [...existingData.records];
 
-  const ops = _.concat<RecordOperation>(dto.creates, dto.updates, dto.deletes, dto.undeletes);
+  const ops = concat<RecordOperation>(dto.creates, dto.updates, dto.deletes, dto.undeletes);
   for (const op of ops) {
     if (op.op === 'create') {
       console.error('Create operation not supported in optimistic data for bulk update records');

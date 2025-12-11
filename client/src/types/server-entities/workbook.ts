@@ -1,5 +1,5 @@
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
-import _ from 'lodash';
+import { isBoolean, isNumber, toNumber, truncate } from 'lodash';
 import { Service } from './connector-accounts';
 import { EntityId } from './table-list';
 
@@ -234,7 +234,7 @@ export function buildRecordTitle(record: SnapshotRecord): string {
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        const value = _.truncate(record.fields[key] as string, { length: 40 });
+        const value = truncate(record.fields[key] as string, { length: 40 });
         if (value) {
           return value;
         }
@@ -242,7 +242,7 @@ export function buildRecordTitle(record: SnapshotRecord): string {
     }
     const firstValue = Object.values(record.fields)[0];
     if (firstValue) {
-      return _.truncate(firstValue as string, { length: 40 });
+      return truncate(firstValue as string, { length: 40 });
     }
   }
   return record.id.wsId;
@@ -254,7 +254,7 @@ export function getSafeBooleanValue(fields: Record<string, unknown>, columnId: s
     return false;
   }
 
-  if (_.isBoolean(value)) {
+  if (isBoolean(value)) {
     return value as boolean;
   }
 
@@ -271,11 +271,11 @@ export function getSafeNumberValue(
     return defaultValue ?? undefined;
   }
 
-  if (_.isNumber(value)) {
+  if (isNumber(value)) {
     return value as number;
   }
 
-  return _.toNumber(value);
+  return toNumber(value);
 }
 
 // ------------------------------------------------------------

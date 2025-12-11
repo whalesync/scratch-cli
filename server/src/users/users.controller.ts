@@ -6,6 +6,7 @@ import {
   HttpCode,
   NotFoundException,
   Patch,
+  Post,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -16,9 +17,12 @@ import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
+import { CollapseOnboardingStepDto, ValidatedCollapseOnboardingStepDto } from './dto/collapse-onboarding-step.dto';
 import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
+import { OnboardingService } from './onboarding.service';
 import { SubscriptionService } from './subscription.service';
+import { GettingStartedV1StepKey, UserOnboarding } from './types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -30,6 +34,7 @@ export class UsersController {
     private readonly jwtGeneratorService: JwtGeneratorService,
     private readonly experimentsService: ExperimentsService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   @Get('current')
@@ -67,5 +72,17 @@ export class UsersController {
     }
 
     await this.usersService.updateUserSettings(user, dto);
+  }
+
+  @Post('current/onboarding/collapse')
+  @HttpCode(204)
+  async collapseOnboardingStep(@Req() req: RequestWithUser, @Body() dto: CollapseOnboardingStepDto): Promise<void> {
+    const validatedDto = dto as ValidatedCollapseOnboardingStepDto;
+    await this.onboardingService.setStepCollapsed(
+      req.user.id,
+      validatedDto.flow as keyof UserOnboarding,
+      validatedDto.stepKey as GettingStartedV1StepKey,
+      validatedDto.collapsed,
+    );
   }
 }

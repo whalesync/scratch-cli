@@ -1,9 +1,11 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec } from '@/types/server-entities/workbook';
-import { Box, Group } from '@mantine/core';
-import { FC } from 'react';
+import { Box, Group, Tooltip } from '@mantine/core';
+import { FC, useEffect, useRef, useState } from 'react';
 import { Text13Regular } from '../../base/text';
+import { gettingStartedFlowUI } from '../../onboarding/getting-started/getting-started';
+import { OnboardingStepContent } from '../../onboarding/OnboardingStepContent';
 import { ChangeDotsGroup } from '../ChangeDotsGroup/ChangeDotsGroup';
 import { FieldErrorIcon } from '../FieldErrorIcon';
 import { SuggestionButtons } from '../SuggestionButtons';
@@ -18,6 +20,7 @@ type FieldValueWrapperProps = {
   showChangeIndicators?: boolean;
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
+  showOnboardingTooltip?: boolean;
 };
 
 export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
@@ -27,6 +30,7 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   showChangeIndicators = false,
   acceptCellValues,
   rejectCellValues,
+  showOnboardingTooltip = false,
 }) => {
   // const processedFieldValue = processFieldValue(value, record, columnDef);
 
@@ -55,11 +59,57 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
   );
 
   // Single return with all the structure
-  return (
+  const wrapper = (
     <Group className={styles.fieldValueWrapper}>
       {showChangeIndicators && <ChangeDotsGroup changeTypes={processedFieldValue.existingChangeTypes} />}
       <FieldErrorIcon record={record} columnDef={columnDef} />
       <Box className={styles.fieldValueContentWrapper}>{content}</Box>
     </Group>
   );
+
+  // Use intersection observer to hide tooltip when cell scrolls out of grid viewport
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!showOnboardingTooltip || !wrapperRef.current) return;
+
+    // Find the AG Grid viewport container to use as the intersection root
+    const gridViewport = wrapperRef.current.closest('.ag-body-viewport');
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      {
+        root: gridViewport,
+        threshold: 1, // Hide when less than 50% visible
+      },
+    );
+
+    observer.observe(wrapperRef.current);
+
+    return () => observer.disconnect();
+  }, [showOnboardingTooltip]);
+
+  if (showOnboardingTooltip) {
+    return (
+      <Tooltip
+        label={<OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />}
+        opened={isVisible}
+        position="bottom"
+        withArrow
+        withinPortal
+        events={{ hover: false, focus: false, touch: false }}
+        data-always-dark
+        data-onboarding-tooltip
+      >
+        <div ref={wrapperRef} style={{ height: '100%' }}>
+          {wrapper}
+        </div>
+      </Tooltip>
+    );
+  }
+
+  return wrapper;
 };
