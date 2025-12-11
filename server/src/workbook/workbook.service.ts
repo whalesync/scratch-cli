@@ -200,6 +200,7 @@ export class WorkbookService {
     workbookId: WorkbookId,
     addTableDto: ValidatedAddTableToWorkbookDto,
     actor: Actor,
+    options?: { skipDownload?: boolean },
   ): Promise<SnapshotTableCluster.SnapshotTable> {
     const { service, connectorAccountId, tableId } = addTableDto;
 
@@ -267,26 +268,28 @@ export class WorkbookService {
       tableName: snapshotDataTableName,
     });
 
-    // 7. Start downloading records in background for this specific table only
-    try {
-      if (this.configService.getUseJobs()) {
-        await this.bullEnqueuerService.enqueueDownloadRecordsJob(workbookId, actor, [snapshotTableId]);
+    // 7. Start downloading records in background for this specific table only (unless skipDownload is true)
+    if (!options?.skipDownload) {
+      try {
+        if (this.configService.getUseJobs()) {
+          await this.bullEnqueuerService.enqueueDownloadRecordsJob(workbookId, actor, [snapshotTableId]);
+        }
+        WSLogger.info({
+          source: 'WorkbookService.addTableToWorkbook',
+          message: 'Started downloading records for newly added table',
+          workbookId,
+          snapshotTableId,
+        });
+      } catch (error) {
+        WSLogger.error({
+          source: 'WorkbookService.addTableToWorkbook',
+          message: 'Failed to start download job for newly added table',
+          error,
+          workbookId,
+          snapshotTableId,
+        });
+        // Don't fail the addTable operation if download fails - table was still added successfully
       }
-      WSLogger.info({
-        source: 'WorkbookService.addTableToWorkbook',
-        message: 'Started downloading records for newly added table',
-        workbookId,
-        snapshotTableId,
-      });
-    } catch (error) {
-      WSLogger.error({
-        source: 'WorkbookService.addTableToWorkbook',
-        message: 'Failed to start download job for newly added table',
-        error,
-        workbookId,
-        snapshotTableId,
-      });
-      // Don't fail the addTable operation if download fails - table was still added successfully
     }
 
     WSLogger.info({
@@ -1096,6 +1099,76 @@ export class WorkbookService {
   async downloadWithoutJob(id: WorkbookId, actor: Actor): Promise<DownloadWorkbookWithoutJobResult> {
     const workbook = await this.findOneOrThrow(id, actor);
     return this.downloadAllSnapshotTablesInBackground(workbook, actor);
+  }
+
+  /**
+   * Download records for a single snapshot table synchronously (no job queue).
+   * Used for sample data import where we want the API call to be synchronous.
+   */
+  async downloadSingleTableSync(
+    workbookId: WorkbookId,
+    snapshotTableId: string,
+    actor: Actor,
+  ): Promise<{ records: number }> {
+    const workbook = await this.findOneOrThrow(workbookId, actor);
+    const table = workbook.snapshotTables?.find((t) => t.id === snapshotTableId);
+    if (!table) {
+      throw new NotFoundException('Snapshot table not found');
+    }
+
+    const connector = await this.getConnectorForSnapshotTable(table, actor);
+    const tableSpec = table.tableSpec as AnyTableSpec;
+
+    let totalCount = 0;
+
+    try {
+      await connector.downloadTableRecords(
+        tableSpec,
+        table.columnSettings as SnapshotColumnSettingsMap,
+        async (params) => {
+          const { records } = params;
+          await this.snapshotDbService.snapshotDb.upsertRecords(
+            workbookId,
+            { spec: tableSpec, tableName: table.tableName },
+            records,
+          );
+          totalCount += records.length;
+        },
+        {
+          publicProgress: {},
+          jobProgress: {},
+          connectorProgress: {},
+        },
+      );
+
+      // Set lock=null and update lastSyncTime for this table on success
+      await this.db.client.snapshotTable.update({
+        where: { id: table.id },
+        data: {
+          lock: null,
+          lastSyncTime: new Date(),
+        },
+      });
+
+      // Send snapshot-updated event to client
+      this.snapshotEventService.sendSnapshotEvent(workbookId, {
+        type: 'snapshot-updated',
+        data: {
+          tableId: table.id,
+          source: 'agent',
+        },
+      });
+    } catch (error) {
+      // Set lock=null for this table on failure
+      await this.db.client.snapshotTable.update({
+        where: { id: table.id },
+        data: { lock: null },
+      });
+
+      throw exceptionForConnectorError(error, connector);
+    }
+
+    return { records: totalCount };
   }
 
   async download(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<DownloadWorkbookResult> {

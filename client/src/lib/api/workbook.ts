@@ -79,6 +79,16 @@ export const workbookApi = {
     }
   },
 
+  addSampleTable: async (id: WorkbookId): Promise<SnapshotTable> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<SnapshotTable>(`/workbook/${id}/add-sample-table`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to add sample table to workbook');
+    }
+  },
+
   hideTable: async (workbookId: WorkbookId, tableId: SnapshotTableId, hidden: boolean): Promise<Workbook> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();

@@ -22,6 +22,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Service } from '@prisma/client';
 import type { WorkbookId } from '@spinner/shared-types';
 import {
   DIRTY_COLUMN,
@@ -32,12 +33,15 @@ import {
   SUGGESTED_FIELDS_COLUMN,
 } from '@spinner/shared-types';
 import type { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
-import { SnapshotRecord } from '../remote-service/connectors/types';
+import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { UploadsService } from '../uploads/uploads.service';
 import { userToActor } from '../users/types';
 import {
   AcceptCellValueDto,
@@ -85,6 +89,7 @@ export class WorkbookController {
     private readonly service: WorkbookService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly uploadsService: UploadsService,
   ) {}
 
   @Post()
@@ -144,6 +149,59 @@ export class WorkbookController {
     }
 
     const createdTable = await this.service.addTableToWorkbook(id, dto, actor);
+    return new SnapshotTable(createdTable);
+  }
+
+  @Post(':id/add-sample-table')
+  async addSampleTable(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<SnapshotTable> {
+    const actor = userToActor(req.user);
+
+    // Verify the user has access to the workbook
+    const workbook = await this.service.findOne(id, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Read the sample CSV file (use process.cwd() since __dirname points to dist/ at runtime)
+    const sampleFilePath = path.join(process.cwd(), 'src/uploads/the-tactile-desk.csv');
+    const buffer = fs.readFileSync(sampleFilePath);
+
+    // Parse the header row to get column names
+    const content = buffer.toString('utf-8');
+    const firstLine = content.split('\n')[0];
+    const columnNames = firstLine.split(',').map((col) => col.trim().replace(/^"|"$/g, ''));
+
+    // Upload the CSV
+    const uploadResult = await this.uploadsService.uploadCsv(buffer, actor, {
+      uploadName: 'The Tactile Desk',
+      columnNames,
+      columnTypes: columnNames.map(() => PostgresColumnType.TEXT),
+      columnIndices: columnNames.map((_, i) => i),
+      firstRowIsHeader: true,
+      advancedSettings: {},
+    });
+
+    if (!uploadResult.uploadId) {
+      throw new BadRequestException('Failed to upload sample CSV');
+    }
+
+    // Add the uploaded CSV to the workbook (skip async download job)
+    const createdTable = await this.service.addTableToWorkbook(
+      id,
+      {
+        service: Service.CSV,
+        tableId: {
+          wsId: uploadResult.uploadId,
+          remoteId: [uploadResult.uploadId],
+        },
+      },
+      actor,
+      { skipDownload: true },
+    );
+
+    // Download records synchronously so the table is ready when API returns
+    await this.service.downloadSingleTableSync(id, createdTable.id, actor);
+
     return new SnapshotTable(createdTable);
   }
 

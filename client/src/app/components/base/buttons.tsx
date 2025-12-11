@@ -1,8 +1,10 @@
-import { Button } from '@mantine/core';
+import { Box, Button, ButtonProps, Group, Stack } from '@mantine/core';
 import { Cpu } from 'lucide-react';
+import { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
 import customBordersClasses from '../theme/custom-borders.module.css';
 import styles from './buttons.module.css';
+import { Text13Book, Text13Regular } from './text';
 
 export const ButtonPrimarySolid = Button.withProps({
   variant: 'filled',
@@ -122,3 +124,57 @@ export const DevToolButtonGhost = Button.withProps({
   color: 'devTool',
   leftSection: <StyledLucideIcon Icon={Cpu} />,
 });
+export interface ButtonWithDescriptionProps
+  extends ButtonProps,
+    Omit<ComponentPropsWithoutRef<'button'>, keyof ButtonProps> {
+  icon?: ReactNode;
+  title: string;
+  description: string;
+}
+
+export const ButtonWithDescription = ({ icon, title, description, ...props }: ButtonWithDescriptionProps) => {
+  return (
+    <ButtonSecondaryOutline
+      h="auto"
+      py="sm"
+      px="md"
+      {...props}
+      styles={{
+        root: {
+          display: 'flex',
+          height: 'auto',
+          alignItems: 'center',
+        },
+        label: {
+          width: '100%',
+          whiteSpace: 'normal',
+        },
+        inner: {
+          justifyContent: 'flex-start',
+        },
+      }}
+    >
+      <Group align="flex-start" gap="md" wrap="nowrap" w="100%">
+        {icon && (
+          <Box
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: 'calc(var(--mantine-font-size-sm) * 1.3)',
+            }}
+          >
+            {icon}
+          </Box>
+        )}
+        <Stack style={{ textAlign: 'left', flex: 1 }} gap={'xs'}>
+          <Text13Regular size="sm" fw={500} c="var(--fg-primary)" lh={1.3}>
+            {title}
+          </Text13Regular>
+          <Text13Book size="xs" c="var(--fg-muted" lh={1.3}>
+            {description}
+          </Text13Book>
+        </Stack>
+      </Group>
+    </ButtonSecondaryOutline>
+  );
+};

@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/buttons';
-import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
+import { ButtonSecondaryOutline, ButtonWithDescription, IconButtonInline } from '@/app/components/base/buttons';
+import { Text13Book, Text13Medium, Text13Regular, TextMono12Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
@@ -20,6 +20,7 @@ import { timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   Center,
+  Divider,
   Group,
   Loader,
   RenderTreeNodePayload,
@@ -34,6 +35,7 @@ import {
 import { SnapshotTableId } from '@spinner/shared-types';
 import cx from 'classnames';
 import {
+  ArrowRightIcon,
   ChevronDown,
   ChevronRight,
   CloudDownload,
@@ -64,7 +66,7 @@ function createGroupKey(group: TableGroup) {
 }
 
 export const AddTableTab = () => {
-  const { workbook, addTable, unhideTable, deleteTable } = useActiveWorkbook();
+  const { workbook, addTable, addSampleTable, unhideTable, deleteTable } = useActiveWorkbook();
   const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
@@ -187,6 +189,25 @@ export const AddTableTab = () => {
 
   const handleUploadFile = () => {
     modalStack.open('upload');
+  };
+
+  const handleAddSampleTable = async () => {
+    if (!workbook) return;
+
+    try {
+      setIsCreatingTable(true);
+      const snapshotTableId = await addSampleTable();
+      setActiveTab(snapshotTableId);
+      closeNewTabs();
+    } catch (error) {
+      console.error('Failed to add sample table:', error);
+      ScratchpadNotifications.error({
+        title: 'Failed to add sample table',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsCreatingTable(false);
+    }
   };
 
   const treeData: TreeNodeData[] = useMemo(() => {
@@ -347,6 +368,138 @@ export const AddTableTab = () => {
     mutateUploads();
   };
 
+  const contentWithoutExistingSources = (
+    <Stack justify="center" gap="lg" my="md" align="center">
+      <DecorativeBoxedIcon Icon={PlusIcon} />
+      <Stack gap="xs" align="center" w={250}>
+        <Text13Medium ta="center">Add new data source</Text13Medium>
+        <Text13Book c="dimmed" ta="center">
+          Connect a new data source to edit its content in Scratch.
+        </Text13Book>
+      </Stack>
+
+      <Stack w={400}>
+        <ButtonWithDescription
+          title="Connect app"
+          description="Import data from an app"
+          icon={<StyledLucideIcon Icon={PlusIcon} size="md" c={'dimmed'} />}
+          onClick={() => modalStack.open('create')}
+        />
+
+        <ButtonWithDescription
+          title="Upload file"
+          description="Import a CSV table"
+          icon={<StyledLucideIcon Icon={Upload} size="md" c={'dimmed'} />}
+          onClick={handleUploadFile}
+        >
+          Upload file
+        </ButtonWithDescription>
+        <Group w="100%">
+          <Divider style={{ flex: 1 }} />
+          <TextMono12Regular c="primary">OR</TextMono12Regular>
+          <Divider style={{ flex: 1 }} />
+        </Group>
+        <ButtonWithDescription
+          title="Use demo data"
+          description="Try out Scratch with demo data."
+          icon={<StyledLucideIcon Icon={ArrowRightIcon} size="md" c={'dimmed'} />}
+          onClick={handleAddSampleTable}
+        />
+      </Stack>
+    </Stack>
+  );
+  const contentWithExistingSources = (
+    <Stack gap="md" maw={600} mx="auto" h="90%" py="xl">
+      <Stack gap="xs" align="center">
+        <DecorativeBoxedIcon Icon={PlusIcon} />
+        <Text13Medium ta="center">Import table into workbook</Text13Medium>
+        <Text13Book c="dimmed" ta="center">
+          Select a table to open in the workbook.
+        </Text13Book>
+      </Stack>
+
+      {/* Bordered container with search and table list */}
+      <div
+        style={{
+          border: '0.5px solid var(--fg-divider)',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 0%',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Search bar inside container */}
+        <TextInput
+          placeholder="Search tables..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          leftSection={<StyledLucideIcon Icon={SearchIcon} size="sm" />}
+          variant="unstyled"
+          styles={{
+            input: {
+              borderBottom: '0.5px solid var(--fg-divider)',
+              borderRadius: 0,
+              paddingLeft: 'var(--mantine-spacing-xl)',
+            },
+          }}
+        />
+
+        {isLoading ? (
+          <Center py="xl">
+            <Loader size="sm" />
+          </Center>
+        ) : (
+          <div style={{ position: 'relative', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {isCreatingTable && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <LoaderWithMessage centered message="Creating table..." />
+              </div>
+            )}
+            {treeData.length > 0 ? (
+              <ScrollArea style={{ flex: 1 }}>
+                <Tree data={treeData} tree={tree} renderNode={renderNode} classNames={{ node: styles.treeNode }} />
+              </ScrollArea>
+            ) : searchQuery ? (
+              <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+                No tables found matching &quot;{searchQuery}&quot;
+              </Text13Regular>
+            ) : (
+              <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
+                No tables available from your connections.
+              </Text13Regular>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <Group justify="center" gap="sm" my="md">
+        <ButtonSecondaryOutline
+          leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
+          onClick={() => modalStack.open('create')}
+        >
+          New data source
+        </ButtonSecondaryOutline>
+        <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
+          Upload file
+        </ButtonSecondaryOutline>
+      </Group>
+    </Stack>
+  );
+
   return (
     <>
       <CreateConnectionModal
@@ -359,97 +512,7 @@ export const AddTableTab = () => {
         onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
         {...deleteTableModal}
       />
-      <Stack gap="md" maw={600} mx="auto" h="90%" py="xl">
-        <Stack gap="xs" align="center">
-          <DecorativeBoxedIcon Icon={PlusIcon} />
-          <Text13Medium ta="center">Import table into workbook</Text13Medium>
-          <Text13Book c="dimmed" ta="center">
-            Select a table to open in the workbook.
-          </Text13Book>
-        </Stack>
-
-        {/* Bordered container with search and table list */}
-        <div
-          style={{
-            border: '0.5px solid var(--fg-divider)',
-            display: 'flex',
-            flexDirection: 'column',
-            flex: '1 1 0%',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Search bar inside container */}
-          <TextInput
-            placeholder="Search tables..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            leftSection={<StyledLucideIcon Icon={SearchIcon} size="sm" />}
-            variant="unstyled"
-            styles={{
-              input: {
-                borderBottom: '0.5px solid var(--fg-divider)',
-                borderRadius: 0,
-                paddingLeft: 'var(--mantine-spacing-xl)',
-              },
-            }}
-          />
-
-          {isLoading ? (
-            <Center py="xl">
-              <Loader size="sm" />
-            </Center>
-          ) : (
-            <div
-              style={{ position: 'relative', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-            >
-              {isCreatingTable && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    zIndex: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <LoaderWithMessage centered message="Creating table..." />
-                </div>
-              )}
-              {treeData.length > 0 ? (
-                <ScrollArea style={{ flex: 1 }}>
-                  <Tree data={treeData} tree={tree} renderNode={renderNode} classNames={{ node: styles.treeNode }} />
-                </ScrollArea>
-              ) : searchQuery ? (
-                <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-                  No tables found matching &quot;{searchQuery}&quot;
-                </Text13Regular>
-              ) : (
-                <Text13Regular c="dimmed" ta="center" py="xl" px="sm">
-                  No tables available from your connections.
-                </Text13Regular>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        <Group justify="center" gap="sm" my="md">
-          <ButtonSecondaryOutline
-            leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
-            onClick={() => modalStack.open('create')}
-          >
-            New data source
-          </ButtonSecondaryOutline>
-          <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
-            Upload file
-          </ButtonSecondaryOutline>
-        </Group>
-      </Stack>
+      {groupedTables.length === 0 ? contentWithoutExistingSources : contentWithExistingSources}
     </>
   );
 };
