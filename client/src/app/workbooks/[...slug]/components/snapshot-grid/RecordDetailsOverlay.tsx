@@ -3,14 +3,14 @@
 import { TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable } from '@/types/server-entities/workbook';
-import { Box, Divider, Paper, ScrollArea } from '@mantine/core';
+import { Box, Divider, Group, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useEffect, useRef } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
 import { RECORD_DETILE_SIDEBAR_W } from '../record-details/record-detail-constants';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
-import { RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
+import { RECORD_SUGGESTION_TOOLBAR_HEIGHT, RecordSuggestionToolbar } from '../RecordSuggestionToolbar';
 
 type Props = {
   width: string;
@@ -108,50 +108,53 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
         position: 'absolute',
         top: 0,
         right: 0,
+        bottom: 0,
         width, // Dynamically calculated width
-        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 1000,
+        borderLeft: '0.5px solid var(--fg-divider)',
+        backgroundColor: 'var(--bg-base)',
       }}
     >
-      <Paper
-        style={{
-          width: '100%',
-          borderRadius: 0,
-          height: '100%',
-          borderLeft: '0.5px solid var(--mantine-color-gray-3)',
-        }}
-      >
-        <Box>
-          <RecordDetailsHeader
-            h={HEADER_HEIGHT}
-            table={table.tableSpec}
-            columnId={activeCells.columnId}
-            onSwitchColumn={handleFieldFocus}
-            onClose={handleCloseRecordDetails}
-            hiddenColumns={table.hiddenColumns}
-          />
+      <Paper w="100%" h={hasSuggestions ? `calc(100% - ${RECORD_SUGGESTION_TOOLBAR_HEIGHT}px)` : `100%`} bdrs={0}>
+        <Group gap={0} w="100%" align="stretch" h="100%">
+          <Box w={6} bg="var(--bg-panel)" />
+          <Box flex={1} style={{ borderLeft: '0.5px solid var(--fg-divider)' }}>
+            <RecordDetailsHeader
+              h={HEADER_HEIGHT}
+              table={table.tableSpec}
+              columnId={activeCells.columnId}
+              onSwitchColumn={handleFieldFocus}
+              onClose={handleCloseRecordDetails}
+              hiddenColumns={table.hiddenColumns}
+            />
 
-          <Box p={0} style={{ position: 'relative', height: '100%' }}>
-            {selectedRecord && !activeCells.columnId && (
-              <Divider orientation="vertical" left={RECORD_DETILE_SIDEBAR_W} top={0} bottom={0} pos="absolute" />
-            )}
-            <ScrollArea h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`} type="hover" scrollbars="y">
-              <RecordDetails
-                workbookId={workbookId}
-                currentRecord={selectedRecord}
-                table={table}
-                currentColumnId={activeCells.columnId}
-                acceptCellValues={acceptCellValues}
-                rejectCellValues={rejectCellValues}
-                onFocusOnField={handleFieldFocus}
-                onRecordUpdate={handleRecordUpdate}
-                focusTargetRef={focusTargetRef}
-              />
-            </ScrollArea>
+            <Box p={0} style={{ position: 'relative' }}>
+              {selectedRecord && !activeCells.columnId && (
+                <Divider orientation="vertical" left={RECORD_DETILE_SIDEBAR_W} top={0} bottom={0} pos="absolute" />
+              )}
+              <ScrollArea
+                // NOTE: This calc seems nutty.
+                h={hasSuggestions ? `calc(100vh - 190px)` : `calc(100vh - 150px)`}
+                type="hover"
+                scrollbars="y"
+              >
+                <RecordDetails
+                  workbookId={workbookId}
+                  currentRecord={selectedRecord}
+                  table={table}
+                  currentColumnId={activeCells.columnId}
+                  acceptCellValues={acceptCellValues}
+                  rejectCellValues={rejectCellValues}
+                  onFocusOnField={handleFieldFocus}
+                  onRecordUpdate={handleRecordUpdate}
+                  focusTargetRef={focusTargetRef}
+                />
+              </ScrollArea>
+            </Box>
           </Box>
-        </Box>
+        </Group>
       </Paper>
       {hasSuggestions && (
         <RecordSuggestionToolbar
@@ -163,7 +166,6 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
             bottom: 0,
             left: 0,
             right: 0,
-            height: 44,
           }}
         />
       )}
