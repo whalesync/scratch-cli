@@ -1,6 +1,7 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea, TextAreaRef } from '@/app/components/EnhancedTextArea';
+import { HtmlViewer } from '@/app/components/HtmlViewer';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
@@ -59,6 +60,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
   const hasEditedValue = !!record.__edited_fields?.[columnId];
   const hasSuggestion = !!record.__suggested_values?.[columnId];
   const processedFieldValue = record.__processed_fields[columnId];
+  const isHtmlColumn = column.metadata?.textFormat === 'html';
 
   // Calculate aggregate changes for the entire record (similar to IdValueWrapper)
   const recordChangeTypes: ExistingChangeTypes = {};
@@ -307,6 +309,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
               </ScrollArea>
               {suggestionButtons}
             </Stack>
+          ) : isHtmlColumn ? (
+            <HtmlViewer value={currentValue ?? ''} readOnly={true} minHeight="100px" />
           ) : (
             <EnhancedTextArea
               flex={1}
@@ -333,6 +337,13 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
               </ScrollArea>
               {suggestionButtons}
             </Stack>
+          ) : isHtmlColumn ? (
+            <HtmlViewer
+              value={currentValue ?? ''}
+              onChange={(value) => updateField(columnId, value)}
+              readOnly={column.readonly}
+              minHeight="300px"
+            />
           ) : (
             <EnhancedTextArea
               ref={focusTargetRef}
@@ -353,7 +364,14 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     }
   }
 
-  const textInputField = (
+  const textInputField = isHtmlColumn ? (
+    <HtmlViewer
+      value={currentValue ?? ''}
+      onChange={(value) => updateField(columnId, value)}
+      readOnly={column.readonly || hasSuggestion}
+      minHeight="150px"
+    />
+  ) : (
     <EnhancedTextArea
       ref={focusTargetRef}
       flex={1}
@@ -373,6 +391,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
       <Anchor className={styles.recordValueDisplay} href={currentValue} target="_blank">
         {currentValue}
       </Anchor>
+    ) : mode === 'multiple' && isHtmlColumn ? (
+      <HtmlViewer value={currentValue ?? ''} readOnly={true} minHeight="100px" />
     ) : mode === 'multiple' ? (
       <Text13Regular>{currentValue}</Text13Regular>
     ) : (
