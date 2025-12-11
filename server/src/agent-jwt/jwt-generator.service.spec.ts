@@ -38,6 +38,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_123',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       const token = service.generateToken(payload);
@@ -54,6 +55,23 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'admin_456',
         role: UserRole.ADMIN,
+        availableModels: [],
+      };
+
+      const token = service.generateToken(payload);
+
+      expect(token).toBe('mock.jwt.token');
+      expect(jwtService.sign).toHaveBeenCalledWith(payload, {
+        secret: mockSecret,
+        expiresIn: mockExpiresIn,
+      });
+    });
+
+    it('should generate token with restricted models for free plan', () => {
+      const payload: AgentJwtPayload = {
+        userId: 'free_user_123',
+        role: UserRole.USER,
+        availableModels: ['openai/gpt-4o-mini', 'openai/gpt-4o'],
       };
 
       const token = service.generateToken(payload);
@@ -69,6 +87,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_789',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       service.generateToken(payload);
@@ -80,6 +99,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_789',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       service.generateToken(payload);
@@ -97,6 +117,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_custom',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       service.generateToken(payload);
@@ -111,6 +132,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_with-special_chars.123',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       const token = service.generateToken(payload);
@@ -127,6 +149,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: longUserId,
         role: UserRole.USER,
+        availableModels: [],
       };
 
       const token = service.generateToken(payload);
@@ -147,6 +170,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_123',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       const token = service.generateToken(payload);
@@ -160,11 +184,13 @@ describe('JwtGeneratorService', () => {
       const payload1: AgentJwtPayload = {
         userId: 'user_1',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       const payload2: AgentJwtPayload = {
         userId: 'user_2',
         role: UserRole.ADMIN,
+        availableModels: ['openai/gpt-4o'],
       };
 
       const token1 = service.generateToken(payload1);
@@ -179,6 +205,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_123',
         role: UserRole.USER,
+        availableModels: [],
       };
 
       service.generateToken(payload);
@@ -192,6 +219,7 @@ describe('JwtGeneratorService', () => {
       const payload: AgentJwtPayload = {
         userId: 'user_exact',
         role: UserRole.ADMIN,
+        availableModels: ['anthropic/claude-3-5-sonnet'],
       };
 
       service.generateToken(payload);

@@ -15,6 +15,18 @@ settings = get_settings()
 class AgentUser(BaseModel):
     userId: str
     role: str
+    # List of allowed model IDs. Empty list means all models are allowed (paid plans).
+    # Non-empty list means only those specific models are allowed (free plan).
+    availableModels: List[str] = []
+
+    def is_model_allowed(self, model_id: str) -> bool:
+        """
+        Check if a specific model is allowed for this user's subscription.
+        Empty availableModels list means all models are allowed.
+        """
+        if not self.availableModels:
+            return True  # Empty = all models allowed (paid plans)
+        return model_id in self.availableModels
 
 
 def decode_and_validate_agent_jwt(jwt_token: str) -> Optional[AgentUser]:

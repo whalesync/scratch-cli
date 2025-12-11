@@ -17,6 +17,7 @@ import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
+import { getAvailableModelsForUser } from 'src/users/subscription-utils';
 import { CollapseOnboardingStepDto, ValidatedCollapseOnboardingStepDto } from './dto/collapse-onboarding-step.dto';
 import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
@@ -44,9 +45,12 @@ export class UsersController {
     }
 
     // Generate a JWT for the client to pass to the agent
+    // Include availableModels so the agent can validate model selection
+    const availableModels = getAvailableModelsForUser(req.user);
     const agentJwt = this.jwtGeneratorService.generateToken({
       userId: req.user.id,
       role: req.user.role,
+      availableModels,
     });
 
     const flagValues = await this.experimentsService.resolveClientFeatureFlagsForUser(req.user);

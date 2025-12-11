@@ -299,6 +299,25 @@ async def websocket_endpoint(
                     manager.disconnect(session_id, websocket)
                     return
 
+                # Validate that the requested model is allowed for this user's subscription
+                if request.model and not message_user.is_model_allowed(request.model):
+                    logger.warning(
+                        f"Model access denied. User {message_user.userId} attempted to use model '{request.model}' but only has access to: {message_user.availableModels}"
+                    )
+                    await manager.send_message(
+                        json.dumps(
+                            {
+                                "type": "agent_error",
+                                "data": {
+                                    "detail": f"Model '{request.model}' is not available on your current plan. Please upgrade your subscription or select a different model.",
+                                },
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            }
+                        ),
+                        session_id,
+                    )
+                    continue  # Don't disconnect, just reject this message
+
                 # TODO: check if the message user is the same as the connecting user
 
                 if request.capabilities:
