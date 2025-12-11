@@ -4,8 +4,8 @@ import capitalize from 'lodash/capitalize';
 
 import { Text9Regular, TextMono12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/hooks/use-agent-chat-websocket';
 import { useDevTools } from '@/hooks/use-dev-tools';
+import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/types/agent-websocket';
 import { ChatMessage } from '@/types/server-entities/agent';
 import { timeAgo } from '@/utils/helpers';
 import { formatTokenCount } from '@/utils/token-counter';

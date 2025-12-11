@@ -15,7 +15,6 @@ import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import { AgentProgressMessageData, useAIAgentChatWebSocket, WebSocketMessage } from '@/hooks/use-agent-chat-websocket';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { useSubscription } from '@/hooks/use-subscription';
@@ -28,7 +27,9 @@ import {
   trackSendMessage,
   trackStartAgentSession,
 } from '@/lib/posthog';
+import { useAgentChatWebSocketStore } from '@/stores/agent-chat-websocket-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { AgentProgressMessageData, WebSocketMessage } from '@/types/agent-websocket';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
@@ -180,18 +181,22 @@ export default function AIChatPanel() {
     [scrollToBottom, refreshSessions],
   );
 
-  const {
-    connectionStatus,
-    connectionError,
-    connect,
-    disconnect,
-    messageHistory,
-    sendPing,
-    sendAiAgentMessage,
-    clearChat,
-  } = useAIAgentChatWebSocket({
-    onMessage: handleWebsocketMessage,
-  });
+  // All the state variables and API actions for the Agent Websocket
+  const connectionStatus = useAgentChatWebSocketStore((state) => state.connectionStatus);
+  const connectionError = useAgentChatWebSocketStore((state) => state.connectionError);
+  const messageHistory = useAgentChatWebSocketStore((state) => state.messageHistory);
+  const connect = useAgentChatWebSocketStore((state) => state.connect);
+  const disconnect = useAgentChatWebSocketStore((state) => state.disconnect);
+  const sendAiAgentMessage = useAgentChatWebSocketStore((state) => state.sendAiAgentMessage);
+  const sendPing = useAgentChatWebSocketStore((state) => state.sendPing);
+  const clearChat = useAgentChatWebSocketStore((state) => state.clearChat);
+  const addMessageHandler = useAgentChatWebSocketStore((state) => state.addMessageHandler);
+
+  useEffect(() => {
+    // return a cleanup function that removes the message handler when the component unmounts
+    const cleanup = addMessageHandler(handleWebsocketMessage);
+    return () => cleanup();
+  }, [addMessageHandler, handleWebsocketMessage]);
 
   useEffect(() => {
     if (resetInputFocus && connectionStatus === 'connected') {
