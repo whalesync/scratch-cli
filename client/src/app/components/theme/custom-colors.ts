@@ -71,8 +71,8 @@ export const CUSTOM_GRAY_LIGHT: MantineColorsTuple = [
   '#02051229', // Figma gray/6 (light)
   '#02051242', // Figma gray/7 (light)
   // '#02051252', // Figma gray/8 (light)
-  '#02051175', // Figma gray/9 (light)
-  '#02051180', // Figma gray/10 (light)
+  '#8B8C92', // Figma gray/9 (light)
+  '#808288', // Figma gray/10 (light)
   '#62646B', // Figma gray/11 (light)
   '#1C1F25', // Figma gray/12 (light)
 ];
@@ -86,8 +86,8 @@ export const CUSTOM_GRAY_DARK: MantineColorsTuple = [
   '#E2E8F333', // Figma gray/6 (dark)
   '#E1E6F042', // Figma gray/7 (dark)
   // '#DFE5F261', // Figma gray/8 (dark)
-  '#DEE5F370', // Figma gray/9 (dark)
-  '#DCE0E999', // Figma gray/10 (dark)
+  '#70747C', // Figma gray/9 (dark)
+  '#8E9298', // Figma gray/10 (dark)
   '#A6A9B0', // Figma gray/11 (dark)
   '#ECEEF0', // Figma gray/12 (dark)
 ];
