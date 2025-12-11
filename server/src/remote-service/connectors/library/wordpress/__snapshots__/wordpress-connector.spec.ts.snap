@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`WordPressConnector fetchTableSpec should fetch and parse the table spec for a post type 1`] = `
 {
@@ -127,6 +127,7 @@ exports[`WordPressConnector fetchTableSpec should fetch and parse the table spec
     {
       "dataConverterTypes": [
         "html",
+        "markdown",
       ],
       "id": {
         "remoteId": [
@@ -145,6 +146,7 @@ exports[`WordPressConnector fetchTableSpec should fetch and parse the table spec
     {
       "dataConverterTypes": [
         "html",
+        "markdown",
       ],
       "id": {
         "remoteId": [
@@ -177,6 +179,7 @@ exports[`WordPressConnector fetchTableSpec should fetch and parse the table spec
     {
       "dataConverterTypes": [
         "html",
+        "markdown",
       ],
       "id": {
         "remoteId": [

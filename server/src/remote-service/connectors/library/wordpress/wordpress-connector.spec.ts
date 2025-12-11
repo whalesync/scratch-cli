@@ -78,7 +78,7 @@ describe('WordPressConnector', () => {
   });
 
   describe('downloadTableRecords', () => {
-    it('should download records and transform basic fields', async () => {
+    it('should download records and keep basic fields as HTML', async () => {
       // Minimal table spec with just title field
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
@@ -115,9 +115,9 @@ describe('WordPressConnector', () => {
       const records = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records;
       expect(records).toHaveLength(2);
       expect(records[0].id).toBe('1');
-      expect(records[0].fields.title).toBe('# Test Post'); // HTML stripped by turndown mock
+      expect(records[0].fields.title).toBe('<h1>Test Post</h1>');
       expect(records[1].id).toBe('2');
-      expect(records[1].fields.title).toBe('# Another Post');
+      expect(records[1].fields.title).toBe('<h1>Another Post</h1>');
     });
 
     it('should handle pagination correctly', async () => {
@@ -153,7 +153,7 @@ describe('WordPressConnector', () => {
       expect(callbackArg.connectorProgress?.nextOffset).toBeUndefined();
     });
 
-    it('should handle rendered content conversion to markdown by default', async () => {
+    it('should keep rendered content as HTML by default', async () => {
       const mockTableSpec: WordPressTableSpec = {
         id: MOCK_ENTITY_ID,
         name: 'Posts',
@@ -175,8 +175,8 @@ describe('WordPressConnector', () => {
       await connector.downloadTableRecords(mockTableSpec, {}, callback);
 
       const record = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records[0];
-      // Should be converted to markdown (HTML tags stripped by mock)
-      expect(record.fields.content).toBe('# Heading\n\nParagraph content');
+      // Should default to HTML
+      expect(record.fields.content).toBe('<h1>Heading</h1><p>Paragraph content</p>');
     });
 
     it('should keep rendered content as HTML when dataConverter is html', async () => {
@@ -646,9 +646,15 @@ describe('WordPressConnector', () => {
         },
       ];
 
+      const columnSettingsMap = {
+        content: {
+          dataConverter: 'markdown',
+        },
+      };
+
       mockClient.updateRecord.mockResolvedValue(undefined);
 
-      await connector.updateRecords(mockTableSpec, {}, recordsToUpdate);
+      await connector.updateRecords(mockTableSpec, columnSettingsMap, recordsToUpdate);
 
       const requestBody = mockClient.updateRecord.mock.calls[0][2] as WordPressRecord;
       // Markdown should be converted to HTML

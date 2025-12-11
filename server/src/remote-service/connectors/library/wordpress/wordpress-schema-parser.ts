@@ -16,6 +16,12 @@ import {
   WordPressGetTypesApiResponse,
 } from './wordpress-types';
 
+export enum WORDPRESS_RICH_TEXT_TARGET {
+  // Default:
+  HTML = 'html',
+  MARKDOWN = 'markdown',
+}
+
 /**
  * Parse the table IDs and display names from the WordPress Types API.
  * The table ID matches the REST endpoint so we can use it directly in subsequent requests.
@@ -137,12 +143,12 @@ function parseColumnFromArgument(columnId: string, arg: WordPressArgument, isAcf
     case WordPressDataType.RENDERED:
       pgType = PostgresColumnType.TEXT;
       metadata = { textFormat: 'html' };
-      dataConverterTypes = ['html'];
+      dataConverterTypes = Object.values(WORDPRESS_RICH_TEXT_TARGET);
       break;
     case WordPressDataType.RENDERED_INLINE:
       pgType = PostgresColumnType.TEXT;
       metadata = { textFormat: 'html' };
-      dataConverterTypes = ['html'];
+      dataConverterTypes = Object.values(WORDPRESS_RICH_TEXT_TARGET);
       break;
     case WordPressDataType.EMAIL:
       pgType = PostgresColumnType.TEXT;

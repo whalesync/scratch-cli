@@ -15,7 +15,11 @@ import {
   WORDPRESS_REMOTE_CUSTOM_FIELDS_ID,
 } from './wordpress-constants';
 import { WordPressHttpClient } from './wordpress-http-client';
-import { parseColumnsFromTableId, parseTableInfoFromTypes } from './wordpress-schema-parser';
+import {
+  parseColumnsFromTableId,
+  parseTableInfoFromTypes,
+  WORDPRESS_RICH_TEXT_TARGET,
+} from './wordpress-schema-parser';
 import { WordPressDataType, WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
@@ -213,11 +217,14 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
           if (value && typeof value === 'object' && 'rendered' in value) {
             const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
             const rendered = (value as { rendered: string }).rendered;
-            if (dataConverter === 'html') {
-              record.fields[column.id.wsId] = rendered;
-            } else {
-              const markdownContent = String(this.turndownService.turndown(rendered));
-              record.fields[column.id.wsId] = markdownContent;
+            switch (dataConverter) {
+              case WORDPRESS_RICH_TEXT_TARGET.MARKDOWN:
+                record.fields[column.id.wsId] = String(this.turndownService.turndown(rendered));
+                break;
+              case WORDPRESS_RICH_TEXT_TARGET.HTML:
+              default:
+                record.fields[column.id.wsId] = rendered;
+                break;
             }
           } else {
             record.fields[column.id.wsId] = value;
@@ -252,13 +259,19 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
         column.wordpressDataType === WordPressDataType.RENDERED_INLINE
       ) {
         const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-        if (dataConverter === 'html') {
-          wpRecord[remoteId] = value;
-        } else {
-          const converter = MarkdownIt({});
-          const inline = column.wordpressDataType === WordPressDataType.RENDERED_INLINE;
-          const markdownContent = inline ? converter.renderInline(String(value)) : converter.render(String(value));
-          wpRecord[remoteId] = markdownContent;
+        switch (dataConverter) {
+          case WORDPRESS_RICH_TEXT_TARGET.MARKDOWN: {
+            const converter = MarkdownIt({});
+            const inline = column.wordpressDataType === WordPressDataType.RENDERED_INLINE;
+            const markdownContent = inline ? converter.renderInline(String(value)) : converter.render(String(value));
+            wpRecord[remoteId] = markdownContent;
+            break;
+          }
+          case WORDPRESS_RICH_TEXT_TARGET.HTML:
+          default: {
+            wpRecord[remoteId] = value;
+            break;
+          }
         }
       } else {
         wpRecord[remoteId] = value;
