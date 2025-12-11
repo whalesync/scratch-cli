@@ -1,5 +1,8 @@
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
-import { isBoolean, isNumber, toNumber, truncate } from 'lodash';
+import isBoolean from 'lodash/isBoolean';
+import isNumber from 'lodash/isNumber';
+import toNumber from 'lodash/toNumber';
+import truncate from 'lodash/truncate';
 import { Service } from './connector-accounts';
 import { EntityId } from './table-list';
 

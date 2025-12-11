@@ -37,6 +37,12 @@ const eslintConfig = [
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: 'lodash',
+              message: `Use "import fnName from 'lodash/functionName' instead`,
+            },
+          ],
           patterns: [
             {
               group: ['**/packages/shared-types/**'],
