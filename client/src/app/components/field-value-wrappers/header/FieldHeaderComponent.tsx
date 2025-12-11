@@ -1,18 +1,17 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { ChangeDotsGroup } from '@/app/components/field-value-wrappers/ChangeDotsGroup/ChangeDotsGroup';
 import { hasAnyChange } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec, SnapshotRecord } from '@/types/server-entities/workbook';
 import { Box, Group, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import { IHeaderParams } from 'ag-grid-community';
 import isEqual from 'lodash/isEqual';
-import { AlertCircle, EyeOff, PenOffIcon } from 'lucide-react';
+import { AlertCircle, EyeOffIcon, PenOffIcon } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
+import styles from './FieldHeaderComponent.module.css';
 import { HeaderMenu } from './FieldHeaderMenu';
-import styles from './header.module.css';
 
 interface CustomHeaderComponentProps extends IHeaderParams {
   tableId?: SnapshotTableId;
@@ -93,22 +92,20 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   };
 
   const infoIcons = (
-    <Group gap={5} wrap="nowrap" align="center" style={{ flexShrink: 0, flex: '1 1 auto', minWidth: 0 }}>
-      {props.enableSorting && (
+    <>
+      {props.enableSorting && (currentSort === 'asc' || currentSort === 'desc') && (
         <Box c="var(--fg-secondary)" style={{ flexShrink: 0 }}>
           {currentSort === 'asc' && '↑'}
           {currentSort === 'desc' && '↓'}
         </Box>
       )}
-      {/* Flexible spacer that shrinks to 0 */}
-      <Box style={{ flex: '1 1 auto', minWidth: 0 }} />
       {/* Column extra info, e.g. required */}
       {props.columnSpec?.required && (
         // {true && (
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', gap: '2px' }}>
           <Tooltip label="This field is required" position="top" withArrow>
             <span style={{ marginLeft: '2px', display: 'flex', alignItems: 'center' }}>
-              <StyledLucideIcon Icon={AlertCircle} size={12} />
+              <AlertCircle size={12} />
             </span>
           </Tooltip>
         </div>
@@ -118,7 +115,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', gap: '2px' }}>
           <Tooltip label="This field is readonly" position="top" withArrow>
             <span style={{ marginLeft: '2px', display: 'flex', alignItems: 'center' }}>
-              <StyledLucideIcon Icon={PenOffIcon} size={12} />
+              <PenOffIcon size={12} />
             </span>
           </Tooltip>
         </div>
@@ -126,22 +123,17 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
 
       {isColumnHidden && (
         <span title="Column is hidden">
-          <StyledLucideIcon Icon={EyeOff} size={12} c="#666" />
+          <EyeOffIcon size={12} />
         </span>
       )}
-      {/* Placeholder for menu button - creates space when not hovered so menu appears in line with icons */}
-      {isHovered && <Box style={{ width: '24px', height: '24px', flexShrink: 0 }} />}
-    </Group>
+    </>
   );
 
   return (
     <Group
-      className={styles.headerWrapper}
+      className={styles.fieldHeader}
       wrap="nowrap"
       gap="xs"
-      style={{
-        cursor: props.enableSorting ? 'pointer' : 'default',
-      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={props.enableSorting ? handleHeaderClick : undefined}
@@ -152,14 +144,20 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
           <ChangeDotsGroup changeTypes={columnChangeTypes[columnId]} />
         </Box>
       )}
-      <Box style={{ overflow: 'hidden', minWidth: 0, flexShrink: 1, flexGrow: 0 }}>
-        <Text13Regular
-          c="var(--fg-secondary)"
-          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-        >
-          {props.displayName}
-        </Text13Regular>
-      </Box>
+      <Text13Regular
+        c="var(--fg-secondary)"
+        style={{
+          overflow: 'hidden',
+          minWidth: 0,
+          flexShrink: 1,
+          flexGrow: 0,
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {props.displayName}
+      </Text13Regular>
+
       {infoIcons}
 
       <HeaderMenu

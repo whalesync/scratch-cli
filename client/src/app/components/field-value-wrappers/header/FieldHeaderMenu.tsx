@@ -6,7 +6,7 @@ import { ColumnSpec, SnapshotColumnSettingsMap, SnapshotRecord, Workbook } from 
 import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import capitalize from 'lodash/capitalize';
-import { CheckIcon, EyeOffIcon, MoreVertical, StarIcon, TrashIcon, XIcon } from 'lucide-react';
+import { CheckIcon, EyeOffIcon, MoreVerticalIcon, StarIcon, TrashIcon, XIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { IconButtonInline } from '../../base/buttons';
 
@@ -62,6 +62,8 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { isDevToolsEnabled } = useDevTools();
+
+  const shouldShow = isHovered || isMenuOpen;
 
   // Check if any record has suggestions for this column
   const recordsWithSuggestions = (records || []).filter((record) => {
@@ -265,17 +267,24 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
     ];
   }, [hasDataConverterTypes, columnSpec?.dataConverterTypes]);
 
-  if (!(isHovered || isMenuOpen)) {
-    return null;
+  const target = (
+    <IconButtonInline
+      size="compact-xs"
+      onClick={(e) => e.stopPropagation()}
+      style={{ visibility: shouldShow ? 'visible' : 'hidden' }}
+      ml="auto"
+    >
+      <MoreVerticalIcon size={14} />
+    </IconButtonInline>
+  );
+
+  if (!shouldShow) {
+    return target;
   }
 
   return (
     <Menu opened={isMenuOpen} onChange={setIsMenuOpen} withinPortal>
-      <Menu.Target>
-        <IconButtonInline size="compact-xs" onClick={(e) => e.stopPropagation()}>
-          <StyledLucideIcon Icon={MoreVertical} size={14} />
-        </IconButtonInline>
-      </Menu.Target>
+      <Menu.Target>{target}</Menu.Target>
 
       <Menu.Dropdown data-always-dark onClick={(e) => e.stopPropagation()}>
         {hasColumnSuggestions && (

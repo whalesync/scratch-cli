@@ -1,11 +1,12 @@
-.headerWrapper {
+.fieldHeader {
   position: relative;
   display: flex;
   height: 100%;
   width: 100%;
   align-items: center;
   padding-left: 8px;
-  padding-right: 8px;
+  padding-right: 0px;
   gap: 8px;
   flex: 1;
+  cursor: pointer;
 }

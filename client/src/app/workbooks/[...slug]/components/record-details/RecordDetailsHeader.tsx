@@ -1,7 +1,6 @@
 import { IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { TableSpec } from '@/types/server-entities/workbook';
 import { Anchor, Breadcrumbs, Center, Group, StyleProp, Tooltip } from '@mantine/core';
@@ -103,7 +102,7 @@ export const RecordDetailsHeader = ({
               {currentColumn.readonly && (
                 <Tooltip label="This field is readonly" position="top" withArrow>
                   <span style={{ display: 'flex', alignItems: 'center' }}>
-                    <StyledLucideIcon Icon={PenOffIcon} size={12} />
+                    <PenOffIcon size={12} />
                   </span>
                 </Tooltip>
               )}
