@@ -25,6 +25,7 @@ build and test client:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - client/**/*
+        - packages/**/*
         - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
@@ -65,6 +66,7 @@ build client docker image for test:
       changes:
         - client/Dockerfile.monorepo
         - client/package.json
+        - packages/**/*
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
@@ -136,6 +138,7 @@ build and test server:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - server/**/*
+        - packages/**/*
         - gitlab-ci/stages/01-build-and-test.yml
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
