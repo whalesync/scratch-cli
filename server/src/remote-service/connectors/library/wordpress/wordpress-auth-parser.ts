@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { AuthParser } from '../../connector';
 import { ConnectorInstantiationError } from '../../error';
 import { WordPressHttpClient } from './wordpress-http-client';

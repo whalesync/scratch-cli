@@ -22,7 +22,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Service } from '@prisma/client';
 import type {
   ValidatedAcceptCellValueDto,
   ValidatedAcceptCellValueItem,
@@ -56,6 +55,7 @@ import {
   RemoveScratchColumnDto,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
+  Service,
   SetActiveRecordsFilterDto,
   SetTableViewStateDto,
   SetTitleColumnDto,

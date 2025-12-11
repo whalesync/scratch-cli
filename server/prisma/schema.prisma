@@ -14,10 +14,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/enums
+/// Begin "keep in sync" section
+///
+
 enum UserRole {
   USER
   ADMIN
 }
+
+enum TokenType {
+  AGENT // For AI agents
+  WEBSOCKET // For client web socket connections
+  USER // For user API tokens
+}
+
+enum AiAgentCredentialSource {
+  USER
+  SYSTEM
+}
+
+enum Service {
+  NOTION
+  AIRTABLE
+  CSV
+  POSTGRES
+  YOUTUBE
+  WORDPRESS
+  WEBFLOW
+  WIX_BLOG
+}
+
+enum AuthType {
+  API_KEY // Deprecated
+  OAUTH
+  USER_PROVIDED_PARAMS
+}
+
+enum ConnectorHealthStatus {
+  OK
+  FAILED
+}
+
+enum ActionType {
+  PUBLISH
+}
+
+///
+/// End "keep in sync" section
+///
 
 model User {
   id                      String                   @id // type: UserId
@@ -46,12 +92,6 @@ model User {
   uploads                 Upload[]
 }
 
-enum TokenType {
-  AGENT // For AI agents
-  WEBSOCKET // For client web socket connections
-  USER // For user API tokens
-}
-
 model APIToken {
   id        String    @id // type: APITokenId
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -64,11 +104,6 @@ model APIToken {
 
   @@unique([token])
   @@index([userId])
-}
-
-enum AiAgentCredentialSource {
-  USER
-  SYSTEM
 }
 
 // Defines a set of credentials for the AI agent to use instead of the default ones, such as an OpenRouter API key
@@ -111,28 +146,6 @@ model ConnectorAccount {
 
   @@index([userId])
   @@index([organizationId])
-}
-
-enum Service {
-  NOTION
-  AIRTABLE
-  CSV
-  POSTGRES
-  YOUTUBE
-  WORDPRESS
-  WEBFLOW
-  WIX_BLOG
-}
-
-enum AuthType {
-  API_KEY // Deprecated
-  OAUTH
-  USER_PROVIDED_PARAMS
-}
-
-enum ConnectorHealthStatus {
-  OK
-  FAILED
 }
 
 model Workbook {
@@ -382,10 +395,6 @@ model Organization {
   subscriptions     Subscription[]
   invoiceResults    InvoiceResult[]
   actions           Action[]
-}
-
-enum ActionType {
-  PUBLISH
 }
 
 /// org's actions that are billable and we need to account for.

@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Service } from '@prisma/client';
-import { ValidatedWixPublishDraftPostsDto, WorkbookId } from '@spinner/shared-types';
+import { Service, ValidatedWixPublishDraftPostsDto, WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
@@ -34,7 +33,7 @@ export class WixCustomActionsService {
     const connectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, actor);
 
     // Verify it's a Wix Blog connector
-    this.validateWixBlogService(connectorAccount);
+    this.validateWixBlogService({ service: connectorAccount.service as Service });
 
     // Get the table spec from the snapshot table (it's stored as JSON)
     const tableSpec = snapshotTable.tableSpec as unknown as WixBlogTableSpec;

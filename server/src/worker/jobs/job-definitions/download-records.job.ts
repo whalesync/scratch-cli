@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { WorkbookId } from '@spinner/shared-types';
+import { Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
@@ -180,7 +180,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       }
 
       const connector = await this.connectorService.getConnector({
-        service,
+        service: service as Service,
         connectorAccount: decryptedConnectorAccount,
         decryptedCredentials: decryptedConnectorAccount,
         userId: data.userId,

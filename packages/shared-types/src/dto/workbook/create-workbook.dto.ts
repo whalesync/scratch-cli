@@ -1,6 +1,6 @@
 import { IsArray, IsOptional, IsString } from 'class-validator';
-import type { ConnectorAccountId } from '../../ids';
 import type { EntityId } from '../../connector-types';
+import type { ConnectorAccountId } from '../../ids';
 
 export class CreateWorkbookDto {
   @IsOptional()

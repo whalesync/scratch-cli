@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Service, Upload } from '@prisma/client';
-import { ScratchPlanType, createCsvFileRecordId } from '@spinner/shared-types';
+import { Upload } from '@prisma/client';
+import { ScratchPlanType, Service, createCsvFileRecordId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';

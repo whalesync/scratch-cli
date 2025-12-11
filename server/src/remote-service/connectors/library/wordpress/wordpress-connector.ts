@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import MarkdownIt from 'markdown-it';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';

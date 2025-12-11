@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { CsvConnector } from './library/csv/csv-connector';
 import { NotionConnector } from './library/notion/notion-connector';

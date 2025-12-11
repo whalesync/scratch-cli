@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';

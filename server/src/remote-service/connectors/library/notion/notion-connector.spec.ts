@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { ConnectorRecord, PostgresColumnType } from '../../types';
 import { NotionTableSpec } from '../custom-spec-registry';
 import { NotionConnector } from './notion-connector';

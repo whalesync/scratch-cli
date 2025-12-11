@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Service } from '@prisma/client';
 import {
   createSnapshotTableId,
   createUploadId,
@@ -12,6 +11,7 @@ import {
   REMOTE_ID_COLUMN,
   RESERVED_COLUMN_NAMES,
   SCRATCH_ID_COLUMN,
+  Service,
   SnapshotTableId,
   UploadCsvDto,
   UploadCsvResponseDto,

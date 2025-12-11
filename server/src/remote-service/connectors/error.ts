@@ -1,5 +1,5 @@
 import { InternalServerErrorException } from '@nestjs/common';
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { AxiosError, HttpStatusCode } from 'axios';
 import _, { isString } from 'lodash';
 import { Connector } from './connector';

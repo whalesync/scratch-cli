@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthType, ConnectorAccount, Service } from '@prisma/client';
-import { createConnectorAccountId, ValidatedOAuthInitiateOptionsDto } from '@spinner/shared-types';
+import { AuthType, ConnectorAccount } from '@prisma/client';
+import { createConnectorAccountId, Service, ValidatedOAuthInitiateOptionsDto } from '@spinner/shared-types';
 import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';

@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Service } from '@prisma/client';
-import { ValidatedWebflowPublishItemsDto, ValidatedWebflowPublishSiteDto, WorkbookId } from '@spinner/shared-types';
+import {
+  Service,
+  ValidatedWebflowPublishItemsDto,
+  ValidatedWebflowPublishSiteDto,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
@@ -34,7 +38,7 @@ export class WebflowCustomActionsService {
     const connectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, actor);
 
     // Verify it's a Webflow connector
-    this.validateWebflowService(connectorAccount);
+    this.validateWebflowService({ service: connectorAccount.service as Service });
 
     // Get the table spec from the snapshot table (it's stored as JSON)
     const tableSpec = snapshotTable.tableSpec as unknown as WebflowTableSpec;
@@ -102,7 +106,7 @@ export class WebflowCustomActionsService {
     const connectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, actor);
 
     // Verify it's a Webflow connector
-    this.validateWebflowService(connectorAccount);
+    this.validateWebflowService({ service: connectorAccount.service as Service });
 
     // Get the access token
     const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);

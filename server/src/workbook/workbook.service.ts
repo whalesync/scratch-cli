@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
+import { ConnectorAccount, Prisma, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
 import {
   BulkUpdateRecordsDto,
@@ -17,6 +17,7 @@ import {
   REMOTE_ID_COLUMN,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
+  Service,
   SetActiveRecordsFilterDto,
   SnapshotTableId,
   SUGGESTED_FIELDS_COLUMN,
@@ -97,7 +98,7 @@ export class WorkbookService {
             throw new NotFoundException('Connector account not found');
           }
           connector = await this.connectorService.getConnector({
-            service: connectorAccount.service,
+            service: connectorAccount.service as Service,
             connectorAccount,
             decryptedCredentials: connectorAccount,
           });
@@ -229,7 +230,7 @@ export class WorkbookService {
       if (!connectorAccount) {
         throw new NotFoundException('Connector account not found');
       }
-      if (connectorAccount.service !== service) {
+      if ((connectorAccount.service as Service) !== service) {
         throw new BadRequestException('Connector account service does not match requested service');
       }
     }
@@ -756,7 +757,7 @@ export class WorkbookService {
     const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
 
     const connector = await this.connectorService.getConnector({
-      service: snapshotTable.connectorService,
+      service: snapshotTable.connectorService as Service,
       connectorAccount: snapshotTable.connectorAccount,
       decryptedCredentials: null,
     });
@@ -1514,7 +1515,7 @@ export class WorkbookService {
       : null;
 
     return this.connectorService.getConnector({
-      service: table.connectorService,
+      service: table.connectorService as Service,
       connectorAccount: connectorAccountWithCreds,
       decryptedCredentials: connectorAccountWithCreds,
       userId: actor.userId,

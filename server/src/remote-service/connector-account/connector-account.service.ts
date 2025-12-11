@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { AuthType, ConnectorAccount, Service } from '@prisma/client';
+import { AuthType, ConnectorAccount } from '@prisma/client';
 import {
   ConnectorAccountId,
   createConnectorAccountId,
+  Service,
   UpdateConnectorAccountDto,
   ValidatedCreateConnectorAccountDto,
 } from '@spinner/shared-types';
@@ -170,7 +171,7 @@ export class ConnectorAccountService {
       message: `Updated connection ${account.displayName}`,
       entityId: account.id as ConnectorAccountId,
       context: {
-        service: account.service,
+        service: account.service as Service,
         authType: account.authType,
         changedFields: Object.keys(updateDto),
       },
@@ -188,7 +189,7 @@ export class ConnectorAccountService {
       where: { id, organizationId: actor.organizationId },
     });
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, actor.userId, {
-      service: account.service,
+      service: account.service as Service,
     });
 
     await this.auditLogService.logEvent({
@@ -206,16 +207,16 @@ export class ConnectorAccountService {
 
     // Fetch tables from all connector accounts in parallel
     const tablePromises = allAccounts.map((account) =>
-      this.listTables(account.service, account.id, actor)
+      this.listTables(account.service as Service, account.id, actor)
         .then((tables) => ({
-          service: account.service,
+          service: account.service as Service,
           connectorAccountId: account.id,
           displayName: account.displayName,
           tables,
         }))
         .catch(() => ({
           // Return empty tables if listTables fails
-          service: account.service,
+          service: account.service as Service,
           connectorAccountId: account.id,
           displayName: account.displayName,
           tables: [] as TablePreview[],
@@ -292,7 +293,7 @@ export class ConnectorAccountService {
     const account = await this.findOne(id, actor);
     try {
       const connector = await this.connectorsService.getConnector({
-        service: account.service,
+        service: account.service as Service,
         connectorAccount: account,
         decryptedCredentials: account,
       });

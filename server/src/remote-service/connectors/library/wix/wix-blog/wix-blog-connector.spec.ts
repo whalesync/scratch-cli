@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import type { DraftPost } from '@wix/auto_sdk_blog_draft-posts';
 import { ConnectorRecord, PostgresColumnType } from '../../../types';
 import { WixBlogTableSpec } from '../../custom-spec-registry';

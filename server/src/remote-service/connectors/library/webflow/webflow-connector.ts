@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import MarkdownIt from 'markdown-it';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';

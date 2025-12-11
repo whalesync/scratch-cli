@@ -1,4 +1,5 @@
-import { ConnectorAccount, Service } from '@prisma/client';
+import { ConnectorAccount } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from '../../workbook/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';

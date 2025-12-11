@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AuthType, ConnectorAccount, Service } from '@prisma/client';
+import { AuthType, ConnectorAccount } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { DbService } from '../../db/db.service';
 import { OAuthService } from '../../oauth/oauth.service';
 import { UploadsDbService } from '../../uploads/uploads-db.service';

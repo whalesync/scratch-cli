@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { TablePreview } from '../../connectors/types';
 
 export type TableList = {

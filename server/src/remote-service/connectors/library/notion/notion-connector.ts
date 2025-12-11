@@ -8,7 +8,7 @@ import {
   RequestTimeoutError,
 } from '@notionhq/client';
 import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import TurndownService from 'turndown';

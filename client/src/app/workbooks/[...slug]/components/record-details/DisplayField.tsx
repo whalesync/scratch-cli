@@ -1,9 +1,9 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea, TextAreaRef } from '@/app/components/EnhancedTextArea';
-import { HtmlViewer } from '@/app/components/HtmlViewer';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
+import { HtmlViewer } from '@/app/components/HtmlViewer';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import {
   formatFieldValue,

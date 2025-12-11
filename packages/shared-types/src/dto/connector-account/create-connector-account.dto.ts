@@ -1,5 +1,5 @@
-import { AuthType, Service } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { AuthType, Service } from '../../enums';
 
 export class CreateConnectorAccountDto {
   @IsEnum(Service)

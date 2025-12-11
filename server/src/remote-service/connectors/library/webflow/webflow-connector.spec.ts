@@ -1,4 +1,4 @@
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { Webflow } from 'webflow-api';
 import { ConnectorRecord, PostgresColumnType } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';

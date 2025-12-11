@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
-import { type WorkbookId, createActionId } from '@spinner/shared-types';
+import { Service, type WorkbookId, createActionId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { JsonSafeObject } from '../../../utils/objects';
@@ -214,7 +214,7 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
       }
 
       const connector = await this.connectorService.getConnector({
-        service,
+        service: service as Service,
         connectorAccount: decryptedConnectorAccount,
         decryptedCredentials: decryptedConnectorAccount,
         userId: data.userId,

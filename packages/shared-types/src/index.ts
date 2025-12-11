@@ -3,6 +3,9 @@
 // Import reflect-metadata for class-validator decorators in DTOs
 import 'reflect-metadata';
 
+// Enums shared between client and server
+export * from './enums';
+
 export * from './agent-credentials';
 export * from './agent-usage-events';
 export * from './connector-account-types';

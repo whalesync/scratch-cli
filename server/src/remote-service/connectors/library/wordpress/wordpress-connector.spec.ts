@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Service } from '@prisma/client';
+import { Service } from '@spinner/shared-types';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ConnectorRecord, PostgresColumnType } from '../../types';

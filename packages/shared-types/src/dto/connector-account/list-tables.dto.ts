@@ -1,5 +1,5 @@
-import { Service } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Service } from '../../enums';
 
 export class ListTablesDto {
   @IsEnum(Service)
