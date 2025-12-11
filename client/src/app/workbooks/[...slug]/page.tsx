@@ -10,9 +10,9 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
-import { SnapshotEventProvider } from '@/app/workbooks/[...slug]/components/contexts/snapshot-event-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { useDevTools } from '@/hooks/use-dev-tools';
+import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
@@ -192,6 +192,10 @@ export default function WorkbookPage() {
   const reconcileWithWorkbook = useWorkbookEditorUIStore((state) => state.reconcileWithWorkbook);
   const closeNavDrawer = useLayoutManagerStore((state) => state.closeNavDrawer);
 
+  // Workbook WebSocket store connection
+  const connectWorkbookWebSocket = useWorkbookWebSocketStore((state) => state.connect);
+  const disconnectWorkbookWebSocket = useWorkbookWebSocketStore((state) => state.disconnect);
+
   useEffect(() => {
     openWorkbook(params);
 
@@ -203,6 +207,15 @@ export default function WorkbookPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.workbookId, openWorkbook, closeWorkbook, closeNavDrawer]);
 
+  // Connect to workbook WebSocket for this workbook
+  useEffect(() => {
+    connectWorkbookWebSocket(params.workbookId);
+
+    return () => {
+      disconnectWorkbookWebSocket();
+    };
+  }, [params.workbookId, connectWorkbookWebSocket, disconnectWorkbookWebSocket]);
+
   const { workbook } = useWorkbook(params.workbookId);
   useEffect(() => {
     if (workbook) {
@@ -212,15 +225,13 @@ export default function WorkbookPage() {
 
   return (
     <AgentChatContextProvider workbookId={params.workbookId}>
-      <SnapshotEventProvider workbookId={params.workbookId}>
-        <AIAgentSessionManagerProvider workbookId={params.workbookId}>
-          <UpdateRecordsProvider>
-            <WorkbookPageContent />
-            <PublishWorkbookWorkflow />
-            <WorkbookEditorModals />
-          </UpdateRecordsProvider>
-        </AIAgentSessionManagerProvider>
-      </SnapshotEventProvider>
+      <AIAgentSessionManagerProvider workbookId={params.workbookId}>
+        <UpdateRecordsProvider>
+          <WorkbookPageContent />
+          <PublishWorkbookWorkflow />
+          <WorkbookEditorModals />
+        </UpdateRecordsProvider>
+      </AIAgentSessionManagerProvider>
     </AgentChatContextProvider>
   );
 }

@@ -125,7 +125,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     // send a confirmation message to the client
     client.emit('snapshot-event-subscription-confirmed', {
       workbookId,
-      message: 'subscribed to snapshot events',
+      message: 'subscribed to workbook events',
     });
 
     const snapshotTables = snapshot.snapshotTables ?? [];
