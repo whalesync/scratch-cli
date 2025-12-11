@@ -106,14 +106,14 @@ const ConfirmRefreshModal = ({
           <>
             <ButtonSecondaryOutline onClick={onClose}>Cancel</ButtonSecondaryOutline>
             <ButtonPrimaryLight onClick={handleConfirm} disabled={selectedTableIds.length === 0}>
-              Download
+              Refresh data
             </ButtonPrimaryLight>
           </>
         ),
       }}
       opened={isOpen}
       onClose={onClose}
-      title="Select tables to fetch"
+      title="Select tables to refresh"
     >
       <Stack gap="md">
         <Stack gap="xs">

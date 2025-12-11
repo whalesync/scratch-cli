@@ -30,11 +30,11 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       case 'waiting':
         return 'Job is waiting to start...';
       case 'active':
-        return 'Downloading data...';
+        return 'Fetching data...';
       case 'completed':
-        return 'Download completed successfully!';
+        return 'Refresh completed successfully!';
       case 'failed':
-        return `Download failed: ${job.failedReason || 'Unknown error'}`;
+        return `Refresh failed: ${job.failedReason || 'Unknown error'}`;
       case 'delayed':
         return 'Job is delayed...';
       case 'paused':
