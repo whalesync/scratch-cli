@@ -1,27 +1,15 @@
-import { SnapshotRecordId } from '@spinner/shared-types';
+import type { EntityId } from '@spinner/shared-types';
+import { PostgresColumnType, SnapshotRecordId } from '@spinner/shared-types';
 import { EditedFieldsMetadata } from 'src/workbook/snapshot-db';
+
+// Re-export from shared-types for backwards compatibility
+export { PostgresColumnType };
+export type { EntityId };
 
 export type TablePreview = {
   id: EntityId;
   displayName: string;
   metadata?: Record<string, unknown>;
-};
-
-/** ID for a table or column. It contains both our internal postgres ID and whatever path info the connector needs. */
-export type EntityId = {
-  /**
-   * The id for whalesync to use for this table.
-   * This must be a valid and easy to use identifier in postgres.
-   * It should be human readable and friendly.
-   * Consider putting the
-   */
-  wsId: string;
-
-  /**
-   * The id for the table in the connector.
-   * It is an array so the connector can use it as a path.
-   */
-  remoteId: string[];
 };
 
 export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
@@ -44,17 +32,6 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   titleColumnRemoteId?: EntityId['remoteId'];
 };
 
-/** Types of columns we support. Add more if needed. */
-export enum PostgresColumnType {
-  TEXT = 'text',
-  TEXT_ARRAY = 'text[]',
-  NUMERIC = 'numeric',
-  NUMERIC_ARRAY = 'numeric[]',
-  BOOLEAN = 'boolean',
-  BOOLEAN_ARRAY = 'boolean[]',
-  JSONB = 'jsonb',
-  TIMESTAMP = 'timestamp',
-}
 /** This is being passed to the agent as a string.
  * make sure we don't add any actionable properties here.
  * e.g. writeable: true would make the agent belive that the column is writable.

@@ -12,13 +12,17 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  CreateConnectorAccountDto,
+  ListTablesDto,
+  UpdateConnectorAccountDto,
+  ValidatedListTablesDto,
+  type ValidatedCreateConnectorAccountDto,
+} from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { userToActor } from '../../users/types';
 import { ConnectorAccountService } from './connector-account.service';
-import { CreateConnectorAccountDto, type ValidatedCreateConnectorAccountDto } from './dto/create-connector-account.dto';
-import { ListTablesDto, ValidatedListTablesDto } from './dto/list-tables.dto';
-import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { ConnectorAccount } from './entities/connector-account.entity';
 import { TableGroup, TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';

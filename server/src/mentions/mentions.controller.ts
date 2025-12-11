@@ -1,13 +1,14 @@
 import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
+import {
+  MentionsSearchRecordsRequestDto,
+  MentionsSearchResourcesRequestDto,
+  ValidatedMentionsSearchRecordsRequestDto,
+  ValidatedMentionsSearchResourcesRequestDto,
+} from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { userToActor } from 'src/users/types';
-import { MentionsSearchRecordsRequestDto, ValidatedMentionsSearchRecordsRequestDto } from './dto/record-search.dto';
-import {
-  MentionsSearchResourcesRequestDto,
-  ValidatedMentionsSearchResourcesRequestDto,
-} from './dto/resource-search.dto';
 import { RecordMentionEntity, ResourceMentionEntity } from './entities/mentions.entity';
 import { MentionsService } from './mentions.service';
 

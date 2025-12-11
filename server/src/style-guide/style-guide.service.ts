@@ -6,7 +6,12 @@ import {
   RequestTimeoutException,
 } from '@nestjs/common';
 import Parser from '@postlight/parser';
-import { createStyleGuideId, StyleGuideId, ValidatedCreateStyleGuideDto } from '@spinner/shared-types';
+import {
+  createStyleGuideId,
+  StyleGuideId,
+  UpdateStyleGuideDto,
+  ValidatedCreateStyleGuideDto,
+} from '@spinner/shared-types';
 import axios, { AxiosError, HttpStatusCode } from 'axios';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { WSLogger } from 'src/logger';
@@ -14,7 +19,6 @@ import { Actor } from 'src/users/types';
 import { isValidHttpUrl } from 'src/utils/urls';
 import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
-import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { ExternalContent } from './entities/external-content.entity';
 import { StyleGuide } from './entities/style-guide.entity';
 

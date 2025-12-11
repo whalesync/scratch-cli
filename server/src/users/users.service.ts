@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TokenType, UserRole } from '@prisma/client';
-import { createApiTokenId, createOrganizationId, createUserId } from '@spinner/shared-types';
+import { createApiTokenId, createOrganizationId, createUserId, UpdateSettingsDto } from '@spinner/shared-types';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
@@ -9,7 +9,6 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { DbService } from '../db/db.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { generateApiToken, generateTokenExpirationDate, generateWebsocketTokenExpirationDate } from './tokens';
 import { DEFAULT_GETTING_STARTED_V1, UserOnboarding, UserSettings } from './types';
 

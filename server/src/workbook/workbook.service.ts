@@ -3,18 +3,28 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ConnectorAccount, Prisma, Service, SnapshotTable } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
 import {
+  BulkUpdateRecordsDto,
   CREATED_FIELD,
   createSnapshotTableId,
   createWorkbookId,
   DELETED_FIELD,
   DIRTY_COLUMN,
   EDITED_FIELDS_COLUMN,
+  ImportSuggestionsResponseDto,
   METADATA_COLUMN,
+  PublishSummaryDto,
+  RecordOperation,
   REMOTE_ID_COLUMN,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
+  SetActiveRecordsFilterDto,
   SnapshotTableId,
   SUGGESTED_FIELDS_COLUMN,
+  UpdateRecordOperation,
+  UpdateWorkbookDto,
+  ValidatedAddScratchColumnDto,
+  ValidatedAddTableToWorkbookDto,
+  ValidatedCreateWorkbookDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import type { Response } from 'express';
@@ -47,14 +57,6 @@ import {
 } from '../remote-service/connectors/types';
 import { DownloadRecordsPublicProgress } from '../worker/jobs/job-definitions/download-records.job';
 import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
-import { ValidatedAddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
-import { BulkUpdateRecordsDto, RecordOperation, UpdateRecordOperation } from './dto/bulk-update-records.dto';
-import { ValidatedCreateWorkbookDto } from './dto/create-workbook.dto';
-import { ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
-import { PublishSummaryDto } from './dto/publish-summary.dto';
-import { ValidatedAddScratchColumnDto } from './dto/scratch-column.dto';
-import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
-import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { DEFAULT_COLUMNS } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';

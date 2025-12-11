@@ -12,11 +12,10 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { CreateStyleGuideDto, ValidatedCreateStyleGuideDto } from '@spinner/shared-types';
+import { CreateStyleGuideDto, UpdateStyleGuideDto, ValidatedCreateStyleGuideDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
-import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
 import { StyleGuideService } from './style-guide.service';
 
 @Controller('style-guides')

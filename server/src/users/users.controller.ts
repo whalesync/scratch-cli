@@ -12,14 +12,18 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { BillableActions } from '@spinner/shared-types';
+import {
+  BillableActions,
+  CollapseOnboardingStepDto,
+  UpdateSettingsDto,
+  ValidatedCollapseOnboardingStepDto,
+  ValidatedUpdateSettingsDto,
+} from '@spinner/shared-types';
 import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
 import { getAvailableModelsForUser } from 'src/users/subscription-utils';
-import { CollapseOnboardingStepDto, ValidatedCollapseOnboardingStepDto } from './dto/collapse-onboarding-step.dto';
-import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from './dto/update-settings.dto';
 import { User } from './entities/user.entity';
 import { OnboardingService } from './onboarding.service';
 import { SubscriptionService } from './subscription.service';

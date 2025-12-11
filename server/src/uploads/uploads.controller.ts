@@ -18,21 +18,23 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  CreateWorkbookFromCsvDto,
+  CreateWorkbookFromCsvResponseDto,
+  CsvAdvancedSettings,
+  ListUploadsResponseDto,
+  PreviewCsvResponseDto,
+  PreviewMdResponseDto,
+  type UploadCsvDto,
+  UploadCsvResponseDto,
+  UploadMdResponseDto,
+  ValidatedCreateWorkbookFromCsvDto,
+} from '@spinner/shared-types';
 import type { Response } from 'express';
 import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
-import {
-  CreateWorkbookFromCsvDto,
-  CreateWorkbookFromCsvResponseDto,
-  ValidatedCreateWorkbookFromCsvDto,
-} from './dto/create-workbook-from-csv.dto';
-import { ListUploadsResponseDto } from './dto/list-uploads.dto';
-import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
-import { PreviewMdResponseDto } from './dto/preview-md.dto';
-import { CsvAdvancedSettings, type UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
-import { UploadMdResponseDto } from './dto/upload-md.dto';
 import { UploadsService } from './uploads.service';
 
 @Controller('uploads')

@@ -1,6 +1,6 @@
-import { ConnectorAccountId } from '@spinner/shared-types';
 import { IsArray, IsOptional, IsString } from 'class-validator';
-import type { EntityId } from '../../remote-service/connectors/types';
+import type { ConnectorAccountId } from '../../ids';
+import type { EntityId } from '../../connector-types';
 
 export class CreateWorkbookDto {
   @IsOptional()

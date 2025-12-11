@@ -5,3 +5,7 @@ export class CreateCheckoutSessionDto {
   @IsOptional()
   returnPath?: string;
 }
+
+export type CreateCheckoutSessionResponse = {
+  url: string;
+};

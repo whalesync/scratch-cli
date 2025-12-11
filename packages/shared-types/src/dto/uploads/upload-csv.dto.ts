@@ -1,4 +1,4 @@
-import { PostgresColumnType } from 'src/remote-service/connectors/types';
+import { PostgresColumnType } from '../../connector-types';
 
 export interface CsvAdvancedSettings {
   relaxColumnCount?: boolean;

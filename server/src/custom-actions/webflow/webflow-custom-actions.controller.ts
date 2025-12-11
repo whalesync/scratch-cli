@@ -1,9 +1,13 @@
 import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  ValidatedWebflowPublishItemsDto,
+  ValidatedWebflowPublishSiteDto,
+  WebflowPublishItemsDto,
+  WebflowPublishSiteDto,
+} from '@spinner/shared-types';
 import { userToActor } from 'src/users/types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
-import { ValidatedWebflowPublishItemsDto, WebflowPublishItemsDto } from './dto/publish-items.dto';
-import { ValidatedWebflowPublishSiteDto, WebflowPublishSiteDto } from './dto/publish-site.dto';
 import { WebflowCustomActionsService } from './webflow-custom-actions.service';
 
 @Controller('custom-actions/webflow')

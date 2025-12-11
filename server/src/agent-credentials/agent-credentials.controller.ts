@@ -15,6 +15,11 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  CreateAgentCredentialDto,
+  UpdateAgentCredentialDto,
+  ValidatedCreateAgentCredentialDto,
+} from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { WSLogger } from 'src/logger';
@@ -22,8 +27,6 @@ import { OpenRouterService } from 'src/openrouter/openrouter.service';
 import { isErr } from 'src/types/results';
 import { userToActor } from '../users/types';
 import { AgentCredentialsService } from './agent-credentials.service';
-import { CreateAgentCredentialDto, ValidatedCreateAgentCredentialDto } from './dto/create-agent-credential.dto';
-import { UpdateAgentCredentialDto } from './dto/update-agent-credential.dto';
 import { AgentCredentialEntity, CreditUsageEntity } from './entities/credentials.entity';
 
 @Controller('user/credentials')

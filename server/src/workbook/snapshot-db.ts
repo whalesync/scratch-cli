@@ -11,6 +11,7 @@ import {
   METADATA_COLUMN,
   OLD_REMOTE_ID_COLUMN,
   ORIGINAL_COLUMN,
+  RecordOperation,
   REMOTE_ID_COLUMN,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
@@ -32,7 +33,6 @@ import {
   RecordErrorsMetadata,
   SnapshotRecord,
 } from '../remote-service/connectors/types';
-import { RecordOperation } from './dto/bulk-update-records.dto';
 
 // Knex returns numbers as strings by default, we'll need to parse them to get native types.
 types.setTypeParser(1700, 'text', parseFloat); // NUMERIC

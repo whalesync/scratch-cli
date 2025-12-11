@@ -1,5 +1,5 @@
-import { ScratchPlanType } from '@spinner/shared-types';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { ScratchPlanType } from '../../subscription';
 
 export class CreatePortalDto {
   @IsString()
@@ -14,3 +14,7 @@ export class CreatePortalDto {
   @IsOptional()
   planType?: ScratchPlanType;
 }
+
+export type CreateCustomerPortalUrlResponse = {
+  url: string;
+};

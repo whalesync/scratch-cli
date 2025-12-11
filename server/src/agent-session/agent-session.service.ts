@@ -2,9 +2,8 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
+import { UpdateAgentSessionDto, ValidatedCreateAgentSessionDto } from '@spinner/shared-types';
 import { DbService } from '../db/db.service';
-import { ValidatedCreateAgentSessionDto } from './dto/create-agent-session.dto';
-import { UpdateAgentSessionDto } from './dto/update-agent-session.dto';
 import { AgentSessionEntity } from './entities/agent-session.entity';
 
 @Injectable()

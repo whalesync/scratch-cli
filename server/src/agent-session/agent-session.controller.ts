@@ -12,10 +12,9 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { CreateAgentSessionDto, UpdateAgentSessionDto, ValidatedCreateAgentSessionDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import { AgentSessionService } from './agent-session.service';
-import { CreateAgentSessionDto, ValidatedCreateAgentSessionDto } from './dto/create-agent-session.dto';
-import { UpdateAgentSessionDto } from './dto/update-agent-session.dto';
 import { AgentSessionEntity } from './entities/agent-session.entity';
 
 @Controller('agent-sessions')

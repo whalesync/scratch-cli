@@ -1,6 +1,11 @@
 import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount, Service } from '@prisma/client';
-import { ConnectorAccountId, createConnectorAccountId } from '@spinner/shared-types';
+import {
+  ConnectorAccountId,
+  createConnectorAccountId,
+  UpdateConnectorAccountDto,
+  ValidatedCreateConnectorAccountDto,
+} from '@spinner/shared-types';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
@@ -16,8 +21,6 @@ import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
 import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
-import { ValidatedCreateConnectorAccountDto } from './dto/create-connector-account.dto';
-import { UpdateConnectorAccountDto } from './dto/update-connector-account.dto';
 import { TableGroup } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 import { DecryptedCredentials } from './types/encrypted-credentials.interface';

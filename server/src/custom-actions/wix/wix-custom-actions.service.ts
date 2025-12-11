@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
-import { WorkbookId } from '@spinner/shared-types';
+import { ValidatedWixPublishDraftPostsDto, WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
@@ -8,7 +8,6 @@ import { WixBlogTableSpec } from 'src/remote-service/connectors/library/custom-s
 import { WixCustomActions } from 'src/remote-service/connectors/library/wix/custom-actions';
 import { Actor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
-import { ValidatedWixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 
 @Injectable()
 export class WixCustomActionsService {

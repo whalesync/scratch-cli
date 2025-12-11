@@ -9,13 +9,10 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { CreateAgentTokenUsageEventDto, ValidatedCreateAgentTokenUsageEventDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { AgentTokenUsageService } from './agent-token-usage.service';
-import {
-  CreateAgentTokenUsageEventDto,
-  ValidatedCreateAgentTokenUsageEventDto,
-} from './dto/create-agent-token-usage-event.dto';
 
 @Controller('agent-token-usage')
 @UseGuards(ScratchpadAuthGuard)

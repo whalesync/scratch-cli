@@ -1,5 +1,5 @@
+import { CsvAdvancedSettings } from '@spinner/shared-types';
 import { Parser } from 'csv-parse';
-import { CsvAdvancedSettings } from '../dto/upload-csv.dto';
 
 export interface ParserOptions {
   relaxColumnCount?: boolean;

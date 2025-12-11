@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { createInvoiceResultId, createSubscriptionId, SubscriptionId } from '@spinner/shared-types';
+import { createInvoiceResultId, CreatePortalDto, createSubscriptionId, SubscriptionId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -25,7 +25,6 @@ import {
 } from 'src/types/results';
 import { userToActor } from 'src/users/types';
 import Stripe from 'stripe';
-import { CreatePortalDto } from './dto/create-portal.dto';
 import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
 import { getFreePlan, getPlan, getPlans, ScratchPlanType } from './plans';
 

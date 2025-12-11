@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { PostgresColumnType } from 'src/remote-service/connectors/types';
+import { PostgresColumnType } from '../../connector-types';
 
 export class AddScratchColumnDto {
   @IsString()

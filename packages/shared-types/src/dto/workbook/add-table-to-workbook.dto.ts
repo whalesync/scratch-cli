@@ -1,6 +1,6 @@
 import { Service } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import type { EntityId } from '../../remote-service/connectors/types';
+import type { EntityId } from '../../connector-types';
 
 export class AddTableToWorkbookDto {
   @IsNotEmpty()

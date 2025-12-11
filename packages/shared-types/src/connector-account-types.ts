@@ -1,0 +1,17 @@
+// Types related to connector accounts
+
+export interface DecryptedCredentials {
+  apiKey?: string;
+  // WordPress specific
+  username?: string;
+  password?: string;
+  endpoint?: string;
+
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  oauthExpiresAt?: string; // ISO string
+  oauthWorkspaceId?: string;
+  // Optional custom OAuth app credentials (plaintext in memory only, encrypted at rest)
+  customOAuthClientId?: string;
+  customOAuthClientSecret?: string;
+}

@@ -23,14 +23,45 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Service } from '@prisma/client';
-import type { WorkbookId } from '@spinner/shared-types';
+import type {
+  ValidatedAcceptCellValueDto,
+  ValidatedAcceptCellValueItem,
+  ValidatedAddScratchColumnDto,
+  ValidatedAddTableToWorkbookDto,
+  ValidatedDeepFetchRecordsDto,
+  ValidatedHandleRemoteDeletesDto,
+  ValidatedRejectCellValueDto,
+  ValidatedRejectCellValueItem,
+  ValidatedRemoveScratchColumnDto,
+  ValidatedSetTitleColumnDto,
+  ValidatedUpdateColumnSettingsDto,
+  WorkbookId,
+} from '@spinner/shared-types';
 import {
+  AcceptCellValueDto,
+  AddScratchColumnDto,
+  BulkUpdateRecordsDto,
+  CreateWorkbookDto,
+  DeepFetchRecordsDto,
   DIRTY_COLUMN,
+  DownloadRecordsDto,
   EDITED_FIELDS_COLUMN,
+  ImportSuggestionsDto,
+  ImportSuggestionsResponseDto,
   METADATA_COLUMN,
+  PublishRecordsDto,
+  PublishSummaryDto,
+  ReesolveRemoteDeletesDto,
+  RejectCellValueDto,
+  RemoveScratchColumnDto,
   SCRATCH_ID_COLUMN,
   SEEN_COLUMN,
+  SetActiveRecordsFilterDto,
+  SetTableViewStateDto,
+  SetTitleColumnDto,
   SUGGESTED_FIELDS_COLUMN,
+  UpdateColumnSettingsDto,
+  UpdateWorkbookDto,
 } from '@spinner/shared-types';
 import type { Response } from 'express';
 import * as fs from 'fs';
@@ -43,36 +74,6 @@ import type { RequestWithUser } from '../auth/types';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { UploadsService } from '../uploads/uploads.service';
 import { userToActor } from '../users/types';
-import {
-  AcceptCellValueDto,
-  ValidatedAcceptCellValueDto,
-  ValidatedAcceptCellValueItem,
-} from './dto/accept-cell-value.dto';
-import { type ValidatedAddTableToWorkbookDto } from './dto/add-table-to-workbook.dto';
-import { BulkUpdateRecordsDto } from './dto/bulk-update-records.dto';
-import { CreateWorkbookDto } from './dto/create-workbook.dto';
-import { DeepFetchRecordsDto, ValidatedDeepFetchRecordsDto } from './dto/deep-fetch-records.dto';
-import { DownloadRecordsDto } from './dto/download-records.dto';
-import { ImportSuggestionsDto, ImportSuggestionsResponseDto } from './dto/import-suggestions.dto';
-import { PublishRecordsDto } from './dto/publish-records.dto';
-import { PublishSummaryDto } from './dto/publish-summary.dto';
-import {
-  RejectCellValueDto,
-  ValidatedRejectCellValueDto,
-  ValidatedRejectCellValueItem,
-} from './dto/reject-cell-value.dto';
-import { ReesolveRemoteDeletesDto, ValidatedHandleRemoteDeletesDto } from './dto/resolve-remote-deletes.dto';
-import {
-  AddScratchColumnDto,
-  RemoveScratchColumnDto,
-  ValidatedAddScratchColumnDto,
-  ValidatedRemoveScratchColumnDto,
-} from './dto/scratch-column.dto';
-import { SetTableViewStateDto } from './dto/set-table-view-state.dto';
-import { SetTitleColumnDto, ValidatedSetTitleColumnDto } from './dto/set-title-column.dto';
-import { SetActiveRecordsFilterDto } from './dto/update-active-record-filter.dto';
-import { UpdateColumnSettingsDto, ValidatedUpdateColumnSettingsDto } from './dto/update-column-settings.dto';
-import { UpdateWorkbookDto } from './dto/update-workbook.dto';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { SnapshotTable } from './entities/snapshot-table.entity';

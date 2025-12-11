@@ -1,8 +1,8 @@
 import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ValidatedWixPublishDraftPostsDto, WixPublishDraftPostsDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { userToActor } from '../../users/types';
-import { ValidatedWixPublishDraftPostsDto, WixPublishDraftPostsDto } from './dto/publish-draft-posts.dto';
 import { WixCustomActionsService } from './wix-custom-actions.service';
 
 @Controller('custom-actions/wix')

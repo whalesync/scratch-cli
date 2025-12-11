@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Service } from '@prisma/client';
-import { WorkbookId } from '@spinner/shared-types';
+import { ValidatedWebflowPublishItemsDto, ValidatedWebflowPublishSiteDto, WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
@@ -8,8 +8,6 @@ import { WebflowTableSpec } from 'src/remote-service/connectors/library/custom-s
 import { WebflowCustomActions } from 'src/remote-service/connectors/library/webflow/custom-actions';
 import { Actor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
-import { ValidatedWebflowPublishItemsDto } from './dto/publish-items.dto';
-import { ValidatedWebflowPublishSiteDto } from './dto/publish-site.dto';
 
 @Injectable()
 export class WebflowCustomActionsService {

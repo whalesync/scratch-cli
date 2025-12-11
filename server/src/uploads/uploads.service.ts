@@ -7,10 +7,15 @@ import {
   createSnapshotTableId,
   createUploadId,
   createWorkbookId,
+  CsvAdvancedSettings,
+  PreviewCsvResponseDto,
   REMOTE_ID_COLUMN,
   RESERVED_COLUMN_NAMES,
   SCRATCH_ID_COLUMN,
   SnapshotTableId,
+  UploadCsvDto,
+  UploadCsvResponseDto,
+  UploadMdResponseDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import { parse, Parser } from 'csv-parse';
@@ -30,9 +35,6 @@ import { FormatterTransform } from './csvStreams/FormatterTransform';
 import { ParserTransform } from './csvStreams/ParserTransform';
 import { PgCopyFromWritableStream } from './csvStreams/PgCopyFromWritableStream';
 import { ProcessorTransform } from './csvStreams/ProcessorTransform';
-import { PreviewCsvResponseDto } from './dto/preview-csv.dto';
-import { CsvAdvancedSettings, UploadCsvDto, UploadCsvResponseDto } from './dto/upload-csv.dto';
-import { UploadMdResponseDto } from './dto/upload-md.dto';
 import { MdUploadData, Upload, UploadType } from './types';
 import { UploadsDbService } from './uploads-db.service';
 

@@ -15,7 +15,13 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { createSubscriptionId, ScratchPlanType } from '@spinner/shared-types';
+import {
+  createSubscriptionId,
+  ScratchPlanType,
+  UpdateDevSubscriptionDto,
+  UpdateSettingsDto,
+  ValidatedUpdateSettingsDto,
+} from '@spinner/shared-types';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
@@ -27,14 +33,12 @@ import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
-import { UpdateSettingsDto, ValidatedUpdateSettingsDto } from 'src/users/dto/update-settings.dto';
 import { User } from 'src/users/entities/user.entity';
 import { OnboardingService } from 'src/users/onboarding.service';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { DevToolsService } from './dev-tools.service';
-import { UpdateDevSubscriptionDto } from './dto/update-dev-subscription.dto';
 import { UserDetail } from './entities/user-detail.entity';
 
 /**
