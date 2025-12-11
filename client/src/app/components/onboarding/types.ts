@@ -1,4 +1,4 @@
-import { UserOnboarding } from '../../../../../packages/shared-types/src/onboarding';
+import { UserOnboarding } from '@spinner/shared-types';
 export type OnboardingFlowUI = {
   flowKey: keyof UserOnboarding;
   steps: OnboardingStepUI[];

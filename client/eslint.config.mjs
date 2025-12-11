@@ -34,6 +34,17 @@ const eslintConfig = [
           // hookNames: ['useWorkbookEditorUIStore', 'useLayoutManagerStore'],
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/packages/shared-types/**'],
+              message: 'Use "@spinner/shared-types" instead of relative imports to packages/shared-types',
+            },
+          ],
+        },
+      ],
     },
   },
 ];
