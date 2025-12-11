@@ -14,10 +14,9 @@ import {
   PostgresColumnType,
   TableSpec,
 } from '@/types/server-entities/workbook';
-import { Anchor, Checkbox, NumberInput, ScrollArea, Stack } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
+import { Anchor, Checkbox, NumberInput, ScrollArea, Stack, TextInput } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
-import { FC, RefObject } from 'react';
+import { FC, RefObject, useState } from 'react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 import { JsonFieldInput } from './JsonFieldInput';
@@ -49,6 +48,8 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     saving,
     focusTargetRef /** place on an element that wants to get focus when user hits enter */,
   } = props;
+
+  const [fieldError, setFieldError] = useState<string | undefined>(undefined);
 
   // Early validation
   if (!record) return null;
@@ -133,26 +134,50 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
   if (column.pgType === PostgresColumnType.TIMESTAMP) {
     // this needs to be handled differently
-    const currentValue = record.fields[columnId] ? new Date(record.fields[columnId] as Date | string) : null;
-    const currentValueString = currentValue ? currentValue.toLocaleString() : '';
-    const suggestedValue = record.__suggested_values?.[columnId]
-      ? new Date(record.__suggested_values?.[columnId] as string)
-      : null;
-    const suggestedValueString = suggestedValue ? suggestedValue.toLocaleString() : '';
+    const currentValueString = record.fields[columnId] ? (record.fields[columnId] as string) : '';
+    const suggestedValueString = record.__suggested_values?.[columnId]
+      ? (record.__suggested_values?.[columnId] as string)
+      : '';
+
+    // Validate date string
+    const isValidDate = (dateString: string): boolean => {
+      if (!dateString.trim()) return true; // Allow empty string to clear the field
+      const date = new Date(dateString);
+      return !isNaN(date.getTime());
+    };
 
     const dateInputField = (
-      <DateTimePicker
-        key={columnId}
-        value={currentValue}
-        onChange={(value) => updateField(columnId, value ?? '')}
+      <TextInput
+        key={`${columnId}-${currentValueString}`}
+        defaultValue={currentValueString}
+        onBlur={(e) => {
+          const inputValue = e.target.value;
+          // Only update if the date is valid (including empty string)
+          if (isValidDate(inputValue)) {
+            setFieldError(undefined);
+            if (!inputValue.trim()) {
+              updateField(columnId, '');
+            } else {
+              updateField(columnId, inputValue);
+            }
+          } else {
+            setFieldError('Invalid date format');
+          }
+        }}
         readOnly={column.readonly || hasSuggestion}
-        valueFormat="L LT"
+        placeholder="YYYY-MM-DDTHH:mm:ss"
         styles={{
           input: {
             borderColor: 'transparent',
             fontSize: '13px',
           },
         }}
+        errorProps={{
+          style: {
+            paddingLeft: '12px',
+          },
+        }}
+        error={fieldError}
       />
     );
     return (
