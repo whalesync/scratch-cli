@@ -50,18 +50,16 @@ export const CornerBoxedBadge = ({
     </Group>
   );
 
-  if (tooltip) {
-    return (
-      <Tooltip
-        data-onboarding-tooltip
-        label={tooltip}
-        opened={tooltipAlwaysVisible ? true : undefined}
-        data-always-dark
-      >
-        {content}
-      </Tooltip>
-    );
-  }
-
-  return content;
+  // Always render Tooltip to maintain consistent hook count, but conditionally show it
+  return (
+    <Tooltip
+      data-onboarding-tooltip
+      label={tooltip}
+      opened={tooltip && tooltipAlwaysVisible ? true : undefined}
+      data-always-dark
+      disabled={!tooltip}
+    >
+      {content}
+    </Tooltip>
+  );
 };

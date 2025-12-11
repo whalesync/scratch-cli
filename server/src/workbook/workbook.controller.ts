@@ -73,6 +73,7 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { UploadsService } from '../uploads/uploads.service';
+import { OnboardingService } from '../users/onboarding.service';
 import { userToActor } from '../users/types';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
@@ -91,6 +92,7 @@ export class WorkbookController {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly snapshotDbService: SnapshotDbService,
     private readonly uploadsService: UploadsService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   @Post()
@@ -202,6 +204,9 @@ export class WorkbookController {
 
     // Download records synchronously so the table is ready when API returns
     await this.service.downloadSingleTableSync(id, createdTable.id, actor);
+
+    // Complete the "dataSourceConnected" onboarding step
+    await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'dataSourceConnected');
 
     return new SnapshotTable(createdTable);
   }

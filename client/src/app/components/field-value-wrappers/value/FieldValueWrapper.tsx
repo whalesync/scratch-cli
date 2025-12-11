@@ -1,7 +1,7 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { ColumnSpec } from '@/types/server-entities/workbook';
-import { Box, Group, Tooltip } from '@mantine/core';
+import { Box, Group } from '@mantine/core';
 import { FC, useEffect, useRef, useState } from 'react';
 import { Text13Regular } from '../../base/text';
 import { gettingStartedFlowUI } from '../../onboarding/getting-started/getting-started';
@@ -58,15 +58,6 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
     </Text13Regular>
   );
 
-  // Single return with all the structure
-  const wrapper = (
-    <Group className={styles.fieldValueWrapper}>
-      {showChangeIndicators && <ChangeDotsGroup changeTypes={processedFieldValue.existingChangeTypes} />}
-      <FieldErrorIcon record={record} columnDef={columnDef} />
-      <Box className={styles.fieldValueContentWrapper}>{content}</Box>
-    </Group>
-  );
-
   // Use intersection observer to hide tooltip when cell scrolls out of grid viewport
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -92,24 +83,38 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
     return () => observer.disconnect();
   }, [showOnboardingTooltip]);
 
-  if (showOnboardingTooltip) {
-    return (
-      <Tooltip
-        label={<OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />}
-        opened={isVisible}
-        position="bottom"
-        withArrow
-        withinPortal
-        events={{ hover: false, focus: false, touch: false }}
-        data-always-dark
-        data-onboarding-tooltip
-      >
-        <div ref={wrapperRef} style={{ height: '100%' }}>
-          {wrapper}
-        </div>
-      </Tooltip>
-    );
-  }
+  // if (showOnboardingTooltip) {
+  //   return (
+  //     <Tooltip
+  //       label={<OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />}
+  //       opened={isVisible}
+  //       position="bottom"
+  //       withArrow
+  //       withinPortal
+  //       events={{ hover: false, focus: false, touch: false }}
+  //       data-always-dark
+  //       data-onboarding-tooltip
+  //     >
+  //       <div ref={wrapperRef} style={{ height: '100%' }}>
+  //         {wrapper}
+  //       </div>
+  //     </Tooltip>
+  //   );
+  // }
 
-  return wrapper;
+  return (
+    <Group className={styles.fieldValueWrapper} ref={wrapperRef}>
+      {/* <div ref={wrapperRef} style={{ height: '100%' }} /> */}
+
+      {showChangeIndicators && <ChangeDotsGroup changeTypes={processedFieldValue.existingChangeTypes} />}
+      <FieldErrorIcon record={record} columnDef={columnDef} />
+      <OnboardingStepContent
+        flow={gettingStartedFlowUI}
+        stepKey="suggestionsAccepted"
+        hide={!isVisible || !showOnboardingTooltip}
+      >
+        <Box className={styles.fieldValueContentWrapper}>{content}</Box>
+      </OnboardingStepContent>
+    </Group>
+  );
 };

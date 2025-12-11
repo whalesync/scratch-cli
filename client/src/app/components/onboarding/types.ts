@@ -6,6 +6,7 @@ export type OnboardingFlowUI = {
 
 export type OnboardingStepUI = {
   stepKey: string;
+  hideFlowTooltip?: boolean;
   data: {
     title: string;
     description?: string;

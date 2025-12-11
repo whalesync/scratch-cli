@@ -45,6 +45,7 @@
   --fg-secondary: var(--mantine-color-grayDark-8);
   --fg-muted: rgba(166, 169, 176, 1);
   --fg-divider: var(--mantine-color-grayDark-6);
+  --corner-color: red;
 
   --bg-base: black;
   --bg-panel: var(--mantine-color-dark-7);

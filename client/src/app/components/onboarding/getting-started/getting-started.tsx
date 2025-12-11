@@ -1,4 +1,5 @@
 import { OnboardingFlowUI } from '@/app/components/onboarding/types';
+import { ChatExamplesContent } from './steps/ChatExamplesContent';
 import { SuggestionsShortcutsContent } from './steps/SuggestionsShortcutsContent';
 
 export const gettingStartedFlowUI: OnboardingFlowUI = {
@@ -17,6 +18,7 @@ export const gettingStartedFlowUI: OnboardingFlowUI = {
         title: 'Edit content with chat',
         description:
           'Write a prompt to bulk-edit all records at once. You can review the suggested changes afterwards.',
+        content: () => <ChatExamplesContent />,
       },
     },
     {
@@ -30,6 +32,7 @@ export const gettingStartedFlowUI: OnboardingFlowUI = {
     },
     {
       stepKey: 'dataPublished',
+      hideFlowTooltip: true,
       data: {
         title: 'Publish changes',
         description: 'Sync your changes back to the source.',

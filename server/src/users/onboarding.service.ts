@@ -52,7 +52,10 @@ export class OnboardingService {
 
     await this.db.client.user.update({
       where: { id: userId },
-      data: { onboarding: updatedOnboarding as object },
+      data: {
+        onboarding: updatedOnboarding as object,
+        onboardingWorkbookId: null, // Clear onboarding workbook redirect when a step is completed
+      },
     });
   }
 

@@ -34,6 +34,7 @@ import type { Response } from 'express';
 import { BaseColumnSpec } from 'src/remote-service/connectors/types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
+import { OnboardingService } from '../users/onboarding.service';
 import { userToActor } from '../users/types';
 import { UploadsService } from './uploads.service';
 
@@ -41,7 +42,10 @@ import { UploadsService } from './uploads.service';
 @UseGuards(ScratchpadAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class UploadsController {
-  constructor(private readonly uploadsService: UploadsService) {}
+  constructor(
+    private readonly uploadsService: UploadsService,
+    private readonly onboardingService: OnboardingService,
+  ) {}
 
   @Post('csv/preview')
   @UseInterceptors(FileInterceptor('file'))
@@ -98,7 +102,11 @@ export class UploadsController {
       }
     }
 
-    const result = await this.uploadsService.uploadCsv(file.buffer, userToActor(req.user), body);
+    const actor = userToActor(req.user);
+    const result = await this.uploadsService.uploadCsv(file.buffer, actor, body);
+
+    // Complete the "dataSourceConnected" onboarding step
+    await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'dataSourceConnected');
 
     return {
       uploadId: result.uploadId,

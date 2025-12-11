@@ -3,6 +3,7 @@ import { Box, Divider, Group, Stack } from '@mantine/core';
 import { GettingStartedV1, GettingStartedV1StepKey } from '@spinner/shared-types';
 import { FC, useMemo } from 'react';
 import { Text13Book, Text13Medium } from '../base/text';
+import { darkOnDarkBorder } from './constants';
 import { gettingStartedFlowUI } from './getting-started/getting-started';
 import { OnboardingRow } from './OnboardingRow';
 import { OnboardingStepLayout } from './OnboardingStepLayout';
@@ -45,7 +46,7 @@ export const OnboardingFlowContent: FC<Props> = ({ gettingStartedV1 }) => {
         </Group>
       </OnboardingRow>
 
-      <Divider c="var(--fg-muted)" />
+      <Divider color={darkOnDarkBorder} />
       {/* Steps List */}
       <Stack gap={0}>
         {steps.map((step) => {
@@ -58,7 +59,7 @@ export const OnboardingFlowContent: FC<Props> = ({ gettingStartedV1 }) => {
                 showDescription={isCurrent}
                 showCheckbox
               />
-              <Divider c="var(--fg-muted)" />
+              <Divider color={darkOnDarkBorder} />
             </Box>
           );
         })}

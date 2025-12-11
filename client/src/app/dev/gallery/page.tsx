@@ -9,7 +9,6 @@ import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel'
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
-import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { OnboardingStepLayout } from '@/app/components/onboarding/OnboardingStepLayout';
 import {
   Alert,
@@ -850,7 +849,7 @@ import { Settings } from 'lucide-react'
               <Group>
                 <Box data-always-dark bg="black" style={{ display: 'flex', flexShrink: 1 }}>
                   <OnboardingStepLayout data={gettingStartedFlowUI.steps[0].data} showDescription />
-                  <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />
+                  {/* <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" /> */}
                 </Box>
               </Group>
             </Stack>

@@ -180,12 +180,6 @@ export class WorkbookService {
       });
     }
 
-    // Clear onboardingWorkbookId when user manually creates a workbook
-    await this.db.client.user.updateMany({
-      where: { id: actor.userId, onboardingWorkbookId: { not: null } },
-      data: { onboardingWorkbookId: null },
-    });
-
     this.posthogService.trackCreateWorkbook(actor.userId, newWorkbook);
     await this.auditLogService.logEvent({
       actor,

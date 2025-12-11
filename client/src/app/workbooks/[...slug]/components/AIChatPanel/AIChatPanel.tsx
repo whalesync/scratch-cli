@@ -9,8 +9,6 @@ import {
   IconButtonOutline,
 } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
-import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
@@ -18,7 +16,6 @@ import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-man
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { useSubscription } from '@/hooks/use-subscription';
-import { useOnboarding } from '@/hooks/useOnboarding';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import {
   trackChangeAgentCapabilities,
@@ -64,7 +61,6 @@ export default function AIChatPanel() {
   const { activeOpenRouterCredentials } = useAgentCredentials(true);
   const { allowedModels } = useSubscription();
   const { markStepCompleted } = useOnboardingUpdate();
-  const { shouldShowStep } = useOnboarding();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
@@ -495,25 +491,6 @@ export default function AIChatPanel() {
           </Center>
         )}
       </Box>
-
-      {/* Onboarding tooltip for contentEditedWithAi step */}
-      {shouldShowStep('gettingStartedV1', 'contentEditedWithAi') && (
-        <Tooltip
-          label={<OnboardingStepContent flow={gettingStartedFlowUI} stepKey="contentEditedWithAi" />}
-          opened
-          position="top"
-          withArrow
-          withinPortal
-          events={{ hover: false, focus: false, touch: false }}
-          data-always-dark
-          data-onboarding-tooltip
-        >
-          {/* We don't rely on hover to open the tooltip so no need to wrap the full chat component
-              Use an empty component instead.
-           */}
-          <Box h={0} />
-        </Tooltip>
-      )}
 
       {/* Input section at the bottom */}
       <Box mih="150px" className={classes.chatPanelFooter}>

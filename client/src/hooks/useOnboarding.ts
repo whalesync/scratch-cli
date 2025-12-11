@@ -34,6 +34,27 @@ export const useOnboarding = () => {
     [onboarding],
   );
 
+  // Get the current step key for a flow (the first non-completed step)
+  const getCurrentStep = useCallback(
+    <F extends keyof UserOnboarding>(flow: F): FlowStepKeys[F] | null => {
+      const flowState = onboarding?.[flow];
+      if (!flowState) return null;
+
+      const stepOrder = FLOW_STEP_ORDER[flow];
+
+      // Find the first non-completed step in the flow order
+      for (const stepKey of stepOrder) {
+        const stepState = (flowState as Record<string, { completed: boolean; collapsed: boolean }>)[stepKey];
+        if (!stepState?.completed) {
+          return stepKey as FlowStepKeys[F];
+        }
+      }
+
+      return null;
+    },
+    [onboarding],
+  );
+
   // The specified flow is present, and the step is the first non-completed one
   const isCurrentStep = useCallback(
     <F extends keyof UserOnboarding>(flow: F, step: FlowStepKeys[F]): boolean => {
@@ -75,5 +96,5 @@ export const useOnboarding = () => {
     [onboarding],
   );
 
-  return { isCurrentStep, shouldShowStep, isStepPending };
+  return { getCurrentStep, isCurrentStep, shouldShowStep, isStepPending };
 };

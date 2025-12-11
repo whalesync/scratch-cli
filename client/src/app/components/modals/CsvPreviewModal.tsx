@@ -1,5 +1,6 @@
 'use client';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { CsvPreviewResponse, uploadsApi } from '@/lib/api/uploads';
 import { PostgresColumnType } from '@/types/server-entities/workbook';
@@ -69,6 +70,7 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const { mutate } = useSWRConfig();
+  const { markStepCompleted } = useOnboardingUpdate();
 
   // Initialize column names and types when data changes
   useEffect(() => {
@@ -166,6 +168,9 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
       });
 
       console.debug('CSV uploaded successfully:', result);
+
+      // Optimistically complete the onboarding step
+      markStepCompleted('gettingStartedV1', 'dataSourceConnected');
 
       // Invalidate uploads list cache (this will refresh the page if using SWR)
       await mutate(SWR_KEYS.uploads.list());

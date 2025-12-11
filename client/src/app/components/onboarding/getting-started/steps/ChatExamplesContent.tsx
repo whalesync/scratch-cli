@@ -1,55 +1,30 @@
-import { Badge } from '@/app/components/base/badge';
-import { TextMono12Regular } from '@/app/components/base/text';
-import { Divider, Stack } from '@mantine/core';
-import { ComponentProps, FC } from 'react';
-import { ShortcutRow } from '../components/ShortcutRow';
-// Helper component for the shortcuts shown in the screenshot,
-// can be used as 'content' for the steps.
+import { Text13Regular, Text9Regular, TextMono12Regular } from '@/app/components/base/text';
+import { darkOnDarkBorder } from '@/app/components/onboarding/constants';
+import { CopyButton, Divider, Group, Stack } from '@mantine/core';
+import { CopyIcon } from 'lucide-react';
 
-const ShortcutBadge: FC<ComponentProps<typeof Badge>> = ({ children }) => {
-  return (
-    <Badge bg="rgba(43, 45, 49, 1)" c="var(--fg-muted)">
-      {children}{' '}
-    </Badge>
-  );
-};
-export const ShortcutsContent = () => {
+const EXAMPLES = ['Convert titles to sentence case', 'Make the titles shorter', 'Improve the summary'];
+
+export const ChatExamplesContent = () => {
   return (
     <Stack gap={3}>
       <TextMono12Regular c="var(--fg-muted)">Examples</TextMono12Regular>
-      <Divider bg="var(--bg-muted)" />
-      <ShortcutRow
-        label="Accept suggestion"
-        keys={
-          <>
-            <ShortcutBadge>⌥</ShortcutBadge>
-            <ShortcutBadge>RETURN</ShortcutBadge>
-          </>
-        }
-      />
-      <Divider bg="var(--bg-muted)" />
-      <ShortcutRow
-        label="Reject suggestion"
-        keys={
-          <>
-            <ShortcutBadge>⌥</ShortcutBadge>
-            <ShortcutBadge ta="center">BACKSPACE</ShortcutBadge>
-          </>
-        }
-      />
-      <Divider bg="var(--bg-muted)" />
-      <ShortcutRow label="Open field" keys={<ShortcutBadge>RETURN</ShortcutBadge>} />
-      <Divider bg="var(--bg-muted)" />
-      <ShortcutRow
-        label="Open record"
-        keys={
-          <>
-            <ShortcutBadge>⇧</ShortcutBadge>
-            <ShortcutBadge>RETURN</ShortcutBadge>
-          </>
-        }
-      />
-      <Divider bg="var(--bg-muted)" />
+      <Divider color={darkOnDarkBorder} />
+      {EXAMPLES.map((text, index) => (
+        <div key={text}>
+          <CopyButton value={text} timeout={1000}>
+            {({ copy, copied }) => (
+              <Group gap="xs" py={4} style={{ cursor: 'pointer' }} onClick={copy}>
+                <CopyIcon size={14} color="var(--fg-muted)" />
+                <Text13Regular c="var(--fg-primary)">{text}</Text13Regular>
+                {copied && <Text9Regular c="var(--mantine-color-green-6)">Copied</Text9Regular>}
+              </Group>
+            )}
+          </CopyButton>
+          {index < EXAMPLES.length - 1 && <Divider color={darkOnDarkBorder} />}
+        </div>
+      ))}
+      <Divider color={darkOnDarkBorder} />
     </Stack>
   );
 };

@@ -12,6 +12,7 @@ import {
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
+import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
@@ -73,6 +74,7 @@ export const AddTableTab = () => {
   const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
   const deleteTableModal = useDeleteConfirmationModal<SnapshotTableId>();
   const modalStack = useModalsStack(['create', 'upload']);
+  const { markStepCompleted } = useOnboardingUpdate();
 
   const tree = useTree();
 
@@ -197,6 +199,7 @@ export const AddTableTab = () => {
     try {
       setIsCreatingTable(true);
       const snapshotTableId = await addSampleTable();
+      markStepCompleted('gettingStartedV1', 'dataSourceConnected');
       setActiveTab(snapshotTableId);
       closeNewTabs();
     } catch (error) {
