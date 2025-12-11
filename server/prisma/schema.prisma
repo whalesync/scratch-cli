@@ -32,6 +32,8 @@ model User {
   organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   settings                Json?                    @default("{}") // UserSettings object
   onboarding              Json?                    @default("{}") // UserOnboarding object - tracks user progress through onboarding flows
+  onboardingWorkbookId    String?                  @unique
+  onboardingWorkbook      Workbook?                @relation("OnboardingWorkbook", fields: [onboardingWorkbookId], references: [id], onDelete: SetNull)
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
   styleGuides             StyleGuide[]
@@ -144,7 +146,8 @@ model Workbook {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  snapshotTables SnapshotTable[]
+  snapshotTables      SnapshotTable[]
+  onboardingForUser   User?            @relation("OnboardingWorkbook")
 
   @@index([userId])
   @@index([organizationId])

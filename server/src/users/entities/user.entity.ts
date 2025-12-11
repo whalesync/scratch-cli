@@ -37,6 +37,8 @@ export class User {
 
   onboarding?: UserOnboarding;
 
+  onboardingWorkbookId?: string | null;
+
   constructor(
     user: UserCluster.User,
     agentJwt?: string,
@@ -66,6 +68,7 @@ export class User {
     this.organization = user.organization ? new Organization(user.organization) : undefined;
     this.settings = user.settings as Record<string, string | number | boolean>;
     this.onboarding = (user.onboarding ?? {}) as UserOnboarding;
+    this.onboardingWorkbookId = user.onboardingWorkbookId;
   }
 }
 

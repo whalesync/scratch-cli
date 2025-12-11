@@ -16,6 +16,7 @@ export interface User {
   organization?: Organization;
   settings?: Record<string, string | number | boolean>;
   onboarding?: UserOnboarding;
+  onboardingWorkbookId?: string | null;
 }
 
 export type { SubscriptionInfo } from '@spinner/shared-types';

@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TokenType, UserRole } from '@prisma/client';
-import { createApiTokenId, createOrganizationId, createUserId, UpdateSettingsDto } from '@spinner/shared-types';
+import {
+  createApiTokenId,
+  createOrganizationId,
+  createUserId,
+  createWorkbookId,
+  UpdateSettingsDto,
+} from '@spinner/shared-types';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
@@ -105,9 +111,14 @@ export class UsersService {
       gettingStartedV1: DEFAULT_GETTING_STARTED_V1,
     };
 
-    const newUser: UserCluster.User = await this.db.client.user.create({
+    const newUserId = createUserId();
+    const newOrganizationId = createOrganizationId();
+    const onboardingWorkbookId = createWorkbookId();
+
+    // Step 1: Create user without onboardingWorkbookId (FK constraint requires workbook to exist first)
+    let newUser: UserCluster.User = await this.db.client.user.create({
       data: {
-        id: createUserId(),
+        id: newUserId,
         clerkId: clerkUserId,
         updatedAt: new Date(),
         role: UserRole.USER,
@@ -124,12 +135,29 @@ export class UsersService {
         },
         organization: {
           create: {
-            id: createOrganizationId(),
+            id: newOrganizationId,
             name: name ? `${name} Organization` : 'New Organization',
             clerkId: clerkUserId, // Note(chris): this should be Clerk's Organization ID, and will need to be fixed later when fully implement Clerk orgs
           },
         },
       },
+      include: UserCluster._validator.include,
+    });
+
+    // Step 2: Create the onboarding workbook for the new user
+    await this.db.client.workbook.create({
+      data: {
+        id: onboardingWorkbookId,
+        name: 'My First Workbook',
+        userId: newUserId,
+        organizationId: newOrganizationId,
+      },
+    });
+
+    // Step 3: Update user with onboardingWorkbookId
+    newUser = await this.db.client.user.update({
+      where: { id: newUserId },
+      data: { onboardingWorkbookId },
       include: UserCluster._validator.include,
     });
 

@@ -6,7 +6,7 @@ import { API_CONFIG } from '@/lib/api/config';
 import { trackUserSignIn } from '@/lib/posthog';
 import { RouteUrls } from '@/utils/route-urls';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
 
 const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
@@ -15,15 +15,25 @@ const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
  * This component just makes sure the Scratchpad user is loaded from the server and that authentication is fully complete before loading protected pages
  */
 export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): JSX.Element => {
-  const user = useScratchPadUser();
+  const scratchPadUser = useScratchPadUser();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (user) {
-      trackUserSignIn(user);
+    if (scratchPadUser) {
+      trackUserSignIn(scratchPadUser);
     }
-  }, [user]);
+  }, [scratchPadUser]);
 
-  if (user.isLoading) {
+  // Redirect to onboarding workbook if set
+  useEffect(() => {
+    const onboardingWorkbookId = scratchPadUser.user?.onboardingWorkbookId;
+    if (onboardingWorkbookId && !pathname.startsWith('/workbooks/')) {
+      router.replace(RouteUrls.workbookPageUrl(onboardingWorkbookId));
+    }
+  }, [scratchPadUser.user?.onboardingWorkbookId, pathname, router]);
+
+  if (scratchPadUser.isLoading) {
     return <FullPageLoader message="Loading user data..." />;
   }
 
