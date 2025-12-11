@@ -4,6 +4,7 @@ import { draftPosts } from '@wix/blog';
 import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
 import _ from 'lodash';
+import { MarkdownErrors } from 'src/remote-service/connectors/markdown-errors';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../../connector';
@@ -167,6 +168,9 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
               } else {
                 // Convert to Markdown (Ricos -> HTML -> Markdown)
                 record.fields[fieldId] = this.turndownService.turndown(convertedRicos);
+                // TODO: This is a top-level generic warning about the content being lost. We should add a more
+                // specific warning for the actual nodes that are lost and remove this.
+                record.errors = MarkdownErrors.addFieldFidelityWarning(record.errors, fieldId, 'Wix');
               }
             }
           } else {

@@ -1,6 +1,8 @@
 import { IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
+import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { TableSpec } from '@/types/server-entities/workbook';
 import { Anchor, Breadcrumbs, Center, Group, StyleProp, Tooltip } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
@@ -16,6 +18,7 @@ interface RecordDetailsHeaderProps {
   v2?: boolean;
   onClose?: () => void;
   hiddenColumns: string[];
+  record?: ProcessedSnapshotRecord;
 }
 
 export const RecordDetailsHeader = ({
@@ -25,6 +28,7 @@ export const RecordDetailsHeader = ({
   onSwitchColumn,
   onClose,
   hiddenColumns,
+  record,
 }: RecordDetailsHeaderProps) => {
   // Order the columns like they appear in the grid view
   const orderedColumns = useMemo(() => getGridOrderedColumnSpecs(table, hiddenColumns).columns, [table, hiddenColumns]);
@@ -95,6 +99,7 @@ export const RecordDetailsHeader = ({
             </Anchor>
             <Group gap={4} align="center" wrap="nowrap">
               <Text13Regular>{currentColumn.name}</Text13Regular>
+              {record && <FieldErrorIcon record={record} columnDef={currentColumn} />}
               {currentColumn.readonly && (
                 <Tooltip label="This field is readonly" position="top" withArrow>
                   <span style={{ display: 'flex', alignItems: 'center' }}>

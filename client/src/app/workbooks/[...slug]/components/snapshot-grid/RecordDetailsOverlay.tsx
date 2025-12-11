@@ -128,6 +128,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
               onSwitchColumn={handleFieldFocus}
               onClose={handleCloseRecordDetails}
               hiddenColumns={table.hiddenColumns}
+              record={selectedRecord}
             />
 
             <Box p={0} style={{ position: 'relative' }}>

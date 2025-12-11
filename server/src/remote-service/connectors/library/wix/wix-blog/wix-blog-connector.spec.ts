@@ -68,6 +68,7 @@ describe('WixBlogConnector', () => {
 
   describe('downloadTableRecords', () => {
     const mockTableSpec: WixBlogTableSpec = {
+      slug: 'blog-posts',
       id: {
         wsId: 'wix-blog',
         remoteId: ['wix-blog'],
@@ -184,6 +185,17 @@ describe('WixBlogConnector', () => {
           richContent: 'Test content 1',
         },
         metadata: {},
+        errors: {
+          byField: {
+            richContent: [
+              {
+                message:
+                  'Some Wix content cannot be represented in Markdown. Content may be lost when you publish this record.',
+                severity: 'warning',
+              },
+            ],
+          },
+        },
       });
 
       // Verify second record
@@ -194,6 +206,17 @@ describe('WixBlogConnector', () => {
           richContent: 'Test content 2',
         },
         metadata: {},
+        errors: {
+          byField: {
+            richContent: [
+              {
+                message:
+                  'Some Wix content cannot be represented in Markdown. Content may be lost when you publish this record.',
+                severity: 'warning',
+              },
+            ],
+          },
+        },
       });
     });
 
@@ -404,6 +427,7 @@ describe('WixBlogConnector', () => {
     });
 
     it('should keep rich text in Wix format when dataConverter is wix', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const wixRichContent = {
         nodes: [
           {
@@ -423,11 +447,12 @@ describe('WixBlogConnector', () => {
             paragraphData: {},
           },
         ],
-      };
+      } as any;
 
       const mockPosts: DraftPost[] = [
         {
           _id: 'post1',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           richContent: wixRichContent,
         },
       ];

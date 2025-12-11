@@ -16,6 +16,7 @@ import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
+import { MarkdownErrors } from '../../markdown-errors';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
@@ -181,6 +182,14 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
                 } else {
                   const markdownContent = String(this.turndownService.turndown(htmlContent));
                   converted.fields[pageContentColumn.id.wsId] = markdownContent;
+
+                  // TODO: This is a top-level generic warning about the content being lost. We should add a more
+                  // specific warning for the actual nodes that are lost and remove this.
+                  converted.errors = MarkdownErrors.addFieldFidelityWarning(
+                    converted.errors,
+                    pageContentColumn.id.wsId,
+                    'Notion',
+                  );
                 }
               } catch (e) {
                 converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content';

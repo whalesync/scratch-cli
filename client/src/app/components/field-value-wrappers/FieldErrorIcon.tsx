@@ -8,9 +8,18 @@ export const FieldErrorIcon = ({ record, columnDef }: { record: ProcessedSnapsho
   if (!errors) {
     return null;
   }
+  const worstSeverity = errors.reduce(
+    (worst, current) => {
+      return current.severity === 'error' ? 'error' : worst;
+    },
+    'warning' as 'warning' | 'error',
+  );
   return (
-    <Tooltip label={errors.join('\n')} withinPortal>
-      <AlertCircleIcon size={13} color="var(--mantine-color-red-8)" />
+    <Tooltip label={errors.map((error) => error.message).join('\n')} withinPortal>
+      <AlertCircleIcon
+        size={13}
+        color={worstSeverity === 'error' ? 'var(--mantine-color-red-8)' : 'var(--mantine-color-yellow-6)'}
+      />
     </Tooltip>
   );
 };

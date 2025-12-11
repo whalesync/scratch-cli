@@ -156,7 +156,7 @@ export type EditedFieldsMetadata = {
 };
 
 export type RecordErrorsMetadata = {
-  byField?: Record<string, string[]>;
+  byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
 };
 
 export interface DownloadWorkbookWithoutJobResult {

@@ -192,5 +192,5 @@ export type RecordErrorsMetadata = {
   // TODO: Add record-level here if needed.
 
   /** Indexed by the WSID of the field */
-  byField?: Record<string, string[]>;
+  byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
 };
