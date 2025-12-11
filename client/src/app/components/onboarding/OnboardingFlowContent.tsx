@@ -1,7 +1,8 @@
 import { useOnboarding } from '@/hooks/useOnboarding';
-import { Box, Divider, Group, Stack, Text } from '@mantine/core';
+import { Box, Divider, Group, Stack } from '@mantine/core';
 import { GettingStartedV1, GettingStartedV1StepKey } from '@spinner/shared-types';
 import { FC, useMemo } from 'react';
+import { Text13Book, Text13Medium } from '../base/text';
 import { gettingStartedFlowUI } from './getting-started/getting-started';
 import { OnboardingRow } from './OnboardingRow';
 import { OnboardingStepLayout } from './OnboardingStepLayout';
@@ -25,14 +26,22 @@ export const OnboardingFlowContent: FC<Props> = ({ gettingStartedV1 }) => {
     });
   }, [gettingStartedV1]);
 
+  // Count completed steps
+  const completedCount = useMemo(() => {
+    return steps.filter((step) => step.isCompleted).length;
+  }, [steps]);
+
+  const totalSteps = steps.length;
+
   return (
     <Stack gap={0}>
       {/* Header */}
       <OnboardingRow>
         <Group justify="space-between" align="center">
-          <Text size="sm" fw={600} c="white">
-            Getting started
-          </Text>
+          <Group gap="xs" align="center">
+            <Text13Medium c="var(--fg-primary)">Getting started</Text13Medium>
+            <Text13Book c="var(--fg-muted)">{`${completedCount}/${totalSteps}`}</Text13Book>
+          </Group>
         </Group>
       </OnboardingRow>
 

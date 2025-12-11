@@ -1,9 +1,9 @@
-import { Box } from '@mantine/core';
+import { Box, BoxProps } from '@mantine/core';
 import { FC, ReactNode } from 'react';
 
-export const OnboardingRow: FC<{ children: ReactNode }> = ({ children }) => {
+export const OnboardingRow: FC<BoxProps & { children: ReactNode }> = ({ children, ...props }) => {
   return (
-    <Box pl={10} pr={10} pt={10} pb={10}>
+    <Box pl={12} pr={12} pt={10} pb={10} {...props}>
       {children}
     </Box>
   );

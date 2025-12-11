@@ -26,7 +26,7 @@ export const OnboardingStepContent: FC<Props> = ({ flow, stepKey, onCollapsed })
   }
 
   return (
-    <Stack p="xs" gap="md">
+    <Stack gap="md">
       <OnboardingStepLayout data={step.data} showDescription />
       <Group justify="flex-end">
         <ButtonSecondaryOutline onClick={handleCollapse} mt="xs">

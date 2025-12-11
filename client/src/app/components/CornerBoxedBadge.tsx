@@ -2,6 +2,7 @@
 
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { CloseButton, Group, Text, Tooltip } from '@mantine/core';
+import { ReactNode } from 'react';
 import styles from './CornerBoxedBadge.module.css';
 
 export const CornerBoxedBadge = ({
@@ -12,7 +13,7 @@ export const CornerBoxedBadge = ({
   onClose,
   onClick,
 }: {
-  label: string;
+  label: ReactNode;
   tooltip?: React.ReactNode;
   tooltipAlwaysVisible?: boolean;
   icon?: React.ReactNode;
@@ -29,9 +30,14 @@ export const CornerBoxedBadge = ({
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
       {icon}
-      <Text fz="12px" lh={1} c="gray.9">
-        {label}
-      </Text>
+      {typeof label === 'string' ? (
+        <Text fz="12px" lh={1} c="gray.9">
+          {label}
+        </Text>
+      ) : (
+        label
+      )}
+
       {onClose && (
         <CloseButton
           size="xs"
