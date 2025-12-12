@@ -12,8 +12,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { SnapshotTable } from '@prisma/client';
-import type { SnapshotTableId } from '@spinner/shared-types';
-import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import type {
+  AvailableMigrationsResponse,
+  MigrationResult,
+  RunMigrationDto,
+  SnapshotTableId,
+  ValidatedRunMigrationDto,
+} from '@spinner/shared-types';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
@@ -23,34 +28,6 @@ import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 
 const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1'];
-
-// DTOs
-class RunMigrationDto {
-  @IsString()
-  migration?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  qty?: number;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  ids?: string[];
-}
-
-type ValidatedRunMigrationDto = Required<Pick<RunMigrationDto, 'migration'>> & Pick<RunMigrationDto, 'qty' | 'ids'>;
-
-interface AvailableMigrationsResponse {
-  migrations: string[];
-}
-
-interface MigrationResult {
-  migratedIds: string[];
-  remainingCount: number;
-  migrationName: string;
-}
 
 @Controller('code-migrations')
 @UseGuards(ScratchpadAuthGuard)
