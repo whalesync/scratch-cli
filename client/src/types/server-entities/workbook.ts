@@ -269,7 +269,7 @@ export function getSafeNumberValue(
   defaultValue?: number,
 ): number | undefined {
   const value = fields[columnId];
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === '') {
     return defaultValue ?? undefined;
   }
 

@@ -84,7 +84,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
   if (column.pgType === PostgresColumnType.NUMERIC) {
     // this needs to be handled differently
-    const currentValue = getSafeNumberValue(record.fields, columnId);
+    const currentValue = getSafeNumberValue(record.fields, columnId, 0);
     const currentValueString = currentValue?.toString() ?? '';
     const suggestedValue = record.__suggested_values?.[columnId];
     const suggestedValueString = suggestedValue?.toString() ?? '';
@@ -93,7 +93,9 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
       <NumberInput
         key={columnId}
         value={currentValue}
-        onChange={(value) => updateField(columnId, typeof value === 'number' ? value : value.toString())}
+        onChange={(value) =>
+          updateField(columnId, value === '' ? 0 : typeof value === 'number' ? value : value.toString())
+        }
         readOnly={column.readonly || hasSuggestion}
         hideControls
         styles={{
