@@ -37,7 +37,11 @@ export class MarkdownErrors {
   ): RecordErrorsMetadata {
     // TODO: Expand this to get any other types of errors we generate and remember their types.
     const regex = new RegExp(`<!-- ${DATA_LOSS_WARNING_PREFIX} (.*?) -->`, 'g');
-    const matches = markdown.matchAll(regex);
+    const matches = Array.from(markdown.matchAll(regex));
+    if (matches.length === 0) {
+      return existingErrors ?? {};
+    }
+
     const newErrors: RecordErrorsMetadata = existingErrors ?? {};
     const fieldArray = newErrors.byField?.[fieldId] ?? [];
     for (const match of matches) {

@@ -13,7 +13,7 @@ describe('markdown-errors', () => {
     it('should return empty errors object when no errors are present', () => {
       const markdown = '# Hello World\nThis is a clean markdown file.';
       const errors = MarkdownErrors.extractAllDataLossErrors(markdown, 'field1', undefined);
-      expect(errors.byField?.['field1']).toEqual([]);
+      expect(errors.byField?.['field1']).toBeUndefined();
     });
 
     it('should extract multiple errors from markdown content', () => {

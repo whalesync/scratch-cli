@@ -11,7 +11,6 @@ import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/buil
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import TurndownService from 'turndown';
 import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
@@ -21,6 +20,7 @@ import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, T
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
 import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
+import { NotionMarkdownConverter } from './conversion/notion-markdown-converter';
 import { convertNotionBlockObjectToHtmlv2 } from './conversion/notion-rich-text-conversion';
 import { convertToNotionBlocks } from './conversion/notion-rich-text-push';
 import { ConvertedNotionBlock } from './conversion/notion-rich-text-push-types';
@@ -41,9 +41,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
 
   private readonly client: Client;
   private readonly schemaParser = new NotionSchemaParser();
-  private readonly turndownService: TurndownService = new TurndownService({
-    headingStyle: 'atx',
-  });
+  private readonly markdownConverter = new NotionMarkdownConverter();
 
   constructor(apiKey: string) {
     super();
@@ -172,23 +170,25 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
                 // Check what data converter the user wants for this column
                 const dataConverter = columnSettingsMap[pageContentColumn.id.wsId]?.dataConverter;
                 const blocks = await this.fetchBlocksWithChildren(page.id);
-                let htmlContent = '';
-                for (const block of blocks) {
-                  const blockHtml = convertNotionBlockObjectToHtmlv2(block);
-                  htmlContent += blockHtml;
-                }
+
                 if (dataConverter === 'html') {
+                  // Convert to HTML using the old method
+                  let htmlContent = '';
+                  for (const block of blocks) {
+                    const blockHtml = convertNotionBlockObjectToHtmlv2(block);
+                    htmlContent += blockHtml;
+                  }
                   converted.fields[pageContentColumn.id.wsId] = htmlContent;
                 } else {
-                  const markdownContent = String(this.turndownService.turndown(htmlContent));
+                  // Convert to Markdown using the new converter
+                  const markdownContent = this.markdownConverter.notionToMarkdown(blocks);
                   converted.fields[pageContentColumn.id.wsId] = markdownContent;
 
-                  // TODO: This is a top-level generic warning about the content being lost. We should add a more
-                  // specific warning for the actual nodes that are lost and remove this.
-                  converted.errors = MarkdownErrors.addFieldFidelityWarning(
-                    converted.errors,
+                  // Extract data loss errors from the markdown
+                  converted.errors = MarkdownErrors.extractAllDataLossErrors(
+                    markdownContent,
                     pageContentColumn.id.wsId,
-                    'Notion',
+                    converted.errors,
                   );
                 }
               } catch (e) {
@@ -449,7 +449,9 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     };
 
     // Convert new content (markdown/HTML) to Notion blocks
-    const newBlocks = convertToNotionBlocks(content, isMarkdown);
+    const newBlocks = isMarkdown
+      ? this.markdownConverter.markdownToNotion(content)
+      : convertToNotionBlocks(content, false);
 
     // Create a diff between old and new blocks
     const diff = createNotionBlockDiff(existingBlocks, newBlocks, pageId);

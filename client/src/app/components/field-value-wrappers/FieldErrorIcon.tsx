@@ -5,7 +5,7 @@ import { AlertCircleIcon } from 'lucide-react';
 
 export const FieldErrorIcon = ({ record, columnDef }: { record: ProcessedSnapshotRecord; columnDef: ColumnSpec }) => {
   const errors = record.__errors?.byField?.[columnDef.id.wsId];
-  if (!errors) {
+  if (!errors || errors.length === 0) {
     return null;
   }
   const worstSeverity = errors.reduce(
