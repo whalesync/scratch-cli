@@ -19,6 +19,6 @@
 
 /* Row selection and hover colors - Dark theme */
 .my-grid.ag-theme-alpine-dark {
-  --ag-row-hover-color: var(--mantine-color-gray-8);
-  --ag-selected-row-background-color: var(--mantine-color-gray-7);
+  /* --ag-row-hover-color: var(--mantine-color-gray-8); */
+  --ag-selected-row-background-color: var(--mantine-color-gray-3);
 }

@@ -25,7 +25,6 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               key={idx}
               c="var(--fg-added)"
               bg="var(--bg-added)"
-              className="cell-text"
               dangerouslySetInnerHTML={{ __html: value }}
             ></Text>
           );
@@ -38,10 +37,10 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               key={idx}
               c="var(--fg-removed)"
               bg="var(--bg-removed)"
-              className="cell-text"
               dangerouslySetInnerHTML={{ __html: value }}
               style={{
                 textDecoration: 'line-through',
+                fontStyle: 'italic',
               }}
             ></Text>
           );

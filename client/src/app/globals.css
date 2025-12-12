@@ -58,17 +58,25 @@
 
 /* Dark theme suggestion/change colors */
 [data-mantine-color-scheme='dark'] {
-  --fg-accept: var(--mantine-color-green-5);
-  --bg-accept: var(--mantine-color-green-8);
+  /*teal 11 in figma but we dont have that here?? */
 
-  --fg-reject: var(--mantine-color-red-5);
-  --bg-reject: var(--mantine-color-red-8);
+  --bg-added-marker: #243b3b;
+  --fg-added-marker: #62d5c5;
 
-  --fg-added: var(--fg-accept);
-  --bg-added: var(--bg-accept);
+  --bg-removed-marker: #553431;
+  --fg-removed-marker: #e84f31;
 
-  --fg-removed: var(--fg-reject);
-  --bg-removed: var(--bg-reject);
+  --bg-added: #253c3c;
+  --fg-added: #62d5c5;
+
+  --bg-removed: #472320;
+  --fg-removed: #f09781;
+
+  --fg-accept: var(--fg-added);
+  --bg-accept: var(--bg-added);
+
+  --fg-reject: #f09781;
+  --bg-reject: var(--bg-reject);
 }
 
 @supports (font-variation-settings: normal) {

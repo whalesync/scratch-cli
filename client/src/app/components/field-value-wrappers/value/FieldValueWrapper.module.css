@@ -51,6 +51,10 @@
   letter-spacing: 0%;
 }
 
+.diffTextContainer span {
+  margin-right: 3px;
+}
+
 /* Single-line mode - only applies when parent has .singleLine class */
 .singleLine .diffTextContainer {
   flex-wrap: nowrap;
