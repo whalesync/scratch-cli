@@ -89,23 +89,23 @@ export const getChangeTypeColors = (existingChangeTypes: ExistingChangeTypes) =>
   const additionColor = existingChangeTypes.suggestedAdditions
     ? 'var(--fg-added)'
     : existingChangeTypes.acceptedAdditions
-      ? 'black'
+      ? 'var(--fg-muted)'
       : 'transparent';
   const additionShadowColor = existingChangeTypes.suggestedAdditions
     ? 'var(--bg-added)'
     : existingChangeTypes.acceptedAdditions
-      ? 'rgba(0, 0, 0, 0.2)'
+      ? 'color-mix(in srgb, var(--fg-muted) 40%, transparent)'
       : 'transparent';
 
   const deletionColor = existingChangeTypes.suggestedDeletions
     ? 'var(--fg-removed)'
     : existingChangeTypes.acceptedDeletions
-      ? 'black'
+      ? 'var(--fg-muted)'
       : 'transparent';
   const deletionShadowColor = existingChangeTypes.suggestedDeletions
     ? 'var(--bg-removed)'
     : existingChangeTypes.acceptedDeletions
-      ? 'rgba(0, 0, 0, 0.2)'
+      ? 'color-mix(in srgb, var(--fg-muted) 40%, transparent)'
       : 'transparent';
 
   return {

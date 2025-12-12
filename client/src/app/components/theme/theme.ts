@@ -8,6 +8,7 @@ import {
   Divider,
   Kbd,
   Menu,
+  Notification,
   Popover,
   Table,
   Title,
@@ -202,6 +203,10 @@ export const SCRATCHPAD_MANTINE_THEME = createTheme({
         ff: funnelDisplay.style.fontFamily,
         fw: 450,
       },
+    }),
+
+    Notification: Notification.extend({
+      classNames: { root: classes.notificationRoot },
     }),
   },
 });

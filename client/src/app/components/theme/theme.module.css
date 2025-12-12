@@ -113,7 +113,7 @@
   }
 
   &[data-delete] {
-    /* color: var(--mantine-color-red-8); */
+    color: var(--mantine-color-red-8);
 
     .menuItemSection {
       color: var(--mantine-color-red-8);
@@ -121,7 +121,7 @@
   }
 
   &[data-accept] {
-    /* color: var(--mantine-color-green-8); */
+    color: var(--mantine-color-green-8);
 
     .menuItemSection {
       color: var(--mantine-color-green-8);
@@ -159,7 +159,7 @@
     }
 
     &[data-delete] {
-      /* color: var(--mantine-color-red-7); */
+      color: var(--mantine-color-red-7);
 
       .menuItemSection {
         color: var(--mantine-color-red-7);
@@ -167,7 +167,7 @@
     }
 
     &[data-accept] {
-      /* color: var(--mantine-color-green-7); */
+      color: var(--mantine-color-green-7);
 
       .menuItemSection {
         color: var(--mantine-color-green-7);
@@ -191,4 +191,14 @@
 /** CUSTOM POPOVER STYLES */
 .popoverDropdown {
   padding: var(--mantine-spacing-xs);
+}
+
+/** CUSTOM NOTIFICATION STYLES */
+.notificationRoot {
+  background-color: var(--bg-base);
+
+  /* Ensure solid background in dark mode */
+  :global([data-mantine-color-scheme='dark']) & {
+    background-color: var(--bg-base);
+  }
 }
