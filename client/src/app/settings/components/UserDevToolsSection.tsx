@@ -8,25 +8,11 @@ import { CheckIcon, CopyIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
 
 export const UserDevToolsSection = () => {
-  const { user, isAdmin } = useScratchPadUser();
+  const { user } = useScratchPadUser();
 
   return (
     <ConfigSection title="Dev Tools" description="Developer tools and information.">
       <Stack gap="xs">
-        <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={150}>User ID</Text13Regular>
-          <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
-          <CopyButton value={user?.id || ''} timeout={2000}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
-                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-          {isAdmin && <Badge>Admin</Badge>}
-        </Group>
         <Group wrap="nowrap" gap="xs">
           <Text13Regular miw={150}>Clerk ID</Text13Regular>
           <Text13Regular>{user?.clerkId || 'No clerk ID found'}</Text13Regular>
@@ -147,5 +133,26 @@ const FlagCheckboxOption = (props: { flag: LocalStorageFlag }): JSX.Element => {
         window.location.reload();
       }}
     />
+  );
+};
+
+// Current User ID, visible even not in dev mode.
+export const CurrentUserSection = () => {
+  const { user, isAdmin } = useScratchPadUser();
+  return (
+    <Group wrap="nowrap" gap="xs">
+      <Text13Regular miw={150}>User ID</Text13Regular>
+      <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
+      <CopyButton value={user?.id || ''} timeout={2000}>
+        {({ copied, copy }) => (
+          <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
+            <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+              {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+            </ActionIcon>
+          </Tooltip>
+        )}
+      </CopyButton>
+      {isAdmin && <Badge>Admin</Badge>}
+    </Group>
   );
 };

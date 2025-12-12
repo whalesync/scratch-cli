@@ -7,7 +7,7 @@ import MainContent from '../components/layouts/MainContent';
 import { AgentCredentialsSection } from './components/AgentCredentialsSection';
 import { DefaultModelSection } from './components/DefaultModelSection';
 import { TokenUsageSection } from './components/TokenUsageSection';
-import { UserDevToolsSection } from './components/UserDevToolsSection';
+import { CurrentUserSection, UserDevToolsSection } from './components/UserDevToolsSection';
 
 const SettingsPage = () => {
   const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
@@ -18,14 +18,16 @@ const SettingsPage = () => {
       <MainContent.Body>
         <Stack gap="20px" maw={800}>
           <DefaultModelSection />
-          <Divider c="var(--mantine-color-gray-3)" />
+          <Divider />
           <AgentCredentialsSection />
-          <Divider c="var(--mantine-color-gray-3)" />
+          <Divider />
           <TokenUsageSection />
+          <Divider />
+          <CurrentUserSection />
 
           {isDevToolsEnabled && (
             <>
-              <Divider c="var(--mantine-color-gray-3)" />
+              <Divider />
               <UserDevToolsSection />
             </>
           )}
