@@ -62,7 +62,19 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
   ({ tableId, workbook, onMessageChange, onSendMessage, disabled = false, onFocus, commands = [] }, ref) => {
     const [value, setValueState] = useState('');
     const previousValueRef = useRef('');
+    const suggestionsPortalRef = useRef<HTMLDivElement | null>(null);
     const { handleUndo, handleRedo, setValue, setPreviousValue } = useUndoRedo(value, setValueState, previousValueRef);
+
+    // Create portal host for suggestions on mount
+    if (typeof window !== 'undefined' && !suggestionsPortalRef.current) {
+      let portalHost = document.getElementById('mentions-suggestions-portal');
+      if (!portalHost) {
+        portalHost = document.createElement('div');
+        portalHost.id = 'mentions-suggestions-portal';
+        document.body.appendChild(portalHost);
+      }
+      suggestionsPortalRef.current = portalHost as HTMLDivElement;
+    }
 
     const executeCommand = (commandId: string) => {
       const command = commands.find((c) => c.id === commandId);
@@ -161,8 +173,20 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
       }
     };
 
+    const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+    // Combine the forwarded ref with our local ref
+    const setRefs = (element: HTMLTextAreaElement | null) => {
+      inputRef.current = element;
+      if (typeof ref === 'function') {
+        ref(element);
+      } else if (ref) {
+        ref.current = element;
+      }
+    };
+
     return (
-      <div className={classNames.mentions__wrapper}>
+      <div className={classNames.mentions__wrapper} onClick={() => inputRef.current?.focus()}>
         <MentionsInput
           value={value}
           onChange={handleChange}
@@ -185,7 +209,8 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
           classNames={classNames}
           spellCheck={false}
           allowSuggestionsAboveCursor={true}
-          inputRef={ref}
+          inputRef={setRefs}
+          suggestionsPortalHost={suggestionsPortalRef.current ?? undefined}
         >
           {/* Resource Mentions */}
           <TypesafeMention
