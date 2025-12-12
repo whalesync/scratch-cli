@@ -1,9 +1,5 @@
-import {
-  ConnectorAccount,
-  CreateConnectorAccountDto,
-  TestConnectionResponse,
-  UpdateConnectorAccountDto,
-} from '@/types/server-entities/connector-accounts';
+import { ConnectorAccount, TestConnectionResponse } from '@/types/server-entities/connector-accounts';
+import { CreateConnectorAccountDto, UpdateConnectorAccountDto } from '@spinner/shared-types';
 import { TableGroup, TableList } from '../../types/server-entities/table-list';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';

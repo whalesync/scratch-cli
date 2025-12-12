@@ -5,10 +5,10 @@ import { Text13Regular, TextTitle2 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { RouteUrls } from '@/utils/route-urls';
 import { Alert, Container, Group, Loader, Stack } from '@mantine/core';
+import { OAuthStatePayload } from '@spinner/shared-types';
 import { CircleXIcon, InfoIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { OAuthStatePayload } from '../../../types/server-entities/oauth';
 
 interface OAuthCallbackState {
   status: 'loading' | 'error' | 'denied';

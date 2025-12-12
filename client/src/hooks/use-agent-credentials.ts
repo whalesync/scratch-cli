@@ -1,8 +1,7 @@
 import { agentCredentialsApi } from '@/lib/api/agent-credentials';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
-import { AgentCredential } from '@spinner/shared-types';
+import { AgentCredential, CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 

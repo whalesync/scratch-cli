@@ -1,11 +1,10 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
 import { isExperimentEnabled } from '@/types/server-entities/users';
 import { Alert, Checkbox, Divider, ModalProps, NumberInput, PasswordInput, Stack, TextInput } from '@mantine/core';
 import { useSetState } from '@mantine/hooks';
-import { AgentCredential } from '@spinner/shared-types';
+import { AgentCredential, CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../../components/base/buttons';
 import { ModalWrapper } from '../../components/ModalWrapper';

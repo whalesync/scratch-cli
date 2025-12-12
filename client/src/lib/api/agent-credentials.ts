@@ -1,5 +1,5 @@
-import { CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@/types/server-entities/agent-credentials';
-import { AgentCredential } from '@spinner/shared-types';
+import { AgentCredential, CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@spinner/shared-types';
+import { validate } from 'class-validator';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -15,19 +15,37 @@ export const agentCredentialsApi = {
       handleAxiosError(error, 'Failed to fetch agent credentials');
     }
   },
-  create: async (data: CreateAgentCredentialDto): Promise<AgentCredential> => {
+  create: async (dto: CreateAgentCredentialDto): Promise<AgentCredential> => {
     try {
+      // Validate the DTO.
+      const validationErrors = await validate(dto);
+      if (validationErrors.length > 0) {
+        const errorMessages = validationErrors
+          .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
+          .join('; ');
+        throw new Error(`Validation failed: ${errorMessages}`);
+      }
+
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<AgentCredential>('/user/credentials/new', data);
+      const res = await axios.post<AgentCredential>('/user/credentials/new', dto);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to create agent credential');
     }
   },
-  update: async (id: string, data: UpdateAgentCredentialDto): Promise<AgentCredential> => {
+  update: async (id: string, dto: UpdateAgentCredentialDto): Promise<AgentCredential> => {
     try {
+      // Validate the DTO.
+      const validationErrors = await validate(dto);
+      if (validationErrors.length > 0) {
+        const errorMessages = validationErrors
+          .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
+          .join('; ');
+        throw new Error(`Validation failed: ${errorMessages}`);
+      }
+
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<AgentCredential>(`/user/credentials/${id}`, data);
+      const res = await axios.post<AgentCredential>(`/user/credentials/${id}`, dto);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to update agent credential');

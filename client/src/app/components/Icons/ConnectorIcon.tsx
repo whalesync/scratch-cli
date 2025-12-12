@@ -1,6 +1,6 @@
 import { getLogo } from '@/service-naming-conventions';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { Image, MantineSpacing, StyleProp } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { ImageProps } from 'next/image';
 
 export function ConnectorIcon(

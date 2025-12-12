@@ -7,7 +7,6 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadApiError } from '@/lib/api/error';
 import { getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import {
   Alert,
@@ -20,6 +19,7 @@ import {
   TextInput,
   UnstyledButton,
 } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback, useState } from 'react';
 

@@ -1,8 +1,9 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
-import { AuthType, ConnectorAccount, Service } from '@/types/server-entities/connector-accounts';
+import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { Alert, ModalProps, Stack, TextInput } from '@mantine/core';
+import { AuthType, Service } from '@spinner/shared-types';
 import { useEffect, useState } from 'react';
 
 interface UpdateConnectionModalProps extends ModalProps {

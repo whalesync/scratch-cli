@@ -2,7 +2,6 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { recordApi } from '@/lib/api/record';
 import { workbookApi } from '@/lib/api/workbook';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId } from '@/types/server-entities/table-list';
 import {
   AddTableToWorkbookDto,
@@ -10,7 +9,7 @@ import {
   UpdateWorkbookDto,
   Workbook,
 } from '@/types/server-entities/workbook';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { Service, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';

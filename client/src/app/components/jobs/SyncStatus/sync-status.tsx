@@ -2,8 +2,8 @@ import { FC } from 'react';
 import { TableIndicator } from './components/base-avatar-with-indicator';
 
 import { getServiceName } from '@/service-naming-conventions';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { ActionIcon, Text } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { ArrowRightIcon } from 'lucide-react';
 import { ConnectorIcon } from '../../Icons/ConnectorIcon';
 import { StyledLucideIcon } from '../../Icons/StyledLucideIcon';

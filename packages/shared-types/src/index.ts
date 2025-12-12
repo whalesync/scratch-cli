@@ -31,6 +31,7 @@ export * from './dto/dev-tools/update-dev-subscription.dto';
 export * from './dto/mentions/record-search.dto';
 export * from './dto/mentions/resource-search.dto';
 export * from './dto/oauth/oauth-initiate-options.dto';
+export * from './dto/oauth/oauth-state-payload';
 export * from './dto/payment/create-checkout-session.dto';
 export * from './dto/payment/create-portal.dto';
 export * from './dto/style-guide/update-style-guide.dto';

@@ -1,4 +1,4 @@
-import { OAuthInitiateOptionsDto } from '@/types/server-entities/oauth';
+import { OAuthInitiateOptionsDto } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 

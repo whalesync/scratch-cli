@@ -14,7 +14,6 @@ import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { EntityId, TableGroup } from '@/types/server-entities/table-list';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { timeAgo } from '@/utils/helpers';
@@ -33,7 +32,7 @@ import {
   useModalsStack,
   useTree,
 } from '@mantine/core';
-import { SnapshotTableId } from '@spinner/shared-types';
+import { Service, SnapshotTableId } from '@spinner/shared-types';
 import cx from 'classnames';
 import {
   ArrowRightIcon,

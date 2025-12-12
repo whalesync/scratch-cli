@@ -1,4 +1,4 @@
-import { Service } from './connector-accounts';
+import { Service } from '@spinner/shared-types';
 
 export interface EntityId {
   wsId: string;

@@ -28,6 +28,7 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { diffWordsWithSpace } from 'diff';
 import {
   AlertTriangle,
@@ -48,7 +49,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Service } from '../../../types/server-entities/connector-accounts';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import {

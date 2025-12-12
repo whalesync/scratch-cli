@@ -1,5 +1,4 @@
-import { Service } from '@/types/server-entities/connector-accounts';
-import { ScratchPlanType, SubscriptionInfo } from '@spinner/shared-types';
+import { ScratchPlanType, Service, SubscriptionInfo } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import { useConnectorAccounts } from './use-connector-account';
 import { useScratchPadUser } from './useScratchpadUser';

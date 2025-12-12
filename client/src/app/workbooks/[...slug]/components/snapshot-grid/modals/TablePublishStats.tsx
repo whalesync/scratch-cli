@@ -1,6 +1,6 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 
 interface TablePublishStatsProps {
   tableId: string;

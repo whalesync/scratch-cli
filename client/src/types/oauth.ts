@@ -1,4 +1,4 @@
-import { Service } from './server-entities/connector-accounts';
+import { Service } from '@spinner/shared-types';
 
 export interface OAuthInitiateResponse {
   authUrl: string;

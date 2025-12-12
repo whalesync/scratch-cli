@@ -1,4 +1,4 @@
-import { Service } from '@/types/server-entities/connector-accounts';
+import { Service } from '@spinner/shared-types';
 import capitalize from 'lodash/capitalize';
 type ServiceNamingConvention = {
   service: string;
@@ -101,6 +101,18 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     records: 'rows',
     bases: null,
     logo: 'csv.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
+  [Service.POSTGRES]: {
+    service: 'PostgreSQL',
+    table: 'table',
+    record: 'row',
+    base: 'database',
+    tables: 'tables',
+    records: 'rows',
+    bases: 'databases',
+    logo: 'postgres.svg',
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },

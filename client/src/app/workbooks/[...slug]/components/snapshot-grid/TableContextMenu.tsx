@@ -3,13 +3,12 @@ import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-sn
 import { recordApi } from '@/lib/api/record';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { SCRATCH_ID_COLUMN, SnapshotTableId } from '@spinner/shared-types';
+import { SCRATCH_ID_COLUMN, Service, SnapshotTableId } from '@spinner/shared-types';
 import { GridApi } from 'ag-grid-community';
 import { CheckIcon, FileText, Filter, FilterX, TrashIcon, Undo2, XIcon } from 'lucide-react';
 import React, { useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useWorkbookEditorUIStore } from '../../../../../stores/workbook-editor-store';
-import { Service } from '../../../../../types/server-entities/connector-accounts';
 import { PendingRecordUpdate, useUpdateRecordsContext } from '../contexts/update-records-context';
 import { WebflowPublishMenuItem } from './custom-actions/webflow/WebflowPublishMenuItem';
 import { WixPublishMenuItem } from './custom-actions/wix/WixPublishMenuItem';

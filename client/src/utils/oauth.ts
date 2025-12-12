@@ -1,6 +1,6 @@
 import { oAuthApi } from '@/lib/api/oauth';
 import { OAuthService } from '@/types/oauth';
-import { OAuthInitiateOptionsDto } from '@/types/server-entities/oauth';
+import { OAuthInitiateOptionsDto } from '@spinner/shared-types';
 
 /**
  * Initiate OAuth flow for a service.

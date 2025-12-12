@@ -3,9 +3,9 @@ import { getTerminalTableStatus } from '@/app/components/jobs/job-utils';
 import { TableStatus } from '@/app/components/jobs/publish/PublishJobProgress';
 import { SyncStatus } from '@/app/components/jobs/SyncStatus/sync-status';
 import { getServiceName } from '@/service-naming-conventions';
-import { Service } from '@/types/server-entities/connector-accounts';
 import { JobEntity } from '@/types/server-entities/job';
 import { Alert, Stack } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { AlertCircle } from 'lucide-react';
 import { FC } from 'react';
 

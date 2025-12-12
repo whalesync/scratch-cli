@@ -1,8 +1,9 @@
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { AgentService } from '../../agent-credentials';
 
 export class CreateAgentCredentialDto {
   @IsString()
-  service?: string;
+  service?: AgentService;
 
   @IsString()
   apiKey?: string;

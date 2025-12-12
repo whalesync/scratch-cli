@@ -1,11 +1,11 @@
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { Loader, Menu } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { Edit3Icon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
-import { Service } from '../../../../types/server-entities/connector-accounts';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DevToolMenuItem } from '../../../components/DevToolMenu';
 import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
