@@ -1,4 +1,3 @@
-import { Badge } from '@/app/components/base/badge';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Medium } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
@@ -9,7 +8,7 @@ import { RelativeDate } from '@/app/components/RelativeDate';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
-import { hasAllConnectionsDeleted, hasDeletedServiceConnection, Workbook } from '@/types/server-entities/workbook';
+import { getConnectorsWithStatus, Workbook } from '@/types/server-entities/workbook';
 import { RouteUrls } from '@/utils/route-urls';
 import { Group, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
@@ -22,13 +21,8 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
   const [saving, setSaving] = useState(false);
   const [workbookName, setWorkbookName] = useState(workbook.name ?? undefined);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
+  const connectorList = getConnectorsWithStatus(workbook);
 
-  const connectorList = [
-    ...new Set(workbook.snapshotTables?.map((table) => table.connectorService).filter((service) => !!service)),
-  ];
-
-  // Check connection health status
-  const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
   const handleDelete = async () => {
     if (!workbook) return;
     try {
@@ -120,20 +114,13 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <Table.Td>
           {/* Icons are stacked on top of each other with an offset */}
           <Group gap={3}>
-            {connectorList.length === 0 ? (
-              <Badge color="black">Not set up</Badge>
-            ) : allConnectionsDeleted ? (
-              <DeletedConnectionIcon />
-            ) : (
-              connectorList.map((table, index) => {
-                const isConnectionDeleted = hasDeletedServiceConnection(workbook, table);
-                return isConnectionDeleted ? (
-                  <DeletedConnectionIcon key={`${table}-deleted-connection`} />
-                ) : (
-                  <ConnectorIcon key={index} connector={table} size={21} withBorder />
-                );
-              })
-            )}
+            {connectorList.map(({ connectorService, isBroken }, index) => {
+              return isBroken ? (
+                <DeletedConnectionIcon key={index} />
+              ) : (
+                <ConnectorIcon key={index} connector={connectorService} size={21} withBorder />
+              );
+            })}
           </Group>
         </Table.Td>
         <Table.Td>

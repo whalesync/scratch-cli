@@ -1,8 +1,11 @@
+import { isNotEmpty } from '@/utils/helpers';
 import { Service, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import isBoolean from 'lodash/isBoolean';
 import isNumber from 'lodash/isNumber';
+import partition from 'lodash/partition';
 import toNumber from 'lodash/toNumber';
 import truncate from 'lodash/truncate';
+import uniq from 'lodash/uniq';
 import { EntityId } from './table-list';
 
 export type ColumnMetadata = {
@@ -319,6 +322,25 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
       return table.connectorAccountId === null && table.connectorService !== null;
     }) ?? false
   );
+}
+
+export function getConnectorsWithStatus(workbook: Workbook): { connectorService: Service; isBroken: boolean }[] {
+  const [working, broken] = partition(
+    workbook.snapshotTables,
+    (table) => table.connectorService === Service.CSV || table.connectorAccountId !== null,
+  );
+
+  // Get rid of nulls
+  let workingServices = working.map((table) => table.connectorService).filter(isNotEmpty);
+  let brokenServices = broken.map((table) => table.connectorService).filter(isNotEmpty);
+  // Make each unique.
+  workingServices = uniq(workingServices);
+  brokenServices = uniq(brokenServices);
+
+  return [
+    ...workingServices.map((connectorService) => ({ connectorService, isBroken: false })),
+    ...brokenServices.map((connectorService) => ({ connectorService, isBroken: true })),
+  ];
 }
 
 /**
