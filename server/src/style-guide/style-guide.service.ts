@@ -31,7 +31,7 @@ export class StyleGuideService {
   ) {}
 
   async create(createStyleGuideDto: ValidatedCreateStyleGuideDto, actor: Actor): Promise<StyleGuide> {
-    // validate the DTO
+    // Sanitize the DTO.
     if (createStyleGuideDto.sourceUrl) {
       createStyleGuideDto.sourceUrl = this.sanitizeUrl(createStyleGuideDto.sourceUrl);
     }
@@ -77,7 +77,7 @@ export class StyleGuideService {
   }
 
   async update(id: string, updateStyleGuideDto: UpdateStyleGuideDto, actor: Actor): Promise<StyleGuide | null> {
-    // validate the DTO
+    // Sanitize the DTO.
     if (updateStyleGuideDto.sourceUrl) {
       updateStyleGuideDto.sourceUrl = this.sanitizeUrl(updateStyleGuideDto.sourceUrl);
     }

@@ -1,5 +1,5 @@
 import { AgentCredential, CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@spinner/shared-types';
-import { validate } from 'class-validator';
+import { validateHelper } from '../../utils/validate-helper';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -17,14 +17,7 @@ export const agentCredentialsApi = {
   },
   create: async (dto: CreateAgentCredentialDto): Promise<AgentCredential> => {
     try {
-      // Validate the DTO.
-      const validationErrors = await validate(dto);
-      if (validationErrors.length > 0) {
-        const errorMessages = validationErrors
-          .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
-          .join('; ');
-        throw new Error(`Validation failed: ${errorMessages}`);
-      }
+      await validateHelper(dto);
 
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.post<AgentCredential>('/user/credentials/new', dto);
@@ -35,14 +28,7 @@ export const agentCredentialsApi = {
   },
   update: async (id: string, dto: UpdateAgentCredentialDto): Promise<AgentCredential> => {
     try {
-      // Validate the DTO.
-      const validationErrors = await validate(dto);
-      if (validationErrors.length > 0) {
-        const errorMessages = validationErrors
-          .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
-          .join('; ');
-        throw new Error(`Validation failed: ${errorMessages}`);
-      }
+      await validateHelper(dto);
 
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.post<AgentCredential>(`/user/credentials/${id}`, dto);

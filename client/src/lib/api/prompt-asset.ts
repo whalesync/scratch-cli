@@ -1,6 +1,6 @@
 import { ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { CreateStyleGuideDto } from '@spinner/shared-types';
-import { validate } from 'class-validator';
+import { validateHelper } from '../../utils/validate-helper';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -29,14 +29,7 @@ export const promptAssetApi = {
 
   // Create a new style guide
   create: async (dto: CreateStyleGuideDto): Promise<StyleGuide> => {
-    // Validate the DTO.
-    const validationErrors = await validate(dto);
-    if (validationErrors.length > 0) {
-      const errorMessages = validationErrors
-        .map((err) => `${err.property}: ${Object.values(err.constraints || {}).join(', ')}`)
-        .join('; ');
-      throw new Error(`Validation failed: ${errorMessages}`);
-    }
+    await validateHelper(dto);
 
     try {
       const axios = API_CONFIG.getAxiosInstance();
