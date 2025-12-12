@@ -25,8 +25,10 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               key={idx}
               c="var(--fg-added)"
               bg="var(--bg-added)"
-              dangerouslySetInnerHTML={{ __html: value }}
-            ></Text>
+              // dangerouslySetInnerHTML={{ __html: value }}
+            >
+              {value}
+            </Text>
           );
         }
 
@@ -37,16 +39,22 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               key={idx}
               c="var(--fg-removed)"
               bg="var(--bg-removed)"
-              dangerouslySetInnerHTML={{ __html: value }}
+              // dangerouslySetInnerHTML={{ __html: value }}
               style={{
                 textDecoration: 'line-through',
                 fontStyle: 'italic',
               }}
-            ></Text>
+            >
+              {value}
+            </Text>
           );
         }
 
-        return <Text span key={idx} className="cell-text" dangerouslySetInnerHTML={{ __html: value }}></Text>;
+        return (
+          <Text span key={idx}>
+            {value}
+          </Text>
+        );
       })}
     </Box>
   );

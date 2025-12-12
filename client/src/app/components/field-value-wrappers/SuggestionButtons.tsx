@@ -1,7 +1,10 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
-import { Box, Group, MantineStyleProps } from '@mantine/core';
-import { CheckIcon, XIcon } from 'lucide-react';
+import { ActionIcon, Box, Code, Group, MantineStyleProps, Modal } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { ChangeObject } from 'diff';
+import { BugIcon, CheckIcon, XIcon } from 'lucide-react';
 import { FC, useState } from 'react';
 import { IconButtonOutline, IconButtonPrimaryOutline } from '../base/buttons';
 import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
@@ -50,6 +53,7 @@ type SuggestionButtonsProps = {
   columnDef: TableSpec['columns'][0];
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
+  changes?: ChangeObject<string>[];
 };
 
 export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
@@ -57,8 +61,11 @@ export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
   columnDef,
   acceptCellValues,
   rejectCellValues,
+  changes,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [debugModalOpened, { open: openDebugModal, close: closeDebugModal }] = useDisclosure(false);
+  const { isDevToolsEnabled } = useDevTools();
 
   const handleAccept = async () => {
     if (!acceptCellValues || isProcessing) return;
@@ -112,7 +119,28 @@ export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
         zIndex: 1000,
       }}
     >
-      <InlineSuggestionButtons onAcceptClick={handleAccept} onRejectClick={handleReject} disabled={isProcessing} />
+      <Group gap={4}>
+        {isDevToolsEnabled && changes && (
+          <>
+            <ActionIcon
+              color="var(--mantine-color-devTool-6)"
+              variant="subtle"
+              size="compact-sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openDebugModal();
+              }}
+            >
+              <BugIcon size={13} />
+            </ActionIcon>
+            <Modal opened={debugModalOpened} onClose={closeDebugModal} title="Diff Debug" size="lg">
+              <Code block>{JSON.stringify(changes, null, 2)}</Code>
+            </Modal>
+          </>
+        )}
+        <InlineSuggestionButtons onAcceptClick={handleAccept} onRejectClick={handleReject} disabled={isProcessing} />
+      </Group>
     </Box>
   );
 };
