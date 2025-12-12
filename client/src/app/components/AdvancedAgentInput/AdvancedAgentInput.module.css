@@ -1,3 +1,10 @@
+.mentions__wrapper {
+  min-height: 110px;
+  max-height: 152px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .mentions__input {
   border: none;
   padding: 10px;

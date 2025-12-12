@@ -505,6 +505,7 @@ export default function AIChatPanel() {
         {/* User Input for Chat */}
 
         <AdvancedAgentInput
+          ref={textInputRef}
           tableId={(activeTable?.id as SnapshotTableId) || ''}
           workbook={workbook}
           onMessageChange={setMessage}
