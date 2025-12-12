@@ -31,18 +31,9 @@ import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/s
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import { Alert, Anchor, Box, Button, Center, Divider, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import { Alert, Anchor, Box, Center, Divider, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
-import {
-  ChevronDownIcon,
-  CircleStopIcon,
-  LucideFileKey,
-  Plus,
-  SendIcon,
-  SparklesIcon,
-  Trash2Icon,
-  XIcon,
-} from 'lucide-react';
+import { ChevronDownIcon, CircleStopIcon, LucideFileKey, Plus, SendIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { Text12Regular, Text13Medium } from '../../../../components/base/text';
@@ -470,17 +461,7 @@ export default function AIChatPanel() {
           </Stack>
         ) : (
           <Center h="100%">
-            {activeOpenRouterCredentials ? (
-              <Button
-                variant="transparent"
-                leftSection={<SparklesIcon size={16} />}
-                onClick={createNewSession}
-                size="xs"
-                w="fit-content"
-              >
-                Start new chat
-              </Button>
-            ) : (
+            {!activeOpenRouterCredentials && (
               <Stack gap="xs" justify="center" align="center">
                 <Text size="xs">You must configure your OpenRouter credentials to use the AI agent</Text>
                 <ButtonSecondaryOutline component="a" href={RouteUrls.settingsPageUrl} size="xs" w="fit-content">

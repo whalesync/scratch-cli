@@ -81,14 +81,7 @@ export const RecordDetailsHeader = ({
   );
 
   return (
-    <Group
-      w="100%"
-      h={h}
-      style={{ borderBottom: '0.5px solid light-dark(#c8ced5, var(--mantine-color-gray-2))' }}
-      align="center"
-      gap={0}
-      px="xs"
-    >
+    <Group w="100%" h={h} style={{ borderBottom: '0.5px solid var(--fg-divider)' }} align="center" gap={0} px="xs">
       {/* Centered ignoring the buttons */}
       <Center pos="absolute" left={0} right={0} c="var(--fg-secondary)">
         {currentColumn ? (

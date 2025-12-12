@@ -5,7 +5,7 @@
 .dashedLink {
   color: var(--mantine-color-gray);
   text-decoration-style: dashed;
-  text-decoration-color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-2));
+  text-decoration-color: var(--mantine-color-gray-7);
   text-underline-offset: 5px;
 
   &:hover {
