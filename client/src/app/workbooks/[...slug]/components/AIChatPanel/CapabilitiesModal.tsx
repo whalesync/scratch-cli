@@ -3,7 +3,7 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { TextTitle3 } from '@/app/components/base/text';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
-import { capabilitiesForGroup, Capability } from '@/types/server-entities/agent';
+import { capabilitiesForGroup, Capability } from '@spinner/shared-types';
 import { Checkbox, Group, Stack, Text } from '@mantine/core';
 import capitalize from 'lodash/capitalize';
 import { useEffect, useState } from 'react';

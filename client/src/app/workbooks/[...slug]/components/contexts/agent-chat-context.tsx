@@ -9,10 +9,9 @@ import {
   ModelOption,
   PersistedModelOption,
 } from '@/types/common';
-import { DataScope } from '@/types/server-entities/agent';
+import { DataScope, WorkbookId } from '@spinner/shared-types';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
-import { WorkbookId } from '@spinner/shared-types';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 /**

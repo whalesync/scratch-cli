@@ -27,7 +27,7 @@ import {
 import { useAgentChatWebSocketStore } from '@/stores/agent-chat-websocket-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { AgentProgressMessageData, WebSocketMessage } from '@/types/agent-websocket';
-import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@/types/server-entities/agent';
+import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@spinner/shared-types';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';

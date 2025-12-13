@@ -3,8 +3,13 @@
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { agentApi } from '@/lib/api/agent';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { ChatMessage, ChatSession, ChatSessionSummary, CreateSessionResponse } from '@/types/server-entities/agent';
-import { WorkbookId } from '@spinner/shared-types';
+import {
+  ChatMessage,
+  ChatSession,
+  ChatSessionSummary,
+  CreateSessionResponse,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import useSWR from 'swr';
 

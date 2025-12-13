@@ -1,7 +1,7 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
-import { ChatSessionSummary } from '@/types/server-entities/agent';
+import { ChatSessionSummary } from '@spinner/shared-types';
 import { timeAgo } from '@/utils/helpers';
 import { ActionIcon, Combobox, Group, Text, useCombobox } from '@mantine/core';
 import { Clock4Icon } from 'lucide-react';

@@ -6,7 +6,7 @@ import { Text9Regular, TextMono12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/types/agent-websocket';
-import { ChatMessage } from '@/types/server-entities/agent';
+import { ChatMessage } from '@spinner/shared-types';
 import { timeAgo } from '@/utils/helpers';
 import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';

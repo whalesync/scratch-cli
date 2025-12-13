@@ -6,8 +6,8 @@ import {
   DeleteSessionResponse,
   SendMessageResponse,
   SessionListResponse,
-} from '@/types/server-entities/agent';
-import { WorkbookId } from '@spinner/shared-types';
+  WorkbookId,
+} from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
