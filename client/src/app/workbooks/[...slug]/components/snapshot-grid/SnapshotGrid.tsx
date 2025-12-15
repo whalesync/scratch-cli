@@ -250,6 +250,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
     acceptCellValues,
     rejectCellValues,
     onboardingSuggestionsCell,
+    !!activeCells?.recordId,
   );
 
   // Handler to open overlay from ID cell

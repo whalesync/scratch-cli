@@ -16,6 +16,7 @@ export const useCellRenderer = (
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>,
   onboardingSuggestionsCell?: FirstSuggestionCell | null,
+  recordDetailsOpen?: boolean,
 ) => {
   type TValue = unknown;
   type TContext = unknown;
@@ -46,7 +47,7 @@ export const useCellRenderer = (
         showChangeIndicators={!!columnHasChanges}
         acceptCellValues={acceptCellValues}
         rejectCellValues={rejectCellValues}
-        showOnboardingTooltip={!!isOnboardingSuggestionsCell}
+        showOnboardingTooltip={!!isOnboardingSuggestionsCell && !recordDetailsOpen}
       />
     );
   };

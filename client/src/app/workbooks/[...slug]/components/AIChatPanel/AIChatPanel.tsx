@@ -9,6 +9,8 @@ import {
   IconButtonOutline,
 } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
+import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
@@ -484,6 +486,9 @@ export default function AIChatPanel() {
         <Divider />
 
         {/* User Input for Chat */}
+        <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="contentEditedWithAi">
+          <Box h={0} />
+        </OnboardingStepContent>
 
         <AdvancedAgentInput
           ref={textInputRef}

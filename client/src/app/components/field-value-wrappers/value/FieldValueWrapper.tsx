@@ -84,25 +84,6 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
     return () => observer.disconnect();
   }, [showOnboardingTooltip]);
 
-  // if (showOnboardingTooltip) {
-  //   return (
-  //     <Tooltip
-  //       label={<OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" />}
-  //       opened={isVisible}
-  //       position="bottom"
-  //       withArrow
-  //       withinPortal
-  //       events={{ hover: false, focus: false, touch: false }}
-  //       data-always-dark
-  //       data-onboarding-tooltip
-  //     >
-  //       <div ref={wrapperRef} style={{ height: '100%' }}>
-  //         {wrapper}
-  //       </div>
-  //     </Tooltip>
-  //   );
-  // }
-
   return (
     <Group className={styles.fieldValueWrapper} ref={wrapperRef}>
       {/* <div ref={wrapperRef} style={{ height: '100%' }} /> */}

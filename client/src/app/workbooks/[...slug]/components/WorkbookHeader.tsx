@@ -3,25 +3,37 @@ import { Text13Regular } from '@/app/components/base/text';
 import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
-import { OnboardingFlowBadge } from '@/app/components/onboarding/OnboardingFlowBadge';
+import { OnboardingFlowButton } from '@/app/components/onboarding/OnboardingFlowButton';
 import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { hasAllConnectionsDeleted } from '@/types/server-entities/workbook';
 import { Group } from '@mantine/core';
 import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
+import { useMemo } from 'react';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 
 export const WorkbookHeader = () => {
-  const { workbook } = useActiveWorkbook();
+  const { workbook, activeTable } = useActiveWorkbook();
   const toggleNavDrawer = useLayoutManagerStore((state) => state.toggleNavDrawer);
   const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   const openChat = useWorkbookEditorUIStore((state) => state.openChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
   // const { shouldShowStep } = useOnboarding();
+
+  const { columnChangeTypes } = useSnapshotTableRecords({
+    workbookId: workbook?.id ?? null,
+    tableId: activeTable?.id ?? null,
+  });
+
+  // Check if there are any pending suggestions in any column
+  const hasPendingSuggestions = useMemo(() => {
+    return Object.values(columnChangeTypes).some((changes) => changes.suggestedAdditions || changes.suggestedDeletions);
+  }, [columnChangeTypes]);
 
   const publishButton = (
     <ButtonSecondaryOutline
@@ -52,28 +64,10 @@ export const WorkbookHeader = () => {
             Chat
           </ButtonSecondaryInline>
         )}
-        {/* TODO: Move the publish button here, after figuring out how it should behave */}
-        {/* <CornerBoxedBadge label="11" tooltip={<MyOnboarding />} tooltipAlwaysVisible /> */}
-        <OnboardingFlowBadge />
-        <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="dataPublished">
+        <OnboardingFlowButton />
+        <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="dataPublished" hide={hasPendingSuggestions}>
           {publishButton}
         </OnboardingStepContent>
-        {/* {shouldShowStep('gettingStartedV1', 'dataPublished') ? (
-          <Tooltip
-            label={}
-            opened
-            position="bottom"
-            withArrow
-            withinPortal
-            events={{ hover: false, focus: false, touch: false }}
-            data-always-dark
-            data-onboarding-tooltip
-          >
-           
-          </Tooltip>
-        ) : (
-          publishButton
-        )} */}
 
         <WorkbookActionsMenu />
       </Group>

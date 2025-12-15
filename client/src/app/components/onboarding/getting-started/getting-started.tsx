@@ -32,7 +32,7 @@ export const gettingStartedFlowUI: OnboardingFlowUI = {
     },
     {
       stepKey: 'dataPublished',
-      hideFlowTooltip: true,
+      flowTooltipBehavior: 'alwaysHide',
       data: {
         title: 'Publish changes',
         description: 'Sync your changes back to the source.',
