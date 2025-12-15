@@ -1,6 +1,7 @@
 import { Text13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea, TextAreaRef } from '@/app/components/EnhancedTextArea';
+import { jsonFormatter } from '@/app/components/field-value-wrappers/json-formatter';
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { HtmlViewer } from '@/app/components/HtmlViewer';
@@ -267,10 +268,9 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
 
   if (column.pgType === PostgresColumnType.JSONB) {
     const rawValue = record.fields[columnId];
-    const currentValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+    const currentValue = typeof rawValue === 'string' ? rawValue : jsonFormatter(rawValue);
     const rawSuggestedValue = record.__suggested_values?.[columnId];
-    const suggestedValue =
-      typeof rawSuggestedValue === 'string' ? rawSuggestedValue : JSON.stringify(rawSuggestedValue, null, 2);
+    const suggestedValue = typeof rawSuggestedValue === 'string' ? rawSuggestedValue : jsonFormatter(rawSuggestedValue);
 
     return (
       <FieldRow

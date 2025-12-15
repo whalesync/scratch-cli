@@ -54,6 +54,8 @@ type SuggestionButtonsProps = {
   acceptCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   rejectCellValues?: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   changes?: ChangeObject<string>[];
+  formattedValue?: string;
+  suggestedValue?: unknown;
 };
 
 export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
@@ -62,6 +64,8 @@ export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
   acceptCellValues,
   rejectCellValues,
   changes,
+  formattedValue,
+  suggestedValue,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [debugModalOpened, { open: openDebugModal, close: closeDebugModal }] = useDisclosure(false);
@@ -135,7 +139,28 @@ export const SuggestionButtons: FC<SuggestionButtonsProps> = ({
               <BugIcon size={13} />
             </ActionIcon>
             <Modal opened={debugModalOpened} onClose={closeDebugModal} title="Diff Debug" size="lg">
-              <Code block>{JSON.stringify(changes, null, 2)}</Code>
+              {formattedValue !== undefined && (
+                <Box mb="sm">
+                  <strong>Original Value:</strong>
+                  <Code block mt="xs">
+                    {formattedValue}
+                  </Code>
+                </Box>
+              )}
+              {suggestedValue !== undefined && (
+                <Box mb="sm">
+                  <strong>New Value:</strong>
+                  <Code block mt="xs">
+                    {JSON.stringify(suggestedValue)}
+                  </Code>
+                </Box>
+              )}
+              <Box>
+                <strong>Changes:</strong>
+                <Code block mt="xs">
+                  {JSON.stringify(changes, null, 2)}
+                </Code>
+              </Box>
             </Modal>
           </>
         )}

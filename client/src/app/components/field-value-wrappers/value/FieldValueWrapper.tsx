@@ -47,6 +47,8 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
           acceptCellValues={acceptCellValues}
           rejectCellValues={rejectCellValues}
           changes={changes}
+          suggestedValue={processedFieldValue.suggestedValue}
+          formattedValue={processedFieldValue.formattedValue}
         />
       )}
     </>

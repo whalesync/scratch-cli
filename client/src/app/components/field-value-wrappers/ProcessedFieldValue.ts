@@ -32,6 +32,7 @@ export const processFieldValue = (
 ): ProcessedFieldValue => {
   const formattedValue = formatFieldValue(value, columnDef);
   const suggestedValue = record?.__suggested_values?.[columnDef.id.wsId];
+
   const existingChangeTypes = getExistingChangeTypes(value, record, columnDef);
 
   if (record?.__edited_fields?.[columnDef.id.wsId]) {
