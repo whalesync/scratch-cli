@@ -10,9 +10,10 @@ import { DecorativeBoxedIcon } from '../Icons/DecorativeBoxedIcon';
 interface UploadFileModalProps {
   opened: boolean;
   onClose: () => void;
+  onUploadSuccess?: (uploadId: string) => void;
 }
 
-export const UploadFileModal = ({ opened, onClose }: UploadFileModalProps) => {
+export const UploadFileModal = ({ opened, onClose, onUploadSuccess }: UploadFileModalProps) => {
   const openFileInputRef = useRef<() => void>(null);
 
   const dropContent = (
@@ -29,6 +30,7 @@ export const UploadFileModal = ({ opened, onClose }: UploadFileModalProps) => {
         openRef={openFileInputRef}
         disableNavigation={true}
         onUploadComplete={onClose}
+        onUploadSuccess={onUploadSuccess}
         acceptContent={dropContent}
       >
         <Center style={{ cursor: 'pointer' }} onClick={() => openFileInputRef.current?.()} p={100}>

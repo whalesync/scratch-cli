@@ -33,6 +33,7 @@ type ModalColumnType = PostgresColumnType | 'IGNORE';
 interface CsvPreviewModalProps {
   opened: boolean;
   onClose: () => void;
+  onUploadSuccess?: (uploadId: string) => void;
   data: CsvPreviewResponse | null;
   fileName: string | null;
   file: File | null;
@@ -51,6 +52,7 @@ const getModalColumnTypeIcon = (type: ModalColumnType) => {
 export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
   opened,
   onClose,
+  onUploadSuccess,
   data,
   fileName,
   file,
@@ -174,6 +176,9 @@ export const CsvPreviewModal: FC<CsvPreviewModalProps> = ({
 
       // Invalidate uploads list cache (this will refresh the page if using SWR)
       await mutate(SWR_KEYS.uploads.list());
+
+      // Notify parent of successful upload with the uploadId
+      onUploadSuccess?.(result.uploadId);
 
       // Close modal
       onClose();

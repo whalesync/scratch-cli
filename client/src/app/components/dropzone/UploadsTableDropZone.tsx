@@ -14,6 +14,7 @@ export const UploadsTableDropZone = ({
   openRef,
   disableNavigation = false,
   onUploadComplete,
+  onUploadSuccess,
   acceptContent,
   rejectContent,
   ...props
@@ -23,6 +24,7 @@ export const UploadsTableDropZone = ({
   children: React.ReactNode;
   disableNavigation?: boolean;
   onUploadComplete?: () => void;
+  onUploadSuccess?: (uploadId: string) => void;
   acceptContent?: React.ReactNode;
   rejectContent?: React.ReactNode;
 } & MantineStyleProps) => {
@@ -122,6 +124,7 @@ export const UploadsTableDropZone = ({
             // Call the upload complete callback when CSV preview closes
             onUploadComplete?.();
           }}
+          onUploadSuccess={onUploadSuccess}
           data={csvPreviewData}
           fileName={csvPreviewFileName}
           file={csvPreviewFile}

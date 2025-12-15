@@ -370,6 +370,30 @@ export const AddTableTab = () => {
     mutateUploads();
   };
 
+  const handleUploadSuccess = async (uploadId: string) => {
+    if (!workbook) return;
+
+    try {
+      setIsCreatingTable(true);
+      // Create the EntityId for the CSV upload
+      const tableId: EntityId = {
+        wsId: uploadId,
+        remoteId: [uploadId],
+      };
+      const snapshotTableId = await addTable(tableId, Service.CSV);
+      setActiveTab(snapshotTableId);
+      closeNewTabs();
+    } catch (error) {
+      console.error('Failed to add uploaded table:', error);
+      ScratchpadNotifications.error({
+        title: 'Failed to add table',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsCreatingTable(false);
+    }
+  };
+
   const contentWithoutExistingSources = (
     <Stack justify="center" gap="lg" my="md" align="center">
       <DecorativeBoxedIcon Icon={PlusIcon} />
@@ -508,7 +532,7 @@ export const AddTableTab = () => {
         {...modalStack.register('create')}
         returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
       />
-      <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} />
+      <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} onUploadSuccess={handleUploadSuccess} />
       <GenericDeleteConfirmationModal
         title="Delete table"
         onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
