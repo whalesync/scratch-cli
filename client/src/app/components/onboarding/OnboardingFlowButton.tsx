@@ -10,7 +10,7 @@ import { FlowTooltipBehavior } from './types';
 
 export const OnboardingFlowButton: FC = () => {
   const { user } = useScratchPadUser();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // TODO: when we need to support a second onboarding flow we should
   // make the code down from here more generic
