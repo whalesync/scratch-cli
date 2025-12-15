@@ -3,20 +3,18 @@ import { Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import ModelPicker from '@/app/components/ModelPicker';
+import ModelPickerModal from '@/app/components/ModelPickerModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID } from '@/types/common';
+import { DEFAULT_AGENT_MODEL_CONTEXT_LENGTH, DEFAULT_AGENT_MODEL_ID, ModelOption } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
-import { Group, Modal } from '@mantine/core';
+import { Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { PenLineIcon } from 'lucide-react';
 import { useState } from 'react';
 
 export const DefaultModelSection = () => {
   const { updateUserSetting, getUserSetting } = useScratchPadUser();
-  const { allowedModels } = useSubscription();
   const [saving, setSaving] = useState(false);
   const [modelPickerOpen, { open: openModelPicker, close: closeModelPicker }] = useDisclosure();
 
@@ -58,18 +56,17 @@ export const DefaultModelSection = () => {
           <StyledLucideIcon Icon={PenLineIcon} size={13} />
         </IconButtonGhost>
       </Group>
-      <Modal opened={modelPickerOpen} onClose={closeModelPicker} title="Select Model" size="xl" centered>
-        <ModelPicker
-          currentModelOption={{
-            value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
-            contextLength: DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
-          }}
-          onChange={(value) => {
-            handleModelChange(value.value);
-          }}
-          allowedModels={allowedModels}
-        />
-      </Modal>
+      <ModelPickerModal
+        opened={modelPickerOpen}
+        onClose={closeModelPicker}
+        currentModelOption={{
+          value: getUserSetting(UserSetting.DEFAULT_LLM_MODEL, DEFAULT_AGENT_MODEL_ID) as string,
+          contextLength: DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
+        }}
+        onSelectModel={(value: ModelOption) => {
+          handleModelChange(value.value);
+        }}
+      />
     </ConfigSection>
   );
 };

@@ -1,56 +1,13 @@
 'use client';
 
+import { useOpenRouterModels } from '@/hooks/use-openrouter-models';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ModelOption, PersistedModelOption } from '@/types/common';
 import { UserSetting } from '@/types/server-entities/users';
 import { Alert, Box, Card, Checkbox, Group, Loader, Radio, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import { Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge, BadgeOK } from './base/badge';
-
-// Popular model keys - these will be sorted to the top
-const POPULAR_MODEL_KEYS = [
-  'openai/gpt-4o-mini',
-  'openai/gpt-4o',
-  'openai/gpt-5-mini-2025-08-07',
-  'openai/gpt-5-2025-08-07',
-  'anthropic/claude-3-5-sonnet',
-  'anthropic/claude-3-haiku',
-  'google/gemini-2.5-pro',
-  'google/gemini-2.5-flash',
-];
-
-interface OpenRouterModel {
-  id: string;
-  canonical_slug: string;
-  hugging_face_id: string | null;
-  name: string;
-  created: number;
-  description: string;
-  context_length: number;
-  architecture: {
-    modality: string;
-    input_modalities: string[];
-    output_modalities: string[];
-    tokenizer: string;
-    instruct_type: string | null;
-  };
-  pricing: {
-    prompt: string;
-    completion: string;
-    request: string;
-    image: string;
-    web_search: string;
-    internal_reasoning: string;
-  };
-  top_provider: {
-    context_length: number;
-    max_completion_tokens: number | null;
-    is_moderated: boolean;
-  };
-  per_request_limits: unknown | null;
-  supported_parameters: string[];
-}
 
 interface ModelPickerProps {
   currentModelOption: PersistedModelOption;
@@ -63,77 +20,25 @@ interface ModelPickerProps {
   allowedModels?: string[];
 }
 
-export default function ModelPicker({ currentModelOption, onChange, allowedModels }: ModelPickerProps) {
+/**
+ * @deprecated use useOpenRouterModels instead
+ */
+export default function ModelPicker({ currentModelOption, onChange }: ModelPickerProps) {
   const { getUserSetting } = useScratchPadUser();
-  const [allModels, setAllModels] = useState<ModelOption[]>([]);
-  const [filteredModels, setFilteredModels] = useState<ModelOption[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const {
+    filteredModels: searchFilteredModels,
+    subscriptionFilteredModels,
+    searchQuery,
+    setSearchQuery,
+    isLoading,
+    error,
+  } = useOpenRouterModels();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch models from OpenRouter API
-  useEffect(() => {
-    const fetchModels = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/models');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch models: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const models: ModelOption[] = data.data.map((model: OpenRouterModel) => ({
-          value: model.id,
-          label: model.name,
-          provider: model.name.split(':')[0] || 'Unknown',
-          description: model.description || 'No description available',
-          contextLength: model.context_length,
-          id: model.id,
-          canonicalSlug: model.canonical_slug,
-          created: model.created,
-          pricing: model.pricing,
-          isPopular: POPULAR_MODEL_KEYS.includes(model.canonical_slug),
-        }));
-
-        // Sort models: popular ones first, then alphabetically by label
-        const sortedModels = models.sort((a, b) => {
-          // Popular models first
-          if (a.isPopular && !b.isPopular) return -1;
-          if (!a.isPopular && b.isPopular) return 1;
-
-          // Then alphabetically by label
-          return a.label.localeCompare(b.label);
-        });
-
-        setAllModels(sortedModels);
-        setFilteredModels(sortedModels);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch models');
-        setAllModels([]);
-        setFilteredModels([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchModels();
-  }, []);
 
   const currentFavoriteModel = useMemo(() => {
     return getUserSetting(UserSetting.DEFAULT_LLM_MODEL);
   }, [getUserSetting]);
-
-  // Get models filtered by subscription restrictions only (not by search/provider/free filters)
-  const subscriptionFilteredModels = useMemo(() => {
-    if (!allowedModels || allowedModels.length === 0) {
-      return allModels; // Empty = all models allowed
-    }
-    return allModels.filter((model) => allowedModels.includes(model.id) || allowedModels.includes(model.canonicalSlug));
-  }, [allModels, allowedModels]);
 
   // Get unique providers from subscription-filtered models, with popular ones first
   const popularProviders = [
@@ -157,10 +62,10 @@ export default function ModelPicker({ currentModelOption, onChange, allowedModel
     );
   };
 
-  // Filter models based on search query, provider, and free filter
-  // (subscription filtering is already applied in subscriptionFilteredModels)
-  useEffect(() => {
-    let filtered = subscriptionFilteredModels;
+  // Filter models based on provider and free filter
+  // (subscription and search filtering are already applied via the hook)
+  const filteredModels = useMemo(() => {
+    let filtered = searchFilteredModels;
 
     // Filter by provider
     if (selectedProvider) {
@@ -172,28 +77,8 @@ export default function ModelPicker({ currentModelOption, onChange, allowedModel
       filtered = filtered.filter(isModelFree);
     }
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const queryWords = searchQuery
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((word) => word.length > 0);
-      filtered = filtered.filter((model) => {
-        const searchableText = [
-          model.label.toLowerCase(),
-          model.provider.toLowerCase(),
-          model.description.toLowerCase(),
-          model.value.toLowerCase(),
-          model.id.toLowerCase(),
-          model.canonicalSlug.toLowerCase(),
-        ].join(' ');
-
-        return queryWords.every((word) => searchableText.includes(word));
-      });
-    }
-
-    setFilteredModels(filtered);
-  }, [searchQuery, selectedProvider, showFreeOnly, subscriptionFilteredModels]);
+    return filtered;
+  }, [searchFilteredModels, selectedProvider, showFreeOnly]);
 
   const formatModelLabel = (model: ModelOption) => (
     <Group gap="xs" justify="space-between" w="100%">

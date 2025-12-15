@@ -9,6 +9,7 @@ import {
   IconButtonOutline,
 } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import ModelPickerModal from '@/app/components/ModelPickerModal';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
 import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
@@ -17,7 +18,6 @@ import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contex
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
-import { useSubscription } from '@/hooks/use-subscription';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import {
   trackChangeAgentCapabilities,
@@ -29,17 +29,15 @@ import {
 import { useAgentChatWebSocketStore } from '@/stores/agent-chat-websocket-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { AgentProgressMessageData, WebSocketMessage } from '@/types/agent-websocket';
-import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO } from '@spinner/shared-types';
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import { Alert, Anchor, Box, Center, Divider, Group, Modal, Paper, Stack, Text, Tooltip } from '@mantine/core';
-import { SnapshotTableId } from '@spinner/shared-types';
+import { Alert, Anchor, Box, Center, Divider, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO, SnapshotTableId } from '@spinner/shared-types';
 import { ChevronDownIcon, CircleStopIcon, LucideFileKey, Plus, SendIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { Text12Regular, Text13Medium } from '../../../../components/base/text';
-import ModelPicker from '../../../../components/ModelPicker';
 import { WORKBOOK_TAB_BAR_HEIGHT } from '../WorkbookTabBar';
 import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
@@ -52,7 +50,6 @@ import { TokenUseButton } from './TokenUseButton';
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials(true);
-  const { allowedModels } = useSubscription();
   const { markStepCompleted } = useOnboardingUpdate();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
@@ -577,17 +574,16 @@ export default function AIChatPanel() {
         </Group>
       </Box>
       {/* Model Selector Modal */}
-      <Modal opened={showModelSelector} onClose={() => setShowModelSelector(false)} title="Select Model" size="xl">
-        <ModelPicker
-          currentModelOption={activeModel}
-          onChange={(value) => {
-            setActiveModel(value);
-            trackChangeAgentModel(activeModel.value, workbook);
-            setShowModelSelector(false);
-          }}
-          allowedModels={allowedModels}
-        />
-      </Modal>
+      <ModelPickerModal
+        opened={showModelSelector}
+        onClose={() => setShowModelSelector(false)}
+        currentModelOption={activeModel}
+        onSelectModel={(value) => {
+          setActiveModel(value);
+          trackChangeAgentModel(activeModel.value, workbook);
+          setShowModelSelector(false);
+        }}
+      />
       {/* Tools Modal */}
       <ToolsModal
         opened={showToolsModal}

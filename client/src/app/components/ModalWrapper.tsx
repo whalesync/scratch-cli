@@ -4,6 +4,7 @@ import { FC } from 'react';
 type Props = ModalProps & {
   customProps: {
     footer: React.ReactNode | null;
+    noBodyPadding?: boolean;
   };
 };
 
@@ -31,10 +32,10 @@ export const ModalWrapper: FC<Props> = (props) => {
         },
       }}
     >
-      <Stack>
+      <Stack p={customProps.noBodyPadding ? 0 : undefined} gap={customProps.noBodyPadding ? 0 : undefined}>
         <Divider />
         <ScrollArea.Autosize mah="60vh" type="auto">
-          <Box pl={16} pr={16}>
+          <Box pl={customProps.noBodyPadding ? 0 : 16} pr={customProps.noBodyPadding ? 0 : 16}>
             {children}
           </Box>
         </ScrollArea.Autosize>
