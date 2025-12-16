@@ -48,14 +48,16 @@ export const WorkbookHeader = () => {
 
   return (
     <Group bg="var(--bg-panel)" h={36} justify="space-between" pos="relative" px="xs" gap="xs">
-      <ToolIconButton icon={PanelLeftIcon} onClick={toggleNavDrawer} size="md" />
+      <Group flex={1}>
+        <ToolIconButton icon={PanelLeftIcon} onClick={toggleNavDrawer} size="md" />
+      </Group>
 
-      {/* Float in the middle */}
       <Group gap={6}>
         <StyledLucideIcon Icon={Table2} size={14} c="var(--fg-secondary)" />
         <Text13Regular>{workbook?.name}</Text13Regular>
       </Group>
-      <Group gap="xs">
+
+      <Group flex={1} justify="flex-end" gap="xs">
         {!chatOpen && (
           <ButtonSecondaryInline
             onClick={openChat}
