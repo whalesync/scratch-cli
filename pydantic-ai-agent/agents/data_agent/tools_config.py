@@ -27,6 +27,8 @@ from agents.data_agent.tools.update_records_tool import create_update_records_to
 from agents.data_agent.tools.upload_content_tool import define_upload_content_tool
 from agents.data_agent.tools.url_content_load_tool import define_url_content_load_tool
 from agents.data_agent.tools.view.set_filter_tool import define_set_filter_tool
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
 from server.capabilities import (
     DATA_CREATE,
     DATA_DELETE,
@@ -40,8 +42,6 @@ from server.capabilities import (
     VIEWS_FILTERING,
     has_capability,
 )
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
 
 
 class GetRecordsInput(BaseModel):

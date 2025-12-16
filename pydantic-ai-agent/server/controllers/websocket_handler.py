@@ -3,18 +3,16 @@
 WebSocket Handler for real-time chat
 """
 
-import asyncio
 import json
 from datetime import datetime, timezone
-from typing import Dict, Optional
-from fastapi import WebSocket, WebSocketDisconnect
-
-from server.DTOs import (
-    SendMessageRequestDTO,
-)
-from logger import log_info, log_error
 from logging import getLogger
+from typing import Optional
+
+from fastapi import WebSocket, WebSocketDisconnect
+from logger import log_error, log_info
+
 from server.auth import decode_and_validate_agent_jwt
+from server.DTOs import SendMessageRequestDTO
 from server.exception_mapping import exception_mapping
 from server.websocket_connection_manager import ConnectionManager
 

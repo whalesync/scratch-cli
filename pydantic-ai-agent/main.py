@@ -6,28 +6,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import os
-import sys
 import threading
 import time as time_module
-from typing import Optional, Any
 from contextlib import asynccontextmanager
+from logging import getLogger
+from typing import Any, Optional
 
+import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
-from server.chat_controller import router as chat_router
-from server.admin_controller import router as admin_router
-from server.websocket_handler import websocket_endpoint
-from server.services import (
-    WebSocketConnectionManagerDep,
-    initialize_services,
-    get_session_service,
-)
 
 from config import get_settings
-from logging import getLogger
+from server.controllers.admin_controller import router as admin_router
+from server.controllers.chat_controller import router as chat_router
+from server.controllers.websocket_handler import websocket_endpoint
+from server.services import (
+    WebSocketConnectionManagerDep,
+    get_session_service,
+    initialize_services,
+)
 
 logger = getLogger(__name__)
 

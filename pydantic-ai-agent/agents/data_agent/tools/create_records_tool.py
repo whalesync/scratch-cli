@@ -1,27 +1,23 @@
 # Create custom JSON schema without $ref references
+import json
 from logging import getLogger
-from agents.data_agent.models import (
-    ChatRunContext,
-    common_field_descriptions,
-)
+from typing import Any, Dict, List, TypedDict
 
-from typing import Dict, Any, List, Union, TypedDict
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext, Tool
-from pydantic_ai._function_schema import FunctionSchema
-from pydantic_core import SchemaValidator, core_schema
 from agents.data_agent.model_utils import (
     find_column_by_name,
     get_active_table,
     unable_to_identify_active_snapshot_error,
     unable_to_identify_active_table_error,
 )
-from logger import log_info, log_error
-import json
-from utils.get_styleguide import get_styleguide
+from agents.data_agent.models import ChatRunContext, common_field_descriptions
+from logger import log_error, log_info
+from pydantic import Field
+from pydantic_ai import RunContext, Tool
+from pydantic_ai._function_schema import FunctionSchema
+from pydantic_core import SchemaValidator, core_schema
 from scratchpad.api import ScratchpadApi
 from scratchpad.entities import RecordOperation
-
+from utils.get_styleguide import get_styleguide
 
 logger = getLogger(__name__)
 

@@ -1,13 +1,9 @@
-from typing import Dict, List, Optional
-import asyncio
 from datetime import datetime, timedelta, timezone
-import json
-
-from agents.data_agent.models import (
-    ChatSession,
-)
-from scratchpad.api import ScratchpadApi
 from logging import getLogger
+from typing import Dict, List, Optional
+
+from agents.data_agent.models import ChatSession
+from scratchpad.api import ScratchpadApi
 from session import ChatMessage, RequestAndResponseSummary
 
 logger = getLogger(__name__)

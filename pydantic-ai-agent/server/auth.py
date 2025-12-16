@@ -1,8 +1,6 @@
 from logging import getLogger
-import os
 import jwt
-from typing import Any, Callable, List, Dict, Optional
-from datetime import datetime
+from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import HTTPException, Header
 from config import get_settings

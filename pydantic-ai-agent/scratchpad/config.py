@@ -1,8 +1,7 @@
-import os
-from typing import Dict
 from logging import getLogger
-from config import get_settings
+from typing import Dict
 
+from config import get_settings
 
 logger = getLogger(__name__)
 

@@ -14,7 +14,8 @@
     "mrmlnc.vscode-duplicate",
     "yoavbls.pretty-ts-errors",
     "ms-python.black-formatter",
-    "ms-python.python"
+    "ms-python.python",
+    "ms-python.isort"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []

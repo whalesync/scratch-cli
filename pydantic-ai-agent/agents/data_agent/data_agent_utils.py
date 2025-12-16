@@ -1,9 +1,10 @@
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
-from scratchpad.entities import ColumnView, ScratchpadWorkbook, SnapshotTable
-from session import ChatSession
 from logging import getLogger
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+from scratchpad.entities import ScratchpadWorkbook, SnapshotTable
+from session import ChatSession
 
 logger = getLogger(__name__)
 

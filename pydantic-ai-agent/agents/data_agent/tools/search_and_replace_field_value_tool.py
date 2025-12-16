@@ -2,31 +2,28 @@
 """
 Search and Replace Field Value Tool for the Data Agent
 """
-from agents.data_agent.models import (
-    ChatRunContext,
-    ResponseFromAgent,
-)
+import re
+from logging import getLogger
+from typing import Optional
+
 from agents.data_agent.model_utils import (
-    missing_field_error,
-    find_column_by_name,
     find_column_by_id,
+    find_column_by_name,
     get_active_table,
-    unable_to_identify_active_snapshot_error,
-    unable_to_identify_active_table_error,
+    missing_field_error,
+    record_not_in_context_error,
     unable_to_identify_active_field_error,
     unable_to_identify_active_record_error,
-    record_not_in_context_error,
+    unable_to_identify_active_snapshot_error,
+    unable_to_identify_active_table_error,
     update_record_in_context,
 )
-from typing import Optional
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ToolReturn
-from logger import log_error
-import re
 from scratchpad.api import ScratchpadApi
-from scratchpad.entities import ColumnSpec, TableSpec, RecordOperation
-from logging import getLogger
+from scratchpad.entities import ColumnSpec, RecordOperation, TableSpec
 
 logger = getLogger(__name__)
 

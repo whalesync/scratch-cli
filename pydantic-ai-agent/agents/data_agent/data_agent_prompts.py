@@ -1,12 +1,11 @@
-from utils.get_styleguide import get_styleguide
 from logging import getLogger
+
 from server.capabilities import (
     DATA_CREATE,
     DATA_DELETE,
     DATA_FETCH_TOOLS,
     DATA_FIELD_TOOLS,
     DATA_UPDATE,
-    OTHER_UPLOAD_CONTENT,
     OTHER_URL_CONTENT_LOAD,
     TABLE_ADD_COLUMN,
     TABLE_REMOVE_COLUMN,
@@ -15,6 +14,7 @@ from server.capabilities import (
     has_data_manipulation_capabilities,
     has_one_of_capabilities,
 )
+from utils.get_styleguide import get_styleguide
 
 logger = getLogger(__name__)
 

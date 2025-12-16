@@ -2,10 +2,9 @@
 """
 Capability constants for data agent tools
 """
-from server.DTOs import Capability
-
 from typing import List, Optional
 
+from server.DTOs import Capability
 
 # Data manipulation capabilities
 DATA_UPDATE = "data:update"

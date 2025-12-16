@@ -3,24 +3,18 @@
 PydanticAI Agent for the Chat Server
 """
 
-import os
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from logging import getLogger
+from typing import Dict, List, Optional
 
-# from pydantic_ai import UrlContextTool, WebSearchTool
+from agents.data_agent.data_agent_history_processor import data_agent_history_processor
+from agents.data_agent.data_agent_prompts import get_data_agent_instructions
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from agents.data_agent.tools_config import configure_tools, get_data_tools
+from config import get_settings
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
-from typing import Dict, Optional, List
-
-from agents.data_agent.models import ResponseFromAgent, ChatRunContext
-from agents.data_agent.data_agent_prompts import get_data_agent_instructions
-from utils.helpers import mask_string
-from agents.data_agent.tools_config import configure_tools, get_data_tools
-from agents.data_agent.data_agent_history_processor import data_agent_history_processor
-from scratchpad.entities import AgentCredential
 from server.user_prompt_utils import build_workbook_context
-from logging import getLogger
-from config import get_settings
 
 logger = getLogger(__name__)
 

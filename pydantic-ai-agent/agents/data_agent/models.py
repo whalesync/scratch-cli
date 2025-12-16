@@ -3,13 +3,11 @@
 Data models for the chat server
 """
 
-from enum import Enum
-from pydantic import BaseModel, Field
-from datetime import datetime
-from scratchpad.entities import ColumnSpec, SnapshotRecord, RecordId, TableSpec
-from typing import List, Optional, Dict, Any
-from session import ChatSession
+from typing import Any, Dict, List, Optional
+
 from agents.data_agent.data_agent_utils import WorkbookForAi
+from pydantic import BaseModel, Field
+from session import ChatSession
 
 
 class UsageStats(BaseModel):

@@ -7,13 +7,14 @@ Services are managed as singletons and injected via FastAPI's dependency injecti
 """
 
 from typing import Annotated
+
 from fastapi import Depends
 
-from server.session_service import SessionService
 from server.agent_run_state_manager import AgentRunStateManager
-from server.chat_service import ChatService
-from server.websocket_connection_manager import ConnectionManager
 from server.agent_task_manager import AgentTaskManager
+from server.chat_service import ChatService
+from server.session_service import SessionService
+from server.websocket_connection_manager import ConnectionManager
 
 # Global service instances (singletons)
 _session_service: SessionService | None = None

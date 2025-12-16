@@ -3,15 +3,11 @@
 History processor for the Data Agent
 """
 
-from typing import List
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    ToolReturnPart,
-)
-from logging import getLogger
 import json
+from logging import getLogger
+from typing import List
+
+from pydantic_ai.messages import ModelMessage, ModelRequest, ToolReturnPart
 
 logger = getLogger(__name__)
 

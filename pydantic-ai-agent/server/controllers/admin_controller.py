@@ -3,18 +3,16 @@
 FastAPI Endpoints for Health Check
 """
 
-from typing import Any
-
-
-from fastapi import APIRouter, Depends
-from logging import getLogger
 from datetime import datetime
+from logging import getLogger
+
+from fastapi import APIRouter, WebSocket
+
 from server.services import (
     AgentRunStateManagerDep,
     AgentTaskManagerDep,
     WebSocketConnectionManagerDep,
 )
-from fastapi import WebSocket
 
 logger = getLogger(__name__)
 

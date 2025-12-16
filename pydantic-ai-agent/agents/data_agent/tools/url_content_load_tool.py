@@ -1,13 +1,10 @@
-from agents.data_agent.models import (
-    ChatRunContext,
-    ResponseFromAgent,
-)
+from logging import getLogger
+
+import requests
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error, log_info
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ToolReturn
-from logger import log_info, log_error
-from logging import getLogger
-import requests
-
 
 logger = getLogger(__name__)
 

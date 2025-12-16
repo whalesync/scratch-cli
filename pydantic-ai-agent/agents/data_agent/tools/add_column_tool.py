@@ -1,20 +1,14 @@
-from agents.data_agent.models import (
-    ChatRunContext,
-    ResponseFromAgent,
-)
+from logging import getLogger
+
 from agents.data_agent.model_utils import (
     get_active_table,
     unable_to_identify_active_table_error,
 )
-from scratchpad.api import ScratchpadApi
-from scratchpad.entities import ColumnSpec, TableSpec, RecordOperation
-
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error, log_info
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ToolReturn
-from logger import log_info, log_error
-from logging import getLogger
-import requests
-
+from scratchpad.api import ScratchpadApi
 
 logger = getLogger(__name__)
 

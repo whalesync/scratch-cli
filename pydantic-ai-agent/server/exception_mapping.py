@@ -1,6 +1,6 @@
 from fastapi import HTTPException
-from pydantic_ai.exceptions import ModelHTTPError
 from logger import log_warning
+from pydantic_ai.exceptions import ModelHTTPError
 
 
 def exception_mapping(error: Exception) -> HTTPException:

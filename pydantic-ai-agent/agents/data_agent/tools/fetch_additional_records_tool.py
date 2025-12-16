@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
 from logging import getLogger
-from agents.data_agent.models import (
-    ChatRunContext,
-    ResponseFromAgent,
-)
-from agents.data_agent.model_utils import (
-    get_active_table,
-    unable_to_identify_active_table_error,
-    unable_to_identify_active_snapshot_error,
-)
-from agents.data_agent.data_agent_utils import format_records_for_prompt
 from typing import Optional, Union
-from pydantic import Field, BaseModel
+
+from agents.data_agent.data_agent_utils import format_records_for_prompt
+from agents.data_agent.model_utils import unable_to_identify_active_snapshot_error
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error, log_info
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ToolReturn
 from scratchpad.api import ScratchpadApi
-from logger import log_info, log_error
 
 logger = getLogger(__name__)
 

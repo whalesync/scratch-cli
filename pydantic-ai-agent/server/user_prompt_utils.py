@@ -1,10 +1,11 @@
 from logging import getLogger
-from typing import Dict, Any, List, Optional
-from agents.data_agent.models import WorkbookForAi
+from typing import Any, Dict, List, Optional
+
 from agents.data_agent.data_agent_utils import (
     ColumnSpecForAi,
     format_records_for_prompt,
 )
+from agents.data_agent.models import WorkbookForAi
 
 logger = getLogger(__name__)
 

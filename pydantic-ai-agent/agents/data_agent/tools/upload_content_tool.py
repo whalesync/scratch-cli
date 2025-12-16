@@ -2,12 +2,12 @@
 """
 Upload Content Tool for the Data Agent
 """
+import logging
+
 from agents.data_agent.models import ChatRunContext, ResponseFromAgent
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ToolReturn
-from typing import Optional
-import logging
 from scratchpad.api import ScratchpadApi
 
 logger = logging.getLogger(__name__)

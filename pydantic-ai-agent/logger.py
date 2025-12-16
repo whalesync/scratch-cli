@@ -3,19 +3,19 @@
 Centralized logging module for the chat server
 """
 
-from pathlib import Path
-from typing import Optional, Any
 from logging import (
-    basicConfig,
-    INFO,
     DEBUG,
-    StreamHandler,
-    Formatter,
-    getLogger,
-    WARNING,
+    INFO,
     Filter,
+    Formatter,
+    StreamHandler,
+    basicConfig,
+    getLogger,
 )
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any, Optional
+
 from pydantic_ai.agent import Agent
 from pydantic_ai.models.instrumented import InstrumentationSettings
 

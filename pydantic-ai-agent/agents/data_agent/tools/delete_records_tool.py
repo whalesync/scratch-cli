@@ -2,18 +2,19 @@
 """
 Delete Records Tool for the Data Agent
 """
-from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
+from logging import getLogger
+from typing import List
+
 from agents.data_agent.model_utils import (
     get_active_table,
-    unable_to_identify_active_table_error,
     unable_to_identify_active_snapshot_error,
+    unable_to_identify_active_table_error,
 )
-from typing import List
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error, log_info
 from pydantic_ai import Agent, RunContext
-from logger import log_info, log_error
 from scratchpad.api import ScratchpadApi
 from scratchpad.entities import RecordOperation
-from logging import getLogger
 
 logger = getLogger(__name__)
 

@@ -1,15 +1,14 @@
-from typing import Dict, List, Optional, Any
-import requests
 from logging import getLogger
+from typing import Any, Dict, List, Optional
 
+import requests
 from scratchpad.config import API_CONFIG
 from scratchpad.entities import (
     AgentCredential,
-    ColumnView,
-    RecordOperation,
-    ScratchpadWorkbook,
     ListRecordsResponse,
     RecordId,
+    RecordOperation,
+    ScratchpadWorkbook,
     SnapshotRecord,
 )
 

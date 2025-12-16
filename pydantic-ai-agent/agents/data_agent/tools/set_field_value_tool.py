@@ -1,28 +1,26 @@
 #!/usr/bin/env python3
 from logging import getLogger
-from agents.data_agent.models import (
-    ChatRunContext,
-    ResponseFromAgent,
-)
+from typing import Optional
+
 from agents.data_agent.model_utils import (
-    find_record_by_wsId,
-    missing_field_error,
-    find_column_by_name,
     find_column_by_id,
+    find_column_by_name,
+    find_record_by_wsId,
     get_active_table,
+    missing_field_error,
+    record_not_in_context_error,
     unable_to_identify_active_field_error,
     unable_to_identify_active_record_error,
-    unable_to_identify_active_table_error,
-    record_not_in_context_error,
     unable_to_identify_active_snapshot_error,
+    unable_to_identify_active_table_error,
     update_record_in_context,
 )
-from typing import Optional
-from pydantic import Field, BaseModel
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from logger import log_error, log_info
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from scratchpad.api import ScratchpadApi
-from scratchpad.entities import ColumnSpec, TableSpec, RecordOperation
-from logger import log_info, log_error
+from scratchpad.entities import ColumnSpec, RecordOperation, TableSpec
 
 logger = getLogger(__name__)
 

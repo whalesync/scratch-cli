@@ -6,22 +6,21 @@ FastAPI Endpoints for Chat Server
 import time
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic_ai.exceptions import UserError
+from logging import getLogger
 
-from session import ChatMessage, ChatSession, RequestAndResponseSummary
+from fastapi import APIRouter, Depends, HTTPException
+from logger import log_error, log_info
+from server.auth import AgentUser, get_current_user
+from server.capabilities import AVAILABLE_CAPABILITIES
 from server.DTOs import (
-    SendMessageRequestDTO,
-    SendMessageResponseDTO,
     ChatSessionSummary,
     CreateSessionResponseDTO,
+    SendMessageRequestDTO,
+    SendMessageResponseDTO,
 )
-from server.capabilities import AVAILABLE_CAPABILITIES
-from server.services import SessionServiceDep, ChatServiceDep
-from server.auth import AgentUser, get_current_user
-from logger import log_info, log_error
 from server.exception_mapping import exception_mapping
-from logging import getLogger
+from server.services import ChatServiceDep, SessionServiceDep
+from session import ChatMessage, ChatSession, RequestAndResponseSummary
 
 myLogger = getLogger(__name__)
 

@@ -4,42 +4,33 @@ Chat Service for handling agent communication and session management
 """
 
 import asyncio
-import os
-import uuid
-from typing import Dict, List, Optional, Any, Callable, Awaitable
-from fastapi import HTTPException
-from pydantic_ai.usage import RunUsage, UsageLimits
+from logging import getLogger
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+from agents.data_agent.agent import create_agent
+from agents.data_agent.data_agent_history_processor import data_agent_history_processor
+from agents.data_agent.data_agent_utils import (
+    convert_scratchpad_workbook_to_ai_workbook,
+)
 from agents.data_agent.models import (
     ChatRunContext,
     ChatSession,
     ResponseFromAgent,
     UsageStats,
 )
-from agents.data_agent.agent import create_agent
-from utils.response_extractor import extract_response
-from logger import log_info, log_error
-from logging import getLogger
-
+from fastapi import HTTPException
+from logger import log_error, log_info
+from pydantic_ai.usage import RunUsage
 from scratchpad.api import ScratchpadApi
+from utils.helpers import mask_string
+from utils.response_extractor import extract_response
 
-from server.user_prompt_utils import build_workbook_context
-from server.agent_stream_processor import (
-    process_agent_stream,
-    CancelledAgentRunResult,
-)
-from server.exceptions import TokenLimitExceededException
-
-from agents.data_agent.data_agent_utils import (
-    convert_scratchpad_workbook_to_ai_workbook,
-)
-from agents.data_agent.data_agent_history_processor import (
-    data_agent_history_processor,
-)
-from utils.helpers import find_first_matching, mask_string
 from server.agent_run_state_manager import AgentRunStateManager
-from server.session_service import SessionService
+from server.agent_stream_processor import CancelledAgentRunResult, process_agent_stream
 from server.auth import AgentUser
+from server.exceptions import TokenLimitExceededException
+from server.session_service import SessionService
+from server.user_prompt_utils import build_workbook_context
 
 logger = getLogger(__name__)
 
