@@ -5,10 +5,10 @@ import isEqual from 'lodash/isEqual';
 import { useRouter } from 'next/navigation';
 import AIChatPanel from './components/AIChatPanel/AIChatPanel';
 
+import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { useDevTools } from '@/hooks/use-dev-tools';
@@ -88,7 +88,7 @@ function WorkbookPageContent() {
 
   // Only show loader on initial load, not during revalidation
   if (isLoading && !workbook) {
-    return <LoaderWithMessage centered message="Loading workbook..." />;
+    return <FullPageLoader message="Loading workbook..." />;
   }
 
   if (!workbook) {

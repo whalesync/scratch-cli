@@ -173,7 +173,11 @@ const NavMenuUserButton = () => {
     <ButtonSecondaryGhost
       justify="flex-start"
       fullWidth
-      leftSection={<Box className={styles.embadgedLogo} />}
+      leftSection={
+        <Box w={21} h={21} bg="#9BF9EB">
+          <Box className={styles.embadgedLogo} />
+        </Box>
+      }
       rightSection={<ChevronDown size={16} color="var(--mantine-color-gray-7)" />}
       mb={12}
     >
