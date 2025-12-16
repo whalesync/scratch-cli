@@ -192,7 +192,7 @@ model SnapshotTable {
   activeRecordSqlFilter String?
 
   // Page size limit for records (null means unlimited)
-  pageSize Int? @default(1000)
+  pageSize Int? @default(25)
 
   // Current pagination offset (skip) for this table's view state
   currentSkip Int? @default(0)
